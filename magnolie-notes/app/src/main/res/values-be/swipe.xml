@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Дзеянні правядзення</string>
+    <string name="wischen_aktiv">Уключыць правядзенне для нататак і задач</string>
+    <string name="wischen_links">Правесці ўлева</string>
+    <string name="wischen_rechts">Правесці ўправа</string>
+    <string name="wischen_keine">Без дзеяння</string>
+    <string name="wischen_abgleichen">Сінхранізаваць гэты запіс</string>
+    <string name="wischen_wartet">Запіс у чарзе сінхранізацыі; чакаецца пацвярджэнне.</string>
+    <string name="wischen_fehler">Не ўдалося завяршыць дзеянне. Праверце запіс, злучэнне і дазволы.</string>
+    <string name="wischen_geaendert">Запіс зменены. Праверце яго перад выдаленнем.</string>
+    <string name="wischen_hinweis">Прадвызначана правядзенне ўправа выдаляе з пацвярджэннем, улева сінхранізуе толькі гэты запіс. Абодва дзеянні можна змяніць або выключыць. Патрэбны падлучаны актуальны Organizer.</string>
+</resources>

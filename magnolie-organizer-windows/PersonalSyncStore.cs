@@ -140,6 +140,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         TelefonMessageContract.ValidateMessage(message, now, true); if (message["kind"]?.GetValue<string>() != "personal_sync.batch") throw new InvalidDataException("Kein Personal-Sync-Batch.");
         var body = message["body"]!.AsObject(); var runId = body["run_id"]!.GetValue<string>(); var run = LoadRun(peerId, runId, now) ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
         if (body["format"]!.GetValue<int>() != run.Request["format"]!.GetValue<int>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
+        PersonalSyncContract.ValidateSelectedRecords(run.Request, body["records"]!.AsArray().OfType<JsonObject>());
         if (run.Expired || run.Policy == "wifi_only" && transport != "wifi") throw new InvalidDataException("Personal-Sync-Transportpolicy verletzt.");
         var reply = body["reply"]!.GetValue<bool>(); var sequence = checked((int)TelefonProtocolContract.Integer(body["sequence"])); if (sequence >= 4096) throw new InvalidDataException("Zu viele Personal-Sync-Batches.");
         var primary = BatchPrimary(peerId, runId, reply, sequence); var payload = store.Seal("personal_batch", primary, TelefonCrypto.Canonical(message));

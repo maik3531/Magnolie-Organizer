@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Kaydırma eylemleri</string>
+    <string name="wischen_aktiv">Notlar ve görevler için kaydırmayı etkinleştir</string>
+    <string name="wischen_links">Sola kaydır</string>
+    <string name="wischen_rechts">Sağa kaydır</string>
+    <string name="wischen_keine">Eylem yok</string>
+    <string name="wischen_abgleichen">Bu kaydı eşitle</string>
+    <string name="wischen_wartet">Kayıt eşitleme kuyruğunda; onay bekleniyor.</string>
+    <string name="wischen_fehler">Eylem tamamlanamadı. Kaydı, bağlantıyı ve izinleri kontrol edin.</string>
+    <string name="wischen_geaendert">Kayıt değişti. Silmeden önce yeniden kontrol edin.</string>
+    <string name="wischen_hinweis">Varsayılan olarak sağa kaydırma onayla siler, sola kaydırma yalnız bu kaydı eşitler. Her iki eylem değiştirilebilir veya kapatılabilir. Güncel ve bağlı Organizer gerekir.</string>
+</resources>

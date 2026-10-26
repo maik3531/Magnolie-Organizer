@@ -401,6 +401,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val faden = rememberCoroutineScope()
     val listenPrefs = remember(zusammenhang) { io.gitlab.maik3531.magnolienotes.ui.ListenEinstellungen(zusammenhang) }
     var listenAnzeige by remember(listenPrefs) { mutableStateOf(listenPrefs.lesen()) }
+    val wischPrefs = remember(zusammenhang) { io.gitlab.maik3531.magnolienotes.ui.WischEinstellungen(zusammenhang) }
+    var wischAnzeige by remember(wischPrefs) { mutableStateOf(wischPrefs.lesen()) }
     var sortierBlatt by remember { mutableStateOf<Int?>(null) }
 
     val bestand by ablage.bestand.collectAsState()
@@ -472,6 +474,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     var portableFehler by remember { mutableStateOf(false) }
 
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
+    fun einzelAbgleich(kind: String, id: String) {
+        faden.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { telefonWerk.personalItemSyncNow(kind, id) } }
+            sage(zusammenhang.getString(if (result.isSuccess) R.string.wischen_wartet else R.string.wischen_fehler))
+        }
+    }
 
     var zeitSpeichert by remember { mutableStateOf(false) }
     fun zeitAendern(change: (ZeiterfassungStand) -> ZeiterfassungStand, success: () -> Unit, vorher: () -> Unit = {}) {
@@ -998,6 +1006,11 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         Box(Modifier.fillMaxSize().padding(rand)) {
             when (blatt) {
                 5 -> EinstellungenBlatt(bestand.zeiterfassung.enabled, zeitSpeichert,
+                    wischen = wischAnzeige,
+                    beiWischen = { value ->
+                        runCatching { wischPrefs.speichern(value); wischAnzeige = value }
+                            .onFailure { sage(zusammenhang.getString(R.string.wischen_fehler)) }
+                    },
                     beiZeiterfassung = zeitAktiv,
                     beiBlatt = { blatt = it },
                     beiRechten = {
@@ -1018,6 +1031,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 0 -> NotizBlatt(
                     notizen = bestand.notizen,
                     anzeige = listenAnzeige,
+                    wischen = wischAnzeige,
+                    beiLoeschen = ablage::loescheNotizWennUnveraendert,
+                    beiAbgleichen = { einzelAbgleich("note", it.id) },
                     notizbuecher = bestand.notizbuecher,
                     beiOeffnen = ablage::setzeNotizEntwurf,
                     beiNeu = {
@@ -1033,6 +1049,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 1 -> AufgabenBlatt(
                     aufgaben = bestand.aufgaben,
                     anzeige = listenAnzeige,
+                    wischen = wischAnzeige,
+                    beiLoeschen = ablage::loescheAufgabeWennUnveraendert,
+                    beiAbgleichen = { einzelAbgleich("task", it.id) },
                     beiOeffnen = ablage::setzeAufgabenEntwurf,
                     beiAbhaken = { aufgabe, erledigt ->
                         faden.launch {

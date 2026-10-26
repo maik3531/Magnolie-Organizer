@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">स्वाइप क्रियाएँ</string>
+    <string name="wischen_aktiv">नोट और कार्यों के लिए स्वाइप चालू करें</string>
+    <string name="wischen_links">बाईं ओर स्वाइप करें</string>
+    <string name="wischen_rechts">दाईं ओर स्वाइप करें</string>
+    <string name="wischen_keine">कोई क्रिया नहीं</string>
+    <string name="wischen_abgleichen">केवल इस प्रविष्टि को सिंक करें</string>
+    <string name="wischen_wartet">प्रविष्टि सिंक कतार में है; पुष्टि की प्रतीक्षा है।</string>
+    <string name="wischen_fehler">क्रिया पूरी नहीं हो सकी। प्रविष्टि, कनेक्शन और अनुमतियाँ जाँचें।</string>
+    <string name="wischen_geaendert">प्रविष्टि बदल गई है। मिटाने से पहले फिर जाँचें।</string>
+    <string name="wischen_hinweis">डिफ़ॉल्ट रूप से दाईं ओर स्वाइप करने पर पुष्टि के बाद मिटाया जाता है और बाईं ओर केवल यही प्रविष्टि सिंक होती है। दोनों क्रियाएँ बदली या बंद की जा सकती हैं। जुड़ा हुआ नवीनतम Organizer आवश्यक है।</string>
+</resources>

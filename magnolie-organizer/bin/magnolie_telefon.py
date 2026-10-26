@@ -1153,6 +1153,8 @@ class PhoneStore:
 
     def stage_personal_batch(self, peer_id, message):
         body = message["body"]
+        request = self.personal_run(peer_id, body["run_id"])
+        personal_sync_contract.validate_selected_records(request, body["records"])
         primary = "%s:%s:%d:%d" % (peer_id, body["run_id"], body["reply"], body["sequence"])
         encrypted = self._encrypt(canonical(message), "personal_batch", primary)
         now = now_ms()
@@ -5009,7 +5011,13 @@ class PhoneService:
                     all(item.get("decision") == "delete" for item in body.get("decisions", []))
         if self._single_item_run(peer_id, kind, body):
             peer = self.store.sole_peer(peer_id)
-            return (kind != "personal_sync.request" or outgoing) and self._content_scope_ready_controls(peer, self.connections.get(peer_id))
+            if not self._content_scope_ready_controls(peer, self.connections.get(peer_id)):
+                return False
+            if kind != "personal_sync.request" or outgoing:
+                return True
+            manifest = self._scoped_data_manifest(peer_id, kind, body)
+            selected = body["send_item"]
+            return body["format"] == 14 and manifest is not None and selected["id"] in manifest["members"]["notes" if selected["kind"] == "note" else "tasks"]
         if self._scoped_data_manifest(peer_id, kind, body) is not None:
             return True
         peer = self.store.sole_peer(peer_id)
@@ -5268,6 +5276,8 @@ class PhoneService:
             run = self.store.personal_run(peer_id, body["run_id"])
             if kind in {"personal_sync.batch", "personal_sync.report"} and format != run.get("format", 1):
                 raise ValueError("conflicting personal sync format")
+            if kind == "personal_sync.batch":
+                personal_sync_contract.validate_selected_records(run, body["records"])
             if run.get("trigger") not in {"manual", "auto_wifi"}:
                 raise RuntimeError("Unbekannte Personal-Sync-Transportpolicy.")
             trigger = run["trigger"]
@@ -5336,12 +5346,7 @@ class PhoneService:
             if report["format"] != format or report["run_id"] != request["run_id"]:
                 raise ValueError("inconsistent format 2 report")
         records = [record for body in batches for record in body["records"]]
-        if "send_item" in request and not batches[-1]["reply"]:
-            selected = request["send_item"]
-            target = [record for record in records if record["kind"] == selected["kind"] and record["id"] == selected["id"]]
-            if len(target) != 1 or any(record not in target and not (record["kind"] == "notebook" and
-                    record["id"] == target[0]["value"].get("notebook_id")) for record in records):
-                raise ValueError("single-item send contains unrelated content")
+        personal_sync_contract.validate_selected_records(request, records, complete=True, reply=batches[-1]["reply"])
         if (any(body["format"] != format or body["run_id"] != request["run_id"] or
                 body["reply"] != batches[-1]["reply"] for body in batches)
                 or [body["sequence"] for body in batches] != list(range(len(batches)))
@@ -5871,6 +5876,7 @@ class PhoneService:
                     "format": format, "run_id": aggregate["run_id"], "batch_id": str(uuid.uuid4()),
                     "sequence": 0, "last": True, "reply": aggregate["reply"],
                     "records": aggregate["records"], "requested_modules": run.get("modules", []),
+                    **({"send_item": copy.deepcopy(run["send_item"])} if "send_item" in run else {}),
                     "trigger": run.get("trigger", "manual"),
                     "attachment_data": aggregate.get("attachment_data", {})}})
 
@@ -7178,6 +7184,7 @@ class PhoneService:
                                 sequence=0, last=True, records=aggregate["records"],
                                 attachment_data=aggregate.get("attachment_data", {}),
                                 requested_modules=run.get("modules", []),
+                                **({"send_item": copy.deepcopy(run["send_item"])} if "send_item" in run else {}),
                                 trigger=run.get("trigger", "manual"))})
                     event.wait(PERSONAL_COMMIT_SECONDS)
                     committed = not self.store.has_personal_batch(

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Strygehandlinger</string>
+    <string name="wischen_aktiv">Aktivér strygning for noter og opgaver</string>
+    <string name="wischen_links">Stryg til venstre</string>
+    <string name="wischen_rechts">Stryg til højre</string>
+    <string name="wischen_keine">Ingen handling</string>
+    <string name="wischen_abgleichen">Synkroniser denne post</string>
+    <string name="wischen_wartet">Posten er sat i kø til synkronisering; afventer bekræftelse.</string>
+    <string name="wischen_fehler">Handlingen kunne ikke fuldføres. Kontrollér posten, forbindelsen og tilladelserne.</string>
+    <string name="wischen_geaendert">Posten er ændret. Kontrollér den igen før sletning.</string>
+    <string name="wischen_hinweis">Som standard sletter strygning til højre efter bekræftelse, og til venstre synkroniserer kun denne post. Begge handlinger kan ændres eller deaktiveres. En opdateret, tilsluttet Organizer kræves.</string>
+</resources>

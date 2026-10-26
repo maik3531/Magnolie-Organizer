@@ -1,0 +1,23 @@
+{
+  "keys": ["wischen_bestaetigung"],
+  "en": ["Delete this entry?"],
+  "de": ["Eintrag wirklich löschen?"],
+  "fr": ["Supprimer cet élément ?"],
+  "es": ["¿Eliminar esta entrada?"],
+  "it": ["Eliminare questa voce?"],
+  "nl": ["Dit item verwijderen?"],
+  "pt": ["Eliminar esta entrada?"],
+  "da": ["Slet denne post?"],
+  "nb": ["Slette denne oppføringen?"],
+  "pl": ["Usunąć ten wpis?"],
+  "cs": ["Opravdu smazat tento záznam?"],
+  "hsb": ["Tutón zapisk woprawdźe zhašeć?"],
+  "ru": ["Удалить эту запись?"],
+  "uk": ["Видалити цей запис?"],
+  "be": ["Выдаліць гэты запіс?"],
+  "tr": ["Bu kayıt silinsin mi?"],
+  "hi": ["क्या यह प्रविष्टि मिटाएँ?"],
+  "ja": ["この項目を削除しますか？"],
+  "zh_CN": ["删除此条目？"],
+  "ar": ["هل تريد حذف هذا الإدخال؟"]
+}

@@ -63,6 +63,10 @@ class ScopedDataRuntimeTest {
     @Test fun provenanceFormatSurvivesManualScopeAndReceiptGates() = exercise("manual", 14)
     @Test fun provenanceFormatUsesTheNativeActorCommitAndCompletionReport() = exercise("actor-commit", 14)
     @Test fun provenanceFormatCanAdmitOneSelectedOrganizerNote() = exercise("single", 14)
+    @Test fun aNoteSwipeQueuesOnlyItsSelectedEntryAndWaitsForRequestReceipt() = exercise("send-note", 14)
+    @Test fun aTaskSwipeQueuesOnlyItsSelectedEntryAndWaitsForRequestReceipt() = exercise("send-task", 14)
+    @Test fun offlineSingleSendDoesNotQueueOrStartAFullRun() = exercise("send-offline", 14)
+    @Test fun revokedSingleSendDoesNotQueueOrStartAFullRun() = exercise("send-revoked", 14)
 
     private fun exercise(mode: String, format: Int = 3) {
         val actorDeletion = mode.startsWith("actor-deletions")
@@ -87,7 +91,11 @@ class ScopedDataRuntimeTest {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2,
                 ursprungApp = if (format == 14) "notes" else ""))
-            if (actorDeletion || actorCommit || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (actorDeletion || actorCommit || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (mode.startsWith("send-")) {
+                documents.setzeNotiz(Notiz("private-note", "Unselected note", "Never transfer", notizbuchId = book.id))
+                documents.setzeAufgabe(Aufgabe("private-task", "Unselected task"))
+            }
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -160,6 +168,41 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode.startsWith("send-")) {
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    (field(TelefonWerk::class.java, "scopedWakeup").get(work) as AtomicBoolean).set(true)
+                    sent()
+                    assertTrue("Unacknowledged membership permitted a send", runCatching { work.personalItemSyncNow("note", "phone-note") }.isFailure)
+                    ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    if (mode == "send-offline") field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                    if (mode == "send-revoked") storage.savePeer(peer.copy(remote_personal_notes_sync_granted = false))
+                    if (mode in setOf("send-offline", "send-revoked")) {
+                        assertTrue(runCatching { work.personalItemSyncNow("note", "phone-note") }.isFailure)
+                        assertFalse(queue.hasActiveScopedRun(peerId))
+                        assertEquals(2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
+                        return@use
+                    }
+                    val kind = if (mode == "send-task") "task" else "note"
+                    val id = if (kind == "task") "phone-task" else "phone-note"
+                    val run = work.personalItemSyncNow(kind, id)
+                    pump.invoke(work, peer, channel, 0L, false)
+                    val outgoing = scoped(sent())
+                    assertEquals(1, outgoing.size)
+                    val request = PhoneContentScope.unwrap(outgoing.single().getValue("body").jsonObject, manifest)
+                    assertEquals("personal_sync.request", request.first)
+                    assertEquals(id, request.second.getValue("send_item").jsonObject.string("id"))
+                    assertEquals(run, request.second.string("run_id"))
+                    assertFalse(queue.scopedRequestAccepted(peerId, run))
+                    ack(outgoing.single().string("message_id")); pump.invoke(work, peer, channel, 0L, false)
+                    val batches = scoped(sent()).map { PhoneContentScope.unwrap(it.getValue("body").jsonObject, manifest) }
+                        .filter { it.first == "personal_sync.batch" }.map { it.second }
+                    assertTrue(batches.isNotEmpty())
+                    val records = batches.flatMap(PersonalSyncProtokoll::decodeBatch)
+                    assertEquals(listOf(id), records.filter { it.kind != "notebook" }.map { it.id })
+                    assertTrue(records.none { it.id in setOf("private-note", "private-task") })
+                    assertEquals(2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
+                    return@use
+                }
                 if (mode == "actor-transport" || actorDeletion || actorCommit) {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)

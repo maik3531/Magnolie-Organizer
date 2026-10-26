@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Veegacties</string>
+    <string name="wischen_aktiv">Vegen voor notities en taken inschakelen</string>
+    <string name="wischen_links">Naar links vegen</string>
+    <string name="wischen_rechts">Naar rechts vegen</string>
+    <string name="wischen_keine">Geen actie</string>
+    <string name="wischen_abgleichen">Dit item synchroniseren</string>
+    <string name="wischen_wartet">Item staat klaar voor synchronisatie; bevestiging volgt nog.</string>
+    <string name="wischen_fehler">De actie kon niet worden voltooid. Controleer het item, de verbinding en de toestemmingen.</string>
+    <string name="wischen_geaendert">Het item is gewijzigd. Controleer het opnieuw voor verwijdering.</string>
+    <string name="wischen_hinweis">Standaard verwijdert rechts vegen na bevestiging; links vegen synchroniseert alleen dit item. Beide acties zijn aanpasbaar of uit te schakelen. Een actuele verbonden Organizer is vereist.</string>
+</resources>

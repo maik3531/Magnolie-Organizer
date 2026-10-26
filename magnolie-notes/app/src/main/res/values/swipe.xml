@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Swipe actions</string>
+    <string name="wischen_aktiv">Enable swiping for notes and tasks</string>
+    <string name="wischen_links">Swipe left</string>
+    <string name="wischen_rechts">Swipe right</string>
+    <string name="wischen_keine">No action</string>
+    <string name="wischen_abgleichen">Sync this entry</string>
+    <string name="wischen_wartet">Entry queued for sync; waiting for confirmation.</string>
+    <string name="wischen_fehler">The action could not be completed. Check the entry, connection and permissions.</string>
+    <string name="wischen_geaendert">The entry changed. Check it again before deleting.</string>
+    <string name="wischen_hinweis">By default, swipe right to delete with confirmation and left to sync only this entry. Both actions can be changed or disabled. Single-entry sync requires a current connected Organizer.</string>
+</resources>

@@ -61,6 +61,17 @@ async function check(web) {
     t.daten().notizen.find(note => note.id === "phone-note").text = "Organizer addition";
     reply = await apply(event(incoming));
     assert.equal(reply.find(record => record.kind === "note").value.text, "Organizer addition", "Existing scoped note's Organizer update was not sent back");
+    for (const kind of ["note", "task"]) {
+      const selectedId = kind === "note" ? "phone-note" : "phone-task";
+      const chosen = await record(kind, selectedId, { ...(kind === "note" ? noteValue : taskValue), origin_app: "notes" });
+      const selectedEvent = event(kind === "note" ? [chosen, incoming.find(record => record.kind === "notebook")] : [chosen]);
+      selectedEvent.body.format = 14;
+      selectedEvent.body.requested_modules = [kind === "note" ? "notes" : "tasks"];
+      selectedEvent.body.send_item = { kind, id: selectedId };
+      const selectedReply = await apply(selectedEvent);
+      assert.deepEqual(selectedReply.filter(record => record.kind !== "notebook").map(record => record.id), [selectedId], "A single-entry request returned other phone members");
+      assert.ok(selectedReply.every(record => !["organizer-only", "organizer-task"].includes(record.id)), "A single-entry request leaked unrelated desktop entries");
+    }
     const retained = JSON.stringify(t.daten().notizen);
     reply = await apply(event([], await manifest([], [], 2)));
     assert.deepEqual(reply, []);

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Действия смахивания</string>
+    <string name="wischen_aktiv">Включить смахивание заметок и задач</string>
+    <string name="wischen_links">Смахнуть влево</string>
+    <string name="wischen_rechts">Смахнуть вправо</string>
+    <string name="wischen_keine">Без действия</string>
+    <string name="wischen_abgleichen">Синхронизировать эту запись</string>
+    <string name="wischen_wartet">Запись поставлена в очередь синхронизации; ожидается подтверждение.</string>
+    <string name="wischen_fehler">Не удалось завершить действие. Проверьте запись, соединение и разрешения.</string>
+    <string name="wischen_geaendert">Запись изменилась. Проверьте её перед удалением.</string>
+    <string name="wischen_hinweis">По умолчанию смахивание вправо удаляет с подтверждением, влево синхронизирует только эту запись. Оба действия можно изменить или отключить. Нужен подключённый актуальный Organizer.</string>
+</resources>

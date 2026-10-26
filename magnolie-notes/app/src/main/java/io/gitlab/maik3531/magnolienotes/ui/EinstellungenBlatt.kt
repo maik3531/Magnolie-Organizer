@@ -28,7 +28,8 @@ import io.gitlab.maik3531.magnolienotes.R
 
 @Composable
 fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfassung: (Boolean) -> Unit,
-                       beiBlatt: (Int) -> Unit, beiRechten: () -> Unit, beiBenachrichtigungen: () -> Unit) {
+                       beiBlatt: (Int) -> Unit, beiRechten: () -> Unit, beiBenachrichtigungen: () -> Unit,
+                       wischen: WischAnzeige, beiWischen: (WischAnzeige) -> Unit) {
     val context = LocalContext.current
     val developer = remember(context) { Entwicklermodus(context) }
     var druckerAutomatisch by remember { mutableStateOf(DruckerEinstellungen.automatisch(context)) }
@@ -90,6 +91,7 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             Papierknopf(stringResource(R.string.zeit_benachrichtigungen), Modifier.fillMaxWidth(), beiKlick = beiBenachrichtigungen)
         }
         ZeiterfassungsOptionen(zeiterfassungAn, speichert, beiZeiterfassung) { beiBlatt(6) }
+        WischOptionen(wischen, beiWischen)
         Abschnitt(stringResource(R.string.zeit_drucken), hinweis = stringResource(R.string.drucker_symbol_hinweis)) {
             Row(Modifier.fillMaxWidth().toggleable(druckerAutomatisch, role = Role.Checkbox, onValueChange = { value ->
                 runCatching { DruckerEinstellungen.automatisch(context, value); druckerAutomatisch = value }

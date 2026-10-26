@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Дії проведення</string>
+    <string name="wischen_aktiv">Увімкнути проведення для нотаток і завдань</string>
+    <string name="wischen_links">Провести ліворуч</string>
+    <string name="wischen_rechts">Провести праворуч</string>
+    <string name="wischen_keine">Без дії</string>
+    <string name="wischen_abgleichen">Синхронізувати цей запис</string>
+    <string name="wischen_wartet">Запис у черзі синхронізації; очікується підтвердження.</string>
+    <string name="wischen_fehler">Не вдалося завершити дію. Перевірте запис, з’єднання та дозволи.</string>
+    <string name="wischen_geaendert">Запис змінено. Перевірте його перед видаленням.</string>
+    <string name="wischen_hinweis">Типово проведення праворуч видаляє з підтвердженням, ліворуч синхронізує лише цей запис. Обидві дії можна змінити або вимкнути. Потрібен під’єднаний актуальний Organizer.</string>
+</resources>

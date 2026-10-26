@@ -243,6 +243,10 @@ object PersonalSyncProtokoll {
         val modules = (request["modules"] as JsonArray).map { (it as JsonPrimitive).content }.toSet()
         if (records.any { (it.kind == "task" && "tasks" !in modules) ||
                 (it.kind in setOf("note", "notebook") && "notes" !in modules) }) fail()
+        (request["send_item"] as? JsonObject)?.let { selected ->
+            if (records.any { if (it.kind == "notebook") selected.string("kind") != "note"
+                else it.kind != selected.string("kind") || it.id != selected.string("id") }) fail()
+        }
         return records
     }
 

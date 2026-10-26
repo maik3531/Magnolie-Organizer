@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Akcije přez šmórnjenje</string>
+    <string name="wischen_aktiv">Šmórnjenje za noticy a nadawki zmóžnić</string>
+    <string name="wischen_links">Nalěwo šmórnyć</string>
+    <string name="wischen_rechts">Naprawo šmórnyć</string>
+    <string name="wischen_keine">Žana akcija</string>
+    <string name="wischen_abgleichen">Tutón zapisk synchronizować</string>
+    <string name="wischen_wartet">Zapisk čaka na synchronizaciju; wobkrućenje hišće faluje.</string>
+    <string name="wischen_fehler">Akcija njeda so dokónčić. Zapisk, zwisk a dowolnosće přepruwować.</string>
+    <string name="wischen_geaendert">Zapisk je so změnił. Před zhašenjom znowa přepruwować.</string>
+    <string name="wischen_hinweis">Standardnje šmórnjenje naprawo po wobkrućenju zhaša, nalěwo jenož tutón zapisk synchronizuje. Wobě akciji dadźa so změnić abo hasnyć. Aktualny zwjazany Organizer je trěbny.</string>
+</resources>

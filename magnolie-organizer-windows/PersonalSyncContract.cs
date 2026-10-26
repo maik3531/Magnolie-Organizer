@@ -16,6 +16,22 @@ internal static class PersonalSyncContract
     private static readonly Dictionary<string, string> MimeKinds = new(StringComparer.Ordinal)
     { ["image/jpeg"] = "image", ["image/png"] = "image", ["image/webp"] = "image", ["image/gif"] = "image", ["application/pdf"] = "pdf" };
 
+    internal static void ValidateSelectedRecords(JsonObject request, IEnumerable<JsonObject> records, bool complete = false, bool reply = false)
+    {
+        if (request["send_item"] is not JsonObject selected) return;
+        var all = records.ToArray(); var kind = selected["kind"]!.GetValue<string>(); var id = selected["id"]!.GetValue<string>();
+        if (all.Any(record => record["kind"]!.GetValue<string>() == "notebook" ? kind != "note" :
+            record["kind"]!.GetValue<string>() != kind || record["id"]!.GetValue<string>() != id))
+            throw new InvalidDataException("Record outside selected personal entry.");
+        if (complete && (all.Length > 0 || !reply))
+        {
+            var target = all.Where(record => record["kind"]!.GetValue<string>() == kind && record["id"]!.GetValue<string>() == id).ToArray();
+            if (target.Length != 1 || all.Any(record => record["kind"]!.GetValue<string>() == "notebook" &&
+                record["id"]!.GetValue<string>() != target[0]["value"]?["notebook_id"]?.GetValue<string>()))
+                throw new InvalidDataException("Single-entry send contains unrelated or missing content.");
+        }
+    }
+
     internal static void ValidateBody(string kind, JsonObject body)
     {
         switch (kind)

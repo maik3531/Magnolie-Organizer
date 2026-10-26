@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">滑动操作</string>
+    <string name="wischen_aktiv">启用笔记和任务的滑动操作</string>
+    <string name="wischen_links">向左滑动</string>
+    <string name="wischen_rechts">向右滑动</string>
+    <string name="wischen_keine">无操作</string>
+    <string name="wischen_abgleichen">同步此条目</string>
+    <string name="wischen_wartet">条目已加入同步队列，正在等待确认。</string>
+    <string name="wischen_fehler">无法完成操作。请检查条目、连接和权限。</string>
+    <string name="wischen_geaendert">条目已更改。请在删除前重新检查。</string>
+    <string name="wischen_hinweis">默认向右滑动会在确认后删除，向左滑动仅同步此条目。两种操作均可更改或禁用。单条同步需要已连接的最新版Organizer。</string>
+</resources>

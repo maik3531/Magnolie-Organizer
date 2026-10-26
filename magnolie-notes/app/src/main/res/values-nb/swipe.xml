@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Sveipehandlinger</string>
+    <string name="wischen_aktiv">Aktiver sveiping for notater og oppgaver</string>
+    <string name="wischen_links">Sveip til venstre</string>
+    <string name="wischen_rechts">Sveip til høyre</string>
+    <string name="wischen_keine">Ingen handling</string>
+    <string name="wischen_abgleichen">Synkroniser denne oppføringen</string>
+    <string name="wischen_wartet">Oppføringen er lagt i synkroniseringskø; venter på bekreftelse.</string>
+    <string name="wischen_fehler">Handlingen kunne ikke fullføres. Kontroller oppføringen, forbindelsen og tillatelsene.</string>
+    <string name="wischen_geaendert">Oppføringen er endret. Kontroller den igjen før sletting.</string>
+    <string name="wischen_hinweis">Som standard sletter sveip til høyre etter bekreftelse, mens sveip til venstre bare synkroniserer denne oppføringen. Begge handlingene kan endres eller slås av. En oppdatert, tilkoblet Organizer kreves.</string>
+</resources>

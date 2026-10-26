@@ -545,6 +545,20 @@ def _identifier(value, allow_empty=False):
             and (allow_empty or bool(value)))
 
 
+def validate_selected_records(request, records, *, complete=False, reply=False):
+    selected = request.get("send_item")
+    if not selected:
+        return
+    target = [record for record in records if (record["kind"], record["id"]) == (selected["kind"], selected["id"])]
+    if any((selected["kind"] != "note" if record["kind"] == "notebook" else
+            (record["kind"], record["id"]) != (selected["kind"], selected["id"])) for record in records):
+        raise ValueError("record outside selected personal entry")
+    if complete and (records or not reply):
+        if len(target) != 1 or any(record["kind"] == "notebook" and
+                record["id"] != target[0]["value"].get("notebook_id") for record in records):
+            raise ValueError("single-item send contains unrelated or missing content")
+
+
 def validate_value(kind, value, format=1):
     if not isinstance(value, dict):
         raise ValueError("invalid personal sync value")

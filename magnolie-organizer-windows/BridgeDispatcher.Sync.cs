@@ -1235,6 +1235,7 @@ internal sealed partial class BridgeDispatcher
         if (batches.Any(batch => batch["run_id"]?.GetValue<string>() != runId ||
             batch["format"]!.GetValue<int>() != request["format"]!.GetValue<int>())) throw new InvalidDataException(T("The personal synchronization run does not match."));
         var reply = batches[0]["reply"]!.GetValue<bool>();
+        PersonalSyncContract.ValidateSelectedRecords(request, batches.SelectMany(batch => batch["records"]!.AsArray().OfType<JsonObject>()), complete: true, reply: reply);
         if (reply)
         {
             if (!JsonNode.DeepEquals(telefon.PersonalRunRequest(peerId, runId), request))
@@ -1348,6 +1349,7 @@ internal sealed partial class BridgeDispatcher
             if (request is null || body["format"]?.GetValue<int>() != request["format"]!.GetValue<int>())
                 throw new InvalidDataException(T("The personal synchronization run does not match."));
             body["requested_modules"] = request?["modules"]?.DeepClone() ?? new JsonArray();
+            if (request?["send_item"] is JsonObject selected) body["send_item"] = selected.DeepClone();
             body["trigger"] = request?["trigger"]?.DeepClone();
             if (body["format"]?.GetValue<int>() >= 2) body["attachment_data"] = BuildAttachmentData(peerId, body);
             var token = message["commit_token"]?.GetValue<string>() ?? throw new InvalidDataException(T("The personal synchronization commit token is missing."));

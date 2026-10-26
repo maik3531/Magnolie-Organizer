@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Acciones de deslizamiento</string>
+    <string name="wischen_aktiv">Activar deslizamientos en notas y tareas</string>
+    <string name="wischen_links">Deslizar a la izquierda</string>
+    <string name="wischen_rechts">Deslizar a la derecha</string>
+    <string name="wischen_keine">Ninguna acción</string>
+    <string name="wischen_abgleichen">Sincronizar esta entrada</string>
+    <string name="wischen_wartet">Entrada en cola de sincronización; pendiente de confirmación.</string>
+    <string name="wischen_fehler">No se pudo completar la acción. Compruebe la entrada, la conexión y los permisos.</string>
+    <string name="wischen_geaendert">La entrada ha cambiado. Revísela antes de eliminarla.</string>
+    <string name="wischen_hinweis">Por defecto, deslice a la derecha para eliminar con confirmación y a la izquierda para sincronizar solo esta entrada. Ambas acciones se pueden cambiar o desactivar. Se requiere Organizer actualizado y conectado.</string>
+</resources>

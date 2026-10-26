@@ -745,6 +745,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (!settings.OwnDevice || !settings.RemoteOwnDevice || needed.Count == 0 || needed.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
         if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
+        if (kind == "personal_sync.batch") PersonalSyncContract.ValidateSelectedRecords(run!.Request, body["records"]!.AsArray().OfType<JsonObject>());
         string policy;
         if (kind == "personal_sync.request") { personalSync.RememberRun(id, body, now); policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any"; }
         else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
@@ -779,9 +780,17 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
         var request = kind == "personal_sync.request" ? body : body["run_id"] is JsonValue value && value.TryGetValue<string>(out var itemRun)
             ? personalSync.LoadRun(id, itemRun, Now())?.Request : null;
-        if (request?["send_item"] is JsonObject)
+        if (request?["send_item"] is JsonObject selected)
         {
-            lock (gate) return (kind != "personal_sync.request" || outgoing) && online.GetValueOrDefault(id)?.SingleItemAllowed == true;
+            lock (gate)
+            {
+                var connection = online.GetValueOrDefault(id);
+                if (connection?.SingleItemAllowed != true) return false;
+                if (kind != "personal_sync.request" || outgoing) return true;
+                var manifest = connection.DataContentScope(kind, body);
+                return body["format"]!.GetValue<int>() == 14 && manifest?["members"]?[selected["kind"]!.GetValue<string>() == "note" ? "notes" : "tasks"] is JsonArray members &&
+                    members.Any(member => member?.GetValue<string>() == selected["id"]!.GetValue<string>());
+            }
         }
         if (body["run_id"] is JsonValue runId && runId.TryGetValue<string>(out var run))
         {

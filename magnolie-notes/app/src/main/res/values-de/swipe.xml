@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Wischaktionen</string>
+    <string name="wischen_aktiv">Wischen für Notizen und Aufgaben aktivieren</string>
+    <string name="wischen_links">Nach links wischen</string>
+    <string name="wischen_rechts">Nach rechts wischen</string>
+    <string name="wischen_keine">Keine Aktion</string>
+    <string name="wischen_abgleichen">Diesen Eintrag abgleichen</string>
+    <string name="wischen_wartet">Eintrag zum Abgleich vorgemerkt; Bestätigung steht noch aus.</string>
+    <string name="wischen_fehler">Die Aktion konnte nicht abgeschlossen werden. Eintrag, Verbindung und Freigaben prüfen.</string>
+    <string name="wischen_geaendert">Der Eintrag wurde geändert. Vor dem Löschen erneut prüfen.</string>
+    <string name="wischen_hinweis">Standardmäßig löscht Rechtswischen mit Rückfrage; Linkswischen gleicht nur diesen Eintrag ab. Beide Aktionen lassen sich ändern oder abschalten. Einzelabgleich benötigt einen aktuellen verbundenen Organizer.</string>
+</resources>

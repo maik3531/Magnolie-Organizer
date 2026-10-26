@@ -104,6 +104,48 @@ def test_manual_single_note_uses_existing_transfer_even_without_phone_membership
         assert outgoing[-1]["body"]["records"] == [record]
 
 
+@pytest.mark.parametrize("kind", ["note", "task"])
+def test_phone_single_send_requires_scope_and_stages_only_the_selected_entry(tmp_path, monkeypatch, kind):
+    import magnolie_personal_sync as personal
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(phone, "PERSONAL_COMMIT_SECONDS", 0)
+    manifest = scope.create(["mobile-note", "other-note"], ["mobile-task", "other-task"])
+    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    selected = {"kind": kind, "id": "mobile-" + kind}
+    request = {"format": 14, "run_id": str(uuid.uuid4()), "trigger": "manual",
+               "modules": ["notes" if kind == "note" else "tasks"], "send_item": selected}
+    naked = dict(message(request), kind="personal_sync.request")
+    service._payload(peer, channel, naked)
+    assert channel.sent[-1]["status"] == "rejected"
+    assert service.store.personal_run(peer["device_id"], request["run_id"]) == {}
+    wrapped = dict(message(scope.wrap("personal_sync.request", request, manifest)), kind=scope.DATA_KIND)
+    service._payload(peer, channel, wrapped)
+    assert channel.sent[-1]["status"] == "accepted"
+    value = {"title": "Chosen entry", "created_ms": 1, "modified_ms": 2, "origin_app": "notes"}
+    if kind == "note":
+        value.update(text="Chosen text", html="", notebook_id="", symbol="note", attachments=[])
+    else:
+        value.update(note="Chosen task", due="", priority=2, completed=False, remind=False,
+                     lead_days=0, reminder_minute=480, uid="mobile-task-uid", parent_uid="", order=0)
+    record = {"kind": kind, "id": selected["id"], "state": "live",
+              "clock": [{"actor_id": peer["device_id"], "counter": 1}], "hash": personal.projection_hash(value),
+              "modified_ms": 2, "value": value}
+    body = {"format": 14, "run_id": request["run_id"], "batch_id": str(uuid.uuid4()), "sequence": 0,
+            "last": True, "reply": False, "records": [record], "records_hash": personal.records_hash([record])}
+    foreign = copy.deepcopy(body); foreign["records"][0]["id"] = "other-" + kind
+    foreign["records_hash"] = personal.records_hash(foreign["records"])
+    with pytest.raises(ValueError, match="outside selected"):
+        service.store.stage_personal_batch(peer["device_id"], dict(message(foreign), kind="personal_sync.batch"))
+    events = []
+    service.callback = lambda name, payload: events.append((name, payload))
+    service._payload(peer, channel, dict(message(scope.wrap("personal_sync.batch", body, manifest)), kind=scope.DATA_KIND))
+    emitted = [payload for name, payload in events if name == "personal_sync" and payload.get("kind") == "personal_sync.batch"]
+    assert len(emitted) == 1
+    assert emitted[0]["body"]["send_item"] == selected
+    assert emitted[0]["body"]["records"] == [record]
+    assert emitted[0]["content_scope"] == manifest
+
+
 def test_settings_agreement_gap_is_retryable_without_raw_content_fallback(tmp_path, monkeypatch):
     service, peer, channel = fixture(tmp_path, monkeypatch)
     manifest = scope.create(["mobile-note"], ["task"])

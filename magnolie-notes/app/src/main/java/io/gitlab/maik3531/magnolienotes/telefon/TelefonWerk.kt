@@ -32,6 +32,8 @@ import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import io.gitlab.maik3531.magnolienotes.daten.PersonalCustom
 import io.gitlab.maik3531.magnolienotes.daten.PersonalCustomState
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.long
 import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
 import io.gitlab.maik3531.magnolienotes.daten.PersonalDeletionProposal
@@ -154,7 +156,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 (body["decisions"] as JsonArray).all { (it as JsonObject)["decision"] == JsonPrimitive("delete") }
         }
         if (singleItemRun(peer, kind, body)) return contentScopeControlsReady(peer, session) &&
-            (kind != "personal_sync.request" || !outgoing)
+            (kind != "personal_sync.request" || !outgoing ||
+                body["format"] == JsonPrimitive(14) && scopedDataManifest(peer, kind, body, session) != null)
         if (scopedDataManifest(peer, kind, body, session) != null) return true
         (if (usesCommonPreferences(peer)) sharedPreferences.read(sharedBinding(peer)) else null)?.let { current ->
             if (!noteModeReady(peer, session)) return false
@@ -866,6 +869,45 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (!usesScopedContent(peer)) activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
         else if (activeTransport == null) reconnect()
         else wakeScopedSync(peer)
+    }
+
+    /** Queue exactly one current personal entry; this never starts time/custom or a full content run. */
+    @Synchronized fun personalItemSyncNow(kind: String, localId: String): String = synchronized(Ablage.SCHREIBSPERRE) {
+        require(kind in setOf("note", "task"))
+        val peer = safePeer() ?: error("personal_item_peer_unavailable")
+        val channel = activeChannel ?: error("personal_item_offline")
+        val session = noteSessions[channel] ?: error("personal_item_controls_pending")
+        check(serviceRunning && storage.enabled() && activeTransport != null && peer.own_device && peer.remote_own_device)
+        check(contentScopeControlsReady(peer, session)) { "personal_item_controls_pending" }
+        val modules = listOf(if (kind == "note") "notes" else "tasks")
+        check(negotiatedPersonalFormat(peer, modules) == 14) { "personal_item_version_unavailable" }
+        queueContentScope(peer, session)
+        val manifest = checkNotNull(session.localContentScope)
+        val members = manifest.getValue("members").jsonObject
+        val parts = maxOf(1, (members.getValue("notes").jsonArray.size + members.getValue("tasks").jsonArray.size + 255) / 256)
+        check(session.contentScopeAccepted.size == parts) { "personal_item_controls_pending" }
+        val snapshot = Ablage.hole(context).personalSyncSingleSnapshot(kind, localId, peer.device_id, 14)
+        val selected = snapshot.records.single { it.kind == kind }
+        check(selected.id in members.getValue(if (kind == "note") "notes" else "tasks").jsonArray.map { it.jsonPrimitive.content })
+        val run = UUID.randomUUID().toString()
+        val request = buildJsonObject {
+            put("format", 14); put("run_id", run); put("trigger", "manual")
+            put("modules", JsonArray(modules.map(::JsonPrimitive)))
+            put("send_item", buildJsonObject { put("kind", kind); put("id", selected.id) })
+        }
+        val batches = buildSnapshotBatches(run, snapshot.records, false, 14)
+        check(batches.second == 0) { "personal_item_too_large" }
+        val advertised = snapshot.records.filter { it.kind == "note" }.flatMap { it.value.getValue("attachments").jsonArray }
+            .map { it.jsonObject.string("sha256") }.toSet()
+        if (kind == "note") check(snapshot.records.single { it.kind == "note" }.value.getValue("attachments").jsonArray.size ==
+            Ablage.hole(context).notiz(localId)!!.anhaenge.size) { "personal_item_attachments_unavailable" }
+        val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
+            Triple(hash, value.descriptor.string("mime"), value.bytes) }
+        check(queue.queueScopedRequest(sharedBinding(peer), sharedPreferences,
+            TelefonNachrichten.message("personal_sync.request", request, 3_600_000), PhoneContentScope.reference(manifest),
+            batches.first, attachments)) { "personal_item_sync_busy" }
+        wakeScopedSync(peer)
+        run
     }
 
     private fun wakeScopedSync(peer: TelefonPeer) {

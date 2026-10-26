@@ -71,6 +71,29 @@ internal static class PersonalSyncTests
             await TestNegotiatedRoundtripAndFullChunks(Path.Combine(tempRoot, "roundtrip"), task3Value);
             var key = Enumerable.Range(1, 32).Select(value => (byte)value).ToArray(); var store = new TelefonStore(new WindowsPaths(tempRoot), key); var personal = new PersonalSyncStore(store);
             var runtimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            foreach (var selectedKind in new[] { "note", "task" })
+            {
+                const string selectedPeer = "55555555-5555-4555-8555-555555555555";
+                var selectedRun = Guid.NewGuid().ToString("D");
+                var selectedRequest = new JsonObject { ["format"] = 14, ["run_id"] = selectedRun, ["trigger"] = "manual",
+                    ["modules"] = new JsonArray(selectedKind == "note" ? "notes" : "tasks"),
+                    ["send_item"] = new JsonObject { ["kind"] = selectedKind, ["id"] = "selected-entry" } };
+                personal.RememberRun(selectedPeer, selectedRequest, runtimeNow);
+                var selectedValue = (selectedKind == "note" ? format2Value : task3Value).DeepClone().AsObject();
+                selectedValue["origin_app"] = "notes";
+                if (selectedKind == "note") selectedValue["notebook_id"] = "selected-book";
+                var chosen = Record(selectedKind, "selected-entry", selectedValue, 14);
+                PersonalSyncContract.ValidateSelectedRecords(selectedRequest, [chosen], complete: true, reply: false);
+                PersonalSyncContract.ValidateSelectedRecords(selectedRequest, [chosen], complete: true, reply: true);
+                PersonalSyncContract.ValidateSelectedRecords(selectedRequest, [], complete: true, reply: true);
+                TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateSelectedRecords(selectedRequest, [], complete: true), "Empty initial single-entry send was accepted.");
+                var book = Record("notebook", "private-book", new JsonObject { ["name"] = "Unrelated", ["modified_ms"] = 0 }, 14);
+                TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateSelectedRecords(selectedRequest, [chosen, book], complete: true, reply: true), "Single-entry reply leaked an unrelated notebook.");
+                var foreignBody = Batch(selectedRun, Record(selectedKind, "other-entry", selectedValue, 14), 14);
+                TestAssert.Throws<InvalidDataException>(() => personal.StageBatch(selectedPeer,
+                    Message("personal_sync.batch", foreignBody, runtimeNow, runtimeNow + 60000), "wifi", runtimeNow),
+                    "Single-entry staging accepted an unrelated note/task.");
+            }
             const string peer = "55555555-5555-4555-8555-555555555555"; const string run = "66666666-6666-4666-8666-666666666666";
             var request = new JsonObject { ["format"] = 1, ["run_id"] = run, ["trigger"] = "auto_wifi", ["modules"] = new JsonArray("notes") }; personal.RememberRun(peer, request, runtimeNow, runtimeNow + 50_000);
             TestAssert.That(personal.LoadRun(peer, run, runtimeNow + 1000)?.Policy == "wifi_only" && personal.LoadRun(peer, run, runtimeNow + 50_001)?.Expired == true, "Laufpolicy oder Ablauf ist nicht dauerhaft.");

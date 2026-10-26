@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Akce přejetí</string>
+    <string name="wischen_aktiv">Povolit přejetí u poznámek a úkolů</string>
+    <string name="wischen_links">Přejet doleva</string>
+    <string name="wischen_rechts">Přejet doprava</string>
+    <string name="wischen_keine">Žádná akce</string>
+    <string name="wischen_abgleichen">Synchronizovat tento záznam</string>
+    <string name="wischen_wartet">Záznam čeká ve frontě synchronizace; potvrzení dosud nepřišlo.</string>
+    <string name="wischen_fehler">Akci se nepodařilo dokončit. Zkontrolujte záznam, spojení a oprávnění.</string>
+    <string name="wischen_geaendert">Záznam se změnil. Před smazáním jej znovu zkontrolujte.</string>
+    <string name="wischen_hinweis">Ve výchozím stavu přejetí doprava smaže po potvrzení a doleva synchronizuje pouze tento záznam. Obě akce lze změnit nebo vypnout. Je nutný aktuální připojený Organizer.</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Azioni di scorrimento</string>
+    <string name="wischen_aktiv">Attiva scorrimento per note e attività</string>
+    <string name="wischen_links">Scorri a sinistra</string>
+    <string name="wischen_rechts">Scorri a destra</string>
+    <string name="wischen_keine">Nessuna azione</string>
+    <string name="wischen_abgleichen">Sincronizza questa voce</string>
+    <string name="wischen_wartet">Voce in coda per la sincronizzazione; conferma in attesa.</string>
+    <string name="wischen_fehler">Impossibile completare l’azione. Controllare la voce, la connessione e i permessi.</string>
+    <string name="wischen_geaendert">La voce è cambiata. Ricontrollarla prima di eliminarla.</string>
+    <string name="wischen_hinweis">Normalmente, scorri a destra per eliminare con conferma e a sinistra per sincronizzare solo questa voce. Entrambe le azioni si possono modificare o disattivare. Serve Organizer aggiornato e connesso.</string>
+</resources>

@@ -96,11 +96,16 @@ fun AufgabenBlatt(
     beiTeilaufgabe: (Aufgabe) -> Unit,
     beiVerschieben: (Aufgabe, Int) -> Unit,
     beiWurzel: (Aufgabe) -> Unit,
+    beiLoeschen: (Aufgabe) -> Boolean,
+    beiAbgleichen: (Aufgabe) -> Unit,
     modifier: Modifier = Modifier,
+    wischen: WischAnzeige = WischAnzeige(),
     anzeige: ListenAnzeige = ListenAnzeige()
 ) {
     val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
+    var loeschFrage by remember { mutableStateOf<Aufgabe?>(null) }
+    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }) }
     aufgaben.firstOrNull { it.id == eigenschaftenId }?.let { value ->
         EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
             verbindungsQuelle = value.vonZweig, beiSchliessen = { eigenschaftenId = null })
@@ -172,9 +177,13 @@ fun AufgabenBlatt(
 
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
             items(hierarchie, key = { it.aufgabe.id }) { eintrag ->
-                Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
+                EintragsWischen(wischen, { action -> when (action) {
+                    WischAktion.LOESCHEN -> loeschFrage = eintrag.aufgabe
+                    WischAktion.ABGLEICHEN -> beiAbgleichen(eintrag.aufgabe)
+                    WischAktion.KEINE -> Unit
+                } }) { Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
                     beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel,
-                    anzeige.aufgaben == AufgabenSortierung.MANUELL, { eigenschaftenId = eintrag.aufgabe.id })
+                    anzeige.aufgaben == AufgabenSortierung.MANUELL, { eigenschaftenId = eintrag.aufgabe.id }) }
             }
         }
     }

@@ -33181,6 +33181,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       };
       const arbeit = kind === "personal_sync.batch" ? personalSyncBatchKette.then(async () => {
         if (nutzlast.content_scope) { scopeGuard(); scopeSelection = await personalSyncScopeAusManifest(nutzlast.content_scope); scopeGuard(); }
+        if (body.send_item && body.reply === false) {
+          const selected = body.send_item, bucket = selected.kind === "note" ? "notes" : selected.kind === "task" ? "tasks" : "";
+          if (format !== 14 || !bucket || !scopeSelection?.[bucket]?.has(selected.id)) throw new Error(_("Personal synchronization failed."));
+          scopeSelection = { notes: new Set(bucket === "notes" ? [selected.id] : []), tasks: new Set(bucket === "tasks" ? [selected.id] : []) };
+        }
         return personalSyncAnwenden(body.records || [], body.attachment_data || {}, format, peer.device_id, modules,
           scopeSelection ? { selection: scopeSelection, independentRemovals: true,
             propagateSelectedDeletions: peer.shared_sync?.values?.skip_deletions === false, guard: scopeGuard } : {});

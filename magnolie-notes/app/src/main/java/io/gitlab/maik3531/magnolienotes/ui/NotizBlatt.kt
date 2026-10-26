@@ -83,11 +83,16 @@ fun NotizBlatt(
     notizbuecher: List<Notizbuch>,
     beiOeffnen: (Notiz) -> Unit,
     beiNeu: () -> Unit,
+    beiLoeschen: (Notiz) -> Boolean,
+    beiAbgleichen: (Notiz) -> Unit,
     modifier: Modifier = Modifier,
+    wischen: WischAnzeige = WischAnzeige(),
     anzeige: ListenAnzeige = ListenAnzeige()
 ) {
     var suche by remember { mutableStateOf("") }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
+    var loeschFrage by remember { mutableStateOf<Notiz?>(null) }
+    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }) }
     notizen.firstOrNull { it.id == eigenschaftenId }?.let { value ->
         EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
             importQuelle = value.herkunft, beiSchliessen = { eigenschaftenId = null })
@@ -162,12 +167,16 @@ fun NotizBlatt(
                     }
                 }
                 items(tagesnotizen, key = { it.id }) { notiz ->
-                    Notizzeile(
+                    EintragsWischen(wischen, { action -> when (action) {
+                        WischAktion.LOESCHEN -> loeschFrage = notiz
+                        WischAktion.ABGLEICHEN -> beiAbgleichen(notiz)
+                        WischAktion.KEINE -> Unit
+                    } }) { Notizzeile(
                         notiz = notiz,
                         buchname = notizbuecher.firstOrNull { it.id == notiz.notizbuchId }?.name.orEmpty(),
                         beiKlick = { beiOeffnen(notiz) },
                         beiEigenschaften = { eigenschaftenId = notiz.id }
-                    )
+                    ) }
                 }
             }
         }

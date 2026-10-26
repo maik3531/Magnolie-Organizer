@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">スワイプ操作</string>
+    <string name="wischen_aktiv">ノートとタスクのスワイプを有効にする</string>
+    <string name="wischen_links">左にスワイプ</string>
+    <string name="wischen_rechts">右にスワイプ</string>
+    <string name="wischen_keine">操作なし</string>
+    <string name="wischen_abgleichen">この項目を同期</string>
+    <string name="wischen_wartet">項目を同期キューに追加しました。確認を待っています。</string>
+    <string name="wischen_fehler">操作を完了できませんでした。項目、接続、権限を確認してください。</string>
+    <string name="wischen_geaendert">項目が変更されました。削除する前に再確認してください。</string>
+    <string name="wischen_hinweis">既定では右スワイプで確認後に削除し、左スワイプでこの項目だけを同期します。両方の操作を変更または無効にできます。接続済みの最新のOrganizerが必要です。</string>
+</resources>

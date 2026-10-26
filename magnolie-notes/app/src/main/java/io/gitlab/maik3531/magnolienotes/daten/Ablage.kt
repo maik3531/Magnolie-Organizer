@@ -351,6 +351,12 @@ class Ablage private constructor(
         schreibeBestand(_bestand.value.copy(notizen = liste))
     }
 
+    fun loescheNotizWennUnveraendert(expected: Notiz): Boolean = synchronized(sperre) {
+        if (_bestand.value.notizen.firstOrNull { it.id == expected.id } != expected) return@synchronized false
+        loescheNotiz(expected.id)
+        true
+    }
+
     fun loescheNotiz(id: String) = synchronized(sperre) {
         schreibeBestand(PapierkorbLogik.loescheNotiz(_bestand.value, notiz(id)?.id ?: id))
     }
@@ -471,6 +477,12 @@ class Ablage private constructor(
         val platz = liste.indexOfFirst { it.id == aufgabe.id }
         if (platz >= 0) liste[platz] = aufgabe else liste.add(aufgabe)
         schreibeBestand(_bestand.value.copy(aufgaben = AufgabenHierarchie.normalisieren(liste)))
+    }
+
+    fun loescheAufgabeWennUnveraendert(expected: Aufgabe): Boolean = synchronized(sperre) {
+        if (_bestand.value.aufgaben.firstOrNull { it.id == expected.id } != expected) return@synchronized false
+        loescheAufgabe(expected.id)
+        true
     }
 
     fun loescheAufgabe(id: String) = synchronized(sperre) {
@@ -687,6 +699,26 @@ class Ablage private constructor(
             .flatMap { it.anhaenge }.forEach { attachment -> PersonalSync.attachmentDescriptor(attachment)?.let { snapshot ->
                 attachments[(snapshot.descriptor["sha256"] as JsonPrimitive).content] = snapshot
             } }
+        PersonalSyncSnapshot(records, attachments)
+    }
+
+    internal fun personalSyncSingleSnapshot(kind: String, localId: String, peerId: String, format: Int): PersonalSyncSnapshot = synchronized(sperre) {
+        schreibbar()
+        require(kind in setOf("note", "task") && format == EintragsUrsprung.FORMAT)
+        val current = _bestand.value
+        val id = if (kind == "note") PersonalSync.noteWireId(current.personalSync, localId) else localId
+        val live = PersonalSync.livePersonalContent(current)
+        require(if (kind == "note") id in live.notes else id in live.tasks) { "personal_item_unavailable" }
+        val selection = PersonalContentSelection(if (kind == "note") setOf(id) else emptySet(),
+            if (kind == "task") setOf(id) else emptySet())
+        val (next, records) = PersonalSync.reconcile(current, setOf(if (kind == "note") "notes" else "tasks"),
+            format, peerId, selection = selection, independentRemovals = true)
+        require(records.count { it.kind == kind && it.id == id } == 1)
+        if (next != current) schreibeBestand(next)
+        val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()
+        if (kind == "note") next.notizen.single { it.id == localId }.anhaenge.forEach { attachment ->
+            PersonalSync.attachmentDescriptor(attachment)?.let { attachments[(it.descriptor.getValue("sha256") as JsonPrimitive).content] = it }
+        }
         PersonalSyncSnapshot(records, attachments)
     }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Działania przesunięcia</string>
+    <string name="wischen_aktiv">Włącz przesuwanie notatek i zadań</string>
+    <string name="wischen_links">Przesuń w lewo</string>
+    <string name="wischen_rechts">Przesuń w prawo</string>
+    <string name="wischen_keine">Brak działania</string>
+    <string name="wischen_abgleichen">Synchronizuj ten wpis</string>
+    <string name="wischen_wartet">Wpis w kolejce synchronizacji; oczekiwanie na potwierdzenie.</string>
+    <string name="wischen_fehler">Nie udało się ukończyć działania. Sprawdź wpis, połączenie i uprawnienia.</string>
+    <string name="wischen_geaendert">Wpis został zmieniony. Sprawdź go ponownie przed usunięciem.</string>
+    <string name="wischen_hinweis">Domyślnie przesunięcie w prawo usuwa po potwierdzeniu, a w lewo synchronizuje tylko ten wpis. Oba działania można zmienić lub wyłączyć. Wymagany jest aktualny, połączony Organizer.</string>
+</resources>

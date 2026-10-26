@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">إجراءات السحب</string>
+    <string name="wischen_aktiv">تفعيل السحب للملاحظات والمهام</string>
+    <string name="wischen_links">السحب لليسار</string>
+    <string name="wischen_rechts">السحب لليمين</string>
+    <string name="wischen_keine">بلا إجراء</string>
+    <string name="wischen_abgleichen">مزامنة هذا الإدخال</string>
+    <string name="wischen_wartet">أُضيف الإدخال إلى قائمة المزامنة؛ في انتظار التأكيد.</string>
+    <string name="wischen_fehler">تعذر إكمال الإجراء. تحقق من الإدخال والاتصال والأذونات.</string>
+    <string name="wischen_geaendert">تغير الإدخال. راجعه مجددًا قبل الحذف.</string>
+    <string name="wischen_hinweis">افتراضيًا، يؤدي السحب لليمين إلى الحذف بعد التأكيد ولليسار إلى مزامنة هذا الإدخال فقط. يمكن تغيير الإجراءين أو تعطيلهما. يلزم Organizer متصل ومحدّث.</string>
+</resources>

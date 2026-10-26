@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wischen_titel">Actions de balayage</string>
+    <string name="wischen_aktiv">Activer le balayage des notes et tâches</string>
+    <string name="wischen_links">Balayer à gauche</string>
+    <string name="wischen_rechts">Balayer à droite</string>
+    <string name="wischen_keine">Aucune action</string>
+    <string name="wischen_abgleichen">Synchroniser cet élément</string>
+    <string name="wischen_wartet">Élément en attente de synchronisation ; confirmation attendue.</string>
+    <string name="wischen_fehler">L’action n’a pas pu aboutir. Vérifiez l’élément, la connexion et les autorisations.</string>
+    <string name="wischen_geaendert">L’élément a changé. Vérifiez-le avant de le supprimer.</string>
+    <string name="wischen_hinweis">Par défaut, balayez à droite pour supprimer avec confirmation, à gauche pour synchroniser cet élément seul. Les deux actions sont modifiables ou désactivables. Un Organizer connecté et à jour est requis.</string>
+</resources>

@@ -70,6 +70,20 @@ internal static class PersonalSyncActorSourceTests
             foreach (var part in PhoneContentScope.Chunks(manifest)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
             var revision = Read(); var beforeWire = wire.Length; var beforeEmitted = emitted;
             TestAssert.That(revision is { Length: 64 } && Read() == revision, "Actual native source was unavailable or unstable.");
+            foreach (var singleKind in new[] { "note", "task" })
+            {
+                var singleRequest = new JsonObject { ["format"] = 14, ["run_id"] = Guid.NewGuid().ToString("D"), ["trigger"] = "manual",
+                    ["modules"] = new JsonArray(singleKind == "note" ? "notes" : "tasks"),
+                    ["send_item"] = new JsonObject { ["kind"] = singleKind, ["id"] = singleKind + "-one" } };
+                TestAssert.That(!coordinator.NoteDirectionAllowed(peer.Id, "personal_sync.request", singleRequest, false), "Unscoped reverse single-entry request was authorized.");
+                var singleNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                new PersonalSyncStore(store).RememberScopedRun(peer.Id, peer.PublicKey, singleRequest, PhoneContentScope.Reference(manifest), singleNow, singleNow + 60000);
+                TestAssert.That(coordinator.NoteDirectionAllowed(peer.Id, "personal_sync.request", singleRequest, false), "Current phone member could not start a scoped single-entry request.");
+                var outsideSingle = singleRequest.DeepClone().AsObject(); outsideSingle["send_item"]!["id"] = "not-a-phone-member";
+                TestAssert.That(!coordinator.NoteDirectionAllowed(peer.Id, "personal_sync.request", outsideSingle, false), "Reverse single-entry request widened physical phone membership.");
+                var oldSingle = singleRequest.DeepClone().AsObject(); oldSingle["format"] = 3;
+                TestAssert.That(!coordinator.NoteDirectionAllowed(peer.Id, "personal_sync.request", oldSingle, false), "Legacy admission was reinterpreted as reverse single-entry sync.");
+            }
             TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is null, "Unconfigured host book source was authorized.");
             var hostBook = new NativeBookOwnerScope(); hostBook.SetReady(true);
             coordinator.NativeBookSource = () => hostBook.Current("actual-host-profile", true);
