@@ -87,6 +87,16 @@ class ContactReadProviderTest {
         assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
     }
 
+    @Test fun rereadsAddedRemovedAndEmptyMembershipWithoutChangingContactVersion() {
+        val source = ContactReadAndroid(context)
+        for (groups in listOf(listOf("Kollegen"), listOf("Arbeit", "Kollegen"), listOf("Arbeit"), emptyList())) {
+            provider.groupNames = groups
+            val card = (source.read(request("cards"))["contacts"] as JsonArray).single().jsonObject.string("vcard").replace("\r\n ", "")
+            val categories = card.lineSequence().filter { it.startsWith("CATEGORIES:") }.toList()
+            assertEquals(if (groups.isEmpty()) emptyList() else listOf("CATEGORIES:" + groups.sorted().joinToString(",")), categories)
+        }
+    }
+
     @Test fun rejectsChangedWebsiteDuringReadAndKeepsWebsitesSeparateFromMessengerEvidence() {
         provider.changeWebsite = true
         assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
@@ -191,6 +201,7 @@ class ContactReadProviderTest {
         var sawSelection = false
         var groupReads = 0
         var changeGroup = false
+        var groupNames = listOf("Fixture, group")
         var websiteReads = 0
         var changeWebsite = false
         var displayPhoto: ByteArray? = null
@@ -265,7 +276,7 @@ class ContactReadProviderTest {
                     if (selectionArgs[1] == Website.CONTENT_ITEM_TYPE) {
                         websiteReads++
                         listOf(mapOf(Website.URL to if (changeWebsite && websiteReads > 1) "https://example.test/changed" else "https://example.test/work", Website.TYPE to Website.TYPE_WORK))
-                    } else if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) listOf(mapOf(GroupMembership.GROUP_ROW_ID to 7L))
+                    } else if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) groupNames.indices.map { mapOf(GroupMembership.GROUP_ROW_ID to 7L + it) }
                     else listOf(mapOf(Data.MIMETYPE to "vnd.android.cursor.item/vnd.com.whatsapp.profile", Data.DATA1 to "49123456789@s.whatsapp.net"))
                 } else {
                     assertTrue(selection.orEmpty().contains("IN (1)"))
@@ -275,7 +286,7 @@ class ContactReadProviderTest {
                         mapOf(Data.RAW_CONTACT_ID to 1L, Data.MIMETYPE to Photo.CONTENT_ITEM_TYPE, Data.DATA15 to Base64.getDecoder().decode(
                             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")))
                 }
-                "/groups" -> { groupReads++; listOf(mapOf(Groups.TITLE to if (changeGroup && groupReads > 1) "Changed group" else "Fixture, group")) }
+                "/groups" -> { groupReads++; groupNames.map { mapOf(Groups.TITLE to if (changeGroup && groupReads > 1) "Changed group" else it) } }
                 "/contacts/10/photo" -> emptyList()
                 else -> error("unexpected contact URI")
             }

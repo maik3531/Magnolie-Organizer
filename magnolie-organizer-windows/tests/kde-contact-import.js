@@ -13,11 +13,13 @@ const binding = "urn:magnolie:import:kde:" + "a".repeat(64);
 const card = values => ({ bindung: binding, hash: "b".repeat(64), kontakt: values });
 
 async function preview(web, data, mode = "apply", provider = "kde") {
+  const groupMode = mode.startsWith("groups-");
   const b = await harness.exports.boot(web, { ...data, einstellungen: { adressen: { foto: false } } });
   const device = provider === "notes" ? "notes:11111111-1111-4111-8111-111111111111" : "paired", fingerprint = "a".repeat(64), uid = "remote-one";
   const remote = { uid, bindung: "urn:magnolie:import:" + provider + ":" + createHash("sha256").update(
     provider + "-contact-v1\0" + device + "\0" + fingerprint + "\0" + uid).digest("hex"),
     kontakt: { vorname: "Remote", email: "one@example.org", firma: "Company",
+      ...(groupMode ? { vcardRoundtrip: mode === "groups-clear" ? [] : ["CATEGORIES:Arbeit"] } : {}),
       ...(provider === "notes" ? { sozialeMedien: [{ dienst: "whatsapp", wert: "+49123456789" }] } : {}) } };
   try {
     b.t.daten().einstellungen.adressen.foto = false;
@@ -62,6 +64,14 @@ async function preview(web, data, mode = "apply", provider = "kde") {
           assert.equal(dialog.querySelector(".hauptknopf").disabled, true); return before;
         }
         assert.ok(dialog.querySelector("details"), dialog.textContent);
+        if (groupMode) {
+          const row = [...dialog.querySelectorAll(".formzeile")].find(row => row.textContent.startsWith("Contact groups"));
+          assert.ok(row, "Current and explicitly empty groups need a dedicated preview decision: " + dialog.textContent);
+          const select = row.querySelector("select");
+          assert.ok(select);
+          select.value = mode === "groups-keep" ? "keep" : "incoming";
+          select.dispatchEvent(new b.w.Event("change"));
+        }
         if (provider === "notes") {
           assert(dialog.textContent.includes("Magnolie Notes"), "the preview must identify its Notes source");
           if (!before.length) assert(dialog.textContent.includes("WhatsApp"),
@@ -95,10 +105,12 @@ async function preview(web, data, mode = "apply", provider = "kde") {
         if (mode === "cancel") assert.deepEqual(result.kontakte, before);
         else {
           assert.equal(result.kontakte.length, 1);
-          assert.equal(b.messages.some(m => m.cmd === "mutations_snapshot"), before.length === 0,
+          assert.equal(b.messages.some(m => m.cmd === "mutations_snapshot"), groupMode || before.length === 0,
             "unchanged replay must not create another recovery snapshot");
           assert.equal(result.kontakte[0].firma, "Company");
           assert.ok(b.saves().some(m => JSON.parse(m.text).kontakte[0]?.firma === "Company"));
+          if (groupMode) assert.deepEqual(Array.from(b.t.kontaktGruppen(b.t.daten().kontakte[0])),
+            mode === "groups-keep" ? ["Colleagues"] : mode === "groups-clear" ? [] : ["Work"]);
         }
         assert.ok(!b.messages.some(m => m.cmd === "telefon_kontaktfotos"), "contact import works with photos disabled");
         return result;
@@ -141,6 +153,20 @@ async function preview(web, data, mode = "apply", provider = "kde") {
       assert.equal(again.modus, "merge"); assert.equal(again.zielId, "one");
       const newPlan = b.t.kdePlan(differentSource, []), created = b.t.kdeEntwurf(newPlan, null);
       assert.ok(created.id && created.uid); assert.deepEqual(plain(created.importBindungen), [differentSource.bindung]);
+      for (const provider of ["kde", "notes"]) for (const groups of [["Arbeit"], []]) {
+        const local = { id: "group-target", vcardRoundtrip: ["CATEGORIES:Kollegen", "X-LOCAL:preserve"] };
+        const incoming = { bindung: "urn:magnolie:import:" + provider + ":" + "d".repeat(64), hash: "e".repeat(64),
+          kontakt: { vcardRoundtrip: groups.length ? ["CATEGORIES:" + groups.join(",")] : [] } };
+        const groupPlan = b.t.kdePlan(incoming, [local]);
+        groupPlan.auswahl.gruppen = "incoming";
+        const changed = b.t.kdeEntwurf(groupPlan, local);
+        assert.deepEqual(Array.from(b.t.kontaktGruppen(changed)), groups.length ? ["Work"] : [],
+          "Explicit incoming membership must support removal, including an empty group set");
+        assert.ok(changed.vcardRoundtrip.includes("X-LOCAL:preserve"));
+        groupPlan.auswahl.gruppen = "keep";
+        assert.deepEqual(Array.from(b.t.kontaktGruppen(b.t.kdeEntwurf(groupPlan, local))), ["Colleagues"]);
+        assert.deepEqual(local.vcardRoundtrip, ["CATEGORIES:Kollegen", "X-LOCAL:preserve"], "Group preview mutated its target");
+      }
       console.log("OK KDE-Kontaktvorschau und Quellbindung:", web);
     } finally { b.close(); }
     const imported = await preview(web, {});
@@ -149,6 +175,11 @@ async function preview(web, data, mode = "apply", provider = "kde") {
     assert(notesImported.kontakte[0].importBindungen[0].startsWith("urn:magnolie:import:notes:"));
     const notesRepeated = await preview(web, notesImported, "apply", "notes");
     assert.equal(notesRepeated.kontakte[0].id, notesImported.kontakte[0].id, "repeated Notes import must retain the same local card");
+    for (const provider of ["kde", "notes"]) for (const mode of ["groups-incoming", "groups-clear", "groups-keep"]) {
+      const grouped = plain(provider === "notes" ? notesImported : imported);
+      grouped.kontakte[0].vcardRoundtrip = ["CATEGORIES:Kollegen", "X-LOCAL:preserve"];
+      await preview(web, grouped, mode, provider);
+    }
     for (const mode of ["cancel", "source-changed", "snapshot-error", "device-changed"])
       await preview(web, {}, mode, "notes");
     imported.kontakte[0].vorname = "Local edit";

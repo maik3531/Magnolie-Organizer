@@ -5087,14 +5087,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             !Number.isSafeInteger(eintrag.modified_ms) || eintrag.modified_ms < 0) throw new Error("invalid_contact_index");
         vorhanden.add(eintrag.uid);
         const stand = cache.get(eintrag.uid), alter = jetzt - Number(stand?.checkedAt || 0);
-        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 &&
-            (stand.photoAvailable && eintrag.modified_ms > 0 || alter < 3600000)) continue;
+        // Group titles/membership can change without updating the contact stamp.
+        // A positive photo cache must not freeze the accompanying groups forever.
+        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 && alter < 3600000) continue;
         offen.push(eintrag);
       }
       for (const key of cache.keys()) if (!vorhanden.has(key)) cache.delete(key);
       offen.sort((a, b) => (cache.get(a.uid)?.checkedAt || 0) - (cache.get(b.uid)?.checkedAt || 0));
       const ende = Date.now() + 10 * 60 * 1000;
       while (offen.length && gueltig() && Date.now() < ende) {
+        const gruppenVorher = new Map(DATEN.kontakte.map(k => [k, JSON.stringify(kontaktGruppen(k))]));
         const stapel = offen.splice(0, 8), antworten = [];
         for (const eintrag of stapel) {
           if (!gueltig()) return;
@@ -5142,9 +5144,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           if (!DATEN.kontakte.includes(kontakt)) continue;
           const old = sozialeMedienListe(kontakt), combined = sozialeMedienListe({ sozialeMedien: [...old, ...social] });
           if (JSON.stringify(old) !== JSON.stringify(combined)) { kontakt.sozialeMedien = combined; geaendert = true; }
-          if (Array.isArray(groups)) {
-            const next = [...new Set([...kontaktGruppen(kontakt), ...groups.filter(value => typeof value === "string" && value.trim()).map(value => value.trim())])];
-            if (JSON.stringify(kontaktGruppen(kontakt)) !== JSON.stringify(next)) { setzeKontaktGruppen(kontakt, next); geaendert = true; }
+          if (Array.isArray(groups) && JSON.stringify(kontaktGruppen(kontakt)) === gruppenVorher.get(kontakt)) {
+            const next = saubereGruppenAuswahl(groups);
+            if (JSON.stringify(kontaktGruppen(kontakt)) !== JSON.stringify(next)) {
+              setzeKontaktGruppen(kontakt, next); kontakt.geaendert = Date.now(); geaendert = true;
+            }
           }
         }
         for (const { kontakt, bisher, anzeigen, foto, meta } of aenderungen) {
@@ -13439,7 +13443,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const key = kontaktGruppenSchluessel(name);
     const aliases = { family: "Family", familie: "Family", coworkers: "Colleagues", colleagues: "Colleagues", kollegen: "Colleagues",
       patients: "Patients", patienten: "Patients", arbeit: "Work", kunde: "Client", handwerker: "Tradesperson", versicherung: "Insurance", arzt: "Doctor" };
-    return aliases[key] || window.MagnolieContactGroupAliases?.[key] || KONTAKT_STANDARDGRUPPEN.find(preset =>
+    return (Object.hasOwn(aliases, key) ? aliases[key] : "") ||
+      (Object.hasOwn(window.MagnolieContactGroupAliases || {}, key) ? window.MagnolieContactGroupAliases[key] : "") || KONTAKT_STANDARDGRUPPEN.find(preset =>
       [preset, kontaktGruppenName(preset)].some(label => kontaktGruppenSchluessel(label) === key)) || name;
   }
   function saubereGruppenAuswahl(values) {
@@ -25656,10 +25661,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"),
       firma: _("Company"), geburtstag: _("Birthday"), jubilaeum: _("Anniversary"), notiz: _("Note"),
       kontakte: _("Emergency contacts"), sozialeMedien: _("Social media"),
+      gruppen: _("Contact groups"),
       vcardRoundtrip: _("Additional information"), vcardParameter: _("Additional information") };
   }
 
   function kdeKontaktWert(kontakt, feld) {
+    if (feld === "gruppen") return kontaktGruppen(kontakt);
+    if (feld === "vcardRoundtrip") return kontakt?.vcardRoundtrip?.filter(line => !/^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]/i.test(line));
     if (feld === "anzeigename" && !kontakt?.anzeigename)
       return [kontakt?.vorname, kontakt?.nachname].filter(Boolean).join(" ");
     return kontakt?.[feld];
@@ -25667,8 +25675,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function kdeKontaktEntwurf(plan, ziel) {
     const eingang = plan.karte.kontakt, entwurf = kopie(ziel || {});
-    for (const feld of Object.keys(kdeKontaktFelder()).filter(f => f !== "kontakte")) {
-      const wert = eingang[feld];
+    for (const feld of Object.keys(kdeKontaktFelder()).filter(f => f !== "kontakte" && f !== "gruppen")) {
+      const wert = kdeKontaktWert(eingang, feld);
       if (plan.auswahl[feld] === "keep") continue;
       if (wert === undefined || wert === "" || kanonischerEntwurf(wert) === "[]" || kanonischerEntwurf(wert) === "{}") continue;
       const bisher = kdeKontaktWert(entwurf, feld);
@@ -25683,6 +25691,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       regel.setzen(entwurf, entscheidung === "incoming" ? kopie(neu) : alt.concat(neu.filter(n =>
         !alt.some(a => kanonischerEntwurf(a) === kanonischerEntwurf(n))).map(kopie)));
     }
+    const gruppenWahl = plan.auswahl.gruppen || (kontaktGruppen(ziel).length ? "keep" : "incoming");
+    setzeKontaktGruppen(entwurf, !ziel || gruppenWahl === "incoming" ? kontaktGruppen(eingang) : kontaktGruppen(ziel));
     if (!ziel) { entwurf.id = uid(); entwurf.uid = syncUid(); entwurf.geaendert = Date.now(); }
     entwurf.geburtstagJahrUnbekannt = gueltigesTeildatum(entwurf.geburtstag);
     const bindungen = Array.from(new Set((entwurf.importBindungen || []).concat(plan.karte.bindung)));
@@ -25789,7 +25799,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
                 if (wert === undefined || wert === "" || kanonischerEntwurf(wert) === "[]" || kanonischerEntwurf(wert) === "{}") return;
                 vorschau.append(el("div", "k-label", titel), el("div", "k-wert", beschreibe(wert)));
               };
-              for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte")) zeige(titel, incoming[feld]);
+              for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte")) zeige(titel, kdeKontaktWert(incoming, feld));
               zeige(_("Phone numbers"), telefonListe(incoming)); zeige(_("Email addresses"), emailEintragListe(incoming));
               zeige(_("Address"), anschriftListe(incoming)); zeige(_("Emergency contacts"), kontaktpersonenListe(incoming));
               felder.append(vorschau); return;
@@ -25798,10 +25808,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               felder.append(el("p", null, _("no changes"))); return;
             }
             const anzeigen = (feld, titel, alt, neu, mehrwertig) => {
-              if (neu === undefined || neu === "" || kanonischerEntwurf(neu) === "[]" ||
+              if (neu === undefined || neu === "" || (feld !== "gruppen" && kanonischerEntwurf(neu) === "[]") ||
                   kanonischerEntwurf(neu) === "{}" || kanonischerEntwurf(alt) === kanonischerEntwurf(neu)) return;
-              const werte = [["keep", _("Keep existing") + ": " + beschreibe(alt)],
-                ["incoming", _("Incoming") + ": " + beschreibe(neu)]];
+              const beschriftung = wert => feld === "gruppen" && !wert.length ? _("No contact group") : beschreibe(wert);
+              const werte = [["keep", _("Keep existing") + ": " + beschriftung(alt)],
+                ["incoming", _("Incoming") + ": " + beschriftung(neu)]];
               if (mehrwertig) werte.push(["add", _("Add") + ": " + beschreibe(neu)]);
               const auswahl = auswahlFeld(werte, plan.auswahl[feld] || (mehrwertig ? "add" : alt && kanonischerEntwurf(alt) !== "{}" && kanonischerEntwurf(alt) !== "[]" ? "keep" : "incoming"));
               plan.auswahl[feld] = auswahl.value;
@@ -25809,7 +25820,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               felder.append(formZeile(titel, auswahl));
             };
             for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte"))
-              anzeigen(feld, titel, kdeKontaktWert(ziel, feld), incoming[feld], false);
+              anzeigen(feld, titel, kdeKontaktWert(ziel, feld), kdeKontaktWert(incoming, feld), false);
             for (const [feld, regel] of Object.entries({ ...BAUM_KONTAKT_LISTEN,
               kontaktpersonen: { lesen: kontaktpersonenListe } }))
               anzeigen(feld, { telefone: _("Phone numbers"), emailEintraege: _("Email addresses"),

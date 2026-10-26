@@ -89,6 +89,29 @@ async function run(web, data, remote, options = {}) {
     assert.deepEqual(notes.groups[0], [notes.expectedFamily], "Imported group membership must survive locale alias normalization");
     assert.equal(notes.data.kontakte[1].foto, "");
     assert.equal(notes.data.kontakte[2].foto, other);
+    for (const [sourceStatus, sourceDevice] of [[status, device], [notesStatus, notesDevice]]) {
+      const grouped = plain(base);
+      grouped.kontakte[0].vcardRoundtrip = ["CATEGORIES:Kollegen", "X-LOCAL:preserve"];
+      const changedGroups = remote.map((card, index) => index ? card : { ...card, gruppenZeilen: ["CATEGORIES:Arbeit"] });
+      const updated = await run(web, grouped, changedGroups, { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(updated.groups[0], ["Work"], "Current phone groups must replace removed membership, not union it back");
+      assert.ok(updated.data.kontakte[0].vcardRoundtrip.includes("X-LOCAL:preserve"));
+      const aged = plain(updated.data);
+      aged.kontaktFotoCache.entries.forEach(entry => { entry.checkedAt = Date.now() - 3600001; });
+      const groupOnlyChange = await run(web, aged, changedGroups.map((card, index) => index ? card : {
+        ...card, gruppenZeilen: ["CATEGORIES:Family"]
+      }), { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(groupOnlyChange.groups[0], ["Family"], "A cached photo cannot freeze group-only changes with an unchanged contact timestamp forever");
+      const cleared = await run(web, updated.data, changedGroups.map((card, index) => index ? card : {
+        ...card, modified_ms: 2, gruppenZeilen: []
+      }), { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(cleared.groups[0], [], "Explicit empty membership must remove the last phone group");
+      const unknown = await run(web, grouped, remote.map(({ gruppenZeilen, ...card }) => card), { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(unknown.groups[0], ["Colleagues"], "Unknown groups must not clear membership");
+      const concurrent = await run(web, grouped, changedGroups, { status: sourceStatus, device: sourceDevice,
+        beforeReply: b => { b.t.daten().kontakte[0].vcardRoundtrip = ["CATEGORIES:Family"]; } });
+      assert.deepEqual(concurrent.groups[0], ["Family"], "Late phone membership must not overwrite a concurrent local group edit");
+    }
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");
     const directProvider = await run(web, base, remote, { status: { ...notesStatus, kdeconnect: status.kdeconnect }, device: notesDevice });
     assert(directProvider.requests.every(request => request.device_id === notesDevice), "current authorized Android provider lost to older KDE cache");

@@ -9,6 +9,7 @@ import tempfile
 
 sys.dont_write_bytecode = True
 root = Path(__file__).resolve().parents[1]
+contact_groups = "--contact-groups" in sys.argv
 sys.path.insert(0, str(root / "bin"))
 temporary = tempfile.TemporaryDirectory(prefix="magnolie-desktop-probe-", dir="/tmp/opencode")
 for variable, directory in (("HOME", "home"), ("XDG_CONFIG_HOME", "config"),
@@ -52,6 +53,13 @@ for method in ("register_uri_scheme_as_secure", "register_uri_scheme_as_display_
 def resource(request):
     match = policy["organizer_ressource"](request.get_uri(), str(root / "web"), "en")
     content = (read_asset(match[0], 1, 1) if match[1] == "image/png" else Path(match[0]).read_bytes()) if match else b""
+    if contact_groups and match and Path(match[0]).name == "anwendung.js":
+        anchor = b"speichereJetzt: speichereJetzt,"
+        assert content.count(anchor) == 1
+        content = content.replace(anchor, b"kontaktGruppen, kdeStart: starteKdeKontaktImport, "
+            b"kdeProbeState: () => ({lauf: !!kdeKontaktLauf, foto: !!kontaktFotoLauf, editor: !!aktiverEditor, sync: syncLaeuft, "
+            b"import: kontaktImportDialogOffen, gesperrt, quelle: kontaktDatenQuelle(), "
+            b"conflict: !!document.querySelector('.baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-assistent-schleier')}), " + anchor)
     request.finish(Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(content)), len(content), match[1] if match else "text/plain")
 
 context.register_uri_scheme("magnolie-organizer", resource)
@@ -71,6 +79,21 @@ def evaluate(script):
 
 def message(_manager, value):
     data = json.loads(value.get_js_value().to_string())
+    if contact_groups:
+        if data.get("probe") == "font":
+            assert data.get("loaded") == 1 and data.get("image") is True
+            evaluate((root / "pruefungen/contact_groups_webkit.js").read_text())
+        elif data.get("probe") == "groups":
+            state.clear()
+            state.update(data)
+            loop.quit()
+        elif data.get("cmd") == "speichern":
+            evaluate("App.gespeichert(%s);" % json.dumps({"id": data["id"], "ok": True}))
+        elif data.get("cmd") == "mutations_snapshot":
+            evaluate("App.mutationsSnapshot(%s);" % json.dumps({"token": data["token"], "ok": True}))
+        elif data.get("cmd") == "telefon_kontakte":
+            evaluate("window.contactGroupProbeReply(%s);" % json.dumps(data))
+        return
     if data.get("probe") == "font":
         state["font"] = data.get("loaded") == 1
         state["image"] = data.get("image") is True
@@ -121,9 +144,9 @@ manager.connect("script-message-received::desktop_probe", message)
 view.connect("load-changed", loaded)
 view.load_uri("magnolie-organizer://app/index.html")
 window.show_all()
-GLib.timeout_add_seconds(25, lambda: (loop.quit(), False)[1])
+GLib.timeout_add_seconds(45 if contact_groups else 25, lambda: (loop.quit(), False)[1])
 loop.run()
 window.destroy()
-assert all(state.values()), state
-print("GTK/WEBKIT DESKTOP PROBE PASSED", json.dumps(state))
+assert (state.get("ok") is True if contact_groups else all(state.values())), state
+print("GTK/WEBKIT CONTACT GROUPS PROBE PASSED" if contact_groups else "GTK/WEBKIT DESKTOP PROBE PASSED", json.dumps(state))
 temporary.cleanup()
