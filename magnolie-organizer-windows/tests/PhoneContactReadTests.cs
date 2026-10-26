@@ -130,13 +130,19 @@ internal static class PhoneContactReadTests
                 var index = await coordinator.ReadContactsAsync(phone, null, deadline.Token);
                 TestAssert.That(index["contacts"]!.AsArray().Count == 130 && index["device_id"]!.GetValue<string>() == "notes:" + phone,
                     "Paged Notes contact index was incomplete or attributed to KDE.");
-                var cards = await coordinator.ReadContactsAsync(phone, new JsonArray("fixture-000"), deadline.Token);
-                var contact = ExchangeCodec.ParseVCard(cards["contacts"]![0]!["vcard"]!.GetValue<string>()).Kontakte.Single()!.AsObject();
-                TestAssert.That(contact["vorname"]!.GetValue<string>() == "Fixture" && contact["foto"]!.GetValue<string>().StartsWith("data:image/png;base64,", StringComparison.Ordinal) &&
-                    contact["sozialeMedien"]!.AsArray().Count == 1, "Contact, photo or explicit messenger source was lost in transport.");
-                KdeContactImport.Project(cards, "notes:" + phone, ["fixture-000"], "notes");
-                TestAssert.That(cards["contacts"]![0]!["bindung"]!.GetValue<string>().StartsWith("urn:magnolie:import:notes:", StringComparison.Ordinal),
-                    "Notes preview lacks its own authenticated source binding.");
+                for (var indexCard = 0; indexCard < 6; indexCard++)
+                {
+                    var uid = $"fixture-{indexCard:D3}";
+                    var cards = await coordinator.ReadContactsAsync(phone, new JsonArray(uid), deadline.Token);
+                    TestAssert.That(cards["contacts"]!.AsArray().Count == 1 && cards["contacts"]![0]!["uid"]!.GetValue<string>() == uid,
+                        "Serial preview read returned a different contact or widened selection.");
+                    var contact = ExchangeCodec.ParseVCard(cards["contacts"]![0]!["vcard"]!.GetValue<string>()).Kontakte.Single()!.AsObject();
+                    TestAssert.That(contact["vorname"]!.GetValue<string>() == "Fixture" && contact["foto"]!.GetValue<string>().StartsWith("data:image/png;base64,", StringComparison.Ordinal) &&
+                        contact["sozialeMedien"]!.AsArray().Count == 1, "Contact, photo or explicit messenger source was lost in transport.");
+                    KdeContactImport.Project(cards, "notes:" + phone, [uid], "notes");
+                    TestAssert.That(cards["contacts"]![0]!["bindung"]!.GetValue<string>().StartsWith("urn:magnolie:import:notes:", StringComparison.Ordinal),
+                        "Notes preview lacks its own authenticated source binding.");
+                }
                 TestAssert.That(store.LoadStatus(phone) is null, "A contact response leaked into ordinary device-status history.");
                 var confirmed = store.LoadPeers().Single();
                 store.SavePeers([confirmed with { State = "pair_commit_pending" }]);

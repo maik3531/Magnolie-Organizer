@@ -46,12 +46,15 @@ def main():
                 def read_contacts():
                     index = service.read_contacts(PHONE)
                     assert len(index["contacts"]) == 130 and index["device_id"] == "notes:" + PHONE
-                    cards = service.read_contacts(PHONE, ["fixture-000"])
-                    contact = app.vcf_lesen(cards["contacts"][0]["vcard"])["kontakte"][0]
-                    assert contact["vorname"] == "Fixture" and contact["foto"].startswith("data:image/png;base64,")
-                    assert len(contact["sozialeMedien"]) == 1
-                    app.kde_kontakte_projizieren(cards, "notes:" + PHONE, ["fixture-000"], "notes")
-                    assert cards["contacts"][0]["bindung"].startswith("urn:magnolie:import:notes:")
+                    for card_index in range(6):
+                        uid = "fixture-%03d" % card_index
+                        cards = service.read_contacts(PHONE, [uid])
+                        assert len(cards["contacts"]) == 1 and cards["contacts"][0]["uid"] == uid
+                        contact = app.vcf_lesen(cards["contacts"][0]["vcard"])["kontakte"][0]
+                        assert contact["vorname"] == "Fixture" and contact["foto"].startswith("data:image/png;base64,")
+                        assert len(contact["sozialeMedien"]) == 1
+                        app.kde_kontakte_projizieren(cards, "notes:" + PHONE, [uid], "notes")
+                        assert cards["contacts"][0]["bindung"].startswith("urn:magnolie:import:notes:")
                     assert not service.store.status(PHONE), "contact reply leaked into ordinary status history"
                     with service.lock:
                         peer["local_grants"]["grants"]["device_status"] = False

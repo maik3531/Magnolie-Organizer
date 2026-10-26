@@ -73,11 +73,13 @@ class ContactReadTransportTest {
                         buildJsonObject { put("uid", JsonPrimitive("fixture-%03d".format(index))); put("timestamp", JsonPrimitive(1700000000000L)) }
                     })
                 val social = ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "49123456789@s.whatsapp.net", "", "")!!
-                val card = ContactReadAndroid.vcard(AndroidKontakt("fixture-000", 1,
+                assertEquals(1, uids.size)
+                val requested = uids.single()
+                assertTrue(requested in (0 until 6).map { "fixture-%03d".format(it) })
+                val card = ContactReadAndroid.vcard(AndroidKontakt(requested, requested.takeLast(3).toLong() + 1,
                     KontaktDaten(vorname = "Fixture", nachname = "Contact", telefone = listOf(KontaktWert("home", "+49123456789"))),
                     providerGeaendert = 1700000000000L), "", listOf(social)).replace("END:VCARD\r\n",
                     "PHOTO;ENCODING=b;TYPE=PNG:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\r\nEND:VCARD\r\n")
-                assertEquals(listOf("fixture-000"), uids)
                 return ContactRead.report(request, 1, listOf(buildJsonObject {
                     put("uid", JsonPrimitive(uids.single())); put("timestamp", JsonPrimitive(1700000000000L)); put("vcard", JsonPrimitive(card))
                 }))
@@ -154,7 +156,7 @@ class ContactReadTransportTest {
                     assertTrue("Native contact host did not finish", closed)
                     assertTrue("An unsolicited contact response was not rejected", rejectedForged)
                     assertTrue("An expired contact response was not rejected", rejectedExpired)
-                    assertEquals("Only two index pages and the requested card may be read", 3, reads)
+                    assertEquals("Only two index pages and the six explicitly requested cards may be read", 8, reads)
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS))

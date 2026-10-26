@@ -25744,9 +25744,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (new Set(ids).size !== ids.length || ids.some(id => typeof id !== "string" || !id || id.length > 1024))
         throw new Error(_("The offered entry is incomplete."));
       const karten = []; let umfang = 0;
-      for (let i = 0; i < ids.length; i += 5) {
+      // Notes reads one native card per request. Do not multiply its per-card wait
+      // inside the bridge's overall request deadline; KDE has a native batch API.
+      const batchSize = quelle.provider === "notes" ? 1 : 5;
+      for (let i = 0; i < ids.length; i += batchSize) {
         if (!gueltig()) throw new Error(_("Conflict"));
-        const angefordert = ids.slice(i, i + 5), antwort = await kdeKontaktAbfragen(lauf.deviceId, angefordert);
+        const angefordert = ids.slice(i, i + batchSize), antwort = await kdeKontaktAbfragen(lauf.deviceId, angefordert);
         if (!gueltig() || antwort.fingerprint?.toLowerCase() !== fingerprint ||
             antwort.contacts.length !== angefordert.length || new Set(antwort.contacts.map(k => k.uid)).size !== angefordert.length ||
             antwort.contacts.some(k => !angefordert.includes(k.uid))) throw new Error(_("The offered entry is incomplete."));
