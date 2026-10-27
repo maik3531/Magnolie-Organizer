@@ -103,6 +103,17 @@ function Get-ReleaseArchiveSources([string] $Root) {
             Relative = "shared/magnolie-handbuch/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
         }
     }
+    # Keep the independent Linux artwork reference inside standalone sources.
+    # Native flag checks must not reach back into an outer canonical checkout.
+    $linuxWeb = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/web'
+    if (-not (Test-Path -LiteralPath (Join-Path $linuxWeb 'country-flags.png') -PathType Leaf)) {
+        $linuxWeb = Join-Path $Root 'shared/magnolie-organizer/web'
+    }
+    foreach ($name in 'country-flags.png', 'country-flags-LICENSE.txt') {
+        $file = Get-Item -LiteralPath (Join-Path $linuxWeb $name) -ErrorAction Stop
+        Assert-SourceFileSafe $file
+        [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$name" }
+    }
     $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
     if (-not (Test-Path -LiteralPath $contracts -PathType Container)) { $contracts = Join-Path $Root 'contracts' }
     foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {
@@ -280,6 +291,8 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/resources/linux-parity-contract.json",
         "tests/linux-parity-fixture.js",
         "tests/generate-linux-parity-fixture.js",
+        "shared/magnolie-organizer/web/country-flags.png",
+        "shared/magnolie-organizer/web/country-flags-LICENSE.txt",
         "shared/magnolie-handbuch/web/index.html",
         "shared/magnolie-handbuch/web/inhalt.js",
         "shared/magnolie-handbuch/web/i18n/en.js",

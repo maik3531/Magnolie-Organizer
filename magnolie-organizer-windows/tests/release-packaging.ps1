@@ -26,6 +26,7 @@ try {
         'tests/resources/personal-sync-contract.json', 'tests/resources/telefon-control-contract.json',
         'tests/resources/linux-parity-contract.json', 'tests/linux-parity-fixture.js',
         'tests/generate-linux-parity-fixture.js', 'tests/fixtures/new-schema.sql',
+        'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt',
         'shared/magnolie-handbuch/web/index.html', 'shared/magnolie-handbuch/web/inhalt.js',
         'shared/magnolie-handbuch/web/i18n/de.js', 'shared/magnolie-handbuch/web/i18n/en.js', 'shared/magnolie-handbuch/web/kaffee-qr.mga',
         'shared/magnolie-handbuch/web/maik-walter.mga')) {
@@ -58,7 +59,8 @@ try {
         'contracts/device-status-v4.md', 'contracts/native-call-audio.md', 'contracts/call-alert-actions-v2.md',
         'contracts/sms-plan-review-v1.md',
         'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md',
-        'shared/magnolie-handbuch/web/i18n/en.js') {
+        'shared/magnolie-handbuch/web/i18n/en.js',
+        'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt') {
         if ($names -notcontains $name) { throw "Current feature source missing from standalone archive: $name" }
     }
     if ($names -notcontains 'contracts/thunderbird-addressbook-fixture.json' -or
