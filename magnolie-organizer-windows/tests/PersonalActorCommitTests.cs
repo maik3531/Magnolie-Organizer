@@ -15,11 +15,63 @@ internal static class PersonalActorCommitTests
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actor-atomic-" + Guid.NewGuid().ToString("N"));
         try
         {
+            CheckDecisionTargets(Path.Combine(root, "targets"));
             foreach (var mode in new[] { "missing", "partial", "foreign_token", "extra", "duplicate", "expired", "foreign_run", "atomic" })
                 Check(Path.Combine(root, mode), mode);
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
         return Task.CompletedTask;
+    }
+
+    private static void CheckDecisionTargets(string path)
+    {
+        var keyBytes = Enumerable.Range(1, 32).Select(value => (byte)value).ToArray();
+        var store = new TelefonStore(new WindowsPaths(path), keyBytes); var peer = PersonalSyncActorContract.StoragePeer(Run);
+        var proposalId = "33333333-3333-4333-8333-333333333333";
+        var clock = new JsonArray(new JsonObject { ["actor_id"] = Run, ["counter"] = 2 });
+        var proposal = new JsonObject { ["proposal_id"] = proposalId, ["kind"] = "attachment", ["id"] = "scope-target",
+            ["parent_id"] = "scope-parent", ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone(),
+            ["deleted_ms"] = 0, ["label"] = "Not retained in target proof" };
+        var body = new JsonObject { ["format"] = 1, ["run_id"] = Run, ["proposal_batch_id"] = Run, ["sequence"] = 0,
+            ["last"] = true, ["proposals"] = new JsonArray(proposal) };
+        var decision = new JsonObject { ["format"] = 1, ["run_id"] = Run, ["decision_id"] = "44444444-4444-4444-8444-444444444444",
+            ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = proposalId, ["decision"] = "restore", ["expected_clock"] = clock.DeepClone() }) };
+        TestAssert.That(store.PersonalDecisionTargets(peer, decision, false) is null, "Absent target proof was guessed.");
+        store.RememberPersonalProposalKinds(peer, body, true);
+        var expected = new JsonArray(new JsonObject { ["proposal_id"] = proposalId, ["kind"] = "attachment", ["id"] = "scope-target",
+            ["parent_id"] = "scope-parent", ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() });
+        TestAssert.That(JsonNode.DeepEquals(expected, store.PersonalDecisionTargets(peer, decision, false)), "Native full target identity was not retained.");
+        var edited = store.PersonalDecisionTargets(peer, decision, false)!; edited[0]!["id"] = "caller-edit";
+        foreach (var (field, value) in new[] { ("id", "foreign-target"), ("parent_id", "foreign-parent"), ("prior_hash", new string('b', 64)) })
+        {
+            var changed = body.DeepClone().AsObject(); changed["proposals"]![0]![field] = value;
+            TestAssert.Throws<InvalidDataException>(() => store.RememberPersonalProposalKinds(peer, changed, true), "Changed target identity retained the old proposal ID.");
+        }
+        var key = "personal_proposal_kind:" + peer + ":out:" + proposalId;
+        JsonObject saved;
+        using (var connection = store.OpenDatabase())
+        {
+            connection.Open(); using var read = connection.CreateCommand(); read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
+            saved = JsonNode.Parse(store.Open("personal_proposal_kind", key, (byte[])read.ExecuteScalar()!))!.AsObject();
+        }
+        void WriteMeta(JsonObject value)
+        {
+            using var connection = store.OpenDatabase(); connection.Open(); using var write = connection.CreateCommand();
+            write.CommandText = "UPDATE meta SET value=$data WHERE key=$key"; write.Parameters.AddWithValue("$key", key);
+            write.Parameters.AddWithValue("$data", store.Seal("personal_proposal_kind", key, TelefonCrypto.Canonical(value))); write.ExecuteNonQuery();
+        }
+        var legacy = saved.DeepClone().AsObject(); legacy.Remove("target"); WriteMeta(legacy);
+        TestAssert.That(store.PersonalDecisionKinds(peer, decision, false)?.Single() == "attachment" && store.PersonalDecisionTargets(peer, decision, false) is null,
+            "Legacy kind-only proof was rejected or became a full target authority.");
+        store.RememberPersonalProposalKinds(peer, body, true);
+        var reopened = new TelefonStore(new WindowsPaths(path), keyBytes);
+        TestAssert.That(JsonNode.DeepEquals(expected, reopened.PersonalDecisionTargets(peer, decision, false)), "Full target proof did not survive reopen or was aliased.");
+        var stale = decision.DeepClone().AsObject(); stale["decisions"]![0]!["expected_clock"]![0]!["counter"] = 3;
+        TestAssert.That(reopened.PersonalDecisionTargets(peer, stale, false) is null &&
+            reopened.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer("22222222-2222-4222-8222-222222222222"), decision, false) is null,
+            "Stale or cross-run target proof was reused.");
+        saved["expires_ms"] = 0; WriteMeta(saved);
+        TestAssert.That(reopened.PersonalDecisionTargets(peer, decision, false) is null, "Expired native target proof authorized a transition.");
     }
 
     private static void ReviewVectors()

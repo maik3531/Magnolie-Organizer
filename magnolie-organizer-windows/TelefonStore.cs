@@ -313,13 +313,16 @@ internal sealed partial class TelefonStore
             {
                 var key = "personal_proposal_kind:" + peerId + ":" + (outgoing ? "out:" : "in:") + proposal["proposal_id"]!.GetValue<string>();
                 var value = new JsonObject { ["kind"] = proposal["kind"]!.DeepClone(), ["clock"] = proposal["clock"]!.DeepClone(),
-                    ["expires_ms"] = (now ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) + MaximumMessageTtlMs };
+                    ["expires_ms"] = (now ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) + MaximumMessageTtlMs,
+                    ["target"] = new JsonObject(new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash" }
+                        .Select(name => new KeyValuePair<string, JsonNode?>(name, proposal[name]!.DeepClone()))) };
                 using var read = connection.CreateCommand(); read.Transaction = transaction;
                 read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
                 if (read.ExecuteScalar() is byte[] existing)
                 {
                     var previous = JsonNode.Parse(Open("personal_proposal_kind", key, existing))!.AsObject();
-                    if (!JsonNode.DeepEquals(previous["kind"], value["kind"]) || !JsonNode.DeepEquals(previous["clock"], value["clock"]))
+                    if (!JsonNode.DeepEquals(previous["kind"], value["kind"]) || !JsonNode.DeepEquals(previous["clock"], value["clock"]) ||
+                        previous.ContainsKey("target") && !JsonNode.DeepEquals(previous["target"], value["target"]))
                         throw new InvalidDataException("Conflicting personal proposal identity.");
                     if (previous["expires_ms"] is not null) value["expires_ms"] = previous["expires_ms"]!.DeepClone();
                 }
@@ -339,11 +342,38 @@ internal sealed partial class TelefonStore
     }
 
     internal IReadOnlyList<string>? PersonalDecisionKinds(string peerId, JsonObject body, bool outgoingDecision)
+        => PersonalDecisionProofs(peerId, body, outgoingDecision)?.Select(value => value["kind"]!.GetValue<string>()).ToArray();
+
+    // Native target proof only; neither this lookup nor a legacy kind-only row
+    // grants access or authorizes a scope-changing completion receipt.
+    internal JsonArray? PersonalDecisionTargets(string peerId, JsonObject body, bool outgoingDecision)
+    {
+        PersonalSyncContract.ValidateBody("personal_sync.deletion_decision", body);
+        var proofs = PersonalDecisionProofs(peerId, body, outgoingDecision);
+        if (proofs is null) return null;
+        var decisions = body["decisions"]!.AsArray(); var result = new JsonArray();
+        for (var index = 0; index < proofs.Count; index++)
+        {
+            var proof = proofs[index]; var decision = decisions[index]!.AsObject();
+            if (proof["target"] is not JsonObject target || target.Count != 5 ||
+                !new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash" }.All(target.ContainsKey) ||
+                !JsonNode.DeepEquals(target["proposal_id"], decision["proposal_id"]) || !JsonNode.DeepEquals(target["kind"], proof["kind"])) return null;
+            var proposal = target.DeepClone().AsObject(); proposal["clock"] = proof["clock"]!.DeepClone(); proposal["deleted_ms"] = 0; proposal["label"] = "";
+            try { PersonalSyncContract.ValidateBody("personal_sync.deletion_proposals", new JsonObject { ["format"] = 1,
+                ["run_id"] = body["run_id"]!.DeepClone(), ["proposal_batch_id"] = body["decision_id"]!.DeepClone(),
+                ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(proposal) }); }
+            catch (InvalidDataException) { return null; }
+            var value = target.DeepClone().AsObject(); value["clock"] = proof["clock"]!.DeepClone(); result.Add(value);
+        }
+        return result;
+    }
+
+    private IReadOnlyList<JsonObject>? PersonalDecisionProofs(string peerId, JsonObject body, bool outgoingDecision)
     {
         if (body["decisions"] is not JsonArray decisions) return null;
         lock (gate)
         {
-            using var connection = OpenDatabase(); connection.Open(); var result = new List<string>();
+            using var connection = OpenDatabase(); connection.Open(); var result = new List<JsonObject>();
             foreach (var decision in decisions.OfType<JsonObject>())
             {
                 var key = "personal_proposal_kind:" + peerId + ":" + (outgoingDecision ? "in:" : "out:") + decision["proposal_id"]?.GetValue<string>();
@@ -352,7 +382,7 @@ internal sealed partial class TelefonStore
                 var value = JsonNode.Parse(Open("personal_proposal_kind", key, encrypted))!.AsObject();
                 if (!JsonNode.DeepEquals(value["clock"], decision["expected_clock"]) ||
                     (value["expires_ms"]?.GetValue<long>() ?? 0) <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) return null;
-                result.Add(value["kind"]!.GetValue<string>());
+                result.Add(value);
             }
             return result.Count == decisions.Count ? result : null;
         }

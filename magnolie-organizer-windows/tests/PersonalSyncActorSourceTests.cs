@@ -60,7 +60,9 @@ internal static class PersonalSyncActorSourceTests
             online[peer.Id] = connection;
             var fingerprint = TelefonCrypto.Fingerprint(peer.PublicKey);
             string? Read(Func<string?>? book = null) => coordinator.CurrentActorSource(peer.Id, fingerprint, book ?? (() => new string('a', 64)));
+            string? CompletionAuthority() => coordinator.CurrentActorCompletionAuthority(peer.Id, fingerprint, () => new string('a', 64));
             TestAssert.That(Read() is null, "Missing fresh native controls admitted an actor source.");
+            TestAssert.That(CompletionAuthority() is null, "Missing controls admitted terminal receipt authority.");
             await connection.HandlePlainAsync(Message("capabilities.update", capabilities));
             await connection.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = grants }));
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
@@ -444,20 +446,26 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(coordinator.CurrentActorSource(peer.Id, "AAAA-BBBB-CCCC-DDDD", () => new string('a', 64)) is null, "Another peer key was accepted.");
             store.SetLocalGrant("personal_tasks_sync", false);
             TestAssert.That(Read() is null, "Grant revocation reused an actor source.");
+            TestAssert.That(CompletionAuthority() is null, "Grant revocation retained terminal receipt authority.");
             store.SetLocalGrant("personal_tasks_sync", true); store.NextOwnRevision("grants");
             var granted = Read();
             TestAssert.That(granted is { Length: 64 } && granted != revision, "Native grant revision was not source-bound.");
+            var completionAuthority = CompletionAuthority();
+            TestAssert.That(completionAuthority is { Length: 64 } && completionAuthority != granted, "Receipt authority aliased a data source.");
             var changed = PhoneContentScope.Advance(manifest, ["note-two"], ["task-one"]);
             foreach (var part in PhoneContentScope.Chunks(changed)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
             var current = Read();
             TestAssert.That(current is not null && current != granted, "Scope replacement retained source identity.");
+            TestAssert.That(CompletionAuthority() == completionAuthority, "A completed scope generation changed unrelated native receipt authority.");
             beforeWire = wire.Length; beforeEmitted = emitted;
             TestAssert.That(Read() == current && wire.Length == beforeWire && emitted == beforeEmitted, "Source inspection emitted transport or GUI work.");
             await connection.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = 2, ["grants"] = grants.DeepClone() }));
             var remoteRevision = Read();
             TestAssert.That(remoteRevision is not null && remoteRevision != current, "Fresh remote grant revision was not source-bound.");
+            TestAssert.That(CompletionAuthority() != completionAuthority, "A new grant revision inherited terminal receipt authority.");
             store.UpdatePeerProtocol(peer.Id, 0, null, 3, grants);
             TestAssert.That(Read() is null, "Cached fresh flags authorized a control revision unseen on this connection.");
+            TestAssert.That(CompletionAuthority() is null, "Unseen control revision authorized terminal correlation.");
             await connection.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = 4, ["grants"] = grants.DeepClone() }));
             current = Read();
             TestAssert.That(current is not null, "Actual current grant control did not refresh source authority.");
@@ -471,7 +479,7 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(reowned is not null, "Paired source failed after a legacy ownership control.");
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
             TestAssert.That(Read() == reowned, "Unchanged ownership replay rotated actor authority.");
-            online.Clear(); TestAssert.That(Read() is null, "A disconnected native source stayed authorized.");
+            online.Clear(); TestAssert.That(Read() is null && CompletionAuthority() is null, "A disconnected native source stayed authorized.");
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }

@@ -36,6 +36,14 @@ internal sealed partial class TelefonCoordinator
     // Native controller only: a caller-supplied JSON digest is never book authority.
     // Acquire native book/coordinator guards before calling a protected actor store.
     internal string? CurrentActorSource(string id, string fingerprint, Func<string?> nativeBookSource)
+        => CurrentActorRevision(id, fingerprint, nativeBookSource, completionOnly: false);
+
+    // Native receipt correlation only. This cannot replace a data/source pin:
+    // a terminal receipt additionally needs its exact saved claim and new scope.
+    internal string? CurrentActorCompletionAuthority(string id, string fingerprint, Func<string?>? nativeBookSource = null)
+        => CurrentActorRevision(id, fingerprint, nativeBookSource ?? NativeBookSource, completionOnly: true);
+
+    private string? CurrentActorRevision(string id, string fingerprint, Func<string?> nativeBookSource, bool completionOnly)
     {
         lock (gate)
         {
@@ -50,6 +58,11 @@ internal sealed partial class TelefonCoordinator
                 var book = nativeBookSource();
                 if (book is null || !System.Text.RegularExpressions.Regex.IsMatch(book, "\\A[0-9a-f]{64}\\z")) return null;
                 snapshot["profile"] = identity.Id; snapshot["book"] = book;
+                if (completionOnly)
+                {
+                    snapshot.Remove("scope");
+                    snapshot["purpose"] = "actor_terminal_receipt_only";
+                }
                 var bytes = TelefonCrypto.Canonical(snapshot);
                 try
                 {

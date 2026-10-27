@@ -433,23 +433,27 @@ class ScopedDataRuntimeTest {
                 }
                 if (mode == "actor-source") {
                     fun source() = work.currentActorSource(peerId, peer.static_public, channel, 0L)
+                    fun completionAuthority() = work.currentActorCompletionAuthority(peerId, peer.static_public, channel, 0L)
                     assertNull(source())
+                    assertNull(completionAuthority())
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     assertNull(source()) // The manifest must actually have been acknowledged.
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     val revision = requireNotNull(source())
+                    assertNotEquals(revision, requireNotNull(completionAuthority()))
                     val boundPeer = requireNotNull(storage.peers().peer)
                     assertTrue(Regex("[0-9a-f]{64}").matches(revision)); assertEquals(revision, source())
                     assertNull(work.currentActorSource(peerId, peer.static_public, channel, 1L))
+                    assertNull(work.currentActorCompletionAuthority(peerId, peer.static_public, channel, 1L))
                     assertNull(work.currentActorSource(peerId, TelefonKrypto.b64(ByteArray(32) { 24 }), channel, 0L))
                     val capabilities = work.sharedLocalCapabilities
                     work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
                     assertNull(source()); work.sharedLocalCapabilities = capabilities
-                    session.grantsReceived = false; assertNull(source()); session.grantsReceived = true
-                    session.ownSettingsReceived = false; assertNull(source()); session.ownSettingsReceived = true
+                    session.grantsReceived = false; assertNull(source()); assertNull(completionAuthority()); session.grantsReceived = true
+                    session.ownSettingsReceived = false; assertNull(source()); assertNull(completionAuthority()); session.ownSettingsReceived = true
                     for (revoked in listOf(boundPeer.copy(state = "paired_unverified"), boundPeer.copy(remote_personal_notes_sync_granted = false),
                         boundPeer.copy(personal_notes_sync_granted = false), boundPeer.copy(remote_personal_tasks_sync_granted = false))) {
-                        storage.savePeer(revoked); assertNull(source())
+                        storage.savePeer(revoked); assertNull(source()); assertNull(completionAuthority())
                     }
                     storage.savePeer(boundPeer)
                     assertEquals(revision, source())
@@ -480,8 +484,13 @@ class ScopedDataRuntimeTest {
                     storage.savePeer(boundPeer.copy(remote_grants_revision = boundPeer.remote_grants_revision + 1))
                     assertNotEquals(reownedSource, source())
                     storage.savePeer(boundPeer)
+                    val beforeScopeAuthority = requireNotNull(completionAuthority())
                     documents.setzeNotiz(Notiz("scope-change", "Additional", "New scope member"))
-                    assertNull(source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    assertNull(source()); assertNull(completionAuthority()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    pump.invoke(work, peer, channel, 0L, false); sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    assertNotEquals(reownedSource, requireNotNull(source()))
+                    assertEquals(beforeScopeAuthority, completionAuthority())
+                    assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
                     journal.retire(handle)
                     return@use
                 }

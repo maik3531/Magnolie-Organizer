@@ -87,6 +87,7 @@ def test_missing_native_authority_never_uses_a_cached_or_client_scope(tmp_path, 
     elif gate == "book": book = None
     elif gate == "invalid_book": book = lambda: "not-a-native-book-identity"
     assert service.current_actor_source(peer["device_id"], fingerprint, book) is None
+    assert service.current_actor_completion_authority(peer["device_id"], fingerprint, book) is None
 
 
 def test_connection_and_scope_replacements_and_book_races_invalidate_source(tmp_path, monkeypatch):
@@ -165,3 +166,36 @@ def test_native_registry_factory_uses_host_book_and_service_guard_for_raw_work(t
     owner.set_ready(False)
     with pytest.raises(PermissionError): registry.read(handle, wire["message_id"])
     assert registry.cancel(handle)["phase"] == "cancelled"
+
+
+def test_completion_authority_stays_distinct_from_old_scope_data_rights(tmp_path, monkeypatch):
+    import uuid
+    import magnolie_personal_actor as actor
+    service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
+    service.native_actor_book_source = lambda: 'a'*64
+    source = service.current_actor_source(peer['device_id'], fingerprint)
+    authority = service.current_actor_completion_authority(peer['device_id'], fingerprint)
+    assert source and authority and source != authority
+    registry = service.personal_actor_registry()
+    handle = registry.create(peer['device_id'], fingerprint, source)
+    now = phone.now_ms()
+    wire = {'type':'message', 'v':1, 'message_id':str(uuid.uuid4()), 'kind':actor.ACK_KIND,
+        'created_ms':now, 'expires_ms':now+60000, 'body':actor.ack(handle.actor_id, str(uuid.uuid4()))}
+    registry.put(handle, wire)
+    session = service.content_scope_sessions[channel]
+    binding = (peer['device_id'], peer['static_public'], id(channel))
+    updated = scope.advance(manifest, ['note-one','restored-note'], ['task-one'])
+    for part in scope.chunks(updated): session.receive(binding, part)
+    assert service.current_actor_source(peer['device_id'], fingerprint) != source
+    assert service.current_actor_completion_authority(peer['device_id'], fingerprint) == authority
+    with pytest.raises(PermissionError): registry.read(handle, wire['message_id'])
+    with pytest.raises(PermissionError): registry.create(peer['device_id'], fingerprint, authority)
+    incomplete = scope.advance(updated, [f'note-{i:02}' for i in range(40)], ['task-one'])
+    parts = scope.chunks(incomplete, size=32)
+    session.receive(binding, parts[0])
+    assert service.current_actor_source(peer['device_id'], fingerprint) is None
+    assert service.current_actor_completion_authority(peer['device_id'], fingerprint) is None
+    for part in parts[1:]: session.receive(binding, part)
+    assert service.current_actor_completion_authority(peer['device_id'], fingerprint) == authority
+    peer['local_grants']['grants']['personal_tasks_sync'] = False
+    assert service.current_actor_completion_authority(peer['device_id'], fingerprint) is None

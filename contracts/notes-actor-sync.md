@@ -582,6 +582,34 @@ change. The private frontend still blocks intent commits until the narrowly boun
 terminal scope-change/save/receipt path is connected on both desktops and Notes;
 marker 12 and public actor tools remain unadvertised meanwhile.
 
+### Native completion correlation foundation (#190)
+
+All three native source adapters additionally derive a purpose-separated
+`actor_terminal_receipt_only` authority fingerprint. They still require the same
+current profile/book owner, key/channel, controls, settings, capabilities, grants,
+restore state and fully accepted scope generation as ordinary admission. Only
+the scope reference is omitted from this distinct fingerprint: an incomplete new
+scope is not sufficient, but a fully accepted replacement with unchanged other
+authority preserves receipt correlation. The normal source fingerprint and its
+read/write checks remain unchanged. This is not a client-supplied revision or a
+substitute for an actor data owner; old-source reads still fail after replacement.
+
+Protected desktop proposal metadata now retains the exact proposal/entity/parent
+identity and prior hash alongside its existing kind, clock and expiry. No label
+or document content is added to this target proof. Reusing a proposal identity
+with a different target or prior hash is rejected even if its kind/clock match.
+Native target lookup returns independent copies only for matching clocks and
+unexpired proofs. Legacy kind-only rows retain their existing lookup behavior,
+but cannot be guessed into a complete transition proof. A newly admitted exact
+proposal can populate the target without extending the original expiry.
+
+These primitives still do not send or accept a post-transition actor receipt.
+That lane must additionally bind the exact native saved claim, typed decision
+and resulting scope, and must carry only the existing deletion-control metadata.
+The existing Notes deletion-decision path already preserves its acknowledgement
+across membership changes; the actor route must reuse that domain/save engine
+without falling back to ordinary unmarked synchronization.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

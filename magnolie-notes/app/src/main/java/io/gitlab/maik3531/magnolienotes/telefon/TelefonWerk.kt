@@ -327,7 +327,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     /** Native-only snapshot. An externally supplied revision is never an authorization input. */
     @Synchronized internal fun currentActorSource(peerId: String, publicKey: String,
-        channel: TelefonSecureChannel, generation: Long): String? {
+        channel: TelefonSecureChannel, generation: Long): String? =
+        actorSourceRevision(peerId, publicKey, channel, generation, false)
+
+    /** Native terminal receipt correlation, never a substitute for content admission.
+     * Fresh accepted scope evidence is still required; the receipt must separately
+     * match its saved native claim and exact resulting scope. */
+    @Synchronized internal fun currentActorCompletionAuthority(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long): String? =
+        actorSourceRevision(peerId, publicKey, channel, generation, true)
+
+    private fun actorSourceRevision(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long, completionOnly: Boolean): String? {
         if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
             generation != pairingGeneration || activeTransport == null) return null
         val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
@@ -352,7 +363,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 put("remote_own_revision", JsonPrimitive(session.actorOwnRevision))
                 put("pairing_generation", JsonPrimitive(generation)); put("lifecycle_generation", JsonPrimitive(lifecycleGeneration))
                 put("transport", JsonPrimitive(requireNotNull(activeTransport).first.name))
-                put("restore_epoch", JsonPrimitive(epoch)); put("scope", PhoneContentScope.reference(manifest))
+                put("restore_epoch", JsonPrimitive(epoch))
+                if (completionOnly) put("purpose", JsonPrimitive("actor_terminal_receipt_only"))
+                else put("scope", PhoneContentScope.reference(manifest))
                 put("settings", settings)
                 put("local_capabilities", JsonObject(listOf("personal_notes_sync", "personal_tasks_sync").associateWith { name ->
                     val value = capabilities.getValue(name)

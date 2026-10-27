@@ -686,11 +686,14 @@ class PhoneStore:
             db.execute("BEGIN IMMEDIATE")
             for proposal in body["proposals"]:
                 key = "personal_proposal_kind:%s:%s:%s" % (peer_id, "out" if outgoing else "in", proposal["proposal_id"])
-                value = {"kind": proposal["kind"], "clock": proposal["clock"], "expires_ms": now_ms() + 30 * DAY_MS}
+                target = {name: copy.deepcopy(proposal[name]) for name in ("proposal_id", "kind", "id", "parent_id", "prior_hash")}
+                value = {"kind": proposal["kind"], "clock": proposal["clock"], "expires_ms": now_ms() + 30 * DAY_MS,
+                         "target": target}
                 previous = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
                 if previous:
                     saved = strict_json(self._decrypt(previous[0], "personal_proposal_kind", key))
-                    if any(saved.get(field) != value[field] for field in ("kind", "clock")):
+                    if (any(saved.get(field) != value[field] for field in ("kind", "clock")) or
+                            "target" in saved and saved["target"] != target):
                         raise ValueError("conflicting personal proposal identity")
                     value["expires_ms"] = saved.get("expires_ms", value["expires_ms"])
                 elif db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] >= 10000:
@@ -699,6 +702,35 @@ class PhoneStore:
                     self._encrypt(canonical(value), "personal_proposal_kind", key)))
 
     def personal_decision_kinds(self, peer_id, body, outgoing):
+        proofs = self._personal_decision_proofs(peer_id, body, outgoing)
+        return None if proofs is None else [proof["kind"] for proof in proofs]
+
+    def personal_decision_targets(self, peer_id, body, outgoing):
+        """Native identity proof only; current source/grants remain caller gates.
+
+        Old kind-only rows cannot authorize a membership transition. A fresh
+        admitted proposal must have captured its exact target and prior hash.
+        """
+        validate_personal_sync_body("personal_sync.deletion_decision", body)
+        proofs = self._personal_decision_proofs(peer_id, body, outgoing)
+        if proofs is None:
+            return None
+        result = []
+        for decision, proof in zip(body["decisions"], proofs):
+            target = proof.get("target")
+            if (not isinstance(target, dict) or set(target) != {"proposal_id", "kind", "id", "parent_id", "prior_hash"} or
+                    target["proposal_id"] != decision["proposal_id"] or target["kind"] != proof["kind"]):
+                return None
+            proposal = dict(target, clock=proof["clock"], deleted_ms=0, label="")
+            try:
+                validate_personal_sync_body("personal_sync.deletion_proposals", {"format":1, "run_id":body["run_id"],
+                    "proposal_batch_id":body["decision_id"], "sequence":0, "last":True, "proposals":[proposal]})
+            except ValueError:
+                return None
+            result.append(copy.deepcopy(dict(target, clock=proof["clock"])))
+        return result
+
+    def _personal_decision_proofs(self, peer_id, body, outgoing):
         decisions = body.get("decisions")
         if not isinstance(decisions, list):
             return None
@@ -714,7 +746,7 @@ class PhoneStore:
                 value = strict_json(self._decrypt(row[0], "personal_proposal_kind", key))
                 if value["clock"] != decision.get("expected_clock") or value.get("expires_ms", 0) <= now_ms():
                     return None
-                result.append(value["kind"])
+                result.append(value)
         return result
 
     def set_bluetooth(self, peer_id, enabled, address=""):
@@ -4611,6 +4643,18 @@ class PhoneService:
         return source
 
     def current_actor_source(self, peer_id, expected_fingerprint, native_book_source=None):
+        return self._current_actor_revision(peer_id, expected_fingerprint, native_book_source)
+
+    def current_actor_completion_authority(self, peer_id, expected_fingerprint, native_book_source=None):
+        """Native receipt correlation only; never an actor data/source revision.
+
+        Requires the same fully current control and assembled scope evidence as
+        normal admission, but domain-separates the non-scope authority snapshot.
+        A receipt still needs its exact saved claim and expected new scope.
+        """
+        return self._current_actor_revision(peer_id, expected_fingerprint, native_book_source, completion_only=True)
+
+    def _current_actor_revision(self, peer_id, expected_fingerprint, native_book_source=None, *, completion_only=False):
         """Native adapter only. Book identity must come from the real native owner, never MCP JSON.
 
         The controller must acquire its book/source guard before the service/SQLite guard.
@@ -4651,6 +4695,9 @@ class PhoneService:
                     "scope": reference, "local_capabilities": local,
                     "remote_capabilities": peer.get("capabilities"), "local_grants": peer.get("local_grants"),
                     "remote_grants": peer.get("grants"), "own": peer.get("personal_sync", {})}
+                if completion_only:
+                    del snapshot["scope"]
+                    snapshot["purpose"] = "actor_terminal_receipt_only"
                 revision = hmac.new(self._mcp_revision_key, canonical(snapshot), hashlib.sha256).hexdigest()
                 return revision if native_book_source() == book else None
             except (PermissionError, ValueError, TypeError):

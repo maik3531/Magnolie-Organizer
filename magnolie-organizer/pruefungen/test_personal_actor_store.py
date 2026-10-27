@@ -192,3 +192,45 @@ def test_actor_core_commit_accepts_exact_intents_atomically_and_survives_reopen(
     assert all(reopened.dedupe_result(private, identity) == ('accepted', 'none') for identity, token in references)
     assert reopened.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=references) == (private, [])
     assert not events and service.server is None
+
+
+@pytest.mark.parametrize('kind,parent', (('note',''), ('task',''), ('attachment','scope-parent')))
+def test_terminal_target_proof_binds_entity_parent_hash_and_clock_without_legacy_guessing(tmp_path, kind, parent):
+    service, peer, events = owned_service(tmp_path)
+    store = service.store; private = actor.storage_peer(RUN)
+    clock = [{'actor_id':RUN, 'counter':2}]
+    proposal = {'proposal_id':'33333333-3333-4333-8333-333333333333', 'kind':kind, 'id':'scope-target',
+        'parent_id':parent, 'prior_hash':'a'*64, 'clock':clock, 'deleted_ms':0, 'label':'Not retained in target proof'}
+    body = {'format':1, 'run_id':RUN, 'proposal_batch_id':RUN, 'sequence':0, 'last':True, 'proposals':[proposal]}
+    decision = {'format':1, 'run_id':RUN, 'decision_id':'44444444-4444-4444-8444-444444444444',
+        'decisions':[{'proposal_id':proposal['proposal_id'], 'decision':'restore', 'expected_clock':clock}]}
+    assert store.personal_decision_targets(private, decision, False) is None
+    store.remember_personal_proposal_kinds(private, body, True)
+    target = {name:proposal[name] for name in ('proposal_id','kind','id','parent_id','prior_hash','clock')}
+    assert store.personal_decision_targets(private, decision, False) == [target]
+    value = store.personal_decision_targets(private, decision, False); value[0]['id'] = 'caller-edit'
+    assert store.personal_decision_targets(private, decision, False) == [target]
+    for field, value in [('id','foreign-target'), ('prior_hash','b'*64)] + ([('parent_id','foreign-parent')] if parent else []):
+        changed = copy.deepcopy(body); changed['proposals'][0][field] = value
+        with pytest.raises(ValueError): store.remember_personal_proposal_kinds(private, changed, True)
+        assert store.personal_decision_targets(private, decision, False) == [target]
+    key = 'personal_proposal_kind:%s:out:%s' % (private, proposal['proposal_id'])
+    with sqlite3.connect(store.database_path) as db:
+        raw = db.execute('SELECT value FROM meta WHERE key=?', (key,)).fetchone()[0]
+        saved = json.loads(store._decrypt(raw, 'personal_proposal_kind', key))
+        legacy = {name:value for name,value in saved.items() if name != 'target'}
+        db.execute('UPDATE meta SET value=? WHERE key=?', (store._encrypt(phone.canonical(legacy), 'personal_proposal_kind', key), key))
+    assert store.personal_decision_kinds(private, decision, False) == [kind]
+    assert store.personal_decision_targets(private, decision, False) is None
+    store.remember_personal_proposal_kinds(private, body, True)
+    reopened = phone.PhoneStore(str(tmp_path / 'phone'), 'Owned desktop')
+    assert reopened.personal_decision_targets(private, decision, False) == [target]
+    other = actor.storage_peer('22222222-2222-4222-8222-222222222222')
+    assert reopened.personal_decision_targets(other, decision, False) is None
+    stale = copy.deepcopy(decision); stale['decisions'][0]['expected_clock'][0]['counter'] += 1
+    assert reopened.personal_decision_targets(private, stale, False) is None
+    with sqlite3.connect(store.database_path) as db:
+        saved['expires_ms'] = 0
+        db.execute('UPDATE meta SET value=? WHERE key=?', (store._encrypt(phone.canonical(saved), 'personal_proposal_kind', key), key))
+    assert reopened.personal_decision_targets(private, decision, False) is None
+    assert not events and service.server is None
