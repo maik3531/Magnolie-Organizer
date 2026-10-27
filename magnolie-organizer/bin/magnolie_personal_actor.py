@@ -81,6 +81,63 @@ def cancel(run_id):
     return validate_cancel({"format": VERSION, "run_id": run_id})
 
 
+def deletion_review(run_id, plan, native_intents):
+    """Bind a private review to native staged tokens; this grants no save/scope right."""
+    start(run_id)
+    if not isinstance(native_intents, list) or len(native_intents) > 256:
+        raise ValueError("invalid_actor_deletion_review")
+    references, proposals = {}, {}
+    for intent in native_intents:
+        if not isinstance(intent, dict) or set(intent) != {"kind", "message_id", "commit_token", "body"}:
+            raise ValueError("invalid_actor_native_intent")
+        kind, body = intent["kind"], intent["body"]
+        if kind not in ("personal_sync.deletion_proposals", "personal_sync.deletion_decision"):
+            raise ValueError("invalid_actor_native_intent")
+        personal.validate_body(kind, body)
+        if body["run_id"] != run_id:
+            raise ValueError("actor_deletion_run_changed")
+        reference = {key:intent[key] for key in ("kind", "message_id", "commit_token")}
+        # The owner token is an opaque native capability, never wire authority.
+        phone_ack.validate({"type":"ack", "message_id":reference["message_id"], "status":"accepted", "error":"none"})
+        token = reference["commit_token"]
+        if not isinstance(token, str) or not token or len(token.encode("utf-8")) > 256 or reference["message_id"] in references:
+            raise ValueError("invalid_actor_native_intent")
+        references[reference["message_id"]] = reference
+        if kind == "personal_sync.deletion_proposals":
+            for proposal in body["proposals"]:
+                if proposal["kind"] not in {"note", "task", "attachment"}:
+                    raise ValueError("actor_deletion_kind_not_supported")
+                identity = proposal["proposal_id"]
+                if identity in proposals and personal.canonical(proposals[identity]) != personal.canonical(proposal):
+                    raise ValueError("actor_deletion_proposal_changed")
+                proposals[identity] = proposal
+    if plan is None and not native_intents:
+        return {"choices":[], "intents":[]}
+    if (not isinstance(plan, dict) or set(plan) != {"choices", "intents"} or
+            not isinstance(plan["choices"], list) or len(plan["choices"]) > 256 or
+            not isinstance(plan["intents"], list) or len(plan["intents"]) != len(references)):
+        raise ValueError("actor_deletion_review_required")
+    reviewed = {}
+    for reference in plan["intents"]:
+        if (not isinstance(reference, dict) or set(reference) != {"kind", "message_id", "commit_token"} or
+                not isinstance(reference.get("message_id"), str) or reference["message_id"] in reviewed or
+                reference != references.get(reference["message_id"])):
+            raise ValueError("actor_deletion_intent_changed")
+        reviewed[reference["message_id"]] = reference
+    choices = {}
+    for choice in plan["choices"]:
+        if (not isinstance(choice, dict) or set(choice) != {"proposal_id", "decision", "expected_clock", "allow_conflict"} or
+                not isinstance(choice.get("proposal_id"), str) or choice["proposal_id"] in choices or
+                choice["proposal_id"] not in proposals or not isinstance(choice["decision"], str) or choice["decision"] not in {"delete", "restore"} or
+                type(choice["allow_conflict"]) is not bool or
+                personal.canonical(choice["expected_clock"]) != personal.canonical(proposals[choice["proposal_id"]]["clock"])):
+            raise ValueError("actor_deletion_choice_changed")
+        choices[choice["proposal_id"]] = choice
+    if set(choices) != set(proposals):
+        raise ValueError("actor_deletion_choice_missing")
+    return copy.deepcopy({"choices":[choices[key] for key in sorted(choices)], "intents":[reviewed[key] for key in sorted(reviewed)]})
+
+
 def validate_data(value):
     if (not isinstance(value, dict) or set(value) != {"format", "run_id", "kind", "body"} or
             type(value.get("format")) is not int or value["format"] != VERSION or

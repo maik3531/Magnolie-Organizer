@@ -187,7 +187,8 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         transaction.Commit(); return complete;
     }
 
-    internal bool CommitBatch(string peerId, string pendingMessageId, string token, long now, out IReadOnlyList<string> messageIds)
+    internal bool CommitBatch(string peerId, string pendingMessageId, string token, long now, out IReadOnlyList<string> messageIds,
+        IReadOnlyList<(string MessageId, string Token)>? actorIntents = null)
     {
         if (store.RestoreFenced) { messageIds = []; return false; }
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
@@ -205,6 +206,36 @@ internal sealed class PersonalSyncStore(TelefonStore store)
             if (Convert.ToInt64(expired.ExecuteScalar()) != 0) { messageIds = []; return false; }
         }
         var ids = new List<string>(); using (var read = connection.CreateCommand()) { read.Transaction = transaction; read.CommandText = "SELECT message_id FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND commit_token=$token ORDER BY sequence"; Parameters(read, peerId, runId, reply); read.Parameters.AddWithValue("$token", token); using var reader = read.ExecuteReader(); while (reader.Read()) ids.Add(reader.GetString(0)); }
+        if (actorIntents is not null || (PersonalSyncActorContract.IsStoragePeer(peerId) && !reply))
+        {
+            if (peerId != PersonalSyncActorContract.StoragePeer(runId) || reply || actorIntents?.Count > 256)
+                throw new InvalidDataException("invalid_actor_commit_intents");
+            var expected = actorIntents ?? [];
+            if (expected.Any(item => string.IsNullOrEmpty(item.MessageId) || string.IsNullOrEmpty(item.Token)) ||
+                expected.Select(item => item.MessageId).Distinct(StringComparer.Ordinal).Count() != expected.Count)
+                throw new InvalidDataException("invalid_actor_commit_intents");
+            var actual = new HashSet<(string MessageId, string Token)>();
+            using (var read = connection.CreateCommand())
+            {
+                read.Transaction = transaction; read.CommandText = "SELECT message_id,commit_token,payload,expires_ms FROM personal_domain WHERE peer_id=$peer";
+                read.Parameters.AddWithValue("$peer", peerId); using var reader = read.ExecuteReader();
+                while (reader.Read())
+                {
+                    var raw = store.Open("personal_domain", reader.GetString(0), (byte[])reader[2]);
+                    try
+                    {
+                        if (reader.GetInt64(3) <= now || JsonNode.Parse(raw)?["body"]?["run_id"]?.GetValue<string>() != runId)
+                        { messageIds = []; return false; }
+                    }
+                    finally { CryptographicOperations.ZeroMemory(raw); }
+                    actual.Add((reader.GetString(0), reader.GetString(1)));
+                }
+            }
+            if (!actual.SetEquals(expected)) { messageIds = []; return false; }
+            foreach (var item in expected)
+                if (!CommitDecisionIntentInTransaction(connection, transaction, peerId, item.MessageId, item.Token, "accepted", "none", now))
+                    throw new InvalidOperationException("actor_commit_intent_changed");
+        }
         foreach (var id in ids)
         {
             using var inbox = connection.CreateCommand(); inbox.Transaction = transaction; inbox.CommandText = "UPDATE inbox SET state='processed' WHERE peer_id=$peer AND message_id=$message"; inbox.Parameters.AddWithValue("$peer", peerId); inbox.Parameters.AddWithValue("$message", id); inbox.ExecuteNonQuery();
@@ -236,12 +267,20 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         if (outcome == "temporary") return false;
         var error = outcome switch { "applied" => "none", "conflict" => "conflict", "restore_unavailable" => "restore_unavailable", "invalid" => "invalid_schema", "timeout" => "permanent_failure", _ => throw new InvalidDataException("Ungültiges Löschresultat.") };
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+        var result = CommitDecisionIntentInTransaction(connection, transaction, peerId, messageId, token, outcome == "applied" ? "accepted" : "rejected", error, now);
+        if (result) transaction.Commit();
+        return result;
+    }
+
+    private static bool CommitDecisionIntentInTransaction(SqliteConnection connection, SqliteTransaction transaction,
+        string peerId, string messageId, string token, string result, string error, long now)
+    {
         using var read = connection.CreateCommand(); read.Transaction = transaction; read.CommandText = "SELECT kind FROM personal_domain WHERE peer_id=$peer AND message_id=$message AND commit_token=$token"; read.Parameters.AddWithValue("$peer", peerId); read.Parameters.AddWithValue("$message", messageId); read.Parameters.AddWithValue("$token", token); var kind = read.ExecuteScalar() as string;
         if (kind is null) return false;
         using (var inbox = connection.CreateCommand()) { inbox.Transaction = transaction; inbox.CommandText = "UPDATE inbox SET state='processed' WHERE peer_id=$peer AND message_id=$message"; inbox.Parameters.AddWithValue("$peer", peerId); inbox.Parameters.AddWithValue("$message", messageId); inbox.ExecuteNonQuery(); }
-        using (var dedupe = connection.CreateCommand()) { dedupe.Transaction = transaction; dedupe.CommandText = "UPDATE dedupe SET result=$result,error=$error,seen_ms=$now WHERE peer_id=$peer AND message_id=$message"; dedupe.Parameters.AddWithValue("$message", messageId); dedupe.Parameters.AddWithValue("$peer", peerId); dedupe.Parameters.AddWithValue("$result", outcome == "applied" ? "accepted" : "rejected"); dedupe.Parameters.AddWithValue("$error", error); dedupe.Parameters.AddWithValue("$now", now); dedupe.ExecuteNonQuery(); }
+        using (var dedupe = connection.CreateCommand()) { dedupe.Transaction = transaction; dedupe.CommandText = "UPDATE dedupe SET result=$result,error=$error,seen_ms=$now WHERE peer_id=$peer AND message_id=$message"; dedupe.Parameters.AddWithValue("$message", messageId); dedupe.Parameters.AddWithValue("$peer", peerId); dedupe.Parameters.AddWithValue("$result", result); dedupe.Parameters.AddWithValue("$error", error); dedupe.Parameters.AddWithValue("$now", now); dedupe.ExecuteNonQuery(); }
         using (var delete = connection.CreateCommand()) { delete.Transaction = transaction; delete.CommandText = "DELETE FROM personal_domain WHERE peer_id=$peer AND message_id=$message AND commit_token=$token"; delete.Parameters.AddWithValue("$peer", peerId); delete.Parameters.AddWithValue("$message", messageId); delete.Parameters.AddWithValue("$token", token); delete.ExecuteNonQuery(); }
-        transaction.Commit(); return true;
+        return true;
     }
 
     internal IReadOnlyList<PersonalSyncDecisionIntent> DecisionIntents(long now)

@@ -1053,6 +1053,12 @@ def _request_shape(operation, arguments):
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
             if request["action"] == "staging" and "attachment_sha256" in request: fields.add("attachment_sha256")
             if request["action"] == "prepare_commit": fields |= {"view_revision", "after_sha256", "native_saved_book"}
+            if request["action"] == "prepare_commit" and "deletion_plan" in request:
+                fields.add("deletion_plan")
+                plan = request["deletion_plan"]
+                if (not isinstance(plan, dict) or set(plan) != {"choices", "intents"} or
+                        any(not isinstance(plan[name], list) or len(plan[name]) > 256 for name in ("choices", "intents"))):
+                    raise IPCError("invalid native actor deletion review")
             if request["action"] == "commit": fields |= {"claim_token", "native_saved_book"}
             if (set(request) != fields or not _status_query_id(request["actor_id"]) or
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
@@ -1606,7 +1612,7 @@ class IPCServer:
                     offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"],
                     attachment_sha256=request.get("attachment_sha256", ""))
                 if request["action"] == "prepare_commit": return phone.prepare_personal_actor_commit(registry, handle,
-                    request["view_revision"], request["after_sha256"], request["native_saved_book"], arguments["book_source"])
+                    request["view_revision"], request["after_sha256"], request["native_saved_book"], arguments["book_source"], request.get("deletion_plan"))
                 if request["action"] == "commit": return phone.commit_personal_actor(registry, handle,
                     request["claim_token"], request["native_saved_book"], arguments["book_source"])
                 return registry.cancel(handle)
@@ -2128,9 +2134,10 @@ class PhoneServiceProxy:
                 raise IPCError("Native actor book owner changed")
             return result
 
-    def prepare_personal_actor_commit(self, handle, view_revision, after_hash, native_saved_book):
+    def prepare_personal_actor_commit(self, handle, view_revision, after_hash, native_saved_book, deletion_plan=None):
         return self._actor_book_request(handle, {"action": "prepare_commit", "view_revision": view_revision,
-            "after_sha256": after_hash, "native_saved_book": native_saved_book})
+            "after_sha256": after_hash, "native_saved_book": native_saved_book,
+            **({"deletion_plan": deletion_plan} if deletion_plan is not None else {})})
 
     def commit_personal_actor(self, handle, claim_token, native_saved_book):
         return self._actor_book_request(handle, {"action": "commit", "claim_token": claim_token, "native_saved_book": native_saved_book})

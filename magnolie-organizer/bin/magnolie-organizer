@@ -24314,7 +24314,7 @@ class Fenster(_FENSTER_BASIS):
                 raise PermissionError("Native book has no current actual-save observation")
             if action == "notes_actor_prepare_commit":
                 values = (request.get("expectedRevision"), request.get("bookSha256"), saved_book)
-                value = source.prepare_personal_actor_commit(handle, *values) if proxy else source.prepare_personal_actor_commit(registry, handle, *values, self._telefon_actor_buchquelle())
+                value = source.prepare_personal_actor_commit(handle, *values, deletion_plan=request.get("deletionPlan")) if proxy else source.prepare_personal_actor_commit(registry, handle, *values, self._telefon_actor_buchquelle(), request.get("deletionPlan"))
             elif action == "notes_actor_commit":
                 value = source.commit_personal_actor(handle, request.get("claimToken"), saved_book) if proxy else source.commit_personal_actor(registry, handle, request.get("claimToken"), saved_book, self._telefon_actor_buchquelle())
             else:

@@ -343,6 +343,50 @@ def test_actor_commit_rejects_changed_native_staging_after_book_save(tmp_path, m
     assert service.store.ready_personal_batches() and service.store.ready_personal_domains() and not events
 
 
+def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_consumption(tmp_path, monkeypatch):
+    from magnolie_personal_actor_store import NativeBookOwnerScope
+    book = NativeBookOwnerScope(); book.set_ready(True)
+    provider = lambda: book.current('native-review-profile', True)
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch,
+        deletions=True, skip_deletions=False, book_source=provider)
+    service.start_personal_actor(registry, handle)
+    records = [record()]
+    request = {'format':3, 'run_id':handle.actor_id, 'trigger':'manual', 'modules':['notes','tasks']}
+    batch = {'format':3, 'run_id':handle.actor_id, 'batch_id':str(uuid.uuid4()), 'sequence':0, 'last':True,
+        'reply':False, 'records':records, 'records_hash':personal.records_hash(records)}
+    proposal = {'proposal_id':str(uuid.uuid4()), 'kind':'note', 'id':'note-one', 'parent_id':'',
+        'clock':records[0]['clock'], 'prior_hash':records[0]['hash'], 'deleted_ms':2, 'label':'Synthetic native review'}
+    body = {'format':1, 'run_id':handle.actor_id, 'proposal_batch_id':str(uuid.uuid4()), 'sequence':0, 'last':True, 'proposals':[proposal]}
+    for kind, content in [('personal_sync.request',request), ('personal_sync.batch',batch), ('personal_sync.deletion_proposals',body)]:
+        service._payload(peer, channel, actor.wire_message(frame(kind, content), handle.actor_id))
+    channel.sent.clear()
+    view = service.read_personal_actor_staging(registry, handle)
+    data = json.loads(base64.b64decode(view['data_base64']))
+    intent, = data['intents']
+    plan = {'choices':[{'proposal_id':proposal['proposal_id'], 'decision':'restore', 'expected_clock':proposal['clock'], 'allow_conflict':False}],
+        'intents':[{'kind':intent['kind'], 'message_id':intent['pending_message_id'], 'commit_token':intent['commit_token']}]}
+    before = book.record_saved('native-review-profile', True, 'a'*64)
+    bad = copy.deepcopy(plan); bad['intents'][0]['commit_token'] = 'foreign'
+    with pytest.raises(ValueError):
+        service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), bad)
+    claim = service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), plan)
+    assert claim == service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), copy.deepcopy(plan))
+    changed = copy.deepcopy(plan); changed['choices'][0]['decision'] = 'delete'
+    with pytest.raises(PermissionError):
+        service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), changed)
+    with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim['claim_token'], before, provider())
+    private = actor.storage_peer(handle.actor_id)
+    assert any(owner == private for owner, _ in service.store.ready_personal_domains())
+    actual = book.record_saved('native-review-profile', True, 'b'*64)
+    receipt = service.commit_personal_actor(registry, handle, claim['claim_token'], actual, provider())
+    assert receipt['core_committed'] and receipt['book_persisted'] and not receipt['phone_persisted']
+    assert receipt == service.commit_personal_actor(registry, handle, claim['claim_token'], actual, provider())
+    assert not any(owner == private for owner, _ in service.store.ready_personal_domains())
+    assert not any(owner == private for owner, _ in service.store.ready_personal_batches())
+    assert service.store.dedupe_result(private, intent['pending_message_id']) == ('accepted','none')
+    assert not channel.sent and not events
+
+
 def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
     service.start_personal_actor(registry, handle)

@@ -60,6 +60,66 @@ internal static class PersonalSyncActorContract
     }
     internal static JsonObject Cancel(string runId) => ValidateCancel(new JsonObject { ["format"] = Version, ["run_id"] = runId });
 
+    // Private native review binding, not a wire envelope or permission to save.
+    internal static JsonObject DeletionReview(string runId, JsonObject? plan, JsonArray nativeIntents)
+    {
+        _ = Start(runId);
+        if (nativeIntents.Count > 256) throw new InvalidDataException("invalid_actor_deletion_review");
+        var references = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
+        var proposals = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var raw in nativeIntents)
+        {
+            var intent = raw as JsonObject ?? throw new InvalidDataException("invalid_actor_native_intent");
+            TelefonProtocolContract.ExactObject(intent, "kind", "message_id", "commit_token", "body");
+            var kind = Text(intent, "kind");
+            if (kind is not ("personal_sync.deletion_proposals" or "personal_sync.deletion_decision") || intent["body"] is not JsonObject body)
+                throw new InvalidDataException("invalid_actor_native_intent");
+            PersonalSyncContract.ValidateBody(kind, body);
+            if (Text(body, "run_id") != runId) throw new InvalidDataException("actor_deletion_run_changed");
+            var id = Text(intent, "message_id"); var token = Text(intent, "commit_token");
+            _ = Ack(runId, id);
+            if (token.Length == 0 || System.Text.Encoding.UTF8.GetByteCount(token) > 256 || references.ContainsKey(id))
+                throw new InvalidDataException("invalid_actor_native_intent");
+            references[id] = new JsonObject { ["kind"] = kind, ["message_id"] = id, ["commit_token"] = token };
+            if (kind != "personal_sync.deletion_proposals") continue;
+            foreach (var proposal in body["proposals"]!.AsArray().OfType<JsonObject>())
+            {
+                if (Text(proposal, "kind") is not ("note" or "task" or "attachment")) throw new InvalidDataException("actor_deletion_kind_not_supported");
+                var proposalId = Text(proposal, "proposal_id");
+                if (proposals.TryGetValue(proposalId, out var previous) && !JsonNode.DeepEquals(previous, proposal))
+                    throw new InvalidDataException("actor_deletion_proposal_changed");
+                proposals[proposalId] = proposal;
+            }
+        }
+        if (plan is null && nativeIntents.Count == 0) return new JsonObject { ["choices"] = new JsonArray(), ["intents"] = new JsonArray() };
+        if (plan is null) throw new InvalidDataException("actor_deletion_review_required");
+        TelefonProtocolContract.ExactObject(plan, "choices", "intents");
+        if (plan["choices"] is not JsonArray choices || choices.Count > 256 || plan["intents"] is not JsonArray reviewed || reviewed.Count != references.Count)
+            throw new InvalidDataException("actor_deletion_review_required");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in reviewed)
+        {
+            var reference = raw as JsonObject ?? throw new InvalidDataException("actor_deletion_intent_changed");
+            TelefonProtocolContract.ExactObject(reference, "kind", "message_id", "commit_token"); var id = Text(reference, "message_id");
+            if (!seen.Add(id) || !references.TryGetValue(id, out var native) || !JsonNode.DeepEquals(reference, native))
+                throw new InvalidDataException("actor_deletion_intent_changed");
+        }
+        var decisions = new SortedDictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var raw in choices)
+        {
+            var choice = raw as JsonObject ?? throw new InvalidDataException("actor_deletion_choice_changed");
+            TelefonProtocolContract.ExactObject(choice, "proposal_id", "decision", "expected_clock", "allow_conflict");
+            var id = Text(choice, "proposal_id");
+            if (decisions.ContainsKey(id) || !proposals.TryGetValue(id, out var proposal) || Text(choice, "decision") is not ("delete" or "restore") ||
+                choice["allow_conflict"] is not JsonValue flag || !flag.TryGetValue<bool>(out _) || !JsonNode.DeepEquals(choice["expected_clock"], proposal["clock"]))
+                throw new InvalidDataException("actor_deletion_choice_changed");
+            decisions[id] = choice;
+        }
+        if (!decisions.Keys.SequenceEqual(proposals.Keys)) throw new InvalidDataException("actor_deletion_choice_missing");
+        return new JsonObject { ["choices"] = new JsonArray(decisions.Values.Select(value => value.DeepClone()).ToArray()),
+            ["intents"] = new JsonArray(references.Values.Select(value => value.DeepClone()).ToArray()) };
+    }
+
     internal static JsonObject ValidateData(JsonObject value)
     {
         TelefonProtocolContract.ExactObject(value, "format", "run_id", "kind", "body");

@@ -210,6 +210,22 @@ def test_actor_commit_ipc_cannot_replace_native_saved_book_binding(field, value)
             "owner_token": "a" * 64, "claim_token": "f" * 64, "native_saved_book": saved}})
 
 
+@pytest.mark.parametrize('plan', (None, True, [], {'choices':[], 'intents':[], 'saved':True},
+    {'choices':{}, 'intents':[]}, {'choices':[], 'intents':[{}]*257}))
+def test_actor_review_ipc_rejects_untyped_or_unbounded_plan(plan):
+    request = {'action':'prepare_commit', 'actor_id':'11111111-1111-4111-8111-111111111111',
+        'owner_token':'a'*64, 'view_revision':'b'*64, 'after_sha256':'d'*64,
+        'native_saved_book':{'book_source':'c'*64, 'sequence':1, 'sha256':'e'*64}, 'deletion_plan':plan}
+    with pytest.raises(background.IPCError):
+        background._request_shape('phone_actor_registry', {'subscriber':'b'*32, 'book_source':'c'*64, 'request':request})
+    request['deletion_plan'] = {'choices':[], 'intents':[]}
+    background._request_shape('phone_actor_registry', {'subscriber':'b'*32, 'book_source':'c'*64, 'request':request})
+    request.update(action='commit', claim_token='f'*64)
+    del request['view_revision']; del request['after_sha256']
+    with pytest.raises(background.IPCError):
+        background._request_shape('phone_actor_registry', {'subscriber':'b'*32, 'book_source':'c'*64, 'request':request})
+
+
 def test_existing_large_ipc_whitelist_reaches_server_without_widening_normal_requests(tmp_path):
     received = []
     class Receiver:

@@ -626,7 +626,7 @@ def validate_record(record, format=1):
 def validate_body(kind, body):
     if kind == DESKTOP_FEATURES_KIND:
         return validate_desktop_features(body)
-    if not isinstance(body, dict):
+    if not isinstance(body, dict) or type(body.get("format")) is not int:
         raise ValueError("invalid personal sync body")
     if kind == NOTE_MODE_KIND:
         validate_note_settings(body)

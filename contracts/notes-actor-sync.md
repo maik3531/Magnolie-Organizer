@@ -530,9 +530,9 @@ and attachment-parent lookup remain bound to that copy; private restores neither
 wake automatic phone sync nor invalidate the actual GUI indexes. The private
 entry points reject the actual active book. Incoming decisions validate the whole
 set before application, reject duplicate proposal IDs, and retain parent IDs for
-scoped attachment replay proofs. This is domain review preparation only: native
-intent consumption, scope-changing phone deletion finalization and activation
-still require their separate completion gates.
+scoped attachment replay proofs. Preview approval remains domain review
+preparation only. The native core commit below requires its own actual-save
+receipt; scope-changing phone finalization and activation remain separately gated.
 
 The private session-owned review operation also accepts bounded typed choices
 against its current review revision. Proposal IDs and expected clocks must match
@@ -547,6 +547,40 @@ before publication of a new review. Cancellation during the native recheck
 discards the result without touching a new draft. Reviewed intent counts remain
 distinct from native applied/consumed counts: the existing native terminal-save
 and scope-changing deletion gates are not bypassed by preview approval.
+
+### Native reviewed-intent core commit (#190)
+
+Both desktop native controllers accept a private bounded deletion review only
+when every retained native intent is identified by its exact message ID, kind and
+opaque commit token. Every proposal needs one explicit delete/restore choice,
+its exact expected clock and a Boolean conflict choice. Canonical normalization
+does not alias caller data. Duplicate IDs, conflicting native proposal bodies,
+missing/extra fields, changed tokens/clocks and unsupported notebook intents fail.
+All Personal Sync body format fields are actual integers, not Boolean aliases.
+The 28 independent cases in `notes-actor-deletion-review.json` are shared between
+Python and C#.
+
+Prepare and commit recheck bilateral deletion grants, effective skip-deletion
+policy, current scoped membership and the existing native prior-proposal proof
+for incoming decisions. The normalized review is bound to the staging revision,
+planned after-book hash and native claim; an unchanged hash cannot substitute a
+different decision on retry. Neither an IPC plan nor a client save assertion
+substitutes for the current native writer observation.
+
+After the existing source/owner/claim/save-sequence/hash checks, core consumption
+of the saved incoming actor batch and exactly its reviewed intents shares one
+SQLite transaction and the existing domain-commit engine. Missing, foreign,
+expired, duplicate or changed references leave every batch/intent staged. A real
+injected SQLite failure after the first intent also rolls back its receipt and
+deduplication record. A reopened store retains only the complete committed result;
+replay cannot apply it twice. This core commit sends no successful deletion ACK
+and does not assert phone persistence.
+
+This adds native reviewed-intent consumption while retaining the ordinary
+unchanged-source guards. It does not authorize reads or replies after a membership
+change. The private frontend still blocks intent commits until the narrowly bound
+terminal scope-change/save/receipt path is connected on both desktops and Notes;
+marker 12 and public actor tools remain unadvertised meanwhile.
 
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact

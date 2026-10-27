@@ -104,6 +104,7 @@ runner.Add("MCP device status / explicit identifiers / ephemeral source", McpDev
 runner.Add("MCP Notes settings / consent / shared preference store", McpNotesSettingsTests.RunAsync);
 runner.Add("Notes actor start / shared strict contract vectors", PersonalSyncActorContractTests.RunAsync);
 runner.Add("Personal batch byte boundaries / shared UTF-8 / actor envelope", PersonalBatchBoundaryTests.RunAsync);
+runner.Add("Notes actor atomic batch and deletion-intent core commit", PersonalActorCommitTests.RunAsync);
 runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorStoreTests.RunAsync);
 runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
 runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);

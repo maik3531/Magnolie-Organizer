@@ -1254,16 +1254,19 @@ class PhoneStore:
     def commit_personal_domain(self, peer_id, message_id, token):
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT 1 FROM personal_domain WHERE peer_id=? AND message_id=? AND commit_token=?",
-                             (peer_id, message_id, token)).fetchone()
-            if not row:
-                return False
-            seen = now_ms()
-            db.execute("UPDATE inbox SET state='accepted' WHERE peer_id=? AND message_id=?", (peer_id, message_id))
-            db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)",
-                       (message_id, peer_id, "accepted", "none", seen))
-            db.execute("DELETE FROM personal_domain WHERE peer_id=? AND message_id=? AND commit_token=?",
-                       (peer_id, message_id, token))
+            return self._commit_personal_domain_in_transaction(db, peer_id, message_id, token, now_ms())
+
+    @staticmethod
+    def _commit_personal_domain_in_transaction(db, peer_id, message_id, token, seen):
+        row = db.execute("SELECT 1 FROM personal_domain WHERE peer_id=? AND message_id=? AND commit_token=?",
+                         (peer_id, message_id, token)).fetchone()
+        if not row:
+            return False
+        db.execute("UPDATE inbox SET state='accepted' WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+        db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)",
+                   (message_id, peer_id, "accepted", "none", seen))
+        db.execute("DELETE FROM personal_domain WHERE peer_id=? AND message_id=? AND commit_token=?",
+                   (peer_id, message_id, token))
         return True
 
     def ready_personal_domains(self):
@@ -1684,7 +1687,7 @@ class PhoneStore:
         stored = self._personal_run_record(peer_id, run_id)
         return stored["body"] if stored else {}
 
-    def commit_personal_batch(self, peer_id, message_id, token):
+    def commit_personal_batch(self, peer_id, message_id, token, *, actor_intents=None):
         if not all(isinstance(value, str) and value for value in (peer_id, message_id, token)):
             raise ValueError("invalid personal commit token")
         with sqlite3.connect(self.database_path) as db:
@@ -1710,6 +1713,30 @@ class PhoneStore:
                 "AND commit_token=?", (peer_id, run_id, reply, token)).fetchone()[0]
             if current != len(messages):
                 return peer_id, []
+            # A native actor must consume exactly its reviewed intents in the
+            # same core transaction as its saved batch. No partial acceptance
+            # or successful deletion receipt can survive a stale/foreign token.
+            if actor_intents is not None or (personal_actor_contract.is_storage_peer(peer_id) and not reply):
+                if (peer_id != personal_actor_contract.storage_peer(run_id) or reply or
+                        actor_intents is not None and (not isinstance(actor_intents, list) or len(actor_intents) > 256)):
+                    raise ValueError("invalid_actor_commit_intents")
+                expected = [] if actor_intents is None else actor_intents
+                if any(not isinstance(item, (list, tuple)) or len(item) != 2 or
+                        any(not isinstance(value, str) or not value for value in item) for item in expected):
+                    raise ValueError("invalid_actor_commit_intents")
+                expected = [tuple(item) for item in expected]
+                if len({item[0] for item in expected}) != len(expected):
+                    raise ValueError("duplicate_actor_commit_intents")
+                staged = db.execute("SELECT message_id,commit_token,payload,expires_ms FROM personal_domain WHERE peer_id=?",
+                                    (peer_id,)).fetchall()
+                seen = now_ms()
+                if ({(row[0], row[1]) for row in staged} != set(expected) or any(
+                        row[3] <= seen or strict_json(self._decrypt(row[2], "personal_domain", row[0]))["body"]["run_id"] != run_id
+                        for row in staged)):
+                    return peer_id, []
+                for intent_id, intent_token in expected:
+                    if not self._commit_personal_domain_in_transaction(db, peer_id, intent_id, intent_token, seen):
+                        raise PermissionError("actor_commit_intent_changed")
             db.execute("UPDATE inbox SET state='accepted' WHERE peer_id=? AND message_id IN (%s)" %
                 ",".join("?" for _ in messages), (peer_id, *[item["message_id"] for item in messages]))
             applied_key = "personal_applied:%s:%s:%d" % (peer_id, run_id, reply)
@@ -4080,7 +4107,38 @@ class PhoneService:
             raise PermissionError("native_book_not_saved")
         return dict(state)
 
-    def prepare_personal_actor_commit(self, registry, handle, view_revision, after_hash, native_saved_book, book_source):
+    def _actor_deletion_review(self, admission, run_id, plan):
+        private = personal_actor_contract.storage_peer(run_id)
+        intents = [{"kind":value["kind"], "message_id":value["pending_message_id"],
+                    "commit_token":value["commit_token"], "body":value["body"]}
+                   for owner, value in self.store.ready_personal_domains()
+                   if owner == private and value["body"]["run_id"] == run_id]
+        if intents:
+            peer = self.store.sole_peer(admission["peer"])
+            settings = self.store.shared_settings(admission["peer"], admission["key"])
+            if (peer is None or settings is None or shared_sync_contract.effective(settings)["skip_deletions"] or
+                    peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is not True or
+                    peer.get("grants", {}).get("grants", {}).get("personal_deletions_sync") is not True):
+                raise PermissionError("actor_deletions_not_authorized")
+            if plan is None:
+                raise PermissionError("actor_deletion_review_required")
+        review = personal_actor_contract.deletion_review(run_id, plan, intents)
+        if intents:
+            manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
+            allowed = {"note": set(manifest["members"]["notes"]), "task": set(manifest["members"]["tasks"])}
+            for intent in intents:
+                if intent["kind"] == "personal_sync.deletion_proposals":
+                    for proposal in intent["body"]["proposals"]:
+                        if not (proposal["parent_id"] in allowed["note"] if proposal["kind"] == "attachment" else
+                                proposal["kind"] in allowed and proposal["id"] in allowed[proposal["kind"]]):
+                            raise PermissionError("actor_deletion_outside_scope")
+                else:
+                    kinds = self.store.personal_decision_kinds(private, intent["body"], False)
+                    if not kinds or any(kind not in {"note", "task", "attachment"} for kind in kinds):
+                        raise PermissionError("actor_deletion_proposal_missing")
+        return review
+
+    def prepare_personal_actor_commit(self, registry, handle, view_revision, after_hash, native_saved_book, book_source, deletion_plan=None):
         if (not isinstance(view_revision, str) or re.fullmatch(r"[0-9a-f]{64}", view_revision) is None or
                 not isinstance(after_hash, str) or re.fullmatch(r"[0-9a-f]{64}", after_hash) is None):
             raise ValueError("invalid_actor_commit_plan")
@@ -4090,8 +4148,7 @@ class PhoneService:
                 raise PermissionError("actor_staging_incomplete")
             admission = self.personal_actor_admissions[handle.actor_id]
             private = personal_actor_contract.storage_peer(handle.actor_id)
-            if any(owner == private and value["body"]["run_id"] == handle.actor_id for owner, value in self.store.ready_personal_domains()):
-                raise PermissionError("actor_deletion_review_required")
+            deletion_review = self._actor_deletion_review(admission, handle.actor_id, deletion_plan)
             batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
             hashes = {item["sha256"] for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
             for digest in hashes:
@@ -4102,8 +4159,9 @@ class PhoneService:
                 plan = admission["commit_plan"] = {"token": secrets.token_hex(32), "view_revision": view_revision,
                     "after_sha256": after_hash, "book_source": book_source, "before_sequence": book["sequence"],
                     "received": {name: sum(record["kind"] == kind for record in batch["records"]) for kind, name in (("note", "notes"), ("task", "tasks"), ("notebook", "notebooks"))},
-                    "received_attachments": len(hashes)}
-            elif (plan["view_revision"], plan["after_sha256"], plan["book_source"]) != (view_revision, after_hash, book_source):
+                    "received_attachments": len(hashes), "deletion_review": deletion_review}
+            elif ((plan["view_revision"], plan["after_sha256"], plan["book_source"]) != (view_revision, after_hash, book_source) or
+                    plan["deletion_review"] != deletion_review):
                 raise PermissionError("actor_commit_plan_changed")
             registry.require_current(handle)
             return {"claim_token": plan["token"], "view_revision": plan["view_revision"], "after_sha256": plan["after_sha256"], "book_persisted": False}
@@ -4123,9 +4181,11 @@ class PhoneService:
                 if (book_source != plan["book_source"] or book["sequence"] <= plan["before_sequence"] or book["sha256"] != plan["after_sha256"]):
                     raise PermissionError("actor_save_proof_missing")
                 self.read_personal_actor_staging(registry, handle, limit=1, expected_revision=plan["view_revision"])
+                review = self._actor_deletion_review(admission, handle.actor_id, plan["deletion_review"])
                 private = personal_actor_contract.storage_peer(handle.actor_id)
                 batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
-                owner, messages = self.store.commit_personal_batch(private, batch["message_id"], batch["commit_token"])
+                owner, messages = self.store.commit_personal_batch(private, batch["message_id"], batch["commit_token"],
+                    actor_intents=[(item["message_id"], item["commit_token"]) for item in review["intents"]])
                 if owner != private or not messages:
                     raise PermissionError("actor_core_commit_failed")
                 registry.require_current(handle)

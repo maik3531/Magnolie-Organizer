@@ -1,6 +1,7 @@
 """Persist the explicit wire marker, independently of volatile actor ownership."""
 import json
 import sqlite3
+import copy
 import pytest
 from test_mcp_phone import owned_service
 import magnolie_telefon as phone
@@ -119,3 +120,75 @@ def test_private_storage_namespace_reuses_existing_stagers_without_gui_replay(tm
     reopened = phone.PhoneStore(str(tmp_path / "phone"), "Owned desktop")
     assert any(owner == private for owner, _ in reopened.ready_personal_batches())
     assert any(owner == private for owner, _ in reopened.ready_personal_domains())
+
+
+def _stage_actor_commit(store):
+    private = actor.storage_peer(RUN)
+    store.remember_personal_run(private, REQUEST)
+    now = phone.now_ms()
+    batch = {"type":"message", "v":1, "message_id":"77777777-7777-4777-8777-777777777777", "kind":"personal_sync.batch",
+        "created_ms":now, "expires_ms":now+60000, "body":{"format":3, "run_id":RUN,
+        "batch_id":"88888888-8888-4888-8888-888888888888", "sequence":0, "last":True,
+        "reply":False, "records_hash":phone.records_hash([]), "records":[]}}
+    staged = store.stage_personal_batch(private, batch)
+    references = []
+    for message_id in ("99999999-9999-4999-8999-999999999999", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"):
+        message = {**batch, "message_id":message_id, "kind":"personal_sync.deletion_proposals",
+            "body":{"format":1, "run_id":RUN, "proposal_batch_id":message_id,
+                "sequence":len(references), "last":len(references) == 1, "proposals":[]}}
+        intent = store.stage_personal_domain(private, message)
+        references.append((message_id, intent["commit_token"]))
+    return private, staged, references
+
+
+@pytest.mark.parametrize('mode', ('missing', 'partial', 'foreign_token', 'extra', 'duplicate', 'expired', 'foreign_run'))
+def test_actor_core_commit_does_not_partially_accept_unreviewed_intents(tmp_path, mode):
+    service, peer, events = owned_service(tmp_path)
+    store = service.store
+    private, batch, references = _stage_actor_commit(store)
+    chosen = copy.deepcopy(references)
+    if mode == 'missing': chosen = None
+    elif mode == 'partial': chosen = chosen[:1]
+    elif mode == 'foreign_token': chosen[1] = (chosen[1][0], 'foreign')
+    elif mode == 'extra': chosen.append((RUN, 'foreign'))
+    elif mode == 'duplicate': chosen.append(chosen[0])
+    elif mode == 'expired':
+        with sqlite3.connect(store.database_path) as db:
+            db.execute('UPDATE personal_domain SET expires_ms=0 WHERE message_id=?', (chosen[1][0],))
+    elif mode == 'foreign_run':
+        with sqlite3.connect(store.database_path) as db:
+            row = db.execute('SELECT payload FROM personal_domain WHERE message_id=?', (chosen[1][0],)).fetchone()
+            message = json.loads(store._decrypt(row[0], 'personal_domain', chosen[1][0]))
+            message['body']['run_id'] = '22222222-2222-4222-8222-222222222222'
+            db.execute('UPDATE personal_domain SET payload=? WHERE message_id=?',
+                (store._encrypt(phone.canonical(message), 'personal_domain', chosen[1][0]), chosen[1][0]))
+    if mode == 'duplicate':
+        with pytest.raises(ValueError): store.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=chosen)
+    else:
+        assert store.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=chosen) == (private, [])
+    assert store.has_personal_batch(private, batch['message_id'], batch['commit_token'])
+    assert len(store.ready_personal_domains()) == 2
+    assert all(store.dedupe_result(private, identity) is None for identity, token in references)
+    assert not events and service.server is None
+
+
+def test_actor_core_commit_accepts_exact_intents_atomically_and_survives_reopen(tmp_path):
+    service, peer, events = owned_service(tmp_path)
+    store = service.store
+    private, batch, references = _stage_actor_commit(store)
+    # A real SQLite failure after the first domain mutation must roll back the
+    # intent receipt, deduplication and batch ledger as one unit.
+    with sqlite3.connect(store.database_path) as db:
+        db.execute("CREATE TRIGGER actor_commit_failure BEFORE DELETE ON personal_domain WHEN OLD.message_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' BEGIN SELECT RAISE(ABORT,'synthetic disk failure'); END")
+    with pytest.raises(sqlite3.IntegrityError):
+        store.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=references)
+    assert store.has_personal_batch(private, batch['message_id'], batch['commit_token'])
+    assert len(store.ready_personal_domains()) == 2
+    assert all(store.dedupe_result(private, identity) is None for identity, token in references)
+    with sqlite3.connect(store.database_path) as db: db.execute('DROP TRIGGER actor_commit_failure')
+    assert store.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=list(reversed(references))) == (private, [batch['message_id']])
+    reopened = phone.PhoneStore(str(tmp_path / 'phone'), 'Owned desktop')
+    assert not reopened.ready_personal_domains() and not reopened.ready_personal_batches()
+    assert all(reopened.dedupe_result(private, identity) == ('accepted', 'none') for identity, token in references)
+    assert reopened.commit_personal_batch(private, batch['message_id'], batch['commit_token'], actor_intents=references) == (private, [])
+    assert not events and service.server is None

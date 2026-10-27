@@ -375,6 +375,53 @@ internal static class PersonalSyncActorSourceTests
             await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(commitHandle.ActorId, reportWire["message_id"]!.GetValue<string>())));
             TestAssert.That((await coordinator.PersonalActorStatusAsync(commitHandle))["phone_persisted"]!.GetValue<bool>(), "Exact marked completion report receipt did not confirm remote book commit.");
             await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
+            // Independently exercise a native typed intent review without
+            // authorizing a membership-changing save or public actor activation.
+            var reviewHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+            await coordinator.StartPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
+            var reviewRequest = commitRequest.DeepClone().AsObject(); reviewRequest["run_id"] = reviewHandle.ActorId;
+            var reviewBatch = commitBatch.DeepClone().AsObject(); reviewBatch["run_id"] = reviewHandle.ActorId; reviewBatch["batch_id"] = Guid.NewGuid().ToString("D");
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", reviewRequest), reviewHandle.ActorId));
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", reviewBatch), reviewHandle.ActorId));
+            await SharedSyncTransportTests.DrainAsync(wire);
+            var reviewProposalId = Guid.NewGuid().ToString("D");
+            var reviewClock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 });
+            var reviewProposal = new JsonObject { ["format"] = 1, ["run_id"] = reviewHandle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"),
+                ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = reviewProposalId,
+                    ["kind"] = "note", ["id"] = "note-one", ["parent_id"] = "", ["clock"] = reviewClock.DeepClone(),
+                    ["prior_hash"] = new string('a', 64), ["deleted_ms"] = 2, ["label"] = "Synthetic native review" }) };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_proposals", reviewProposal), reviewHandle.ActorId));
+            TestAssert.That(wire.Length == 0, "Intent review caused a premature deletion receipt.");
+            var reviewView = await coordinator.ReadPersonalActorStagingAsync(reviewHandle);
+            var reviewPayload = JsonNode.Parse(Convert.FromBase64String(reviewView["data_base64"]!.GetValue<string>()))!.AsObject();
+            var reviewIntent = reviewPayload["intents"]!.AsArray().OfType<JsonObject>().Single();
+            var typedPlan = new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["proposal_id"] = reviewProposalId,
+                ["decision"] = "restore", ["expected_clock"] = reviewClock.DeepClone(), ["allow_conflict"] = false }),
+                ["intents"] = new JsonArray(new JsonObject { ["kind"] = reviewIntent["kind"]!.DeepClone(),
+                    ["message_id"] = reviewIntent["pending_message_id"]!.DeepClone(), ["commit_token"] = reviewIntent["commit_token"]!.DeepClone() }) };
+            var badPlan = typedPlan.DeepClone().AsObject(); badPlan["intents"]![0]!["commit_token"] = "foreign";
+            var deniedReview = false;
+            try { await coordinator.PreparePersonalActorCommitAsync(reviewHandle, reviewView["revision"]!.GetValue<string>(), new string('d', 64), deletionPlan: badPlan); }
+            catch (InvalidDataException) { deniedReview = true; }
+            TestAssert.That(deniedReview, "Foreign native intent token authorized a commit plan.");
+            var reviewedClaim = await coordinator.PreparePersonalActorCommitAsync(reviewHandle, reviewView["revision"]!.GetValue<string>(), new string('d', 64), deletionPlan: typedPlan);
+            badPlan = typedPlan.DeepClone().AsObject(); badPlan["choices"]![0]!["decision"] = "delete"; deniedReview = false;
+            try { await coordinator.PreparePersonalActorCommitAsync(reviewHandle, reviewView["revision"]!.GetValue<string>(), new string('d', 64), deletionPlan: badPlan); }
+            catch (InvalidOperationException) { deniedReview = true; }
+            TestAssert.That(deniedReview, "Bound native review silently changed its decision.");
+            deniedReview = false;
+            try { await coordinator.CommitPersonalActorAsync(reviewHandle, reviewedClaim["claim_token"]!.GetValue<string>()); }
+            catch (InvalidOperationException) { deniedReview = true; }
+            TestAssert.That(deniedReview, "Typed review substituted for an actual fresh native save.");
+            nativeSaved = hostBook.RecordSaved("actual-host-profile", true, new string('d', 64));
+            var reviewReceipt = await coordinator.CommitPersonalActorAsync(reviewHandle, reviewedClaim["claim_token"]!.GetValue<string>());
+            var reviewedPeer = PersonalSyncActorContract.StoragePeer(reviewHandle.ActorId);
+            TestAssert.That(reviewReceipt["core_committed"]!.GetValue<bool>() && reviewReceipt["book_persisted"]!.GetValue<bool>() && !reviewReceipt["phone_persisted"]!.GetValue<bool>() &&
+                JsonNode.DeepEquals(reviewReceipt, await coordinator.CommitPersonalActorAsync(reviewHandle, reviewedClaim["claim_token"]!.GetValue<string>())) &&
+                !privateStore.DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == reviewedPeer) &&
+                !privateStore.ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == reviewedPeer) && wire.Length == 0,
+                "Reviewed native batch/intent commit was partial or claimed remote persistence.");
+            await coordinator.CancelPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
             TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",
