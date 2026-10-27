@@ -14,6 +14,7 @@ PROVENANCE_FORMAT = 14
 FORMAT = 1
 MAX_RECORDS = 32
 MAX_PACKET = 256 * 1024
+MAX_BATCH_BODY = 192 * 1024  # Canonical UTF-8 body; matches Windows/Notes and senders.
 MAX_ID = 160
 MAX_TEXT = 128 * 1024
 MAX_TIMESTAMP = 253402300799999
@@ -659,7 +660,7 @@ def validate_body(kind, body):
             validate_record(record, format)
             keys.append((record["kind"], record["id"]))
         ordered = sorted(set(keys), key=lambda item: (item[0].encode("utf-8"), item[1].encode("utf-8")))
-        if keys != ordered or len(canonical(body)) > MAX_PACKET or (format >= 2 and not HASH.fullmatch(body.get("records_hash", ""))):
+        if keys != ordered or len(canonical(body)) > MAX_BATCH_BODY or (format >= 2 and not HASH.fullmatch(body.get("records_hash", ""))):
             raise ValueError("invalid personal sync batch ordering")
     elif kind == "personal_sync.report":
         format = body.get("format")

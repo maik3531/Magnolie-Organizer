@@ -83,16 +83,17 @@ def test_actor_wire_budget_preserves_inner_limits_and_includes_header_overhead()
     assert len(personal.canonical(body)) == fixture["portable_body_bytes"]
     portable = actor.wire_message(message, run)
     assert len(personal.canonical(portable)) > 192 * 1024 and len(personal.canonical(portable)) <= personal.MAX_PACKET
-    # Python's existing validator admits larger batches than the C#/Kotlin validator.
-    # Do not relax either existing policy merely to exercise the whole-wire guard.
+    # The former Python-only larger acceptance is now rejected at the shared
+    # inner limit, before an actor envelope could exceed the full wire budget.
     records[1] = record("note-b", 0)
     records[1] = record("note-b", fixture["python_original_bytes"] - len(personal.canonical(message)))
     assert len(personal.canonical(message)) == fixture["python_original_bytes"]
-    personal.validate_body("personal_sync.batch", body)
-    envelope = actor.wrap(run, "personal_sync.batch", body)
-    assert len(personal.canonical(envelope)) <= personal.MAX_PACKET
-    assert len(personal.canonical({**message, "kind": actor.DATA_KIND, "body": envelope})) > personal.MAX_PACKET
-    with pytest.raises(ValueError, match="wire frame too large"):
+    assert len(personal.canonical(body)) > personal.MAX_BATCH_BODY
+    with pytest.raises(ValueError):
+        personal.validate_body("personal_sync.batch", body)
+    with pytest.raises(ValueError):
+        actor.wrap(run, "personal_sync.batch", body)
+    with pytest.raises(ValueError):
         actor.wire_message(message, run)
 
 

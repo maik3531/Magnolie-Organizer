@@ -46,11 +46,22 @@ the existing Personal Sync packet budget. Current bounded snapshot chunks fit
 without enlarging the secure transport frame.
 The complete wire message, including its original headers and actor wrapper, is
 also limited to 256 KiB before queue insertion. The portable boundary fixture
-retains the existing 192 KiB inner-batch policy while allowing actor/header
-overhead within the full packet budget. Python currently admits larger batches
-than C#/Kotlin; its separate valid-input overflow case proves that body-only
-budget checks cannot replace the complete wire check. Existing inner limits are
-not relaxed by this extension; their cross-platform difference is tracked in #188.
+retains the common **192 KiB (196608 bytes, inclusive)** canonical UTF-8
+`personal_sync.batch` body policy while allowing actor/header overhead within
+the full packet budget. This applies to formats 1, 2, 3 and 14, inside or outside
+an actor/scoped envelope. Python's former 256 KiB batch acceptance was reduced
+in #188 to match the existing C#/Kotlin receivers and GUI senders. No receiver
+limit was enlarged. Attachment chunks keep their separate 256 KiB body budget;
+the complete wire-frame check still includes every wrapper and header.
+
+`personal-sync-batch-boundaries.json` in Notes test resources and the identical
+Windows standalone test resources supplies 16 independently generated, hashed
+canonical UTF-8 bodies: 196607, 196608, 196609 and 240000 bytes for all four
+formats. Individual record/value hashes and format-2+ aggregate hashes are valid;
+non-ASCII text distinguishes bytes from character counts. All three validators
+accept the first two sizes and reject the latter two, including actor wrapping.
+The 240000-byte case documents rejection of the former Python-only input, not
+a successful actor-wire overflow through a now-invalid inner batch.
 
 Contract wrap/unwrap helpers preserve original record/scoped bodies. They do not
 authorize membership, stage a message, apply records or acknowledge persistence.

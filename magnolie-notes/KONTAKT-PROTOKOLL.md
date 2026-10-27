@@ -182,6 +182,22 @@ remain unchanged. A full chunk body is about 240252 bytes and its message envelo
 still fits the existing 262144-byte application-message limit. Do not change
 chunk partitioning, existing transfer identity, or encryption framing.
 
+## Personal Sync Batch Body Agreement (#188)
+
+Ordinary `personal_sync.batch` bodies in formats 1, 2, 3 and 14 are limited to
+**192 KiB / 196608 bytes of canonical UTF-8 JSON, inclusive**, on Python, C# and
+Kotlin. Count the complete body, not text characters or only the record values.
+The GUI senders already partition within this budget. Python's former 256 KiB
+receiver allowance is reduced to the established interoperable limit; no native
+protection is relaxed. Actor/scoped wrappers do not enlarge the inner allowance.
+The complete application message still has its separate 256 KiB wire limit, and
+the attachment-chunk agreement above keeps its own 256 KiB body allowance.
+
+The shared `personal-sync-batch-boundaries.json` fixture checks immediately
+below/at/above the limit and the former larger Python-only case for every format,
+with valid per-record/aggregate hashes and non-ASCII content. The Notes and
+standalone Windows copies are byte-identical and checked by Python.
+
 ## Tests and Native Gates
 
 `KontaktVersion2Test` covers exact versions, partial names, yearless dates,
