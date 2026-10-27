@@ -58,7 +58,8 @@ def test_native_or6_known_values_and_live_deletion():
     assert not deleted["kontakte"]
     for collection in ("termine", "aufgaben", "notizen"):
         assert deleted[collection] == result[collection]
-    assert "Recurrences" in result["bericht"] and "attachments" in result["bericht"]
+    assert "Unsupported entries" in result["bericht"] and "attachments" in result["bericht"]
+    assert "call and web records become text notes" in result["bericht"]
 
 
 def test_selected_application_catalog_translates_report_and_read_error():

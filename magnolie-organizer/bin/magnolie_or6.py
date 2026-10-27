@@ -499,12 +499,50 @@ def _read_or6(raw):
             text = _rtf(fields.get(8, b""))
             if title or text:
                 result["notizen"].append({"titel": title, "text": text, "uid": uid})
-        elif tag in (0x200, 0x600, 0x700, 0x900):
-            # Do not turn unsupported planner/call/bookmark data into appointments.
-            text_fields = (12, 14, 15) if tag == 0x900 else (9,)
-            if any(_string(fields, fid) for fid in text_fields):
+        elif tag in (0x200, 0x600):
+            if not _string(fields, 9):
+                continue
+            begin, time = _date(fields, 7)
+            end, end_time = _date(fields, 8)
+            # Only native date-only spans and the independently verified annual
+            # checkbox are understood. Do not invent a rule for custom repeats.
+            if (not begin or not end or end < begin or time != "00:00" or
+                    end_time != "23:59" or _number(fields, 10) or _number(fields, 1)):
                 result["uebersprungen"] += 1
-    result["bericht"] = _("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred.")
+                continue
+            common = _common(fields, uid)
+            if tag == 0x600 and _number(fields, 19) == 1 and not _number(fields, 18) & 0x10000 and begin == end:
+                result["jahrestage"].append({"name": common["titel"], "datum": begin,
+                    "typ": "anniversary", "notiz": common["notiz"], "uid": uid, "geaendert": 0})
+            elif tag == 0x200 or (_number(fields, 19) == 0 and _number(fields, 18) & 0x10000 and begin == end):
+                if tag == 0x200:
+                    common["notiz"] += ("\n" if common["notiz"] else "") + "Lotus planner event type: " + str(_number(fields, 18))
+                result["termine"].append(dict(common, datum=begin, zeit="", endDatum=end if end != begin else "", endZeit="", vorlaeufig=False))
+            else:
+                result["uebersprungen"] += 1
+        elif tag in (0x700, 0x900):
+            title = _string(fields, 12 if tag == 0x900 else 9)
+            if not any(_string(fields, fid) for fid in ((12, 14, 15) if tag == 0x900 else (9, 18, 19, 20, 21))):
+                continue
+            # There is no call-log/bookmark collection in the target book. Keep
+            # basic source fields explicitly as text, never dial or open a URL.
+            if _number(fields, 1) or (tag == 0x700 and _number(fields, 10)):
+                result["uebersprungen"] += 1
+                continue
+            if tag == 0x900:
+                text = "Lotus Organizer: Web\nURL: " + _string(fields, 14) + "\n" + _string(fields, 15)
+            else:
+                begin, time = _date(fields, 7)
+                end, end_time = _date(fields, 8)
+                if not begin or not end or (end, end_time) < (begin, time):
+                    result["uebersprungen"] += 1
+                    continue
+                text = "\n".join(("Lotus Organizer: Calls", "Start: " + begin + " " + time,
+                    "End: " + end + " " + end_time, "Contact: " + " ".join(filter(None, (_string(fields, 19), _string(fields, 20)))),
+                    "Company: " + _string(fields, 21), "Phone: " + _string(fields, 18),
+                    "Status: " + _string(fields, 22), "Completed: " + ("true" if _number(fields, 24) else "false"), title))
+            result["notizen"].append({"titel": title.splitlines()[0] if title else "Lotus Organizer", "text": text, "uid": uid})
+    result["bericht"] = _("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred.")
     return result
 
 

@@ -49,7 +49,7 @@ internal static class Or6CodecTests
         var empty = Or6Codec.Read(Fixture("empty.or6")); var deleted = Or6Codec.Read(Fixture("deleted-values.or6"));
         TestAssert.That(empty.Kontakte.Count + empty.Termine.Count + empty.Aufgaben.Count + empty.Notizen!.Count + empty.Uebersprungen == 0, "Alphabet placeholders became imported records.");
         TestAssert.That(deleted.Kontakte.Count == 0 && JsonNode.DeepEquals(deleted.Termine, result.Termine) && JsonNode.DeepEquals(deleted.Notizen, result.Notizen) && JsonNode.DeepEquals(deleted.Aufgaben, result.Aufgaben), "Freed contact was resurrected or unrelated content changed.");
-        TestAssert.That(result.Bericht == NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."), "Localized OR6 limitation report missing.");
+        TestAssert.That(result.Bericht == NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."), "Localized OR6 limitation report missing.");
         foreach (var corruption in new[] { "truncated", "signature", "zero_size", "self", "field_pointer", "duplicate_field", "schema_cycle", "wrong_parent", "rtf" })
         {
             byte[] broken;

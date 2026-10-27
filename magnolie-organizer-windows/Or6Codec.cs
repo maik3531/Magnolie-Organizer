@@ -259,7 +259,7 @@ internal static class Or6Codec
 
     internal static ExchangeImportResult Read(byte[] raw)
     {
-        var appointments = new JsonArray(); var tasks = new JsonArray(); var contacts = new JsonArray(); var notes = new JsonArray();
+        var appointments = new JsonArray(); var tasks = new JsonArray(); var contacts = new JsonArray(); var notes = new JsonArray(); var anniversaries = new JsonArray();
         var skipped = 0; var recurring = 0;
         var document = new Document(raw); var entries = document.Entries(repeats: true).ToList();
         var groups = document.RepeatGroups(entries); var consumed = new HashSet<string>();
@@ -355,14 +355,54 @@ internal static class Or6Codec
                 var title = Text(fields, 7); var text = RtfText(Bytes(fields, 8));
                 if (title.Length + text.Length > 0) notes.Add(new JsonObject { ["titel"] = title, ["text"] = text, ["uid"] = uid });
             }
-            else if (tag is 0x200 or 0x600 or 0x700 or 0x900)
+            else if (tag is 0x200 or 0x600)
             {
-                var ids = tag == 0x900 ? new ushort[] { 12, 14, 15 } : new ushort[] { 9 };
-                if (ids.Any(id => Text(fields, id).Length > 0)) skipped++;
+                if (Text(fields, 9).Length == 0) continue;
+                var start = Date(fields, 7); var end = Date(fields, 8);
+                if (start.Date.Length == 0 || end.Date.Length == 0 || string.CompareOrdinal(end.Date, start.Date) < 0 ||
+                    start.Time != "00:00" || end.Time != "23:59" || Number(fields, 10) != 0 || Number(fields, 1) != 0)
+                { skipped++; continue; }
+                var common = Common(fields, uid);
+                if (tag == 0x600 && Number(fields, 19) == 1 && (Number(fields, 18) & 0x10000) == 0 && start.Date == end.Date)
+                    anniversaries.Add(new JsonObject { ["name"] = common["titel"]!.DeepClone(), ["datum"] = start.Date,
+                        ["typ"] = "anniversary", ["notiz"] = common["notiz"]!.DeepClone(), ["uid"] = uid, ["geaendert"] = 0 });
+                else if (tag == 0x200 || (Number(fields, 19) == 0 && (Number(fields, 18) & 0x10000) != 0 && start.Date == end.Date))
+                {
+                    if (tag == 0x200)
+                    {
+                        var note = common["notiz"]!.GetValue<string>();
+                        common["notiz"] = note + (note.Length > 0 ? "\n" : "") + "Lotus planner event type: " + Number(fields, 18).ToString(CultureInfo.InvariantCulture);
+                    }
+                    common["datum"] = start.Date; common["zeit"] = ""; common["endDatum"] = end.Date != start.Date ? end.Date : "";
+                    common["endZeit"] = ""; common["vorlaeufig"] = false; appointments.Add(common);
+                }
+                else skipped++;
+            }
+            else if (tag is 0x700 or 0x900)
+            {
+                var title = Text(fields, tag == 0x900 ? (ushort)12 : (ushort)9);
+                var ids = tag == 0x900 ? new ushort[] { 12, 14, 15 } : new ushort[] { 9, 18, 19, 20, 21 };
+                if (!ids.Any(id => Text(fields, id).Length > 0)) continue;
+                // Preserve basic records as text, without a callable contact or
+                // bookmark action. Unsupported confidentiality/repeats stay out.
+                if (Number(fields, 1) != 0 || (tag == 0x700 && Number(fields, 10) != 0)) { skipped++; continue; }
+                string text;
+                if (tag == 0x900) text = "Lotus Organizer: Web\nURL: " + Text(fields, 14) + "\n" + Text(fields, 15);
+                else
+                {
+                    var start = Date(fields, 7); var end = Date(fields, 8);
+                    if (start.Date.Length == 0 || end.Date.Length == 0 || string.CompareOrdinal(end.Date + end.Time, start.Date + start.Time) < 0)
+                    { skipped++; continue; }
+                    text = string.Join('\n', new[] { "Lotus Organizer: Calls", "Start: " + start.Date + " " + start.Time,
+                        "End: " + end.Date + " " + end.Time, "Contact: " + string.Join(' ', new[] { Text(fields, 19), Text(fields, 20) }.Where(value => value.Length > 0)),
+                        "Company: " + Text(fields, 21), "Phone: " + Text(fields, 18), "Status: " + Text(fields, 22),
+                        "Completed: " + (Number(fields, 24) != 0 ? "true" : "false"), title });
+                }
+                notes.Add(new JsonObject { ["titel"] = title.Length > 0 ? title.Split('\n')[0].TrimEnd('\r') : "Lotus Organizer", ["text"] = text, ["uid"] = uid });
             }
         }
-        return new(appointments, new JsonArray(), new JsonArray(), tasks, contacts, skipped, recurring,
-            NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."), notes);
+        return new(appointments, anniversaries, new JsonArray(), tasks, contacts, skipped, recurring,
+            NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."), notes);
     }
 
     private static string RtfText(byte[] bytes)

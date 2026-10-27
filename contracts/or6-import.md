@@ -27,10 +27,23 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
   retained as contact groups. Group cards do not become fictitious people.
   Verified native Work, Home and Work-fax slots retain their phone contexts;
   empty preceding slots do not change later slot meanings.
+- Basic planner date spans become all-day appointments with the original
+  inclusive last date; their native event-type number is retained in the note.
+  Row layout, event-type labels and busy-time booking are not inferred.
+- Native anniversaries with the verified annual checkbox become anniversary
+  entries. Turning that checkbox off in the original application produces a
+  single all-day appointment with the same stable identity, not a yearly rule.
+- Basic call and web entries become explicitly labelled plain-text notes, since
+  the target book has no legacy call-log or bookmark collection. Call text keeps
+  the original date/time span, contact/company/number, status and completed flag.
+  Web text keeps the URL and description. Neither conversion dials a number,
+  opens a URL, creates a contact or invents a calendar appointment.
 
 Unsupported series overrides, nested/empty distribution groups and
-planner/anniversary/call/web sections are not converted into basic appointments
-or contacts. Distribution-list-specific options are not contact-group permissions.
+custom planner/anniversary/call repetitions are not converted into basic
+appointments or contacts. Confidential entries in the newly supported sections
+are skipped rather than dropping a confidentiality marker the destination
+collection cannot represent. Distribution-list-specific options are not contact-group permissions.
 Unsupported live entries are counted where
 identified. Formatting, attachments, non-contact categories and alarms are not transferred.
 The native result always includes the translated limitation report; this is
@@ -72,8 +85,12 @@ duplicate properties, field bounds, malformed RTF, ZIP dispatch and source CAS.
 `or6_cross_platform.py` compares both readers' actual output using an already
 built CoreTests assembly. It does not start a build, emulator or VM.
 
-`or6-native-extensions.json` adds five independently authored synthetic files
+`or6-native-extensions.json` adds seven independently authored synthetic files
 saved by the unmodified supplied Lotus application in an offline Wine 10/Debian
 13 reference environment. Expected weekly dates, phone types and group members
 were chosen before parsing. The deleted occurrence was removed with Lotus's
 own “Just this one” action. No vendor program, runtime or installer is included.
+The final two files additionally verify preselected planner/anniversary/call/web
+values, exact replacement of the original phone/URL edit controls and the
+original annual-checkbox on/off distinction. Earlier private snapshots with an
+incorrectly inserted phone number or URL are not the public expected dataset.

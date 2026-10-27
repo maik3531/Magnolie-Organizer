@@ -3785,8 +3785,8 @@ msgstr "ODS"
 msgid "OK"
 msgstr "好的"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."
-msgstr "OR6 导入：日程、任务、联系人和纯文本笔记。保留已验证的有限重复日程、联系人分组成员关系和已知电话号码类型。跳过含有不支持的更改的重复日程及其他分区；不传输版式、附件和提醒。"
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
+msgstr "OR6 导入：日程、任务、联系人和纯文本笔记。保留已验证的有限重复日程、联系人分组成员关系和已知电话号码类型。保留基本规划时段和每年重复的纪念日；一次性纪念日转为全天日程，通话和网页记录转为文本笔记。不传输不支持的条目、版式、附件和提醒。"
 
 msgid "Objects"
 msgstr "物体"

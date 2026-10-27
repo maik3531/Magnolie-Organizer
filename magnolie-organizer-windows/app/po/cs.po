@@ -3959,8 +3959,8 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."
-msgstr "Import OR6: události, úkoly, kontakty a prostý text poznámek. Ověřené konečné řady událostí, členství ve skupinách kontaktů a známé typy telefonních čísel zůstávají zachovány. Opakování s nepodporovanými změnami a ostatní oddíly se přeskočí; rozvržení, přílohy a připomenutí se nepřenášejí."
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
+msgstr "Import OR6: události, úkoly, kontakty a prostý text poznámek. Ověřené konečné řady událostí, členství ve skupinách kontaktů a známé typy telefonních čísel zůstávají zachovány. Jednoduché intervaly plánovače a každoroční výročí se zachovají; jednorázová výročí se změní na celodenní události, záznamy hovorů a webu na textové poznámky. Nepodporované položky, rozvržení, přílohy a upozornění se nepřenášejí."
 
 msgid "Objects"
 msgstr "Objekty"

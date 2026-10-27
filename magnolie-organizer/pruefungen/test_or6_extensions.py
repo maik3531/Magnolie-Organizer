@@ -91,9 +91,71 @@ def test_original_deleted_occurrence_is_an_exception_not_a_resurrected_record():
     assert item['icsKomplex'] is True and 'EXDATE:20261116T091500' in item['icsRoundtrip']
 
 
-def test_actual_linux_import_dispatch_preserves_new_series_and_membership_metadata(tmp_path):
+def test_original_further_sections_keep_annual_vs_once_dates_span_and_source_text():
+    expected = CONTRACT['expected']['sections']
+    result = read_or6(fixture('sections-corrected-222.or6'))
+    assert result['uebersprungen'] == 0 and result['wiederholend'] == 0
+    annual, = result['jahrestage']
+    assert (annual['name'], annual['datum'], annual['typ']) == (expected['anniversary']['title'], expected['anniversary']['date'], 'anniversary')
+    planner, = [item for item in result['termine'] if item['titel'] == expected['planner']['title']]
+    product = quellmodul_laden('or6_section_export_product', str(Path(__file__).parents[1] / 'bin/magnolie-organizer'))
+    exported = product.ics_schreiben_termine([planner])
+    assert 'DTSTART;VALUE=DATE:20261106' in exported and 'DTEND;VALUE=DATE:20261109' in exported
+    assert 'FREQ=YEARLY' in product.ics_schreiben_jahrestage([annual])
+    assert (planner['zeit'], planner['endZeit'], planner['endDatum']) == ('', '', expected['planner']['endInclusive'])
+    call, = [item for item in result['notizen'] if item['titel'] == expected['call']['title']]
+    for value in ('Lotus Organizer: Calls', 'Start: 2026-11-09 10:30', 'End: 2026-11-09 10:45',
+                  expected['call']['name'], expected['call']['number'], expected['call']['note'], 'Completed: true', 'Status: Planned'):
+        assert value in call['text']
+    web, = [item for item in result['notizen'] if item['titel'] == expected['web']['title']]
+    assert web['text'] == 'Lotus Organizer: Web\nURL: ' + expected['web']['url'] + '\n' + expected['web']['note']
+    assert len(result['kontakte']) == 2 and len(result['termine']) == 3 and len(result['notizen']) == 3
+    once = read_or6(fixture('anniversary-once-222.or6'))
+    assert once['jahrestage'] == [] and once['uebersprungen'] == 0
+    entry, = [item for item in once['termine'] if item['titel'] == annual['name']]
+    assert entry['uid'] == annual['uid'] and entry['datum'] == annual['datum'] and entry['zeit'] == ''
+    assert not entry.get('wiederholung')
+
+
+@pytest.mark.parametrize('tag', (0x200, 0x600, 0x700, 0x900))
+def test_deleted_further_section_is_not_resurrected(tag):
+    raw = fixture('sections-corrected-222.or6'); data = rotate(raw, True)
+    # Free the actual original allocation instead of rebuilding a parser-derived
+    # synthetic record. Its text remains present in the free storage.
+    document = _Document(raw)
+    target = next(entry for entry in document.entries() if entry[0] == tag and
+                  any('OR6-222'.encode('utf-16le') in value for value in entry[1].values()))
+    address = next(address for address,(kind,size) in document.blocks.items()
+                   if kind == tag and document.reference(address+12) == target[3])
+    struct.pack_into('<I', data, address, 0xfffffffc)
+    result = read_or6(bytes(rotate(data, False)))
+    assert all(item['uid'] != target[2] for key in ('termine', 'jahrestage', 'notizen') for item in result[key])
+
+
+@pytest.mark.parametrize('tag', (0x200, 0x600, 0x700, 0x900))
+def test_confidential_further_section_is_skipped_instead_of_losing_its_marker(tag):
+    raw = fixture('sections-corrected-222.or6'); data = rotate(raw, True); document = _Document(raw)
+    target = next(entry for entry in document.entries() if entry[0] == tag and
+                  any('OR6-222'.encode('utf-16le') in value for value in entry[1].values()))
+    address = next(address for address,(kind,size) in document.blocks.items()
+                   if kind == tag and document.reference(address+12) == target[3])
+    for index in range(struct.unpack_from('<I', data, address+0x28)[0]):
+        prop = address+0x34+index*8
+        if struct.unpack_from('<H', data, prop)[0] == 3:
+            # The schema already declares the common confidentiality field.
+            struct.pack_into('<HHI', data, prop, 1, 2, 1)
+            break
+    else:
+        raise AssertionError('Original category property not found')
+    result = read_or6(bytes(rotate(data, False)))
+    assert result['uebersprungen'] == 1
+    assert all(item['uid'] != target[2] for key in ('termine', 'jahrestage', 'notizen') for item in result[key])
+
+
+@pytest.mark.parametrize('name', ('weekly-deleted-222.or6', 'sections-corrected-222.or6', 'anniversary-once-222.or6'))
+def test_actual_linux_import_dispatch_preserves_new_series_and_membership_metadata(tmp_path, name):
     product = quellmodul_laden('or6_extended_import_product', str(Path(__file__).parents[1] / 'bin/magnolie-organizer'))
-    raw = fixture('weekly-deleted-222.or6')
+    raw = fixture(name)
     result = product.import_rohdaten_lesen('lotus', raw, 'independent-extended.or6')
     assert dates(series(result)) == [(day, '09:15', '10:00') for day in CONTRACT['expected']['deletedWeeklyDates']]
     assert len(result['kontakte']) == 2
@@ -110,6 +172,7 @@ def test_actual_linux_import_dispatch_preserves_new_series_and_membership_metada
     assert callback == 'App.importErgebnis' and reply['ok'] and reply['requestId'] == 'extended-source'
     assert reply['sha256'] == hashlib.sha256(raw).hexdigest() and path.read_bytes() == raw
     assert dates(series(reply)) == dates(series(result))
+    assert reply['jahrestage'] == result['jahrestage'] and reply['notizen'] == result['notizen']
 
 
 def test_freed_native_occurrence_never_reappears_from_original_date_array():

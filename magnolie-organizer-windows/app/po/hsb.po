@@ -4022,8 +4022,8 @@ msgstr "ODS"
 msgid "OK"
 msgstr "W porjadku"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."
-msgstr "OR6-import: terminy, nadawki, kontakty a tekst noticow. Přepruwowane skónčne serije terminow, čłonstwo w kontaktnych skupinach a znate typy telefonowych čisłow so zachowaja. Wospjetowanja z njepodpěranymi změnami a druhe wotrězki so přeskakuja; wuhotowanje, přiwěški a dopomnjeća so njepřenošuja."
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
+msgstr "OR6-import: terminy, nadawki, kontakty a tekst noticow. Přepruwowane skónčne serije terminow, čłonstwo w kontaktnych skupinach a znate typy telefonowych čisłow so zachowaja. Jednore časowe wotrězki planowaka a lětnje wjetowane wročnicy so zachowaja; jónkróćne wročnicy budu cyłodnjowske terminy, zapiski zawołanjow a webstronow tekstowe noticy. Njepodpěrane zapiski, wuhotowanje, přiwěški a dopomnjenki so njepřenjesu."
 
 msgid "Objects"
 msgstr "Předmjety"
