@@ -25,6 +25,9 @@ internal sealed class PersonalSyncActorStore
     private readonly Func<string, string, string?> currentSource;
     private readonly Func<long> clock, monotonicClock;
     private readonly byte[] revisionKey = RandomNumberGenerator.GetBytes(32);
+    private sealed class CompletionSourceLost(string message) : InvalidOperationException(message) { }
+    private readonly Dictionary<string, Func<string, JsonObject?, bool?>> completionGuards = new(StringComparer.Ordinal);
+    private readonly HashSet<string> dataRetired = new(StringComparer.Ordinal);
     internal string Epoch { get; }
 
     internal PersonalSyncActorStore(TelefonStore store, Func<string, string, string?> currentSource,
@@ -37,7 +40,8 @@ internal sealed class PersonalSyncActorStore
         this.monotonicClock = monotonicClock ?? (() => Environment.TickCount64);
         using var db = Open(); using var create = db.CreateCommand();
         create.CommandText = "CREATE TABLE IF NOT EXISTS personal_actor_context(actor_id TEXT PRIMARY KEY,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL);" +
-            "CREATE TABLE IF NOT EXISTS personal_actor_wire(actor_id TEXT NOT NULL,message_id TEXT NOT NULL,wire_hash TEXT NOT NULL,byte_count INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(actor_id,message_id));";
+            "CREATE TABLE IF NOT EXISTS personal_actor_wire(actor_id TEXT NOT NULL,message_id TEXT NOT NULL,wire_hash TEXT NOT NULL,byte_count INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(actor_id,message_id));" +
+            "CREATE TABLE IF NOT EXISTS personal_actor_completion_wire(actor_id TEXT NOT NULL,message_id TEXT NOT NULL,wire_hash TEXT NOT NULL,byte_count INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(actor_id,message_id));";
         create.ExecuteNonQuery();
     }
 
@@ -60,7 +64,7 @@ internal sealed class PersonalSyncActorStore
         var value = JsonNode.Parse(store.Open("personal_actor_context", id, payload))!.AsObject();
         TelefonProtocolContract.ExactObject(value, "format", "actor_id", "peer_id", "fingerprint", "source_revision", "owner_epoch", "owner_hash", "storage_peer", "created_ms", "expires_ms", "created_monotonic_ms", "expires_monotonic_ms", "phase");
         if (Number(value, "format") != PersonalSyncActorContract.Version || Text(value, "actor_id") != id || Number(value, "expires_ms") != expires ||
-            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "cancelled" or "cancelled_clean") ||
+            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "completion" or "completed" or "cancelled" or "cancelled_clean") ||
             !TelefonProtocolContract.IsUuidV4(Text(value, "peer_id")) || !Fingerprint.IsMatch(Text(value, "fingerprint")) ||
             new[] { "source_revision", "owner_epoch", "owner_hash" }.Any(key => !Hex.IsMatch(Text(value, key))) ||
             Number(value, "created_ms") < 0 || expires > 253402300799999 || expires - Number(value, "created_ms") is <= 0 or > LifetimeMs ||
@@ -90,7 +94,7 @@ internal sealed class PersonalSyncActorStore
         }
         if (Text(value, "owner_epoch") != Epoch || !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(Text(value, "owner_hash")), SHA256.HashData(Encoding.ASCII.GetBytes(handle.OwnerToken))))
             throw new InvalidOperationException("actor_not_found");
-        if (active && (Text(value, "phase") is not ("registered" or "receiving") || Number(value, "expires_ms") <= clock() || Number(value, "expires_monotonic_ms") <= monotonicClock()))
+        if (active && (dataRetired.Contains(handle.ActorId) || Text(value, "phase") is not ("registered" or "receiving") || Number(value, "expires_ms") <= clock() || Number(value, "expires_monotonic_ms") <= monotonicClock()))
             throw new InvalidOperationException("actor_inactive");
         if (source && currentSource(Text(value, "peer_id"), Text(value, "fingerprint")) != Text(value, "source_revision"))
             throw new InvalidOperationException("actor_source_changed");
@@ -118,7 +122,7 @@ internal sealed class PersonalSyncActorStore
             while (row.Read())
             {
                 var item = Decode(row.GetString(0), row.GetInt64(1), (byte[])row[2]); count++; duplicate |= Text(item, "actor_id") == runId;
-                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") is ("registered" or "receiving") && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
+                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") is ("registered" or "receiving" or "completion") && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
             }
         }
         if (count >= MaximumContexts || active >= MaximumActive) throw new InvalidOperationException("actor_capacity");
@@ -145,7 +149,14 @@ internal sealed class PersonalSyncActorStore
                 var discard = Text(value, "owner_epoch") != Epoch || Number(value, "expires_ms") <= wall ||
                     Number(value, "expires_monotonic_ms") <= monotonic || Number(value, "created_monotonic_ms") > monotonic;
                 if (!discard && Text(value, "phase") == "cancelled_clean") continue;
-                if (!discard && Text(value, "phase") != "cancelled" && currentSource(Text(value, "peer_id"), Text(value, "fingerprint")) == Text(value, "source_revision")) continue;
+                var phase = Text(value, "phase"); var id = Text(value, "actor_id"); bool lost;
+                if (phase is "completion" or "completed")
+                {
+                    try { lost = !completionGuards.TryGetValue(id, out var guard) || guard("maintain", null) == false; }
+                    catch (Exception error) when (error is InvalidOperationException or InvalidDataException or ArgumentException) { lost = true; }
+                }
+                else lost = phase == "cancelled" || dataRetired.Contains(id) || currentSource(Text(value, "peer_id"), Text(value, "fingerprint")) != Text(value, "source_revision");
+                if (!discard && !lost) continue;
                 if (Text(value, "phase") is not ("cancelled" or "cancelled_clean")) { value["phase"] = "cancelled"; Write(db, transaction, value); }
                 retired.Add((value, discard));
             }
@@ -153,6 +164,7 @@ internal sealed class PersonalSyncActorStore
         }
         foreach (var (value, discard) in retired)
         {
+            dataRetired.Add(Text(value, "actor_id")); completionGuards.Remove(Text(value, "actor_id"));
             // Retirement precedes existing domain cleanup. Failure retains an inactive
             // context for retry, never a resumed owner with partially purged staging.
             if (Text(value, "phase") != "cancelled_clean") new PersonalSyncStore(store).PurgeProtocol(Text(value, "storage_peer"));
@@ -175,7 +187,7 @@ internal sealed class PersonalSyncActorStore
                 remove.Parameters.AddWithValue("$peer", peer); remove.Parameters.AddWithValue("$id", item.Id); remove.ExecuteNonQuery();
             }
             if (discard)
-                foreach (var table in new[] { "personal_actor_wire", "personal_actor_context" })
+                foreach (var table in new[] { "personal_actor_wire", "personal_actor_completion_wire", "personal_actor_context" })
                 {
                     using var remove = db.CreateCommand(); remove.Transaction = transaction;
                     remove.CommandText = $"DELETE FROM {table} WHERE actor_id=$actor";
@@ -183,6 +195,7 @@ internal sealed class PersonalSyncActorStore
                 }
             if (!discard) { value["phase"] = "cancelled_clean"; Write(db, transaction, value); }
             transaction.Commit();
+            if (discard) dataRetired.Remove(actor);
         }
         return retired.Count;
     }
@@ -192,7 +205,7 @@ internal sealed class PersonalSyncActorStore
         using var db = Open(); var value = Require(db, handle, active: false, source: false); var packets = new JsonArray(); long size = 0;
         using (var read = db.CreateCommand())
         {
-            read.CommandText = "SELECT message_id,wire_hash,byte_count FROM personal_actor_wire WHERE actor_id=$id ORDER BY message_id";
+            read.CommandText = "SELECT message_id,wire_hash,byte_count FROM personal_actor_wire WHERE actor_id=$id UNION ALL SELECT message_id,wire_hash,byte_count FROM personal_actor_completion_wire WHERE actor_id=$id ORDER BY message_id";
             read.Parameters.AddWithValue("$id", handle.ActorId); using var row = read.ExecuteReader();
             while (row.Read()) { size += row.GetInt64(2); packets.Add(new JsonArray(row.GetString(0), row.GetString(1), row.GetInt64(2))); }
         }
@@ -201,7 +214,7 @@ internal sealed class PersonalSyncActorStore
             ["phase"] = Text(value, "phase") == "cancelled_clean" ? JsonValue.Create("cancelled") : value["phase"]!.DeepClone(), ["expires_ms"] = value["expires_ms"]!.DeepClone(), ["packets"] = packets.Count, ["bytes"] = size, ["revision"] = revision };
     }
 
-    internal bool Put(PersonalActorHandle handle, JsonObject wire)
+    private byte[] WirePayload(PersonalActorHandle handle, JsonObject wire, bool completion = false, bool fresh = true)
     {
         TelefonProtocolContract.ExactObject(wire, "type", "v", "message_id", "kind", "created_ms", "expires_ms", "body");
         var kind = Text(wire, "kind"); var id = Text(wire, "message_id"); var body = wire["body"] as JsonObject ?? throw new InvalidDataException("Invalid raw actor body.");
@@ -211,12 +224,29 @@ internal sealed class PersonalSyncActorStore
         if (kind == PersonalSyncActorContract.DataKind)
         {
             var semantic = PersonalSyncActorContract.Unwrap(body); var semanticKind = semantic.Kind == PhoneContentScope.DataKind ? Text(semantic.Body, "kind") : semantic.Kind;
+            if (completion && semantic.Kind != "personal_sync.deletion_decision") throw new InvalidDataException("Completion storage accepts only deletion controls.");
             lifetime = semanticKind == "personal_sync.request" ? 3600000 : 86400000;
         }
         else PersonalSyncActorContract.ValidateAck(body);
         var clear = TelefonCrypto.Canonical(wire); var created = Number(wire, "created_ms"); var expires = Number(wire, "expires_ms");
         if (Text(body, "run_id") != handle.ActorId || clear.Length > PersonalSyncContract.MaxChunkBody || created < 0 || expires > 253402300799999 ||
-            expires - created <= 0 || expires - created > lifetime || created > clock() + 300000 || expires <= clock()) throw new InvalidDataException("Invalid actor wire identity/lifetime/budget.");
+            expires - created <= 0 || expires - created > lifetime || fresh && (created > clock() + 300000 || expires <= clock())) throw new InvalidDataException("Invalid actor wire identity/lifetime/budget.");
+        return clear;
+    }
+
+    private static (long Count, long Bytes) WireUsage(SqliteConnection db, SqliteTransaction transaction, string? actorId = null)
+    {
+        using var command = db.CreateCommand(); command.Transaction = transaction;
+        var where = actorId is null ? "" : " WHERE actor_id=$actor";
+        command.CommandText = "SELECT COUNT(*),COALESCE(SUM(bytes),0) FROM (SELECT length(payload) AS bytes FROM personal_actor_wire" + where +
+            " UNION ALL SELECT length(payload) AS bytes FROM personal_actor_completion_wire" + where + ")";
+        if (actorId is not null) command.Parameters.AddWithValue("$actor", actorId);
+        using var row = command.ExecuteReader(); row.Read(); return (row.GetInt64(0), row.GetInt64(1));
+    }
+
+    internal bool Put(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire); var id = Text(wire, "message_id");
         var digest = Hash(clear); var primary = handle.ActorId + ":" + id; var sealedValue = store.Seal("personal_actor_wire", primary, clear);
         using var db = Open(); using var transaction = db.BeginTransaction(); var context = Require(db, handle, transaction);
         using (var old = db.CreateCommand())
@@ -229,13 +259,9 @@ internal sealed class PersonalSyncActorStore
                 row.Close(); Require(db, handle, transaction); transaction.Commit(); return false;
             }
         }
-        using (var quota = db.CreateCommand())
-        {
-            quota.Transaction = transaction; quota.CommandText = "SELECT COUNT(*),COALESCE(SUM(length(payload)),0),(SELECT COALESCE(SUM(length(payload)),0) FROM personal_actor_wire) FROM personal_actor_wire WHERE actor_id=$actor";
-            quota.Parameters.AddWithValue("$actor", handle.ActorId); using var row = quota.ExecuteReader(); row.Read();
-            if (row.GetInt64(0) >= MaximumPackets || row.GetInt64(1) + sealedValue.Length > MaximumActorBytes || row.GetInt64(2) + sealedValue.Length > MaximumTotalBytes)
-                throw new InvalidOperationException("actor_capacity");
-        }
+        var usage = WireUsage(db, transaction, handle.ActorId); var total = WireUsage(db, transaction);
+        if (usage.Count >= MaximumPackets || usage.Bytes + sealedValue.Length > MaximumActorBytes || total.Bytes + sealedValue.Length > MaximumTotalBytes)
+            throw new InvalidOperationException("actor_capacity");
         using (var insert = db.CreateCommand())
         {
             insert.Transaction = transaction; insert.CommandText = "INSERT INTO personal_actor_wire VALUES($actor,$id,$hash,$bytes,$payload)";
@@ -259,11 +285,156 @@ internal sealed class PersonalSyncActorStore
         Require(db, handle); return JsonNode.Parse(clear)!.AsObject();
     }
 
+    private T CompletionOperation<T>(PersonalActorHandle handle, Func<SqliteConnection, SqliteTransaction, T> action)
+    {
+        try
+        {
+            using var db = Open(); using var transaction = db.BeginTransaction();
+            var result = action(db, transaction); transaction.Commit(); return result;
+        }
+        catch (CompletionSourceLost error)
+        {
+            // Retire after rollback: a failed post-check cannot revive this cap.
+            completionGuards.Remove(handle.ActorId);
+            dataRetired.Add(handle.ActorId);
+            try { Cancel(handle); }
+            catch (Exception cleanup) when (cleanup is InvalidOperationException or SqliteException or IOException) { }
+            throw new InvalidOperationException(error.Message);
+        }
+    }
+
+    private JsonObject RequireCompletion(SqliteConnection db, SqliteTransaction transaction, PersonalActorHandle handle, string operation, JsonObject? wire = null)
+    {
+        var value = Require(db, handle, transaction, active: false, source: false);
+        if (Text(value, "phase") is not ("completion" or "completed")) throw new InvalidOperationException("actor_completion_inactive");
+        var wall = clock(); var mono = monotonicClock();
+        if (wall < Number(value, "created_ms") || wall >= Number(value, "expires_ms") ||
+            mono < Number(value, "created_monotonic_ms") || mono >= Number(value, "expires_monotonic_ms"))
+            throw new CompletionSourceLost("actor_completion_inactive");
+        if (!completionGuards.TryGetValue(handle.ActorId, out var guard)) throw new CompletionSourceLost("actor_completion_owner_lost");
+        bool? result;
+        try { result = guard(operation, wire); }
+        catch (InvalidOperationException) { throw new CompletionSourceLost("actor_completion_source_changed"); }
+        catch (InvalidDataException) when (wire is null) { throw new CompletionSourceLost("actor_completion_source_changed"); }
+        if (result is null) throw new InvalidOperationException("actor_completion_not_ready");
+        if (result != true) throw new CompletionSourceLost("actor_completion_source_changed");
+        return value;
+    }
+
+    /// <summary>Closes data irrevocably; the native callback binds each saved-claim/control/scope operation.
+    /// True permits that metadata operation, null waits, false retires. No document writes or network/GUI I/O belong in it.</summary>
+    internal JsonObject BeginCompletion(PersonalActorHandle handle, Func<string, JsonObject?, bool?> nativeGuard)
+    {
+        ArgumentNullException.ThrowIfNull(nativeGuard); var installed = false;
+        try
+        {
+            CompletionOperation(handle, (db, transaction) => {
+                var value = Require(db, handle, transaction, active: false, source: false);
+                if (Text(value, "phase") is "completion" or "completed")
+                {
+                    if (!completionGuards.TryGetValue(handle.ActorId, out var guard) || !guard.Equals(nativeGuard))
+                        throw new InvalidOperationException("actor_completion_owner_changed");
+                    RequireCompletion(db, transaction, handle, "begin");
+                }
+                else
+                {
+                    Require(db, handle, transaction); completionGuards[handle.ActorId] = nativeGuard; installed = true;
+                    value["phase"] = "completion"; Write(db, transaction, value); RequireCompletion(db, transaction, handle, "begin");
+                    try { Require(db, handle, transaction, active: false, source: true); }
+                    catch (InvalidOperationException) { throw new CompletionSourceLost("actor_completion_source_changed"); }
+                    dataRetired.Add(handle.ActorId);
+                }
+                return true;
+            });
+        }
+        catch
+        {
+            if (installed && completionGuards.TryGetValue(handle.ActorId, out var guard) && guard.Equals(nativeGuard)) completionGuards.Remove(handle.ActorId);
+            throw;
+        }
+        return Status(handle);
+    }
+
+    /// <summary>Raw metadata persistence only; this is not a successful document receipt.</summary>
+    internal bool PutCompletionControl(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire, completion: true); var snapshot = JsonNode.Parse(clear)!.AsObject();
+        var id = Text(snapshot, "message_id"); var digest = Hash(clear); var primary = handle.ActorId + ":" + id;
+        var sealedValue = store.Seal("personal_actor_completion_wire", primary, clear);
+        return CompletionOperation(handle, (db, transaction) => {
+            RequireCompletion(db, transaction, handle, "put", snapshot);
+            using (var collision = db.CreateCommand())
+            {
+                collision.Transaction = transaction; collision.CommandText = "SELECT 1 FROM personal_actor_wire WHERE actor_id=$actor AND message_id=$id";
+                collision.Parameters.AddWithValue("$actor", handle.ActorId); collision.Parameters.AddWithValue("$id", id);
+                if (collision.ExecuteScalar() is not null) throw new InvalidDataException("actor_frame_conflict");
+            }
+            using (var old = db.CreateCommand())
+            {
+                old.Transaction = transaction; old.CommandText = "SELECT wire_hash,payload FROM personal_actor_completion_wire WHERE actor_id=$actor AND message_id=$id";
+                old.Parameters.AddWithValue("$actor", handle.ActorId); old.Parameters.AddWithValue("$id", id); using var row = old.ExecuteReader();
+                if (row.Read())
+                {
+                    if (row.GetString(0) != digest || !store.Open("personal_actor_completion_wire", primary, (byte[])row[1]).AsSpan().SequenceEqual(clear))
+                        throw new InvalidDataException("actor_frame_conflict");
+                    row.Close(); RequireCompletion(db, transaction, handle, "put", snapshot);
+                    if (!TelefonCrypto.Canonical(snapshot).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+                    return false;
+                }
+            }
+            var usage = WireUsage(db, transaction, handle.ActorId); var total = WireUsage(db, transaction);
+            if (usage.Count >= MaximumPackets || usage.Bytes + sealedValue.Length > MaximumActorBytes || total.Bytes + sealedValue.Length > MaximumTotalBytes)
+                throw new InvalidOperationException("actor_capacity");
+            using (var insert = db.CreateCommand())
+            {
+                insert.Transaction = transaction; insert.CommandText = "INSERT INTO personal_actor_completion_wire VALUES($actor,$id,$hash,$bytes,$payload)";
+                insert.Parameters.AddWithValue("$actor", handle.ActorId); insert.Parameters.AddWithValue("$id", id); insert.Parameters.AddWithValue("$hash", digest);
+                insert.Parameters.AddWithValue("$bytes", clear.Length); insert.Parameters.AddWithValue("$payload", sealedValue); insert.ExecuteNonQuery();
+            }
+            RequireCompletion(db, transaction, handle, "put", snapshot);
+            if (!TelefonCrypto.Canonical(snapshot).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+            return true;
+        });
+    }
+
+    internal JsonArray ReadCompletionControls(PersonalActorHandle handle) => CompletionOperation(handle, (db, transaction) => {
+        RequireCompletion(db, transaction, handle, "read"); var result = new JsonArray();
+        using (var read = db.CreateCommand())
+        {
+            read.Transaction = transaction; read.CommandText = "SELECT message_id,wire_hash,byte_count,payload FROM personal_actor_completion_wire WHERE actor_id=$actor ORDER BY message_id";
+            read.Parameters.AddWithValue("$actor", handle.ActorId); using var row = read.ExecuteReader();
+            while (row.Read())
+            {
+                var id = row.GetString(0); var clear = store.Open("personal_actor_completion_wire", handle.ActorId + ":" + id, (byte[])row[3]);
+                try
+                {
+                    if (clear.Length != row.GetInt64(2) || Hash(clear) != row.GetString(1)) throw new InvalidDataException("Invalid protected actor completion packet.");
+                    var wire = JsonNode.Parse(clear)!.AsObject();
+                    if (Text(wire, "message_id") != id || !WirePayload(handle, wire, completion: true, fresh: false).AsSpan().SequenceEqual(clear))
+                        throw new InvalidDataException("Invalid protected actor completion packet.");
+                    result.Add(wire);
+                }
+                finally { CryptographicOperations.ZeroMemory(clear); }
+            }
+        }
+        RequireCompletion(db, transaction, handle, "read"); return result;
+    });
+
+    internal JsonObject FinishCompletion(PersonalActorHandle handle)
+    {
+        CompletionOperation(handle, (db, transaction) => {
+            var value = RequireCompletion(db, transaction, handle, "finish"); value["phase"] = "completed"; Write(db, transaction, value);
+            RequireCompletion(db, transaction, handle, "finish"); return true;
+        });
+        return Status(handle);
+    }
+
     internal JsonObject Cancel(PersonalActorHandle handle)
     {
         using (var db = Open())
         {
             using var transaction = db.BeginTransaction(); var value = Require(db, handle, transaction, active: false, source: false);
+            dataRetired.Add(handle.ActorId); completionGuards.Remove(handle.ActorId);
             if (Text(value, "phase") != "cancelled_clean") { value["phase"] = "cancelled"; Write(db, transaction, value); }
             transaction.Commit();
         }

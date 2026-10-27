@@ -33,8 +33,12 @@ internal class PersonalSyncActorJournal(
         val format: Int = 12, val peerId: String, val runId: String, val publicKey: String,
         val sourceRevision: String, val restoreEpoch: String, val ownerEpoch: String,
         val ownerHash: String, val createdMs: Long, val expiresMs: Long,
-        val createdMonotonicMs: Long, val expiresMonotonicMs: Long, val stopped: Boolean = false
+        val createdMonotonicMs: Long, val expiresMonotonicMs: Long, val stopped: Boolean = false,
+        val completionPhase: String = ""
     )
+    private class CompletionSourceLost(message: String) : IllegalStateException(message)
+    private val completionGuards = mutableMapOf<String, (String, JsonObject?) -> Boolean?>()
+    private val dataRetired = mutableSetOf<String>()
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false }
     init { require(HEX.matches(ownerEpoch)) }
 
@@ -54,7 +58,8 @@ internal class PersonalSyncActorJournal(
                     it.restoreEpoch.length <= 256 && it.createdMs >= 0 && it.expiresMs <= MAX_TIME &&
                     it.expiresMs - it.createdMs == LIFETIME && it.createdMonotonicMs >= 0 &&
                     it.expiresMonotonicMs > it.createdMonotonicMs &&
-                    it.expiresMonotonicMs - it.createdMonotonicMs == LIFETIME)
+                     it.expiresMonotonicMs - it.createdMonotonicMs == LIFETIME &&
+                     it.completionPhase in setOf("", "completion", "completed") && (it.completionPhase.isEmpty() || it.stopped))
             }
         } finally { clear.fill(0) }
     }
@@ -75,7 +80,7 @@ internal class PersonalSyncActorJournal(
         check(binding.ownerEpoch == ownerEpoch && MessageDigest.isEqual(
             binding.ownerHash.encodeToByteArray(), hash(handle.token).encodeToByteArray())) { "actor_not_found" }
         if (active) {
-            check(!binding.stopped && clock() < binding.expiresMs && monotonic() < binding.expiresMonotonicMs &&
+            check(handle.runId !in dataRetired && !binding.stopped && clock() < binding.expiresMs && monotonic() < binding.expiresMonotonicMs &&
                 clock() >= binding.createdMs && monotonic() >= binding.createdMonotonicMs) { "actor_inactive" }
             check(restoreEpoch() == binding.restoreEpoch &&
                 currentSource(binding.peerId, binding.publicKey) == binding.sourceRevision) { "actor_source_changed" }
@@ -96,7 +101,7 @@ internal class PersonalSyncActorJournal(
             while (it.moveToNext()) rows += decode(it.getString(0), it.getBlob(1))
         }
         check(rows.none { it.runId == runId }) { "actor_identity_reused" }
-        check(rows.size < 32 && rows.count { it.ownerEpoch == ownerEpoch && !it.stopped &&
+        check(rows.size < 32 && rows.count { it.ownerEpoch == ownerEpoch && (!it.stopped || it.completionPhase == "completion") &&
             it.expiresMs > now && it.expiresMonotonicMs > elapsed } < 4) { "actor_capacity" }
         phoneCapacity("meta", 4096)
         val handle = PersonalActorHandle(peerId, runId, randomToken())
@@ -121,6 +126,15 @@ internal class PersonalSyncActorJournal(
 
     private fun wireKey(handle: PersonalActorHandle, messageId: String): String =
         "personal_actor_wire:${handle.peerId}:${handle.runId}:$messageId"
+
+    private fun completionWireKey(handle: PersonalActorHandle, messageId: String): String =
+        "personal_actor_completion_wire:${handle.peerId}:${handle.runId}:$messageId"
+
+    private fun wireUsage(db: SQLiteDatabase, handle: PersonalActorHandle): Pair<Long, Long> = db.rawQuery(
+        "SELECT COUNT(*),COALESCE(SUM(length(value)),0) FROM meta WHERE key GLOB ? OR key GLOB ?",
+        arrayOf(wireKey(handle, "*"), completionWireKey(handle, "*"))).use {
+            check(it.moveToFirst()); it.getLong(0) to it.getLong(1)
+        }
 
     private fun validateWire(handle: PersonalActorHandle, wire: JsonObject, fresh: Boolean) {
         TelefonNachrichten.validateHeader(wire, if (fresh) clock() else wire.long("created_ms"))
@@ -156,10 +170,8 @@ internal class PersonalSyncActorJournal(
                 }
             }
             val sealed = storage.encryptPayload(clear, "personal_actor_wire", id)
-            rawQuery("SELECT COUNT(*),COALESCE(SUM(length(value)),0) FROM meta WHERE key GLOB ?",
-                arrayOf(wireKey(handle, "*"))).use {
-                check(it.moveToFirst() && it.getLong(0) < 4096 && it.getLong(1) + sealed.size <= 50L * 1024 * 1024) { "actor_capacity" }
-            }
+            val usage = wireUsage(this, handle)
+            check(usage.first < 4096 && usage.second + sealed.size <= 50L * 1024 * 1024) { "actor_capacity" }
             phoneCapacity("meta", sealed.size)
             insertOrThrow("meta", null, ContentValues().apply { put("key", id); put("value", sealed) })
             true
@@ -181,11 +193,140 @@ internal class PersonalSyncActorJournal(
         }
     }
 
+    private fun <T> completionOperation(handle: PersonalActorHandle, action: SQLiteDatabase.() -> T): T = withNativeLocks {
+        try { database.writableDatabase.inTransaction { action() } }
+        catch (error: CompletionSourceLost) {
+            completionGuards.remove(handle.runId); dataRetired.add(handle.runId)
+            try { retire(handle) } catch (_: Exception) { /* The volatile capability is already gone. */ }
+            throw IllegalStateException(error.message)
+        }
+    }
+
+    private fun requireCompletion(db: SQLiteDatabase, handle: PersonalActorHandle, operation: String, wire: JsonObject? = null): Binding {
+        val binding = requireOwner(db, handle, false)
+        check(binding.completionPhase in setOf("completion", "completed")) { "actor_completion_inactive" }
+        if (restoreEpoch() != binding.restoreEpoch) throw CompletionSourceLost("actor_completion_source_changed")
+        val wall = clock(); val mono = monotonic()
+        if (wall < binding.createdMs || wall >= binding.expiresMs || mono < binding.createdMonotonicMs || mono >= binding.expiresMonotonicMs)
+            throw CompletionSourceLost("actor_completion_inactive")
+        val guard = completionGuards[handle.runId] ?: throw CompletionSourceLost("actor_completion_owner_lost")
+        val result = try { guard(operation, wire) }
+            catch (_: IllegalStateException) { throw CompletionSourceLost("actor_completion_source_changed") }
+            catch (error: IllegalArgumentException) {
+                if (wire != null) throw error
+                throw CompletionSourceLost("actor_completion_source_changed")
+            }
+        check(result != null) { "actor_completion_not_ready" }
+        if (result != true) throw CompletionSourceLost("actor_completion_source_changed")
+        return binding
+    }
+
+    /** Native-only validator: true permits exactly that saved-claim/control/scope operation,
+     * null waits, false retires. It must not perform document writes or network/GUI I/O. */
+    fun beginCompletion(handle: PersonalActorHandle, nativeGuard: (String, JsonObject?) -> Boolean?): String {
+        var installed = false
+        try {
+            completionOperation(handle) {
+                val binding = requireOwner(this, handle, false)
+                if (binding.completionPhase.isNotEmpty()) {
+                    check(completionGuards[handle.runId] === nativeGuard) { "actor_completion_owner_changed" }
+                    requireCompletion(this, handle, "begin")
+                } else {
+                    requireOwner(this, handle, true)
+                    completionGuards[handle.runId] = nativeGuard; installed = true
+                    write(this, binding.copy(stopped = true, completionPhase = "completion"))
+                    requireCompletion(this, handle, "begin")
+                    if (restoreEpoch() != binding.restoreEpoch || currentSource(binding.peerId, binding.publicKey) != binding.sourceRevision)
+                        throw CompletionSourceLost("actor_completion_source_changed")
+                    dataRetired.add(handle.runId)
+                }
+            }
+        } catch (error: Throwable) {
+            if (installed && completionGuards[handle.runId] === nativeGuard) completionGuards.remove(handle.runId)
+            throw error
+        }
+        return completionState(handle)
+    }
+
+    private fun validateCompletionWire(handle: PersonalActorHandle, wire: JsonObject, fresh: Boolean) {
+        require(wire.string("kind") == PersonalSyncActor.ACK_KIND ||
+            wire.string("kind") == PersonalSyncActor.DATA_KIND && PersonalSyncActor.unwrap(wire.getValue("body").jsonObject).first == "personal_sync.deletion_decision") {
+            "Completion storage accepts only deletion controls"
+        }
+        validateWire(handle, wire, fresh)
+    }
+
+    /** Raw persistence/deduplication only, not proof of a successful document save. */
+    fun putCompletionControl(handle: PersonalActorHandle, wire: JsonObject): Boolean {
+        validateCompletionWire(handle, wire, true)
+        val clear = TelefonKanonisch.bytes(wire)
+        try {
+            val snapshot = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
+            val id = completionWireKey(handle, snapshot.string("message_id"))
+            return completionOperation(handle) {
+                requireCompletion(this, handle, "put", snapshot)
+                query("meta", arrayOf("key"), "key=?", arrayOf(wireKey(handle, snapshot.string("message_id"))), null, null, null).use {
+                    require(!it.moveToFirst()) { "actor_frame_conflict" }
+                }
+                query("meta", arrayOf("value"), "key=?", arrayOf(id), null, null, null).use { row ->
+                    if (row.moveToFirst()) {
+                        val previous = storage.decryptPayload(row.getBlob(0), "personal_actor_completion_wire", id)
+                        try { require(MessageDigest.isEqual(previous, clear)) { "actor_frame_conflict" } } finally { previous.fill(0) }
+                        requireCompletion(this, handle, "put", snapshot)
+                        require(MessageDigest.isEqual(TelefonKanonisch.bytes(snapshot), clear)) { "actor_completion_callback_mutated_packet" }
+                        return@completionOperation false
+                    }
+                }
+                val sealed = storage.encryptPayload(clear, "personal_actor_completion_wire", id)
+                val usage = wireUsage(this, handle)
+                check(usage.first < 4096 && usage.second + sealed.size <= 50L * 1024 * 1024) { "actor_capacity" }
+                phoneCapacity("meta", sealed.size)
+                insertOrThrow("meta", null, ContentValues().apply { put("key", id); put("value", sealed) })
+                requireCompletion(this, handle, "put", snapshot)
+                require(MessageDigest.isEqual(TelefonKanonisch.bytes(snapshot), clear)) { "actor_completion_callback_mutated_packet" }
+                true
+            }
+        } finally { clear.fill(0) }
+    }
+
+    fun readCompletionControls(handle: PersonalActorHandle): List<JsonObject> = completionOperation(handle) {
+        requireCompletion(this, handle, "read")
+        val result = mutableListOf<JsonObject>()
+        query("meta", arrayOf("key", "value"), "key GLOB ?", arrayOf(completionWireKey(handle, "*")), null, null, "key").use { rows ->
+            while (rows.moveToNext()) {
+                val id = rows.getString(0)
+                val clear = storage.decryptPayload(rows.getBlob(1), "personal_actor_completion_wire", id)
+                try {
+                    val wire = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
+                    validateCompletionWire(handle, wire, false)
+                    require(id == completionWireKey(handle, wire.string("message_id")) && MessageDigest.isEqual(TelefonKanonisch.bytes(wire), clear))
+                    result += wire
+                } finally { clear.fill(0) }
+            }
+        }
+        requireCompletion(this, handle, "read"); result
+    }
+
+    fun finishCompletion(handle: PersonalActorHandle): String {
+        completionOperation(handle) {
+            val binding = requireCompletion(this, handle, "finish")
+            write(this, binding.copy(completionPhase = "completed"))
+            requireCompletion(this, handle, "finish")
+        }
+        return completionState(handle)
+    }
+
+    fun completionState(handle: PersonalActorHandle): String = withNativeLocks {
+        val binding = requireOwner(database.readableDatabase, handle, false)
+        binding.completionPhase.ifEmpty { if (binding.stopped) "cancelled" else "active" }
+    }
+
     /** Native retirement remains possible after revocation/expiry; it never authorizes content. */
     fun retire(handle: PersonalActorHandle, stopWork: SQLiteDatabase.() -> Unit = {}) = withNativeLocks { database.writableDatabase.inTransaction {
         val binding = requireOwner(this, handle, false)
+        dataRetired.add(handle.runId); completionGuards.remove(handle.runId)
         stopWork()
-        write(this, binding.copy(stopped = true))
+        write(this, binding.copy(stopped = true, completionPhase = ""))
     } }
 
     /** Native maintenance only: never evict a live owner to make space for another request. */
@@ -200,8 +341,10 @@ internal class PersonalSyncActorJournal(
                 }
             }
             expired.forEach { binding ->
+                completionGuards.remove(binding.runId); dataRetired.remove(binding.runId)
                 stopWork(binding.peerId, binding.runId)
                 delete("meta", "key GLOB ?", arrayOf("personal_actor_wire:${binding.peerId}:${binding.runId}:*"))
+                delete("meta", "key GLOB ?", arrayOf("personal_actor_completion_wire:${binding.peerId}:${binding.runId}:*"))
                 delete("meta", "key=?", arrayOf(key(binding.peerId, binding.runId)))
             }
             expired.map { it.peerId to it.runId }

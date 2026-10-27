@@ -151,3 +151,16 @@ def test_metadata_capability_does_not_survive_native_registry_replacement(tmp_pa
     assert reopened.status(handle)['phase'] == 'cancelled'
     with pytest.raises(PermissionError): store.put_completion_control(handle,control)
     assert not events
+
+
+def test_failed_retirement_io_cannot_revive_data_after_denied_begin(tmp_path, monkeypatch):
+    service, peer, events, source, clock, store, handle, data, current, state, guard, control = completion_fixture(tmp_path)
+    def failed_retirement(_): raise sqlite3.OperationalError('synthetic retirement write failure')
+    monkeypatch.setattr(store, 'cancel', failed_retirement)
+    state['lost'] = True
+    with pytest.raises(PermissionError): store.begin_completion(handle,guard)
+    # The SQL transaction rolled back to the old binding, but the native
+    # volatile fence already revoked its data capability before cleanup I/O.
+    with pytest.raises(PermissionError): store.read(handle,MESSAGE)
+    assert store.reap() == 1 and store.status(handle)['phase'] == 'cancelled'
+    assert not events

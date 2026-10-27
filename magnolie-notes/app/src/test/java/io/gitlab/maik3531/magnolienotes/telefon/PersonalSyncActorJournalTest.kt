@@ -176,6 +176,113 @@ class PersonalSyncActorJournalTest {
         assertTrue(current.reapInactive { _, _ -> error("No work should remain") }.isEmpty())
     }
 
+    @Test fun nativeCompletionClosesDataAndRetainsOnlySealedControlMetadata() = fixture { db, storage ->
+        var source: String? = REV; var now = System.currentTimeMillis(); var saved = false
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> source }, { "book-epoch" }, clock = { now })
+        val handle = journal.create(PEER, KEY, REV)
+        val request = buildJsonObject { put("format", 3); put("run_id", handle.runId); put("trigger", "manual")
+            put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
+        val data = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.request", request, 60000, now), handle.runId)
+        journal.putWire(handle, data)
+        assertTrue(runCatching { journal.readCompletionControls(handle) }.isFailure)
+        val guard: (String, JsonObject?) -> Boolean? = { op, _ -> if (op == "finish" && !saved) null else true }
+        assertEquals("completion", journal.beginCompletion(handle, guard)); journal.beginCompletion(handle, guard)
+        assertTrue(runCatching { journal.readWire(handle, data.string("message_id")) }.isFailure)
+        assertTrue(runCatching { journal.putWire(handle, data) }.isFailure)
+        assertTrue(runCatching { journal.putCompletionControl(handle, data) }.isFailure)
+        source = "b".repeat(64)
+        val control = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, "33333333-3333-4333-8333-333333333333"), 60000, now)
+        assertTrue(journal.putCompletionControl(handle, control)); assertFalse(journal.putCompletionControl(handle, control))
+        assertEquals(listOf(control), journal.readCompletionControls(handle))
+        db.readableDatabase.query("meta", arrayOf("value"), "key GLOB ?", arrayOf("personal_actor_completion_wire:*"), null, null, null).use {
+            assertTrue(it.moveToFirst()); assertFalse(it.getBlob(0).decodeToString().contains(control.string("message_id")))
+        }
+        now += 60001
+        assertEquals(listOf(control), journal.readCompletionControls(handle))
+        assertTrue(runCatching { journal.putCompletionControl(handle, control) }.isFailure)
+        assertTrue(runCatching { journal.finishCompletion(handle) }.isFailure)
+        saved = true
+        assertEquals("completed", journal.finishCompletion(handle)); assertEquals("completed", journal.finishCompletion(handle))
+        assertTrue(runCatching { journal.withActive(handle) { 1 } }.isFailure)
+    }
+
+    @Test fun completionWaitsForFreshEvidenceAndBadControlsCannotStealItsOwner() = fixture { db, storage ->
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" })
+        val handle = journal.create(PEER, KEY, REV); var ready = true; var lost = false
+        val expected = "33333333-3333-4333-8333-333333333333"
+        val guard: (String, JsonObject?) -> Boolean? = { op, wire ->
+            if (lost) false else if (!ready) null else {
+                if (op == "put") require(wire!!.getValue("body").jsonObject.string("message_id") == expected)
+                true
+            }
+        }
+        journal.beginCompletion(handle, guard)
+        val control = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND, PersonalSyncActor.ack(handle.runId, expected), 60000)
+        ready = false
+        assertTrue(runCatching { journal.putCompletionControl(handle, control) }.isFailure)
+        assertEquals("completion", journal.completionState(handle)); ready = true
+        val unexpected = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, "44444444-4444-4444-8444-444444444444"), 60000)
+        assertTrue(runCatching { journal.putCompletionControl(handle, unexpected) }.isFailure)
+        val wrong = PersonalActorHandle(PEER, handle.runId, "0".repeat(64))
+        assertTrue(runCatching { journal.retire(wrong) }.isFailure)
+        assertTrue(runCatching { journal.readCompletionControls(wrong) }.isFailure)
+        assertTrue(runCatching { journal.beginCompletion(handle) { _, _ -> true } }.isFailure)
+        assertTrue(journal.putCompletionControl(handle, control))
+        lost = true; assertTrue(runCatching { journal.readCompletionControls(handle) }.isFailure)
+        assertEquals("cancelled", journal.completionState(handle)); lost = false
+        assertTrue(runCatching { journal.readCompletionControls(handle) }.isFailure)
+    }
+
+    @Test fun completionPostcheckRollsBackAndHistoricalBindingCannotReviveData() = fixture { db, storage ->
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" })
+        val handle = journal.create(PEER, KEY, REV)
+        val id = "personal_actor_journal:$PEER:${handle.runId}"
+        val original = db.readableDatabase.query("meta", arrayOf("value"), "key=?", arrayOf(id), null, null, null).use { check(it.moveToFirst()); it.getBlob(0) }
+        var puts = 0
+        val guard: (String, JsonObject?) -> Boolean? = { op, _ -> op != "put" || ++puts != 2 }
+        journal.beginCompletion(handle, guard)
+        val control = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, "33333333-3333-4333-8333-333333333333"), 60000)
+        assertTrue(runCatching { journal.putCompletionControl(handle, control) }.isFailure)
+        db.readableDatabase.rawQuery("SELECT COUNT(*) FROM meta WHERE key GLOB 'personal_actor_completion_wire:*'", null).use {
+            assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+        }
+        db.writableDatabase.execSQL("UPDATE meta SET value=? WHERE key=?", arrayOf(original, id))
+        assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+    }
+
+    @Test fun completionLeaseRestoreAndRegistryReplacementCannotInheritAuthority() = fixture { db, storage ->
+        var wall = System.currentTimeMillis(); var mono = 1000L; var restore = "book-epoch"
+        fun journal() = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { restore }, ownerEpoch = "e".repeat(64), clock = { wall }, monotonic = { mono })
+        val current = journal(); val guard: (String, JsonObject?) -> Boolean? = { _, _ -> true }
+        for (mode in listOf("wall-expiry", "mono-expiry", "wall-rollback", "mono-rollback", "restore")) {
+            val handle = current.create(PEER, KEY, REV); current.beginCompletion(handle, guard)
+            val beforeWall = wall; val beforeMono = mono
+            when (mode) {
+                "wall-expiry" -> wall += 30 * 60 * 1000 + 1
+                "mono-expiry" -> mono += 30 * 60 * 1000 + 1
+                "wall-rollback" -> wall--
+                "mono-rollback" -> mono--
+                "restore" -> restore = "changed-book"
+            }
+            assertTrue(mode, runCatching { current.readCompletionControls(handle) }.isFailure)
+            wall = beforeWall; mono = beforeMono; restore = "book-epoch"
+        }
+        val handle = current.create(PEER, KEY, REV); current.beginCompletion(handle, guard)
+        assertTrue(runCatching { journal().readCompletionControls(handle) }.isFailure)
+        assertTrue(runCatching { current.readCompletionControls(handle) }.isFailure)
+    }
+
+    @Test fun completionOwnerStillCountsTowardActiveCapacity() = fixture { db, storage ->
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" })
+        val handle = journal.create(PEER, KEY, REV); journal.beginCompletion(handle) { _, _ -> true }
+        repeat(3) { journal.create(PEER, KEY, REV) }
+        assertTrue(runCatching { journal.create(PEER, KEY, REV) }.isFailure)
+        journal.retire(handle); journal.create(PEER, KEY, REV)
+    }
+
     private fun fixture(test: (TelefonDatenbank, TelefonAblage) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ActorJournalFixture", 1.0, "Synthetic keys only") {

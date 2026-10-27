@@ -353,6 +353,7 @@ class ActorStore:
                 # Retire outside the failed transaction, so its rollback cannot
                 # revive a source which the native callback has already denied.
                 self.completion_guards.pop(handle.actor_id, None)
+                self.data_retired.add(handle.actor_id)
                 try:
                     self.cancel(handle)
                 except (PermissionError, sqlite3.Error):

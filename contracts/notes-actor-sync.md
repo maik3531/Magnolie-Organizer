@@ -617,7 +617,8 @@ attachment-parent availability, conflicting effects, UTF-8 ordering and the
 kind-only legacy proofs cannot be treated as the authorized terminal delta.
 Actual after-membership must still come from fresh native scope evidence.
 
-The Python protected owner now has a separate native-only completion primitive.
+The Python, Windows and Notes protected owners now have separate native-only
+completion primitives.
 Entering it irreversibly closes ordinary raw reads/writes. A native callback,
 registered while the normal source is still current, must validate each exact
 saved-claim/control/scope operation; it cannot be supplied as IPC JSON. Incomplete
@@ -632,8 +633,10 @@ packet/byte bounds; waiting completion owners still count toward active capacity
 Native validation runs before and after persistence. Raw storage or a callback
 that only checked current authority is not a successful document receipt: the
 native controller must additionally prove the exact saved result and correlated
-decision before acknowledging or finishing. The Windows/Notes owner equivalents
-and actual terminal controller binding remain part of the unfinished #190 gate.
+decision before acknowledging or finishing. Their owner/epoch/lease/restore,
+post-check rollback, historical-binding and source-replacement cases are checked
+with production encryption/SQLite. Actual terminal controller binding remains
+part of the unfinished #190 gate.
 
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
