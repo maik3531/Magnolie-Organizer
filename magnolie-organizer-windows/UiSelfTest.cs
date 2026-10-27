@@ -3,15 +3,16 @@ using System.Text.Json;
 
 namespace MagnolieOrganizer.Windows;
 
-internal static class UiSelfTest
+internal static partial class UiSelfTest
 {
-    internal static int Run()
+    internal static int Run(bool contacts = false)
     {
         if (!OperatingSystem.IsWindows()) return 0;
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-ui-self-test-{Guid.NewGuid():N}");
         Exception? failure = null;
         try
         {
+            var autostartBefore = contacts ? TraySettingsService.CaptureAutostart() : null;
             var paths = new WindowsPaths(root);
             paths.EnsureDirectories();
             Test(ProtectedAssetReader.Read(Path.Combine(AppContext.BaseDirectory, "web", "kaffee-qr.mga"), 1, 1).Length > 0,
@@ -23,7 +24,8 @@ internal static class UiSelfTest
             new TraySettingsService(paths.TraySettings).Save(new TraySettings(true, true, true, true, false, false, "centered"));
 
             ApplicationConfiguration.Initialize();
-            using var form = new MainForm(true, paths: paths);
+            using var form = new MainForm(true, paths: paths, notifications:
+                new WindowsCallNotifications(_ => Task.FromResult(false), isolationId: Guid.NewGuid(), listen: false));
             Test(form.ClientSize.Width >= 1200 && form.ClientSize.Height >= 700,
                 $"Unerwartete normale Startgröße: {form.ClientSize.Width}x{form.ClientSize.Height}.");
             var originalHandle = nint.Zero;
@@ -54,6 +56,15 @@ internal static class UiSelfTest
                         return;
                     }
                     timer.Stop();
+
+                    if (contacts)
+                    {
+                        await TestContactImportAsync(webView.CoreWebView2
+                            ?? throw new InvalidOperationException("WebView2 war für den Kontakttest nicht bereit."), paths);
+                        form.Dispose();
+                        Application.ExitThread();
+                        return;
+                    }
 
                     var coreWebView = webView.CoreWebView2
                         ?? throw new InvalidOperationException("WebView2 war für den Schriftentest nicht bereit.");
@@ -206,6 +217,13 @@ internal static class UiSelfTest
             Application.Run(form);
             if (failure is not null) throw failure;
             Test(iteration > 12, "Der Start-hidden/WebView-Lifecycle erreichte den Hide/Restore-Test nicht.");
+            if (contacts)
+            {
+                Test(Equals(autostartBefore, TraySettingsService.CaptureAutostart()),
+                    "Das private Kontaktprofil änderte den Benutzerautostart.");
+                Console.WriteLine("WINDOWS-CONTACT-USER-AUTOSTART-UNCHANGED");
+                return 0;
+            }
             Console.WriteLine("WINDOWS-BUNDLED-FONT-OK");
             Console.WriteLine("WINDOWS-HEALTH-LAYOUT-OK");
             Console.WriteLine("REMINDER-NATIVE-WINDOWS-OK");

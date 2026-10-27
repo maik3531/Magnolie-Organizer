@@ -44,6 +44,7 @@ internal sealed class MainForm : Form
     private readonly WindowsCallNotifications callNotifications;
     private HandbookForm? handbookForm;
     private readonly FirstRunSetupSelections? setupSelections;
+    private readonly bool userProfileAutostart;
 
     internal void SetTelefonCoordinator(TelefonCoordinator coordinator)
     {
@@ -57,6 +58,10 @@ internal sealed class MainForm : Form
         WindowsCallNotifications? notifications = null)
     {
         this.paths = paths ?? new WindowsPaths();
+        // Isolated UI profiles do not own the installed user's startup entry.
+        userProfileAutostart = string.Equals(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.paths.Root)),
+            Path.TrimEndingDirectorySeparator(new WindowsPaths().Root), StringComparison.OrdinalIgnoreCase);
         this.setupSelections = setupSelections;
         Text = "Magnolie Organizer";
         BackColor = Color.FromArgb(46, 58, 52);
@@ -177,9 +182,9 @@ internal sealed class MainForm : Form
         return traySettingsService.LoadFailed ? T("The background settings could not be saved.") : ConfigureAutostart();
     }
 
-    private string ConfigureAutostart() => TraySettingsService.ConfigureAutostart(
+    private string ConfigureAutostart() => userProfileAutostart ? TraySettingsService.ConfigureAutostart(
         traySettings.Aktiv && traySettings.Autostart,
-        Application.ExecutablePath, reminderAutostart);
+        Application.ExecutablePath, reminderAutostart) : "";
 
     internal void UpdateTrayCounter(int count)
     {
