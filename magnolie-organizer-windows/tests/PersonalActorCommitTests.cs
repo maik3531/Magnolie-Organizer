@@ -12,6 +12,7 @@ internal static class PersonalActorCommitTests
     internal static Task RunAsync()
     {
         ReviewVectors();
+        ScopeVectors();
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actor-atomic-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -90,6 +91,30 @@ internal static class PersonalActorCommitTests
             }
             else TestAssert.Throws<InvalidDataException>(() => PersonalSyncActorContract.DeletionReview(run, plan, native), "Invalid native review accepted: " + name);
             TestAssert.That(before.SequenceEqual(TelefonCrypto.Canonical(item)), "Native review mutated its caller: " + name);
+        }
+    }
+
+    private static void ScopeVectors()
+    {
+        var path = Path.Combine(TestSource.Root("contracts/notes-actor-completion-scope.json"), "contracts", "notes-actor-completion-scope.json");
+        var cases = JsonNode.Parse(File.ReadAllText(path))!["cases"]!.AsArray();
+        TestAssert.That(cases.Count == 36, "Independent terminal scope vectors missing.");
+        foreach (var raw in cases)
+        {
+            var item = raw!.AsObject(); var beforeBytes = TelefonCrypto.Canonical(item); var name = item["name"]!.GetValue<string>();
+            var run = item["run_id"]!.GetValue<string>(); var before = item["before"]!.AsObject(); var targets = item["native_targets"]!.AsArray();
+            var decisions = item["decisions"]!.AsArray(); var after = item["actual_after"]!.AsObject();
+            if (item["valid"]!.GetValue<bool>())
+            {
+                var members = PersonalSyncActorContract.CompletionMembers(run, before, targets, decisions);
+                var reference = PersonalSyncActorContract.RequireCompletionScope(run, before, targets, decisions, after);
+                TestAssert.That(JsonNode.DeepEquals(members, after["members"]) && JsonNode.DeepEquals(reference, PhoneContentScope.Reference(after)),
+                    "Exact terminal scope did not match: " + name);
+                members["notes"]!.AsArray().Add("caller-edit"); reference["scope_hash"] = "caller-edit";
+            }
+            else TestAssert.Throws<InvalidDataException>(() => PersonalSyncActorContract.RequireCompletionScope(run, before, targets, decisions, after),
+                "Unreviewed terminal scope accepted: " + name);
+            TestAssert.That(beforeBytes.SequenceEqual(TelefonCrypto.Canonical(item)), "Terminal scope comparison mutated caller data: " + name);
         }
     }
 

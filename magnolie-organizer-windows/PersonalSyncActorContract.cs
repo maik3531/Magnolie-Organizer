@@ -136,6 +136,73 @@ internal static class PersonalSyncActorContract
         return value;
     }
 
+    // Exact terminal delta only. The caller must obtain targets and actual
+    // membership from native authority, and separately prove its saved claim.
+    internal static JsonObject CompletionMembers(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions)
+    {
+        _ = Start(runId); PhoneContentScope.Validate(before);
+        if (nativeTargets.Count != decisions.Count || decisions.Count > 256) throw new InvalidDataException("invalid_actor_completion_targets");
+        var targets = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        var choices = new Dictionary<string, string>(StringComparer.Ordinal);
+        var identities = new HashSet<(string Kind, string Parent, string Id)>();
+        foreach (var raw in nativeTargets)
+        {
+            var target = raw as JsonObject ?? throw new InvalidDataException("actor_completion_target_proof_missing");
+            TelefonProtocolContract.ExactObject(target, "proposal_id", "kind", "id", "parent_id", "prior_hash", "clock");
+            var proposal = target.DeepClone().AsObject(); proposal["deleted_ms"] = 0; proposal["label"] = "";
+            PersonalSyncContract.ValidateBody("personal_sync.deletion_proposals", new JsonObject { ["format"] = 1, ["run_id"] = runId,
+                ["proposal_batch_id"] = runId, ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(proposal) });
+            var kind = Text(target, "kind"); var id = Text(target, "proposal_id");
+            if (kind is not ("note" or "task" or "attachment") || !targets.TryAdd(id, target) ||
+                !identities.Add((kind, Text(target, "parent_id"), Text(target, "id")))) throw new InvalidDataException("ambiguous_actor_completion_target");
+        }
+        foreach (var raw in decisions)
+        {
+            var decision = raw as JsonObject ?? throw new InvalidDataException("actor_completion_decision_changed");
+            PersonalSyncContract.ValidateBody("personal_sync.deletion_decision", new JsonObject { ["format"] = 1, ["run_id"] = runId,
+                ["decision_id"] = runId, ["decisions"] = new JsonArray(decision.DeepClone()) });
+            var id = Text(decision, "proposal_id");
+            if (!targets.TryGetValue(id, out var target) || !JsonNode.DeepEquals(decision["expected_clock"], target["clock"]) ||
+                !choices.TryAdd(id, Text(decision, "decision"))) throw new InvalidDataException("actor_completion_decision_changed");
+        }
+        if (choices.Count != targets.Count) throw new InvalidDataException("actor_completion_decision_missing");
+        var notes = before["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+        var tasks = before["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+        var allowedParents = new HashSet<string>(notes, StringComparer.Ordinal); var deletedNotes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (id, target) in targets.Where(pair => Text(pair.Value, "kind") == "note"))
+            if (choices[id] == "restore") allowedParents.Add(Text(target, "id")); else deletedNotes.Add(Text(target, "id"));
+        foreach (var (id, target) in targets)
+        {
+            var choice = choices[id]; var kind = Text(target, "kind"); var entity = Text(target, "id");
+            if (kind == "attachment")
+            {
+                var parent = Text(target, "parent_id");
+                if (!allowedParents.Contains(parent) || choice == "restore" && deletedNotes.Contains(parent))
+                    throw new InvalidDataException("actor_completion_parent_unavailable");
+            }
+            else if (choice == "delete")
+            {
+                if (!(kind == "note" ? notes : tasks).Remove(entity)) throw new InvalidDataException("actor_completion_delete_outside_scope");
+            }
+            else (kind == "note" ? notes : tasks).Add(entity);
+        }
+        return PhoneContentScope.Create(notes, tasks, epoch: runId)["members"]!.DeepClone().AsObject();
+    }
+
+    internal static JsonObject RequireCompletionScope(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions, JsonObject actualAfter)
+    {
+        var members = CompletionMembers(runId, before, nativeTargets, decisions); PhoneContentScope.Validate(actualAfter);
+        if (!JsonNode.DeepEquals(members, actualAfter["members"])) throw new InvalidDataException("actor_completion_scope_changed");
+        if (JsonNode.DeepEquals(members, before["members"]))
+        {
+            if (!JsonNode.DeepEquals(PhoneContentScope.Reference(actualAfter), PhoneContentScope.Reference(before)))
+                throw new InvalidDataException("actor_completion_scope_generation_changed");
+        }
+        else if (TelefonProtocolContract.Integer(actualAfter["revision"]) <= TelefonProtocolContract.Integer(before["revision"]) || Text(actualAfter, "epoch") == Text(before, "epoch"))
+            throw new InvalidDataException("actor_completion_scope_not_advanced");
+        return PhoneContentScope.Reference(actualAfter);
+    }
+
     internal static JsonObject Wrap(string runId, string kind, JsonObject body) => ValidateData(new JsonObject
     { ["format"] = Version, ["run_id"] = runId, ["kind"] = kind, ["body"] = body.DeepClone() });
 

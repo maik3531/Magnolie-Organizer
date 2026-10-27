@@ -75,6 +75,64 @@ internal object PersonalSyncActor {
         return value
     }
 
+    /** Exact terminal delta only; native target/source/save authority are caller gates. */
+    fun completionMembers(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray): JsonObject {
+        start(runId); PhoneContentScope.validate(before)
+        require(nativeTargets.size == decisions.size && decisions.size <= 256) { "invalid_actor_completion_targets" }
+        val targets = linkedMapOf<String, JsonObject>(); val choices = linkedMapOf<String, String>()
+        val identities = mutableSetOf<Triple<String, String, String>>()
+        for (raw in nativeTargets) {
+            val target = raw.jsonObject
+            TelefonNachrichten.exact(target, setOf("proposal_id", "kind", "id", "parent_id", "prior_hash", "clock"))
+            val proposal = JsonObject(target + mapOf("deleted_ms" to JsonPrimitive(0), "label" to JsonPrimitive("")))
+            PersonalSyncProtokoll.validate("personal_sync.deletion_proposals", buildJsonObject {
+                put("format", 1); put("run_id", runId); put("proposal_batch_id", runId)
+                put("sequence", 0); put("last", true); put("proposals", JsonArray(listOf(proposal)))
+            })
+            val id = target.string("proposal_id"); val kind = target.string("kind")
+            require(kind in setOf("note", "task", "attachment") && id !in targets &&
+                identities.add(Triple(kind, target.string("parent_id"), target.string("id")))) { "ambiguous_actor_completion_target" }
+            targets[id] = target
+        }
+        for (raw in decisions) {
+            val decision = raw.jsonObject
+            PersonalSyncProtokoll.validate("personal_sync.deletion_decision", buildJsonObject {
+                put("format", 1); put("run_id", runId); put("decision_id", runId); put("decisions", JsonArray(listOf(decision)))
+            })
+            val id = decision.string("proposal_id"); val target = targets[id]
+            require(id !in choices && target != null && decision["expected_clock"] == target["clock"]) { "actor_completion_decision_changed" }
+            choices[id] = decision.string("decision")
+        }
+        require(choices.keys == targets.keys) { "actor_completion_decision_missing" }
+        val members = before.getValue("members").jsonObject
+        val notes = members.getValue("notes").jsonArray.map { it.jsonPrimitive.content }.toMutableSet()
+        val tasks = members.getValue("tasks").jsonArray.map { it.jsonPrimitive.content }.toMutableSet()
+        val allowedParents = notes.toMutableSet(); val deletedNotes = mutableSetOf<String>()
+        for ((id, target) in targets.filterValues { it.string("kind") == "note" })
+            if (choices[id] == "restore") allowedParents.add(target.string("id")) else deletedNotes.add(target.string("id"))
+        for ((id, target) in targets) {
+            val choice = choices.getValue(id); val kind = target.string("kind"); val entity = target.string("id")
+            if (kind == "attachment") {
+                val parent = target.string("parent_id")
+                require(parent in allowedParents && !(choice == "restore" && parent in deletedNotes)) { "actor_completion_parent_unavailable" }
+            } else if (choice == "delete") {
+                require((if (kind == "note") notes else tasks).remove(entity)) { "actor_completion_delete_outside_scope" }
+            } else (if (kind == "note") notes else tasks).add(entity)
+        }
+        return PhoneContentScope.create(notes, tasks, epoch = runId).getValue("members").jsonObject
+    }
+
+    /** Actual membership must come from fresh native evidence, never a wire claim. */
+    fun requireCompletionScope(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray, actualAfter: JsonObject): JsonObject {
+        val members = completionMembers(runId, before, nativeTargets, decisions); PhoneContentScope.validate(actualAfter)
+        require(members == actualAfter["members"]) { "actor_completion_scope_changed" }
+        if (members == before["members"]) {
+            require(PhoneContentScope.reference(actualAfter) == PhoneContentScope.reference(before)) { "actor_completion_scope_generation_changed" }
+        } else require(actualAfter.getValue("revision").jsonPrimitive.long > before.getValue("revision").jsonPrimitive.long &&
+            actualAfter["epoch"] != before["epoch"]) { "actor_completion_scope_not_advanced" }
+        return PhoneContentScope.reference(actualAfter)
+    }
+
     fun wrap(runId: String, kind: String, body: JsonObject): JsonObject = validateData(buildJsonObject {
         put("format", VERSION); put("run_id", runId); put("kind", kind); put("body", body)
     })

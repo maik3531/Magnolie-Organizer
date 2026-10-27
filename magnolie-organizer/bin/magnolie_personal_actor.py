@@ -158,6 +158,71 @@ def validate_data(value):
     return value
 
 
+def completion_members(run_id, before, native_targets, decisions):
+    """Exact terminal delta only; native target/source/save authority are caller gates."""
+    start(run_id)
+    scope.validate(before)
+    if (not isinstance(native_targets, list) or not isinstance(decisions, list) or
+            len(native_targets) != len(decisions) or len(decisions) > 256):
+        raise ValueError("invalid_actor_completion_targets")
+    targets, choices, identities = {}, {}, set()
+    for target in native_targets:
+        if not isinstance(target, dict) or set(target) != {"proposal_id", "kind", "id", "parent_id", "prior_hash", "clock"}:
+            raise ValueError("actor_completion_target_proof_missing")
+        personal.validate_body("personal_sync.deletion_proposals", {"format":1, "run_id":run_id,
+            "proposal_batch_id":run_id, "sequence":0, "last":True,
+            "proposals":[dict(target, deleted_ms=0, label="")]})
+        identity = (target["kind"], target["parent_id"], target["id"])
+        if (target["kind"] not in {"note", "task", "attachment"} or
+                target["proposal_id"] in targets or identity in identities):
+            raise ValueError("ambiguous_actor_completion_target")
+        targets[target["proposal_id"]] = target
+        identities.add(identity)
+    for decision in decisions:
+        personal.validate_body("personal_sync.deletion_decision", {"format":1, "run_id":run_id,
+            "decision_id":run_id, "decisions":[decision]})
+        identity = decision["proposal_id"]
+        if (identity in choices or identity not in targets or
+                personal.canonical(decision["expected_clock"]) != personal.canonical(targets[identity]["clock"])):
+            raise ValueError("actor_completion_decision_changed")
+        choices[identity] = decision["decision"]
+    if set(targets) != set(choices):
+        raise ValueError("actor_completion_decision_missing")
+    members = {name:set(values) for name, values in before["members"].items()}
+    restored_notes = {value["id"] for key,value in targets.items() if value["kind"] == "note" and choices[key] == "restore"}
+    deleted_notes = {value["id"] for key,value in targets.items() if value["kind"] == "note" and choices[key] == "delete"}
+    allowed_parents = set(before["members"]["notes"]) | restored_notes
+    for key, target in targets.items():
+        decision = choices[key]
+        if target["kind"] == "attachment":
+            if (target["parent_id"] not in allowed_parents or
+                    decision == "restore" and target["parent_id"] in deleted_notes):
+                raise ValueError("actor_completion_parent_unavailable")
+            continue
+        values = members["notes" if target["kind"] == "note" else "tasks"]
+        if decision == "delete":
+            if target["id"] not in values:
+                raise ValueError("actor_completion_delete_outside_scope")
+            values.remove(target["id"])
+        else:
+            values.add(target["id"])
+    return scope.create(members["notes"], members["tasks"], epoch=run_id)["members"]
+
+
+def require_completion_scope(run_id, before, native_targets, decisions, actual_after):
+    """Compare against fresh native membership, never a claimed wire revision."""
+    members = completion_members(run_id, before, native_targets, decisions)
+    scope.validate(actual_after)
+    if actual_after["members"] != members:
+        raise ValueError("actor_completion_scope_changed")
+    if members == before["members"]:
+        if scope.reference(actual_after) != scope.reference(before):
+            raise ValueError("actor_completion_scope_generation_changed")
+    elif actual_after["revision"] <= before["revision"] or actual_after["epoch"] == before["epoch"]:
+        raise ValueError("actor_completion_scope_not_advanced")
+    return scope.reference(actual_after)
+
+
 def wrap(run_id, kind, body):
     return validate_data({"format": VERSION, "run_id": run_id, "kind": kind, "body": copy.deepcopy(body)})
 

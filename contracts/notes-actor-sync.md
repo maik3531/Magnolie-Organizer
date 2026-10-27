@@ -610,6 +610,31 @@ The existing Notes deletion-decision path already preserves its acknowledgement
 across membership changes; the actor route must reuse that domain/save engine
 without falling back to ordinary unmarked synchronization.
 
+The shared `notes-actor-completion-scope.json` cases also check the exact resulting
+membership against native target/clock proofs: note/task delete and restore,
+attachment-parent availability, conflicting effects, UTF-8 ordering and the
+256-target bound. Unknown members, omitted effects, stale/reused generations and
+kind-only legacy proofs cannot be treated as the authorized terminal delta.
+Actual after-membership must still come from fresh native scope evidence.
+
+The Python protected owner now has a separate native-only completion primitive.
+Entering it irreversibly closes ordinary raw reads/writes. A native callback,
+registered while the normal source is still current, must validate each exact
+saved-claim/control/scope operation; it cannot be supplied as IPC JSON. Incomplete
+evidence waits, while hard authority loss retires the owner outside the failed
+transaction so rollback cannot revive it. Explicit cancellation, owner/epoch
+replacement and wall/monotonic expiry still deny further work.
+
+Completion packets use a separate encrypted table and may contain only the
+existing deletion-decision control or actor ACK. Metadata reads never query or
+return the old content table. Both tables share the original per-owner/global
+packet/byte bounds; waiting completion owners still count toward active capacity.
+Native validation runs before and after persistence. Raw storage or a callback
+that only checked current authority is not a successful document receipt: the
+native controller must additionally prove the exact saved result and correlated
+decision before acknowledging or finishing. The Windows/Notes owner equivalents
+and actual terminal controller binding remain part of the unfinished #190 gate.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the
