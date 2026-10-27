@@ -638,6 +638,24 @@ post-check rollback, historical-binding and source-replacement cases are checked
 with production encryption/SQLite. Actual terminal controller binding remains
 part of the unfinished #190 gate.
 
+The Python native queued-decision ACK guard additionally binds its original fully
+current scope, full target/clock effects, actual queued control IDs and a native
+saved-book observation. A success before fresh resulting membership is available
+waits; another member set, saved book or authority cannot complete the claim.
+Recording a result requires the exact control to be present in protected metadata
+storage. A temporary remote rejection is not promoted to a saved receipt.
+
+Notes also exposes a native one-save deletion adoption primitive. Its existing
+GUI decision/Trash/restore engine is now prepared as a pure domain operation;
+the GUI uses that same engine rather than a parallel actor-specific deletion
+implementation. A complete normalized actor review is prepared before any write,
+checked against the exact retained book object and expected before/after live
+membership, then content, decision proofs and the applied-batch token share one
+encrypted document write. A later conflict or an unexpected scope leaves the
+whole preview unapplied. Disk failure leaves the actual book state unchanged;
+reopen and exact replay are checked. The native controller still owns checkpoint,
+grant/source validation and successful network receipt dispatch.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

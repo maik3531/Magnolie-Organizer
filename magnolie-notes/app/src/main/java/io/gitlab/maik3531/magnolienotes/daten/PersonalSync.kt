@@ -336,6 +336,93 @@ object PersonalSync {
             pending_proposals = existing.values.sortedWith { a, b -> compareUtf8(a.proposal_id, b.proposal_id) }))
     }
 
+    /** Existing GUI deletion/restore engine, prepared without writing a document.
+     * A native caller can validate a complete scoped result before its one save. */
+    internal fun decideDeletion(input: Bestand, peerId: String, proposalId: String, decisionId: String,
+        decision: String, allowChanged: Boolean = false): Pair<Bestand, String> {
+        require(decision in setOf("delete", "restore"))
+        input.personalSync.applied_decision_proofs.filter { it.decision_id == decisionId }.takeIf { it.isNotEmpty() }?.let { previous ->
+            return input to if (previous.size == 1 && previous.single().proposal_id == proposalId && previous.single().decision == decision) "applied" else "conflict"
+        }
+        val proposal = input.personalSync.pending_proposals.firstOrNull { it.proposal_id == proposalId } ?: return input to "missing"
+        if (proposal.source_device != peerId) return input to "conflict"
+        if (proposal.kind in setOf("note", "notebook") && noteId(input.personalSync, proposal.id, proposal.kind) != proposal.id ||
+            proposal.kind == "attachment" && (noteId(input.personalSync, proposal.parent_id) != proposal.parent_id ||
+                attachmentId(input.personalSync, proposal.parent_id, proposal.id) != proposal.id)) return input to "conflict"
+        val reconciled = reconcile(input, setOf(if (proposal.kind == "task") "tasks" else "notes"), input.personalSync.format).first
+        val key = if (proposal.kind == "attachment") "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
+        val meta = reconciled.personalSync.entities[key]
+        if (decision == "delete" && !allowChanged && (meta == null || meta.hash != proposal.prior_hash || meta.state != "live" ||
+            !matchesCurrent(reconciled, proposal) || runCatching { compare(meta.clock, proposal.clock) != "dominated" }.getOrDefault(true)))
+            return reconciled to "conflict"
+        var next = reconciled
+        if (decision == "delete") next = when (proposal.kind) {
+            "note" -> PapierkorbLogik.loescheNotiz(next, noteLocalId(next, proposal.id), proposal.deleted_ms)
+            "task" -> PapierkorbLogik.loescheAufgabe(next, proposal.id, proposal.deleted_ms)
+            "attachment" -> PapierkorbLogik.loescheAnhang(next, noteLocalId(next, proposal.parent_id), attachmentLocalId(next, proposal.parent_id, proposal.id), proposal.deleted_ms)
+            "notebook" -> PapierkorbLogik.loescheNotizbuch(next, noteLocalId(next, proposal.id, "notebook"), proposal.deleted_ms) ?: return reconciled to "blocked"
+            else -> return reconciled to "missing"
+        }
+        if (decision == "restore" && meta?.state == "deleted") {
+            val trash = next.papierkorb.lastOrNull { item -> item.art == proposal.kind && when (item.art) {
+                "note" -> item.notiz?.id == noteLocalId(next, proposal.id)
+                "task" -> item.aufgabe?.id == proposal.id
+                "notebook" -> item.notizbuch?.id == noteLocalId(next, proposal.id, "notebook")
+                "attachment" -> item.anhang?.id == attachmentLocalId(next, proposal.parent_id, proposal.id) && item.parent_id == noteLocalId(next, proposal.parent_id)
+                else -> false } } ?: return reconciled to "restore_unavailable"
+            next = PapierkorbLogik.wiederherstellen(next, trash.id) ?: return reconciled to "restore_unavailable"
+        }
+        val resolved = if (decision == "delete") PersonalSyncEntity(clock = proposal.clock, state = "deleted", peer_device_id = proposal.source_device,
+            prior_hash = proposal.prior_hash, deleted_ms = proposal.deleted_ms, label = proposal.label, parent_id = proposal.parent_id,
+            proposal_id = proposal.proposal_id, status = "resolved") else meta
+        next = next.copy(personalSync = next.personalSync.copy(
+            entities = if (resolved == null) next.personalSync.entities else next.personalSync.entities + (key to resolved),
+            pending_proposals = next.personalSync.pending_proposals.filterNot { it.proposal_id == proposalId },
+            applied_decisions = next.personalSync.applied_decisions + "$proposalId:$decision",
+            applied_decision_proofs = next.personalSync.applied_decision_proofs + AppliedPersonalDecision(proposalId, decision, proposal.clock, decisionId),
+            pending_decisions = (next.personalSync.pending_decisions + PendingPersonalDecision(peerId, proposal.run_id, decisionId,
+                proposal.proposal_id, decision, proposal.clock, kind = proposal.kind)).distinctBy { it.decision_id }.takeLast(500)))
+        return next to "applied"
+    }
+
+    /** Prepare the whole native actor review; a rejected later item discards
+     * every earlier preview mutation instead of leaving a partial document. */
+    internal fun prepareActorDeletion(input: Bestand, peerId: String, runId: String,
+        proposals: List<PersonalDeletionProposal>, choices: List<AppliedPersonalDecision>,
+        incomingDecisions: List<AppliedPersonalDecision>): Pair<Bestand, String> {
+        if (!uuid4.matches(peerId) || !uuid4.matches(runId) || proposals.size > 256 || choices.size + incomingDecisions.size > 256 ||
+            proposals.any { it.kind !in setOf("note", "task", "attachment") } ||
+            proposals.map { it.proposal_id }.distinct().size != proposals.size ||
+            choices.map { it.proposal_id }.distinct().size != choices.size ||
+            choices.map { it.decision_id }.distinct().size != choices.size ||
+            proposals.map { it.proposal_id }.toSet() != choices.map { it.proposal_id }.toSet() ||
+            incomingDecisions.map { it.proposal_id }.distinct().size != incomingDecisions.size ||
+            choices.any { it.decision_id.isBlank() || it.decision !in setOf("delete", "restore") } ||
+            incomingDecisions.any { it.decision_id.isBlank() || it.decision !in setOf("delete", "restore") } ||
+            incomingDecisions.any { incoming -> choices.any { it.proposal_id == incoming.proposal_id || it.decision_id == incoming.decision_id } }) return input to "conflict"
+        val byId = proposals.associateBy { it.proposal_id }
+        if (choices.any { it.expected_clock != byId.getValue(it.proposal_id).clock }) return input to "conflict"
+        for (proposal in proposals) {
+            val previous = input.personalSync.pending_proposals.firstOrNull { it.proposal_id == proposal.proposal_id } ?: continue
+            if (previous.source_device != peerId || previous.copy(run_id = runId) != proposal.copy(run_id = runId, source_device = peerId))
+                return input to "conflict"
+        }
+        val base = input.copy(personalSync = input.personalSync.copy(pending_proposals =
+            input.personalSync.pending_proposals.filterNot { it.proposal_id in byId }))
+        var prepared = stageProposals(base, runId, peerId, proposals)
+        for (choice in choices) {
+            val result = decideDeletion(prepared, peerId, choice.proposal_id, choice.decision_id, choice.decision)
+            if (result.second != "applied") return input to result.second
+            prepared = result.first
+        }
+        for (decisions in incomingDecisions.groupBy { it.decision_id }.values) {
+            val result = applyDeletionDecisions(prepared, decisions)
+            if (result.second != "applied") return input to result.second
+            prepared = result.first
+        }
+        return prepared to "applied"
+    }
+
     internal fun applyDeletionDecisions(input: Bestand,
         decisions: List<AppliedPersonalDecision>): Pair<Bestand, String> {
         val decisionIds = decisions.map { it.decision_id }.filter { it.isNotEmpty() }.distinct()

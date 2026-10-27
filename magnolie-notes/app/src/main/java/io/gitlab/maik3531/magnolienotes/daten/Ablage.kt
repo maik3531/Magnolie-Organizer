@@ -537,66 +537,38 @@ class Ablage private constructor(
     /** Returns applied, conflict, blocked, or missing. The mutation and decision state share one write. */
     fun personalSyncDecide(peerId: String, proposalId: String, decisionId: String, decision: String,
                            allowChanged: Boolean = false): String = synchronized(sperre) {
-        _bestand.value.personalSync.applied_decision_proofs.filter { it.decision_id == decisionId }.takeIf {
-            it.isNotEmpty()
-        }?.let { previous -> return@synchronized if (previous.size == 1 && previous.single().proposal_id == proposalId &&
-            previous.single().decision == decision) "applied" else "conflict" }
-        val proposal = _bestand.value.personalSync.pending_proposals.firstOrNull {
-            it.proposal_id == proposalId } ?: return@synchronized "missing"
-        if (proposal.source_device != peerId) return@synchronized "conflict"
-        if (proposal.kind in setOf("note", "notebook") && PersonalSync.noteId(_bestand.value.personalSync, proposal.id, proposal.kind) != proposal.id ||
-            proposal.kind == "attachment" && (PersonalSync.noteId(_bestand.value.personalSync, proposal.parent_id) != proposal.parent_id ||
-                PersonalSync.attachmentId(_bestand.value.personalSync, proposal.parent_id, proposal.id) != proposal.id))
-            return@synchronized "conflict"
-        val reconciled = PersonalSync.reconcile(_bestand.value,
-            setOf(if (proposal.kind == "task") "tasks" else "notes"),
-            _bestand.value.personalSync.format).first
-        if (reconciled != _bestand.value) schreibeBestand(reconciled)
-        val key = if (proposal.kind == "attachment")
-            "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
-        val meta = _bestand.value.personalSync.entities[key]
-        if (decision == "delete" && !allowChanged &&
-            (meta == null || meta.hash != proposal.prior_hash || meta.state != "live" ||
-             !PersonalSync.matchesCurrent(_bestand.value, proposal) ||
-             runCatching { PersonalSync.compare(meta.clock, proposal.clock) != "dominated" }.getOrDefault(true)))
-            return@synchronized "conflict"
-        var next = _bestand.value
-        if (decision == "delete") next = when (proposal.kind) {
-            "note" -> PapierkorbLogik.loescheNotiz(next, PersonalSync.noteLocalId(next, proposal.id), proposal.deleted_ms)
-            "task" -> PapierkorbLogik.loescheAufgabe(next, proposal.id, proposal.deleted_ms)
-            "attachment" -> PapierkorbLogik.loescheAnhang(next, PersonalSync.noteLocalId(next, proposal.parent_id),
-                PersonalSync.attachmentLocalId(next, proposal.parent_id, proposal.id), proposal.deleted_ms)
-            "notebook" -> PapierkorbLogik.loescheNotizbuch(next, PersonalSync.noteLocalId(next, proposal.id, "notebook"), proposal.deleted_ms)
-                ?: return@synchronized "blocked"
-            else -> return@synchronized "missing"
+        val (next, result) = PersonalSync.decideDeletion(_bestand.value, peerId, proposalId, decisionId, decision, allowChanged)
+        if (next != _bestand.value) schreibeBestand(next)
+        result
+    }
+
+    /** Native actor caller supplies its exact retained book and checked scope
+     * delta. Existing decision/trash/restore logic is prepared before one save. */
+    internal fun personalSyncApplyActorDeletionOnce(peerId: String, runId: String, batchKey: String,
+        expectedBook: Bestand, expectedBefore: PersonalContentSelection, expectedAfter: PersonalContentSelection,
+        proposals: List<PersonalDeletionProposal>, choices: List<AppliedPersonalDecision>,
+        incomingDecisions: List<AppliedPersonalDecision>): String = synchronized(sperre) {
+        schreibbar()
+        require(batchKey.isNotBlank() && batchKey.length <= 256)
+        if (batchKey in _bestand.value.personalSync.applied_batches) {
+            val requested = choices + incomingDecisions
+            return@synchronized if (PersonalSync.livePersonalContent(_bestand.value) == expectedAfter && requested.all { proof ->
+                _bestand.value.personalSync.applied_decision_proofs.any { it == proof } }) "applied" else "conflict"
         }
-        if (decision == "restore") {
-            val deleted = meta?.takeIf { it.state == "deleted" }
-            if (deleted != null) {
-                val trash = next.papierkorb.lastOrNull { item -> item.art == proposal.kind && when (item.art) {
-                    "note" -> item.notiz?.id == PersonalSync.noteLocalId(next, proposal.id)
-                    "task" -> item.aufgabe?.id == proposal.id
-                    "notebook" -> item.notizbuch?.id == PersonalSync.noteLocalId(next, proposal.id, "notebook")
-                    "attachment" -> item.anhang?.id == PersonalSync.attachmentLocalId(next, proposal.parent_id, proposal.id) && item.parent_id == PersonalSync.noteLocalId(next, proposal.parent_id)
-                    else -> false } } ?: return@synchronized "restore_unavailable"
-                next = PapierkorbLogik.wiederherstellen(next, trash.id)
-                    ?: return@synchronized "restore_unavailable"
-            }
-        }
-        val resolved = if (decision == "delete") PersonalSyncEntity(clock = proposal.clock,
-            state = "deleted", peer_device_id = proposal.source_device, prior_hash = proposal.prior_hash,
-            deleted_ms = proposal.deleted_ms, label = proposal.label, parent_id = proposal.parent_id,
-            proposal_id = proposal.proposal_id, status = "resolved") else meta
-        next = next.copy(personalSync = next.personalSync.copy(
-            entities = if (resolved == null) next.personalSync.entities else next.personalSync.entities + (key to resolved),
-            pending_proposals = next.personalSync.pending_proposals.filterNot { it.proposal_id == proposalId },
-            applied_decisions = next.personalSync.applied_decisions + "$proposalId:$decision",
-            applied_decision_proofs = (next.personalSync.applied_decision_proofs + AppliedPersonalDecision(
-                proposalId, decision, proposal.clock, decisionId)),
-            pending_decisions = (next.personalSync.pending_decisions + PendingPersonalDecision(
-                peerId, proposal.run_id, decisionId, proposal.proposal_id, decision, proposal.clock, kind = proposal.kind)).distinctBy {
-                    it.decision_id }.takeLast(500)))
-        schreibeBestand(next); "applied"
+        if (_bestand.value !== expectedBook || PersonalSync.livePersonalContent(_bestand.value) != expectedBefore)
+            return@synchronized "conflict"
+        if (proposals.any { proposal -> when (proposal.kind) {
+                "note" -> proposal.id !in expectedBefore.notes
+                "task" -> proposal.id !in expectedBefore.tasks
+                "attachment" -> proposal.parent_id !in expectedBefore.notes
+                else -> true } }) return@synchronized "conflict"
+        val (prepared, result) = PersonalSync.prepareActorDeletion(expectedBook, peerId, runId, proposals, choices, incomingDecisions)
+        if (result != "applied") return@synchronized result
+        if (PersonalSync.livePersonalContent(prepared) != expectedAfter) return@synchronized "conflict"
+        val durable = prepared.copy(personalSync = prepared.personalSync.copy(
+            applied_batches = (prepared.personalSync.applied_batches + batchKey).takeLast(500)))
+        schreibeBestand(durable)
+        "applied"
     }
 
     fun personalSyncPendingDecisions(): List<PendingPersonalDecision> = synchronized(sperre) {
