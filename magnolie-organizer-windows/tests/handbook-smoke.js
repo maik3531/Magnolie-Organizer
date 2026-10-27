@@ -71,7 +71,7 @@ const pages = window.Handbuch.seiten();
 const completeText = pages.map((page) => `${page.titel} ${page.inhalt}`).join("\n");
 assert.strictEqual(window.document.documentElement.lang, "de");
 assert.strictEqual(window.document.title, "Magnolie Organizer – Handbuch");
-assert.deepStrictEqual(pages.map((page) => page.id), expectedPageIds,
+assert.deepStrictEqual(Array.from(pages, (page) => page.id), Array.from(expectedPageIds),
   "Windows-Handbuchseiten entsprechen nicht der ausgewählten kanonischen Quelle");
 assert.ok(pages.every((page) => page.titel && page.inhalt !== undefined));
 assert.ok(pages.some((page) => page.id === "the-appimage"), "Die AppImage-Seite fehlt");
@@ -158,9 +158,14 @@ assert.ok(completeText.includes("Glossar: A–M") && completeText.includes("Glos
 "Die Strecke-18-Glossare oder ihre deutschen Fachdefinitionen fehlen");
 assert.ok(completeText.includes("folgt automatisch der Sprache und Formatregion") &&
   completeText.includes("keinen Reiter Sprache &amp; Region") &&
-  completeText.includes("magnolie-organizer --language CODE") &&
-  completeText.includes("Andere regionale Konventionen folgen weiterhin dem System"),
+  completeText.includes("magnolie-organizer --language CODE"),
 "Die gemeinsame Regionaldokumentation ist unter Windows unvollständig");
+const timeRegion = pages.find((page) => page.id === "settings-time-week-region");
+assert.ok(timeRegion && ["Zeitzonenmanagement", "manuelle Zone", "automatische Erkennung", "manuellem Ersatzwert",
+  "Telefon-, GPS- oder IP-Informationen", "Systemuhr und Betriebssystemzeitzone werden nicht verändert",
+  "Zeitpunkt beibehalten", "Ortszeit planen", "Sommerzeit", "UTC/TZID", "Serienausnahmen"]
+  .every((phrase) => timeRegion.inhalt.includes(phrase)),
+"Das aktuelle Zeitzonenmanagement und seine Erhaltungsgrenzen fehlen unter Windows");
 for (const image of ["kaffee-qr.mga", "maik-walter.mga", "01.jpg", "02.jpg", "03.jpg",
   "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
   "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",

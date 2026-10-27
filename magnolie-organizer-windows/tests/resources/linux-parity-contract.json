@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "c1d0c75f11786dc32c9cb3eb5bebf81b1644230ad059c6acaef5eb6c533392d9",
-    "bin/magnolie-organizer": "10d85eae197e53e470fe85eeb302a3bb572024926c85bed5d68928a3019bdcbf"
+    "web/anwendung.js": "be48ffb3cfdd4a61e7c25e2b4c1386e76148015458cb11f21f5e5ebc74e7d4aa",
+    "bin/magnolie-organizer": "f0c84a3432e9d5043cdb13eb9b9917e77997bcafef3c761ae96be7daa60f6f79"
   },
   "commands": [
     "ablage_holen",
@@ -145,7 +145,8 @@
     "zeichenblatt_exportieren",
     "zeichenblatt_pdf_oeffnen",
     "zeichenblatt_svg_pruefen",
-    "zeit_ods"
+    "zeit_ods",
+    "zeitzone_erkennen"
   ],
   "callbacks": [
     "ablage",
@@ -237,7 +238,8 @@
     "zeichenEingabe",
     "zeichenEingabeStand",
     "zeichenPdfGeoeffnet",
-    "zeichenSvgGeprueft"
+    "zeichenSvgGeprueft",
+    "zeitzonenErgebnis"
   ],
   "payloadSchemas": {
     "personal_sync_senden": [
@@ -268,11 +270,11 @@
       ],
       [
         "request",
-        "{ format: 3, run_id: run, trigger: \"manual\", modules: [kind === \"note\" ? \"notes\" : \"tasks\"], send_item: { kind, id } }"
+        "{ format, run_id: run, trigger: \"manual\", modules: [kind === \"note\" ? \"notes\" : \"tasks\"], send_item: { kind, id } }"
       ],
       [
         "batches",
-        "chunks.map((records, sequence) => ({ format: 3, run_id: run, batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1, reply: false, records_hash: hash, records }))"
+        "chunks.map((records, sequence) => ({ format, run_id: run, batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1, reply: false, records_hash: hash, records }))"
       ],
       [
         "sources",
@@ -620,5 +622,5 @@
       ]
     ]
   ],
-  "contractSha256": "b3a7656af56293852efec53721e67702e017e080b04edd7297aa2bd4b6a3a40e"
+  "contractSha256": "0ce11e34bfb4e0bb72076929ea5d47d66cfe117743739373484437125e6981e8"
 }
