@@ -50,8 +50,17 @@ if (args.FirstOrDefault() == "--waste-import-fixture")
 }
 if (args.FirstOrDefault() == "--or6-json")
 {
+    if (args.Length is not (1 or 2)) throw new ArgumentException("--or6-json accepts at most one explicit fixture file.");
+    var data = Or6CodecTests.Fixture();
+    var name = "known-values.or6";
+    if (args.Length == 2)
+    {
+        var file = new FileInfo(args[1]);
+        if (file.Length > MagnolieOrganizer.Windows.ExchangeCodec.MaxImportBytes) throw new InvalidDataException("Fixture is too large.");
+        data = File.ReadAllBytes(file.FullName); name = file.Name;
+    }
     Console.WriteLine(MagnolieOrganizer.Windows.ExchangeCodec.ParseImport(
-        Or6CodecTests.Fixture(), "lotus", "known-values.or6").ToPayload("lotus", "known-values.or6").ToJsonString());
+        data, "lotus", name).ToPayload("lotus", name).ToJsonString());
     return 0;
 }
 
@@ -111,6 +120,7 @@ runner.Add("Password / native source / revisions / authenticated readback", Pass
 runner.Add("Record export / native codecs / actual files / guards", RecordExportFileTests.RunAsync);
 runner.Add("Import file / native readers / source CAS / archive limits", ImportFileSourceTests.RunAsync);
 runner.Add("OR6 import / native fixtures / freed storage / corrupt boundaries", Or6CodecTests.RunAsync);
+runner.Add("OR6 extension / original recurring set / categories / sparse phone contexts", Or6ExtensionTests.RunAsync);
 runner.Add("Country flags / local ISO artwork / native setup coordinates", CountryFlagsTests.RunAsync);
 runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
 runner.Add("Document export / actual ODS / readback / target guards", VerifiedDocumentFileTests.RunAsync);

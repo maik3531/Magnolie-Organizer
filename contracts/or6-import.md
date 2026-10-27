@@ -16,10 +16,23 @@ revisions, book revision checks, cancellation and GUI-draft boundaries.
 - Notepad pages: title and plain text extracted from RTF, including escaped
   Windows-1252 characters and Unicode escapes. Embedded objects are not executed.
 - Stable record identities derive from the legacy object's origin and ID.
+- Finite appointment series use their live native repeat-object links and
+  independently stored start/end arrays. A verified weekly rule remains editable;
+  other matching finite sets retain explicit recurrence dates. Deleted native
+  occurrences become exceptions. Active unlinked or conflicting occurrences are
+  not guessed into a series or flattened into unrelated appointments.
+  Fully converted sets do not increment the shared unresolved-rule warning
+  counter: the ordinary calendar engine can already expand them.
+- Contact category labels and explicit direct distribution-group memberships are
+  retained as contact groups. Group cards do not become fictitious people.
+  Verified native Work, Home and Work-fax slots retain their phone contexts;
+  empty preceding slots do not change later slot meanings.
 
-Series, groups, planner/anniversary/call/web sections are not converted into
-basic appointments or contacts. Unsupported live entries are counted where
-identified. Formatting, attachments, categories and alarms are not transferred.
+Unsupported series overrides, nested/empty distribution groups and
+planner/anniversary/call/web sections are not converted into basic appointments
+or contacts. Distribution-list-specific options are not contact-group permissions.
+Unsupported live entries are counted where
+identified. Formatting, attachments, non-contact categories and alarms are not transferred.
 The native result always includes the translated limitation report; this is
 not advertised as a lossless conversion. Password-protected or unfamiliar
 storage variants are rejected rather than guessed.
@@ -58,3 +71,9 @@ free storage, malformed allocations, schema cycles, foreign references,
 duplicate properties, field bounds, malformed RTF, ZIP dispatch and source CAS.
 `or6_cross_platform.py` compares both readers' actual output using an already
 built CoreTests assembly. It does not start a build, emulator or VM.
+
+`or6-native-extensions.json` adds five independently authored synthetic files
+saved by the unmodified supplied Lotus application in an offline Wine 10/Debian
+13 reference environment. Expected weekly dates, phone types and group members
+were chosen before parsing. The deleted occurrence was removed with Lotus's
+own “Just this one” action. No vendor program, runtime or installer is included.

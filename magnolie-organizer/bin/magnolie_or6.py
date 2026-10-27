@@ -17,6 +17,7 @@ MAGIC = b"\x30\x4b\x04\xb3"
 MAX_BYTES = 32 * 1024 * 1024
 MAX_BLOCKS = 250000
 MAX_FIELDS = 512
+REPEAT_TAG = 0xfefffff2
 _RTF_CONTROL = re.compile(r"([a-zA-Z]+)(-?\d{1,10})? ?")
 
 
@@ -188,10 +189,10 @@ class _Document:
             offset = self.u32(offset + 0x20)
         return fields
 
-    def records(self):
+    def entries(self, repeats=False):
         for address, (tag, size) in self.blocks.items():
             # Freed blocks retain old text. Only live application allocations count.
-            if not address or tag >= 0x80000000:
+            if not address or tag >= 0x80000000 and not (repeats and tag == REPEAT_TAG):
                 continue
             if size < 0x34:
                 raise _invalid()
@@ -216,7 +217,56 @@ class _Document:
                     blob = self.data[address+value:address+value+length]
                 fields[fid] = blob
             oid, origin = self.reference(address+12)
-            yield tag, fields, "or6:%08x:%08x" % (origin, oid)
+            yield tag, fields, "or6:%08x:%08x" % (origin, oid), (oid, origin), self.reference(address+0x18)
+
+    def records(self):
+        for tag, fields, uid, reference, schema in self.entries():
+            yield tag, fields, uid
+
+    def repeat_groups(self, entries):
+        """Resolve actual live ccSTR links, never group equal-looking appointments."""
+        by_key = {}
+        for entry in entries:
+            key = entry[3] + entry[4]
+            if key in by_key:
+                raise _invalid()
+            by_key[key] = entry
+        groups, assigned = {}, {}
+        for address, (tag, size) in self.blocks.items():
+            if tag != 0xfffffffb or size < 0x58:
+                continue
+            source = by_key.get(self.reference(address+0x20) + self.reference(address+0x28))
+            target = by_key.get(self.reference(address+0x30) + self.reference(address+0x38))
+            if source is None or target is None or source[0] != 0x100 or target[0] != REPEAT_TAG:
+                continue
+            if source[2] in assigned and assigned[source[2]] != target[2]:
+                raise _invalid()
+            assigned[source[2]] = target[2]
+            group = groups.setdefault(target[2], (target, {}))
+            group[1][source[2]] = source
+        result = {}
+        for target, members in groups.values():
+            shared = (target, list(members.values()))
+            for member in members:
+                result[member] = shared
+        return result
+
+    def contact_groups(self, entries):
+        by_key = {entry[3] + entry[4]:entry for entry in entries}
+        memberships, represented = {}, set()
+        for address, (tag, size) in self.blocks.items():
+            if tag != 0xfffffffb or size < 0x58 or self.u32(address+0x50) != 0x40000:
+                continue
+            source = by_key.get(self.reference(address+0x20) + self.reference(address+0x28))
+            target = by_key.get(self.reference(address+0x30) + self.reference(address+0x38))
+            if (source is None or target is None or source[0] != 0x400 or target[0] != 0x400 or
+                    _number(source[1], 13) != 1 or _number(target[1], 13) != 0):
+                continue
+            name = _string(source[1], 19)
+            if name:
+                memberships.setdefault(target[2], set()).add(name)
+                represented.add(source[2])
+        return memberships, represented
 
 
 def _number(fields, fid, default=0):
@@ -233,10 +283,9 @@ def _string(fields, fid):
     return _strings(fields, fid)[0]
 
 
-def _date(fields, fid):
-    value = fields.get(fid)
+def _stamp(value):
     if not value or value == b"\x02\x00" + b"\x02" * 6:
-        return "", ""
+        return None
     if len(value) != 8:
         raise _invalid()
     year, month, day, hour, minute, second, unused = struct.unpack("<HBBBBBB", value)
@@ -244,29 +293,147 @@ def _date(fields, fid):
         when = datetime(year, month, day, hour, minute, second)
     except ValueError as error:
         raise _invalid() from error
-    return f"{when.year:04d}-{when.month:02d}-{when.day:02d}", when.strftime("%H:%M")
+    return when
+
+
+def _date(fields, fid):
+    when = _stamp(fields.get(fid))
+    return (f"{when.year:04d}-{when.month:02d}-{when.day:02d}", when.strftime("%H:%M")) if when else ("", "")
+
+
+def _common(fields, uid):
+    title = _string(fields, 9)
+    result = {"titel": title.splitlines()[0], "notiz": "\n".join(title.splitlines()[1:]),
+              "uid": uid, "geaendert": 0, "vertraulich": bool(_number(fields, 1))}
+    body = _string(fields, 16)
+    if body:
+        result["notiz"] += ("\n" if result["notiz"] else "") + body
+    return result
+
+
+def _finite_series(group, orphaned=()):
+    definition, members = group
+    metadata = definition[1]
+    arrays = []
+    for fid in (12, 13):
+        raw = metadata.get(fid, b"")
+        if not raw or len(raw) % 8:
+            return None
+        dates = [_stamp(raw[index:index+8]) for index in range(0, len(raw), 8)]
+        if any(value is None for value in dates):
+            return None
+        arrays.append(dates)
+    starts, ends = arrays
+    if len(starts) != len(ends) or len(starts) < len(members) or starts != sorted(set(starts)):
+        return None
+    ordered = sorted(members, key=lambda member: _number(member[1], 14))
+    base = ordered[0][1]
+    comparable = {fid:value for fid,value in base.items() if fid not in (7, 8, 14)}
+    indices = [_number(member[1], 14) for member in ordered]
+    if len(set(indices)) != len(indices) or any(index >= len(starts) for index in indices):
+        return None
+    missing = set(range(len(starts))) - set(indices)
+    if any((ordered[0][4], index, starts[index]) in orphaned for index in missing):
+        return None  # An active, unlinked occurrence is not a deleted exception.
+    for index, member in zip(indices, ordered):
+        fields = member[1]
+        if (_number(fields, 10) != 1 or
+                {fid:value for fid,value in fields.items() if fid not in (7, 8, 14)} != comparable or
+                _stamp(fields.get(7)) != starts[index] or _stamp(fields.get(8)) != ends[index] or
+                ends[index] < starts[index]):
+            return None
+    duration = ends[0] - starts[0]
+    if any(start.time() != starts[0].time() or end-start != duration for start,end in zip(starts, ends)):
+        return None  # Per-occurrence time/content overrides require explicit handling.
+    if not _string(base, 9):
+        return None
+    result = _common(base, definition[2])
+    first, end = starts[0], ends[0]
+    result.update(datum=first.strftime("%Y-%m-%d"), zeit=first.strftime("%H:%M"),
+        endDatum=end.strftime("%Y-%m-%d") if end.date() != first.date() else "", endZeit=end.strftime("%H:%M"),
+        vorlaeufig=bool(_number(base, 18)))
+    compact = lambda value: value.strftime("%Y%m%dT%H%M%S")
+    raw = ["DTSTART:" + compact(first), "DTEND:" + compact(end)]
+    dates = [value.strftime("%Y-%m-%d") for index,value in enumerate(starts) if index not in missing]
+    recurrence = {"art":"custom", "bis":"", "intervall":1, "ordinal":0, "wochentag":"", "rruleForm":"", "daten":dates}
+    # This native rule layout is accepted only when its entire finite expansion
+    # equals the independently stored dates; otherwise retain the exact RDATE set.
+    selected = metadata.get(5, b"")
+    until = _stamp(metadata.get(7))
+    interval = _number(metadata, 4) + 1
+    if (_number(metadata, 3) == 1 and _number(metadata, 8) == 0 and _number(metadata, 11) == 0 and
+            selected and len(selected) % 2 == 0 and len(selected) <= 14 and until is not None and
+            1 <= interval <= 3660):
+        weekdays = list(struct.unpack("<" + "H"*(len(selected)//2), selected))
+        if len(set(weekdays)) == len(weekdays) and all(day <= 6 for day in weekdays):
+            anchor = first.date().toordinal() - (first.weekday()+1) % 7
+            expected, week = [], anchor
+            limit = until.date().toordinal()
+            while week <= limit and len(expected) <= len(starts):
+                for weekday in sorted(weekdays):
+                    day = week + weekday
+                    if first.date().toordinal() <= day <= limit:
+                        expected.append(day)
+                week += 7*interval
+            if expected == [value.date().toordinal() for value in starts]:
+                tokens = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
+                rule = "FREQ=WEEKLY;INTERVAL=%s;BYDAY=%s;WKST=SU;UNTIL=%sT235959" % (
+                    interval, ",".join(tokens[day] for day in sorted(weekdays)), until.strftime("%Y%m%d"))
+                raw.append("RRULE:" + rule)
+                # A single start weekday has the existing editable weekly model.
+                if weekdays == [(first.weekday()+1) % 7]:
+                    recurrence = {"art":"weekly", "bis":until.strftime("%Y-%m-%d"), "intervall":interval,
+                                  "ordinal":0, "wochentag":"", "rruleForm":""}
+                else:
+                    result["icsKomplex"] = True
+                    result["icsSerienUid"] = definition[2]
+    if len(raw) == 2:
+        raw.append("RDATE:" + ",".join(compact(value) for value in starts))
+    if missing:
+        raw.append("EXDATE:" + ",".join(compact(starts[index]) for index in sorted(missing)))
+        result.update(icsKomplex=True, icsSerienUid=definition[2],
+            icsAusnahmeTermine=[{"datum":starts[index].strftime("%Y-%m-%d"), "zeit":starts[index].strftime("%H:%M")}
+                               for index in sorted(missing)])
+    result.update(wiederholung=recurrence, icsRoundtrip=raw)
+    return result
 
 
 def _read_or6(raw):
     result = {key: [] for key in ("termine", "aufgaben", "kontakte", "notizen", "jahrestage", "geburtstage")}
     result.update(uebersprungen=0, wiederholend=0)
-    for tag, fields, uid in _Document(raw).records():
+    document = _Document(raw)
+    entries = list(document.entries(repeats=True))
+    groups = document.repeat_groups(entries)
+    memberships, represented_groups = document.contact_groups(entries)
+    orphaned = {(entry[4], _number(entry[1], 14), _stamp(entry[1].get(7))) for entry in entries
+                if entry[0] == 0x100 and _number(entry[1], 10) and entry[2] not in groups}
+    consumed = set()
+    evaluated = {}
+    for tag, fields, uid, reference, schema in entries:
+        if uid in consumed:
+            continue
         if tag in (0x100, 0x300):
             title = _string(fields, 9)
             if not title:
                 continue
             if _number(fields, 10):
+                group = groups.get(uid) if tag == 0x100 else None
+                if group and group[0][2] not in evaluated:
+                    evaluated[group[0][2]] = _finite_series(group, orphaned)
+                series = evaluated.get(group[0][2]) if group else None
+                if series is not None:
+                    result["termine"].append(series)
+                    # The shared counter warns about unresolved source rules;
+                    # this fully verified recurrence set is already expandable.
+                    consumed.update(member[2] for member in group[1])
+                    continue
                 result["uebersprungen"] += 1
-                # The existing recurrence counter describes retained ICS rules.
-                # OR6 series are skipped, not retained as opaque calendar data.
+                # Unsupported native sets are omitted, not retained as opaque
+                # source-calendar rules or flattened into unrelated entries.
                 continue
             begin, time = _date(fields, 7)
             end, end_time = _date(fields, 8)
-            common = {"titel": title.splitlines()[0], "notiz": "\n".join(title.splitlines()[1:]),
-                      "uid": uid, "geaendert": 0, "vertraulich": bool(_number(fields, 1))}
-            body = _string(fields, 16)
-            if body:
-                common["notiz"] += ("\n" if common["notiz"] else "") + body
+            common = _common(fields, uid)
             if tag == 0x100:
                 if not begin or not end or (end, end_time) < (begin, time):
                     result["uebersprungen"] += 1
@@ -285,9 +452,14 @@ def _read_or6(raw):
             if not any((first, last, company, _string(fields, 33), _string(fields, 35))):
                 continue  # Blank alphabet-index placeholders are not contacts.
             if _number(fields, 13):
-                result["uebersprungen"] += 1
+                if uid not in represented_groups:
+                    result["uebersprungen"] += 1
                 continue
-            phones = [{"wert": value, "typen": ["VOICE"]} for value in _strings(fields, 33) if value]
+            # Keep original slot positions: verified Work/Home/Fax contexts must
+            # not shift when preceding native phone slots are empty.
+            phone_types = {0: ["WORK", "VOICE"], 3: ["HOME", "VOICE"], 6: ["WORK", "FAX"]}
+            phones = [{"wert": value, "typen": phone_types.get(index, ["VOICE"])}
+                      for index, value in enumerate(_strings(fields, 33)) if value]
             emails = list(dict.fromkeys(value for value in _strings(fields, 35) if value))
             columns = [_strings(fields, fid) for fid in (28, 31, 29, 32)]
             addresses = []
@@ -301,6 +473,11 @@ def _read_or6(raw):
                        "telefon": phones[0]["wert"] if phones else "", "mobil": "", "telefone": phones,
                        "email": emails[0] if emails else "", "emails": emails,
                        "anschriften": addresses, "notiz": _string(fields, 39)}
+            categories = list(dict.fromkeys([value for value in _strings(fields, 3) if value] +
+                                           sorted(memberships.get(uid, ()), key=lambda value: value.encode("utf-16-be"))))
+            if categories:
+                escape = lambda value: value.replace("\r\n", "\n").replace("\r", "\n").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+                contact["vcardRoundtrip"] = ["CATEGORIES:" + ",".join(escape(value) for value in categories)]
             if addresses:
                 contact.update({key: addresses[0][key] for key in ("strasse", "plz", "ort", "land")})
             birthday, birthday_time = _date(fields, 41)
@@ -327,7 +504,7 @@ def _read_or6(raw):
             text_fields = (12, 14, 15) if tag == 0x900 else (9,)
             if any(_string(fields, fid) for fid in text_fields):
                 result["uebersprungen"] += 1
-    result["bericht"] = _("OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred.")
+    result["bericht"] = _("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred.")
     return result
 
 

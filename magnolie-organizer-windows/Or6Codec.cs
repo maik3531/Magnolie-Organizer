@@ -10,6 +10,9 @@ namespace MagnolieOrganizer.Windows;
 internal static class Or6Codec
 {
     private const int MaxBlocks = 250000, MaxFields = 512;
+    private const uint RepeatTag = 0xfefffff2;
+    private sealed record Entry(uint Tag, Dictionary<ushort, byte[]> Fields, string Uid,
+        (uint, uint) Object, (uint, uint) Schema);
     private static readonly Encoding Wide = new UnicodeEncoding(false, false, true);
     private static readonly Regex Control = new(@"\G([a-zA-Z]+)(-?\d{1,10})? ?", RegexOptions.CultureInvariant);
     private static InvalidDataException Invalid() => new(NativeLocalization.Gettext("The content is unreadable."));
@@ -60,11 +63,11 @@ internal static class Or6Codec
             }
         }
 
-        internal IEnumerable<(uint Tag, Dictionary<ushort, byte[]> Fields, string Uid)> Records()
+        internal IEnumerable<Entry> Entries(bool repeats = false)
         {
             foreach (var (offset, block) in blocks)
             {
-                if (offset == 0 || block.Tag >= 0x80000000) continue;
+                if (offset == 0 || block.Tag >= 0x80000000 && !(repeats && block.Tag == RepeatTag)) continue;
                 if (block.Size < 0x34 || !schemas.TryGetValue(Reference(offset + 0x18), out var schema) || schema.Tag != block.Tag) throw Invalid();
                 var count = U32(offset + 0x28);
                 if (count > MaxFields || 0x34 + count * 8 > block.Size) throw Invalid();
@@ -82,8 +85,52 @@ internal static class Or6Codec
                     }
                 }
                 var (idValue, origin) = Reference(offset + 12);
-                yield return (block.Tag, fields, $"or6:{origin:x8}:{idValue:x8}");
+                yield return new(block.Tag, fields, $"or6:{origin:x8}:{idValue:x8}", (idValue, origin), Reference(offset + 0x18));
             }
+        }
+
+        internal Dictionary<string, (Entry Definition, List<Entry> Members)> RepeatGroups(List<Entry> entries)
+        {
+            var byKey = new Dictionary<((uint, uint), (uint, uint)), Entry>();
+            foreach (var entry in entries) if (!byKey.TryAdd((entry.Object, entry.Schema), entry)) throw Invalid();
+            var groups = new Dictionary<string, (Entry Definition, Dictionary<string, Entry> Members)>();
+            var assigned = new Dictionary<string, string>();
+            foreach (var (offset, block) in blocks)
+            {
+                if (block.Tag != 0xfffffffb || block.Size < 0x58) continue;
+                if (!byKey.TryGetValue((Reference(offset + 0x20), Reference(offset + 0x28)), out var source) ||
+                    !byKey.TryGetValue((Reference(offset + 0x30), Reference(offset + 0x38)), out var target) ||
+                    source.Tag != 0x100 || target.Tag != RepeatTag) continue;
+                if (assigned.TryGetValue(source.Uid, out var previous) && previous != target.Uid) throw Invalid();
+                assigned[source.Uid] = target.Uid;
+                if (!groups.TryGetValue(target.Uid, out var group)) groups[target.Uid] = group = (target, new());
+                group.Members[source.Uid] = source;
+            }
+            var result = new Dictionary<string, (Entry, List<Entry>)>();
+            foreach (var group in groups.Values)
+            {
+                var shared = (group.Definition, group.Members.Values.ToList());
+                foreach (var member in group.Members.Keys) result[member] = shared;
+            }
+            return result;
+        }
+
+        internal (Dictionary<string, SortedSet<string>> Memberships, HashSet<string> Represented) ContactGroups(List<Entry> entries)
+        {
+            var byKey = entries.ToDictionary(entry => (entry.Object, entry.Schema));
+            var memberships = new Dictionary<string, SortedSet<string>>(); var represented = new HashSet<string>();
+            foreach (var (offset, block) in blocks)
+            {
+                if (block.Tag != 0xfffffffb || block.Size < 0x58 || U32(offset + 0x50) != 0x40000) continue;
+                if (!byKey.TryGetValue((Reference(offset + 0x20), Reference(offset + 0x28)), out var source) ||
+                    !byKey.TryGetValue((Reference(offset + 0x30), Reference(offset + 0x38)), out var target) ||
+                    source.Tag != 0x400 || target.Tag != 0x400 || Number(source.Fields, 13) != 1 || Number(target.Fields, 13) != 0) continue;
+                var name = Text(source.Fields, 19);
+                if (name.Length == 0) continue;
+                if (!memberships.TryGetValue(target.Uid, out var names)) memberships[target.Uid] = names = new(StringComparer.Ordinal);
+                names.Add(name); represented.Add(source.Uid);
+            }
+            return (memberships, represented);
         }
     }
 
@@ -104,35 +151,144 @@ internal static class Or6Codec
         catch (DecoderFallbackException) { throw Invalid(); }
     }
     private static string Text(Dictionary<ushort, byte[]> fields, ushort id) => Strings(fields, id)[0];
-    private static (string Date, string Time) Date(Dictionary<ushort, byte[]> fields, ushort id)
+    private static DateTime? Stamp(byte[] value)
     {
-        var value = Bytes(fields, id);
-        if (value.Length == 0 || value.AsSpan().SequenceEqual(new byte[] { 2, 0, 2, 2, 2, 2, 2, 2 })) return ("", "");
+        if (value.Length == 0 || value.AsSpan().SequenceEqual(new byte[] { 2, 0, 2, 2, 2, 2, 2, 2 })) return null;
         if (value.Length != 8) throw Invalid();
         try
         {
-            var when = new DateTime(BinaryPrimitives.ReadUInt16LittleEndian(value), value[2], value[3], value[4], value[5], value[6]);
-            return (when.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), when.ToString("HH:mm", CultureInfo.InvariantCulture));
+            return new DateTime(BinaryPrimitives.ReadUInt16LittleEndian(value), value[2], value[3], value[4], value[5], value[6]);
         }
         catch (ArgumentOutOfRangeException) { throw Invalid(); }
+    }
+
+    private static (string Date, string Time) Date(Dictionary<ushort, byte[]> fields, ushort id) => Stamp(Bytes(fields, id)) is { } when
+        ? (when.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), when.ToString("HH:mm", CultureInfo.InvariantCulture)) : ("", "");
+
+    private static JsonObject Common(Dictionary<ushort, byte[]> fields, string uid)
+    {
+        var lines = Text(fields, 9).Split('\n'); var note = string.Join('\n', lines.Skip(1)); var body = Text(fields, 16);
+        if (body.Length > 0) note += (note.Length > 0 ? "\n" : "") + body;
+        return new() { ["titel"] = lines[0], ["notiz"] = note, ["uid"] = uid,
+            ["geaendert"] = 0, ["vertraulich"] = Number(fields, 1) != 0 };
+    }
+
+    private static JsonObject? FiniteSeries((Entry Definition, List<Entry> Members) group,
+        HashSet<((uint, uint) Schema, uint Index, DateTime? Start)> orphaned)
+    {
+        var metadata = group.Definition.Fields;
+        DateTime[]? Dates(ushort id)
+        {
+            var raw = Bytes(metadata, id);
+            if (raw.Length == 0 || raw.Length % 8 != 0) return null;
+            var values = new List<DateTime>();
+            for (var offset = 0; offset < raw.Length; offset += 8)
+            { if (Stamp(raw.AsSpan(offset, 8).ToArray()) is not { } stamp) return null; values.Add(stamp); }
+            return values.ToArray();
+        }
+        var starts = Dates(12); var ends = Dates(13);
+        if (starts is null || ends is null || starts.Length != ends.Length || starts.Length < group.Members.Count ||
+            !starts.SequenceEqual(starts.OrderBy(value => value).Distinct())) return null;
+        var ordered = group.Members.OrderBy(member => Number(member.Fields, 14)).ToArray();
+        var basis = ordered[0].Fields;
+        var comparable = basis.Where(pair => pair.Key is not (7 or 8 or 14)).ToDictionary(pair => pair.Key, pair => pair.Value);
+        var indices = ordered.Select(member => (long)Number(member.Fields, 14)).ToArray();
+        if (indices.Distinct().Count() != indices.Length || indices.Any(index => index >= starts.Length)) return null;
+        var missing = Enumerable.Range(0, starts.Length).Except(indices.Select(index => (int)index)).ToArray();
+        var missingSet = missing.ToHashSet();
+        if (missing.Any(index => orphaned.Contains((ordered[0].Schema, (uint)index, starts[index])))) return null;
+        for (var position = 0; position < ordered.Length; position++)
+        {
+            var fields = ordered[position].Fields; var index = (int)indices[position];
+            var other = fields.Where(pair => pair.Key is not (7 or 8 or 14)).ToDictionary(pair => pair.Key, pair => pair.Value);
+            if (Number(fields, 10) != 1 || comparable.Count != other.Count ||
+                comparable.Any(pair => !other.TryGetValue(pair.Key, out var value) || !pair.Value.AsSpan().SequenceEqual(value)) ||
+                Stamp(Bytes(fields, 7)) != starts[index] || Stamp(Bytes(fields, 8)) != ends[index] || ends[index] < starts[index]) return null;
+        }
+        var first = starts[0]; var end = ends[0]; var duration = end - first;
+        if (starts.Where((start, index) => start.TimeOfDay != first.TimeOfDay || ends[index] - start != duration).Any() ||
+            Text(basis, 9).Length == 0) return null;
+        string Day(DateTime value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string Compact(DateTime value) => value.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+        var result = Common(basis, group.Definition.Uid);
+        result["datum"] = Day(first); result["zeit"] = first.ToString("HH:mm", CultureInfo.InvariantCulture);
+        result["endDatum"] = end.Date != first.Date ? Day(end) : "";
+        result["endZeit"] = end.ToString("HH:mm", CultureInfo.InvariantCulture); result["vorlaeufig"] = Number(basis, 18) != 0;
+        var rawLines = new JsonArray("DTSTART:" + Compact(first), "DTEND:" + Compact(end));
+        var recurrence = new JsonObject { ["art"] = "custom", ["bis"] = "", ["intervall"] = 1, ["ordinal"] = 0,
+            ["wochentag"] = "", ["rruleForm"] = "", ["daten"] = new JsonArray(starts.Where((value, index) => !missingSet.Contains(index)).Select(value => (JsonNode?)Day(value)).ToArray()) };
+        var selected = Bytes(metadata, 5); var until = Stamp(Bytes(metadata, 7)); var interval = (long)Number(metadata, 4) + 1;
+        if (Number(metadata, 3) == 1 && Number(metadata, 8) == 0 && Number(metadata, 11) == 0 &&
+            selected.Length is > 0 and <= 14 && selected.Length % 2 == 0 && until is not null && interval is >= 1 and <= 3660)
+        {
+            var weekdays = Enumerable.Range(0, selected.Length / 2)
+                .Select(index => (int)BinaryPrimitives.ReadUInt16LittleEndian(selected.AsSpan(index * 2, 2))).ToArray();
+            if (weekdays.Distinct().Count() == weekdays.Length && weekdays.All(value => value <= 6))
+            {
+                var initial = DateOnly.FromDateTime(first).DayNumber;
+                var week = initial - (int)first.DayOfWeek; var limit = DateOnly.FromDateTime(until.Value).DayNumber;
+                var expected = new List<int>();
+                while (week <= limit && expected.Count <= starts.Length)
+                {
+                    foreach (var weekday in weekdays.OrderBy(value => value))
+                        if (week + weekday >= initial && week + weekday <= limit) expected.Add(week + weekday);
+                    week += 7 * (int)interval;
+                }
+                if (expected.SequenceEqual(starts.Select(value => DateOnly.FromDateTime(value).DayNumber)))
+                {
+                    var tokens = new[] { "SU", "MO", "TU", "WE", "TH", "FR", "SA" };
+                    rawLines.Add($"RRULE:FREQ=WEEKLY;INTERVAL={interval};BYDAY={string.Join(',', weekdays.OrderBy(value => value).Select(day => tokens[day]))};WKST=SU;UNTIL={until.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}T235959");
+                    if (weekdays.SequenceEqual(new[] { (int)first.DayOfWeek }))
+                        recurrence = new() { ["art"] = "weekly", ["bis"] = Day(until.Value), ["intervall"] = (int)interval,
+                            ["ordinal"] = 0, ["wochentag"] = "", ["rruleForm"] = "" };
+                    else { result["icsKomplex"] = true; result["icsSerienUid"] = group.Definition.Uid; }
+                }
+            }
+        }
+        if (rawLines.Count == 2) rawLines.Add("RDATE:" + string.Join(',', starts.Select(Compact)));
+        if (missing.Length > 0)
+        {
+            rawLines.Add("EXDATE:" + string.Join(',', missing.Select(index => Compact(starts[index]))));
+            result["icsKomplex"] = true; result["icsSerienUid"] = group.Definition.Uid;
+            result["icsAusnahmeTermine"] = new JsonArray(missing.Select(index => (JsonNode)new JsonObject {
+                ["datum"] = Day(starts[index]), ["zeit"] = starts[index].ToString("HH:mm", CultureInfo.InvariantCulture) }).ToArray());
+        }
+        result["wiederholung"] = recurrence; result["icsRoundtrip"] = rawLines;
+        return result;
     }
 
     internal static ExchangeImportResult Read(byte[] raw)
     {
         var appointments = new JsonArray(); var tasks = new JsonArray(); var contacts = new JsonArray(); var notes = new JsonArray();
         var skipped = 0; var recurring = 0;
-        foreach (var (tag, fields, uid) in new Document(raw).Records())
+        var document = new Document(raw); var entries = document.Entries(repeats: true).ToList();
+        var groups = document.RepeatGroups(entries); var consumed = new HashSet<string>();
+        var (memberships, representedGroups) = document.ContactGroups(entries);
+        var orphaned = entries.Where(entry => entry.Tag == 0x100 && Number(entry.Fields, 10) != 0 && !groups.ContainsKey(entry.Uid))
+            .Select(entry => (entry.Schema, Number(entry.Fields, 14), Stamp(Bytes(entry.Fields, 7)))).ToHashSet();
+        var evaluated = new Dictionary<string, JsonObject?>();
+        foreach (var entry in entries)
         {
+            var (tag, fields, uid) = (entry.Tag, entry.Fields, entry.Uid);
+            if (consumed.Contains(uid)) continue;
             if (tag is 0x100 or 0x300)
             {
                 var title = Text(fields, 9); if (title.Length == 0) continue;
-                // The shared recurrence counter means retained ICS rules, not skipped OR6 series.
-                if (Number(fields, 10) != 0) { skipped++; continue; }
+                // Converted sets are expandable; skipped native sets are not
+                // retained as unresolved source-calendar rules.
+                if (Number(fields, 10) != 0)
+                {
+                    if (tag == 0x100 && groups.TryGetValue(uid, out var group))
+                    {
+                        if (!evaluated.TryGetValue(group.Definition.Uid, out var series))
+                            evaluated[group.Definition.Uid] = series = FiniteSeries(group, orphaned);
+                        if (series is not null)
+                        { appointments.Add(series); foreach (var member in group.Members) consumed.Add(member.Uid); continue; }
+                    }
+                    skipped++; continue;
+                }
                 var start = Date(fields, 7); var end = Date(fields, 8);
-                var lines = title.Split('\n'); var note = string.Join('\n', lines.Skip(1)); var body = Text(fields, 16);
-                if (body.Length > 0) note += (note.Length > 0 ? "\n" : "") + body;
-                var common = new JsonObject { ["titel"] = lines[0], ["notiz"] = note, ["uid"] = uid,
-                    ["geaendert"] = 0, ["vertraulich"] = Number(fields, 1) != 0 };
+                var common = Common(fields, uid);
                 if (tag == 0x100)
                 {
                     if (start.Date.Length == 0 || end.Date.Length == 0 || string.CompareOrdinal(end.Date + end.Time, start.Date + start.Time) < 0) { skipped++; continue; }
@@ -150,8 +306,12 @@ internal static class Or6Codec
             {
                 var first = Text(fields, 17); var last = Text(fields, 19); var company = Text(fields, 23);
                 if (first.Length + last.Length + company.Length + Text(fields, 33).Length + Text(fields, 35).Length == 0) continue;
-                if (Number(fields, 13) != 0) { skipped++; continue; }
-                var phones = Strings(fields, 33).Where(value => value.Length > 0).ToArray();
+                if (Number(fields, 13) != 0) { if (!representedGroups.Contains(uid)) skipped++; continue; }
+                var phoneEntries = new JsonArray(Strings(fields, 33).Select((value, index) => (value, index))
+                    .Where(pair => pair.value.Length > 0).Select(pair => (JsonNode)new JsonObject {
+                        ["wert"] = pair.value, ["typen"] = pair.index switch {
+                            0 => new JsonArray("WORK", "VOICE"), 3 => new JsonArray("HOME", "VOICE"),
+                            6 => new JsonArray("WORK", "FAX"), _ => new JsonArray("VOICE") } }).ToArray());
                 var emails = Strings(fields, 35).Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
                 var addresses = new JsonArray(); var columns = new[] { Strings(fields, 28), Strings(fields, 31), Strings(fields, 29), Strings(fields, 32) };
                 var keys = new[] { "strasse", "plz", "ort", "land" };
@@ -167,9 +327,17 @@ internal static class Or6Codec
                     address["typen"] = index == 0 ? new JsonArray("WORK") : index == 1 ? new JsonArray("HOME") : new JsonArray(); addresses.Add(address);
                 }
                 var contact = new JsonObject { ["vorname"] = first, ["nachname"] = last, ["firma"] = company, ["uid"] = uid, ["geaendert"] = 0,
-                    ["telefon"] = phones.FirstOrDefault() ?? "", ["mobil"] = "", ["telefone"] = new JsonArray(phones.Select(value => (JsonNode)new JsonObject { ["wert"] = value, ["typen"] = new JsonArray("VOICE") }).ToArray()),
+                    ["telefon"] = phoneEntries.FirstOrDefault()?["wert"]?.GetValue<string>() ?? "", ["mobil"] = "", ["telefone"] = phoneEntries,
                     ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()),
                     ["anschriften"] = addresses, ["notiz"] = Text(fields, 39) };
+                var categories = Strings(fields, 3).Where(value => value.Length > 0)
+                    .Concat(memberships.GetValueOrDefault(uid) ?? new SortedSet<string>(StringComparer.Ordinal))
+                    .Distinct(StringComparer.Ordinal).ToArray();
+                if (categories.Length > 0)
+                {
+                    string Escape(string value) => value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace("\n", "\\n");
+                    contact["vcardRoundtrip"] = new JsonArray("CATEGORIES:" + string.Join(',', categories.Select(Escape)));
+                }
                 if (addresses.Count > 0) foreach (var key in keys) contact[key] = addresses[0]![key]!.DeepClone();
                 var birthday = Date(fields, 41).Date; if (birthday.Length > 0) contact["geburtstag"] = birthday;
                 var note = Text(fields, 39);
@@ -194,7 +362,7 @@ internal static class Or6Codec
             }
         }
         return new(appointments, new JsonArray(), new JsonArray(), tasks, contacts, skipped, recurring,
-            NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."), notes);
+            NativeLocalization.Gettext("OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Recurrences with unsupported changes and other sections are skipped; layout, attachments and alarms are not transferred."), notes);
     }
 
     private static string RtfText(byte[] bytes)
