@@ -33,6 +33,7 @@ class DecisionAckCompletion:
         if not isinstance(queued_decisions, list) or not 1 <= len(queued_decisions) <= 256:
             raise ValueError("invalid_actor_completion_controls")
         self.controls = {}
+        self.queued_frames = {}
         decisions = []
         for wire in queued_decisions:
             if not isinstance(wire, dict) or wire.get("kind") != actor.DATA_KIND:
@@ -42,6 +43,7 @@ class DecisionAckCompletion:
             if (kind != "personal_sync.deletion_decision" or body["run_id"] != run_id or wire["message_id"] in self.controls):
                 raise ValueError("invalid_actor_completion_controls")
             self.controls[wire["message_id"]] = copy.deepcopy(body)
+            self.queued_frames[wire["message_id"]] = copy.deepcopy(wire)
             decisions.extend(body["decisions"])
         self.targets = copy.deepcopy(native_targets)
         self.decisions = copy.deepcopy(decisions)
@@ -71,7 +73,13 @@ class DecisionAckCompletion:
         return body
 
     def validate(self, operation, wire):
-        body = self._ack(wire) if wire is not None else None
+        if operation == "send":
+            if (not isinstance(wire, dict) or not isinstance(wire.get("message_id"), str) or
+                    wire != self.queued_frames.get(wire["message_id"])):
+                raise ValueError("unexpected_actor_completion_control")
+            body = None
+        else:
+            body = self._ack(wire) if wire is not None else None
         try:
             if self._checked_saved_book(self.current_saved_book()) != self.saved_book:
                 return False

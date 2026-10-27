@@ -472,6 +472,12 @@ class ActorStore:
             self._require_completion(db, handle, "read")
         return result
 
+    def check_completion(self, handle, operation, wire=None):
+        """Native lifecycle check only; the registered guard limits the operation."""
+        with self._completion_database(handle) as db:
+            self._require_completion(db, handle, operation, wire)
+            self._require_completion(db, handle, operation, wire)
+
     def finish_completion(self, handle):
         with self._completion_database(handle) as db:
             value = self._require_completion(db, handle, "finish")

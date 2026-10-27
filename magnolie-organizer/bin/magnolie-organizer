@@ -24240,6 +24240,7 @@ class Fenster(_FENSTER_BASIS):
                             os.path.join(daten_verzeichnis(), "telefon"),
                              local_device_name(), self._telefon_ereignis))
                     self._telefon.native_actor_book_source = self._telefon_actor_buchquelle
+                    self._telefon.native_actor_saved_book = self._telefon_actor_buchnachweis
                     if not daemon_owner and self._setup_phone_foreground:
                         self._telefon.enabled = True  # Foreground handoff, not saved startup consent.
                         self._setup_phone_foreground = False

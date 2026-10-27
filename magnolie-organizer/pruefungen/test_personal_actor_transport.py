@@ -343,7 +343,8 @@ def test_actor_commit_rejects_changed_native_staging_after_book_save(tmp_path, m
     assert service.store.ready_personal_batches() and service.store.ready_personal_domains() and not events
 
 
-def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_consumption(tmp_path, monkeypatch):
+@pytest.mark.parametrize('decision', ('restore','delete'))
+def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_consumption(tmp_path, monkeypatch, decision):
     from magnolie_personal_actor_store import NativeBookOwnerScope
     book = NativeBookOwnerScope(); book.set_ready(True)
     provider = lambda: book.current('native-review-profile', True)
@@ -363,7 +364,7 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
     view = service.read_personal_actor_staging(registry, handle)
     data = json.loads(base64.b64decode(view['data_base64']))
     intent, = data['intents']
-    plan = {'choices':[{'proposal_id':proposal['proposal_id'], 'decision':'restore', 'expected_clock':proposal['clock'], 'allow_conflict':False}],
+    plan = {'choices':[{'proposal_id':proposal['proposal_id'], 'decision':decision, 'expected_clock':proposal['clock'], 'allow_conflict':False}],
         'intents':[{'kind':intent['kind'], 'message_id':intent['pending_message_id'], 'commit_token':intent['commit_token']}]}
     before = book.record_saved('native-review-profile', True, 'a'*64)
     bad = copy.deepcopy(plan); bad['intents'][0]['commit_token'] = 'foreign'
@@ -371,7 +372,7 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
         service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), bad)
     claim = service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), plan)
     assert claim == service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), copy.deepcopy(plan))
-    changed = copy.deepcopy(plan); changed['choices'][0]['decision'] = 'delete'
+    changed = copy.deepcopy(plan); changed['choices'][0]['decision'] = 'delete' if decision == 'restore' else 'restore'
     with pytest.raises(PermissionError):
         service.prepare_personal_actor_commit(registry, handle, view['revision'], 'b'*64, before, provider(), changed)
     with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim['claim_token'], before, provider())
@@ -385,6 +386,40 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
     assert not any(owner == private for owner, _ in service.store.ready_personal_batches())
     assert service.store.dedupe_result(private, intent['pending_message_id']) == ('accepted','none')
     assert not channel.sent and not events
+    # Complete the existing data/book roundtrip first. Its marked report receipt
+    # is not yet the terminal deletion-decision acknowledgement.
+    replies = [dict(batch,batch_id=str(uuid.uuid4()),reply=True,records=[],records_hash=personal.records_hash([]))]
+    service.queue_personal_actor_reply(registry,handle,claim['claim_token'],replies,[],actual,provider())
+    queued = service.store.pending(peer['device_id'])
+    reply = next(value for value in queued if value['kind'] == actor.DATA_KIND and actor.unwrap(value['body'])[0] == 'personal_sync.batch')
+    service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,reply['message_id'])))
+    report = next(value for value in service.store.pending(peer['device_id']) if value['kind'] == actor.DATA_KIND and actor.unwrap(value['body'])[0] == 'personal_sync.report')
+    service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,report['message_id'])))
+    assert service.personal_actor_status(registry,handle)['phone_persisted']
+    with pytest.raises(PermissionError): service.begin_personal_actor_completion(registry,handle,claim['claim_token'])
+    service.native_actor_saved_book = lambda:book.save_state('native-review-profile',True)
+    started = service.begin_personal_actor_completion(registry,handle,claim['claim_token'])
+    assert started['phase'] == 'completion' and started['phone_data_persisted'] and not started['phone_persisted']
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry,handle)
+    control = next(value for value in service.store.pending(peer['device_id']) if value['kind'] == actor.DATA_KIND and actor.unwrap(value['body'])[0] == 'personal_sync.deletion_decision')
+    assert service._send_message(channel,peer['device_id'],control) and channel.sent[-1] == control
+    assert actor.unwrap(control['body'])[1]['decisions'][0]['decision'] == decision
+    terminal_ack = frame(actor.ACK_KIND,actor.ack(handle.actor_id,control['message_id']))
+    if decision == 'delete':
+        service._payload(peer,channel,terminal_ack)
+        assert not service.personal_actor_status(registry,handle)['phone_persisted'], 'Old membership was accepted as a terminal save'
+        import magnolie_content_scope as content_scope
+        session = service.content_scope_sessions[channel]
+        native_binding = (peer['device_id'],peer['static_public'],id(channel))
+        before_manifest = session.current(native_binding, session.current_reference(native_binding))
+        after_manifest = content_scope.advance(before_manifest, [], before_manifest['members']['tasks'])
+        for part in content_scope.chunks(after_manifest): session.receive(native_binding,part)
+    service._payload(peer,channel,terminal_ack)
+    completed = service.personal_actor_status(registry,handle)
+    assert completed['phase'] == 'completed' and completed['phone_persisted']
+    assert completed['deletion_completion']['saved'] == 1
+    with pytest.raises(PermissionError): registry.require_current(handle)
+    assert not events
 
 
 def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):

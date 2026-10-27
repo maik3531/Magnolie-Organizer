@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -469,6 +470,47 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             result
         }
     }
+
+    /** Native caller has already committed the exact document review. This
+     * consumes only its immutable private control envelopes, never book data. */
+    internal fun commitActorDeletionIntents(runId: String, expected: List<JsonObject>): Boolean =
+        helper.writableDatabase.inTransaction {
+            val peerId = PersonalSyncActor.storagePeer(runId)
+            require(expected.size <= 256 && expected.map { it.string("message_id") }.distinct().size == expected.size)
+            val stagedIds = mutableSetOf<String>()
+            query("inbox", arrayOf("message_id", "payload"), "peer_id=? AND state='actor_staged'", arrayOf(peerId), null, null, null).use { rows ->
+                while (rows.moveToNext()) {
+                    val id = rows.getString(0); val raw = storage.decryptPayload(rows.getBlob(1), "inbox", id)
+                    try {
+                        val envelope = TelefonKanonisch.json.parseToJsonElement(raw.decodeToString()).jsonObject
+                        if (envelope["outgoing"] == JsonPrimitive(false)) stagedIds.add(id)
+                    } finally { raw.fill(0) }
+                }
+            }
+            val expectedIds = expected.map { it.string("message_id") }.toSet()
+            if (!expectedIds.containsAll(stagedIds)) return@inTransaction false
+            for (message in expected) {
+                require(message.string("kind") in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision") &&
+                    message.getValue("body").jsonObject.string("run_id") == runId)
+                TelefonNachrichten.validate(message, message.long("created_ms"))
+                val id = message.string("message_id")
+                val row = query("inbox", arrayOf("state", "payload"), "peer_id=? AND message_id=?", arrayOf(peerId, id), null, null, null).use {
+                    if (!it.moveToFirst()) return@inTransaction false
+                    it.getString(0) to it.getBlob(1)
+                }
+                if (row.first !in setOf("actor_staged", "actor_processed")) return@inTransaction false
+                val raw = storage.decryptPayload(row.second, "inbox", id)
+                try {
+                    val envelope = TelefonKanonisch.json.parseToJsonElement(raw.decodeToString()).jsonObject
+                    if (envelope["peer_id"] != JsonPrimitive(peerId) || envelope["run_id"] != JsonPrimitive(runId) ||
+                        envelope["outgoing"] != JsonPrimitive(false) || envelope["message"] != message) return@inTransaction false
+                } finally { raw.fill(0) }
+            }
+            // Validate the full set before changing any one receipt.
+            for (id in expectedIds) update("inbox", ContentValues().apply { put("state", "actor_processed") },
+                "peer_id=? AND message_id=? AND state='actor_staged'", arrayOf(peerId, id))
+            true
+        }
 
     fun deletePeer(peerId: String) = helper.deletePeer(peerId)
 

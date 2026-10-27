@@ -2486,6 +2486,7 @@ class PhoneService:
         self.note_controls = weakref.WeakKeyDictionary()
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
+        self.native_actor_saved_book = None
         self._personal_actor_registry = None
         self.personal_actor_admissions = {}
         self.status_requests = {}
@@ -4300,6 +4301,66 @@ class PhoneService:
             return {"reply_queued": True, "message_count": admission["reply_count"], "book_persisted": True,
                 "phone_persisted": False, "delivery_confirmed": False}
 
+    def begin_personal_actor_completion(self, registry, handle, claim_token):
+        """Native controller only: queue reviewed controls after the data SaveACK.
+
+        The live writer provider is mandatory. No caller-supplied saved Boolean,
+        cached GUI name or changed book can substitute for that observation.
+        """
+        from magnolie_personal_actor_completion import DecisionAckCompletion
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
+                    not isinstance(claim_token, str) or not admission.get("commit_plan") or
+                    not secrets.compare_digest(admission["commit_plan"]["token"], claim_token)):
+                raise PermissionError("actor_completion_claim_unavailable")
+            if admission.get("completion") is not None:
+                registry.check_completion(handle, "read")
+                return self.personal_actor_status(registry, handle)
+            registry.require_current(handle)
+            plan = admission["commit_plan"]
+            choices = plan["deletion_review"]["choices"]
+            if (not admission.get("save_receipt") or not admission.get("phone_persisted") or not choices or
+                    not callable(self.native_actor_saved_book)):
+                raise PermissionError("actor_completion_not_ready")
+            saved = self._actor_saved_book(self.native_actor_saved_book(), plan["book_source"])
+            if saved != admission["save_receipt"]:
+                raise PermissionError("actor_saved_completion_changed")
+            private = personal_actor_contract.storage_peer(handle.actor_id)
+            frames, targets = [], []
+            fingerprint = registry.status(handle)["fingerprint"]
+            try:
+                for start in range(0, len(choices), 32):
+                    body = {"format":1, "run_id":handle.actor_id, "decision_id":str(uuid.uuid4()),
+                        "decisions":[{key:copy.deepcopy(value[key]) for key in ("proposal_id", "decision", "expected_clock")}
+                                     for value in choices[start:start+32]]}
+                    proof = self.store.personal_decision_targets(private, body, True)
+                    if proof is None:
+                        raise PermissionError("actor_completion_target_proof_missing")
+                    targets.extend(proof)
+                    frames.append(self.store.queue(admission["peer"], "personal_sync.deletion_decision", body, DAY_MS, actor_run_id=handle.actor_id))
+                def native_scope():
+                    session = self.content_scope_sessions.get(admission["channel"])
+                    if session is None:
+                        raise PermissionError("actor_completion_scope_unavailable")
+                    reference = session.current_reference((admission["peer"], admission["key"], id(admission["channel"])))
+                    return self.current_content_scope(admission["peer"], admission["key"], reference)
+                completion = DecisionAckCompletion(handle.actor_id, targets, frames,
+                    current_authority=lambda:self.current_actor_completion_authority(admission["peer"], fingerprint),
+                    current_scope=native_scope, current_saved_book=self.native_actor_saved_book,
+                    persisted_controls=lambda:registry.read_completion_controls(handle))
+                registry.begin_completion(handle, completion.validator)
+            except BaseException:
+                for wire in frames:
+                    self.store.acknowledge(admission["peer"], wire["message_id"])
+                raise
+            admission["completion"] = completion
+            admission["completion_ids"] = {wire["message_id"] for wire in frames}
+            admission["outbound"].update(admission["completion_ids"])
+            admission["phone_data_persisted"] = True
+            admission["phone_persisted"] = False
+            return self.personal_actor_status(registry, handle)
+
     def personal_actor_status(self, registry, handle):
         with self.lock:
             value = registry.status(handle)
@@ -4307,6 +4368,9 @@ class PhoneService:
             if admission is not None and admission["registry"] is registry and admission["handle"] == handle:
                 value.update(book_persisted=bool(admission.get("save_receipt")), reply_queued=bool(admission.get("reply_queued")),
                     phone_persisted=bool(admission.get("phone_persisted")), completion_report_queued=bool(admission.get("completion_report_id")))
+                if admission.get("completion") is not None:
+                    value.update(phone_data_persisted=bool(admission.get("phone_data_persisted")),
+                        deletion_completion=admission["completion"].summary())
             return value
 
     def _queue_actor_completion_report(self, admission):
@@ -4401,6 +4465,18 @@ class PhoneService:
                 return
             registry, handle = admission["registry"], admission["handle"]
             try:
+                completion = admission.get("completion")
+                if completion is not None:
+                    if payload.get("kind") != personal_actor_contract.ACK_KIND:
+                        return  # This terminal lane cannot stage new content.
+                    registry.put_completion_control(handle, payload)
+                    completion.record_persisted(payload)
+                    if body["status"] in ("accepted", "duplicate"):
+                        self.store.acknowledge(peer["device_id"], body["message_id"])
+                    if completion.validate("finish", None) is True:
+                        registry.finish_completion(handle)
+                        admission["phone_persisted"] = True
+                    return
                 try:
                     registry.require_current(handle)
                 except PermissionError:
@@ -4602,11 +4678,17 @@ class PhoneService:
                 return False
             registry, handle = admission["registry"], admission["handle"]
             try:
-                registry.require_current(handle)
+                if admission.get("completion") is not None:
+                    registry.check_completion(handle, "send", message)
+                else:
+                    registry.require_current(handle)
                 if message != self.store.outbox_message(peer_id, message["message_id"]) or message["expires_ms"] <= now_ms():
                     return False
                 self.store.mark_attempt(peer_id, message["message_id"])
-                registry.require_current(handle)
+                if admission.get("completion") is not None:
+                    registry.check_completion(handle, "send", message)
+                else:
+                    registry.require_current(handle)
             except PermissionError:
                 self.cancel_personal_actor(registry, handle, notify=False)
                 return False

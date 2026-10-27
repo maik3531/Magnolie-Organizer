@@ -656,6 +656,22 @@ whole preview unapplied. Disk failure leaves the actual book state unchanged;
 reopen and exact replay are checked. The native controller still owns checkpoint,
 grant/source validation and successful network receipt dispatch.
 
+The Linux direct controller can now start its queued reviewed-decision completion
+after the existing data/report SaveACK. It requires the actual live native writer
+observation and protected full targets, registers the metadata-only owner before
+dispatch, and limits sends to its exact queued decision frames. Incoming ACKs use
+the separate protected control store; success waits for fresh exact resulting
+membership and the saved claim. Status distinguishes data-book persistence from
+terminal decision persistence. Direct native adapter tests exercise both restore
+with unchanged membership and delete with a new native scope generation. The
+production Notes receiver/producer, Windows controller and Linux daemon/proxy
+binding remain required before actor activation.
+
+Notes' private intent ledger additionally validates the whole immutable incoming
+envelope set before atomically marking it processed. A partial/changed set or SQL
+failure leaves every intent staged; exact processed replay does not apply another
+book mutation or manufacture a network receipt.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

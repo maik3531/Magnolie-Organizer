@@ -283,6 +283,33 @@ class PersonalSyncActorJournalTest {
         journal.retire(handle); journal.create(PEER, KEY, REV)
     }
 
+    @Test fun savedActorIntentSetCommitsAtomicallyAndExactReplayStaysProcessed() = fixture { db, storage ->
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val queue = TelefonQueue(context, storage)
+        try {
+            val run = "44444444-4444-4444-8444-444444444444"
+            val messages = (0..1).map { index -> TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                put("format", 1); put("run_id", run); put("proposal_batch_id", java.util.UUID.randomUUID().toString())
+                put("sequence", index); put("last", index == 1); put("proposals", JsonArray(emptyList()))
+            }, 60000) }
+            messages.forEach { queue.stageActorDeletionIntent(run, it) }
+            assertFalse(queue.commitActorDeletionIntents(run, messages.take(1)))
+            val changed = messages.mapIndexed { index, value -> if (index == 1) JsonObject(value + ("expires_ms" to JsonPrimitive(value.long("expires_ms") - 1))) else value }
+            assertFalse(queue.commitActorDeletionIntents(run, changed))
+            assertEquals(2, queue.actorDeletionIntents(run).size)
+            val second = messages[1].string("message_id")
+            db.writableDatabase.execSQL("CREATE TRIGGER actor_intent_failure BEFORE UPDATE ON inbox WHEN OLD.message_id='$second' AND NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic native failure'); END")
+            assertTrue(runCatching { queue.commitActorDeletionIntents(run, messages) }.isFailure)
+            assertEquals(2, queue.actorDeletionIntents(run).size)
+            db.writableDatabase.execSQL("DROP TRIGGER actor_intent_failure")
+            assertTrue(queue.commitActorDeletionIntents(run, messages.reversed()))
+            assertTrue(queue.actorDeletionIntents(run).isEmpty())
+            assertTrue(queue.commitActorDeletionIntents(run, messages))
+        } finally {
+            (TelefonQueue::class.java.getDeclaredField("helper").apply { isAccessible = true }.get(queue) as TelefonDatenbank).close()
+        }
+    }
+
     private fun fixture(test: (TelefonDatenbank, TelefonAblage) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ActorJournalFixture", 1.0, "Synthetic keys only") {
