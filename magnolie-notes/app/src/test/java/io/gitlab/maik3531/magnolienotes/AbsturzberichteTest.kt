@@ -131,6 +131,30 @@ class AbsturzberichteTest {
         }
     }
 
+    @Test fun `Zyklischer Vorlaeufer delegiert nicht erneut und spaeterer Crash bleibt moeglich`() {
+        val directory = kotlin.io.path.createTempDirectory("magnolie-crash-cycle").toFile()
+        try {
+            lateinit var handler: AbsturzHandler
+            val calls = AtomicInteger()
+            var expected: Throwable = IllegalStateException("original crash")
+            val previous = Thread.UncaughtExceptionHandler { thread, error ->
+                assertSame(expected, error)
+                check(calls.incrementAndGet() == 1) { "Reentrant predecessor delegated again" }
+                handler.uncaughtException(thread, error)
+            }
+            handler = AbsturzHandler(directory, metadaten, previous)
+            handler.uncaughtException(Thread("owned-thread"), expected)
+            assertEquals(1, calls.get())
+            assertEquals(listOf(AbsturzHandler.DATEINAME), directory.listFiles().orEmpty().map(File::getName))
+            assertTrue(File(directory, AbsturzHandler.DATEINAME).readText().contains("original crash"))
+            calls.set(0); expected = IllegalArgumentException("later independent crash")
+            handler.uncaughtException(Thread("owned-thread"), expected)
+            assertEquals(1, calls.get())
+            assertTrue(File(directory, AbsturzHandler.DATEINAME).readText().contains("later independent crash"))
+            assertTrue(File(directory, AbsturzHandler.DATEINAME + ".old").readText().contains("original crash"))
+        } finally { directory.deleteRecursively() }
+    }
+
     @Test
     fun `Zeitformat ist UTC`() {
         assertEquals("Z", Instant.parse(metadaten().zeitUtc).toString().takeLast(1))

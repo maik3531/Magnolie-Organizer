@@ -52,6 +52,7 @@ internal class AbsturzHandler(
     private val bearbeitung = ThreadLocal<Boolean>()
 
     override fun uncaughtException(faden: Thread, fehler: Throwable) {
+        if (bearbeitung.get() == true) return
         try {
             if (bearbeitung.get() != true) {
                 bearbeitung.set(true)
