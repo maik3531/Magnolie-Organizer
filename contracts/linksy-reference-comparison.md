@@ -132,10 +132,13 @@ do. Pending installed/personal acceptance is still tracked in #242.
 
 ## Compatible follow-up plan
 
-**Release/UI decision:** the user explicitly excluded **#244, #245 and #246**
-from the current release (#113). In a later release, their user-facing entry
-points belong exclusively under **KDE Connect → Erweiterte Funktionen** (Advanced
-Features) or in **Entwicklermodus** (Developer Mode).
+**Latest release/UI decision:** the user has brought **#244, #245 and #246**
+into the current work (#113), replacing the earlier deferral. Their user-facing
+entry points belong under **KDE Connect → Erweiterte Funktionen** (Advanced
+Features). The reported faults in the current user preview are addressed first;
+these extensions require actual implementation and native acceptance afterward.
+Publication still requires the user's new approval and the established system
+start/installation gates.
 
 The three selected extensions have independent scopes and acceptance criteria:
 
