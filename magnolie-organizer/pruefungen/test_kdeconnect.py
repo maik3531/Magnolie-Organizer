@@ -228,7 +228,8 @@ def test_observed_android_identity_normalizes_only_canonical_target_version():
         kde.validate_identity(changed)
 
 
-def test_sms_capabilities_and_request_packet_goldens():
+def test_sms_capabilities_and_request_packet_goldens(monkeypatch):
+    monkeypatch.setattr(kde.SshfsBrowser, 'available', lambda _self: False)
     with tempfile.TemporaryDirectory() as root:
         packet = kde.KDEConnectSMSBackend(root).identity_packet()
     assert packet["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE,
@@ -1237,7 +1238,8 @@ def receive_worker(backend, device_id="a" * 32):
     return worker
 
 
-def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict():
+def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict(monkeypatch):
+    monkeypatch.setattr(kde.SshfsBrowser, 'available', lambda _self: False)
     with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
         backend = paired_backend(root)
         base = [kde.SMS_MESSAGES_TYPE, kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE,
