@@ -884,6 +884,22 @@ class TelefonWerk private constructor(private val context: Context, private val 
         else wakeScopedSync(peer)
     }
 
+    @Synchronized internal fun personalItemSyncAvailable(kind: String): Boolean = runCatching {
+        val peer = safePeer() ?: return@runCatching false
+        val channel = activeChannel ?: return@runCatching false
+        val session = noteSessions[channel] ?: return@runCatching false
+        val members = session.localContentScope?.getValue("members")?.jsonObject ?: return@runCatching false
+        val parts = maxOf(1, (members.getValue("notes").jsonArray.size + members.getValue("tasks").jsonArray.size + 255) / 256)
+        serviceRunning && storage.enabled() && activeTransport?.first == TelefonTransportArt.WIFI &&
+            peer.own_device && peer.remote_own_device && contentScopeControlsReady(peer, session) &&
+            session.contentScopeAccepted == (0 until parts).toSet() &&
+            kind in setOf("note", "task") &&
+            negotiatedPersonalFormat(peer, listOf(if (kind == "note") "notes" else "tasks")) == 14
+    }.getOrDefault(false)
+
+    @Synchronized internal fun personalItemSyncIfAvailable(kind: String, localId: String): String? =
+        if (personalItemSyncAvailable(kind)) personalItemSyncNow(kind, localId) else null
+
     /** Queue exactly one current personal entry; this never starts time/custom or a full content run. */
     @Synchronized fun personalItemSyncNow(kind: String, localId: String): String = synchronized(Ablage.SCHREIBSPERRE) {
         require(kind in setOf("note", "task"))

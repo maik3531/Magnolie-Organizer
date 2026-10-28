@@ -43,7 +43,8 @@ class Baumwerk private constructor(
     },
     private val kontaktSnapshotVorher: (List<io.gitlab.maik3531.magnolienotes.journal.KontaktRohstand>, String) -> Unit = { staende, id ->
         AndroidJournal.hole(zusammenhang).kontaktSnapshot("contact-import", staende, id)
-    }
+    },
+    private val fernInternet: () -> Boolean = { FernAbgleich.internet(zusammenhang) }
 ) : Server.Handlung {
 
     private val server = Server(this)
@@ -715,6 +716,52 @@ class Baumwerk private constructor(
     fun dubletteOeffnen(id: String): Boolean {
         val v = ablage.baum.value.kontaktVorschlaege.firstOrNull { it.id == id && it.art == "dublette" } ?: return false
         return AndroidKontakte(zusammenhang).systemkontaktOeffnen(v.lookupKey)
+    }
+
+    /** Probe only explicitly configured remote routes; never send book content or change pairing. */
+    internal fun fernAbgleichVerbindungen(): List<FernAbgleichVerbindung> {
+        if (!fernInternet()) return emptyList()
+        val vorher = ablage.baum.value
+        if (!vorher.dienstAn) return emptyList()
+        val identitaet = eigen() ?: return emptyList()
+        val result = mutableListOf<FernAbgleichVerbindung>()
+        val ende = System.nanoTime() + 8_000_000_000L
+        for (peer in vorher.partner.filter { it.bestaetigt && it.vertraut && it.fernAdresse.isNotBlank() }.take(32)) {
+            if (Thread.currentThread().isInterrupted || System.nanoTime() >= ende || !fernInternet()) break
+            FernAbgleich.pruefen(identitaet, peer, vorher.syncEpoch)?.let { proof ->
+                if (proof.passt(ablage.baum.value)) result += proof
+            }
+        }
+        return result
+    }
+
+    /** Single-entry sync only to existing grants; never expand sharing or request a full reply. */
+    internal fun fernEinzelAbgleichen(kind: String, id: String, verbindungen: List<FernAbgleichVerbindung>,
+                                     sofortSenden: Boolean = true): Int {
+        val anzahl = synchronized(Ablage.SCHREIBSPERRE) {
+            if (!fernInternet()) return 0
+            val baum = ablage.baum.value
+            val eigen = eigen() ?: return 0
+            val note = if (kind == "note") ablage.notiz(id) else null
+            val task = if (kind == "task") ablage.aufgabe(id)?.takeUnless { it.istFremd } else null
+            val freigegeben = note?.baumFreigabe?.partner.orEmpty().toSet() +
+                task?.let { it.standPartner + it.delegiertAn }.orEmpty().filter(String::isNotBlank)
+            val ziele = verbindungen.filter { it.passt(baum) && it.partner.kennung in freigegeben }
+                .distinctBy { it.partner.kennung }
+            if (ziele.isEmpty()) return 0
+            for (ziel in ziele) {
+                val peer = ziel.partner.kennung
+                if (note != null) {
+                    val vorbereitet = Synchronisation.notizVorbereiten(note, peer, eigen.kennung, System.currentTimeMillis())
+                    if (vorbereitet.notiz != note) ablage.setzeNotiz(vorbereitet.notiz)
+                    NotizQuellen.inhalte(vorbereitet.notiz, vorbereitet.art, eigen.kennung, peer)
+                        .forEach { einreihen(peer, vorbereitet.art, it) }
+                } else if (task != null) einreihen(peer, "aufgabe", Nutzlast.aufgabeInhalt(task, eigen.kennung))
+            }
+            ziele.size
+        }
+        if (anzahl > 0 && sofortSenden) postfachAbarbeiten()
+        return anzahl
     }
 
     /** Sendet den vollständigen örtlichen Bestand; eine Antwortanfrage ist optional. */
@@ -1452,6 +1499,9 @@ class Baumwerk private constructor(
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext)
+
+        internal fun fuerFernAbgleichTest(ablage: Ablage, zusammenhang: Context, internet: () -> Boolean): Baumwerk =
+            Baumwerk(ablage, zusammenhang.applicationContext, fernInternet = internet)
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context, notizSnapshotVorher: () -> Unit): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext, notizSnapshotVorher)

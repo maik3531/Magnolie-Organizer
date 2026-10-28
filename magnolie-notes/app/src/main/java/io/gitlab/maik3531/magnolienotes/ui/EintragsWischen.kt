@@ -41,15 +41,20 @@ internal class WischEinstellungen(context: Context) {
 /** Physical left/right choices are retained in RTL layouts; partial swipes never dispatch. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun EintragsWischen(anzeige: WischAnzeige, beiAktion: (WischAktion) -> Unit,
+                                        abgleichMoeglich: () -> Boolean = { true },
                                         inhalt: @Composable () -> Unit) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val latestRtl by rememberUpdatedState(rtl)
     val latestAction by rememberUpdatedState(beiAktion)
     val latestSettings by rememberUpdatedState(anzeige)
-    fun action(value: SwipeToDismissBoxValue): WischAktion = if (!latestSettings.aktiv) WischAktion.KEINE else when (value) {
-        SwipeToDismissBoxValue.StartToEnd -> if (latestRtl) latestSettings.links else latestSettings.rechts
-        SwipeToDismissBoxValue.EndToStart -> if (latestRtl) latestSettings.rechts else latestSettings.links
-        SwipeToDismissBoxValue.Settled -> WischAktion.KEINE
+    val latestSyncAvailable by rememberUpdatedState(abgleichMoeglich)
+    fun action(value: SwipeToDismissBoxValue): WischAktion {
+        val chosen = if (!latestSettings.aktiv) WischAktion.KEINE else when (value) {
+            SwipeToDismissBoxValue.StartToEnd -> if (latestRtl) latestSettings.links else latestSettings.rechts
+            SwipeToDismissBoxValue.EndToStart -> if (latestRtl) latestSettings.rechts else latestSettings.links
+            SwipeToDismissBoxValue.Settled -> WischAktion.KEINE
+        }
+        return if (chosen == WischAktion.ABGLEICHEN && !latestSyncAvailable()) WischAktion.KEINE else chosen
     }
     val state = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
         val chosen = action(value)

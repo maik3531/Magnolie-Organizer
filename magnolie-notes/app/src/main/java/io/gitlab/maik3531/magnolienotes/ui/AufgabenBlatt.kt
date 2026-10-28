@@ -100,7 +100,8 @@ fun AufgabenBlatt(
     beiAbgleichen: (Aufgabe) -> Unit,
     modifier: Modifier = Modifier,
     wischen: WischAnzeige = WischAnzeige(),
-    anzeige: ListenAnzeige = ListenAnzeige()
+    anzeige: ListenAnzeige = ListenAnzeige(),
+    abgleichMoeglich: (Aufgabe) -> Boolean = { true }
 ) {
     val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
@@ -181,7 +182,7 @@ fun AufgabenBlatt(
                     WischAktion.LOESCHEN -> loeschFrage = eintrag.aufgabe
                     WischAktion.ABGLEICHEN -> beiAbgleichen(eintrag.aufgabe)
                     WischAktion.KEINE -> Unit
-                } }) { Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
+                } }, abgleichMoeglich = { abgleichMoeglich(eintrag.aufgabe) }) { Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
                     beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel,
                     anzeige.aufgaben == AufgabenSortierung.MANUELL, { eigenschaftenId = eintrag.aufgabe.id }) }
             }

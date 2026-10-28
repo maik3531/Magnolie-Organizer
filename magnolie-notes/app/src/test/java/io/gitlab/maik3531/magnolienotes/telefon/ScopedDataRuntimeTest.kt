@@ -172,11 +172,15 @@ class ScopedDataRuntimeTest {
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     (field(TelefonWerk::class.java, "scopedWakeup").get(work) as AtomicBoolean).set(true)
                     sent()
+                    assertFalse(work.personalItemSyncAvailable("note"))
+                    assertNull(work.personalItemSyncIfAvailable("note", "phone-note"))
                     assertTrue("Unacknowledged membership permitted a send", runCatching { work.personalItemSyncNow("note", "phone-note") }.isFailure)
                     ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     if (mode == "send-offline") field(TelefonWerk::class.java, "activeChannel").set(work, null)
                     if (mode == "send-revoked") storage.savePeer(peer.copy(remote_personal_notes_sync_granted = false))
                     if (mode in setOf("send-offline", "send-revoked")) {
+                        assertFalse(work.personalItemSyncAvailable("note"))
+                        assertNull(work.personalItemSyncIfAvailable("note", "phone-note"))
                         assertTrue(runCatching { work.personalItemSyncNow("note", "phone-note") }.isFailure)
                         assertFalse(queue.hasActiveScopedRun(peerId))
                         assertEquals(2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
@@ -184,7 +188,14 @@ class ScopedDataRuntimeTest {
                     }
                     val kind = if (mode == "send-task") "task" else "note"
                     val id = if (kind == "task") "phone-task" else "phone-note"
-                    val run = work.personalItemSyncNow(kind, id)
+                    assertTrue(work.personalItemSyncAvailable(kind))
+                    field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.BLUETOOTH to pipe)
+                    assertFalse(work.personalItemSyncAvailable(kind))
+                    assertNull(work.personalItemSyncIfAvailable(kind, id))
+                    assertFalse(queue.hasActiveScopedRun(peerId))
+                    field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
+                    assertTrue(work.personalItemSyncAvailable(kind))
+                    val run = requireNotNull(work.personalItemSyncIfAvailable(kind, id))
                     pump.invoke(work, peer, channel, 0L, false)
                     val outgoing = scoped(sent())
                     assertEquals(1, outgoing.size)

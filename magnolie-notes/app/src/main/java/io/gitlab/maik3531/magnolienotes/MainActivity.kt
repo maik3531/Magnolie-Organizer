@@ -413,6 +413,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val telefonZustand by telefonWerk.state.collectAsState()
 
     var blatt by rememberSaveable { mutableStateOf(0) }
+    val wischVerbindungen = io.gitlab.maik3531.magnolienotes.ui.wischVerbindungen(baumzustand, werk, telefonWerk,
+        blatt in 0..1 && wischAnzeige.aktiv &&
+            io.gitlab.maik3531.magnolienotes.ui.WischAktion.ABGLEICHEN in listOf(wischAnzeige.links, wischAnzeige.rechts))
+    fun fernAbgleichMoeglich(partner: Collection<String>): Boolean =
+        io.gitlab.maik3531.magnolienotes.baum.FernAbgleich.internet(zusammenhang) &&
+            wischVerbindungen.fern.any { it.partner.kennung in partner && it.passt(baumzustand) }
     var zeitAnsicht by rememberSaveable { mutableStateOf("tracking") }
     val entwurf by ablage.entwurf.collectAsState()
     val offeneNotiz = entwurf.notiz
@@ -476,8 +482,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
     fun einzelAbgleich(kind: String, id: String) {
         faden.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { telefonWerk.personalItemSyncNow(kind, id) } }
-            sage(zusammenhang.getString(if (result.isSuccess) R.string.wischen_wartet else R.string.wischen_fehler))
+            val result = withContext(Dispatchers.IO) { runCatching {
+                telefonWerk.personalItemSyncIfAvailable(kind, id) != null ||
+                    werk.fernEinzelAbgleichen(kind, id, wischVerbindungen.fern) > 0
+            } }
+            if (result.getOrNull() == true || result.isFailure)
+                sage(zusammenhang.getString(if (result.isSuccess) R.string.wischen_wartet else R.string.wischen_fehler))
         }
     }
 
@@ -1034,6 +1044,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     wischen = wischAnzeige,
                     beiLoeschen = ablage::loescheNotizWennUnveraendert,
                     beiAbgleichen = { einzelAbgleich("note", it.id) },
+                    abgleichMoeglich = { wischVerbindungen.notizen || fernAbgleichMoeglich(it.baumFreigabe?.partner.orEmpty()) },
                     notizbuecher = bestand.notizbuecher,
                     beiOeffnen = ablage::setzeNotizEntwurf,
                     beiNeu = {
@@ -1052,6 +1063,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     wischen = wischAnzeige,
                     beiLoeschen = ablage::loescheAufgabeWennUnveraendert,
                     beiAbgleichen = { einzelAbgleich("task", it.id) },
+                    abgleichMoeglich = { wischVerbindungen.aufgaben ||
+                        (!it.istFremd && fernAbgleichMoeglich(it.standPartner + it.delegiertAn)) },
                     beiOeffnen = ablage::setzeAufgabenEntwurf,
                     beiAbhaken = { aufgabe, erledigt ->
                         faden.launch {

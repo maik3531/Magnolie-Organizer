@@ -87,7 +87,8 @@ fun NotizBlatt(
     beiAbgleichen: (Notiz) -> Unit,
     modifier: Modifier = Modifier,
     wischen: WischAnzeige = WischAnzeige(),
-    anzeige: ListenAnzeige = ListenAnzeige()
+    anzeige: ListenAnzeige = ListenAnzeige(),
+    abgleichMoeglich: (Notiz) -> Boolean = { true }
 ) {
     var suche by remember { mutableStateOf("") }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
@@ -171,7 +172,7 @@ fun NotizBlatt(
                         WischAktion.LOESCHEN -> loeschFrage = notiz
                         WischAktion.ABGLEICHEN -> beiAbgleichen(notiz)
                         WischAktion.KEINE -> Unit
-                    } }) { Notizzeile(
+                    } }, abgleichMoeglich = { abgleichMoeglich(notiz) }) { Notizzeile(
                         notiz = notiz,
                         buchname = notizbuecher.firstOrNull { it.id == notiz.notizbuchId }?.name.orEmpty(),
                         beiKlick = { beiOeffnen(notiz) },
