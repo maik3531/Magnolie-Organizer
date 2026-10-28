@@ -13,6 +13,17 @@ const other = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUw
 const fingerprint = "a".repeat(64), device = "paired-phone";
 const status = { enabled: false, peers: [], kdeconnect: { contacts_available: true, contacts_device_id: device } };
 
+function editGroups(b, values) {
+  b.t.zustand().adressen.auswahlId = "local"; b.t.zustand().adressen.buchstabe = "O";
+  b.t.wechsel("adressen");
+  [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Edit").click();
+  const picker = b.w.document.querySelector("#kontakt-personengruppen");
+  assert.ok(picker);
+  for (const option of picker.options) option.selected = values.length ? values.includes(option.value) : option.value === "";
+  picker.dispatchEvent(new b.w.Event("change"));
+  [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Save changes").click();
+}
+
 async function run(web, data, remote, options = {}) {
   const b = await harness.exports.boot(web, data);
   // jsdom has no image decoder; rendered decoding is covered by the native probe.
@@ -55,6 +66,7 @@ async function run(web, data, remote, options = {}) {
       }
     } while (b.t.fotoAktiv());
     return { data: plain(b.t.daten()), requests, saves: b.saves().map(m => JSON.parse(m.text)),
+      conflicts: [...b.w.document.querySelectorAll(".kontakt-gruppen-konflikt")].map(node => node.textContent),
       groups: b.t.daten().kontakte.map(contact => Array.from(b.t.kontaktGruppen(contact))),
       expectedFamily: b.t.kontaktGruppeKanonisch("Familie") };
   } finally { b.close(); }
@@ -111,6 +123,37 @@ async function run(web, data, remote, options = {}) {
       const concurrent = await run(web, grouped, changedGroups, { status: sourceStatus, device: sourceDevice,
         beforeReply: b => { b.t.daten().kontakte[0].vcardRoundtrip = ["CATEGORIES:Family"]; } });
       assert.deepEqual(concurrent.groups[0], ["Family"], "Late phone membership must not overwrite a concurrent local group edit");
+      const locallyEdited = await run(web, grouped, remote, { status: sourceStatus, device: sourceDevice,
+        beforeStart: b => editGroups(b, ["Work"]) });
+      assert.deepEqual(locallyEdited.groups[0], ["Work"], "A saved local edit BEFORE the photo request must not be replaced by the old phone membership");
+      assert.equal(locallyEdited.data.kontakte[0].telefonGruppenAenderung.beobachtet.deviceId, sourceDevice);
+      assert.deepEqual(locallyEdited.data.kontakte[0].telefonGruppenAenderung.beobachtet.groups, ["Family"]);
+      assert.ok(locallyEdited.conflicts.some(text => text.includes("Conflict") && text.includes("Work") && text.includes("Family")),
+        "Both the retained edit and actual phone membership must be visible, not silently treated as synchronized");
+      assert.ok(locallyEdited.saves.some(data => data.kontakte[0].telefonGruppenAenderung?.beobachtet), "Pending local edit and observed conflict must be saved");
+      const restarted = plain(locallyEdited.data);
+      restarted.kontaktFotoCache.entries.forEach(entry => { entry.checkedAt = Date.now() - 3600001; });
+      const afterRestart = await run(web, restarted, remote, { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(afterRestart.groups[0], ["Work"], "Restart and re-read must preserve the pending edit");
+      const removed = await run(web, grouped, remote, { status: sourceStatus, device: sourceDevice,
+        beforeStart: b => editGroups(b, []) });
+      assert.deepEqual(removed.groups[0], [], "Explicitly removing the last group before the read must remain pending too");
+      const matching = remote.map((card, index) => index ? card : { ...card, modified_ms: 2, gruppenZeilen: ["CATEGORIES:Work"] });
+      const observedMatch = await run(web, locallyEdited.data, matching, { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(observedMatch.groups[0], ["Work"]);
+      assert.equal(observedMatch.data.kontakte[0].telefonGruppenAenderung, null, "Only an actual matching source read may resolve the observed divergence");
+      const laterPhoneEdit = await run(web, observedMatch.data, remote.map((card, index) => index ? card : {
+        ...card, modified_ms: 3, gruppenZeilen: ["CATEGORIES:Patients"]
+      }), { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(laterPhoneEdit.groups[0], ["Patients"], "A resolved local edit must not permanently suppress later real phone changes");
+      const otherSource = await run(web, locallyEdited.data, matching, { status: sourceStatus === status ? notesStatus : status,
+        device: sourceStatus === status ? notesDevice : device });
+      assert.ok(otherSource.data.kontakte[0].telefonGruppenAenderung, "A different contact source cannot acknowledge the pending change");
+      assert.equal(otherSource.data.kontakte[0].telefonGruppenAenderung.beobachtet.deviceId, sourceDevice);
+      const unchangedEditor = await run(web, grouped, changedGroups, { status: sourceStatus, device: sourceDevice,
+        beforeStart: b => editGroups(b, ["Colleagues"]) });
+      assert.deepEqual(unchangedEditor.groups[0], ["Work"], "Saving an unchanged chooser must not block real phone changes");
+      assert.equal(unchangedEditor.data.kontakte[0].telefonGruppenAenderung, null);
     }
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");
     const directProvider = await run(web, base, remote, { status: { ...notesStatus, kdeconnect: status.kdeconnect }, device: notesDevice });
