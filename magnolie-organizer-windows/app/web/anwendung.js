@@ -25341,7 +25341,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       knopf(_("Claws Mail XML (.xml) …"), "", () => starteImport("claws")),
       knopf(_("vCard (.vcf), including iPhone/iCloud export …"), "", () => starteImport("vcf")),
       knopf(_("LDIF address book (.ldif) …"), "", () => starteImport("ldif")),
-      knopf("Lotus Organizer (.or6 / .csv) …", "", () => starteImport("lotus")),
       knopf(_("Magnolie Notes / Android: check for pending import"), "", () =>
         Bruecke.sende({ cmd: "baum_stand" })));
     imp.append(impReihe);
