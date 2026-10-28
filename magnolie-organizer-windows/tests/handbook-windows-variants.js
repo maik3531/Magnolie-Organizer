@@ -57,8 +57,16 @@ try {
       "first-run-saved-intentions", "technical-update-trust"]) {
       const page = pages.find(p => p.id === id);
       const source = page.inhaltAnhangErsetzt ? page.inhaltAnhang.en : page._source.inhalt;
-      const expected = w.MagnolieI18n.gettext(source);
+      let expected = w.MagnolieI18n.gettext(source);
       assert.ok(locale === "en" || expected !== source, `${locale}: untranslated current page ${id}`);
+      if (page.inhaltAnhang && !page.inhaltAnhangErsetzt) {
+        const appendix = page.inhaltAnhangNeutral ? page.inhaltAnhang.en :
+          page.inhaltAnhang[code] || page.inhaltAnhang[code.split("-")[0]] || w.MagnolieI18n.gettext(page.inhaltAnhang.en);
+        assert.ok(appendix, `${locale}: empty current appendix ${id}`);
+        assert.ok(locale === "en" || page.inhaltAnhangNeutral || appendix !== page.inhaltAnhang.en,
+          `${locale}: untranslated current appendix ${id}`);
+        expected += appendix;
+      }
       assert.strictEqual(page.inhalt, expected, `${locale}: old Windows override replaced ${id}`);
     }
     assert.ok(pages.find(p => p.id === "platform-security-matrix").inhalt.includes("data-backup-automation='true'"),
