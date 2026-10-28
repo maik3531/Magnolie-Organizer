@@ -8344,3 +8344,7 @@ msgstr "＋ Дадаць сустрэчу"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Пашыраныя функцыі"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Паказваць «Падключыце тэлефон праз Wi-Fi» у меню трэя"

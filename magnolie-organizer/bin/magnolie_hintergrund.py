@@ -804,7 +804,7 @@ def _request_shape(operation, arguments):
         "phone_actor_reply": {"subscriber", "book_source", "actor_id", "owner_token", "claim_token", "batches", "sources", "native_saved_book"},
         "phone_actor_start": {"subscriber", "book_source", "actor_id", "owner_token"},
         "phone_actor_cancel": {"subscriber", "book_source", "actor_id", "owner_token"},
-        "phone_open_pairing": set(), "phone_cancel_pairing": set(),
+        "phone_open_pairing": set(), "phone_resume_connection": set(), "phone_cancel_pairing": set(),
         "phone_confirm_pairing": {"attempt_id", "accepted"},
         "phone_remove": {"peer_id"},
         "phone_set_bluetooth": {"peer_id", "enabled", "address"},
@@ -1637,6 +1637,7 @@ class IPCServer:
             "phone_mcp_action": ("mcp_action", ("request",)),
             "phone_set_enabled": ("set_enabled", ("enabled",)),
             "phone_open_pairing": ("open_pairing", ()),
+            "phone_resume_connection": ("resume_connection", ()),
             "phone_cancel_pairing": ("cancel_pairing", ()),
             "phone_confirm_pairing": ("confirm_pairing", ("attempt_id", "accepted")),
             "phone_remove": ("remove", ("peer_id",)),
@@ -2198,6 +2199,7 @@ class PhoneServiceProxy:
             return False
     def set_enabled(self, enabled): return self._call("set_enabled", enabled=bool(enabled))
     def open_pairing(self): return self._call("open_pairing")
+    def resume_connection(self): return self._call("resume_connection")
     def cancel_pairing(self): return self._call("cancel_pairing")
     def confirm_pairing(self, attempt_id, accepted):
         return self._call("confirm_pairing", attempt_id=attempt_id, accepted=bool(accepted))

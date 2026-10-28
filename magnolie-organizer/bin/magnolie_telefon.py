@@ -3149,6 +3149,20 @@ class PhoneService:
             worker.start()
             return True
 
+    def resume_connection(self):
+        """Reannounce an existing trusted phone without changing any pairing token or key."""
+        with self._lifecycle_lock:
+            with self.lock:
+                if not self.enabled or len(self.store.peers) != 1 or self.connections:
+                    return False
+                running = bool(self.server)
+            if not self._start_owned():
+                return False
+            if running:
+                self._publish()
+        self.callback("status", self.report())
+        return True
+
     def open_pairing(self, expected_revision=None):
         if not self.enabled:
             raise RuntimeError("Die Magnolie-Telefonverbindung ist ausgeschaltet.")

@@ -9834,3 +9834,7 @@ msgstr "＋ إضافة موعد"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "وظائف متقدمة"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "إظهار «قم بتوصيل الهاتف عبر شبكة الواي فاي» في قائمة علبة النظام"

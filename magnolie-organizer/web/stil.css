@@ -6346,3 +6346,11 @@ body[data-linien="aus"] #tb-notiz {
   background: rgba(255,255,255,.4);
 }
 .tb-eigenes-datum.fest { padding-right: .45rem; font-weight: 700; }
+.allgemein-tray-hauptzeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+.allgemein-tray-hauptzeile > .hak { margin: 0; }

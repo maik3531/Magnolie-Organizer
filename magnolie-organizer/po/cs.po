@@ -9743,3 +9743,7 @@ msgstr "＋ Přidat schůzku"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Rozšířené funkce"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Zobrazit „Připojte telefon přes WLAN“ v nabídce oznamovací oblasti"

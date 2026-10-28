@@ -8399,3 +8399,7 @@ msgstr "＋ Añadir cita"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Funciones avanzadas"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Mostrar «Conectar el teléfono mediante WLAN» en el menú de la bandeja"

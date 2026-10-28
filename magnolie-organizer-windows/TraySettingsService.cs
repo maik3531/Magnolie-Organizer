@@ -10,8 +10,11 @@ internal sealed record TraySettings(
     bool StartMinimiert = false,
     bool Autostart = false,
     bool Zaehler = false,
-    string Oeffnen = "previous")
+    string Oeffnen = "previous",
+    bool TelefonWlanVerbinden = true)
 {
+    internal bool ShowPhoneConnect(bool phoneEnabled, bool online, int pairedCount = 0) =>
+        TelefonWlanVerbinden && phoneEnabled && !online && pairedCount <= 1;
     internal static TraySettings FromJson(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object) return new TraySettings();
@@ -29,7 +32,8 @@ internal sealed record TraySettings(
             True(element, "startMinimiert") || autostart,
             autostart,
             True(element, "zaehler"),
-            opening);
+            opening,
+            NotFalse(element, "telefonWlanVerbinden"));
     }
 
     private static bool True(JsonElement element, string name) =>

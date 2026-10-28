@@ -7285,7 +7285,13 @@ def tray_einstellungen(roh=None):
             "startMinimiert": bool(roh.get("startMinimiert")) or autostart,
             "autostart": autostart,
             "zaehler": bool(roh.get("zaehler")),
+            "telefonWlanVerbinden": roh.get("telefonWlanVerbinden") is not False,
             "oeffnen": oeffnen}
+
+
+def tray_telefon_verbinden_sichtbar(einstellungen, telefon_aktiv, partner):
+    return bool(einstellungen.get("telefonWlanVerbinden", True) and telefon_aktiv and
+                len(partner) <= 1 and not any(str(item.get("state") or "").startswith("online_") for item in partner))
 
 
 def tray_einstellungen_lesen(pfad=None):
@@ -20976,8 +20982,23 @@ class Fenster(_FENSTER_BASIS):
     def _tray_telefon_verbinden(self, *_egal):
         if self._gesperrt or not self._telefon or not self._telefon.enabled:
             return
+        partner = self._telefon.report().get("peers", [])
+        if not tray_telefon_verbinden_sichtbar(self._tray_einstellungen, True, partner):
+            return
         self._tray_zeigen()
-        threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
+        if partner:
+            def wiederverbinden():
+                try:
+                    self._telefon.resume_connection()
+                except Exception as fehler:
+                    debug_notiz("tray.phone.reconnect.failed", cause=type(fehler).__name__)
+                    self.antwort("App.telefonPairingFehler", {"fehler": _("The phone connection is not available.")})
+                finally:
+                    self._telefon_stand_melden()
+            threading.Thread(target=wiederverbinden, daemon=True).start()
+            self._tray_telefon_zeigen(None, partner[0].get("device_id") or "")
+        else:
+            threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
     def _tray_telefone_aktualisieren(self):
         eintrag = getattr(self, "_tray_telefone", None)
@@ -20997,7 +21018,7 @@ class Fenster(_FENSTER_BASIS):
         eintrag.set_visible(aktiv and bool(partner_liste))
         verbinden = getattr(self, "_tray_telefon_verbinden_eintrag", None)
         if verbinden:
-            verbinden.set_visible(aktiv)
+            verbinden.set_visible(tray_telefon_verbinden_sichtbar(self._tray_einstellungen, aktiv, partner_liste))
         untermenue.show_all()
 
     def _tray_beenden(self, *_egal):
@@ -21030,6 +21051,7 @@ class Fenster(_FENSTER_BASIS):
             else:
                 self._tray_indikator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             self._tray_zaehler_anzeigen()
+            self._tray_telefone_aktualisieren()
             return True
         try:
             desktop = str(os.environ.get("XDG_CURRENT_DESKTOP") or "").upper()
@@ -21050,7 +21072,10 @@ class Fenster(_FENSTER_BASIS):
             if not cinnamon_native:
                 menu.append(oeffnen)
                 menu.append(minimieren)
-            self._tray_telefon_verbinden_eintrag = None
+            verbinden = Gtk.MenuItem(label=_("Connect phone via WLAN"))
+            verbinden.connect("activate", self._tray_telefon_verbinden)
+            menu.append(verbinden)
+            self._tray_telefon_verbinden_eintrag = verbinden
             telefone = Gtk.MenuItem(label=_("Phones"))
             menu.append(telefone)
             self._tray_telefone = telefone

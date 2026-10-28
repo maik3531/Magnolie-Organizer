@@ -57,6 +57,13 @@ def wait_for(request, token, predicate):
     raise AssertionError("Setup state did not arrive")
 
 
+def test_resume_private_daemon_route_does_not_open_an_unpaired_window(owner):
+    phone, _server, request, _normal, _settings = owner
+    before = phone.pairing_token, phone.pairing_until
+    assert request("phone_resume_connection") is False
+    assert (phone.pairing_token, phone.pairing_until) == before
+
+
 def test_showing_transports_does_not_reserve_setup_session(tmp_path):
     calls = []
     adapter = SetupPhoneServices(lambda: str(tmp_path), lambda: "Fixture",

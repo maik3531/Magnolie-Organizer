@@ -796,8 +796,17 @@ internal sealed class MainForm : Form
         menu.Items.Add(T("Open"), null, (_, _) => RestoreFromTray());
         var connectPhone = new ToolStripMenuItem(T("Connect phone via WLAN"), null, async (_, _) =>
         {
+            if (telefonCoordinator is null) return;
+            var peers = telefonCoordinator.Peers;
+            if (!traySettings.ShowPhoneConnect(telefonCoordinator.Enabled, telefonCoordinator.HasOnlinePhone, peers.Length)) return;
             RestoreFromTray();
-            if (telefonCoordinator is not null) await telefonCoordinator.StartPairingAsync();
+            if (peers.Length == 0) await telefonCoordinator.StartPairingAsync();
+            else
+            {
+                await telefonCoordinator.ResumeWifiAsync();
+                var current = telefonCoordinator.Peers.SingleOrDefault();
+                if (dispatcher is not null && current is not null) await dispatcher.OpenDeviceAsync(current.Id);
+            }
         });
         menu.Items.Add(connectPhone);
         var phones = new ToolStripMenuItem(T("Phones"));
@@ -812,7 +821,8 @@ internal sealed class MainForm : Form
         {
             phones.DropDownItems.Clear();
             var phoneEnabled = telefonCoordinator?.Enabled == true;
-            connectPhone.Visible = phoneEnabled;
+            connectPhone.Visible = traySettings.ShowPhoneConnect(phoneEnabled, telefonCoordinator?.HasOnlinePhone == true,
+                telefonCoordinator?.Peers.Length ?? 0);
             phones.Visible = phoneEnabled;
             var partners = dispatcher?.ConfirmedDevicePartners() ?? [];
             /* Ohne gepaartes Telefon ganz ausblenden statt nur ausgrauen: Ein

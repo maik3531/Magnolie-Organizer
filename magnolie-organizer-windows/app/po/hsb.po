@@ -8417,3 +8417,7 @@ msgstr "＋ Termin přidać"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Rozšěrjene funkcije"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "„Telefon přez WLAN zwjazać“ w meniju systemoweje lajsty pokazać"

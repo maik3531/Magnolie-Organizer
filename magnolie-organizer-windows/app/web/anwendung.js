@@ -363,7 +363,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             jahrestage: true, planer: true, gesundheit: true },
           tray: { aktiv: false, minimierenInTray: true, schliessenInTray: true,
             startMinimiert: false, autostart: false, oeffnen: "previous",
-            zaehler: false } },
+            zaehler: false, telefonWlanVerbinden: true } },
         update: { automatisch: true, letztePruefung: 0,
           letzteVersion: "", letzteUrl: "", letztePruefsumme: "", letzterFehler: "" },
         regional: { language: "de", formatLocale: "de-DE", hourCycle: "h23",
@@ -6195,6 +6195,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         ? !!basis.startMinimiert : !!roh.startMinimiert,
       autostart: roh.autostart === undefined ? !!basis.autostart : !!roh.autostart,
       zaehler: roh.zaehler === undefined ? !!basis.zaehler : !!roh.zaehler,
+      telefonWlanVerbinden: roh.telefonWlanVerbinden === undefined
+        ? basis.telefonWlanVerbinden !== false : roh.telefonWlanVerbinden !== false,
       oeffnen: enumWert(roh.oeffnen === undefined ? basis.oeffnen : roh.oeffnen,
         { letzte: "previous", previous: "previous", zentriert: "centered",
           centered: "centered", maximiert: "maximized", maximized: "maximized" },
@@ -24978,7 +24980,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     trayHak.disabled = !Bruecke.vorhanden || !trayVerfuegbar;
     const trayZeile = el("label", "hak");
     trayZeile.append(trayHak, document.createTextNode(" " + _("Enable tray applet")));
-    trayGruppe.append(trayZeile);
+    const trayHauptzeile = el("div", "allgemein-tray-hauptzeile");
+    trayHauptzeile.append(trayZeile);
+    trayGruppe.append(trayHauptzeile);
     const trayFelder = el("div", "einst-unteroptionen allgemein-tray-felder");
     const minimierenHak = document.createElement("input");
     minimierenHak.type = "checkbox";
@@ -25008,7 +25012,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const autostartZeile = el("label", "hak");
     autostartZeile.append(autostartHak,
       document.createTextNode(" " + _("Start automatically when signing in")));
-    trayGruppe.append(autostartZeile);
+    trayHauptzeile.append(autostartZeile);
     const oeffnenWahl = auswahlFeld([
       ["previous", _("Previous window state")],
       ["centered", _("Centered on the screen")],
@@ -25022,8 +25026,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const zaehlerZeile = el("label", "hak");
     zaehlerZeile.append(zaehlerHak,
       document.createTextNode(" " + _("Show today's notification count on the tray icon")));
+    const telefonHak = document.createElement("input");
+    telefonHak.type = "checkbox";
+    telefonHak.id = "allgemein-tray-telefon-verbinden";
+    telefonHak.checked = tray.telefonWlanVerbinden !== false;
+    const telefonZeile = el("label", "hak");
+    telefonZeile.append(telefonHak,
+      document.createTextNode(" " + _("Show “Connect phone via WLAN” in the tray menu")));
     trayFelder.append(minimierenZeile, schliessenZeile, startZeile,
-      zaehlerZeile, formZeile(_("When opening from the tray"), oeffnenWahl),
+      zaehlerZeile, telefonZeile, formZeile(_("When opening from the tray"), oeffnenWahl),
       el("p", "einst-hinweis", unterWayland
         ? _("Under Wayland, the compositor determines the exact window position; " +
             "centering and maximizing are passed on as requests.")
@@ -25044,7 +25055,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       wendeTrayEinstellungenDatenAn({ aktiv: trayHak.checked, minimierenInTray: minimierenHak.checked,
         schliessenInTray: schliessenHak.checked, startMinimiert: startHak.checked, autostart: autostartHak.checked,
-        zaehler: zaehlerHak.checked, oeffnen: ["centered", "maximized"].includes(oeffnenWahl.value) ? oeffnenWahl.value : "previous" });
+        zaehler: zaehlerHak.checked, telefonWlanVerbinden: telefonHak.checked,
+        oeffnen: ["centered", "maximized"].includes(oeffnenWahl.value) ? oeffnenWahl.value : "previous" });
       trayFelder.style.display = tray.aktiv ? "" : "none";
       planeSpeichern();
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "tray_einstellungen",
@@ -25057,6 +25069,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     startHak.addEventListener("change", trayUebernehmen);
     autostartHak.addEventListener("change", trayUebernehmen);
     zaehlerHak.addEventListener("change", trayUebernehmen);
+    telefonHak.addEventListener("change", trayUebernehmen);
     oeffnenWahl.addEventListener("change", trayUebernehmen);
 
     const uebernehmen = () => {
@@ -38218,7 +38231,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function wendeTrayEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.allgemein.tray, leseTrayEinstellungen(values, DATEN.einstellungen.allgemein.tray)); }
   function mcpTrayWerkzeuge() {
-    const map = { enabled: "aktiv", hide_on_minimize: "minimierenInTray", hide_on_close: "schliessenInTray", start_minimized: "startMinimiert", autostart: "autostart", show_counter: "zaehler", open_mode: "oeffnen" };
+    const map = { enabled: "aktiv", hide_on_minimize: "minimierenInTray", hide_on_close: "schliessenInTray", start_minimized: "startMinimiert", autostart: "autostart", show_counter: "zaehler", open_mode: "oeffnen", show_phone_connect: "telefonWlanVerbinden" };
     const fields = Object.fromEntries(Object.keys(map).map(key => [key, key === "open_mode" ? { type: "string", enum: ["previous", "centered", "maximized"] } : { type: "boolean" }]));
     const publicSettings = value => Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]]));
     const state = value => {

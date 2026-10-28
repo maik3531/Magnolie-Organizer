@@ -6067,6 +6067,9 @@ msgstr ""
 msgid "Show week numbers in the planner"
 msgstr ""
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr ""
+
 msgctxt "time tracking"
 msgid "Signature"
 msgstr ""

@@ -7908,3 +7908,7 @@ msgstr "＋ 添加约会"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "高级功能"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "在托盘菜单中显示“通过无线局域网连接手机”"

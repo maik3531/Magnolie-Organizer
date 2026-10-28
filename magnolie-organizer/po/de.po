@@ -9911,3 +9911,7 @@ msgstr "＋ Termin hinzufügen"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Erweiterte Funktionen"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "„Telefon über WLAN verbinden“ im Tray-Menü anzeigen"

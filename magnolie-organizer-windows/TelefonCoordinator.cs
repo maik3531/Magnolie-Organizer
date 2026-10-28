@@ -113,6 +113,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     internal bool Enabled => foregroundEnabled || store.Enabled;
     internal bool IsRunning { get { lock (gate) return serviceCancellation is not null; } }
     internal TelefonPeer[] Peers => store.LoadPeers().Where(peer => peer.State == "paired").ToArray();
+    internal bool HasOnlinePhone { get { lock (gate) return Peers.Any(peer => online.ContainsKey(peer.Id)); } }
     internal TelefonPeer[] StatusPeers { get { store.Cleanup(Now()); return store.LoadPeers().ToArray(); } }
     internal JsonObject LocalGrants() => store.LocalGrants();
     internal (bool OwnDevice, bool RemoteOwnDevice, bool AutoWifi) PersonalSettings(string id) => store.PersonalSettings(id);
@@ -132,6 +133,14 @@ internal sealed partial class TelefonCoordinator : IDisposable
     internal JsonObject? PersonalRunRequest(string id, string runId) => personalSync.LoadRun(id, runId, Now())?.Request.DeepClone().AsObject();
 
     internal Task ResumeAsync() => Enabled ? StartAsync() : Task.CompletedTask;
+
+    internal async Task ResumeWifiAsync()
+    {
+        if (!Enabled || Peers.Length != 1 || HasOnlinePhone) return;
+        await StartAsync();
+        if (mdns is not null) try { await mdns.AnnounceNowAsync(); } catch (SocketException) { }
+        await ReportStatusAsync();
+    }
 
     internal Task StartSetupAsync()
     {

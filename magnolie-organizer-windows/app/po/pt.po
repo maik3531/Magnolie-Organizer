@@ -8378,3 +8378,7 @@ msgstr "＋ Adicionar compromisso"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Funções avançadas"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Mostrar «Ligar o telefone por WLAN» no menu da área de notificação"

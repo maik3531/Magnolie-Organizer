@@ -8412,3 +8412,7 @@ msgstr "＋ Aggiungi appuntamento"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Funzioni avanzate"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Mostra «Connetti il telefono tramite WLAN» nel menu dell’area di notifica"

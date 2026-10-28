@@ -761,6 +761,16 @@ internal static class ContractGroupTests
     {
         using var document = JsonDocument.Parse("""{"aktiv":true,"minimierenInTray":false,"schliessenInTray":true,"startMinimiert":true,"autostart":true,"zaehler":true,"oeffnen":"maximiert"}""");
         var settings = TraySettings.FromJson(document.RootElement);
+        TestAssert.That(settings.TelefonWlanVerbinden, "Legacy tray settings lost the phone-connect preference.");
+        foreach (var enabled in new[] { false, true })
+            foreach (var connected in new[] { false, true })
+                foreach (var paired in new[] { 0, 1, 2 })
+                {
+                    TestAssert.That(settings.ShowPhoneConnect(enabled, connected, paired) == (enabled && !connected && paired <= 1),
+                        "Tray phone command visibility does not match native connection state.");
+                    TestAssert.That(!(settings with { TelefonWlanVerbinden = false }).ShowPhoneConnect(enabled, connected, paired),
+                        "Disabled tray phone command remained visible.");
+                }
         TestAssert.That(settings is { Aktiv: true, MinimierenInTray: false, SchliessenInTray: true, StartMinimiert: true, Autostart: true, Zaehler: true, Oeffnen: "maximized" } &&
             TraySettingsService.AutostartCommand("C:\\A B\\Magnolie.exe") == "\"C:\\A B\\Magnolie.exe\" --tray-start",
             "Tray-Normalisierung oder sicherer Autostart-Befehl ist fehlerhaft.");
@@ -793,6 +803,9 @@ internal static class ContractGroupTests
                 "Native registration failure was reported as success.");
             service.Save(settings);
             TestAssert.That(service.ReadVerified() == settings, "Native Traykonfiguration wurde nicht tatsächlich zurückgelesen.");
+            service.Save(settings with { TelefonWlanVerbinden = false });
+            TestAssert.That(!service.ReadVerified().TelefonWlanVerbinden && service.ReadVerified().Autostart,
+                "Tray phone opt-out was lost or changed unrelated autostart settings.");
             File.WriteAllText(path, "{broken");
             var rejected = false;
             try { service.ReadVerified(); } catch (JsonException) { rejected = true; }

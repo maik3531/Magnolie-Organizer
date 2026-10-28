@@ -9829,3 +9829,7 @@ msgstr "＋ Dodaj spotkanie"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Funkcje zaawansowane"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Pokazuj „Połącz telefon przez WLAN” w menu zasobnika"

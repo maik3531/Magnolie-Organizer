@@ -9711,3 +9711,7 @@ msgstr "＋ Randevu ekle"
 #: web/anwendung.js
 msgid "Advanced functions"
 msgstr "Gelişmiş işlevler"
+
+#: web/anwendung.js
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Sistem tepsisi menüsünde “Telefonu WLAN üzerinden bağla” seçeneğini göster"

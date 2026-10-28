@@ -98,6 +98,7 @@ internal static partial class UiSelfTest
                         face.GetProperty("status").GetString() == "loaded");
                     Test(fontChecked && fontLoaded && serifChecked && serifLoaded,
                         "Die eingebettete DejaVu-Sans-Schrift wurde nicht geladen: " + fontDiagnostic);
+                    await TestTrayLayoutAsync(coreWebView);
                     await TestImageAsync(coreWebView, ".kaffee-qr", 266, 266,
                         "QR-Code unter Einstellungen > Über", "https://appassets.magnolie.invalid/kaffee-qr.png", """
                         const settings = document.querySelector('#einstellungen-schleier');
@@ -289,6 +290,28 @@ internal static partial class UiSelfTest
     private static void Test(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static async Task TestTrayLayoutAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core)
+    {
+        var result = await core.ExecuteScriptAsync("""
+            (() => {
+              if (document.querySelector('#einstellungen-schleier')?.classList.contains('verborgen'))
+                document.querySelector('#knopf-einstellungen')?.click();
+              document.querySelector('#einst-tab-allgemein')?.click();
+              const group = document.querySelector('#allgemein-gruppe-tray'); group.open = true;
+              const row = group.querySelector('.allgemein-tray-hauptzeile');
+              const [first,second] = [...row.querySelectorAll('label')].map(label => label.getBoundingClientRect());
+              const sameRow = Math.abs(first.top-second.top)<2;
+              return {sameRow,gap:sameRow?second.left-first.right:second.top-first.bottom,
+                option:!!document.querySelector('#allgemein-tray-telefon-verbinden')};
+            })()
+            """);
+        using var document = JsonDocument.Parse(result);
+        var value = document.RootElement;
+        Test(value.GetProperty("option").GetBoolean() && value.GetProperty("gap").GetDouble() >=
+            (value.GetProperty("sameRow").GetBoolean() ? 8 : 6), "Tray-Checkboxabstand oder Telefonoption fehlen im nativen Fenster.");
+        Console.WriteLine("WINDOWS-TRAY-PHONE-PREFERENCE-LAYOUT-OK");
     }
 
     private static async Task TestQrDialogAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core, string selector)
