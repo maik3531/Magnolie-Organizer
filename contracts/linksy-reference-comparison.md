@@ -132,6 +132,11 @@ do. Pending installed/personal acceptance is still tracked in #242.
 
 ## Compatible follow-up plan
 
+**Release/UI decision:** the user explicitly excluded **#244, #245 and #246**
+from the current release (#113). In a later release, their user-facing entry
+points belong exclusively under **KDE Connect → Erweiterte Funktionen** (Advanced
+Features) or in **Entwicklermodus** (Developer Mode).
+
 The three selected extensions have independent scopes and acceptance criteria:
 
 - **#246 — General resumable batches and selected photo folders.** Reuse native
