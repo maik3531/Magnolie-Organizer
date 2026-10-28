@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Sveipehandlinger</string>
-    <string name="wischen_aktiv">Aktiver sveiping for notater og oppgaver</string>
+    <string name="wischen_aktiv">Aktiver sveipehandlinger</string>
     <string name="wischen_links">Sveip til venstre</string>
     <string name="wischen_rechts">Sveip til høyre</string>
     <string name="wischen_keine">Ingen handling</string>

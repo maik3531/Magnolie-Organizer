@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Действия смахивания</string>
-    <string name="wischen_aktiv">Включить смахивание заметок и задач</string>
+    <string name="wischen_aktiv">Включить действия смахивания</string>
     <string name="wischen_links">Смахнуть влево</string>
     <string name="wischen_rechts">Смахнуть вправо</string>
     <string name="wischen_keine">Без действия</string>

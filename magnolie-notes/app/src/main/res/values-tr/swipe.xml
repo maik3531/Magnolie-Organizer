@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Kaydırma eylemleri</string>
-    <string name="wischen_aktiv">Notlar ve görevler için kaydırmayı etkinleştir</string>
+    <string name="wischen_aktiv">Kaydırma eylemlerini etkinleştir</string>
     <string name="wischen_links">Sola kaydır</string>
     <string name="wischen_rechts">Sağa kaydır</string>
     <string name="wischen_keine">Eylem yok</string>

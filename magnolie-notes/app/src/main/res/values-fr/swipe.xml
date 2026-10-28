@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Actions de balayage</string>
-    <string name="wischen_aktiv">Activer le balayage des notes et tâches</string>
+    <string name="wischen_aktiv">Activer les gestes de balayage</string>
     <string name="wischen_links">Balayer à gauche</string>
     <string name="wischen_rechts">Balayer à droite</string>
     <string name="wischen_keine">Aucune action</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="drucker_symbol_automatisch">Mostrar o ícone apenas com uma impressora Wi-Fi acessível</string>
+    <string name="drucker_symbol_automatisch">Mostrar impressoras Wi-Fi</string>
     <string name="drucker_symbol_hinweis">A visibilidade automática está ativa por predefinição e verifica impressoras IPP/IPPS anunciadas enquanto o editor está visível. Desative-a para manter a impressão em PDF e outros serviços Android.</string>
     <string name="drucker_einstellung_fehler">Não foi possível guardar a preferência de impressão.</string>
 </resources>

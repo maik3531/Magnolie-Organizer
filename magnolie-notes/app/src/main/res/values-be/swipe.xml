@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Дзеянні правядзення</string>
-    <string name="wischen_aktiv">Уключыць правядзенне для нататак і задач</string>
+    <string name="wischen_aktiv">Уключыць дзеянні правядзеннем</string>
     <string name="wischen_links">Правесці ўлева</string>
     <string name="wischen_rechts">Правесці ўправа</string>
     <string name="wischen_keine">Без дзеяння</string>

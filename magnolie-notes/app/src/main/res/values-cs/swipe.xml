@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Akce přejetí</string>
-    <string name="wischen_aktiv">Povolit přejetí u poznámek a úkolů</string>
+    <string name="wischen_aktiv">Povolit akce přejetím</string>
     <string name="wischen_links">Přejet doleva</string>
     <string name="wischen_rechts">Přejet doprava</string>
     <string name="wischen_keine">Žádná akce</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">स्वाइप क्रियाएँ</string>
-    <string name="wischen_aktiv">नोट और कार्यों के लिए स्वाइप चालू करें</string>
+    <string name="wischen_aktiv">स्वाइप क्रियाएँ चालू करें</string>
     <string name="wischen_links">बाईं ओर स्वाइप करें</string>
     <string name="wischen_rechts">दाईं ओर स्वाइप करें</string>
     <string name="wischen_keine">कोई क्रिया नहीं</string>

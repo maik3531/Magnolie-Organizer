@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import io.gitlab.maik3531.magnolienotes.R
 
 @Composable
@@ -82,7 +84,7 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             if (developerEnabled && debugOpen) {
                 Row(Modifier.fillMaxWidth().toggleable(wifi, role = Role.Checkbox, onValueChange = {
                     developer.wlanSetzen(it); wifi = it
-                }), verticalAlignment = Alignment.CenterVertically) {
+                }), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Checkbox(wifi, null); Text(stringResource(R.string.developer_wifi))
                 }
                 if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) { report = developer.bericht().toString() }
@@ -97,7 +99,7 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             Row(Modifier.fillMaxWidth().toggleable(druckerAutomatisch, role = Role.Checkbox, onValueChange = { value ->
                 runCatching { DruckerEinstellungen.automatisch(context, value); druckerAutomatisch = value }
                     .onFailure { android.widget.Toast.makeText(context, R.string.drucker_einstellung_fehler, android.widget.Toast.LENGTH_LONG).show() }
-            }), verticalAlignment = Alignment.CenterVertically) {
+            }), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Checkbox(druckerAutomatisch, null); Text(stringResource(R.string.drucker_symbol_automatisch))
             }
         }
@@ -109,7 +111,8 @@ internal fun ZeiterfassungsOptionen(zeiterfassungAn: Boolean, speichert: Boolean
                                    beiZeiterfassung: (Boolean) -> Unit, beiOeffnen: (() -> Unit)? = null) {
         Abschnitt(stringResource(R.string.zeit_titel), hinweis = stringResource(R.string.zeit_hinweis)) {
             Row(Modifier.fillMaxWidth().toggleable(zeiterfassungAn, enabled = !speichert,
-                role = Role.Checkbox, onValueChange = beiZeiterfassung), verticalAlignment = Alignment.CenterVertically) {
+                role = Role.Checkbox, onValueChange = beiZeiterfassung), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Checkbox(zeiterfassungAn, null, enabled = !speichert)
                 Text(stringResource(R.string.zeit_aktiv))
             }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="drucker_symbol_automatisch">Ćišćerski symbol jenož za docpějomny WLAN-ćišćak pokazać</string>
+    <string name="drucker_symbol_automatisch">WLAN-ćišćaki pokazać</string>
     <string name="drucker_symbol_hinweis">Awtomatiske zwobraznjenje je po standardźe zmóžnjene a wozjewjene IPP/IPPS-ćišćaki přepruwuje, hdyž editor widźomny je. Znjemóžńće je za PDF a druhe Android-ćišćerske słužby.</string>
     <string name="drucker_einstellung_fehler">Nastajenje ćišćerskeho zwobraznjenja njeda so składować.</string>
 </resources>

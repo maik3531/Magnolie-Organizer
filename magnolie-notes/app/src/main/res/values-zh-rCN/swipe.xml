@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">滑动操作</string>
-    <string name="wischen_aktiv">启用笔记和任务的滑动操作</string>
+    <string name="wischen_aktiv">启用滑动操作</string>
     <string name="wischen_links">向左滑动</string>
     <string name="wischen_rechts">向右滑动</string>
     <string name="wischen_keine">无操作</string>

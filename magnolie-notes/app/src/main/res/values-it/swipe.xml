@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Azioni di scorrimento</string>
-    <string name="wischen_aktiv">Attiva scorrimento per note e attività</string>
+    <string name="wischen_aktiv">Attiva azioni di scorrimento</string>
     <string name="wischen_links">Scorri a sinistra</string>
     <string name="wischen_rechts">Scorri a destra</string>
     <string name="wischen_keine">Nessuna azione</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Ações de deslize</string>
-    <string name="wischen_aktiv">Ativar deslizes em notas e tarefas</string>
+    <string name="wischen_aktiv">Ativar ações de deslize</string>
     <string name="wischen_links">Deslizar para a esquerda</string>
     <string name="wischen_rechts">Deslizar para a direita</string>
     <string name="wischen_keine">Nenhuma ação</string>

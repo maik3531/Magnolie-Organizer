@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Дії проведення</string>
-    <string name="wischen_aktiv">Увімкнути проведення для нотаток і завдань</string>
+    <string name="wischen_aktiv">Увімкнути дії проведенням</string>
     <string name="wischen_links">Провести ліворуч</string>
     <string name="wischen_rechts">Провести праворуч</string>
     <string name="wischen_keine">Без дії</string>

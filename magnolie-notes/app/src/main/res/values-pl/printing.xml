@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="drucker_symbol_automatisch">Pokazuj ikonę tylko przy dostępnej drukarce Wi-Fi</string>
+    <string name="drucker_symbol_automatisch">Pokazuj drukarki Wi-Fi</string>
     <string name="drucker_symbol_hinweis">Widoczność automatyczna jest domyślnie włączona i sprawdza ogłaszane drukarki IPP/IPPS, gdy edytor jest widoczny. Wyłącz ją, aby zachować drukowanie do PDF i inne usługi Androida.</string>
     <string name="drucker_einstellung_fehler">Nie można zapisać ustawienia wyświetlania drukowania.</string>
 </resources>

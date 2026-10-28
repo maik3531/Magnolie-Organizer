@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">スワイプ操作</string>
-    <string name="wischen_aktiv">ノートとタスクのスワイプを有効にする</string>
+    <string name="wischen_aktiv">スワイプ操作を有効にする</string>
     <string name="wischen_links">左にスワイプ</string>
     <string name="wischen_rechts">右にスワイプ</string>
     <string name="wischen_keine">操作なし</string>

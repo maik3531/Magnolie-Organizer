@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Działania przesunięcia</string>
-    <string name="wischen_aktiv">Włącz przesuwanie notatek i zadań</string>
+    <string name="wischen_aktiv">Włącz gesty przesuwania</string>
     <string name="wischen_links">Przesuń w lewo</string>
     <string name="wischen_rechts">Przesuń w prawo</string>
     <string name="wischen_keine">Brak działania</string>

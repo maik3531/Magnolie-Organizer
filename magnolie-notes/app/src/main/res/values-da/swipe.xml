@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Strygehandlinger</string>
-    <string name="wischen_aktiv">Aktivér strygning for noter og opgaver</string>
+    <string name="wischen_aktiv">Aktivér strygehandlinger</string>
     <string name="wischen_links">Stryg til venstre</string>
     <string name="wischen_rechts">Stryg til højre</string>
     <string name="wischen_keine">Ingen handling</string>

@@ -85,7 +85,8 @@ internal class WischEinstellungen(context: Context) {
     }
     Abschnitt(stringResource(R.string.wischen_titel), hinweis = stringResource(R.string.wischen_hinweis)) {
         Row(Modifier.fillMaxWidth().toggleable(value.aktiv, role = Role.Checkbox,
-            onValueChange = { beiAenderung(value.copy(aktiv = it)) }), verticalAlignment = Alignment.CenterVertically) {
+            onValueChange = { beiAenderung(value.copy(aktiv = it)) }), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Checkbox(value.aktiv, null)
             Text(stringResource(R.string.wischen_aktiv))
         }

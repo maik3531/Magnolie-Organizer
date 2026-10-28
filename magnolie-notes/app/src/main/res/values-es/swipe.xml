@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Acciones de deslizamiento</string>
-    <string name="wischen_aktiv">Activar deslizamientos en notas y tareas</string>
+    <string name="wischen_aktiv">Activar acciones de deslizamiento</string>
     <string name="wischen_links">Deslizar a la izquierda</string>
     <string name="wischen_rechts">Deslizar a la derecha</string>
     <string name="wischen_keine">Ninguna acción</string>

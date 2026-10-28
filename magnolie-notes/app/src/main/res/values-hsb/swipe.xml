@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Akcije přez šmórnjenje</string>
-    <string name="wischen_aktiv">Šmórnjenje za noticy a nadawki zmóžnić</string>
+    <string name="wischen_aktiv">Šmórnjenske akcije zmóžnić</string>
     <string name="wischen_links">Nalěwo šmórnyć</string>
     <string name="wischen_rechts">Naprawo šmórnyć</string>
     <string name="wischen_keine">Žana akcija</string>

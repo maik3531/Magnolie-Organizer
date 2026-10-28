@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Wischaktionen</string>
-    <string name="wischen_aktiv">Wischen für Notizen und Aufgaben aktivieren</string>
+    <string name="wischen_aktiv">Wischaktionen aktivieren</string>
     <string name="wischen_links">Nach links wischen</string>
     <string name="wischen_rechts">Nach rechts wischen</string>
     <string name="wischen_keine">Keine Aktion</string>

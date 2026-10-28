@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="wischen_titel">Veegacties</string>
-    <string name="wischen_aktiv">Vegen voor notities en taken inschakelen</string>
+    <string name="wischen_aktiv">Veegacties inschakelen</string>
     <string name="wischen_links">Naar links vegen</string>
     <string name="wischen_rechts">Naar rechts vegen</string>
     <string name="wischen_keine">Geen actie</string>
