@@ -40,7 +40,9 @@ class CustomNotificationUiTest {
     private lateinit var ablage: Ablage
     private var controller: ActivityController<MainActivity>? = null
     private val clock = BroadcastFrameClock()
-    private val scope = CoroutineScope(Dispatchers.Main + clock + Job())
+    private val compositionErrors = java.util.concurrent.ConcurrentLinkedQueue<Throwable>()
+    private val scope = CoroutineScope(Dispatchers.Main + clock + Job() +
+        CoroutineExceptionHandler { _, error -> compositionErrors.add(error) })
     private val recomposer = Recomposer(scope.coroutineContext)
     private var frameNanos = 0L
     private val fields = listOf(Ablage::class.java to "einzig", Baumwerk::class.java to "einzig",
@@ -54,6 +56,7 @@ class CustomNotificationUiTest {
 
     @Before fun setup() {
         app = ApplicationProvider.getApplicationContext()
+        shadowOf(app).grantPermissions(app.packageName + ".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION")
         previous = fields.map { it.get(null) }
         fields.forEach { it.set(null, null) }
         Security.insertProviderAt(provider, 1)
@@ -115,9 +118,10 @@ class CustomNotificationUiTest {
             view.draw(canvas)
         }
         bitmap.recycle()
+        compositionErrors.poll()?.let { throw AssertionError("Actual Compose composition failed", it) }
     }
 
-    private fun nodes(): List<SemanticsNode> {
+    private fun nodes(root: View = controller!!.get().window.decorView): List<SemanticsNode> {
         fun owner(view: View): SemanticsOwner? {
             view.javaClass.methods.firstOrNull { it.name == "getSemanticsOwner" && it.parameterCount == 0 }
                 ?.let { return it.invoke(view) as SemanticsOwner }
@@ -125,7 +129,33 @@ class CustomNotificationUiTest {
             return null
         }
         fun walk(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::walk)
-        return walk(checkNotNull(owner(controller!!.get().window.decorView)).unmergedRootSemanticsNode)
+        return walk(checkNotNull(owner(root)).unmergedRootSemanticsNode)
+    }
+
+    private fun selectTimeMenu(resource: Int) {
+        nodes().single { it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(app.getString(R.string.zeit_menue)) &&
+            it.config.getOrNull(SemanticsActions.OnClick) != null }
+            .config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+        // DropdownMenu has its own Android window; inspect that real popup, not a copied menu fixture.
+        val type = Class.forName("android.view.WindowManagerGlobal")
+        val manager = type.getDeclaredMethod("getInstance").invoke(null)
+        val roots = type.getDeclaredField("mViews").apply { isAccessible = true }.get(manager) as List<*>
+        val popup = roots.filterIsInstance<View>().filter { it !== controller!!.get().window.decorView }
+            .flatMap { runCatching { nodes(it) }.getOrDefault(emptyList()) }
+        val label = app.getString(resource)
+        fun contains(node: SemanticsNode): Boolean = node.config.getOrNull(SemanticsProperties.Text)
+            ?.any { it.text == label } == true || node.children.any(::contains)
+        popup.first { it.config.getOrNull(SemanticsActions.OnClick) != null && contains(it) }
+            .config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+    }
+
+    private fun assertTimeMainPage() {
+        assertEquals(true, tab(R.string.zeit_titel).config.getOrNull(SemanticsProperties.Selected))
+        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(app.getString(R.string.zeit_starten)) &&
+            it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null })
+        assertEquals(EditorEntwurf(), ablage.entwurf.value)
     }
 
     private fun tab(resource: Int) = nodes().single {
@@ -229,6 +259,31 @@ class CustomNotificationUiTest {
         assertFalse(ablage.bestand.value.zeiterfassung.enabled)
         assertEquals(saved, ablage.bestand.value.zeiterfassung.entries.single())
         assertEquals(3, nodes().count { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab })
+    }
+
+    @Test fun timeSubpageBackReturnsToTrackingBeforeLeavingTheTimeTab() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true) }
+        launch()
+        tab(R.string.zeit_titel).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke(); frames()
+        for (page in listOf(R.string.zeit_optionen, R.string.zeit_erfasste)) {
+            selectTimeMenu(page)
+            controller!!.get().onBackPressedDispatcher.onBackPressed(); frames()
+            assertTimeMainPage()
+        }
+        assertTrue(ablage.bestand.value.zeiterfassung.entries.isEmpty())
+    }
+
+    @Test fun returningFromNotesAlwaysOpensTheTimeTrackingMainPage() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true) }
+        launch()
+        tab(R.string.zeit_titel).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke(); frames()
+        for (page in listOf(R.string.zeit_optionen, R.string.zeit_erfasste)) {
+            selectTimeMenu(page)
+            tab(R.string.blatt_notizen).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke(); frames()
+            tab(R.string.zeit_titel).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke(); frames()
+            assertTimeMainPage()
+        }
+        assertTrue(ablage.bestand.value.zeiterfassung.entries.isEmpty())
     }
 
     @Test fun timeSliderAcceptsFinalReleasePositionButRejectsTapsPartialDragsAndCancellation() {

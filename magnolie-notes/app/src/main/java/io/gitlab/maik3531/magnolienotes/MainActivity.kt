@@ -420,6 +420,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         io.gitlab.maik3531.magnolienotes.baum.FernAbgleich.internet(zusammenhang) &&
             wischVerbindungen.fern.any { it.partner.kennung in partner && it.passt(baumzustand) }
     var zeitAnsicht by rememberSaveable { mutableStateOf("tracking") }
+    fun zeigeBlatt(ziel: Int) {
+        if (ziel == 6) zeitAnsicht = "tracking"
+        blatt = ziel
+    }
     val entwurf by ablage.entwurf.collectAsState()
     val offeneNotiz = entwurf.notiz
     val offeneAufgabe = entwurf.aufgabe
@@ -1004,15 +1008,19 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     else -> R.string.zeit_einstellungen
                 }) },
                 gewaehlt = ids.indexOf(blatt).takeIf { it >= 0 } ?: ids.lastIndex,
-                beiWahl = { blatt = ids[it] },
+                beiWahl = { zeigeBlatt(ids[it]) },
                 symbole = ids
             )
         }
     ) { rand ->
-        // Aus einem anderen Reiter fuehrt Zurueck zuerst auf die Notizen; erst
+        // Zeit-Unterseiten fuehren zuerst zum Hauptblatt. Aus einem anderen
+        // Reiter fuehrt Zurueck zuerst auf die Notizen; erst
         // von dort verlaesst man die App. Das entspricht dem, was Android-
         // Benutzer erwarten.
-        BackHandler(enabled = blatt != 0) { blatt = if (blatt in 2..4) 5 else 0 }
+        BackHandler(enabled = blatt != 0) {
+            if (blatt == 6 && zeitAnsicht != "tracking") zeitAnsicht = "tracking"
+            else blatt = if (blatt in 2..4) 5 else 0
+        }
         Box(Modifier.fillMaxSize().padding(rand)) {
             when (blatt) {
                 5 -> EinstellungenBlatt(bestand.zeiterfassung.enabled, zeitSpeichert,
@@ -1022,7 +1030,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             .onFailure { sage(zusammenhang.getString(R.string.wischen_fehler)) }
                     },
                     beiZeiterfassung = zeitAktiv,
-                    beiBlatt = { blatt = it },
+                    beiBlatt = ::zeigeBlatt,
                     beiRechten = {
                         zusammenhang.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             Uri.parse("package:" + zusammenhang.packageName)))
