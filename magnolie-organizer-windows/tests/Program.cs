@@ -171,6 +171,7 @@ runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConn
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
 runner.Add("KDE media / player lifetime / bounded metadata / commands", KdeMediaTests.RunAsync);
+runner.Add("KDE systemvolume / output mute / native receipts / pinned TLS", KdeSystemVolumeTests.RunAsync);
 runner.Add("KDE filesystem / pinned TLS source / native arguments / revocation", KdeFilesystemTests.RunAsync);
 runner.Add("KDE input / bounded packets / target lifetime / presenter", KdeInputTests.RunAsync);
 runner.Add("Drawing SVG / inline PNG / external reference rejection", DrawingSvgTests.RunAsync);

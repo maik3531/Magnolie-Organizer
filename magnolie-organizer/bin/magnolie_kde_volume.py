@@ -114,8 +114,9 @@ class DesktopVolume:
             if 'volume' in actions:
                 change('set-sink-volume', actions['volume'])
                 # Match KDE's systemvolume behaviour: an explicit volume action unmutes the output.
-                change('set-sink-mute', '0')
-            if 'muted' in actions:
+                # A simultaneous explicit mute takes precedence without a transient unmute.
+                change('set-sink-mute', '1' if actions.get('muted') is True else '0')
+            elif 'muted' in actions:
                 change('set-sink-mute', '1' if actions['muted'] else '0')
             if actions.get('enabled') is True:
                 change('set-default-sink', None)

@@ -54,6 +54,9 @@
     <EmbeddedResource Include="..\app\filesystem-runtime.json" LogicalName="Magnolie.FilesystemPrerequisites.json" />
     <Compile Include="..\KdeConnectDirectBackend.Filesystem.cs" Link="KdeConnectDirectBackend.Filesystem.cs" />
     <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
+    <Compile Include="..\KdeSystemVolume.cs" Link="KdeSystemVolume.cs" />
+    <Compile Include="..\KdeSystemVolume.Windows.cs" Link="KdeSystemVolume.Windows.cs" />
+    <Compile Include="..\KdeConnectDirectBackend.Volume.cs" Link="KdeConnectDirectBackend.Volume.cs" />
     <Compile Include="..\KdeConnectDirectBackend.MediaPayload.cs" Link="KdeConnectDirectBackend.MediaPayload.cs" />
     <Compile Include="..\KdeRegisteredPlayers.cs" Link="KdeRegisteredPlayers.cs" />
     <Compile Include="..\KdeInputState.cs" Link="KdeInputState.cs" />

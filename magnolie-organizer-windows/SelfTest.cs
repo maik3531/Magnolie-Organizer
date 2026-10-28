@@ -62,6 +62,11 @@ internal static class SelfTest
             var spelling = WindowsSpellChecker.Check("Haus", "de");
             Require(spelling.Correct, "deutsche Windows-Rechtschreibprüfung");
 
+#if WINDOWS
+            var audioOutputs = Task.Run(() => new WindowsAudioOutputs().VerifyUnchangedMuteWrite()).GetAwaiter().GetResult();
+            Console.WriteLine($"WINDOWS-SYSTEM-VOLUME-READ-UNCHANGED-MUTE-OK outputs={audioOutputs}");
+#endif
+
             Console.WriteLine("ALLE WINDOWS-SELBSTTESTS BESTANDEN");
             return 0;
         }

@@ -877,7 +877,7 @@ internal static class KdeConnectTests
     }
 
     internal static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
-        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false)
+        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false, bool systemVolume = false)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -908,6 +908,11 @@ internal static class KdeConnectTests
         {
             phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeSftpDescription.Request);
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeSftpDescription.Packet);
+        }
+        if (systemVolume)
+        {
+            phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeSystemVolume.Packet);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeSystemVolume.Request);
         }
         await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity", phoneIdentity));
         return (client, tls);

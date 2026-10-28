@@ -89,7 +89,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
     }
 
     internal KdeConnectDirectBackend(WindowsPaths paths, IKdeConnectSecretProtector? protector = null,
-        bool activeDiscovery = true, IKdeFilesystemBrowser? filesystem = null)
+        bool activeDiscovery = true, IKdeFilesystemBrowser? filesystem = null, KdeSystemVolume? systemVolume = null)
     {
         this.activeDiscovery = activeDiscovery;
         logPath = Path.Combine(paths.Logs, "telefon.log");
@@ -98,6 +98,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         local = store.LoadOrCreate();
         this.filesystem = filesystem ?? new KdeWindowsFilesystemBrowser(paths.KdeConnect);
         localMedia = KdeLocalMedia.Create(paths.KdeConnect);
+        this.systemVolume = systemVolume ?? KdeSystemVolume.Create();
         inputTarget = new(inputSink);
         TcpListener? allocatedListener = null;
         UdpClient? allocatedUdp = null;
@@ -111,6 +112,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         acceptTask = AcceptLoopAsync(lifetime.Token);
         discoveryTask = DiscoveryLoopAsync(lifetime.Token);
         Track(InputWatchAsync(lifetime.Token));
+        if (this.systemVolume is not null) Track(SystemVolumeWatchAsync(lifetime.Token));
         }
         catch
         {
@@ -1196,6 +1198,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                 else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
                 else if (packet.Type == KdeSftpDescription.Packet) HandleFilesystemPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Request) await HandleLocalMediaAsync(connection, packet.Body, cancellationToken).ConfigureAwait(false);
+                else if (packet.Type == KdeSystemVolume.Request) await HandleSystemVolumeAsync(connection, packet.Body, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type is KdeInputProtocol.Request or KdeInputProtocol.KeyboardState) HandleInputPacket(connection, packet);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
                 else if (KdeConnectProtocol.IsContactResponse(packet.Type))
@@ -1704,6 +1707,8 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
         }
         if (localMedia is not null) await localMedia.DisposeAsync().ConfigureAwait(false);
+        if (systemVolume is not null) await systemVolume.DisposeAsync().ConfigureAwait(false);
+        systemVolumeUpdates.Dispose();
         candidateSignal.Dispose(); mediaPayloads.Dispose(); lifetime.Dispose(); local.Certificate.Dispose();
     }
 
@@ -1722,6 +1727,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         internal KdeDigitizerState Digitizer { get; } = new();
         internal KdeMediaState Media { get; } = new();
         internal bool LocalMediaStarted;
+        internal string? SystemVolumeLast;
         internal string InputToken { get; } = Guid.NewGuid().ToString("N");
         internal bool RemoteKeyboard;
         internal bool? KeyboardSent;

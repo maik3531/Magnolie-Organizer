@@ -86,6 +86,7 @@ def test_explicit_mute_is_applied_after_combined_volume_action(native):
     outputs, volume = native
     result = volume.receive({'name': outputs.name, 'volume': 30, 'muted': True})
     assert outputs.muted and outputs.volume == 30
+    assert ['set-sink-mute', '17', '0'] not in outputs.writes
     assert result[0]['sinkList'][0]['muted'] is True
 
 
