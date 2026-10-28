@@ -123,6 +123,19 @@ class FernAbgleichTest {
         assertTrue(storage.baum.value.postfach.isEmpty())
     }
 
+    @Test fun anAlreadySharedForeignNoteKeepsItsTreeOriginAndNeverBecomesPersonal() {
+        val (storage, work, proof) = fixture()
+        storage.setzeNotiz(Notiz("from-tree", "From tree", baumQuelle = "origin",
+            baumFreigabe = Freigabe("existing-share", partner = listOf("remote"))))
+        assertFalse(PersonalSync.ownNote(storage.notiz("from-tree")!!))
+        assertEquals(1, work.fernEinzelAbgleichen("note", "from-tree", listOf(proof), false))
+        val after = storage.notiz("from-tree")!!
+        assertEquals("origin", after.baumQuelle)
+        assertFalse(PersonalSync.ownNote(after))
+        assertTrue(storage.baum.value.postfach.isNotEmpty())
+        assertTrue(storage.baum.value.postfach.all { it.an == "remote" && it.art == "notiz_sync" })
+    }
+
     @Test fun taskSyncKeepsDelegationAndDoesNotResendForeignOrUnsharedTasks() {
         val (storage, work, proof) = fixture()
         val task = Aufgabe("chosen", "Chosen", standPartner = listOf("remote"), delegiertAn = "other")

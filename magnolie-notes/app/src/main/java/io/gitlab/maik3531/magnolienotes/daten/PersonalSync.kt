@@ -577,7 +577,7 @@ object PersonalSync {
         input.notizen.filter(::ownNote).mapTo(mutableSetOf()) { noteWireId(input.personalSync, it.id) },
         input.aufgaben.filter(::ownTask).mapTo(mutableSetOf()) { it.id })
 
-    private fun ownTask(task: Aufgabe) = task.vonZweig.isBlank() && task.fremdId.isBlank() && task.delegiertAn.isBlank() && task.herkunft.isBlank()
+    internal fun ownTask(task: Aufgabe) = task.vonZweig.isBlank() && task.fremdId.isBlank() && task.delegiertAn.isBlank() && task.herkunft.isBlank()
 
     private fun projections(input: Bestand, modules: Set<String>, format: Int, selection: PersonalContentSelection? = null): Map<String, JsonObject> {
         val result = linkedMapOf<String, JsonObject>()

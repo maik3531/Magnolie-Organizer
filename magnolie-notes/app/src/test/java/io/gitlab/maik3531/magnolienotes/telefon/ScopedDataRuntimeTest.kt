@@ -67,6 +67,7 @@ class ScopedDataRuntimeTest {
     @Test fun aTaskSwipeQueuesOnlyItsSelectedEntryAndWaitsForRequestReceipt() = exercise("send-task", 14)
     @Test fun offlineSingleSendDoesNotQueueOrStartAFullRun() = exercise("send-offline", 14)
     @Test fun revokedSingleSendDoesNotQueueOrStartAFullRun() = exercise("send-revoked", 14)
+    @Test fun linkedNotesUsePersonalRouteWhileForeignNotesAndDelegatedTasksDoNot() = exercise("send-route", 14)
 
     private fun exercise(mode: String, format: Int = 3) {
         val actorDeletion = mode.startsWith("actor-deletions")
@@ -90,11 +91,15 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2,
-                ursprungApp = if (format == 14) "notes" else ""))
+                ursprungApp = if (format == 14) "notes" else "",
+                baumQuelle = if (mode == "send-route") "linked-origin" else "",
+                persoenlichVerknuepft = mode == "send-route"))
             if (actorDeletion || actorCommit || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             if (mode.startsWith("send-")) {
                 documents.setzeNotiz(Notiz("private-note", "Unselected note", "Never transfer", notizbuchId = book.id))
-                documents.setzeAufgabe(Aufgabe("private-task", "Unselected task"))
+                documents.setzeAufgabe(Aufgabe("private-task", "Unselected task",
+                    delegiertAn = if (mode == "send-route") "tree-peer" else ""))
+                if (mode == "send-route") documents.setzeNotiz(Notiz("foreign-note", "Foreign tree note", baumQuelle = "tree-peer"))
             }
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
@@ -176,6 +181,14 @@ class ScopedDataRuntimeTest {
                     assertNull(work.personalItemSyncIfAvailable("note", "phone-note"))
                     assertTrue("Unacknowledged membership permitted a send", runCatching { work.personalItemSyncNow("note", "phone-note") }.isFailure)
                     ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    if (mode == "send-route") {
+                        assertTrue(work.personalItemSyncAvailable("note", "phone-note"))
+                        assertFalse(work.personalItemSyncAvailable("note", "foreign-note"))
+                        assertNull(work.personalItemSyncIfAvailable("note", "foreign-note"))
+                        assertFalse(work.personalItemSyncAvailable("task", "private-task"))
+                        assertNull(work.personalItemSyncIfAvailable("task", "private-task"))
+                        assertFalse(queue.hasActiveScopedRun(peerId))
+                    }
                     if (mode == "send-offline") field(TelefonWerk::class.java, "activeChannel").set(work, null)
                     if (mode == "send-revoked") storage.savePeer(peer.copy(remote_personal_notes_sync_granted = false))
                     if (mode in setOf("send-offline", "send-revoked")) {
@@ -201,7 +214,8 @@ class ScopedDataRuntimeTest {
                     assertEquals(1, outgoing.size)
                     val request = PhoneContentScope.unwrap(outgoing.single().getValue("body").jsonObject, manifest)
                     assertEquals("personal_sync.request", request.first)
-                    assertEquals(id, request.second.getValue("send_item").jsonObject.string("id"))
+                    val wireId = if (kind == "note") PersonalSync.noteWireId(documents.bestand.value.personalSync, id) else id
+                    assertEquals(wireId, request.second.getValue("send_item").jsonObject.string("id"))
                     assertEquals(run, request.second.string("run_id"))
                     assertFalse(queue.scopedRequestAccepted(peerId, run))
                     ack(outgoing.single().string("message_id")); pump.invoke(work, peer, channel, 0L, false)
@@ -209,9 +223,9 @@ class ScopedDataRuntimeTest {
                         .filter { it.first == "personal_sync.batch" }.map { it.second }
                     assertTrue(batches.isNotEmpty())
                     val records = batches.flatMap(PersonalSyncProtokoll::decodeBatch)
-                    assertEquals(listOf(id), records.filter { it.kind != "notebook" }.map { it.id })
+                    assertEquals(listOf(wireId), records.filter { it.kind != "notebook" }.map { it.id })
                     assertTrue(records.none { it.id in setOf("private-note", "private-task") })
-                    assertEquals(2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
+                    assertEquals(if (mode == "send-route") 3 else 2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
                     return@use
                 }
                 if (mode == "actor-transport" || actorDeletion || actorCommit) {

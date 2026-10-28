@@ -1044,7 +1044,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     wischen = wischAnzeige,
                     beiLoeschen = ablage::loescheNotizWennUnveraendert,
                     beiAbgleichen = { einzelAbgleich("note", it.id) },
-                    abgleichMoeglich = { wischVerbindungen.notizen || fernAbgleichMoeglich(it.baumFreigabe?.partner.orEmpty()) },
+                    abgleichMoeglich = { (wischVerbindungen.notizen && io.gitlab.maik3531.magnolienotes.daten.PersonalSync.ownNote(it)) ||
+                        fernAbgleichMoeglich(it.baumFreigabe?.partner.orEmpty()) },
                     notizbuecher = bestand.notizbuecher,
                     beiOeffnen = ablage::setzeNotizEntwurf,
                     beiNeu = {
@@ -1063,7 +1064,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     wischen = wischAnzeige,
                     beiLoeschen = ablage::loescheAufgabeWennUnveraendert,
                     beiAbgleichen = { einzelAbgleich("task", it.id) },
-                    abgleichMoeglich = { wischVerbindungen.aufgaben ||
+                    abgleichMoeglich = { (wischVerbindungen.aufgaben && io.gitlab.maik3531.magnolienotes.daten.PersonalSync.ownTask(it)) ||
                         (!it.istFremd && fernAbgleichMoeglich(it.standPartner + it.delegiertAn)) },
                     beiOeffnen = ablage::setzeAufgabenEntwurf,
                     beiAbhaken = { aufgabe, erledigt ->
