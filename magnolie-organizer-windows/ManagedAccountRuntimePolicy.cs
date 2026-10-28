@@ -85,7 +85,13 @@ internal static class ManagedAccountRuntimePolicy
                 lastVersion = text["LastVersion=".Length..];
             }
         }
-        return MozillaRuntimeBuild.Parse(lastVersion ?? throw new InvalidDataException("Account-profile compatibility version is missing."));
+        if (lastVersion is null) throw new InvalidDataException("Account-profile compatibility version is missing.");
+        // Mozilla persists applicationVersion_applicationBuild/platformBuild.
+        // The application build governs whether this profile may be opened;
+        // the platform build is a separate, strictly validated metadata field.
+        var match = Regex.Match(lastVersion, @"^(?<application>\d+\.\d+(?:\.\d+){0,2}(?:esr)?_\d{14})/(?<platform>\d{14})$",
+            RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+        return MozillaRuntimeBuild.Parse(match.Success ? match.Groups["application"].Value : lastVersion);
     }
 
     internal static AccountRuntimeCandidate? Select(IEnumerable<AccountRuntimeCandidate> candidates,

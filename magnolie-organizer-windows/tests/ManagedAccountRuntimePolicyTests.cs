@@ -148,8 +148,17 @@ internal static class ManagedAccountRuntimePolicyTests
             File.WriteAllText(path, content);
             TestAssert.That(ManagedAccountRuntimePolicy.ProfileRequirement(root) == required && File.ReadAllText(path) == content,
                 "Profile compatibility inspection changed or misread existing metadata.");
+            foreach (var platformBuild in new[] { "20261019221403", "20261018221403" })
+            {
+                content = $"[Compatibility]\nLastVersion=158.0.1_20261019221403/{platformBuild}\nLastOSABI=WINNT_x86_64-msvc\n";
+                File.WriteAllText(path, content);
+                TestAssert.That(ManagedAccountRuntimePolicy.ProfileRequirement(root) == required && File.ReadAllText(path) == content,
+                    "The real Mozilla application/platform build format blocked startup or changed the profile.");
+            }
             foreach (var invalid in new[] { "[Compatibility]\n", "[Compatibility]\nLastVersion=invalid\n",
-                "[Compatibility]\nLastVersion=158.0\nLastVersion=155.0\n" })
+                "[Compatibility]\nLastVersion=158.0\nLastVersion=155.0\n",
+                "[Compatibility]\nLastVersion=158.0.1_20261019221403/invalid\n",
+                "[Compatibility]\nLastVersion=158.0.1_20261019221403/20261019221403/20261019221403\n" })
             {
                 File.WriteAllText(path, invalid);
                 TestAssert.Throws<InvalidDataException>(() => ManagedAccountRuntimePolicy.ProfileRequirement(root),
