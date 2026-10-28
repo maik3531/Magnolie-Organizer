@@ -623,6 +623,14 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         zusammenhang.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED
 
     var contactReadPermissionToken by remember { mutableStateOf("") }
+    var contactGroupWritePermissionToken by remember { mutableStateOf("") }
+    val contactGroupWritePermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val granted = results.values.all { it } && kontakteSchreibbar()
+        telefonWerk.completeContactGroupWritePermission(contactGroupWritePermissionToken, granted)
+        contactGroupWritePermissionToken = ""
+        if (!granted) sage(zusammenhang.getString(R.string.baum_kontakte_berechtigung))
+    }
     val contactReadPermission = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()) { granted ->
         telefonWerk.completeContactReadPermission(contactReadPermissionToken, granted)
@@ -1208,6 +1216,14 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             else if (contactReadPermissionToken.isEmpty()) telefonWerk.beginContactReadPermission(deviceId, publicKey)?.let { token ->
                                 contactReadPermissionToken = token
                                 contactReadPermission.launch(Manifest.permission.READ_CONTACTS)
+                            }
+                        },
+                        beiKontaktgruppenSchreiben = { deviceId, publicKey, enabled ->
+                            if (!enabled || kontakteSchreibbar()) runCatching { telefonWerk.setContactGroupWriteEnabled(enabled, deviceId, publicKey) }
+                                .onFailure { sage(zusammenhang.fehlertext(it)) }
+                            else if (contactGroupWritePermissionToken.isEmpty()) telefonWerk.beginContactGroupWritePermission(deviceId, publicKey)?.let { token ->
+                                contactGroupWritePermissionToken = token
+                                contactGroupWritePermission.launch(arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS))
                             }
                         },
                         beiPersonalNotizrichtung = { runCatching { telefonWerk.setPersonalNotesMode(it) }

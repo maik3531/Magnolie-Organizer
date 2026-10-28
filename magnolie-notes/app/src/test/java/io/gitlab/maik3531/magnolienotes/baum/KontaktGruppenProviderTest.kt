@@ -16,6 +16,10 @@ import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
 import io.gitlab.maik3531.magnolienotes.daten.Partner
+import io.gitlab.maik3531.magnolienotes.telefon.ContactGroupWrite
+import io.gitlab.maik3531.magnolienotes.telefon.ContactGroupWriteAndroid
+import kotlinx.serialization.json.*
+import org.robolectric.Shadows.shadowOf
 import javax.crypto.spec.SecretKeySpec
 import org.junit.Assert.*
 import org.junit.After
@@ -157,6 +161,111 @@ class KontaktGruppenProviderTest {
         } finally { directory.deleteRecursively() }
     }
 
+    private fun groupRequest(action: String, uid: String, token: String = "", groups: List<String> = emptyList()) = buildJsonObject {
+        put("version", ContactGroupWrite.VERSION); put("request_id", java.util.UUID.randomUUID().toString())
+        put("action", action); put("uid", uid)
+        if (action == "apply") { put("token", token); put("groups", JsonArray(groups.map(::JsonPrimitive))) }
+    }
+
+    private fun groupWriter(): ContactGroupWriteAndroid {
+        shadowOf(context as Application).grantPermissions(android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.WRITE_CONTACTS)
+        return ContactGroupWriteAndroid(context)
+    }
+
+    @Test fun liveGroupTicketWritesOnlyMembershipsAndReturnsActualNativeReadback() {
+        val automatic = provider.group("MY CONTACTS", automatic = true)
+        val work = provider.group("Work")
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", firma = "Preserve", notiz = "Preserve note", gruppen = listOf("Coworkers")))
+        val other = contacts.anlegen(KontaktDaten(vorname = "Unrelated", gruppen = listOf("Coworkers")))
+        provider.member(saved.rawContactId, automatic)
+        val before = contacts.liesRaw(saved.rawContactId)!!
+        val owner = Any(); val writer = groupWriter()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        assertEquals("prepared", prepared["state"]!!.jsonPrimitive.content)
+        assertEquals(listOf("Coworkers"), ContactGroupWrite.names(prepared, "groups"))
+        assertFalse("MY CONTACTS" in ContactGroupWrite.names(prepared, "catalog", 1000))
+        val request = groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work"))
+        val report = writer.execute(request, owner)
+        assertEquals("saved", report["state"]!!.jsonPrimitive.content)
+        assertEquals(listOf("Work"), ContactGroupWrite.names(report, "groups"))
+        val actual = contacts.liesRaw(saved.rawContactId)!!
+        assertEquals(before.daten, actual.daten.copy(gruppen = before.daten.gruppen))
+        assertTrue(automatic in provider.memberIds(saved.rawContactId))
+        assertTrue(work in provider.memberIds(saved.rawContactId))
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(other.rawContactId)!!.daten.gruppen)
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(request, owner) }
+        val next = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val custom = writer.execute(groupRequest("apply", saved.lookupKey, next["token"]!!.jsonPrimitive.content, listOf("My own label", "Work")), owner)
+        assertEquals(listOf("My own label", "Work"), ContactGroupWrite.names(custom, "groups"))
+        assertTrue(provider.hasGroup("My own label"))
+        assertTrue(automatic in provider.memberIds(saved.rawContactId))
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(other.rawContactId)!!.daten.gruppen)
+    }
+
+    @Test fun liveGroupTicketRejectsWrongSessionProviderChangesAndPermissionRevocation() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val owner = Any(); val writer = groupWriter()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val request = groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work"))
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(request, Any()) }
+        shadowOf(context as Application).denyPermissions(android.Manifest.permission.WRITE_CONTACTS)
+        assertThrows(IllegalStateException::class.java) { writer.execute(request, owner) }
+        shadowOf(context as Application).grantPermissions(android.Manifest.permission.WRITE_CONTACTS)
+        provider.bump(saved.rawContactId)
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(request, owner) }
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+        assertFalse(provider.hasGroup("Work"))
+    }
+
+    @Test fun liveGroupTicketExpiresAndCannotReplaceAutomaticMemberships() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        provider.group("MY CONTACTS", automatic = true)
+        groupWriter()
+        var time = 100L
+        val writer = ContactGroupWriteAndroid(context) { time }; val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val token = prepared["token"]!!.jsonPrimitive.content
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(groupRequest("apply", saved.lookupKey, token, listOf("MY CONTACTS")), owner) }
+        time += 30_000
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(groupRequest("apply", saved.lookupKey, token, emptyList()), owner) }
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+    }
+
+    @Test fun liveGroupTicketFailedBatchNeverReportsSavedAndFreshReadCanPrepareAgain() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val writer = groupWriter(); val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        provider.failAt = 3
+        assertThrows(OperationApplicationException::class.java) {
+            writer.execute(groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work")), owner)
+        }
+        assertFalse(provider.hasGroup("Work"))
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+        provider.failAt = -1
+        val fresh = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val report = writer.execute(groupRequest("apply", saved.lookupKey, fresh["token"]!!.jsonPrimitive.content, emptyList()), owner)
+        assertEquals(emptyList<String>(), ContactGroupWrite.names(report, "groups"))
+        assertEquals(emptyList<String>(), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+    }
+
+    @Test fun liveGroupTicketBindsTheCatalogAndRejectsConcurrentRenamesWithoutCreatingDuplicateLabels() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val target = provider.group("Work")
+        val writer = groupWriter(); val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        provider.beforeBatch = {
+            provider.update(ContentUris.withAppendedId(Groups.CONTENT_URI, target), ContentValues().apply {
+                put(Groups.TITLE, "Renamed work label")
+            }, null, null)
+        }
+        assertThrows(OperationApplicationException::class.java) {
+            writer.execute(groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work")), owner)
+        }
+        assertFalse(provider.hasGroup("Work"))
+        assertTrue(provider.hasGroup("Renamed work label"))
+        assertEquals(listOf("Coworkers"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+    }
+
     private class GroupProvider : ContentProvider() {
         private lateinit var db: SQLiteDatabase
         var beforeBatch: (() -> Unit)? = null
@@ -165,7 +274,7 @@ class KontaktGruppenProviderTest {
             db = SQLiteDatabase.create(null)
             db.execSQL("CREATE TABLE raw_contacts (_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id INTEGER, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, version INTEGER DEFAULT 1, deleted INTEGER DEFAULT 0, aggregation_mode INTEGER)")
             db.execSQL("CREATE TABLE contacts (_id INTEGER PRIMARY KEY, lookup TEXT, is_user_profile INTEGER DEFAULT 0, contact_last_updated_timestamp INTEGER DEFAULT 1000)")
-            db.execSQL("CREATE TABLE contact_groups (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, account_name TEXT, account_type TEXT, data_set TEXT, deleted INTEGER DEFAULT 0, auto_add INTEGER DEFAULT 0, favorites INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE contact_groups (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, deleted INTEGER DEFAULT 0, auto_add INTEGER DEFAULT 0, favorites INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE data (_id INTEGER PRIMARY KEY AUTOINCREMENT, raw_contact_id INTEGER, mimetype TEXT, " +
                 (1..14).joinToString { "data$it TEXT" } + ", data15 BLOB, " + (1..4).joinToString { "sync$it TEXT" } + ", is_primary INTEGER DEFAULT 0, is_super_primary INTEGER DEFAULT 0)")
             return true

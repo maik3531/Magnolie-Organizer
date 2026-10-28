@@ -133,7 +133,8 @@ class Telefonhandlungen(
     val beiCustomSync: (Boolean) -> Unit,
     val beiTimeSync: (Boolean) -> Unit,
     val beiCustomEntscheidung: (String, Long, Boolean) -> Unit,
-    val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> }
+    val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> },
+    val beiKontaktgruppenSchreiben: (String, String, Boolean) -> Unit = { _, _, _ -> }
 )
 
 @Composable
@@ -333,6 +334,11 @@ fun BaumBlatt(
                 Schalterzeile(stringResource(R.string.telefon_kontakte_lesen), telefon.peer?.contacts_read_enabled == true,
                     { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })
                 Text(stringResource(R.string.telefon_kontakte_lesen_hinweis), fontSize = 12.sp)
+                if (telefon.peer?.contacts_read_enabled == true) {
+                    Schalterzeile(stringResource(R.string.telefon_kontaktgruppen_schreiben), telefon.peer?.contact_groups_write_enabled == true,
+                        { enabled -> telefon.peer?.let { telefonHandlungen.beiKontaktgruppenSchreiben(it.device_id, it.static_public, enabled) } })
+                    Text(stringResource(R.string.telefon_kontaktgruppen_schreiben_hinweis), fontSize = 12.sp)
+                }
                 Text(stringResource(R.string.device_identifiers_explanation), fontSize = 12.sp)
                 if (telefon.peer?.identifier_sharing_enabled != true)
                     Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen)) {

@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">Povolit tomuto počítači měnit skupiny kontaktů</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Lze měnit pouze členství existujících kontaktů ve skupinách. Ostatní kontaktní údaje a systémové skupiny zůstávají beze změny.</string>
+</resources>

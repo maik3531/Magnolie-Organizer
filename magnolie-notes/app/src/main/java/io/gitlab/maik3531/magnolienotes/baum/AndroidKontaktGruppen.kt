@@ -13,7 +13,15 @@ import java.util.Locale
 /** Account-bound native memberships, shared by reviewed contact writes and snapshots. */
 internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
     data class Konto(val name: String?, val type: String?, val dataSet: String?)
-    private data class Gruppe(val id: Long, val title: String, val konto: Konto, val system: Boolean)
+    private data class Gruppe(val id: Long, val title: String, val konto: Konto, val autoAdd: Int, val favorites: Int, val sourceId: String?) {
+        val system get() = autoAdd != 0 || favorites != 0
+        fun assertion() = ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(Groups.CONTENT_URI, id))
+            .withValue(Groups.TITLE, title).withValue(Groups.ACCOUNT_NAME, konto.name)
+            .withValue(Groups.ACCOUNT_TYPE, konto.type).withValue(Groups.DATA_SET, konto.dataSet)
+            .withValue(Groups.DELETED, 0).withValue(Groups.AUTO_ADD, autoAdd).withValue(Groups.FAVORITES, favorites)
+            .withValue(Groups.SOURCE_ID, sourceId).withExpectedCount(1).build()
+    }
+    data class Angebot(val benutzer: List<String>, val system: List<String>, val pruefungen: List<ContentProviderOperation>)
     private data class Mitglied(val id: Long, val raw: Long, val group: Long)
     private fun key(value: String) = Normalizer.normalize(value.trim(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
 
@@ -32,13 +40,13 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
     private fun groups(): List<Gruppe> {
         require(resolver.getType(Groups.CONTENT_URI) == Groups.CONTENT_TYPE) { "contact_groups_unavailable" }
         return requireNotNull(resolver.query(Groups.CONTENT_URI,
-        arrayOf(Groups._ID, Groups.TITLE, Groups.ACCOUNT_NAME, Groups.ACCOUNT_TYPE, Groups.DATA_SET, Groups.AUTO_ADD, Groups.FAVORITES),
+        arrayOf(Groups._ID, Groups.TITLE, Groups.ACCOUNT_NAME, Groups.ACCOUNT_TYPE, Groups.DATA_SET, Groups.AUTO_ADD, Groups.FAVORITES, Groups.SOURCE_ID),
         "${Groups.DELETED}=0", null, "${Groups._ID} ASC")).use { cursor ->
         buildList {
             while (cursor.moveToNext()) {
                 require(size < 10000)
                 add(Gruppe(cursor.getLong(0), cursor.getString(1).orEmpty(),
-                    Konto(cursor.getString(2), cursor.getString(3), cursor.getString(4)), cursor.getInt(5) != 0 || cursor.getInt(6) != 0))
+                    Konto(cursor.getString(2), cursor.getString(3), cursor.getString(4)), cursor.getInt(5), cursor.getInt(6), cursor.getString(7)))
             }
         }
         }
@@ -67,6 +75,23 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
         Konto(cursor.getString(0), cursor.getString(1), cursor.getString(2)).also { require(!cursor.moveToNext()) }
     }
 
+    /** Complete user/system title sets for the existing primary raw-contact account. */
+    fun angebot(raw: Long): Angebot {
+        val owner = konto(raw)
+        val definitions = groups().filter { it.konto == owner }
+        val selection = mutableListOf("${Groups.DELETED}=0")
+        val args = mutableListOf<String>()
+        for ((column, value) in listOf(Groups.ACCOUNT_NAME to owner.name, Groups.ACCOUNT_TYPE to owner.type, Groups.DATA_SET to owner.dataSet)) {
+            selection += if (value == null) "$column IS NULL" else "$column=?"
+            if (value != null) args += value
+        }
+        val count = ContentProviderOperation.newAssertQuery(Groups.CONTENT_URI)
+            .withSelection(selection.joinToString(" AND "), args.toTypedArray()).withExpectedCount(definitions.size).build()
+        return Angebot(KontaktSync.normalisiereGruppen(definitions.filterNot { it.system }.map { it.title }),
+            KontaktSync.normalisiereGruppen(definitions.filter { it.system }.map { it.title }),
+            listOf(count) + definitions.map { it.assertion() })
+    }
+
     /** Writes join the caller's existing version-asserted applyBatch transaction. */
     fun plane(ops: MutableList<ContentProviderOperation>, rawIds: Set<Long>, primary: Long?,
               desired: List<String>?, expected: List<String>?, newAccount: Konto? = null) {
@@ -84,12 +109,7 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
         val asserted = mutableSetOf<Long>()
         fun assertGroup(group: Gruppe) {
             if (!asserted.add(group.id)) return
-            ops += ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(Groups.CONTENT_URI, group.id))
-                .withValue(Groups.TITLE, group.title).withValue(Groups.ACCOUNT_NAME, group.konto.name)
-                .withValue(Groups.ACCOUNT_TYPE, group.konto.type).withValue(Groups.DATA_SET, group.konto.dataSet)
-                .withValue(Groups.DELETED, 0).withValue(Groups.AUTO_ADD, if (group.system) 1 else 0)
-                .withValue(Groups.FAVORITES, 0)
-                .withExpectedCount(1).build()
+            ops += group.assertion()
         }
         // Deleting memberships never deletes a contact or a shared group definition.
         for (row in current) {
@@ -104,7 +124,9 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
         for (name in wanted) {
             val existingMembership = current.any { row -> byId[row.group]?.let { !it.system && key(it.title) == key(name) } == true }
             if (existingMembership) continue
-            val group = definitions.firstOrNull { !it.system && it.konto == owner && key(it.title) == key(name) }
+            val candidates = definitions.filter { !it.system && it.konto == owner && key(it.title) == key(name) }
+            require(candidates.size <= 1) { "contact_groups_ambiguous" }
+            val group = candidates.singleOrNull()
             val groupBackref = if (group == null) {
                 val selection = mutableListOf("${Groups.DELETED}=0", "${Groups.TITLE}=? COLLATE NOCASE")
                 val arguments = mutableListOf(name)

@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">Deze computer toestaan contactgroepen te wijzigen</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Alleen groepslidmaatschappen van bestaande contacten kunnen worden gewijzigd. Andere contactgegevens en systeemgroepen blijven ongewijzigd.</string>
+</resources>

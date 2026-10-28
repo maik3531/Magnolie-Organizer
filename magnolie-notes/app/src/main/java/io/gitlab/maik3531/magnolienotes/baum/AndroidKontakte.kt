@@ -282,7 +282,8 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
     }
 
     /** Reviewed content only; provider version assertions and writes share one atomic batch. */
-    fun uebernehmen(erwartet: AndroidKontakt, ziel: KontaktDaten, ersetzen: Boolean): AndroidKontakt = synchronized(PROVIDER_SPERRE) {
+    fun uebernehmen(erwartet: AndroidKontakt, ziel: KontaktDaten, ersetzen: Boolean,
+                   gruppenPruefungen: List<ContentProviderOperation> = emptyList()): AndroidKontakt = synchronized(PROVIDER_SPERRE) {
         val lokal = requireNotNull(liesRaw(erwartet.rawContactId))
         require(lokal == erwartet && erwartet.rawVersionen.keys.containsAll(erwartet.rawContactIds))
         require(!ersetzen || erwartet.rawContactIds.size == 1)
@@ -292,6 +293,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             ops += ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw))
                 .withValue(RawContacts.VERSION, erwartet.rawVersionen.getValue(raw)).withExpectedCount(1).build()
         }
+        ops.addAll(gruppenPruefungen)
         val raw = erwartet.rawContactId
         if (ersetzen) {
             val mimes = listOf(StructuredName.CONTENT_ITEM_TYPE, NAME_MIME, Organization.CONTENT_ITEM_TYPE,

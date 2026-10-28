@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">このパソコンによる連絡先グループの変更を許可する</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">既存の連絡先のグループ所属のみ変更できます。他の連絡先データとシステムグループは変更されません。</string>
+</resources>

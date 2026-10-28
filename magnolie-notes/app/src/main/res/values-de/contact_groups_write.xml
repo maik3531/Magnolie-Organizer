@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">Diesem Rechner Änderungen an Kontaktgruppen erlauben</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Nur Gruppenzuordnungen bestehender Kontakte können geändert werden. Andere Kontaktdaten und Systemgruppen bleiben erhalten.</string>
+</resources>

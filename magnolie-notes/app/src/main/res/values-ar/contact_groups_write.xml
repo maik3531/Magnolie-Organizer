@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">السماح لهذا الحاسوب بتغيير مجموعات جهات الاتصال</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">يمكن تغيير عضوية المجموعات لجهات الاتصال الموجودة فقط. تبقى بيانات الاتصال الأخرى ومجموعات النظام دون تغيير.</string>
+</resources>

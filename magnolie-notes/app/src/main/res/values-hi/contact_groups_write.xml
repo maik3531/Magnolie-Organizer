@@ -1,0 +1,4 @@
+<resources>
+    <string name="telefon_kontaktgruppen_schreiben">इस कंप्यूटर को संपर्क समूह बदलने दें</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">केवल मौजूदा संपर्कों की समूह सदस्यता बदली जा सकती है। अन्य संपर्क डेटा और सिस्टम समूह अपरिवर्तित रहते हैं।</string>
+</resources>
