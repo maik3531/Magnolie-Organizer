@@ -225,7 +225,9 @@ class Fenster(_FENSTER_BASIS):
         except GLib.Error:
             pass
         sicherheit = kontext.get_security_manager()
-        for methode in ("register_uri_scheme_as_local", "register_uri_scheme_as_secure",
+        # A file-local origin taints canvases even for this origin's own images.
+        # Keep the handbook secure and isolated without file-local privileges.
+        for methode in ("register_uri_scheme_as_secure",
                         "register_uri_scheme_as_display_isolated"):
             try:
                 getattr(sicherheit, methode)("magnolie-handbuch")

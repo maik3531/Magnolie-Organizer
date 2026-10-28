@@ -57,6 +57,7 @@ def test_native_windows_projection_only_changes_approved_resource_paths(tmp_path
             text = re.sub(r"Windows \d+\.\d+\.\d+", "Windows " + version, text)
             for name in ("kaffee-qr.png", "maik-walter.jpg"):
                 text = re.sub(r"src=(['\"])" + re.escape(name) + r"\1",
-                              lambda match: "src=" + match[1] + "https://handbuchassets.magnolie.invalid/" + name + match[1], text)
+                              lambda match: ("crossorigin=anonymous " if name == "kaffee-qr.png" else "") +
+                              "src=" + match[1] + "https://handbuchassets.magnolie.invalid/" + name + match[1], text)
             expected = text.encode()
         assert (output / relative).read_bytes() == expected, relative

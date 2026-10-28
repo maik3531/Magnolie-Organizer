@@ -28440,6 +28440,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kaffee.append(kaffeeText);
     const kaffeeQr = document.createElement("img");
     kaffeeQr.className = "kaffee-qr";
+    kaffeeQr.crossOrigin = "anonymous";
     kaffeeQr.src = "https://appassets.magnolie.invalid/kaffee-qr.png";
     kaffeeQr.alt = _("QR code");
     bindeQrInhalt(kaffeeQr, () => ({ coffee: true }));

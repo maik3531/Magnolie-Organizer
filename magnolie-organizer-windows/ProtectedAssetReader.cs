@@ -85,7 +85,7 @@ internal static class ProtectedAssetReader
                 // WebView2 reads the response after this callback; do not dispose or clear its stream here.
                 eventArgs.Response = core.Environment.CreateWebResourceResponse(
                     new MemoryStream(data, writable: false), 200, "OK",
-                    ProtectedAssetPolicy.ResponseHeaders(asset.ContentType, data.Length));
+                    ProtectedAssetPolicy.ResponseHeaders(asset.ContentType, data.Length, host));
                 diagnostic?.Invoke($"Geschütztes Asset {absolutePath} wurde mit {data.Length} Bytes bereitgestellt.");
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or

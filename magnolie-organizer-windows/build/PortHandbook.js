@@ -28,7 +28,7 @@ for (const name of ["inhalt.js", ...fs.readdirSync(path.join(output, "i18n"))
     .replace(/Magnolie-Organizer-Windows-\d+\.\d+\.\d+-Setup-x64\.exe/g, installerName)
     .replace(/Windows \d+\.\d+\.\d+/g, `Windows ${version}`)
     .replace(/src=(['"])kaffee-qr\.png\1/g,
-      "src=$1https://handbuchassets.magnolie.invalid/kaffee-qr.png$1")
+      "crossorigin=anonymous src=$1https://handbuchassets.magnolie.invalid/kaffee-qr.png$1")
     .replace(/src=(['"])maik-walter\.jpg\1/g,
       "src=$1https://handbuchassets.magnolie.invalid/maik-walter.jpg$1");
   fs.writeFileSync(file, content, "utf8");

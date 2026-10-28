@@ -93,6 +93,21 @@ def test_landesflaggen_sind_feste_ressource_in_beiden_transporten():
         assert m.organizer_http_ressource("/" + token + "/" + name, token, str(web)) is None
 
 
+def test_qr_resources_are_available_only_at_exact_native_and_http_paths():
+    web = Path(m.__file__).resolve().parent.parent / "web"
+    token = "d" * 48
+    for name, mime in (("qr-decoder.js", "application/javascript"),
+                       ("qr-dialog.js", "application/javascript"),
+                       ("qr-dialog.css", "text/css")):
+        expected = (str(web / name), mime)
+        assert m.organizer_ressource("magnolie-organizer://app/" + name, str(web)) == expected
+        assert m.organizer_http_ressource("/" + token + "/" + name, token, str(web)) == expected
+        for invalid in (name + "?x=1", "../" + name, "%71" + name[1:]):
+            assert m.organizer_ressource("magnolie-organizer://app/" + invalid, str(web)) is None
+            assert m.organizer_http_ressource("/" + token + "/" + invalid, token, str(web)) is None
+    assert m.organizer_ressource("magnolie-organizer://app/qr-decoder-LICENSE.txt", str(web)) is None
+
+
 def test_http_server_loest_systemsprache_auf_und_laesst_sich_aktualisieren(
         tmp_path, monkeypatch):
     (tmp_path / "i18n").mkdir()

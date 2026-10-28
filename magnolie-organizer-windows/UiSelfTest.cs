@@ -111,6 +111,7 @@ internal static partial class UiSelfTest
                           aboutTab: !!about };
                         """);
                     Console.WriteLine("WINDOWS-ORGANIZER-SETTINGS-ABOUT-QR-OK");
+                    await TestQrDialogAsync(coreWebView, ".kaffee-qr");
                     await coreWebView.ExecuteScriptAsync("document.querySelector('#einstellungen-zu')?.click();");
                     await coreWebView.ExecuteScriptAsync("window.OrganizerTest.wechsel('gesundheit')");
                     await Task.Delay(300);
@@ -184,6 +185,7 @@ internal static partial class UiSelfTest
                     await TestImageAsync(handbookCore, "#seiten .kaffee-qr", 266, 266,
                         "QR-Code im Handbuch", "https://handbuchassets.magnolie.invalid/kaffee-qr.png");
                     Console.WriteLine("WINDOWS-HANDBOOK-QR-OK");
+                    await TestQrDialogAsync(handbookCore, "#seiten .kaffee-qr");
                     await handbookCore.ExecuteScriptAsync("Handbuch.blaettereZuId('about-maik-walter');");
                     await TestImageAsync(handbookCore, "#seiten .autorenfoto", 1080, 1074,
                         "Porträt im Handbuch", "https://handbuchassets.magnolie.invalid/maik-walter.jpg");
@@ -287,6 +289,51 @@ internal static partial class UiSelfTest
     private static void Test(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static async Task TestQrDialogAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core, string selector)
+    {
+        // Digest of the independently decoded reviewed asset; never log its text.
+        const string expectedDigest = "86dc6bf612f4f32f168fac72a5272f56fd8d03f5a692488bb1795e722434bf82";
+        foreach (var keyboard in new[] { false, true })
+        {
+            await core.ExecuteScriptAsync($$"""
+                (() => {
+                  window.__qrDialogProof = null;
+                  const image = document.querySelector({{JsonSerializer.Serialize(selector)}});
+                  image.focus();
+                  if ({{(keyboard ? "true" : "false")}}) image.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true}));
+                  else image.click();
+                  (async () => {
+                    const deadline = Date.now() + 10000;
+                    while (!document.querySelector('.magnolie-qr-text') && Date.now() < deadline)
+                      await new Promise(resolve => setTimeout(resolve, 25));
+                    const dialog = document.querySelector('.magnolie-qr-dialog');
+                    const text = dialog.querySelector('pre').textContent;
+                    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+                    const digest = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2,'0')).join('');
+                    const textOnly = !dialog.querySelector('.magnolie-qr-open');
+                    dialog.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape',bubbles:true}));
+                    window.__qrDialogProof = {digest,textOnly,closed:!document.querySelector('.magnolie-qr-dialog'),focus:document.activeElement===image};
+                  })().catch(() => {window.__qrDialogProof = {failed:true};});
+                })()
+                """);
+            var passed = false;
+            for (var attempt = 0; attempt < 120; attempt++)
+            {
+                await Task.Delay(100);
+                var result = await core.ExecuteScriptAsync("window.__qrDialogProof");
+                if (result == "null") continue;
+                using var document = JsonDocument.Parse(result);
+                var proof = document.RootElement;
+                passed = proof.TryGetProperty("digest", out var digest) && digest.GetString() == expectedDigest &&
+                    proof.GetProperty("textOnly").GetBoolean() && proof.GetProperty("closed").GetBoolean() &&
+                    proof.GetProperty("focus").GetBoolean();
+                break;
+            }
+            Test(passed, "Der tatsächliche QR-Dialog konnte das Originalbild nicht korrekt lesen/schließen (Inhalt ausgelassen).");
+        }
+        Console.WriteLine("WINDOWS-QR-DIALOG-CANVAS-KEYBOARD-OK");
     }
 
     private static async Task TestImageAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core,

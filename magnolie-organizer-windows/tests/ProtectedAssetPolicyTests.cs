@@ -28,14 +28,22 @@ internal static class ProtectedAssetPolicyTests
             TestAssert.That(!ProtectedAssetPolicy.TryGetAllowedPath(target, host, paths, out _),
                 $"Nicht erlaubte Asset-URL wurde angenommen: {target}");
 
-        var headers = ProtectedAssetPolicy.ResponseHeaders("image/png", 123);
+        var headers = ProtectedAssetPolicy.ResponseHeaders("image/png", 123, host);
         TestAssert.That(headers.Contains("Content-Length: 123\r\n", StringComparison.Ordinal) &&
                         headers.Contains("X-Content-Type-Options: nosniff\r\n", StringComparison.Ordinal) &&
-                        headers.EndsWith("Cache-Control: no-store", StringComparison.Ordinal),
+                        headers.EndsWith("Cache-Control: no-store", StringComparison.Ordinal) &&
+                        headers.Contains("Access-Control-Allow-Origin: https://app.magnolie.invalid\r\n", StringComparison.Ordinal) &&
+                        !headers.Contains("Access-Control-Allow-Credentials", StringComparison.Ordinal),
             "Sichere Header für geschützte Assets fehlen.");
         TestAssert.Throws<InvalidDataException>(() =>
-                ProtectedAssetPolicy.ResponseHeaders("image/png\r\nX-Injected: yes", 1),
+                ProtectedAssetPolicy.ResponseHeaders("image/png\r\nX-Injected: yes", 1, host),
             "Eine Header-Injektion über den Inhaltstyp wurde angenommen.");
+        TestAssert.That(ProtectedAssetPolicy.ResponseHeaders("image/png", 123, "handbuchassets.magnolie.invalid")
+                .Contains("Access-Control-Allow-Origin: https://handbuch.magnolie.invalid\r\n", StringComparison.Ordinal),
+            "Der Handbuch-Bildursprung muss ausschließlich das Handbuch für Canvas erlauben.");
+        TestAssert.Throws<InvalidDataException>(() =>
+                ProtectedAssetPolicy.ResponseHeaders("image/png", 123, "other.invalid"),
+            "Ein fremder Bildursprung wurde für CORS angenommen.");
 
         var source = File.ReadAllText("ProtectedAssetReader.cs");
         TestAssert.That(source.Contains("CoreWebView2WebResourceContext.All", StringComparison.Ordinal) &&

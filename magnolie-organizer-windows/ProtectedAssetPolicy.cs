@@ -17,11 +17,18 @@ internal static class ProtectedAssetPolicy
         return true;
     }
 
-    internal static string ResponseHeaders(string contentType, int contentLength)
+    internal static string ResponseHeaders(string contentType, int contentLength, string assetHost)
     {
         if (contentType is not ("image/png" or "image/jpeg") || contentLength < 0)
             throw new InvalidDataException("Invalid protected asset response metadata.");
+        var origin = assetHost switch
+        {
+            "appassets.magnolie.invalid" => "https://app.magnolie.invalid",
+            "handbuchassets.magnolie.invalid" => "https://handbuch.magnolie.invalid",
+            _ => throw new InvalidDataException("Unknown protected asset origin.")
+        };
         return $"Content-Type: {contentType}\r\nContent-Length: {contentLength.ToString(CultureInfo.InvariantCulture)}\r\n" +
+               $"Access-Control-Allow-Origin: {origin}\r\n" +
                "X-Content-Type-Options: nosniff\r\nCache-Control: no-store";
     }
 
