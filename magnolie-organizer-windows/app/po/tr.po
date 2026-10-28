@@ -8281,3 +8281,7 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Gelişmiş işlevler"

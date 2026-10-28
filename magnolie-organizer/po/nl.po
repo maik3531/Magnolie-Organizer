@@ -9847,3 +9847,7 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Geavanceerde functies"

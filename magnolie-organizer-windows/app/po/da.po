@@ -8285,3 +8285,7 @@ msgstr "＋ Tilføj aftale"
 #~ "serienummer og IMEI. Fra Android 10 er hardwareidentifikatorer begrænset "
 #~ "for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig "
 #~ "rolle anmodes."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Avancerede funktioner"

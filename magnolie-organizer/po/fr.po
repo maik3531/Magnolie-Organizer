@@ -9987,3 +9987,7 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ "identifiants matériels sont restreints pour les applications ordinaires. "
 #~ "L’autorisation du numéro est facultative ; aucun rôle spécial n’est "
 #~ "demandé."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Fonctions avancées"

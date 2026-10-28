@@ -8408,3 +8408,7 @@ msgstr "＋ Aggiungi appuntamento"
 #~ "consente, numero di serie e IMEI. Da Android 10 gli identificativi "
 #~ "hardware sono limitati per le app ordinarie. Il permesso per il numero è "
 #~ "facoltativo; non viene richiesto alcun ruolo speciale."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Funzioni avanzate"

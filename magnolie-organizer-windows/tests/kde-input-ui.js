@@ -39,7 +39,14 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
       w.App.init({ daten: {}, neu: false, regional: { language: "en" } });
       w.App.telefonStand({ peers: [], kdeconnect: { available: true, peer_id: phone.device_id } });
       w.document.querySelector("#einstellungen-schleier").classList.remove("verborgen");
-      w.OrganizerTest.baueEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
+       w.OrganizerTest.baueEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
+       const advanced = w.document.querySelector("#kde-erweiterte-funktionen");
+       assert.ok(advanced && advanced.tagName === "DETAILS");
+       assert.equal(advanced.open, false);
+       assert.equal(advanced.querySelector("summary").textContent, "Advanced functions");
+       assert.equal(w.document.querySelector("#kde-input").closest("details"), advanced);
+       assert.equal(w.document.querySelector("#kde-local-players").closest("details"), advanced);
+       advanced.open = true;
       const poll = () => {
         const timer = [...timers].find(([, value]) => value.fn.name === "pollInput");
         assert.ok(timer); timers.delete(timer[0]); timer[1].fn();

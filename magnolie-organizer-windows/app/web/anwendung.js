@@ -27930,8 +27930,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!kde.listening && gruende[kde.reason]) {
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
-    baueKdeEingabe(kdeBlock);
-    baueKdeSpieler(kdeBlock);
+    const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
+    erweitert.id = "kde-erweiterte-funktionen";
+    erweitert.append(el("summary", null, _("Advanced functions")));
+    baueKdeEingabe(erweitert);
+    baueKdeSpieler(erweitert);
+    kdeBlock.append(erweitert);
     baueKdeDateisystem(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);

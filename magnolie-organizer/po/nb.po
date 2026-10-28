@@ -9725,3 +9725,7 @@ msgstr "＋ Legg til avtale"
 #~ "det, serienummer og IMEI. Fra Android 10 er maskinvareidentifikatorer "
 #~ "begrenset for vanlige apper. Tillatelse til nummeret er valgfri; ingen "
 #~ "særskilt rolle forespørres."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Avanserte funksjoner"

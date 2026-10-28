@@ -9871,3 +9871,7 @@ msgstr "＋ Adicionar compromisso"
 #~ "permitir, número de série e IMEI. Desde o Android 10, os identificadores "
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Funções avançadas"

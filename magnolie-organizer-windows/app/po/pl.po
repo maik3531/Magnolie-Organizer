@@ -8374,3 +8374,7 @@ msgstr "＋ Dodaj spotkanie"
 #~ "pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są "
 #~ "ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest "
 #~ "opcjonalne; specjalne role nie są żądane."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Funkcje zaawansowane"

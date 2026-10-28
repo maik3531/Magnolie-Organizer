@@ -8413,3 +8413,7 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Rozšěrjene funkcije"

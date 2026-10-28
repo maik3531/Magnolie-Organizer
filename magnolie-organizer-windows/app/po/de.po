@@ -8437,3 +8437,7 @@ msgstr "＋ Termin hinzufügen"
 #~ "erlaubt, Seriennummer und IMEI. Ab Android 10 sind Hardwarekennungen für "
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Erweiterte Funktionen"

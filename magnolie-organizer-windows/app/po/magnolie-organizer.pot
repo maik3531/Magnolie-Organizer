@@ -557,6 +557,9 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
+msgid "Advanced functions"
+msgstr ""
+
 msgid "After exercise"
 msgstr ""
 

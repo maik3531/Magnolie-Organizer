@@ -8195,3 +8195,7 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "高度な機能"

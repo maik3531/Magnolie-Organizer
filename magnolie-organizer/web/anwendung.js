@@ -28060,8 +28060,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       "zwischenablageAutomatisch");
     if (!nativesKde && !kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
       _("Pair a KDE Connect phone before enabling receive functions.")));
-    baueKdeEingabe(kdeBlock);
-    baueKdeSpieler(kdeBlock);
+    const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
+    erweitert.id = "kde-erweiterte-funktionen";
+    erweitert.append(el("summary", null, _("Advanced functions")));
+    baueKdeEingabe(erweitert);
+    baueKdeSpieler(erweitert);
+    kdeBlock.append(erweitert);
     baueKdeDateisystem(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);

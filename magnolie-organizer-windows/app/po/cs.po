@@ -8298,3 +8298,7 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Rozšířené funkce"

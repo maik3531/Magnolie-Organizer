@@ -9893,3 +9893,7 @@ msgstr "＋ Añadir cita"
 #~ "permite, el número de serie y el IMEI. Desde Android 10 se restringen los "
 #~ "identificadores de hardware para las aplicaciones normales. El permiso "
 #~ "del número es opcional; no se solicita ningún rol especial."
+
+#: web/anwendung.js
+msgid "Advanced functions"
+msgstr "Funciones avanzadas"

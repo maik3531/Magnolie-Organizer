@@ -6120,6 +6120,8 @@ body[data-linien="aus"] #tb-notiz {
 .kde-medien[hidden], .kde-medien [hidden] { display: none; }
 .kde-medien select, .kde-medien input { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .kde-medien p { overflow-wrap: anywhere; }
+.kde-medien > .formzeile { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.kde-medien > .formzeile > select { min-width: 160px; }
 .kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; user-select: none; }
 .kde-touchpad[aria-disabled="true"] { opacity: .5; }
 .telefon-kdeconnect > p { margin: 0; }
