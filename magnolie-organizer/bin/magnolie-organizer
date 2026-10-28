@@ -20021,7 +20021,7 @@ class OrganizerHTTPServer:
                 if not ressource:
                     return self._ablehnen(404)
                 try:
-                    if ressource[1] == "image/png":
+                    if ressource[0].endswith(".mga"):
                         daten = read_asset(ressource[0], 1, 1)
                     else:
                         with open(ressource[0], "rb") as datei:
@@ -21262,7 +21262,7 @@ class Fenster(_FENSTER_BASIS):
         mime = "text/plain"
         if ressource:
             try:
-                if ressource[1] == "image/png":
+                if ressource[0].endswith(".mga"):
                     daten = read_asset(ressource[0], 1, 1)
                 else:
                     with open(ressource[0], "rb") as datei:

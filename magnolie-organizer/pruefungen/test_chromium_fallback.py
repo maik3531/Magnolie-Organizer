@@ -1,4 +1,5 @@
 import http.client
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
@@ -8,6 +9,8 @@ import sys
 import tempfile
 import threading
 from pathlib import Path
+from types import SimpleNamespace
+import pytest
 
 
 PFAD = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -106,6 +109,36 @@ def test_qr_resources_are_available_only_at_exact_native_and_http_paths():
             assert m.organizer_ressource("magnolie-organizer://app/" + invalid, str(web)) is None
             assert m.organizer_http_ressource("/" + token + "/" + invalid, token, str(web)) is None
     assert m.organizer_ressource("magnolie-organizer://app/qr-decoder-LICENSE.txt", str(web)) is None
+
+
+@pytest.mark.parametrize('name,container', [('country-flags.png', 'country-flags.png'), ('kaffee-qr.png', 'kaffee-qr.mga')])
+def test_real_webkit_handler_distinguishes_plain_png_from_protected_image(name, container):
+    if m.Gio is None:
+        pytest.skip('Native Gio stream required')
+    web = Path(m.__file__).resolve().parent.parent / 'web'
+    expected = m.read_asset(str(web / container), 1, 1) if container.endswith('.mga') else (web / container).read_bytes()
+    captured = {}
+    def finish(stream, length, mime):
+        captured.update(length=length, mime=mime, data=stream.read_bytes(length, None).get_data())
+    request = SimpleNamespace(get_uri=lambda: 'magnolie-organizer://app/' + name, finish=finish)
+    view = SimpleNamespace(_web_verzeichnis=str(web), _regional={'language':'de'})
+    m.Fenster._bei_organizer_anfrage(view, request)
+    assert captured['mime'] == 'image/png' and captured['length'] == len(expected)
+    assert hashlib.sha256(captured['data']).hexdigest() == hashlib.sha256(expected).hexdigest()
+
+
+@pytest.mark.parametrize('name,container', [('country-flags.png', 'country-flags.png'), ('kaffee-qr.png', 'kaffee-qr.mga')])
+def test_real_http_handler_distinguishes_plain_png_from_protected_image(name, container):
+    web = Path(m.__file__).resolve().parent.parent / 'web'
+    expected = m.read_asset(str(web / container), 1, 1) if container.endswith('.mga') else (web / container).read_bytes()
+    server = m.OrganizerHTTPServer(str(web))
+    server.start()
+    try:
+        status, data, headers = _anfrage(server, 'GET', '/' + server.token + '/' + name, '127.0.0.1:%d' % server.port)
+        assert status == 200 and headers['Content-Type'] == 'image/png'
+        assert hashlib.sha256(data).hexdigest() == hashlib.sha256(expected).hexdigest()
+    finally:
+        server.close()
 
 
 def test_http_server_loest_systemsprache_auf_und_laesst_sich_aktualisieren(
