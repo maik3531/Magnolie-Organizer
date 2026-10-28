@@ -19869,6 +19869,7 @@ ORGANIZER_URI = "magnolie-organizer://app/index.html"
 _ORGANIZER_RESSOURCEN = {
     "/index.html": ("index.html", "text/html"),
     "/stil.css": ("stil.css", "text/css"),
+    "/country-flags.png": ("country-flags.png", "image/png"),
     "/schriften/Z003-MediumItalic.otf":
         ("schriften/Z003-MediumItalic.otf", "font/otf"),
     "/kaffee-qr.png": ("kaffee-qr.mga", "image/png"),

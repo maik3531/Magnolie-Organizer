@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+from pathlib import Path
 
 
 PFAD = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -78,6 +79,18 @@ def test_statischer_server_erlaubt_nur_host_token_methode_und_allowlist(tmp_path
         assert _anfrage(server, "HEAD", "/%s/index.html" % server.token, host)[0] == 405
     finally:
         server.close()
+
+
+def test_landesflaggen_sind_feste_ressource_in_beiden_transporten():
+    web = Path(m.__file__).resolve().parent.parent / "web"
+    expected = (str(web / "country-flags.png"), "image/png")
+    assert (web / "country-flags.png").read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    assert m.organizer_ressource("magnolie-organizer://app/country-flags.png", str(web)) == expected
+    token = "c" * 48
+    assert m.organizer_http_ressource("/" + token + "/country-flags.png", token, str(web)) == expected
+    for name in ("country-flags.png?x=1", "../country-flags.png", "%63ountry-flags.png", "country-flags-LICENSE.txt"):
+        assert m.organizer_ressource("magnolie-organizer://app/" + name, str(web)) is None
+        assert m.organizer_http_ressource("/" + token + "/" + name, token, str(web)) is None
 
 
 def test_http_server_loest_systemsprache_auf_und_laesst_sich_aktualisieren(
