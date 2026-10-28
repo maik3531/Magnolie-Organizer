@@ -308,12 +308,12 @@ fun ZeiteintragEditor(entwurf: ZeitEntwurf, aktuell: () -> ZeitEntwurf, speicher
             if (!entwurf.neu) Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { loeschen = true }
         }
     }
-    if (loeschen) AlertDialog(onDismissRequest = { if (!speichert) loeschen = false },
+    if (loeschen) AlertDialog(onDismissRequest = { if (!speichert) loeschen = false }, containerColor = Magnolie.papier,
         title = { Text(stringResource(R.string.loeschen)) },
         text = { Text(stringResource(R.string.zeit_loeschen_frage)) },
         confirmButton = { TextButton(enabled = !speichert, onClick = { loeschen = false; beiLoeschen(aktuell()) }) {
-            Text(stringResource(R.string.loeschen))
+            Text(stringResource(R.string.loeschen), color = Magnolie.rot)
         } }, dismissButton = { TextButton(enabled = !speichert, onClick = { loeschen = false }) {
-            Text(stringResource(R.string.abbrechen))
+            Text(stringResource(R.string.abbrechen), color = Magnolie.braun)
         } })
 }

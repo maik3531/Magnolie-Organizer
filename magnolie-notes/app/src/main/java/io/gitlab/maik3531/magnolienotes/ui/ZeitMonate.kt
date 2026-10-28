@@ -98,12 +98,12 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
         Papierknopf(stringResource(R.string.papierkorb_titel), beiKlick = beiPapierkorb)
     }
     removal?.let { (key, snapshot) ->
-        AlertDialog(onDismissRequest = { if (!speichert) removal = null },
+        AlertDialog(onDismissRequest = { if (!speichert) removal = null }, containerColor = Magnolie.papier,
             title = { Text(formatter.format(YearMonth.parse(key).atDay(1))) },
             text = { Text(stringResource(R.string.zeit_monat_entfernen_frage)) },
             confirmButton = { TextButton(enabled = !speichert, onClick = {
                 speichern({ it.removeLocal(snapshot, month = key) }, { removal = null })
-            }) { Text(stringResource(R.string.loeschen)) } },
-            dismissButton = { TextButton(enabled = !speichert, onClick = { removal = null }) { Text(stringResource(R.string.abbrechen)) } })
+            }) { Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
+            dismissButton = { TextButton(enabled = !speichert, onClick = { removal = null }) { Text(stringResource(R.string.abbrechen), color = Magnolie.braun) } })
     }
 }

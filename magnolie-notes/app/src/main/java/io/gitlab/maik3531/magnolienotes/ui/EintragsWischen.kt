@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.semantics.Role
 import io.gitlab.maik3531.magnolienotes.R
 
@@ -90,12 +91,14 @@ internal class WischEinstellungen(context: Context) {
 
 @Composable internal fun EintragLoeschFrage(titel: String, beiLoeschen: () -> Boolean, beiSchliessen: () -> Unit) {
     val context = LocalContext.current
-    AlertDialog(onDismissRequest = beiSchliessen, title = { Text(stringResource(R.string.loeschen)) },
+    AlertDialog(onDismissRequest = beiSchliessen, containerColor = Magnolie.papier,
+        title = { Text(stringResource(R.string.loeschen), fontFamily = FontFamily.Serif) },
         text = { Text(titel + "\n\n" + stringResource(R.string.wischen_bestaetigung)) },
-        confirmButton = { Papierknopf(stringResource(R.string.loeschen)) {
+        confirmButton = { TextButton(onClick = {
             val result = runCatching(beiLoeschen)
             if (result.getOrNull() != true) android.widget.Toast.makeText(context,
                 if (result.isFailure) R.string.wischen_fehler else R.string.wischen_geaendert, android.widget.Toast.LENGTH_LONG).show()
             beiSchliessen()
-        } }, dismissButton = { Papierknopf(stringResource(R.string.abbrechen), beiKlick = beiSchliessen) })
+        }) { Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
+        dismissButton = { TextButton(onClick = beiSchliessen) { Text(stringResource(R.string.abbrechen), color = Magnolie.braun) } })
 }
