@@ -54,7 +54,7 @@ holen() {
 }
 
 for befehl in curl cut dpkg-parsechangelog g-ir-inspect gcc gio-querymodules \
-    ldd msgfmt nm python3 readelf sha256sum; do
+    ldd msgfmt nm pactl python3 readelf sha256sum; do
     command -v "$befehl" >/dev/null || {
         printf '%s\n' "Fehlendes Bauwerkzeug: $befehl" >&2
         exit 1
@@ -154,6 +154,7 @@ install -m 0644 "$WURZEL/bin/magnolie_calendar_dedup.py" "$APPDIR/usr/bin/magnol
 install -m 0644 "$WURZEL/bin/magnolie_content_scope.py" "$APPDIR/usr/bin/magnolie_content_scope.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor.py" "$APPDIR/usr/bin/magnolie_personal_actor.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_actor_store.py" "$APPDIR/usr/bin/magnolie_personal_actor_store.py"
+install -m 0644 "$WURZEL/bin/magnolie_personal_actor_completion.py" "$APPDIR/usr/bin/magnolie_personal_actor_completion.py"
 install -m 0644 "$WURZEL/bin/magnolie_phone_ack.py" "$APPDIR/usr/bin/magnolie_phone_ack.py"
 install -m 0644 "$WURZEL/bin/magnolie_drawing_svg.py" "$APPDIR/usr/bin/magnolie_drawing_svg.py"
 install -m 0644 "$WURZEL/bin/magnolie_versand.py" "$APPDIR/usr/bin/magnolie_versand.py"
@@ -162,6 +163,7 @@ install -m 0644 "$WURZEL/bin/magnolie_kde_input.py" "$APPDIR/usr/bin/magnolie_kd
 install -m 0644 "$WURZEL/bin/magnolie_kde_input_x11.py" "$APPDIR/usr/bin/magnolie_kde_input_x11.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_media.py" "$APPDIR/usr/bin/magnolie_kde_media.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_mpris.py" "$APPDIR/usr/bin/magnolie_kde_mpris.py"
+install -m 0644 "$WURZEL/bin/magnolie_kde_volume.py" "$APPDIR/usr/bin/magnolie_kde_volume.py"
 install -m 0644 "$WURZEL/bin/magnolie_timezone.py" "$APPDIR/usr/bin/magnolie_timezone.py"
 install -m 0644 "$WURZEL/bin/magnolie_appimage_lifecycle.py" "$APPDIR/usr/bin/magnolie_appimage_lifecycle.py"
 install -m 0644 "$WURZEL/bin/magnolie_office_profile.py" "$APPDIR/usr/bin/magnolie_office_profile.py"
@@ -359,9 +361,13 @@ install -m 0755 /usr/bin/fc-match "$APPDIR/usr/bin/fc-match"
 install -m 0755 /usr/bin/xgettext "$APPDIR/usr/bin/xgettext"
 install -m 0755 /usr/bin/bwrap "$APPDIR/usr/bin/bwrap"
 install -m 0755 /usr/bin/xdg-dbus-proxy "$APPDIR/usr/bin/xdg-dbus-proxy"
+install -m 0755 "$(command -v pactl)" "$APPDIR/usr/bin/pactl"
+[ ! -f /usr/share/doc/pulseaudio-utils/copyright ] || install -m 0644 \
+    /usr/share/doc/pulseaudio-utils/copyright "$APPDIR/usr/share/doc/magnolie-organizer/pulseaudio-copyright"
 set -- --appdir "$APPDIR" --executable "$APPDIR/usr/bin/python$PYTHON_VERSION" \
     --executable "$APPDIR/usr/bin/bwrap" --executable "$APPDIR/usr/bin/xdg-dbus-proxy" \
     --executable "$APPDIR/usr/bin/xgettext" \
+    --executable "$APPDIR/usr/bin/pactl" \
     --desktop-file "$APPDIR/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop" \
     --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png"
 "$LINUXDEPLOY" --appimage-extract-and-run "$@"

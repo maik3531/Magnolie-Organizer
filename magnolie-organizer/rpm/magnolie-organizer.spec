@@ -62,6 +62,7 @@ Requires:       %{magnolie_deps}
 Requires:       libfakekey.so.0()(64bit)
 Suggests:       magnolie-organizer-kde
 Recommends:     /usr/bin/sshfs
+Recommends:     /usr/bin/pactl
 
 %description
 Magnolie Organizer combines a calendar, contacts, tasks, notes,
@@ -158,6 +159,7 @@ install -Dpm 0644 bin/magnolie_calendar_dedup.py %{buildroot}%{_bindir}/magnolie
 install -Dpm 0644 bin/magnolie_content_scope.py %{buildroot}%{_bindir}/magnolie_content_scope.py
 install -Dpm 0644 bin/magnolie_personal_actor.py %{buildroot}%{_bindir}/magnolie_personal_actor.py
 install -Dpm 0644 bin/magnolie_personal_actor_store.py %{buildroot}%{_bindir}/magnolie_personal_actor_store.py
+install -Dpm 0644 bin/magnolie_personal_actor_completion.py %{buildroot}%{_bindir}/magnolie_personal_actor_completion.py
 install -Dpm 0644 bin/magnolie_phone_ack.py %{buildroot}%{_bindir}/magnolie_phone_ack.py
 install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_drawing_svg.py
 install -Dpm 0644 bin/magnolie_versand.py %{buildroot}%{_bindir}/magnolie_versand.py
@@ -166,6 +168,7 @@ install -Dpm 0644 bin/magnolie_kde_input.py %{buildroot}%{_bindir}/magnolie_kde_
 install -Dpm 0644 bin/magnolie_kde_input_x11.py %{buildroot}%{_bindir}/magnolie_kde_input_x11.py
 install -Dpm 0644 bin/magnolie_kde_media.py %{buildroot}%{_bindir}/magnolie_kde_media.py
 install -Dpm 0644 bin/magnolie_kde_mpris.py %{buildroot}%{_bindir}/magnolie_kde_mpris.py
+install -Dpm 0644 bin/magnolie_kde_volume.py %{buildroot}%{_bindir}/magnolie_kde_volume.py
 install -Dpm 0644 bin/magnolie_timezone.py %{buildroot}%{_bindir}/magnolie_timezone.py
 install -Dpm 0644 bin/magnolie_appimage_lifecycle.py %{buildroot}%{_bindir}/magnolie_appimage_lifecycle.py
 install -Dpm 0644 bin/magnolie_office_profile.py %{buildroot}%{_bindir}/magnolie_office_profile.py
@@ -299,6 +302,7 @@ done
 %{_bindir}/magnolie_content_scope.py
 %{_bindir}/magnolie_personal_actor.py
 %{_bindir}/magnolie_personal_actor_store.py
+%{_bindir}/magnolie_personal_actor_completion.py
 %{_bindir}/magnolie_phone_ack.py
 %{_bindir}/magnolie_drawing_svg.py
 %{_bindir}/magnolie_versand.py
@@ -307,6 +311,7 @@ done
 %{_bindir}/magnolie_kde_input_x11.py
 %{_bindir}/magnolie_kde_media.py
 %{_bindir}/magnolie_kde_mpris.py
+%{_bindir}/magnolie_kde_volume.py
 %{_bindir}/magnolie_timezone.py
 %{_bindir}/magnolie_appimage_lifecycle.py
 %{_bindir}/magnolie_office_profile.py

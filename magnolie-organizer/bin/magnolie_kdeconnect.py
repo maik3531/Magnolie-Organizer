@@ -20,6 +20,7 @@ import unicodedata
 from magnolie_digitizer import DigitizerState, DigitizerRelay, SESSION_PACKET as DIGITIZER_SESSION, EVENT_PACKET as DIGITIZER_EVENT
 from magnolie_kde_media import RemotePlayers, MEDIA_PACKET, MEDIA_REQUEST, command_body, player_list
 from magnolie_kde_mpris import DesktopMpris
+from magnolie_kde_volume import DesktopVolume, VOLUME_PACKET, VOLUME_REQUEST
 from magnolie_kde_input import InputTarget, input_body, INPUT_PACKET, KEYBOARD_STATE
 from magnolie_kde_input_x11 import X11Input
 from magnolie_kde_filesystem import SshfsBrowser, FilesystemError, description as filesystem_description, PACKET as FILESYSTEM_PACKET, REQUEST as FILESYSTEM_REQUEST
@@ -1667,6 +1668,9 @@ class _ConnectionWorker:
                 if packet.get('type') == MEDIA_REQUEST:
                     self.backend._local_media_packet(self, packet)
                     continue
+                if packet.get('type') == VOLUME_REQUEST:
+                    self.backend._system_volume_packet(self, packet)
+                    continue
                 if packet.get('type') in (INPUT_PACKET, KEYBOARD_STATE):
                     self.backend._input_packet(self, packet)
                     continue
@@ -1867,6 +1871,8 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         self.callback = callback or (lambda _event, _payload: None)
         self._digitizer_relay = DigitizerRelay(self._emit)
         self._local_media = None
+        self._system_volume = None
+        self._volume_thread = None
         self._input_sink = None
         self._input_target = None
         self._input_enabled = True
@@ -2432,11 +2438,17 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             self.reason = ""
             if self._local_media is None:
                 self._local_media = DesktopMpris.create(self.store.directory)
+            if self._system_volume is None:
+                self._system_volume = DesktopVolume.create()
             if self._input_sink is None:
                 self._input_sink = X11Input.create()
                 if self._input_sink is not None:
                     self._input_target = InputTarget(self._input_sink)
             self._stop_event.clear()
+            if self._system_volume is not None:
+                self._volume_thread = threading.Thread(target=self._system_volume_loop,
+                    daemon=True, name='kdeconnect-system-volume')
+                self._volume_thread.start()
             self._backoff_index = 0
             self._next_broadcast = self.clock()
             self._service_thread = threading.Thread(
@@ -2446,6 +2458,10 @@ class KDEConnectSMSBackend(_KdeMcpControl):
 
     def stop(self):
         self._stop_event.set()
+        volume_thread = self._volume_thread
+        if volume_thread is not None and volume_thread is not threading.current_thread():
+            volume_thread.join(4)
+        self._volume_thread = None
         self._stop_receive()
         self._filesystem_browser.close()
         with self._state_lock:
@@ -3019,6 +3035,52 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             worker.send(network_packet(INPUT_PACKET, parsed))
             return {'ok': True, 'state': 'queued', 'device_id': device_id}
 
+    def _system_volume_permitted(self, worker):
+        with self._connection_lock:
+            device_id = worker.identity['deviceId']
+            entry = self._connections.get(device_id)
+            return (entry is not None and entry['worker'] is worker and not worker.stopped.is_set()
+                and not self._stop_event.is_set()
+                and self._is_confirmed(device_id) and self._media_pin_matches(device_id, entry)
+                and VOLUME_REQUEST in worker.identity['outgoingCapabilities']
+                and VOLUME_PACKET in worker.identity['incomingCapabilities'])
+
+    def _system_volume_packet(self, worker, packet):
+        permitted = lambda: self._system_volume_permitted(worker)
+        if self._system_volume is None or not permitted():
+            return
+        try:
+            replies = self._system_volume.receive(packet.get('body'), permitted)
+            with self._connection_lock:
+                if permitted():
+                    for body in replies:
+                        worker.send(network_packet(VOLUME_PACKET, body))
+                        worker.system_volume_last = json.dumps(body, sort_keys=True)
+        except Exception:
+            # Unsupported/malformed output requests never terminate other paired services.
+            return
+
+    def _system_volume_loop(self):
+        while not self._stop_event.is_set():
+            with self._connection_lock:
+                workers = [entry['worker'] for entry in self._connections.values()
+                    if self._system_volume_permitted(entry['worker'])]
+            if workers and self._system_volume.lock.acquire(blocking=False):
+                try:
+                    body = self._system_volume.snapshot()
+                    value = json.dumps(body, sort_keys=True)
+                    with self._connection_lock:
+                        for worker in workers:
+                            if (not self._stop_event.is_set() and self._system_volume_permitted(worker)
+                                    and getattr(worker, 'system_volume_last', None) != value):
+                                worker.send(network_packet(VOLUME_PACKET, body))
+                                worker.system_volume_last = value
+                except Exception:
+                    pass
+                finally:
+                    self._system_volume.lock.release()
+            self._stop_event.wait(2)
+
     def _media_connections(self, device_id):
         if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
             raise ProtocolError('invalid_media_device')
@@ -3364,6 +3426,9 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if (self._local_media is not None and MEDIA_PACKET in identity['incomingCapabilities']
                 and MEDIA_REQUEST in identity['outgoingCapabilities']):
             return True
+        if (self._system_volume is not None and VOLUME_PACKET in identity['incomingCapabilities']
+                and VOLUME_REQUEST in identity['outgoingCapabilities']):
+            return True
         if INPUT_PACKET in identity['incomingCapabilities'] or self._input_sink is not None and INPUT_PACKET in identity['outgoingCapabilities']:
             return True
         with self._state_lock:
@@ -3496,6 +3561,9 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if self._local_media is not None:
             incoming.append(MEDIA_REQUEST)
             outgoing.append(MEDIA_PACKET)
+        if self._system_volume is not None:
+            incoming.append(VOLUME_REQUEST)
+            outgoing.append(VOLUME_PACKET)
         with self._state_lock:
             if self._receive_settings["clipboard_enabled"]:
                 incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))

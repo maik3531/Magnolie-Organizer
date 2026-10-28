@@ -22,6 +22,7 @@ bin/magnolie_calendar_dedup.py         usr/bin
 bin/magnolie_content_scope.py          usr/bin
 bin/magnolie_personal_actor.py         usr/bin
 bin/magnolie_personal_actor_store.py   usr/bin
+bin/magnolie_personal_actor_completion.py usr/bin
 bin/magnolie_phone_ack.py              usr/bin
 bin/magnolie_drawing_svg.py            usr/bin
 bin/magnolie_versand.py                usr/bin
@@ -30,6 +31,7 @@ bin/magnolie_kde_input.py              usr/bin
 bin/magnolie_kde_input_x11.py          usr/bin
 bin/magnolie_kde_media.py              usr/bin
 bin/magnolie_kde_mpris.py              usr/bin
+bin/magnolie_kde_volume.py             usr/bin
 bin/magnolie_office_profile.py         usr/bin
 bin/magnolie_own_profile.py            usr/bin
 bin/magnolie_pdf.py                    usr/bin
