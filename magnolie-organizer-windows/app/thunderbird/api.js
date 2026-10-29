@@ -179,7 +179,29 @@ async function cardRequest(source, message, url, headers) {
 }
 
 var magnolie = class extends ExtensionCommon.ExtensionAPI {
+  managedSurvival = false;
+
+  retainManagedSurvival() {
+    if (managed() && !this.managedSurvival) {
+      Services.startup.enterLastWindowClosingSurvivalArea();
+      this.managedSurvival = true;
+    }
+  }
+
+  releaseManagedSurvival() {
+    if (this.managedSurvival) {
+      this.managedSurvival = false;
+      Services.startup.exitLastWindowClosingSurvivalArea();
+    }
+  }
+
+  onShutdown() { this.releaseManagedSurvival(); }
+
   getAPI() {
+    // -silent suppresses the default mail window. The managed account service
+    // must then own its lifetime explicitly, including on Mozilla versions
+    // where the CLI flag does not set startup.wasSilentlyStarted.
+    this.retainManagedSurvival();
     return { magnolie: { request: async message => {
       if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "")) throw new Error("protocol");
       if (message.op === "environment") { return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
@@ -225,6 +247,7 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
       if (message.op === "shutdown" && managed()) {
         const { setTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
         setTimeout(() => {
+          this.releaseManagedSurvival();
           Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
         }, 200);
         return {};

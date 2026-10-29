@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.IO.Compression;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -178,9 +179,10 @@ internal static class ManagedInternetAccounts
         var extensions = Path.Combine(profile, "extensions");
         Directory.CreateDirectory(extensions);
         if ((File.GetAttributes(extensions) & FileAttributes.ReparsePoint) != 0) throw new InvalidDataException();
+        var cachedVersions = CachedAddonVersions(profile);
         foreach (var id in new[] { "tbsync@jobisoft.de", "eas4tbsync@jobisoft.de" })
-            File.Copy(Path.Combine(runtime, "magnolie-extensions", id + ".xpi"), Path.Combine(extensions, id + ".xpi"), true);
-        File.Copy(bridgeXpi, Path.Combine(extensions, ThunderbirdBridge.ExtensionId + ".xpi"), true);
+            StageExtension(Path.Combine(runtime, "magnolie-extensions", id + ".xpi"), Path.Combine(extensions, id + ".xpi"), id, cachedVersions);
+        StageExtension(bridgeXpi, Path.Combine(extensions, ThunderbirdBridge.ExtensionId + ".xpi"), ThunderbirdBridge.ExtensionId, cachedVersions);
         var preferences = new Dictionary<string, object>
         {
             ["extensions.magnolie.managed"] = true,
@@ -202,6 +204,52 @@ internal static class ManagedInternetAccounts
         };
         new AtomicStore().Write(Path.Combine(profile, "user.js"), string.Join("\n", preferences.Select(item =>
             $"user_pref({JsonSerializer.Serialize(item.Key)}, {JsonSerializer.Serialize(item.Value)});")) + "\n");
+    }
+
+    private static Dictionary<string, string> CachedAddonVersions(string profile)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var path = Path.Combine(profile, "extensions.json");
+        try
+        {
+            var file = new FileInfo(path);
+            if (!file.Exists || file.Length is < 1 or > 16 * 1024 * 1024 ||
+                (file.Attributes & FileAttributes.ReparsePoint) != 0) return result;
+            if (JsonNode.Parse(File.ReadAllText(path)) is not JsonObject root || root["addons"] is not JsonArray addons) return result;
+            foreach (var addon in addons.OfType<JsonObject>())
+                if (addon["id"] is JsonValue id && id.TryGetValue<string>(out var key) && key is not null &&
+                    addon["version"] is JsonValue version && version.TryGetValue<string>(out var value) && value is not null)
+                    result[key] = value;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException) { }
+        // Thunderbird owns this optional cache. Inspect it, never rewrite it.
+        return result;
+    }
+
+    private static void StageExtension(string source, string destination, string expectedId, IReadOnlyDictionary<string, string> cachedVersions)
+    {
+        using var archive = ZipFile.OpenRead(source);
+        var entry = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("Account extension manifest is missing.");
+        if (entry.Length is < 1 or > 256 * 1024) throw new InvalidDataException("Invalid account extension manifest.");
+        using var reader = new StreamReader(entry.Open());
+        var manifest = JsonNode.Parse(reader.ReadToEnd()) as JsonObject ?? throw new InvalidDataException("Invalid account extension manifest.");
+        if (manifest["browser_specific_settings"]?["gecko"]?["id"]?.GetValue<string>() != expectedId ||
+            manifest["version"]?.GetValue<string>() is not { Length: > 0 and <= 128 } version)
+            throw new InvalidDataException("Unexpected account extension identity.");
+        static byte[] Digest(string path) { using var input = File.OpenRead(path); return SHA256.HashData(input); }
+        var exists = File.Exists(destination);
+        if (exists && (File.GetAttributes(destination) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Account extensions cannot be filesystem links.");
+        var changed = !exists || !Digest(source).SequenceEqual(Digest(destination));
+        var staleManifest = cachedVersions.TryGetValue(expectedId, out var cached) && cached != version;
+        if (!changed && !staleManifest) return;
+        var previous = exists ? File.GetLastWriteTimeUtc(destination) : DateTime.MinValue;
+        if (changed) File.Copy(source, destination, true);
+        // Startup cache invalidation keys on the XPI stamp. Reproducible package
+        // timestamps can match an older integrated variant despite changed bytes.
+        var stamp = DateTime.UtcNow;
+        if (stamp <= previous) stamp = previous.AddSeconds(2);
+        File.SetLastWriteTimeUtc(destination, stamp);
     }
 
     internal static async Task EnsureStartedAsync(CancellationToken token, string? profile = null,
@@ -234,16 +282,13 @@ internal static class ManagedInternetAccounts
                 throw new IOException("The owned account helper is still starting or unavailable; a duplicate helper will not be launched.");
             if (string.Equals(failedProfile, profile, StringComparison.OrdinalIgnoreCase) && DateTimeOffset.UtcNow < nextStartAttempt)
                 throw new IOException("The account helper could not start; a retry is temporarily deferred.");
+            if (ProfileIsLocked(profile))
+                throw new IOException("The account helper profile is in use; another helper will not be launched.");
             var selected = await ManagedAccountRuntimeUpdater.EnsureAvailableAsync(profile, runtime, !explicitRuntime, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             var xpi = ThunderbirdBridge.InstallHost(managed: true, nativeExecutable);
             PrepareProfile(profile, runtime, xpi, System.Globalization.CultureInfo.CurrentUICulture.Name);
-            var start = new ProcessStartInfo(selected.Executable)
-            { WorkingDirectory = Path.GetDirectoryName(selected.Executable)!, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden,
-                RedirectStandardOutput = true, RedirectStandardError = true };
-            // The managed extension keeps the normal startup window hidden;
-            // provider authentication popups remain visible to the user.
-            foreach (var value in new[] { "-no-remote", "-purgecaches", "-profile", profile }) start.ArgumentList.Add(value);
+            var start = CreateStartInfo(selected.Executable, profile);
             if (diagnostics is not null) start.Environment["MAGNOLIE_ACCOUNT_PROBE_TRACE"] = profile;
             attemptedProfile = profile;
             ownedProcess?.Dispose();
@@ -292,6 +337,29 @@ internal static class ManagedInternetAccounts
             throw;
         }
         finally { StartGate.Release(); }
+    }
+
+    internal static ProcessStartInfo CreateStartInfo(string executable, string profile)
+    {
+        var start = new ProcessStartInfo(executable)
+        { WorkingDirectory = Path.GetDirectoryName(executable)!, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden,
+            RedirectStandardOutput = true, RedirectStandardError = true };
+        // Thunderbird's supported silent mode suppresses default mail/privacy
+        // windows while retaining the background extension/native-message host.
+        foreach (var value in new[] { "-no-remote", "-silent", "-purgecaches", "-profile", profile }) start.ArgumentList.Add(value);
+        return start;
+    }
+
+    internal static bool ProfileIsLocked(string profile)
+    {
+        var path = Path.Combine(profile, "parent.lock");
+        if (!File.Exists(path)) return false;
+        try
+        {
+            using var existing = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            return false;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
     }
 
     internal static async Task BeginSignInAsync(string provider, string email, CancellationToken token)

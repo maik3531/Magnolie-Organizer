@@ -160,6 +160,9 @@ internal static class ThunderbirdBridge
             foreach (var name in new[] { "manifest.json", "background.js", "api.js", "schema.json" })
             {
                 var entry = zip.CreateEntry(name);
+                // Identical bridge code must not look like an add-on update on
+                // every background restart solely because ZIP timestamps moved.
+                entry.LastWriteTime = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
                 using var output = entry.Open();
                 using var input = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "thunderbird", name));
                 input.CopyTo(output);

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.IO.Compression;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
@@ -14,9 +15,11 @@ internal static class ManagedInternetAccountsTests
         {
             var runtime = Path.Combine(root, "runtime");
             Directory.CreateDirectory(Path.Combine(runtime, "magnolie-extensions"));
-            foreach (var file in new[] { "thunderbird.exe", "runtime.json", "magnolie-extensions/tbsync@jobisoft.de.xpi", "magnolie-extensions/eas4tbsync@jobisoft.de.xpi" })
+            foreach (var file in new[] { "thunderbird.exe", "runtime.json" })
                 File.WriteAllText(Path.Combine(runtime, file), "fixture");
-            var xpi = Path.Combine(root, "bridge.xpi"); File.WriteAllText(xpi, "bridge");
+            foreach (var id in new[] { "tbsync@jobisoft.de", "eas4tbsync@jobisoft.de" })
+                WriteAddon(Path.Combine(runtime, "magnolie-extensions", id + ".xpi"), id, "1.0");
+            var xpi = Path.Combine(root, "bridge.xpi"); WriteAddon(xpi, ThunderbirdBridge.ExtensionId, "1.0");
             var personal = Path.Combine(root, "personal"); Directory.CreateDirectory(personal);
             File.WriteAllText(Path.Combine(personal, "prefs.js"), "PERSONAL PROFILE");
             TestAssert.Throws<InvalidDataException>(() => ManagedInternetAccounts.PrepareProfile(personal, runtime, xpi, "de"),
@@ -30,6 +33,39 @@ internal static class ManagedInternetAccountsTests
                 File.ReadAllText(Path.Combine(profile, "user.js")).Contains("extensions.magnolie.managed") &&
                 File.Exists(Path.Combine(profile, "extensions", ThunderbirdBridge.ExtensionId + ".xpi")),
                 "Managed setup lost account data or required manual add-on installation.");
+            var addon = "tbsync@jobisoft.de";
+            var bundled = Path.Combine(runtime, "magnolie-extensions", addon + ".xpi");
+            var destination = Path.Combine(profile, "extensions", addon + ".xpi");
+            var cachedStamp = DateTime.UtcNow.AddHours(-2);
+            File.SetLastWriteTimeUtc(destination, cachedStamp);
+            File.WriteAllText(Path.Combine(profile, "extensions.json"), new JsonObject { ["addons"] = new JsonArray(
+                new JsonObject { ["id"] = addon, ["version"] = "1.0", ["lastModifiedTime"] = new DateTimeOffset(cachedStamp).ToUnixTimeMilliseconds() }) }.ToJsonString());
+            WriteAddon(bundled, addon, "1.1"); File.SetLastWriteTimeUtc(bundled, cachedStamp);
+            ManagedInternetAccounts.PrepareProfile(profile, runtime, xpi, "de");
+            TestAssert.That(File.ReadAllBytes(bundled).SequenceEqual(File.ReadAllBytes(destination)) &&
+                File.GetLastWriteTimeUtc(destination) > cachedStamp,
+                "Updated addon bytes retained the stale startup-cache stamp, leaving its old incompatible manifest active.");
+            // A previous attempt may already have copied the new XPI while
+            // Thunderbird still reports the old cached manifest version.
+            File.SetLastWriteTimeUtc(destination, cachedStamp);
+            ManagedInternetAccounts.PrepareProfile(profile, runtime, xpi, "de");
+            TestAssert.That(File.GetLastWriteTimeUtc(destination) > cachedStamp,
+                "An already copied addon with stale manifest metadata did not request a rescan.");
+            File.WriteAllText(Path.Combine(profile, "extensions.json"), new JsonObject { ["addons"] = new JsonArray(
+                new JsonObject { ["id"] = addon, ["version"] = "1.1" }) }.ToJsonString());
+            var readyStamp = File.GetLastWriteTimeUtc(destination);
+            ManagedInternetAccounts.PrepareProfile(profile, runtime, xpi, "de");
+            TestAssert.That(File.GetLastWriteTimeUtc(destination) == readyStamp && File.ReadAllText(Path.Combine(profile, "keep-account-data")) == "PRESERVE",
+                "An unchanged current addon was reinstalled or account data changed during a status restart.");
+            var start = ManagedInternetAccounts.CreateStartInfo(Path.Combine(runtime, "thunderbird.exe"), profile);
+            TestAssert.That(start.ArgumentList.Contains("-silent") && !start.UseShellExecute && start.CreateNoWindow,
+                "Opening account settings may open Thunderbird's normal mail/privacy/start windows.");
+            var lockPath = Path.Combine(profile, "parent.lock");
+            File.WriteAllText(lockPath, "existing lock metadata");
+            TestAssert.That(!ManagedInternetAccounts.ProfileIsLocked(profile), "A stale lock file was treated as a running helper.");
+            using (var held = new FileStream(lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                TestAssert.That(ManagedInternetAccounts.ProfileIsLocked(profile), "A locked profile could launch another helper and its native profile-lock dialog.");
+            TestAssert.That(File.ReadAllText(lockPath) == "existing lock metadata", "Inspecting the lock changed profile metadata.");
             TestAssert.That(ThunderbirdBridge.IsManagedSource("thunderbird-calendar:managed:profile:calendar") &&
                 !ThunderbirdBridge.IsManagedSource("thunderbird-calendar:personal:calendar"), "Managed and personal sources share a transport.");
             await TestOperationsAsync();
@@ -42,6 +78,15 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(providerCalls == 0, "An account provider was called before its component became available.");
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    private static void WriteAddon(string path, string id, string version)
+    {
+        using var file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        using var archive = new ZipArchive(file, ZipArchiveMode.Create);
+        using var writer = new StreamWriter(archive.CreateEntry("manifest.json").Open());
+        writer.Write(new JsonObject { ["version"] = version,
+            ["browser_specific_settings"] = new JsonObject { ["gecko"] = new JsonObject { ["id"] = id } } }.ToJsonString());
     }
 
     private static async Task TestOperationsAsync()

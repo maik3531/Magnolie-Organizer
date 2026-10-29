@@ -50,7 +50,9 @@ async function connect() {
           await trace("native-api-done");
           if (message.op === "environment" && environment.managed) {
             await trace("tb-status-start");
-            const status = await accountControl("tbsync@jobisoft.de", { protocol: 1, op: "ping" });
+            let status;
+            try { status = await accountControl("tbsync@jobisoft.de", { protocol: 1, op: "ping" }); }
+            catch (_) { status = null; }
             await trace("tb-status-done");
             response.ready = status?.protocol === 1 && status.ready === true;
             response.providerReady = status?.protocol === 1 && status.ready === true;
