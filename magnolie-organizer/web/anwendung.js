@@ -977,6 +977,23 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { notes: new Set(members.notes), tasks: new Set(members.tasks) };
   }
 
+  async function personalSyncNurFormatwechsel(previousHash, value, kind, format) {
+    if (!previousHash || !["note", "task"].includes(kind)) return false;
+    const candidates = [];
+    if (format === 14) {
+      const legacy = { ...value }; delete legacy.origin_app; candidates.push(legacy);
+      if (kind === "note" && Array.isArray(legacy.attachments) && !legacy.attachments.length) {
+        const first = { ...legacy }; delete first.attachments; candidates.push(first);
+      }
+    } else if ([1, 2, 3].includes(format)) {
+      const modern = { ...value };
+      if (kind === "note" && format === 1) modern.attachments = [];
+      for (const origin of ["", "notes", "organizer"]) candidates.push({ ...modern, origin_app: origin });
+    }
+    for (const candidate of candidates) if (await personalSyncHash(candidate) === previousHash) return true;
+    return false;
+  }
+
   async function personalSyncSnapshot(module, format = 1, peerId = "", options = {}) {
     options.guard?.();
     sichereNotizSnapshot();
@@ -1058,7 +1075,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       let hash = await personalSyncHash(wert);
       options.guard?.();
-      if (!meta || meta.hash !== hash) {
+      if (meta && meta.hash !== hash && await personalSyncNurFormatwechsel(meta.hash, wert, art, format)) {
+        options.guard?.();
+        // A different wire projection is not a user edit. Preserve its causal
+        // clock and edit date instead of inventing a concurrent local change.
+        meta = { ...meta, hash }; ps.entities[key] = meta;
+      } else if (!meta || meta.hash !== hash) {
         ps.counter += 1;
         const modified = art === "notebook" ? 0 : Date.now();
         if (art !== "notebook") objekt.personalGeaendert = modified;
@@ -1501,15 +1523,32 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       options.guard?.();
       if (eingang.kind === "note" && DATEN.notizen.some(n => !personalSyncEigeneNotiz(n) &&
           (n.id === eingang.id || personalSyncNotizWireId(n.id, "note", DATEN) === personalSyncNotizId(eingang.id, "note", DATEN)))) { konflikte++; continue; }
-      const record = selection ? Object.assign({}, eingang, { id: ["note", "notebook"].includes(eingang.kind)
+      let record = selection ? Object.assign({}, eingang, { id: ["note", "notebook"].includes(eingang.kind)
         ? personalSyncNotizId(eingang.id, eingang.kind, DATEN) : eingang.id }) : personalSyncNotizZuordnen(eingang, eigeneWerte);
       if (record.kind === "note" && eigeneWerte.has("note\u0000" + record.id))
         personalSyncAnhaengeZuordnen(record.id, eigeneWerte.get("note\u0000" + record.id), record.value, DATEN);
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
+      const localValue = eigeneWerte.get(key);
+      if (format === 14 && ["note", "task"].includes(record.kind) && ["notes", "organizer"].includes(localValue?.origin_app) &&
+          record.value.origin_app !== localValue.origin_app) {
+        // The original wire hash was checked above. Birth provenance is retained
+        // locally, so its stored projection hash must describe that retained value.
+        const value = { ...record.value, origin_app: localValue.origin_app };
+        record = { ...record, value, hash: await personalSyncHash(value) }; options.guard?.();
+      }
       if (lokal && lokal.state === "deleted") continue;
       if (!lokal) { personalSyncSetze(record, record.id, true, attachmentData, DATEN); DATEN.personalSync.entities[key] = {
         clock: record.clock, hash: record.hash, modified_ms: record.modified_ms, conflict: false }; eigeneWerte.set(key, record.value); continue; }
       const vergleich = personalSyncVergleiche(lokal.clock, record.clock);
+      if (format === 14 && ["note", "task"].includes(record.kind) && ["equal", "concurrent"].includes(vergleich) && localValue &&
+          !["notes", "organizer"].includes(localValue.origin_app) && ["notes", "organizer"].includes(record.value.origin_app) &&
+          await personalSyncHash({ ...localValue, origin_app: record.value.origin_app }) === record.hash) {
+        options.guard?.();
+        personalSyncSetze(record, record.id, false, attachmentData, DATEN);
+        DATEN.personalSync.entities[key] = { ...lokal, clock: personalSyncVereinige(lokal.clock, record.clock),
+          hash: record.hash, modified_ms: record.modified_ms, conflict: false };
+        eigeneWerte.set(key, record.value); continue;
+      }
       const wahl = importWahl.get(eingang.kind + "\u0000" + eingang.id);
       if (wahl && vergleich === "concurrent") {
         if (wahl === "remote") { personalSyncSetze(record, record.id, false, attachmentData, DATEN); eigeneWerte.set(key, record.value); }

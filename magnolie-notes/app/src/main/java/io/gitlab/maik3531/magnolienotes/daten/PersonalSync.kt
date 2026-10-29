@@ -550,7 +550,9 @@ object PersonalSync {
             val digest = hash(value)
             val old = entities[key]
             if (old?.state == "deleted") continue
-            if (old == null || old.hash != digest) {
+            if (old != null && old.hash != digest && projectionOnlyChange(old.hash, value, key.substringBefore('\u0000'), format)) {
+                entities[key] = old.copy(hash = digest)
+            } else if (old == null || old.hash != digest) {
                 counter++
                 val clock = mergeOptional(old?.clock.orEmpty(), PersonalSyncClock(actor, counter))
                 val label = when (key.substringBefore('\u0000')) {
@@ -572,6 +574,20 @@ object PersonalSync {
     private fun mergeOptional(clock: List<PersonalSyncClock>, item: PersonalSyncClock): List<PersonalSyncClock> =
         (clock + item).groupBy { it.actor_id }.mapValues { it.value.maxOf(PersonalSyncClock::counter) }
             .entries.sortedWith { a, b -> compareUtf8(a.key, b.key) }.map { PersonalSyncClock(it.key, it.value) }
+
+    private fun projectionOnlyChange(previousHash: String, value: JsonObject, kind: String, format: Int): Boolean {
+        if (kind !in setOf("note", "task")) return false
+        val candidates = mutableListOf<JsonObject>()
+        if (format == EintragsUrsprung.FORMAT) {
+            val legacy = JsonObject(value - "origin_app"); candidates += legacy
+            if (kind == "note" && (legacy["attachments"] as? JsonArray)?.isEmpty() == true)
+                candidates += JsonObject(legacy - "attachments")
+        } else if (format in 1..3) {
+            val modern = if (kind == "note" && format == 1) JsonObject(value + ("attachments" to JsonArray(emptyList()))) else value
+            for (origin in listOf("", "notes", "organizer")) candidates += JsonObject(modern + ("origin_app" to JsonPrimitive(origin)))
+        }
+        return candidates.any { hash(it) == previousHash }
+    }
 
     fun livePersonalContent(input: Bestand): PersonalContentSelection = PersonalContentSelection(
         input.notizen.filter(::ownNote).mapTo(mutableSetOf()) { noteWireId(input.personalSync, it.id) },
@@ -872,6 +888,18 @@ object PersonalSync {
                 // Stale records are restoration candidates only. They never recreate deleted content.
                 continue
             }
+            val localValue = if ("origin_app" in remote.value) when (remote.kind) {
+                "note" -> notes.firstOrNull { it.id == localNoteId }?.let { noteValue(it, EintragsUrsprung.FORMAT, identities) }
+                "task" -> tasks.firstOrNull { it.id == remote.id }?.let { taskValue(it, EintragsUrsprung.FORMAT) }
+                else -> null
+            } else null
+            val localOrigin = EintragsUrsprung.bekannt(localValue?.optionalText("origin_app"))
+            if (localOrigin.isNotEmpty() && remote.value.optionalText("origin_app") != localOrigin) {
+                // Integrity of the original wire value was checked above. Store
+                // the projection that actually retains immutable local provenance.
+                val value = JsonObject(remote.value + ("origin_app" to JsonPrimitive(localOrigin)))
+                remote = remote.copy(value = value, hash = hash(value))
+            }
             if (localMeta == null) {
                 require(when (remote.kind) {
                     "note" -> notes.none { it.id == localNoteId }
@@ -887,7 +915,21 @@ object PersonalSync {
                 received++
                 continue
             }
-            when (compare(localMeta.clock, remote.clock)) {
+            val comparison = compare(localMeta.clock, remote.clock)
+            if (comparison in setOf("equal", "concurrent") && localValue != null && localOrigin.isEmpty() &&
+                EintragsUrsprung.bekannt(remote.value.optionalText("origin_app")).isNotEmpty() &&
+                hash(JsonObject(localValue + ("origin_app" to remote.value.getValue("origin_app")))) == remote.hash) {
+                when (remote.kind) {
+                    "note" -> { val old = notes.firstOrNull { it.id == localNoteId }
+                        notes = notes.filterNot { it.id == localNoteId } + receiveNote(remote.copy(id = localNoteId), old) }
+                    "task" -> { val old = tasks.firstOrNull { it.id == remote.id }
+                        tasks = tasks.filterNot { it.id == remote.id } + remoteTask(remote, old) }
+                }
+                entities[key] = localMeta.copy(clock = merge(localMeta.clock, remote.clock), hash = remote.hash,
+                    modified_ms = remote.modifiedMs, conflict = false)
+                received++; continue
+            }
+            when (comparison) {
                 "dominates" -> Unit
                 "equal" -> require(localMeta.hash == remote.hash)
                 "dominated" -> {

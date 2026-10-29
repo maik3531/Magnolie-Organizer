@@ -15,7 +15,139 @@ function client(web, id, actor, date) {
     html: "Same content", angelegt: date }] }, neu: false });
   return { dom, w, t: w.OrganizerTest };
 }
+async function checkModernSequential(web) {
+  const plain = value => JSON.parse(JSON.stringify(value));
+  for (const legacyFormat of [1, 2, 3]) for (const origins of [["", ""], ["organizer", "organizer"], ["", "notes"], ["notes", ""], ["notes", "organizer"]]) for (const edit of [false, true]) {
+    const a = client(web, "shared-note", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "shared-note", "22222222-2222-4222-8222-222222222222", 1);
+    try {
+      for (const c of [a, b]) {
+        c.t.daten().notizbuecher[0].id = "shared-book"; c.t.daten().notizbuecher[0].name = "Shared notebook";
+        c.t.daten().notizen[0].notizbuchId = "shared-book";
+      }
+      a.t.daten().notizen[0].ursprungApp = origins[0]; b.t.daten().notizen[0].ursprungApp = origins[1];
+      const left = await a.t.personalSyncSnapshot(["notes"], legacyFormat, peer), right = await b.t.personalSyncSnapshot(["notes"], legacyFormat, peer);
+      await a.t.personalSyncAnwenden(plain(right), {}, legacyFormat, peer, ["notes"]);
+      await b.t.personalSyncAnwenden(plain(left), {}, legacyFormat, peer, ["notes"]);
+      const oldClock = plain(b.t.daten().personalSync.entities["note\0shared-note"].clock);
+      const oldCounter = b.t.daten().personalSync.counter;
+      if (edit) {
+        a.t.daten().notizen[0].text = "One edit before switching to format 14";
+        a.t.daten().notizen[0].html = "One edit before switching to format 14";
+      }
+      const records = await a.t.personalSyncSnapshot(["notes"], 14, peer);
+      const receipt = await b.t.personalSyncAnwenden(plain(records), {}, 14, peer, ["notes"]);
+      assert.equal(receipt.conflicts, 0, "Migrating format " + legacyFormat + " to 14 is not a concurrent user edit: " + origins + "/" + edit);
+      assert.equal(b.t.daten().notizen.length, 1);
+      assert.equal(b.t.daten().notizen[0].text, edit ? "One edit before switching to format 14" : "Same content");
+      assert.equal(b.t.daten().personalSync.counter, oldCounter, "Projection alone must not consume a local edit counter");
+      if (!edit) assert.deepEqual(plain(b.t.daten().personalSync.entities["note\0shared-note"].clock), oldClock);
+      assert.equal((await a.t.personalSyncAnwenden(plain(await b.t.personalSyncSnapshot(["notes"], 14, peer)), {}, 14, peer, ["notes"])).conflicts, 0);
+      for (const [c, origin] of [[a, origins[0]], [b, origins[1]]]) {
+        assert.equal(c.t.daten().notizen.length, 1);
+        if (origin) assert.equal(c.t.daten().notizen[0].ursprungApp, origin, "Migration replaced known creation provenance");
+        c.w.App.init({ daten: plain(c.t.daten()), neu: false });
+        const counter = c.t.daten().personalSync.counter;
+        const clock = plain(c.t.daten().personalSync.entities["note\0shared-note"].clock);
+        await c.t.personalSyncSnapshot(["notes"], legacyFormat, peer);
+        await c.t.personalSyncSnapshot(["notes"], 14, peer);
+        assert.equal(c.t.daten().personalSync.counter, counter, "Projection roundtrip consumed an edit counter");
+        assert.deepEqual(plain(c.t.daten().personalSync.entities["note\0shared-note"].clock), clock);
+      }
+    } finally { a.w.close(); b.w.close(); }
+  }
+  for (const aliases of [false, true]) {
+    const a = client(web, aliases ? "z-local" : "shared-note", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, aliases ? "a-local" : "shared-note", "22222222-2222-4222-8222-222222222222", 1);
+    const snapshot = c => c.t.personalSyncSnapshot(["notes"], 14, peer);
+    const apply = (c, records) => c.t.personalSyncAnwenden(plain(records), {}, 14, peer, ["notes"]);
+    const reopen = c => c.w.App.init({ daten: plain(c.t.daten()), neu: false });
+    try {
+      for (const [c, id] of [[a, aliases ? "z-book" : "shared-book"], [b, aliases ? "a-book" : "shared-book"]]) {
+        c.t.daten().notizbuecher[0].id = id; c.t.daten().notizbuecher[0].name = "Shared notebook";
+        c.t.daten().notizen[0].notizbuchId = id;
+      }
+      if (aliases) {
+        const left = await a.t.personalSyncSnapshot(["notes"], 3, peer), right = await b.t.personalSyncSnapshot(["notes"], 3, peer);
+        await a.t.personalSyncAnwenden(plain(right), {}, 3, peer, ["notes"]);
+        await b.t.personalSyncAnwenden(plain(left), {}, 3, peer, ["notes"]);
+      }
+      const old = new Map([[a, await snapshot(a)], [b, await snapshot(b)]]);
+      assert.equal((await apply(a, old.get(b))).conflicts, 0);
+      assert.equal((await apply(b, old.get(a))).conflicts, 0);
+      for (let round = 0; round < 6; round++) {
+        const [writer, reader] = round % 2 ? [b, a] : [a, b];
+        const text = "One-sided format-14 update " + round;
+        const note = writer.t.daten().notizen[0]; note.text = text; note.html = text;
+        assert.equal((await apply(reader, await snapshot(writer))).conflicts, 0,
+          "A causally subsequent one-sided edit became a conflict: aliases=" + aliases + ", round=" + round);
+        assert.equal((await apply(writer, await snapshot(reader))).conflicts, 0);
+        await apply(reader, old.get(writer));
+        for (const c of [a, b]) {
+          assert.equal(c.t.daten().notizen.length, 1, "A sequential edit created a further note version");
+          assert.equal(c.t.daten().notizen[0].text, text, "A stale snapshot replaced the latest sequential content");
+          reopen(c);
+        }
+      }
+    } finally { a.w.close(); b.w.close(); }
+  }
+  {
+    const a = client(web, "shared-note", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "shared-note", "22222222-2222-4222-8222-222222222222", 1);
+    try {
+      for (const c of [a, b]) {
+        c.t.daten().notizbuecher[0].id = "shared-book";
+        c.t.daten().notizen[0].notizbuchId = "shared-book";
+      }
+      const oldA = await a.t.personalSyncSnapshot(["notes"], 1, peer), oldB = await b.t.personalSyncSnapshot(["notes"], 1, peer);
+      await a.t.personalSyncAnwenden(plain(oldB), {}, 1, peer, ["notes"]);
+      await b.t.personalSyncAnwenden(plain(oldA), {}, 1, peer, ["notes"]);
+      const previousCounter = a.t.daten().personalSync.counter;
+      const bytes = "data:image/png;base64,AQID";
+      a.t.daten().notizen[0].anhaenge = [{ id: "new-file", name: "new.png", art: "image", daten: bytes }];
+      const sent = await a.t.personalSyncSnapshot(["notes"], 14, peer);
+      assert.ok(a.t.daten().personalSync.counter > previousCounter, "A new attachment is a material edit, not just projection");
+      const descriptor = sent.find(record => record.kind === "note").value.attachments[0];
+      assert.equal((await b.t.personalSyncAnwenden(plain(sent), { [descriptor.sha256]: bytes }, 14, peer, ["notes"])).conflicts, 0);
+      assert.equal(b.t.daten().notizen.length, 1); assert.equal(b.t.daten().notizen[0].anhaenge[0].daten, bytes);
+      const note = sent.find(record => record.kind === "note");
+      const tampered = { ...plain(note), value: { ...plain(note.value), text: "Tampered without matching digest" } };
+      await assert.rejects(() => b.t.personalSyncAnwenden([tampered], { [descriptor.sha256]: bytes }, 14, peer, ["notes"]));
+      const equalClock = plain((await b.t.personalSyncSnapshot(["notes"], 14, peer)).find(record => record.kind === "note"));
+      equalClock.value.text = "Different real content at the same clock";
+      equalClock.hash = await b.t.personalSyncHash(equalClock.value);
+      await assert.rejects(() => b.t.personalSyncAnwenden([equalClock], { [descriptor.sha256]: bytes }, 14, peer, ["notes"]),
+        "Metadata refinement must not accept changed note content at an unchanged causal clock");
+    } finally { a.w.close(); b.w.close(); }
+  }
+  const a = client(web, "shared-note", "11111111-1111-4111-8111-111111111111", 1);
+  const b = client(web, "shared-note", "22222222-2222-4222-8222-222222222222", 1);
+  const snapshot = c => c.t.personalSyncSnapshot(["notes"], 14, peer);
+  const apply = (c, records) => c.t.personalSyncAnwenden(plain(records), {}, 14, peer, ["notes"]);
+  try {
+    for (const c of [a, b]) {
+      c.t.daten().notizbuecher[0].id = "shared-book"; c.t.daten().notizbuecher[0].name = "Shared notebook";
+      c.t.daten().notizen[0].notizbuchId = "shared-book";
+    }
+    await apply(b, await snapshot(a)); await apply(a, await snapshot(b));
+    for (const [c, text] of [[a, "Independent A edit"], [b, "Independent B edit"]]) {
+      c.t.daten().notizen[0].text = text; c.t.daten().notizen[0].html = text;
+    }
+    const left = await snapshot(a), right = await snapshot(b);
+    assert.ok((await apply(a, right)).conflicts > 0, "Actual concurrent content needs conflict preservation");
+    assert.ok((await apply(b, left)).conflicts > 0);
+    for (const [c, replay] of [[a, right], [b, left]]) {
+      assert.deepEqual(Array.from(c.t.daten().notizen, note => note.text).sort(), ["Independent A edit", "Independent B edit"]);
+      const ids = Array.from(c.t.daten().notizen, note => note.id).sort();
+      c.w.App.init({ daten: plain(c.t.daten()), neu: false });
+      await apply(c, replay);
+      assert.deepEqual(Array.from(c.t.daten().notizen, note => note.id).sort(), ids, "Conflict replay must not create another copy");
+    }
+  } finally { a.w.close(); b.w.close(); }
+}
+
 async function check(web) {
+  await checkModernSequential(web);
   for (const format of [1, 2, 3]) {
     const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
     const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
