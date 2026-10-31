@@ -5133,6 +5133,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const kontaktGruppenTitelWiederholung = new WeakMap();
   const kontaktGruppenSprachPruefung = new WeakMap();
   const kontaktGruppenSpracheGestoppt = new WeakSet();
+  function telefonKontaktSchreibwunschBereit() {
+    return DATEN.kontakte.some(value => telefonGruppenSchreibQuelle(value) && (kontaktGruppenWiederholung.get(value) || 0) <= Date.now() ||
+      telefonWerteSchreibQuelle(value) && (kontaktWerteWiederholung.get(value) || 0) <= Date.now());
+  }
   function telefonGruppenSprachQuelle(kontakt) {
     if (kontakt.telefonGruppenAenderung || kontakt.telefonGruppenTitelAenderung || kontaktGruppenSpracheGestoppt.has(kontakt)) return null;
     const source = telefonGruppenTitelQuelle(kontakt, null);
@@ -5143,7 +5147,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   async function synchronisiereTelefonGruppenSprache(kontakt) {
     const source = telefonGruppenSprachQuelle(kontakt), book = DATEN, epoch = DATEN.syncEpoch;
     if (!source || gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf ||
-        DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) return;
+        DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung) || telefonKontaktSchreibwunschBereit()) return;
     const groups = kontaktGruppen(kontakt), run = { book, kontakt, source };
     kontaktGruppenTitelLauf = run; kontaktFotoLauf = null;
     kontaktGruppenSprachPruefung.set(kontakt, Date.now() + 60000);
@@ -5163,7 +5167,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         rename = { oldTitle: matches[0], newTitle: desired }; break;
       }
     } catch (_) { /* Offline wishes remain in the ordinary saved category selection. */ }
-    finally { if (kontaktGruppenTitelLauf === run) kontaktGruppenTitelLauf = null; }
+    finally {
+      if (kontaktGruppenTitelLauf === run) kontaktGruppenTitelLauf = null;
+      // Editor saves may have queued a normal group/value write while this
+      // readonly preflight owned the lane. Always wake those queues, including
+      // no-rename, stale, timeout and error exits; never wait for a manual sync.
+      if (DATEN === book && DATEN.syncEpoch === epoch && !gesperrt) planeTelefonKontaktGruppen();
+    }
     if (rename) await starteTelefonGruppenTitelAenderung(kontakt, rename.oldTitle, rename.newTitle);
   }
   const gleicherTelefonGruppenTitelBeleg = (a, b) => !!a && !!b && a.uid === b.uid && a.group_id === b.group_id &&
@@ -5202,7 +5212,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (contact) sendeTelefonKontaktGruppenTitel(contact);
       else if (waiting.length) kontaktGruppenTitelTimer = setTimeout(planeTelefonKontaktGruppenTitel,
         Math.max(250, waiting.reduce((minimum, value) => Math.min(minimum, kontaktGruppenTitelWiederholung.get(value) || 0), Infinity) - Date.now()));
-      else if (!DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) {
+      else if (!DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung) && !telefonKontaktSchreibwunschBereit()) {
         const candidates = DATEN.kontakte.filter(value => telefonGruppenSprachQuelle(value));
         const next = candidates.find(value => (kontaktGruppenSprachPruefung.get(value) || 0) <= Date.now());
         if (next) synchronisiereTelefonGruppenSprache(next).catch(() => {}).finally(planeTelefonKontaktGruppenTitel);

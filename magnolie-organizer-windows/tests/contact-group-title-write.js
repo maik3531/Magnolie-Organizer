@@ -194,7 +194,7 @@ async function automaticLanguage(web, mode) {
   const b = boot(web);
   try {
     b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8")); b.w.MagnolieI18n.setLocale("de");
-    const change = mode === "editor" || mode === "offline-editor";
+    const change = mode === "editor" || mode === "offline-editor" || mode === "overlap-editor";
     const contact = { id: "automatic-language", vorname: "Synthetic", nachname: "", firma: "", foto: "",
       vcardRoundtrip: ["CATEGORIES:" + (change ? "Colleagues" : mode === "custom" ? "My own group" : "Work")],
       telefonGruppenStand: { ...plain(source), groups: [change ? "Colleagues" : mode === "custom" ? "My own group" : "Work"] } };
@@ -206,6 +206,7 @@ async function automaticLanguage(web, mode) {
     const noRename = ["ambiguous", "custom", "remote-membership", "local-edit", "key-switch", "already-localized"].includes(mode);
     let nativeTitle = mode === "custom" ? "My own group" : mode === "already-localized" ? "Arbeit" : "Work", nativeGroups = [change ? "Colleagues" : nativeTitle];
     const translate = value => b.w.MagnolieI18n.gettext(value);
+    const overlap = mode === "overlap-editor" ? b.t.synchronisiereTelefonGruppenSprache(contact).catch(() => {}) : null;
     if (change) {
       b.t.zustand().adressen.auswahlId = contact.id; b.t.zustand().adressen.buchstabe = "S"; b.t.wechsel("adressen");
       [...b.w.document.querySelectorAll("button")].find(button => button.textContent === translate("Edit")).click();
@@ -216,13 +217,19 @@ async function automaticLanguage(web, mode) {
       const save = [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Änderungen speichern");
       assert.ok(save, [...b.w.document.querySelectorAll("button")].map(button => button.textContent).join(" / ")); save.click();
     }
-    let titleApplies = 0, membershipApplies = 0, savedWish = false, reconnected = false;
+    let titleApplies = 0, membershipApplies = 0, savedWish = false, reconnected = false, heldPreflight = null, releasePreflightAt = 0;
     const trace = [];
     const deadline = Date.now() + 4500;
     while (Date.now() < deadline) {
       const message = b.messages.shift();
       if (message) trace.push(message.cmd + ":" + (message.action || ""));
       if (!message) {
+        if (heldPreflight && releasePreflightAt && Date.now() >= releasePreflightAt) {
+          b.w.App.kontaktGruppenErgebnis({ ok: true, version: 17, requestId: heldPreflight.requestId,
+            device_id: source.deviceId, fingerprint: source.fingerprint, uid: source.uid, action: "prepare",
+            token, state: "prepared", groups: ["Colleagues"], catalog: ["Colleagues", "Work"], account });
+          heldPreflight = null; await overlap;
+        }
         if (mode === "offline-editor" && !reconnected) {
           assert.equal(titleApplies + membershipApplies, 0); assert.ok(contact.telefonGruppenAenderung);
           peer.state = "online_wifi"; b.w.App.telefonStand({ peers: [peer] }); reconnected = true;
@@ -234,9 +241,11 @@ async function automaticLanguage(web, mode) {
       if (message.cmd === "speichern") {
         const persisted = JSON.parse(message.text).kontakte.find(value => value.id === contact.id);
         if (persisted?.telefonGruppenTitelAenderung) savedWish = true;
+        if (mode === "overlap-editor" && heldPreflight) releasePreflightAt = Date.now() + 80;
         b.w.App.gespeichert({ id: message.id, ok: true }); continue;
       }
       if (message.cmd === "telefon_kontaktgruppen") {
+        if (mode === "overlap-editor" && message.action === "prepare" && !releasePreflightAt) { heldPreflight = message; continue; }
         if (mode === "local-edit") contact.vcardRoundtrip = ["CATEGORIES:Family"];
         if (mode === "key-switch") b.w.App.telefonStand({ peers: [{ ...peer, contacts_fingerprint: "c".repeat(64) }] });
         if (message.action === "apply") {
@@ -269,6 +278,31 @@ async function automaticLanguage(web, mode) {
     }
   } finally { b.w.close(); }
 }
+async function writePriority(web, kind) {
+  const b = boot(web);
+  try {
+    b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8")); b.w.MagnolieI18n.setLocale("de");
+    const background = { id: "background", vorname: "Background", vcardRoundtrip: ["CATEGORIES:Work"],
+      telefonGruppenStand: { ...plain(source), groups: ["Work"] } };
+    const bound = { ...plain(source), uid: "another-native-contact" };
+    const edited = { id: "edited", vorname: "Edited", vcardRoundtrip: ["CATEGORIES:Work"],
+      telefonGruppenStand: { ...bound, groups: ["Work"] } };
+    if (kind === "groups") edited.telefonGruppenAenderung = { version: 1, base: { ...bound, groups: ["Colleagues"] } };
+    else {
+      edited.telefone = [{ typen: ["CELL"], wert: "222" }]; edited.mobil = "222";
+      edited.telefonWerteAenderung = { version: 1, base: { ...bound, fields: { telefone: [{ art: "mobil", wert: "111" }] } } };
+    }
+    b.t.daten().kontakte.push(background, edited);
+    b.w.App.telefonStand({ peers: [{ device_id: source.deviceId.slice(6), contacts_fingerprint: source.fingerprint,
+      own_device: true, remote_own_device: true, state: "online_wifi", contact_groups_write_available: true,
+      contact_group_titles_write_available: true, contact_values_write_available: true }] });
+    const pending = b.t.synchronisiereTelefonGruppenSprache(background); pending.catch(() => {});
+    await Promise.resolve();
+    assert.equal(b.messages.filter(message => message.cmd === "telefon_kontaktgruppen").length, 0,
+      "Background language inspection took priority over a ready " + kind + " edit");
+    await pending;
+  } finally { b.w.close(); }
+}
 (async () => {
   const windows = path.resolve(__dirname, "../app/web"), linux = path.resolve(__dirname, "../../magnolie-organizer/web");
   assert.ok(fs.existsSync(path.join(windows, "index.html")), "The packaged Windows frontend is missing");
@@ -279,8 +313,9 @@ async function automaticLanguage(web, mode) {
     await invalidAndBounded(web);
     for (const mode of ["success", "ui", "cancel", "resume", "converged", "lost", "bad-saved", "late-edit", "late-undo", "before-prepare", "remote", "rebound", "restore", "key-switch", "book-switch", "save-failed"])
       await durableJob(web, mode);
-    for (const mode of ["existing", "editor", "offline-editor", "ambiguous", "custom", "remote-membership", "local-edit", "key-switch", "already-localized"])
+    for (const mode of ["existing", "editor", "offline-editor", "overlap-editor", "ambiguous", "custom", "remote-membership", "local-edit", "key-switch", "already-localized"])
       await automaticLanguage(web, mode);
-    console.log("PASS contact group title broker, 16 durable jobs and 9 automatic-language cases: German editor save/offline reconnect without rename UI, native identity, SaveACKs, ambiguity/custom/concurrent guards " + web);
+    for (const kind of ["groups", "values"]) await writePriority(web, kind);
+    console.log("PASS contact group title broker, 16 durable jobs and 12 automatic-language/priority cases: German editor save/offline reconnect/preflight overlap without rename UI, native identity, SaveACKs, group/value write priority " + web);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
