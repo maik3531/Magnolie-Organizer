@@ -1292,7 +1292,8 @@ function knopfMit(text, wurzel) {
       firstDayOfWeek: "monday", weekRule: "iso",
       temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE",
       timeZoneManagement: "off", timeZoneDetection: "auto", timeZoneManual: "system",
-      timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0" },
+      timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0",
+      timeZoneCalendarDisplay: "own", timeZoneTaskDisplay: "own" },
   "deutsches Bestandsprofil wird regional nicht unverändert festgeschrieben");
   assert.strictEqual(T.fmtPunkt("2026-08-03"), "03.08.2026",
     "deutsches kurzes Datumsformat hat sich geändert");
@@ -1918,12 +1919,12 @@ function knopfMit(text, wurzel) {
   assert.ok(enButton("Evolution", enD.querySelector("#einstellungen-inhalt")) &&
     enButton("Thunderbird", enD.querySelector("#einstellungen-inhalt")) &&
     enButton("Calendar file (.ics/.vcs/.lcs) …", enD.querySelector("#einstellungen-inhalt")) &&
-    enButton("Lotus Organizer CSV …", enD.querySelector("#einstellungen-inhalt")) &&
+    enButton("Lotus Organizer (.or6 / .csv) …", enD.querySelector("#einstellungen-inhalt")) &&
     enButton("Claws Mail XML (.xml) …", enD.querySelector("#einstellungen-inhalt")) &&
     enButton("vCard (.vcf), including iPhone/iCloud export …",
       enD.querySelector("#einstellungen-inhalt")) &&
     enButton("LDIF address book (.ldif) …", enD.querySelector("#einstellungen-inhalt")) &&
-    enButton("CSV / Lotus Organizer contacts …", enD.querySelector("#einstellungen-inhalt")),
+    enButton("Magnolie Notes / Android: check for pending import", enD.querySelector("#einstellungen-inhalt")),
   "englische Importaktionen oder Dateiendungen fehlen");
   assert.strictEqual(enD.querySelectorAll(".kontakt-quellen-gruppe.einmalig").length, 0,
     "Einmalimporte besitzen weiterhin einen unnötigen äußeren Rahmen");
@@ -5295,7 +5296,7 @@ function knopfMit(text, wurzel) {
   /* Seite „Übernehmen“ */
   $$(".einst-reiter-knopf").find((b) => b.textContent === "Übernehmen").click();
   let reihen = $$("#einstellungen-inhalt .knopfreihe");
-  assert.strictEqual(reihen[0].querySelectorAll("button").length, 10,
+  assert.strictEqual(reihen[0].querySelectorAll("button").length, 9,
     "explizite Importquellen einschließlich Gesamtarchiv fehlen");
   assert.ok(reihen[0].textContent.includes("Evolution") &&
     reihen[0].textContent.includes("Thunderbird"), "lokale Kontaktquellen sind nicht getrennt");
