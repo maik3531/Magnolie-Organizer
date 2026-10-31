@@ -127,6 +127,19 @@ def change(body, local_actor, peer_actor, field, value):
     return validate(result)
 
 
+def merge_current_choices(body, incoming, local_actor, peer_actor):
+    scoped(body, local_actor, peer_actor); scoped(incoming, local_actor, peer_actor)
+    current = body
+    # A stale zero-clock bootstrap must not replace our current local choice.
+    # Assert that choice locally, then use the unchanged strict echo validator.
+    for field, edits in incoming["settings"].items():
+        echo = edits.get(local_actor)
+        own = current["settings"].get(field, {}).get(local_actor)
+        if own is not None and echo is not None and own["counter"] == echo["counter"] == 0 and own != echo:
+            current = change(current, local_actor, peer_actor, field, own["value"])
+    return merge(current, incoming, local_actor, peer_actor)
+
+
 def merge(body, incoming, local_actor, peer_actor):
     scoped(body, local_actor, peer_actor); scoped(incoming, local_actor, peer_actor)
     result = copy.deepcopy(body)

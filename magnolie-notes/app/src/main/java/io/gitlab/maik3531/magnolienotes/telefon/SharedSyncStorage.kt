@@ -82,7 +82,7 @@ internal class SharedSyncStorage(
         update(expected, initial) { SharedSyncSettings.change(it, expected.localActor, expected.peerActor, field, value) }
 
     fun merge(expected: SharedSettingsBinding, incoming: JsonObject, initial: Map<String, JsonElement> = emptyMap()) =
-        update(expected, initial) { SharedSyncSettings.merge(it, incoming, expected.localActor, expected.peerActor) }
+        update(expected, initial) { SharedSyncSettings.mergeCurrentChoices(it, incoming, expected.localActor, expected.peerActor) }
 
     fun localContentScope(expected: SharedSettingsBinding, restoreEpoch: String, notes: Collection<String>, tasks: Collection<String>): JsonObject =
         withWriteTransaction(expected) {

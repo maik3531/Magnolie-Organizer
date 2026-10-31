@@ -120,6 +120,24 @@ internal static class SharedSyncSettings
         return Validate(result);
     }
 
+    internal static JsonObject MergeCurrentChoices(JsonObject body, JsonObject incoming, string localActor, string peerActor)
+    {
+        Scoped(body, localActor, peerActor); Scoped(incoming, localActor, peerActor);
+        var current = body;
+        // Re-pairing can initialize a different legacy value at counter zero while
+        // the other device still echoes the old bootstrap. Reassert our own value;
+        // never adopt a claimed local edit or relax validation of positive clocks.
+        foreach (var (field, raw) in incoming["settings"]!.AsObject())
+        {
+            var echo = raw![localActor] as JsonObject;
+            var own = current["settings"]?[field]?[localActor] as JsonObject;
+            if (own is not null && echo is not null && Counter(own) == 0 && Counter(echo) == 0 &&
+                !JsonNode.DeepEquals(own, echo))
+                current = Change(current, localActor, peerActor, field, own["value"]!);
+        }
+        return Merge(current, incoming, localActor, peerActor);
+    }
+
     internal static JsonObject Merge(JsonObject body, JsonObject incoming, string localActor, string peerActor)
     {
         Scoped(body, localActor, peerActor); Scoped(incoming, localActor, peerActor);

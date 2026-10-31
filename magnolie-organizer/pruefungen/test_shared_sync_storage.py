@@ -66,6 +66,29 @@ def test_remote_change_and_echo_update_the_same_persisted_choice_once(tmp_path):
     assert service.store.shared_settings(peer_id, public) == accepted
 
 
+def test_stale_bootstrap_reasserts_current_choice_and_converges_durably(tmp_path):
+    service, peer_id, public = fixture(tmp_path)
+    local = service.store.identity["device_id"]
+    old = shared.create(local)
+    remote = shared.merge(shared.create(peer_id), old, peer_id, local)
+    for _ in range(2):
+        remote = shared.change(remote, peer_id, local, "auto_mode", "wifi")
+    before = service.store.initialize_shared_settings(peer_id, public, {"auto_mode": "wifi"})
+    with pytest.raises(ValueError):
+        shared.merge(before, remote, local, peer_id)
+    repaired = service.store.merge_shared_settings(peer_id, public, remote)
+    assert repaired["settings"]["auto_mode"][local] == {"counter": 1, "value": "wifi"}
+    echoed = shared.merge(remote, repaired, peer_id, local)
+    assert service.store.merge_shared_settings(peer_id, public, echoed) == repaired
+    assert phone.PhoneStore(str(tmp_path / "phone"), "Synthetic").shared_settings(peer_id, public) == repaired
+    assert service.store.merge_shared_settings(peer_id, public, remote) == repaired
+    bad = copy.deepcopy(remote)
+    bad["settings"]["custom_enabled"][local] = {"counter": 100, "value": True}
+    with pytest.raises(ValueError):
+        service.store.merge_shared_settings(peer_id, public, bad)
+    assert service.store.shared_settings(peer_id, public) == repaired
+
+
 def test_rejected_multi_field_merge_and_failed_seal_roll_back(tmp_path, monkeypatch):
     service, peer_id, public = fixture(tmp_path)
     local = service.store.identity["device_id"]

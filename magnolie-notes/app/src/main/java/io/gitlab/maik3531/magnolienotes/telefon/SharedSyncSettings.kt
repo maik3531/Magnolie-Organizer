@@ -113,6 +113,20 @@ internal object SharedSyncSettings {
         return validate(JsonObject(body + ("settings" to JsonObject(fields))))
     }
 
+    fun mergeCurrentChoices(body: JsonObject, incoming: JsonObject, localActor: String, peerActor: String): JsonObject {
+        scoped(body, localActor, peerActor); scoped(incoming, localActor, peerActor)
+        var current = body
+        // Reassert our own bootstrap choice after re-pairing; never trust a
+        // claimed local edit or weaken the positive-clock echo checks.
+        for ((field, raw) in incoming.getValue("settings").jsonObject) {
+            val echo = raw.jsonObject[localActor]?.jsonObject
+            val own = current.getValue("settings").jsonObject[field]?.jsonObject?.get(localActor)?.jsonObject
+            if (own != null && echo != null && counter(own) == 0L && counter(echo) == 0L && own != echo)
+                current = change(current, localActor, peerActor, field, own.getValue("value"))
+        }
+        return merge(current, incoming, localActor, peerActor)
+    }
+
     fun merge(body: JsonObject, incoming: JsonObject, localActor: String, peerActor: String): JsonObject {
         scoped(body, localActor, peerActor); scoped(incoming, localActor, peerActor)
         val fields = body.getValue("settings").jsonObject.toMutableMap()

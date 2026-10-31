@@ -107,6 +107,23 @@ internal static class SharedSyncTransportTests
                 await oldVersion.HandlePlainAsync(Message(SharedSyncSettings.Kind, remote));
                 TestAssert.That(!oldVersion.SharedSettingsReady, "One-sided capability negotiated common settings.");
             }
+            using (var bootstrap = Connect())
+            {
+                await bootstrap.HandlePlainAsync(caps); await bootstrap.HandlePlainAsync(grants); await bootstrap.HandlePlainAsync(own);
+                var staleBootstrap = remote.DeepClone().AsObject();
+                staleBootstrap["settings"]!["auto_mode"]![actor]!["value"] = "wifi";
+                var beforeGrants = store.LocalGrants().DeepClone();
+                await bootstrap.HandlePlainAsync(Message(SharedSyncSettings.Kind, staleBootstrap));
+                var reasserted = store.SharedSettings(peer.Id, peer.PublicKey)!;
+                TestAssert.That(reasserted["settings"]!["auto_mode"]![actor]!["counter"]!.GetValue<long>() == 1 &&
+                    reasserted["settings"]!["auto_mode"]![actor]!["value"]!.GetValue<string>() == "manual" &&
+                    !bootstrap.SharedSettingsReady, "Stale bootstrap either blocked recovery or prematurely established agreement.");
+                var echo = SharedSyncSettings.Merge(staleBootstrap, reasserted, peer.Id, actor);
+                await bootstrap.HandlePlainAsync(Message(SharedSyncSettings.Kind, echo));
+                TestAssert.That(bootstrap.SharedSettingsReady && JsonNode.DeepEquals(beforeGrants, store.LocalGrants()),
+                    "Current bootstrap echo did not establish agreement without changing grants.");
+                remote = echo; update = Message(SharedSyncSettings.Kind, remote);
+            }
             using var scopeWire = new MemoryStream();
             using (var scoped = Connect(wire: scopeWire))
             {

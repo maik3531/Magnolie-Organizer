@@ -76,6 +76,29 @@ class SharedSyncStorageTest {
         helper.readableDatabase.rawQuery("SELECT COUNT(*) FROM outbox", null).use { it.moveToFirst(); assertEquals(0, it.getInt(0)) }
     }
 
+    @Test fun staleBootstrapEchoReassertsCurrentChoiceAndConvergesDurably() {
+        val local = expected.localActor; val peer = expected.peerActor
+        val old = SharedSyncSettings.create(local, mapOf("auto_mode" to JsonPrimitive("manual")))
+        var remote = SharedSyncSettings.merge(SharedSyncSettings.create(peer), old, peer, local)
+        repeat(2) { remote = SharedSyncSettings.change(remote, peer, local, "auto_mode", JsonPrimitive("wifi")) }
+        val shared = store()
+        val before = shared.initialize(expected, mapOf("auto_mode" to JsonPrimitive("wifi")))
+        assertTrue(runCatching { SharedSyncSettings.merge(before, remote, local, peer) }.isFailure)
+        val repaired = shared.merge(expected, remote)
+        assertEquals(1L, repaired.getValue("settings").jsonObject.getValue("auto_mode").jsonObject.getValue(local).jsonObject.long("counter"))
+        assertEquals("wifi", SharedSyncSettings.effective(repaired).string("auto_mode"))
+        val echoed = SharedSyncSettings.merge(remote, repaired, peer, local)
+        assertEquals(repaired, shared.merge(expected, echoed))
+        helper.close(); helper = TelefonDatenbank(context)
+        assertEquals(repaired, store().read(expected))
+        assertEquals(repaired, store().merge(expected, remote))
+        val fields = remote.getValue("settings").jsonObject.toMutableMap()
+        fields["custom_enabled"] = JsonObject(fields.getValue("custom_enabled").jsonObject +
+            (local to buildJsonObject { put("counter", 100); put("value", true) }))
+        assertTrue(runCatching { store().merge(expected, JsonObject(remote + ("settings" to JsonObject(fields)))) }.isFailure)
+        assertEquals(repaired, store().read(expected))
+    }
+
     @Test fun remoteChoiceAndEchoPersistExactlyOneCommonState() {
         val store = store(); val value = store.change(expected, "content_mode", JsonPrimitive("two_way"))
         var remote = SharedSyncSettings.merge(SharedSyncSettings.create(expected.peerActor), value, expected.peerActor, expected.localActor)

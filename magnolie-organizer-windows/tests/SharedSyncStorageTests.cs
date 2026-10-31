@@ -59,6 +59,24 @@ internal static class SharedSyncStorageTests
                 db.Open(); using var query = db.CreateCommand(); query.CommandText = "SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_shared_settings:%'";
                 TestAssert.That((long)query.ExecuteScalar()! == 0, "Unpair kept common preferences for an unrelated future pairing.");
             }
+            // Re-pair with the same key, but newly selected bootstrap values.
+            store.SavePeers([peer]);
+            var oldBootstrap = SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), SharedSyncSettings.Create(actor), peer.Id, actor);
+            oldBootstrap = SharedSyncSettings.Change(oldBootstrap, peer.Id, actor, "auto_mode", JsonValue.Create("wifi")!);
+            oldBootstrap = SharedSyncSettings.Change(oldBootstrap, peer.Id, actor, "auto_mode", JsonValue.Create("wifi")!);
+            var newInitial = SharedSyncSettings.Effective(SharedSyncSettings.Create(actor)); newInitial["auto_mode"] = "wifi";
+            var reset = store.InitializeSharedSettings(peer.Id, publicKey, newInitial);
+            TestAssert.Throws<InvalidDataException>(() => SharedSyncSettings.Merge(reset, oldBootstrap, actor, peer.Id), "The fixture did not reproduce the stale bootstrap echo.");
+            var repaired = store.MergeSharedSettings(peer.Id, publicKey, oldBootstrap);
+            TestAssert.That(repaired["settings"]!["auto_mode"]![actor]!["counter"]!.GetValue<long>() == 1 &&
+                repaired["settings"]!["auto_mode"]![actor]!["value"]!.GetValue<string>() == "wifi", "Re-pair adopted the obsolete local bootstrap.");
+            var echoed = SharedSyncSettings.Merge(oldBootstrap, repaired, peer.Id, actor);
+            TestAssert.That(JsonNode.DeepEquals(repaired, store.MergeSharedSettings(peer.Id, publicKey, echoed)) &&
+                JsonNode.DeepEquals(repaired, new TelefonStore(paths, key).SharedSettings(peer.Id, publicKey)), "Re-pair failed to converge durably.");
+            TestAssert.That(JsonNode.DeepEquals(repaired, store.MergeSharedSettings(peer.Id, publicKey, oldBootstrap)), "Stale replay advanced the local clock again.");
+            var bad = oldBootstrap.DeepClone().AsObject(); bad["settings"]!["custom_enabled"]![actor]!["counter"] = 100;
+            TestAssert.Throws<InvalidDataException>(() => store.MergeSharedSettings(peer.Id, publicKey, bad), "Bootstrap recovery accepted a forged positive local clock.");
+            TestAssert.That(JsonNode.DeepEquals(repaired, store.SharedSettings(peer.Id, publicKey)), "Rejected recovery partially persisted.");
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
         return Task.CompletedTask;

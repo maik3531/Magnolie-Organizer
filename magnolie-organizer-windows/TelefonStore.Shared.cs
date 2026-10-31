@@ -68,5 +68,5 @@ internal sealed partial class TelefonStore
         UpdateSharedSettings(peerId, expectedPublic, (body, actor) => SharedSyncSettings.Change(body, actor, peerId, field, value), initial);
 
     internal JsonObject MergeSharedSettings(string peerId, byte[] expectedPublic, JsonObject incoming, JsonObject? initial = null) =>
-        UpdateSharedSettings(peerId, expectedPublic, (body, actor) => SharedSyncSettings.Merge(body, incoming, actor, peerId), initial);
+        UpdateSharedSettings(peerId, expectedPublic, (body, actor) => SharedSyncSettings.MergeCurrentChoices(body, incoming, actor, peerId), initial);
 }
