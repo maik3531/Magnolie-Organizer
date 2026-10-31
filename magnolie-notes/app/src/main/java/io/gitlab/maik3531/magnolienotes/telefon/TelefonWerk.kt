@@ -373,7 +373,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val guard = PersonalActorDecisionCompletion(run, targets, frames,
                     { currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) },
                     { if (currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == null) null else noteSessions[channel]?.localContentScope },
-                    { documents.personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, before, authority)
+                    { Ablage.hole(context).personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, before, authority)
                 val saved = ActorDeletionCompletion(choices.toMap(), intents, witness, members, guard)
                 terminal = saved
                 personalActorCompletions[run] = saved

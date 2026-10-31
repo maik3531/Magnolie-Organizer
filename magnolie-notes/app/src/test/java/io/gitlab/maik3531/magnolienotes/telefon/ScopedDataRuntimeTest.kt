@@ -56,6 +56,13 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorTerminalRestoreKeepsMembershipAndUsesExactDecisionAck() = exercise("actor-commit-terminal-restore")
     @Test fun nativeActorTerminalLedgerFailureRetriesWithoutRepeatingBookSave() = exercise("actor-commit-terminal-ledger")
     @Test fun nativeActorTerminalWriterFailureNeverConsumesIntentsOrSendsDecision() = exercise("actor-commit-terminal-write-failure")
+    @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
+    @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
+    @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
+    @Test fun nativeActorTerminalCannotFinishOnTheOldChannel() = exercise("actor-commit-terminal-deny-channel")
+    @Test fun nativeActorTerminalCannotFinishAfterRestore() = exercise("actor-commit-terminal-deny-restore")
+    @Test fun nativeActorTerminalCannotFinishAfterCancellation() = exercise("actor-commit-terminal-deny-cancel")
+    @Test fun nativeActorTerminalCannotFinishWithAnOldBookInstance() = exercise("actor-commit-terminal-deny-instance")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -90,8 +97,11 @@ class ScopedDataRuntimeTest {
         val priorStorage = field(TelefonAblage::class.java, "instance").get(null)
         val priorWork = field(TelefonWerk::class.java, "instance").get(null)
         val priorDocuments = field(Ablage::class.java, "einzig").get(null)
+        val journalInstance = field(io.gitlab.maik3531.magnolienotes.journal.AndroidJournal::class.java, "instance")
+        val priorJournal = journalInstance.get(null)
         field(TelefonAblage::class.java, "instance").set(null, null)
         field(TelefonWerk::class.java, "instance").set(null, null)
+        journalInstance.set(null, null)
         val failBookWrites = AtomicBoolean(false)
         val documents = Ablage.fuerTest(context) {
             if (failBookWrites.get()) throw java.io.IOException("Synthetic actual book writer failure")
@@ -456,6 +466,9 @@ class ScopedDataRuntimeTest {
                             assertArrayEquals(savedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                             assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
                             if (actorTerminal) {
+                                documents.setzeNotizEntwurf(requireNotNull(documents.notiz("phone-note")).copy(text = "Unsaved GUI draft must survive"))
+                                documents.sichereEntwurf()
+                                val retainedDraft = documents.entwurf.value
                                 val savedWitness = requireNotNull(documents.personalActorSavedBookState())
                                 val beforeDeletionBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
                                 val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
@@ -467,6 +480,7 @@ class ScopedDataRuntimeTest {
                                     assertNotNull(documents.notiz("phone-note"))
                                     assertArrayEquals(beforeDeletionBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                                     assertEquals(savedWitness, documents.personalActorSavedBookState())
+                                    assertEquals(retainedDraft, documents.entwurf.value)
                                     pump.invoke(work, peer, channel, 0L, false)
                                     assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
                                     assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
@@ -482,6 +496,42 @@ class ScopedDataRuntimeTest {
                                     PersonalSyncActor.semanticMessage(it.payload)["kind"] == JsonPrimitive("personal_sync.deletion_decision") }.payload
                                 val terminalAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                                     PersonalSyncActor.ack(run, queuedDecision.string("message_id")), 60000)
+                                if (mode.startsWith("actor-commit-terminal-deny-")) {
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                                    ackScope() // Deny even after the exact expected new membership was accepted.
+                                    when (mode.substringAfterLast("deny-")) {
+                                        "grants" -> {
+                                            val bound = requireNotNull(storage.peers().peer)
+                                            storage.savePeer(bound.copy(remote_personal_deletions_sync_granted = false,
+                                                remote_grants_revision = bound.remote_grants_revision + 1))
+                                        }
+                                        "book" -> documents.setzeNotiz(Notiz("other-local-note", "New local edit", "Must not be overwritten"))
+                                        "key" -> {
+                                            val bound = requireNotNull(storage.peers().peer)
+                                            storage.replaceConfirmedPeer(bound, bound.copy(
+                                                static_public = TelefonKrypto.b64(ByteArray(32) { 99 }), state = "paired_unverified"))
+                                        }
+                                        "channel" -> field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                                        "instance" -> {
+                                            val replacement = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                                            assertEquals(documents.bestand.value, replacement.bestand.value)
+                                            assertNotEquals(documents.personalActorSavedBookState()?.get("book_source"), replacement.personalActorSavedBookState()?.get("book_source"))
+                                            field(Ablage::class.java, "einzig").set(null, replacement)
+                                        }
+                                        "restore" -> documents.setzeBaum(documents.baum.value.copy(syncEpoch = "new-native-restore-epoch"))
+                                        "cancel" -> work.stopPersonalActor(handle)
+                                        else -> error("Unexpected terminal deny fixture")
+                                    }
+                                    work.receiveMessage(peer, terminalAck, channel, 0L)
+                                    runCatching { pump.invoke(work, peer, channel, 0L, false) }
+                                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                                    assertNotEquals("completed", work.personalActorJournal.completionState(handle))
+                                    assertEquals(retainedDraft, documents.entwurf.value)
+                                    assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                    if (mode.endsWith("deny-book")) assertEquals("Must not be overwritten", documents.notiz("other-local-note")?.text)
+                                    return@use
+                                }
                                 if (mode != "actor-commit-terminal-restore") {
                                     work.receiveMessage(peer, terminalAck, channel, 0L)
                                     assertEquals("completion", work.personalActorJournal.completionState(handle))
@@ -511,6 +561,7 @@ class ScopedDataRuntimeTest {
                                 val afterDelete = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
                                 if (mode != "actor-commit-terminal-restore") assertNull(afterDelete.notiz("phone-note"))
                                 assertEquals(documents.entwurf.value, afterDelete.entwurf.value)
+                                assertEquals(retainedDraft, afterDelete.entwurf.value)
                                 return@use
                             }
                             if (mode == "actor-commit-receipt-revoked") {
@@ -922,6 +973,7 @@ class ScopedDataRuntimeTest {
             field(TelefonAblage::class.java, "instance").set(null, priorStorage)
             field(TelefonWerk::class.java, "instance").set(null, priorWork)
             field(Ablage::class.java, "einzig").set(null, priorDocuments)
+            journalInstance.set(null, priorJournal)
             Security.removeProvider(provider.name)
         }
     }
