@@ -115,3 +115,45 @@ def test_notes_only_gui_readiness_enables_contact_read_without_kde_or_new_grants
             assert peer == before, 'Readiness must not create consent or rewrite grants'
         finally:
             proxy.stop(); server.close()
+
+
+@pytest.mark.parametrize('ready_first', [False, True])
+def test_late_gui_readiness_resumes_initialized_shared_exchange(tmp_path, monkeypatch, ready_first):
+    service, peer, channel, body = fixture(tmp_path, monkeypatch)
+    before = copy.deepcopy(peer)
+    with tempfile.TemporaryDirectory(prefix='shared-late-ready-') as root:
+        socket = str(Path(root) / 'bridge.sock')
+        server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
+        service.personal_sync_available = server.gui_personal_ready
+        proxy = background.PhoneServiceProxy(socket)
+        try:
+            proxy.start()
+            if ready_first: proxy.set_ready(True)
+            else: proxy.set_visible(True)
+            service._queue_shared_settings(peer['device_id'], channel)
+            assert not any(item.get('kind') == shared.KIND for item in channel.sent)
+            if ready_first: proxy.set_visible(True)
+            else: proxy.set_ready(True)
+            sent = [item for item in channel.sent if item.get('kind') == shared.KIND]
+            assert len(sent) == 1, 'GUI became ready after controls, but shared exchange never resumed'
+            assert sent[0]['body'] == body
+            proxy.set_ready(True)
+            assert len([item for item in channel.sent if item.get('kind') == shared.KIND]) == 1
+            assert service.store.shared_settings(peer['device_id'], peer['static_public']) == body
+            assert peer == before
+        finally:
+            proxy.stop(); server.close()
+
+
+@pytest.mark.parametrize('gate', ['uninitialized', 'controls', 'disconnected'])
+def test_gui_resume_never_creates_shared_choices_or_bypasses_controls(tmp_path, monkeypatch, gate):
+    service, peer, channel, _ = fixture(tmp_path, monkeypatch, initialize=gate != 'uninitialized')
+    if gate == 'controls': service.note_controls[channel].pop('grants.update')
+    if gate == 'disconnected': service.connections.clear()
+    before = copy.deepcopy(peer)
+    saved = service.store.shared_settings(peer['device_id'], peer['static_public'])
+    service.resume_common_preferences()
+    assert not channel.sent
+    assert not service.store.pending(peer['device_id'])
+    assert service.store.shared_settings(peer['device_id'], peer['static_public']) == saved
+    assert peer == before

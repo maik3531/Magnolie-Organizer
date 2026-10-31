@@ -4088,6 +4088,13 @@ class PhoneService:
         message = self.store.queue(peer_id, shared_sync_contract.KIND, body, DAY_MS)
         self._send_message(channel, peer_id, message)
 
+    def resume_common_preferences(self):
+        """Resume only initialized controls when the native GUI lease becomes ready."""
+        with self.lock:
+            peer = self.store.sole_peer()
+            if peer:
+                self._queue_shared_settings(peer["device_id"])
+
     def shared_settings_ready(self, peer_id):
         with self.lock:
             peer = self.store.sole_peer(peer_id)
@@ -4143,7 +4150,8 @@ class PhoneService:
                     "sent_matches": bool(body is not None and session and session.get("sent") == body),
                     "received_matches": bool(body is not None and session and session.get("received") == body),
                     "last_ack": copy.deepcopy(session.get("last_ack")) if session else None,
-                    "last_incoming": copy.deepcopy(session.get("last_incoming")) if session else None}
+                    "last_incoming": copy.deepcopy(session.get("last_incoming")) if session else None,
+                    "wire_comparison": copy.deepcopy(session.get("wire_comparison")) if session else None}
 
     def _apply_common_function_policies(self, peer_id, body):
         peer = self.store.sole_peer(peer_id)
@@ -6980,21 +6988,13 @@ class PhoneService:
                     stage = "controls"
                     current = self.store.sole_peer(peer["device_id"])
                     if (not current or current["static_public"] != peer["static_public"] or
-                            not self._shared_controls_ready(current, channel)):
+                            self.connections.get(peer["device_id"]) is not channel):
                         raise PermissionError
-                    stage = "initialized"
-                    if self.store.shared_settings(peer["device_id"], peer["static_public"]) is None:
-                        raise RuntimeError("Local shared preferences have not been initialized.")
-                    stage = "identity"
-                    previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
-                    if previous and not self.store.received_matches(peer["device_id"], payload):
-                        raise ValueError("conflicting shared settings identity")
-                    stage = "merge"
                     saved = self.store.shared_settings(peer["device_id"], peer["static_public"])
                     local_actor = self.store.identity["device_id"]
                     merge_checks = {}
                     for field, edits in payload["body"]["settings"].items():
-                        own = saved["settings"].get(field, {}).get(local_actor)
+                        own = saved["settings"].get(field, {}).get(local_actor) if saved else None
                         echo = edits.get(local_actor)
                         merge_checks[field] = {
                             "foreign_actor": bool(set(edits) - {local_actor, peer["device_id"]}),
@@ -7002,6 +7002,19 @@ class PhoneService:
                             "echo_counter": echo["counter"] if echo else None,
                             "echo_value_matches": bool(own and echo and own["value"] == echo["value"]),
                             "peer_counter": edits.get(peer["device_id"], {}).get("counter")}
+                    # Authenticated wire metadata is observable even while the GUI
+                    # is hidden. This never authorizes a merge or stores the body.
+                    self._shared_session(current, channel)["wire_comparison"] = merge_checks
+                    if not self._shared_controls_ready(current, channel):
+                        raise PermissionError
+                    stage = "initialized"
+                    if saved is None:
+                        raise RuntimeError("Local shared preferences have not been initialized.")
+                    stage = "identity"
+                    previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
+                    if previous and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting shared settings identity")
+                    stage = "merge"
                     self.store.merge_shared_settings(peer["device_id"], peer["static_public"], payload["body"])
                     self._shared_session(current, channel)["received"] = json.loads(json.dumps(payload["body"]))
                     stage = "persist"

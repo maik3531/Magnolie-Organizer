@@ -1449,6 +1449,7 @@ class IPCServer:
                             time.monotonic() + 35, False, False)
                         result = {"subscribed": True, "cursor": self._event_sequence}
                 elif operation == "gui_visibility":
+                    was_personal_ready = self.gui_personal_ready()
                     subscriber = arguments["subscriber"]
                     with self._event_condition:
                         if subscriber not in self._gui_subscribers:
@@ -1459,7 +1460,11 @@ class IPCServer:
                         self._gui_subscribers[subscriber] = (
                             time.monotonic() + 35, arguments["visible"], previous[2])
                     result = {"visible": arguments["visible"]}
+                    if not was_personal_ready and self.gui_personal_ready():
+                        resume = getattr(self.phone_backend, "resume_common_preferences", None)
+                        if callable(resume): resume()
                 elif operation == "gui_readiness":
+                    was_personal_ready = self.gui_personal_ready()
                     subscriber = arguments["subscriber"]
                     with self._event_condition:
                         if subscriber not in self._gui_subscribers:
@@ -1470,6 +1475,9 @@ class IPCServer:
                         self._gui_subscribers[subscriber] = (
                             time.monotonic() + 35, previous[1], arguments["ready"])
                     result = {"ready": arguments["ready"]}
+                    if not was_personal_ready and self.gui_personal_ready():
+                        resume = getattr(self.phone_backend, "resume_common_preferences", None)
+                        if callable(resume): resume()
                 elif operation == "gui_actor_book_source":
                     subscriber = arguments["subscriber"]
                     with self._event_condition:
