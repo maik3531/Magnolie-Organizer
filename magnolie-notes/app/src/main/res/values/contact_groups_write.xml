@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Allow this computer to change contact groups</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Only group memberships of existing contacts can be changed. Other contact data and system groups remain unchanged.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Allow this computer to edit contact data</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Groups, phone numbers and email addresses of existing contacts are synchronized automatically.</string>
 </resources>

@@ -584,6 +584,9 @@ msgstr "Moradas"
 msgid "Advanced"
 msgstr "Avançado"
 
+msgid "Advanced functions"
+msgstr "Funções avançadas"
+
 msgid "After exercise"
 msgstr "Após o exercício"
 
@@ -3983,8 +3986,21 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "Importação OR6: compromissos, tarefas, contactos e notas de texto simples. São preservadas as séries finitas de compromissos verificadas, as associações a grupos de contactos e os tipos de telefone conhecidos. Os períodos simples do planeador e os aniversários anuais são preservados; os aniversários únicos tornam-se compromissos de dia inteiro e os registos de chamadas e web notas de texto. Entradas não suportadas, disposição, anexos e alarmes não são transferidos."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"Importação OR6: compromissos, tarefas, contactos e notas de texto simples. "
+"São preservadas as séries finitas de compromissos verificadas, as "
+"associações a grupos de contactos e os tipos de telefone conhecidos. Os "
+"períodos simples do planeador e os aniversários anuais são preservados; os "
+"aniversários únicos tornam-se compromissos de dia inteiro e os registos de "
+"chamadas e web notas de texto. Entradas não suportadas, disposição, anexos e "
+"alarmes não são transferidos."
 
 msgid "Objects"
 msgstr "Objetos"
@@ -4523,6 +4539,9 @@ msgstr "Posição de reprodução"
 msgid "Please create a notebook in another group first."
 msgstr "Crie primeiro um bloco de notas noutro grupo."
 
+msgid "Please enter a different group name."
+msgstr "Introduza um nome de grupo diferente."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Introduza um ano de quatro dígitos, a partir de 1000."
 
@@ -4560,7 +4579,9 @@ msgstr "Introduza por completo o IP da Internet e a impressão digital."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Indica o teu endereço de e-mail na descrição do pagamento; caso contrário, não será possível enviar-te o ContributorKey."
+msgstr ""
+"Indica o teu endereço de e-mail na descrição do pagamento; caso contrário, "
+"não será possível enviar-te o ContributorKey."
 
 msgid "Please select a PDF file."
 msgstr "Selecione um ficheiro PDF."
@@ -4922,6 +4943,14 @@ msgstr ""
 "Remover «%(name)s»? As respetivas tarefas serão mantidas, mas deixarão de "
 "estar atribuídas a alguém."
 
+msgid "Rename"
+msgstr "Mudar nome"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Muda o nome do grupo desta conta do telemóvel para todos os seus membros. As associações são mantidas."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5023,6 +5052,9 @@ msgstr "A obter feriados …"
 
 msgid "Retrieving weather…"
 msgstr "A obter meteorologia…"
+
+msgid "Retry"
+msgstr "Tentar novamente"
 
 msgid "Review and enable"
 msgstr "Rever e ativar"
@@ -5485,6 +5517,9 @@ msgstr "Mostrar números das semanas na vista mensal"
 msgid "Show week numbers in the planner"
 msgstr "Mostrar números das semanas no planeador"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Mostrar «Ligar o telefone por WLAN» no menu da área de notificação"
+
 msgid "Sign in to Microsoft"
 msgstr "Faça login na Microsoft"
 
@@ -5642,6 +5677,9 @@ msgstr "Status"
 
 msgid "Stop"
 msgstr "Parar"
+
+msgid "Stop retrying"
+msgstr "Parar de tentar"
 
 msgid "Street"
 msgstr "Rua"
@@ -8374,11 +8412,3 @@ msgstr "＋ Adicionar compromisso"
 #~ "permitir, número de série e IMEI. Desde o Android 10, os identificadores "
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Funções avançadas"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Mostrar «Ligar o telefone por WLAN» no menu da área de notificação"

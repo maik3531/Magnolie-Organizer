@@ -552,6 +552,9 @@ msgstr "住所"
 msgid "Advanced"
 msgstr "詳細設定"
 
+msgid "Advanced functions"
+msgstr "高度な機能"
+
 msgid "After exercise"
 msgstr "運動後"
 
@@ -3909,8 +3912,19 @@ msgstr "ODS"
 msgid "OK"
 msgstr "わかりました"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6インポート：予定、タスク、連絡先、メモのプレーンテキスト。検証済みの有限の繰り返し予定、連絡先グループの所属、既知の電話番号の種類は保持されます。基本的なプランナーの期間と毎年の記念日は保持されます。一度限りの記念日は終日の予定に、通話とWebの記録はテキストメモになります。未対応の項目、レイアウト、添付ファイル、通知は転送されません。"
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6インポート：予定、タスク、連絡先、メモのプレーンテキスト。検証済みの有限の"
+"繰り返し予定、連絡先グループの所属、既知の電話番号の種類は保持されます。基本"
+"的なプランナーの期間と毎年の記念日は保持されます。一度限りの記念日は終日の予"
+"定に、通話とWebの記録はテキストメモになります。未対応の項目、レイアウト、添付"
+"ファイル、通知は転送されません。"
 
 msgid "Objects"
 msgstr "オブジェクト"
@@ -4431,6 +4445,9 @@ msgstr "再生位置"
 msgid "Please create a notebook in another group first."
 msgstr "先に別のグループにノートブックを作成してください。"
 
+msgid "Please enter a different group name."
+msgstr "別のグループ名を入力してください。"
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "1000 年以降の4桁の年を入力してください。"
 
@@ -4467,7 +4484,9 @@ msgstr "インターネット IP とフィンガープリントを完全に入�
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "振込の摘要にメールアドレスを記載してください。記載がない場合、ContributorKeyをお送りできません。"
+msgstr ""
+"振込の摘要にメールアドレスを記載してください。記載がない場合、ContributorKey"
+"をお送りできません。"
 
 msgid "Please select a PDF file."
 msgstr "PDF ファイルを選択してください。"
@@ -4817,6 +4836,14 @@ msgstr ""
 "「%(name)s」を削除しますか？その人のタスクは保持されますが、誰にも割り当てら"
 "れなくなります。"
 
+msgid "Rename"
+msgstr "名前を変更"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "この電話のアカウントのグループ名を、すべてのメンバーに対して変更します。所属関係は維持されます。"
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -4914,6 +4941,9 @@ msgstr "祝日を取得しています …"
 
 msgid "Retrieving weather…"
 msgstr "天気を取得しています…"
+
+msgid "Retry"
+msgstr "再試行"
 
 msgid "Review and enable"
 msgstr "確認して有効にする"
@@ -5368,6 +5398,9 @@ msgstr "月表示に週番号を表示"
 msgid "Show week numbers in the planner"
 msgstr "プランナーに週番号を表示"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "トレイメニューに「電話をWi-Fiで接続する」を表示"
+
 msgid "Sign in to Microsoft"
 msgstr "Microsoft にサインインする"
 
@@ -5522,6 +5555,9 @@ msgstr "状態"
 
 msgid "Stop"
 msgstr "停止"
+
+msgid "Stop retrying"
+msgstr "再試行を停止"
 
 msgid "Street"
 msgstr "通り"
@@ -8195,11 +8231,3 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "高度な機能"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "トレイメニューに「電話をWi-Fiで接続する」を表示"

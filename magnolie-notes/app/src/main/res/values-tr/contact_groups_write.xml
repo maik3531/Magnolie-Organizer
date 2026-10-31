@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Bu bilgisayarın kişi gruplarını değiştirmesine izin ver</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Yalnızca mevcut kişilerin grup üyelikleri değiştirilebilir. Diğer kişi verileri ve sistem grupları korunur.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Bu bilgisayarın kişi bilgilerini değiştirmesine izin ver</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Mevcut kişilerin grupları, telefon numaraları ve e-posta adresleri otomatik olarak eşitlenir.</string>
 </resources>

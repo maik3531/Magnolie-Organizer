@@ -4986,7 +4986,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function kontaktFuerAustausch(kontakt) {
     const privat = new Set(["fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell", "baumKontakt",
-      "kontaktZeit", "kontaktAliase", "kontaktProviderKonflikte", "syncQuellen", "syncKonflikte", "kdeImportStaende"]);
+      "kontaktZeit", "kontaktAliase", "kontaktProviderKonflikte", "syncQuellen", "syncKonflikte", "kdeImportStaende",
+      "telefonGruppenStand", "telefonGruppenAenderung", "telefonGruppenTitelAenderung", "telefonWerteStand", "telefonWerteBeobachtet", "telefonWerteAenderung"]);
     // Exclude private galleries and bindings before accessing their values,
     // not after copying the complete contact into an exchange payload.
     const aus = kopie(Object.fromEntries(Object.keys(kontakt).filter(key => !privat.has(key))
@@ -5049,6 +5050,318 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let kontaktFotoLauf = null, kontaktFotoNaechsterAbruf = 0;
   let kontaktFotoKontext = null, kontaktFotoTimer = null;
   const kontaktFotoAnfragen = new Map();
+  const kontaktGruppenAnfragen = new Map();
+  const kontaktWerteAnfragen = new Map();
+  const kontaktGruppenTitelAnfragen = new Map();
+  let kontaktWerteLauf = null, kontaktWerteTimer = null;
+  const kontaktWerteWiederholung = new WeakMap();
+  const kontaktWerteText = (value, max, empty = false) => typeof value === "string" && (empty || value.trim()) &&
+    [...value].length <= max && !/[\x00-\x1f\x7f-\x9f\ud800-\udfff]/u.test(value);
+  const kontaktWerteKontoGueltig = account => account && typeof account === "object" && !Array.isArray(account) &&
+    Object.keys(account).sort().join(",") === "data_set,name,type" && Object.values(account).every(value => kontaktWerteText(value, 256, true));
+  function kontaktWerteFelderGueltig(fields) {
+    if (!fields || typeof fields !== "object" || Array.isArray(fields) || !Object.keys(fields).length ||
+        Object.keys(fields).some(name => !["telefone", "emailEintraege"].includes(name))) return false;
+    return Object.values(fields).every(rows => Array.isArray(rows) && rows.length <= 100 &&
+      rows.every(row => row && typeof row === "object" && !Array.isArray(row) && Object.keys(row).sort().join(",") === "art,wert" &&
+        ["privat", "arbeit", "mobil", "sonstige"].includes(row.art) && kontaktWerteText(row.wert, 4096)) &&
+      new Set(rows.map(row => JSON.stringify([row.art, row.wert]))).size === rows.length);
+  }
+  function kontaktWerteAbfragen(source, action, extra = {}) {
+    return new Promise((resolve, reject) => {
+      if (kontaktWerteAnfragen.size >= 8) return reject(new Error("contact_values_busy"));
+      const fields = action === "prepare" ? extra.field_names : Object.keys(extra.fields || {});
+      if (!["prepare", "apply"].includes(action) || !Array.isArray(fields) || !fields.length || fields.length > 2 ||
+          new Set(fields).size !== fields.length || fields.some(name => !["telefone", "emailEintraege"].includes(name)) ||
+          action === "apply" && (!kontaktWerteFelderGueltig(extra.fields) || !kontaktWerteKontoGueltig(extra.account))) return reject(new Error("invalid_contact_fields"));
+      const requestId = anrufClientRef(), savedExtra = kopie(extra), savedSource = kopie(source);
+      const message = { cmd: "telefon_kontaktwerte", requestId, device_id: source.deviceId, fingerprint: source.fingerprint,
+        uid: source.uid, action, ...(action === "prepare" ? { field_names: savedExtra.field_names } : { token: savedExtra.token, fields: savedExtra.fields }) };
+      const body = { version: 19, request_id: requestId, action, uid: source.uid,
+        ...(action === "prepare" ? { field_names: savedExtra.field_names } : { token: savedExtra.token, fields: savedExtra.fields }) };
+      if (new TextEncoder().encode(JSON.stringify(body)).length > 128 * 1024) return reject(new Error("contact_values_too_large"));
+      const timer = setTimeout(() => { kontaktWerteAnfragen.delete(requestId); reject(new Error("contact_values_timeout")); }, 12000);
+      kontaktWerteAnfragen.set(requestId, { resolve, reject, timer, source: savedSource, action, fields: [...fields].sort(), extra: savedExtra });
+      if (!Bruecke.sende(message)) {
+        clearTimeout(timer); kontaktWerteAnfragen.delete(requestId); reject(new Error("contact_values_unavailable"));
+      }
+    });
+  }
+  const kontaktGruppenTitelUuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
+  const kontaktGruppenTitelId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value) &&
+    (value.length < 19 || value <= "9223372036854775807");
+  const kontaktGruppenTitelText = value => kontaktWerteText(value, 256) && value === value.trim().normalize("NFC");
+  const kontaktGruppenTitelIdentitaet = value => kontaktGruppenTitelId(value?.group_id) && kontaktWerteKontoGueltig(value?.account) &&
+    typeof value.group_identity === "string" && /^[a-f0-9]{64}$/.test(value.group_identity);
+  function kontaktGruppenTitelAbfragen(source, action, extra = {}) {
+    return new Promise((resolve, reject) => {
+      if (kontaktGruppenTitelAnfragen.size >= 8) return reject(new Error("contact_group_title_busy"));
+      if (!source || typeof source.deviceId !== "string" || !source.deviceId.startsWith("notes:") || !kontaktGruppenTitelUuid(source.deviceId.slice(6)) ||
+          typeof source.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(source.fingerprint) || !kontaktWerteText(source.uid, 256) ||
+          !["prepare", "apply", "inspect"].includes(action) || !kontaktGruppenTitelText(extra.old_title) ||
+          !kontaktGruppenTitelText(extra.new_title) || extra.old_title === extra.new_title)
+        return reject(new Error("invalid_contact_group_title"));
+      const allowed = ["old_title", "new_title", ...(action === "apply" ? ["token", "prepared"] : action === "inspect" ? ["group_id", "account"] : [])];
+      if (Object.keys(extra).some(key => !allowed.includes(key))) return reject(new Error("invalid_contact_group_title"));
+      const prepared = extra.prepared;
+      if (action === "apply" && (!kontaktGruppenTitelUuid(extra.token) || !kontaktGruppenTitelIdentitaet(prepared) ||
+          prepared.ok !== true || prepared.version !== 20 || prepared.device_id !== source.deviceId || prepared.fingerprint !== source.fingerprint ||
+          prepared.action !== "prepare" || prepared.state !== "prepared" || prepared.token !== extra.token || prepared.uid !== source.uid ||
+          prepared.old_title !== extra.old_title || prepared.new_title !== extra.new_title))
+        return reject(new Error("contact_group_title_preparation_changed"));
+      if (action === "inspect" && (!kontaktGruppenTitelId(extra.group_id) || !kontaktWerteKontoGueltig(extra.account)))
+        return reject(new Error("invalid_contact_group_title"));
+      const requestId = anrufClientRef(), savedSource = kopie(source), savedExtra = kopie(extra);
+      const body = { version: 20, request_id: requestId, action, uid: savedSource.uid,
+        old_title: savedExtra.old_title, new_title: savedExtra.new_title,
+        ...(action === "apply" ? { token: savedExtra.token } : action === "inspect" ? { group_id: savedExtra.group_id, account: savedExtra.account } : {}) };
+      if (new TextEncoder().encode(JSON.stringify(body)).length > 16 * 1024) return reject(new Error("contact_group_title_too_large"));
+      const timer = setTimeout(() => { kontaktGruppenTitelAnfragen.delete(requestId); reject(new Error("contact_group_title_timeout")); }, 12000);
+      kontaktGruppenTitelAnfragen.set(requestId, { resolve, reject, timer, source: savedSource, action, extra: savedExtra, book: DATEN });
+      const message = { cmd: "telefon_kontaktgruppentitel", requestId, device_id: savedSource.deviceId, fingerprint: savedSource.fingerprint,
+        uid: savedSource.uid, action, old_title: savedExtra.old_title, new_title: savedExtra.new_title,
+        ...(action === "apply" ? { token: savedExtra.token } : {}),
+        ...(action === "inspect" ? { group_id: savedExtra.group_id, account: savedExtra.account } : {}) };
+      try {
+        if (Bruecke.sende(message)) return;
+      } catch (_) { /* Settle this request without retaining its timer. */ }
+      clearTimeout(timer); kontaktGruppenTitelAnfragen.delete(requestId); reject(new Error("contact_group_title_unavailable"));
+    });
+  }
+  let kontaktGruppenLauf = null;
+  let kontaktGruppenTitelLauf = null, kontaktGruppenTitelTimer = null;
+  const kontaktGruppenTitelWiederholung = new WeakMap();
+  const gleicherTelefonGruppenTitelBeleg = (a, b) => !!a && !!b && a.uid === b.uid && a.group_id === b.group_id &&
+    a.group_identity === b.group_identity && ["name", "type", "data_set"].every(key => a.account?.[key] === b.account?.[key]);
+  function telefonGruppenTitelQuelle(kontakt, marker = normalisiereTelefonGruppenTitelAenderung(kontakt?.telefonGruppenTitelAenderung)) {
+    const source = marker?.source || telefonWerteKontaktQuelle(kontakt);
+    if (typeof source?.deviceId !== "string" || !source.deviceId.startsWith("notes:") || !kontaktGruppenTitelUuid(source.deviceId.slice(6)) ||
+        !/^[a-f0-9]{64}$/.test(source.fingerprint || "") || !kontaktWerteText(source.uid, 256)) return null;
+    if (marker && (marker.epoch !== String(DATEN.syncEpoch || "") || !gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), source))) return null;
+    const peer = telefonStand?.peers?.find(value => "notes:" + value.device_id === source.deviceId);
+    if (!peer || peer.contacts_fingerprint !== source.fingerprint || peer.contact_group_titles_write_available !== true ||
+        peer.own_device !== true || peer.remote_own_device !== true || peer.state !== "online_wifi") return null;
+    if (DATEN.kontakte.filter(value => gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(value), source)).length !== 1) return null;
+    return { deviceId: source.deviceId, fingerprint: source.fingerprint, uid: source.uid };
+  }
+  function invalidiereTelefonGruppenTitelCache(source) {
+    const cache = DATEN.kontaktFotoCache;
+    if (cache?.deviceId === source.deviceId && cache.fingerprint === source.fingerprint && Array.isArray(cache.entries)) {
+      const known = new Set(DATEN.kontakte.map(telefonWerteKontaktQuelle).filter(value => value?.deviceId === source.deviceId &&
+        value.fingerprint === source.fingerprint).map(value => value.uid));
+      cache.entries = cache.entries.filter(value => value && !known.has(value.uid));
+    }
+    kontaktFotoNaechsterAbruf = 0; kontaktFotoKontext = null;
+  }
+  function planeTelefonKontaktGruppenTitel() {
+    clearTimeout(kontaktGruppenTitelTimer);
+    if (!initialisiert || gesperrt || !DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) return;
+    kontaktGruppenTitelTimer = setTimeout(() => {
+      kontaktGruppenTitelTimer = null;
+      if (aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenTitelLauf || kontaktGruppenLauf || kontaktWerteLauf) return;
+      const waiting = DATEN.kontakte.filter(value => {
+        const marker = normalisiereTelefonGruppenTitelAenderung(value.telefonGruppenTitelAenderung);
+        return marker?.state === "pending" && telefonGruppenTitelQuelle(value, marker);
+      });
+      const contact = waiting.find(value => (kontaktGruppenTitelWiederholung.get(value) || 0) <= Date.now());
+      if (contact) sendeTelefonKontaktGruppenTitel(contact);
+      else if (waiting.length) kontaktGruppenTitelTimer = setTimeout(planeTelefonKontaktGruppenTitel,
+        Math.max(250, waiting.reduce((minimum, value) => Math.min(minimum, kontaktGruppenTitelWiederholung.get(value) || 0), Infinity) - Date.now()));
+    }, 250);
+  }
+  function setzeTelefonGruppenTitelWunsch(kontakt, title, fallback = null) {
+    let marker = normalisiereTelefonGruppenTitelAenderung(kontakt.telefonGruppenTitelAenderung);
+    if (marker && fallback && marker.id !== fallback.id) throw new Error("contact_group_title_stale");
+    if (!marker && fallback && gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), fallback.source))
+      marker = normalisiereTelefonGruppenTitelAenderung({ ...fallback, id: anrufClientRef() });
+    if (!marker || !kontaktGruppenTitelText(title) || !DATEN.kontakte.includes(kontakt)) throw new Error("contact_group_title_stale");
+    kontakt.telefonGruppenTitelAenderung = { ...marker, wish: title, state: "pending", epoch: String(DATEN.syncEpoch || "") };
+    kontaktGruppenTitelWiederholung.delete(kontakt);
+    return new Promise((resolve, reject) => nachDauerhaftemSpeichern(() => { planeTelefonKontaktGruppenTitel(); resolve(); }, reject));
+  }
+  async function starteTelefonGruppenTitelAenderung(kontakt, oldTitle, newTitle) {
+    const source = telefonGruppenTitelQuelle(kontakt, null), book = DATEN, epoch = DATEN.syncEpoch;
+    if (!source || !kontaktGruppenTitelText(oldTitle) || !kontaktGruppenTitelText(newTitle) || oldTitle === newTitle ||
+        gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenTitelLauf || kontaktGruppenLauf || kontaktWerteLauf ||
+        DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung) || kontakt.telefonGruppenAenderung)
+      throw new Error("contact_group_title_unavailable");
+    const run = { book, kontakt, source };
+    kontaktGruppenTitelLauf = run; kontaktFotoLauf = null;
+    let prepared;
+    try {
+      prepared = await kontaktGruppenTitelAbfragen(source, "prepare", { old_title: oldTitle, new_title: newTitle });
+      if (DATEN !== book || DATEN.syncEpoch !== epoch || gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf ||
+          !DATEN.kontakte.includes(kontakt) || !gleicheTelefonWerteQuelle(telefonGruppenTitelQuelle(kontakt, null), source))
+        throw new Error("contact_group_title_stale");
+      kontakt.telefonGruppenTitelAenderung = normalisiereTelefonGruppenTitelAenderung({ version: 1, id: anrufClientRef(), source,
+        proof: prepared, wish: newTitle, baseTitle: oldTitle, epoch: String(epoch || ""), state: "pending" });
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    } finally { if (kontaktGruppenTitelLauf === run) kontaktGruppenTitelLauf = null; }
+    return sendeTelefonKontaktGruppenTitel(kontakt, prepared);
+  }
+  async function sendeTelefonKontaktGruppenTitel(kontakt, firstPrepared = null) {
+    const initial = normalisiereTelefonGruppenTitelAenderung(kontakt.telefonGruppenTitelAenderung), source = telefonGruppenTitelQuelle(kontakt, initial);
+    if (!initial || initial.state !== "pending" || !source || kontaktGruppenTitelLauf || kontaktGruppenLauf || kontaktWerteLauf || kdeKontaktLauf || gesperrt || aktiverEditor || syncLaeuft) return;
+    const run = { book: DATEN, epoch: DATEN.syncEpoch, kontakt, id: initial.id, source, proof: initial.proof };
+    kontaktGruppenTitelLauf = run; kontaktFotoLauf = null; kontaktGruppenTitelWiederholung.set(kontakt, Date.now() + 60000);
+    const marker = () => normalisiereTelefonGruppenTitelAenderung(kontakt.telefonGruppenTitelAenderung);
+    const owned = () => kontaktGruppenTitelLauf === run && DATEN === run.book && DATEN.syncEpoch === run.epoch && !gesperrt &&
+      !aktiverEditor && !syncLaeuft && !kdeKontaktLauf && DATEN.kontakte.includes(kontakt) && marker()?.id === run.id &&
+      gleicherTelefonGruppenTitelBeleg(marker()?.proof, run.proof) && gleicheTelefonWerteQuelle(telefonGruppenTitelQuelle(kontakt, marker()), source);
+    const requireOwned = () => { if (!owned()) throw new Error("contact_group_title_stale"); };
+    const finish = async title => {
+      requireOwned(); const current = marker();
+      kontakt.telefonGruppenTitelAenderung = current.wish === title ? null : { ...current, baseTitle: title, state: "pending" };
+      invalidiereTelefonGruppenTitelCache(source);
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    };
+    try {
+      let prepared = firstPrepared;
+      if (!prepared) {
+        const current = marker(), observed = await kontaktGruppenTitelAbfragen(source, "inspect", {
+          old_title: current.proof.old_title, new_title: current.proof.new_title, group_id: current.proof.group_id, account: current.proof.account });
+        requireOwned(); const latest = marker();
+        if (!gleicherTelefonGruppenTitelBeleg(latest.proof, observed) ||
+            ![latest.wish, latest.baseTitle, latest.proof.new_title].includes(observed.current_title)) {
+          kontakt.telefonGruppenTitelAenderung = { ...latest, state: "conflict", observed: { current_title: observed.current_title, group_identity: observed.group_identity } };
+          await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject)); return;
+        }
+        if (observed.current_title === latest.wish) { await finish(observed.current_title); return; }
+        const target = latest.wish;
+        prepared = await kontaktGruppenTitelAbfragen(source, "prepare", { old_title: observed.current_title, new_title: target });
+        requireOwned(); if (marker().wish !== target) return;
+        if (!gleicherTelefonGruppenTitelBeleg(marker().proof, prepared)) throw new Error("contact_group_title_source_changed");
+        kontakt.telefonGruppenTitelAenderung = normalisiereTelefonGruppenTitelAenderung({ ...marker(), proof: prepared, baseTitle: observed.current_title });
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      }
+      requireOwned(); if (marker().wish !== prepared.new_title) return;
+      run.mayHaveApplied = true;
+      const saved = await kontaktGruppenTitelAbfragen(source, "apply", { old_title: prepared.old_title, new_title: prepared.new_title, token: prepared.token, prepared });
+      requireOwned(); await finish(saved.new_title);
+    } catch (_) { /* Keep the durable wish: a timeout is not evidence that the native write failed. */ }
+    finally {
+      if (kontaktGruppenTitelLauf === run) kontaktGruppenTitelLauf = null;
+      if (run.mayHaveApplied && DATEN === run.book && DATEN.syncEpoch === run.epoch &&
+          gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), source)) invalidiereTelefonGruppenTitelCache(source);
+      if (DATEN === run.book && !gesperrt) { planeTelefonKontaktGruppen(); planeKontaktFotoAbruf(); }
+    }
+  }
+  async function oeffneTelefonGruppenTitelDialog(kontakt, oldTitle, pending = null) {
+    const book = DATEN, epoch = DATEN.syncEpoch;
+    const current = pending?.wish || oldTitle;
+    const value = await magnolieEingabe({ titel: _("Rename") + " · Magnolie Notes", label: _("Name"), wert: current,
+      text: _("Rename this phone account's group for all its members. Memberships are preserved."), bestaetigen: _("Rename"),
+      pruefen: input => {
+        const title = input.trim().normalize("NFC");
+        return kontaktGruppenTitelText(title) && title !== current ? "" : _("Please enter a different group name.");
+      } });
+    if (value === null) return;
+    if (DATEN !== book || DATEN.syncEpoch !== epoch || !DATEN.kontakte.includes(kontakt) || gesperrt) return zettel(_("Conflict"));
+    try {
+      const action = pending ? setzeTelefonGruppenTitelWunsch(kontakt, value.trim().normalize("NFC"), pending) :
+        starteTelefonGruppenTitelAenderung(kontakt, oldTitle, value.trim().normalize("NFC"));
+      zeichneAlles(); await action;
+    } catch { zettel(_("Not sent.")); }
+    if (DATEN === book && !gesperrt && !aktiverEditor) zeichneAlles();
+  }
+  let kontaktGruppenTimer = null;
+  const kontaktGruppenWiederholung = new WeakMap();
+
+  function planeTelefonKontaktGruppen() {
+    planeTelefonKontaktGruppenTitel();
+    planeTelefonKontaktWerte();
+    clearTimeout(kontaktGruppenTimer);
+    kontaktGruppenTimer = setTimeout(() => {
+      kontaktGruppenTimer = null;
+      if (!initialisiert || gesperrt || aktiverEditor || syncLaeuft || kontaktGruppenLauf || kontaktGruppenTitelLauf) return;
+      const kontakt = DATEN.kontakte.find(value => telefonGruppenSchreibQuelle(value) &&
+        (kontaktGruppenWiederholung.get(value) || 0) <= Date.now());
+      if (kontakt) return sendeTelefonKontaktGruppen(kontakt);
+    }, 250);
+  }
+
+  function kontaktGruppenAbfragen(source, action, extra = {}) {
+    return new Promise((resolve, reject) => {
+      const requestId = anrufClientRef();
+      const timer = setTimeout(() => {
+        kontaktGruppenAnfragen.delete(requestId); reject(new Error("contact_groups_timeout"));
+      }, 12000);
+      kontaktGruppenAnfragen.set(requestId, { resolve, reject, timer, source, action });
+      if (!Bruecke.sende({ cmd: "telefon_kontaktgruppen", requestId, device_id: source.deviceId,
+          fingerprint: source.fingerprint, uid: source.uid, action,
+          token: action === "apply" ? extra.token : undefined, groups: action === "apply" ? extra.groups : undefined })) {
+        clearTimeout(timer); kontaktGruppenAnfragen.delete(requestId); reject(new Error("contact_groups_unavailable"));
+      }
+    });
+  }
+
+  function telefonGruppenSchreibQuelle(kontakt, explizit = false) {
+    const pending = normalisiereTelefonGruppenAenderung(kontakt.telefonGruppenAenderung);
+    let base = pending?.base;
+    const seen = pending?.beobachtet;
+    if (explizit && seen && (!base || base.deviceId === seen.deviceId && base.fingerprint === seen.fingerprint && base.uid === seen.uid)) base = seen;
+    if (!base?.deviceId.startsWith("notes:") || !DATEN.kontakte.includes(kontakt)) return null;
+    const peer = telefonStand?.peers?.find(value => "notes:" + value.device_id === base.deviceId);
+    if (!peer?.own_device || !peer.remote_own_device || !/^online_/.test(peer.state || "") ||
+        peer.contact_groups_write_available !== true || peer.contacts_fingerprint !== base.fingerprint) return null;
+    // A source UID must never address two local contacts.
+    if (DATEN.kontakte.some(value => value !== kontakt && [value.telefonGruppenStand,
+        value.telefonGruppenAenderung?.base].some(bound => bound?.deviceId === base.deviceId &&
+          bound.fingerprint === base.fingerprint && bound.uid === base.uid))) return null;
+    return base;
+  }
+
+  async function sendeTelefonKontaktGruppen(kontakt, explizit = false) {
+    const source = telefonGruppenSchreibQuelle(kontakt, explizit);
+    if (!source || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf || gesperrt || aktiverEditor || syncLaeuft) return;
+    // User edits take priority over a background thumbnail scan. Invalidate its
+    // captured run so a late read cannot replace the newly written membership.
+    if (kontaktFotoLauf) { kontaktFotoLauf = null; clearTimeout(kontaktFotoTimer); kontaktFotoNaechsterAbruf = Date.now() + 60000; }
+    if (explizit) kontakt.telefonGruppenAenderung = normalisiereTelefonGruppenAenderung({
+      ...kontakt.telefonGruppenAenderung, base: source });
+    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, kontakt,
+      pending: JSON.stringify(kontakt.telefonGruppenAenderung), groups: kontaktGruppen(kontakt) };
+    kontaktGruppenLauf = lauf;
+    kontaktGruppenWiederholung.set(kontakt, Date.now() + 60000);
+    zeichneAlles();
+    const gueltig = () => DATEN === lauf.daten && DATEN.syncEpoch === lauf.epoch && !gesperrt &&
+      !aktiverEditor && !syncLaeuft && DATEN.kontakte.includes(kontakt) &&
+      JSON.stringify(kontakt.telefonGruppenAenderung) === lauf.pending &&
+      gleicheKontaktGruppen(kontaktGruppen(kontakt), lauf.groups) &&
+      JSON.stringify(telefonGruppenSchreibQuelle(kontakt)) === JSON.stringify(source);
+    try {
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (!gueltig()) return;
+      const prepared = await kontaktGruppenAbfragen(source, "prepare");
+      if (!gueltig()) return;
+      if (!gleicheKontaktGruppen(prepared.groups, source.groups)) {
+        uebernehmeTelefonKontaktGruppen(kontakt, prepared.groups, source);
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        return;
+      }
+      // Reuse the exact provider title, including localized aliases. Ambiguous
+      // aliases cannot safely select one existing account group. Only a new
+      // group uses the current display language; existing provider names stay exact.
+      const groups = lauf.groups.map(group => {
+        const matches = prepared.catalog.filter(name => gleicheKontaktGruppen([name], [group]));
+        if (matches.length > 1) throw new Error("contact_groups_ambiguous_catalog");
+        return matches[0] || kontaktGruppenName(group);
+      });
+      if (!gueltig()) return;
+      const saved = await kontaktGruppenAbfragen(source, "apply", { token: prepared.token, groups });
+      if (!gueltig()) return;
+      if (saved.token !== prepared.token || JSON.stringify(saved.account) !== JSON.stringify(prepared.account) ||
+          !gleicheKontaktGruppen(saved.groups, lauf.groups)) throw new Error("contact_groups_readback_failed");
+      uebernehmeTelefonKontaktGruppen(kontakt, saved.groups, source);
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    } catch (error) {
+      if (DATEN === lauf.daten && !gesperrt) zettel(_("Not sent."));
+    } finally {
+      if (kontaktGruppenLauf === lauf) kontaktGruppenLauf = null;
+      if (DATEN === lauf.daten && !gesperrt && !aktiverEditor) zeichneAlles();
+      planeTelefonKontaktGruppen();
+    }
+  }
   const kontaktFotoMailSchluessel = wert => String(wert || "").normalize("NFC").trim().toLowerCase();
 
   async function kontaktFotoHash(text) {
@@ -5063,7 +5376,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         kontaktFotoAnfragen.delete(requestId); reject(new Error("contact_timeout"));
       }, 12000);
       kontaktFotoAnfragen.set(requestId, { resolve, reject, timer, deviceId });
-      if (!Bruecke.sende({ cmd: "telefon_kontaktfotos", requestId, device_id: deviceId, uids: uids })) {
+      if (!Bruecke.sende({ cmd: "telefon_kontaktfotos", requestId, device_id: deviceId, uids: uids, includePhoto: DATEN.einstellungen.adressen.foto === true })) {
         clearTimeout(timer); kontaktFotoAnfragen.delete(requestId); reject(new Error("contact_unavailable"));
       }
     });
@@ -5082,14 +5395,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function planeKontaktFotoAbruf() {
     const quelle = kontaktDatenQuelle();
-    const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf ||
+    const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf ||
       (typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf) ||
       document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-datei-pruefung, .kontakt-assistent-schleier");
-    if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto ||
+    if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto && quelle?.provider !== "notes" ||
         !quelle?.contacts_available || !quelle.contacts_device_id ||
         DATEN.syncMetadaten?.ersteSyncLoeschungsfrei || DATEN.syncNachRestore?.loeschungsfrei ||
         DATEN.syncNachRestore?.additiv || !DATEN.kontakte.some(k => kontaktTelefone(k).length ||
-          emailListe(k).length || k.fotoQuelle?.deviceId === quelle.contacts_device_id)) return;
+          emailListe(k).length || k.fotoQuelle?.deviceId === quelle.contacts_device_id || telefonWerteKontaktQuelle(k)?.deviceId === quelle.contacts_device_id)) return;
     if (beschaeftigt()) {
       clearTimeout(kontaktFotoTimer); kontaktFotoTimer = setTimeout(planeKontaktFotoAbruf, 60000); return;
     }
@@ -5103,14 +5416,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id, sourceFingerprint: quelle.contacts_fingerprint || "" };
     kontaktFotoLauf = lauf;
     const gueltig = () => kontaktFotoLauf === lauf && DATEN === lauf.daten && DATEN.syncEpoch === lauf.epoch &&
-      !gesperrt && !beschaeftigt() && DATEN.einstellungen.adressen.foto &&
+      !gesperrt && !beschaeftigt() && (DATEN.einstellungen.adressen.foto || quelle.provider === "notes") &&
       kontaktDatenQuelle()?.contacts_device_id === lauf.deviceId && (kontaktDatenQuelle()?.contacts_fingerprint || "") === lauf.sourceFingerprint;
     const zuordnungen = () => JSON.stringify(DATEN.kontakte.map(k => [k.id, kontaktTelefone(k),
-      emailListe(k).map(kontaktFotoMailSchluessel), k.fotoManuell === true]));
+      emailListe(k).map(kontaktFotoMailSchluessel), k.fotoManuell === true, telefonWerteKontaktQuelle(k)]));
     (async () => {
       await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
       if (!gueltig()) return;
-      const lokalStand = zuordnungen(), mappingHash = await kontaktFotoHash(lokalStand);
+      let lokalStand = zuordnungen(), mappingHash = await kontaktFotoHash(lokalStand);
       const index = await kontaktFotoAbfragen(lauf.deviceId);
       if (!gueltig()) return;
       if (index.contacts.length > 20000 || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "")) throw new Error("invalid_contact_index");
@@ -5121,14 +5434,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
         .filter(e => e && typeof e.uid === "string").map(e => [e.uid, e]));
       const vorhanden = new Set(), offen = [];
+      const knownValueBindings = new Map();
+      if (lauf.deviceId.startsWith("notes:")) for (const contact of DATEN.kontakte) {
+        const source = telefonWerteKontaktQuelle(contact);
+        if (source?.deviceId !== lauf.deviceId || source.fingerprint !== fingerprint) continue;
+        if (!knownValueBindings.has(source.uid)) knownValueBindings.set(source.uid, []);
+        knownValueBindings.get(source.uid).push(contact);
+      }
       for (const eintrag of index.contacts) {
         if (typeof eintrag.uid !== "string" || !eintrag.uid || eintrag.uid.length > 1024 || vorhanden.has(eintrag.uid) ||
             !Number.isSafeInteger(eintrag.modified_ms) || eintrag.modified_ms < 0) throw new Error("invalid_contact_index");
         vorhanden.add(eintrag.uid);
         const stand = cache.get(eintrag.uid), alter = jetzt - Number(stand?.checkedAt || 0);
+        const valueBindings = knownValueBindings.get(eintrag.uid) || [];
         // Group titles/membership can change without updating the contact stamp.
         // A positive photo cache must not freeze the accompanying groups forever.
-        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 && alter < 3600000) continue;
+        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 && alter < 3600000 &&
+            (valueBindings.length !== 1 || stand.valueContactId === valueBindings[0].id)) continue;
         offen.push(eintrag);
       }
       for (const key of cache.keys()) if (!vorhanden.has(key)) cache.delete(key);
@@ -5151,21 +5473,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         indexe.mails.clear();
         for (const kontakt of DATEN.kontakte) for (const mail of emailListe(kontakt))
           setzeKontaktIndex(indexe.mails, kontaktFotoMailSchluessel(mail), kontakt);
-        const aenderungen = [], socialUpdates = [];
+        const aenderungen = [], socialUpdates = [], valueUpdates = [];
         for (const { eintrag, karte } of antworten) {
           const foto = sauberesFoto(karte?.foto);
           cache.set(eintrag.uid, { uid: eintrag.uid, modified_ms: eintrag.modified_ms, checkedAt: Date.now(), photoAvailable: !!foto });
           const gebunden = DATEN.kontakte.filter(k => k.fotoQuelle?.deviceId === lauf.deviceId &&
-            k.fotoQuelle.fingerprint === fingerprint && k.fotoQuelle.uid === eintrag.uid);
+            k.fotoQuelle.fingerprint === fingerprint && k.fotoQuelle.uid === eintrag.uid ||
+            gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(k), { deviceId: lauf.deviceId, fingerprint, uid: eintrag.uid }));
           const kandidaten = gebunden.length ? gebunden : [...new Set([
             ...emailListe(karte).map(wert => indexe.mails.get(kontaktFotoMailSchluessel(wert))),
             ...kontaktTelefone(karte).map(wert => indexe.telefone.get(wert))].filter(k => k !== undefined))];
           if (kandidaten.length !== 1 || !kandidaten[0]) continue;
           const kontakt = kandidaten[0], bisher = kontakt.foto || "";
+          if (lauf.deviceId.startsWith("notes:") && gebunden.length === 1 && Array.isArray(karte?.werteVollstaendig)) {
+            cache.get(eintrag.uid).valueContactId = kontakt.id;
+            const fields = kontaktWerteProjektion(karte), complete = {};
+            if (fields) for (const name of ["telefone", "emailEintraege"]) if (karte.werteVollstaendig.includes(name) &&
+                Array.isArray(karte[name]) && karte[name].length === fields[name].length) complete[name] = fields[name];
+            if (Object.keys(complete).length) valueUpdates.push({ kontakt, fields: complete, uid: eintrag.uid });
+          }
           const social = sozialeMedienListe(karte);
           if (social.length || Array.isArray(karte.gruppenZeilen)) socialUpdates.push({ kontakt, social, uid: eintrag.uid,
             groups: Array.isArray(karte.gruppenZeilen) ? kontaktGruppen({ vcardRoundtrip: karte.gruppenZeilen }) : null });
-          if (!foto) continue;
+          if (!foto || !DATEN.einstellungen.adressen.foto) continue;
           let anzeigen = !kontakt.fotoManuell && !bisher && !kontakt.fotoQuelle;
           if (kontakt.fotoQuelle) {
             const meta = kontakt.fotoQuelle;
@@ -5179,6 +5509,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         }
         if (!gueltig() || zuordnungen() !== lokalStand) return;
         let geaendert = false;
+        for (const { kontakt, fields, uid } of valueUpdates) if (DATEN.kontakte.includes(kontakt) &&
+            uebernehmeTelefonKontaktWerte(kontakt, fields, { deviceId: lauf.deviceId, fingerprint, uid })) geaendert = true;
         for (const { kontakt, social, groups, uid } of socialUpdates) {
           if (!DATEN.kontakte.includes(kontakt)) continue;
           const old = sozialeMedienListe(kontakt), combined = sozialeMedienListe({ sozialeMedien: [...old, ...social] });
@@ -5197,12 +5529,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             kontakt.fotoQuelle = meta;
           }
         }
+        const updatedMapping = zuordnungen(), updatedHash = await kontaktFotoHash(updatedMapping);
+        if (!gueltig() || zuordnungen() !== updatedMapping) return;
+        lokalStand = updatedMapping; mappingHash = updatedHash;
         DATEN.kontaktFotoCache = { version: 4, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        planeTelefonKontaktGruppen();
         if (geaendert && gueltig()) zeichneAlles();
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      if (kontaktFotoLauf === lauf) kontaktFotoNaechsterAbruf = Date.now() + 10 * 60 * 1000;
+      if (kontaktFotoLauf === lauf) kontaktFotoNaechsterAbruf = Date.now() + (quelle.provider === "notes" ? 60000 : 10 * 60 * 1000);
     })().catch(() => {
       if (kontaktFotoLauf === lauf) kontaktFotoNaechsterAbruf = Date.now() + 60000;
     }).finally(() => {
@@ -7820,6 +8156,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         foto: sauberesFoto(S(k.foto)),
         fotoManuell: k.fotoManuell === true,
         telefonGruppenAenderung: normalisiereTelefonGruppenAenderung(k.telefonGruppenAenderung),
+        telefonGruppenStand: normalisiereTelefonGruppenStand(k.telefonGruppenStand),
+        telefonGruppenTitelAenderung: normalisiereTelefonGruppenTitelAenderung(k.telefonGruppenTitelAenderung),
+        telefonWerteStand: normalisiereTelefonWerteStand(k.telefonWerteStand),
+        telefonWerteBeobachtet: normalisiereTelefonWerteStand(k.telefonWerteBeobachtet),
+        telefonWerteAenderung: normalisiereTelefonWerteAenderung(k.telefonWerteAenderung),
         geburtstag: geburtstag,
         jubilaeum: jubilaeum,
         geburtstagJahrUnbekannt: gueltigesTeildatum(geburtstag),
@@ -13645,19 +13986,255 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return Object.prototype.hasOwnProperty.call(presets, value) ? presets[value] : value;
   }
 
+  function normalisiereTelefonGruppenTitelAenderung(value) {
+    if (!value || value.version !== 1) return null;
+    const source = value.source, proof = value.proof;
+    if (!kontaktGruppenTitelUuid(value.id) || typeof source?.deviceId !== "string" || !source.deviceId.startsWith("notes:") || !kontaktGruppenTitelUuid(source.deviceId.slice(6)) ||
+        !/^[a-f0-9]{64}$/.test(source.fingerprint || "") || !kontaktWerteText(source.uid, 256) || !kontaktGruppenTitelIdentitaet(proof) ||
+        proof.uid !== source.uid || !kontaktGruppenTitelText(proof.old_title) || !kontaktGruppenTitelText(proof.new_title) || proof.old_title === proof.new_title ||
+        !kontaktGruppenTitelText(value.wish) || !kontaktGruppenTitelText(value.baseTitle) || typeof value.epoch !== "string" || value.epoch.length > 256 ||
+        !["pending", "conflict"].includes(value.state)) return null;
+    const result = { version: 1, id: value.id, source: { deviceId: source.deviceId, fingerprint: source.fingerprint, uid: source.uid },
+      proof: { uid: proof.uid, old_title: proof.old_title, new_title: proof.new_title, group_id: proof.group_id,
+        account: kopie(proof.account), group_identity: proof.group_identity }, wish: value.wish, baseTitle: value.baseTitle, epoch: value.epoch, state: value.state };
+    if (kontaktWerteText(value.observed?.current_title, 256) && /^[a-f0-9]{64}$/.test(value.observed?.group_identity || ""))
+      result.observed = { current_title: value.observed.current_title, group_identity: value.observed.group_identity };
+    return result;
+  }
   function normalisiereTelefonGruppenAenderung(value) {
-    const liste = groups => Array.isArray(groups) && groups.length <= 10000 && groups.every(group =>
-      typeof group === "string" && group.length <= 1024 && !/[\x00-\x1f\x7f]/.test(group));
     if (!value || value.version !== 1) return null;
     const result = { version: 1 };
-    const remote = value.beobachtet;
-    if (remote && typeof remote.deviceId === "string" && remote.deviceId.length > 0 && remote.deviceId.length <= 256 &&
-        !/[\x00-\x1f\x7f]/.test(remote.deviceId) && typeof remote.fingerprint === "string" && /^[a-f0-9]{64}$/.test(remote.fingerprint) &&
-        typeof remote.uid === "string" && remote.uid.length > 0 && remote.uid.length <= 1024 &&
-        !/[\x00-\x1f\x7f]/.test(remote.uid) && liste(remote.groups))
-      result.beobachtet = { deviceId: remote.deviceId, fingerprint: remote.fingerprint,
-        uid: remote.uid, groups: saubereGruppenAuswahl(remote.groups) };
+    const basis = normalisiereTelefonGruppenStand(value.base);
+    if (basis) result.base = basis;
+    const remote = normalisiereTelefonGruppenStand(value.beobachtet);
+    if (remote) result.beobachtet = remote;
     return result;
+  }
+
+  function normalisiereTelefonGruppenStand(value) {
+    if (!value || typeof value.deviceId !== "string" || !value.deviceId || value.deviceId.length > 256 ||
+        /[\x00-\x1f\x7f]/.test(value.deviceId) || typeof value.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
+        typeof value.uid !== "string" || !value.uid || value.uid.length > 1024 || /[\x00-\x1f\x7f]/.test(value.uid) ||
+        !Array.isArray(value.groups) || value.groups.length > 10000 || value.groups.some(group =>
+          typeof group !== "string" || group.length > 1024 || /[\x00-\x1f\x7f]/.test(group))) return null;
+    return { deviceId: value.deviceId, fingerprint: value.fingerprint, uid: value.uid, groups: saubereGruppenAuswahl(value.groups) };
+  }
+
+  function telefonWerteSchluessel(name, value) {
+    return name === "telefone" ? String(value).split("").filter(char => char === "+" || /\p{Nd}/u.test(char)).join("").replace(/^\++/, "") : String(value).trim().toLowerCase();
+  }
+  function kontaktWertArt(row) {
+    const nativeArt = telefonArt(row), art = nativeArt === "telefon" ? (row.rolle === "private" ? "privat" : telefonArtAusText(row.label)) || nativeArt : nativeArt;
+    return ["privat", "zuhause"].includes(art) ? "privat" : ["arbeit", "mobil"].includes(art) ? art : "sonstige";
+  }
+  function kontaktWerteProjektion(kontakt) {
+    const values = {};
+    for (const [name, rows] of [["telefone", telefonListe(kontakt)], ["emailEintraege", emailEintragListe(kontakt)]]) {
+      const unique = new Map();
+      for (const row of rows) {
+        if (String(row.wert || "").trim() && !unique.has(telefonWerteSchluessel(name, row.wert)))
+          unique.set(telefonWerteSchluessel(name, row.wert), { art: kontaktWertArt(row), wert: String(row.wert) });
+      }
+      values[name] = [...unique.values()];
+    }
+    return kontaktWerteFelderGueltig(values) ? values : null;
+  }
+  function telefonWerteZeilenGleich(name, a, b, semantisch = false) {
+    const keys = rows => rows.map(row => JSON.stringify([row.art, semantisch ? telefonWerteSchluessel(name, row.wert) : row.wert])).sort();
+    return Array.isArray(a) && Array.isArray(b) && JSON.stringify(keys(a)) === JSON.stringify(keys(b));
+  }
+  function telefonWerteQuelleGueltig(value) {
+    return value && kontaktWerteText(value.deviceId, 256) && value.deviceId.startsWith("notes:") &&
+      typeof value.fingerprint === "string" && /^[a-f0-9]{64}$/.test(value.fingerprint) && kontaktWerteText(value.uid, 256);
+  }
+  const gleicheTelefonWerteQuelle = (a, b) => !!a && !!b && ["deviceId", "fingerprint", "uid"].every(name => a[name] === b[name]);
+  function normalisiereTelefonWerteStand(value) {
+    if (!telefonWerteQuelleGueltig(value) || !kontaktWerteFelderGueltig(value.fields)) return null;
+    return { deviceId: value.deviceId, fingerprint: value.fingerprint, uid: value.uid, fields: kopie(value.fields) };
+  }
+  function normalisiereTelefonWerteAenderung(value) {
+    if (!value || value.version !== 1) return null;
+    const base = normalisiereTelefonWerteStand(value.base), beobachtet = normalisiereTelefonWerteStand(value.beobachtet);
+    if (!base || beobachtet && !gleicheTelefonWerteQuelle(base, beobachtet)) return null;
+    const unbekannt = Array.isArray(value.unbekannt) ? [...new Set(value.unbekannt)].filter(name => typeof name === "string" && Object.hasOwn(base.fields, name)) : [];
+    return { version: 1, base, ...(beobachtet ? { beobachtet } : {}), ...(unbekannt.length ? { unbekannt } : {}) };
+  }
+  function telefonWerteKontaktQuelle(kontakt) {
+    const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung), group = normalisiereTelefonGruppenAenderung(kontakt.telefonGruppenAenderung);
+    const value = [pending?.base, kontakt.telefonWerteStand, kontakt.telefonWerteBeobachtet, kontakt.telefonGruppenStand, group?.base, group?.beobachtet, kontakt.fotoQuelle].find(telefonWerteQuelleGueltig);
+    return value ? { deviceId: value.deviceId, fingerprint: value.fingerprint, uid: value.uid } : null;
+  }
+  function merkeTelefonWerteAenderung(kontakt, vorher) {
+    const current = kontaktWerteProjektion(kontakt), source = telefonWerteKontaktQuelle(kontakt);
+    if (!source || !vorher || !current) return false;
+    const old = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung), stand = normalisiereTelefonWerteStand(kontakt.telefonWerteStand);
+    const base = old ? kopie(old.base.fields) : {}, unknown = new Set(old?.unbekannt || []);
+    const fresh = normalisiereTelefonWerteStand(kontakt.telefonWerteBeobachtet);
+    const observed = old?.beobachtet || (gleicheTelefonWerteQuelle(fresh, source) ? fresh : null) || (gleicheTelefonWerteQuelle(stand, source) ? stand : null);
+    let changed = false;
+    for (const name of ["telefone", "emailEintraege"]) {
+      const edited = !telefonWerteZeilenGleich(name, current[name], vorher[name]);
+      const reaffirmed = unknown.has(name) && observed?.fields[name];
+      const firstConfirmed = !Object.hasOwn(base, name) && !stand?.fields[name] && observed?.fields[name] &&
+        !telefonWerteZeilenGleich(name, current[name], observed.fields[name]);
+      if (!edited && !reaffirmed && !firstConfirmed) continue;
+      if (reaffirmed) { base[name] = kopie(observed.fields[name]); unknown.delete(name); }
+      else if (!Object.hasOwn(base, name)) {
+        if (gleicheTelefonWerteQuelle(stand, source) && stand.fields[name] && telefonWerteZeilenGleich(name, vorher[name], stand.fields[name], true)) base[name] = kopie(stand.fields[name]);
+        else if (observed?.fields[name]) base[name] = kopie(observed.fields[name]);
+        else { base[name] = kopie(vorher[name]); unknown.add(name); }
+      }
+      if (telefonWerteZeilenGleich(name, current[name], base[name])) { delete base[name]; unknown.delete(name); }
+      changed = true;
+    }
+    if (!changed) return false;
+    kontakt.telefonWerteAenderung = Object.keys(base).length ? normalisiereTelefonWerteAenderung({ version: 1, base: { ...source, fields: base },
+      ...(observed ? { beobachtet: observed } : {}), unbekannt: [...unknown] }) : null;
+    kontaktWerteWiederholung.delete(kontakt);
+    return true;
+  }
+
+  function telefonWerteSchreibQuelle(kontakt) {
+    const pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+    if (!pending || !DATEN.kontakte.includes(kontakt)) return null;
+    const base = pending.base, peer = telefonStand?.peers?.find(value => "notes:" + value.device_id === base.deviceId);
+    if (!peer?.own_device || !peer.remote_own_device || peer.state !== "online_wifi" ||
+        peer.contact_values_write_available !== true || peer.contacts_fingerprint !== base.fingerprint) return null;
+    if (DATEN.kontakte.some(value => value !== kontakt && gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(value), base))) return null;
+    return base;
+  }
+  function planeTelefonKontaktWerte(delay = 250) {
+    clearTimeout(kontaktWerteTimer);
+    kontaktWerteTimer = setTimeout(() => {
+      kontaktWerteTimer = null;
+      if (!initialisiert || gesperrt || aktiverEditor || syncLaeuft || kontaktWerteLauf || kontaktGruppenLauf || kontaktGruppenTitelLauf) return;
+      const candidates = DATEN.kontakte.filter(value => telefonWerteSchreibQuelle(value));
+      const ready = candidates.find(value => (kontaktWerteWiederholung.get(value) || 0) <= Date.now());
+      if (ready) return sendeTelefonKontaktWerte(ready);
+      if (candidates.length) planeTelefonKontaktWerte(Math.max(250, Math.min(...candidates.map(value => kontaktWerteWiederholung.get(value))) - Date.now()));
+    }, delay);
+  }
+  function telefonWerteDarstellbar(name, rows) {
+    const entries = rows.map(row => ({ wert: row.wert, typen: row.art === "sonstige" ? [] : telefonTypenAusArt(row.art) }));
+    const projection = kontaktWerteProjektion({ [name]: entries });
+    return projection && telefonWerteZeilenGleich(name, rows, projection[name]);
+  }
+  function bestaetigeTelefonWerte(kontakt, source, saved, acknowledged) {
+    if (!gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), source)) return false;
+    const current = kontaktWerteProjektion(kontakt), pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+    if (!current || pending && !gleicheTelefonWerteQuelle(pending.base, source)) return false;
+    const base = pending ? kopie(pending.base.fields) : {}, unknown = new Set(pending?.unbekannt || []);
+    for (const name of acknowledged) {
+      if (Object.hasOwn(base, name) && !telefonWerteZeilenGleich(name, base[name], source.fields[name], true)) continue;
+      if (telefonWerteZeilenGleich(name, current[name], saved[name])) delete base[name];
+      else base[name] = kopie(saved[name]); // A later local edit is causally after this verified own write.
+      unknown.delete(name);
+    }
+    const previous = normalisiereTelefonWerteStand(kontakt.telefonWerteStand), previousObserved = normalisiereTelefonWerteStand(kontakt.telefonWerteBeobachtet);
+    const observed = { deviceId: source.deviceId, fingerprint: source.fingerprint, uid: source.uid,
+      fields: { ...(gleicheTelefonWerteQuelle(previousObserved, source) ? previousObserved.fields : {}), ...kopie(saved) } };
+    kontakt.telefonWerteBeobachtet = normalisiereTelefonWerteStand(observed);
+    kontakt.telefonWerteStand = normalisiereTelefonWerteStand({ ...observed,
+      fields: { ...(gleicheTelefonWerteQuelle(previous, source) ? previous.fields : {}), ...Object.fromEntries(acknowledged.map(name => [name, saved[name]])) } });
+    kontakt.telefonWerteAenderung = Object.keys(base).length ? normalisiereTelefonWerteAenderung({ version: 1,
+      base: { ...observed, fields: base }, beobachtet: observed, unbekannt: [...unknown] }) : null;
+    return true;
+  }
+  function setzeTelefonKontaktWertListe(kontakt, name, wanted) {
+    const old = (name === "telefone" ? telefonListe(kontakt) : emailEintragListe(kontakt)), result = Array(wanted.length), used = new Set();
+    const types = kind => name === "telefone" ? telefonTypenAusArt(kind === "sonstige" ? "telefon" : kind) :
+      kind === "sonstige" ? [] : [kind === "privat" ? "HOME" : kind === "arbeit" ? "WORK" : "CELL"];
+    const assign = (next, previous) => {
+      const target = wanted[next], row = previous === null ? { typen: types(target.art) } : kopie(old[previous]);
+      if (previous !== null) {
+        used.add(previous);
+        if (kontaktWertArt(row) !== target.art) { row.typen = types(target.art); delete row.label; delete row.rolle;
+          if (Array.isArray(row.vcardParameter)) row.vcardParameter = row.vcardParameter.filter(value => !/^TYPE=/i.test(value)); }
+      }
+      row.wert = target.wert; result[next] = row;
+    };
+    for (let i = 0; i < wanted.length; i++) {
+      const matches = old.map((row, index) => ({ row, index })).filter(({ row, index }) => !used.has(index) &&
+        kontaktWertArt(row) === wanted[i].art && telefonWerteSchluessel(name, row.wert) === telefonWerteSchluessel(name, wanted[i].wert));
+      if (matches.length > 1) return false;
+      if (matches.length === 1) assign(i, matches[0].index);
+    }
+    for (let i = 0; i < wanted.length; i++) if (!result[i]) {
+      const next = wanted.map((row, index) => ({ row, index })).filter(({ row, index }) => !result[index] && row.art === wanted[i].art);
+      const previous = old.map((row, index) => ({ row, index })).filter(({ row, index }) => !used.has(index) && kontaktWertArt(row) === wanted[i].art);
+      if (next.length === 1 && previous.length === 1) assign(i, previous[0].index);
+    }
+    const remaining = wanted.map((_, i) => i).filter(i => !result[i]), previous = old.map((_, i) => i).filter(i => !used.has(i));
+    if (remaining.length === 1 && previous.length === 1) assign(remaining[0], previous[0]);
+    else if (remaining.length && previous.some(i => Object.entries(old[i]).some(([key, value]) =>
+      !["wert", "typen"].includes(key) && (Array.isArray(value) ? value.length : !!value)) ||
+      (old[i].typen || []).some(value => !["HOME", "WORK", "VOICE", "CELL", "MOBILE", "INTERNET"].includes(value)))) return false;
+    for (const index of remaining) if (!result[index]) assign(index, null);
+    if (name === "telefone") setzeTelefonListe(kontakt, result);
+    else { kontakt.emailEintraege = result; kontakt.emails = result.map(row => row.wert); kontakt.email = kontakt.emails[0] || ""; }
+    return true;
+  }
+  function uebernehmeTelefonKontaktWerte(kontakt, fields, source) {
+    if (!telefonWerteQuelleGueltig(source) || !kontaktWerteFelderGueltig(fields)) return false;
+    const bound = telefonWerteKontaktQuelle(kontakt);
+    if (bound && !gleicheTelefonWerteQuelle(bound, source)) return false;
+    const previous = normalisiereTelefonWerteStand(kontakt.telefonWerteStand), pending = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+    const current = kontaktWerteProjektion(kontakt); if (!current) return false;
+    const common = gleicheTelefonWerteQuelle(previous, source) ? kopie(previous.fields) : {}, base = pending ? kopie(pending.base.fields) : {};
+    const unknown = new Set(pending?.unbekannt || []), before = JSON.stringify([current, kontakt.telefonWerteStand, kontakt.telefonWerteBeobachtet, kontakt.telefonWerteAenderung]);
+    for (const name of Object.keys(fields)) {
+      if (!telefonWerteDarstellbar(name, fields[name])) continue;
+      if (telefonWerteZeilenGleich(name, current[name], fields[name])) { common[name] = kopie(fields[name]); delete base[name]; unknown.delete(name); continue; }
+      if (Object.hasOwn(base, name)) continue;
+      if (common[name] && telefonWerteZeilenGleich(name, current[name], common[name], true)) {
+        if (setzeTelefonKontaktWertListe(kontakt, name, fields[name])) common[name] = kopie(fields[name]);
+      } else if (common[name]) base[name] = kopie(common[name]);
+      else if (telefonWerteZeilenGleich(name, current[name], fields[name], true) && setzeTelefonKontaktWertListe(kontakt, name, fields[name])) common[name] = kopie(fields[name]);
+    }
+    const oldObserved = normalisiereTelefonWerteStand(kontakt.telefonWerteBeobachtet);
+    const observed = { deviceId: source.deviceId, fingerprint: source.fingerprint, uid: source.uid,
+      fields: { ...(gleicheTelefonWerteQuelle(oldObserved, source) ? oldObserved.fields : {}), ...kopie(fields) } };
+    kontakt.telefonWerteBeobachtet = normalisiereTelefonWerteStand(observed);
+    kontakt.telefonWerteStand = Object.keys(common).length ? normalisiereTelefonWerteStand({ ...observed, fields: common }) : null;
+    kontakt.telefonWerteAenderung = Object.keys(base).length ? normalisiereTelefonWerteAenderung({ version: 1,
+      base: { ...observed, fields: base }, beobachtet: observed, unbekannt: [...unknown] }) : null;
+    const after = kontaktWerteProjektion(kontakt);
+    if (JSON.stringify(current) !== JSON.stringify(after)) kontakt.geaendert = Date.now();
+    return before !== JSON.stringify([after, kontakt.telefonWerteStand, kontakt.telefonWerteBeobachtet, kontakt.telefonWerteAenderung]);
+  }
+  async function sendeTelefonKontaktWerte(kontakt) {
+    const source = telefonWerteSchreibQuelle(kontakt), projection = kontaktWerteProjektion(kontakt);
+    if (!source || !projection || kontaktWerteLauf || kontaktGruppenLauf || kontaktGruppenTitelLauf || gesperrt || aktiverEditor || syncLaeuft) return;
+    const names = Object.keys(source.fields), desired = Object.fromEntries(names.map(name => [name, projection[name]]));
+    const run = { book: DATEN, epoch: DATEN.syncEpoch, pending: JSON.stringify(kontakt.telefonWerteAenderung), desired: kopie(desired) };
+    const owned = () => DATEN === run.book && DATEN.syncEpoch === run.epoch && !gesperrt && DATEN.kontakte.includes(kontakt) &&
+      gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), source);
+    const valid = () => owned() && !aktiverEditor && !syncLaeuft && JSON.stringify(kontakt.telefonWerteAenderung) === run.pending &&
+      JSON.stringify(telefonWerteSchreibQuelle(kontakt)) === JSON.stringify(source) && names.every(name =>
+        telefonWerteZeilenGleich(name, kontaktWerteProjektion(kontakt)?.[name], run.desired[name]));
+    kontaktWerteLauf = run; kontaktWerteWiederholung.set(kontakt, Date.now() + 60000);
+    if (kontaktFotoLauf) { kontaktFotoLauf = null; clearTimeout(kontaktFotoTimer); kontaktFotoNaechsterAbruf = Date.now() + 60000; }
+    try {
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (!valid()) return;
+      const prepared = await kontaktWerteAbfragen(source, "prepare", { field_names: names });
+      if (!valid()) return;
+      const acknowledged = names.filter(name => telefonWerteDarstellbar(name, prepared.fields[name]) &&
+        (telefonWerteZeilenGleich(name, prepared.fields[name], source.fields[name], true) || telefonWerteZeilenGleich(name, prepared.fields[name], run.desired[name])));
+      if (!acknowledged.length) {
+        kontakt.telefonWerteAenderung = normalisiereTelefonWerteAenderung({ ...kontakt.telefonWerteAenderung,
+          beobachtet: { ...source, fields: prepared.fields } });
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject)); return;
+      }
+      const fields = Object.fromEntries(names.map(name => [name, acknowledged.includes(name) ? run.desired[name] : prepared.fields[name]]));
+      const saved = await kontaktWerteAbfragen(source, "apply", { token: prepared.token, account: prepared.account, fields });
+      if (owned() && bestaetigeTelefonWerte(kontakt, source, saved.fields, acknowledged)) {
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        const remaining = normalisiereTelefonWerteAenderung(kontakt.telefonWerteAenderung);
+        if (remaining && Object.keys(remaining.base.fields).some(name => acknowledged.includes(name))) kontaktWerteWiederholung.delete(kontakt);
+      }
+    } catch { if (owned()) zettel(_("Not sent.")); }
+    finally { if (kontaktWerteLauf === run) kontaktWerteLauf = null; if (owned() && !aktiverEditor) zeichneAlles(); planeTelefonKontaktGruppen(); }
   }
 
   function gleicheKontaktGruppen(a, b) {
@@ -13666,13 +14243,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function uebernehmeTelefonKontaktGruppen(kontakt, groups, source) {
     const next = saubereGruppenAuswahl(groups), local = kontaktGruppen(kontakt);
+    const observedState = normalisiereTelefonGruppenStand({ ...source, groups: next });
     const pending = normalisiereTelefonGruppenAenderung(kontakt.telefonGruppenAenderung);
     if (pending) {
-      const bound = pending.beobachtet;
+      const bound = pending.base || pending.beobachtet;
       if (bound && (bound.deviceId !== source.deviceId || bound.fingerprint !== source.fingerprint || bound.uid !== source.uid)) return false;
       // A read is not a write acknowledgement. Keep a saved explicit local edit
       // until a current provider snapshot actually contains the same groups.
       if (gleicheKontaktGruppen(local, next)) {
+        kontakt.telefonGruppenStand = observedState;
         kontakt.telefonGruppenAenderung = null; return true;
       }
       const observed = normalisiereTelefonGruppenAenderung({ ...pending,
@@ -13680,7 +14259,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (JSON.stringify(kontakt.telefonGruppenAenderung) === JSON.stringify(observed)) return false;
       kontakt.telefonGruppenAenderung = observed; return true;
     }
-    if (gleicheKontaktGruppen(local, next)) return false;
+    const sourceChanged = JSON.stringify(kontakt.telefonGruppenStand || null) !== JSON.stringify(observedState);
+    kontakt.telefonGruppenStand = observedState;
+    if (gleicheKontaktGruppen(local, next)) return sourceChanged;
     setzeKontaktGruppen(kontakt, next); kontakt.geaendert = Date.now(); return true;
   }
 
@@ -19374,14 +19955,47 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kopf.append(kopfText);
     karte.append(kopf);
 
+    const titelAenderung = normalisiereTelefonGruppenTitelAenderung(k.telefonGruppenTitelAenderung);
+    if (!eigenesProfil && titelAenderung) {
+      const pending = el("div", "kontakt-gruppen-konflikt kontakt-gruppentitel-aenderung");
+      pending.append(el("p", "einst-hinweis", _("Contact groups") + " · Magnolie Notes · " +
+        (kontaktGruppenTitelLauf?.kontakt === k ? _("Please wait …") : titelAenderung.state === "conflict" ? _("Conflict") : _("Not sent."))),
+        el("p", null, titelAenderung.proof.old_title + " → " + titelAenderung.wish));
+      if (titelAenderung.observed) pending.append(el("p", null, _("Incoming") + ": " + titelAenderung.observed.current_title));
+      const change = knopf(_("Rename"), "klein", () => oeffneTelefonGruppenTitelDialog(k, titelAenderung.proof.old_title, titelAenderung));
+      change.dataset.gruppentitelWunsch = k.id;
+      const retry = knopf(_("Retry"), "klein", () => Promise.resolve().then(() => setzeTelefonGruppenTitelWunsch(k, titelAenderung.wish, titelAenderung)).catch(() => zettel(_("Not sent."))));
+      retry.disabled = !!kontaktGruppenTitelLauf || !telefonGruppenTitelQuelle(k, { ...titelAenderung, epoch: String(DATEN.syncEpoch || "") });
+      const book = DATEN, stop = knopf(_("Stop retrying"), "klein", () => {
+        if (DATEN !== book || normalisiereTelefonGruppenTitelAenderung(k.telefonGruppenTitelAenderung)?.id !== titelAenderung.id) return;
+        k.telefonGruppenTitelAenderung = null; invalidiereTelefonGruppenTitelCache(titelAenderung.source);
+        nachDauerhaftemSpeichern(() => { planeKontaktFotoAbruf(); zeichneAlles(); }, () => zettel(_("Not sent.")));
+      });
+      stop.dataset.gruppentitelStop = k.id;
+      pending.append(change, retry, stop); karte.append(pending);
+    } else if (!eigenesProfil && telefonGruppenTitelQuelle(k, null)) {
+      const native = normalisiereTelefonGruppenStand(k.telefonGruppenStand);
+      if (native?.groups.length) {
+        const row = el("div", "kontakt-gruppentitel-auswahl"), select = auswahlFeld(native.groups.map(group => [group, group]), native.groups[0]);
+        select.setAttribute("aria-label", _("Contact groups") + " · Magnolie Notes");
+        const rename = knopf(_("Rename"), "klein", () => oeffneTelefonGruppenTitelDialog(k, select.value));
+        rename.dataset.gruppentitelUmbenennen = k.id;
+        rename.disabled = !!kontaktGruppenTitelLauf || !!k.telefonGruppenAenderung || DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung);
+        row.append(select, rename); karte.append(row);
+      }
+    }
+
     const gruppenAenderung = normalisiereTelefonGruppenAenderung(k.telefonGruppenAenderung);
-    if (!eigenesProfil && gruppenAenderung?.beobachtet) {
+    if (!eigenesProfil && gruppenAenderung) {
       const remote = gruppenAenderung.beobachtet;
+      const basis = gruppenAenderung.base;
+      const konkurrierend = remote && basis && basis.deviceId === remote.deviceId && basis.fingerprint === remote.fingerprint &&
+        basis.uid === remote.uid && !gleicheKontaktGruppen(basis.groups, remote.groups);
       const konflikt = el("div", "kontakt-gruppen-konflikt");
       const beschreibe = groups => groups.length ? groups.map(kontaktGruppenName).join(" · ") : _("No contact group");
-      konflikt.append(el("p", "einst-hinweis", _("Conflict") + " · " + _("Contact groups")),
-        el("p", null, _("Keep existing") + ": " + beschreibe(kontaktGruppen(k))),
-        el("p", null, _("Incoming") + " (" + (remote.deviceId.startsWith("notes:") ? "Magnolie Notes" : "KDE Connect") + "): " + beschreibe(remote.groups)));
+      konflikt.append(el("p", "einst-hinweis", _("Contact groups") + " · " + (kontaktGruppenLauf?.kontakt === k ? _("Please wait …") : konkurrierend ? _("Conflict") : _("Not sent."))),
+        el("p", null, _("Contact groups") + ": " + beschreibe(kontaktGruppen(k))));
+      if (remote) konflikt.append(el("p", null, _("Incoming") + " (" + (remote.deviceId.startsWith("notes:") ? "Magnolie Notes" : "KDE Connect") + "): " + beschreibe(remote.groups)));
       karte.append(konflikt);
     }
 
@@ -19563,6 +20177,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function wendeKontaktDatenAn(ziel, werte, details) {
+    const telefonWerteVorher = kontaktWerteProjektion(ziel || {});
     const vorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
     const gruppenVorher = kontaktGruppen(ziel || {});
     if (!ziel) {
@@ -19581,9 +20196,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (details.zeitzone !== undefined) setzeKontaktZeitzone(ziel, details.zeitzone);
     if (details.gruppen !== undefined) {
       setzeKontaktGruppen(ziel, details.gruppen);
-      if (!gleicheKontaktGruppen(gruppenVorher, kontaktGruppen(ziel))) {
-        const pending = normalisiereTelefonGruppenAenderung(ziel.telefonGruppenAenderung);
-        ziel.telefonGruppenAenderung = normalisiereTelefonGruppenAenderung({ ...pending, version: 1 });
+      const pending = normalisiereTelefonGruppenAenderung(ziel.telefonGruppenAenderung);
+      if (!gleicheKontaktGruppen(gruppenVorher, kontaktGruppen(ziel)) || pending && !pending.base && pending.beobachtet) {
+        const stand = normalisiereTelefonGruppenStand(ziel.telefonGruppenStand);
+        const basis = pending?.base || (!pending && stand && gleicheKontaktGruppen(stand.groups, gruppenVorher) ? stand : null) || pending?.beobachtet;
+        ziel.telefonGruppenAenderung = normalisiereTelefonGruppenAenderung({ ...pending, version: 1, base: basis });
+        kontaktGruppenWiederholung.delete(ziel);
       }
       if (details.gruppen.length) DATEN.einstellungen.adressen.personengruppenAn = true;
     }
@@ -19604,6 +20222,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel.geburtstag = birthday?.datum || "";
       ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
     } else for (const item of DATEN.jahrestage) if (item.kontaktId === ziel.id) item.name = name;
+    merkeTelefonWerteAenderung(ziel, telefonWerteVorher);
     return { kontakt: ziel, inhaltVorher: vorher };
   }
 
@@ -20386,32 +21005,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const gruppenVorher = kontaktGruppen(k || {}); let personengruppen = gruppenVorher.slice(), gruppenGeaendert = false;
     if (!eigenesProfil) {
       const gruppenKasten = el("div", "kontakt-editor-gruppen");
-      const gruppenWahl = document.createElement("select"); gruppenWahl.multiple = true; gruppenWahl.size = 3;
+      const gruppenWahl = el("fieldset", "kontakt-gruppen-auswahl");
       gruppenWahl.id = "kontakt-personengruppen";
+      const gruppenOptionen = el("div", "kontakt-gruppen-optionen");
+      gruppenWahl.append(el("legend", null, _("Contact groups")), gruppenOptionen);
       let gruppenScrollTimer = null;
-      gruppenWahl.addEventListener("scroll", () => {
+      gruppenOptionen.addEventListener("scroll", () => {
         gruppenWahl.classList.add("kontakt-gruppen-scrollt");
         clearTimeout(gruppenScrollTimer);
         gruppenScrollTimer = setTimeout(() => gruppenWahl.classList.remove("kontakt-gruppen-scrollt"), 700);
       }, { passive: true });
       const values = [...new Set(["Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
-      const render = () => { gruppenWahl.replaceChildren();
-        const ohneGruppe = el("option", null, _("No contact group")); ohneGruppe.value = "";
-        ohneGruppe.selected = personengruppen.length === 0; gruppenWahl.append(ohneGruppe);
-        for (const value of values) {
-        const option = el("option", null, kontaktGruppenName(value)); option.value = value; option.selected = personengruppen.includes(value); gruppenWahl.append(option);
-      } };
+      const aktualisiere = () => { for (const input of gruppenOptionen.querySelectorAll('input[type="checkbox"]'))
+        input.checked = input.value ? personengruppen.includes(input.value) : personengruppen.length === 0; };
+      const render = () => {
+        gruppenOptionen.replaceChildren();
+        for (const value of ["", ...values]) {
+          const label = el("label", "kontakt-gruppen-option"), input = document.createElement("input");
+          input.type = "checkbox"; input.value = value;
+          input.addEventListener("change", () => {
+            personengruppen = !value ? [] : input.checked ? [...new Set([...personengruppen, value])] : personengruppen.filter(group => group !== value);
+            gruppenGeaendert = true; aktualisiere();
+          });
+          label.append(input, document.createTextNode(value ? kontaktGruppenName(value) : _("No contact group")));
+          gruppenOptionen.append(label);
+        }
+        aktualisiere();
+      };
       render();
-      gruppenWahl.addEventListener("change", () => {
-        const auswahl = [...gruppenWahl.selectedOptions].map(option => option.value);
-        // The empty option either clears existing groups or yields to the first
-        // group selected alongside the previous empty/default choice (Ctrl-click).
-        personengruppen = auswahl.includes("") && personengruppen.length
-          ? [] : auswahl.filter(Boolean);
-        gruppenGeaendert = true;
-        for (const option of gruppenWahl.options)
-          option.selected = option.value ? personengruppen.includes(option.value) : personengruppen.length === 0;
-      });
       const eigeneGruppe = eingabe("text", ""); eigeneGruppe.maxLength = 80; eigeneGruppe.id = "kontakt-eigene-personengruppe";
       const hinzufuegen = knopf(_("Add contact group"), "klein", () => {
         const value = eigeneGruppe.value.trim(); if (!value) return;
@@ -20419,7 +21040,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         personengruppen = [...new Set([...personengruppen, value])]; gruppenGeaendert = true;
         eigeneGruppe.value = ""; render();
       }); hinzufuegen.type = "button";
-      gruppenKasten.append(formZeile(_("Contact groups"), gruppenWahl), eigeneGruppe, hinzufuegen);
+      gruppenKasten.append(gruppenWahl, eigeneGruppe, hinzufuegen);
       profilKopf.append(gruppenKasten);
     }
     const weitereGefuellt = vorhandeneEreignisse.length > 0 || webseiten.some(value => value) || zeitzonenVerwaltungAn && !!feldZeitzone.value ||
@@ -20515,7 +21136,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gespeichertesZiel = data; z.modus = "eigenes-profil"; planeSpeichern(); return true;
       }
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
-      if (gruppenGeaendert && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
+      const alteGruppenAbsicht = normalisiereTelefonGruppenAenderung(ziel?.telefonGruppenAenderung);
+      // Saving the displayed selection explicitly confirms a retained pre-baseline
+      // edit too. Merely receiving a phone read must never confirm that intent.
+      const gruppenBestaetigt = gruppenGeaendert || !!(alteGruppenAbsicht && !alteGruppenAbsicht.base && alteGruppenAbsicht.beobachtet);
+      if (gruppenBestaetigt && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
         zettel(_("Conflict")); return false;
       }
       const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
@@ -20526,7 +21151,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zettel(_("Conflict")); return false;
       }
       const geschrieben = wendeKontaktDatenAn(ziel, werte, { id: zielId, telefone, anschriften, kontaktpersonen,
-        sozialeMedien, webseiten, zeitzone: feldZeitzone.value.trim() === kontaktZeitzone(k) ? undefined : feldZeitzone.value.trim(), ...(gruppenGeaendert ? { gruppen: personengruppen } : {}), ereignisse });
+        sozialeMedien, webseiten, zeitzone: feldZeitzone.value.trim() === kontaktZeitzone(k) ? undefined : feldZeitzone.value.trim(), ...(gruppenBestaetigt ? { gruppen: personengruppen } : {}), ereignisse });
       ziel = geschrieben.kontakt;
       for (const termin of kontaktTermine.filter((eintrag) => eintrag.titel.trim())) {
         DATEN.termine.push({ id: uid(), uid: syncUid(), sync: false,
@@ -20552,6 +21177,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       z.suche = "";
       z.modus = "ansehen";
       planeSpeichern();
+      if (gruppenBestaetigt || normalisiereTelefonWerteAenderung(ziel.telefonWerteAenderung)) {
+        const book = DATEN, intent = ziel.telefonGruppenAenderung;
+        setTimeout(() => {
+          if (DATEN === book) { planeTelefonKontaktGruppen(); if (ziel.telefonGruppenAenderung === intent) return sendeTelefonKontaktGruppen(ziel); }
+        }, 0);
+      }
       return true;
     };
 
@@ -25809,7 +26440,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   async function starteKdeKontaktImport() {
-    if (kdeKontaktLauf || kontaktFotoLauf || aktiverEditor || syncLaeuft || kontaktImportDialogOffen || gesperrt ||
+    if (kdeKontaktLauf || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf || aktiverEditor || syncLaeuft || kontaktImportDialogOffen || gesperrt ||
         document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-assistent-schleier")) {
       zettel(_("Please wait …")); return;
     }
@@ -25817,6 +26448,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!quelle?.contacts_available || !quelle.contacts_device_id) {
       Bruecke.sende({ cmd: "telefon_stand" }); zettel(_("The phone is no longer connected.")); return;
     }
+    // A background read cannot block an explicitly requested contact preview.
+    if (kontaktFotoLauf) { kontaktFotoLauf = null; clearTimeout(kontaktFotoTimer); kontaktFotoNaechsterAbruf = 0; }
     const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id,
       sourceFingerprint: quelle.contacts_fingerprint || "", beendet: false };
     kdeKontaktLauf = lauf;
@@ -31106,6 +31739,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function syncEnde(leise = false) {
     syncLaeuft = false;
+    planeTelefonKontaktGruppen();
     if (leise) return;
     const syncKnopf = $("#sync-jetzt");
     if (syncKnopf) { syncKnopf.disabled = false; syncKnopf.textContent = _("Synchronize now"); }
@@ -31115,7 +31749,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const fehler = String(text || _("unknown error")).replace(/\s+/g, " ").trim().slice(0, 2000);
     DATEN.syncStatus = { letzterVersuch: Date.now(), letzterFehler: fehler };
     syncEnde();
-    const meldung = uebersetzt("Synchronization failed: %(error)s", { error: fehler });
+    const meldung = fehler === _("Synchronization failed.") ? fehler : uebersetzt("Synchronization failed: %(error)s", { error: fehler });
     const status = $("#sync-status");
     if (status) {
       status.textContent = meldung;
@@ -32803,6 +33437,74 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         anfrage.reject(new Error(_("The offered entry is incomplete.")));
       else anfrage.resolve(nutzlast);
     },
+    kontaktGruppenTitelErgebnis(result) {
+      mcpNativeAntwort(result, "kontaktGruppenTitelErgebnis");
+      const request = kontaktGruppenTitelAnfragen.get(result?.requestId);
+      if (!request) return;
+      clearTimeout(request.timer); kontaktGruppenTitelAnfragen.delete(result.requestId);
+      const inspect = request.action === "inspect", expected = ["ok", "requestId", "device_id", "fingerprint", "version", "request_id",
+        "action", "uid", "old_title", "new_title", "state", "group_id", "account", "group_identity", ...(inspect ? ["current_title"] : ["token"])];
+      let valid = result.ok === true && DATEN === request.book && initialisiert && !gesperrt &&
+        Object.keys(result).sort().join(",") === expected.sort().join(",") && result.version === 20 && result.request_id === result.requestId &&
+        result.device_id === request.source.deviceId && result.fingerprint === request.source.fingerprint && result.uid === request.source.uid &&
+        result.action === request.action && result.old_title === request.extra.old_title && result.new_title === request.extra.new_title &&
+        result.state === (inspect ? "current" : request.action === "prepare" ? "prepared" : "saved") && kontaktGruppenTitelIdentitaet(result) &&
+        (inspect ? kontaktWerteText(result.current_title, 256) : kontaktGruppenTitelUuid(result.token));
+      if (valid && request.action === "apply") {
+        const prepared = request.extra.prepared;
+        valid = result.token === request.extra.token && result.group_id === prepared.group_id && result.group_identity === prepared.group_identity &&
+          ["name", "type", "data_set"].every(key => result.account[key] === prepared.account[key]);
+      }
+      if (valid && inspect) valid = result.group_id === request.extra.group_id &&
+        ["name", "type", "data_set"].every(key => result.account[key] === request.extra.account[key]);
+      if (valid) valid = new TextEncoder().encode(JSON.stringify(Object.fromEntries(expected.filter(key =>
+        !["ok", "requestId", "device_id", "fingerprint"].includes(key)).map(key => [key, result[key]])))).length <= 16 * 1024;
+      if (!valid) request.reject(new Error(result.ok === false && typeof result.code === "string" ? result.code : "contact_group_title_response_failed"));
+      else request.resolve(result);
+    },
+    kontaktWerteErgebnis(result) {
+      mcpNativeAntwort(result, "kontaktWerteErgebnis");
+      const request = kontaktWerteAnfragen.get(result?.requestId);
+      if (!request) return;
+      clearTimeout(request.timer); kontaktWerteAnfragen.delete(result.requestId);
+      const account = result.account, exact = ["ok", "requestId", "device_id", "fingerprint", "version", "request_id", "action", "uid", "token", "state", "account", "fields"].sort().join(",");
+      let valid = result.ok === true && Object.keys(result).sort().join(",") === exact && result.version === 19 &&
+        result.request_id === result.requestId && result.device_id === request.source.deviceId && result.fingerprint === request.source.fingerprint &&
+        result.uid === request.source.uid && result.action === request.action && result.state === (request.action === "prepare" ? "prepared" : "saved") &&
+        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(result.token || "") &&
+        kontaktWerteFelderGueltig(result.fields) && Object.keys(result.fields).sort().join(",") === request.fields.join(",") &&
+        kontaktWerteKontoGueltig(account);
+      if (valid) valid = new TextEncoder().encode(JSON.stringify(Object.fromEntries(
+        ["version", "request_id", "action", "uid", "token", "state", "account", "fields"].map(name => [name, result[name]])))).length <= 128 * 1024;
+      if (valid && request.action === "apply") {
+        valid = result.token === request.extra.token && request.extra.account &&
+          ["name", "type", "data_set"].every(name => account[name] === request.extra.account[name]);
+        for (const name of request.fields) {
+          const rows = entries => entries.map(row => JSON.stringify([row.art, row.wert])).sort().join("\n");
+          if (rows(result.fields[name]) !== rows(request.extra.fields[name])) valid = false;
+        }
+      }
+      if (!valid) request.reject(new Error("contact_values_response_failed")); else request.resolve(result);
+    },
+    kontaktGruppenErgebnis(result) {
+      mcpNativeAntwort(result, "kontaktGruppenErgebnis");
+      const request = kontaktGruppenAnfragen.get(result?.requestId);
+      if (!request) return;
+      clearTimeout(request.timer); kontaktGruppenAnfragen.delete(result.requestId);
+      const names = (values, limit) => Array.isArray(values) && values.length <= limit && values.every(value =>
+        typeof value === "string" && value.trim() && [...value].length <= 256 && !/[\x00-\x1f\x7f-\x9f\ud800-\udfff]/u.test(value));
+      const account = result.account;
+      if (result.ok !== true || result.version !== 17 || result.device_id !== request.source.deviceId ||
+          result.fingerprint !== request.source.fingerprint || result.uid !== request.source.uid ||
+          result.action !== request.action || result.state !== (request.action === "prepare" ? "prepared" : "saved") ||
+          !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(result.token || "") ||
+          !names(result.groups, 100) || !names(result.catalog, 1000) ||
+          (request.action === "apply" && result.catalog.length !== 0) ||
+          !account || Object.keys(account).sort().join(",") !== "data_set,name,type" ||
+          Object.values(account).some(value => typeof value !== "string" || [...value].length > 256 ||
+            /[\x00-\x1f\x7f-\x9f\ud800-\udfff]/u.test(value))) request.reject(new Error("contact_groups_response_failed"));
+      else request.resolve(result);
+    },
     kontaktFotos(nutzlast) {
       const anfrage = kontaktFotoAnfragen.get(nutzlast?.requestId);
       if (!anfrage) return;
@@ -32888,6 +33590,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       for (const controller of aktiveZeichenblaetter.values()) controller.activateTablet?.();
       if (kdeKontaktLauf && (kontaktDatenQuelle()?.contacts_device_id !== kdeKontaktLauf.deviceId ||
           (kontaktDatenQuelle()?.contacts_fingerprint || "") !== kdeKontaktLauf.sourceFingerprint)) kdeKontaktLauf.abbrechen();
+      planeTelefonKontaktGruppen();
       planeKontaktFotoAbruf();
       telefonStandardsAnwenden();
       document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {
@@ -34380,6 +35083,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       // Refresh a pristine editor immediately so a new draft starts from the new data.
       if (!gesperrt && !editorIstGeaendert()) zeichneAlles();
       await gespeichert;
+      if (DATEN === bestand && !gesperrt) planeTelefonKontaktGruppen();
       return { ...result, persisted: true };
     };
     const operation = mcpSchreibKette.then(run);
@@ -39171,6 +39875,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native phone connection unavailable"));
     });
   }
+  async function mcpKontaktGruppenDiagnose(id, signal) {
+    if (!initialisiert || !antwortErhalten || gesperrt || DATEN.einstellungen.allgemein.entwicklermodus !== true)
+      throw new MagnolieMcp.ToolError("diagnostics_unavailable", "Enable local developer mode and unlock the current book");
+    const book = DATEN, epoch = DATEN.syncEpoch, contact = DATEN.kontakte.find(value => value.id === id);
+    if (!contact) throw new MagnolieMcp.ToolError("not_found", "Contact not found");
+    const bound = () => {
+      const pending = normalisiereTelefonGruppenAenderung(contact.telefonGruppenAenderung);
+      return pending?.base || pending?.beobachtet || normalisiereTelefonGruppenStand(contact.telefonGruppenStand);
+    };
+    const source = bound();
+    const peer = () => source && telefonStand?.peers?.find(value => "notes:" + value.device_id === source.deviceId);
+    const valid = () => DATEN === book && DATEN.syncEpoch === epoch && !gesperrt &&
+      DATEN.einstellungen.allgemein.entwicklermodus === true && DATEN.kontakte.includes(contact) &&
+      bound()?.deviceId === source?.deviceId && bound()?.fingerprint === source?.fingerprint && bound()?.uid === source?.uid &&
+      peer()?.own_device && peer()?.remote_own_device && peer()?.state === "online_wifi" &&
+      peer()?.contacts_fingerprint === source?.fingerprint && peer()?.capabilities?.items?.device_status?.versions?.includes(18);
+    if (!source || !valid()) throw new MagnolieMcp.ToolError("diagnostics_unavailable", "A current bound own Notes phone with contact-group diagnostics is required");
+    const result = await mcpNativeAufruf("telefon_kontaktgruppen", { device_id: source.deviceId, fingerprint: source.fingerprint,
+      uid: source.uid, action: "diagnostics" }, "kontaktGruppenErgebnis", signal);
+    if (!valid()) throw new MagnolieMcp.ToolError("source_changed", "Contact diagnostic source changed");
+    if (result.ok !== true || result.version !== 18 || result.uid !== source.uid || result.device_id !== source.deviceId ||
+        result.fingerprint !== source.fingerprint || result.action !== "diagnostics" || !["available", "failed"].includes(result.state) ||
+        !["request", "permission", "snapshot", "snapshot_shape", "uid", "raw_versions", "account_scope", "groups", "catalog", "report", "complete"].includes(result.stage) ||
+        typeof result.error_type !== "string" || !/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(result.error_type) ||
+        !["none", "contact_groups_ambiguous_account", "contact_groups_unknown", "contact_groups_unavailable", "contact_groups_incomplete", "provider_failure"].includes(result.reason) ||
+        !["raw_count", "version_count", "account_count"].every(key => Number.isSafeInteger(result[key]) && result[key] >= 0 && result[key] <= 10000) ||
+        typeof result.mime_supported !== "boolean" || typeof result.reader_complete !== "boolean" ||
+        result.state === "available" && (result.stage !== "complete" || result.error_type !== "None" || result.reason !== "none" || result.reader_complete !== true))
+      throw new MagnolieMcp.ToolError("diagnostics_unavailable", "Native contact-group diagnostic response is unavailable or invalid");
+    return { id: contact.id, device_id: peer().device_id, diagnostics: Object.fromEntries(
+      ["state", "stage", "error_type", "reason", "raw_count", "version_count", "account_count", "mime_supported", "reader_complete"].map(key => [key, result[key]])) };
+  }
   function mcpKdeWerkzeuge() {
     const text = { type: "string", minLength: 1, maxLength: 256 };
     const device = { type: "string", pattern: "^[A-Za-z0-9_-]{32,38}$" };
@@ -39409,6 +40145,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       charset: { type: "string", enum: ["UTF-8"] }, total_bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, data: text,
       revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, next_offset: { type: ["integer", "null"], minimum: 0 } },
       ["section", "encoding", "charset", "total_bytes", "offset", "data", "revision", "next_offset"]);
+    if (name === "notes_contact_groups_diagnostics_read") {
+      const count = { type: "integer", minimum: 0, maximum: 10000 };
+      const properties = { state: { type: "string", enum: ["available", "failed"] },
+        stage: { type: "string", enum: ["request", "permission", "snapshot", "snapshot_shape", "uid", "raw_versions", "account_scope", "groups", "catalog", "report", "complete"] },
+        error_type: { type: "string", pattern: "^[A-Za-z][A-Za-z0-9]{0,63}$" },
+        reason: { type: "string", enum: ["none", "contact_groups_ambiguous_account", "contact_groups_unknown", "contact_groups_unavailable", "contact_groups_incomplete", "provider_failure"] },
+        raw_count: count, version_count: count, account_count: count, mime_supported: flag, reader_complete: flag };
+      return shape({ id, device_id: id, diagnostics: shape(properties, Object.keys(properties)) }, ["id", "device_id", "diagnostics"]);
+    }
     if (name === "notes_diagnostics_read") return shape({ device_id: id, diagnostics: shape({ format: { type: "integer", enum: [1] },
       app_version: text, events: { type: "array", maxItems: 128, items: object },
       crash_report: shape({ available: flag, text: { type: "string", maxLength: 16384 }, truncated: flag }, ["available", "text", "truncated"]) }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
@@ -39684,6 +40429,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       { name: "notes_diagnostics_read", description: "Read WLAN diagnostics and, when the connected Notes phone supports it, its saved Android crash report. Developer mode and current device-status grants are required on both sides. Crash text is bounded; truncated=true indicates a partial report. Older phones retain their WLAN-only result.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: true }, call: async (_args, signal) => mcpNotesDiagnose(signal) },
+      { name: "notes_contact_groups_diagnostics_read", description: "Read the bounded native preparation failure stage for one already bound contact without writing contacts or returning account names, group titles or write tickets. Local developer mode and own-phone WLAN debugging are required.",
+        inputSchema: { type: "object", properties: { id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: true }, call: async (args, signal) => mcpKontaktGruppenDiagnose(args.id, signal) },
       { name: "organizer_status", description: "Read the live Organizer version, lock state, editor/dialog state and save state.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: false },
@@ -39862,6 +40610,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     synchronisiereKontakteMit: synchronisiereKontakteMit,
     uebernehmeBaumAngebot: uebernehmeBaumAngebot,
     notizInhaltsKennung: notizInhaltsKennung,
+    kontaktWerteAbfragen: kontaktWerteAbfragen,
+    kontaktGruppenTitelAbfragen: kontaktGruppenTitelAbfragen,
+    normalisiereTelefonGruppenTitelAenderung: normalisiereTelefonGruppenTitelAenderung,
+    starteTelefonGruppenTitelAenderung: starteTelefonGruppenTitelAenderung,
+    sendeTelefonKontaktGruppenTitel: sendeTelefonKontaktGruppenTitel,
+    setzeTelefonGruppenTitelWunsch: setzeTelefonGruppenTitelWunsch,
+    oeffneTelefonGruppenTitelDialog: oeffneTelefonGruppenTitelDialog,
+    kontaktWerteProjektion: kontaktWerteProjektion,
+    merkeTelefonWerteAenderung: merkeTelefonWerteAenderung,
+    normalisiereTelefonWerteAenderung: normalisiereTelefonWerteAenderung,
+    sendeTelefonKontaktWerte: sendeTelefonKontaktWerte,
+    wendeKontaktDatenAn: wendeKontaktDatenAn,
+    bestaetigeTelefonWerte: bestaetigeTelefonWerte,
+    uebernehmeTelefonKontaktWerte: uebernehmeTelefonKontaktWerte,
     markiereGemeinsameNotiz: markiereGemeinsameNotiz,
     synchronisiereFreigegebeneNotiz: synchronisiereFreigegebeneNotiz,
     baumKontaktPruefung: baumKontaktPruefung,

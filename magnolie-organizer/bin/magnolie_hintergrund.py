@@ -812,6 +812,9 @@ def _request_shape(operation, arguments):
         "phone_request_status": {"peer_id", "request_id"},
         "phone_read_developer_diagnostics": {"peer_id"},
         "phone_read_contacts": {"peer_id", "uids"},
+        "phone_contact_groups": {"peer_id", "fingerprint", "request"},
+        "phone_contact_values": {"peer_id", "fingerprint", "request"},
+        "phone_contact_group_title": {"peer_id", "fingerprint", "request"},
         "phone_read_time_zone": set(),
         "phone_read_own_profile": {"peer_id"},
         "phone_contact_source_current": {"peer_id", "fingerprint"},
@@ -1412,7 +1415,8 @@ class IPCServer:
                     result.update(lifecycle=self.lifecycle,
                                   settings_revision=self.settings_revision,
                                   gui_connected=self.gui_connected(),
-                                  gui_notification_ready=self.gui_notification_ready())
+                                  gui_notification_ready=self.gui_notification_ready(),
+                                  gui_personal_ready=self.gui_personal_ready())
                 elif operation == "set_settings":
                     with self._mutation_lock:
                         result = self.settings_setter(arguments["settings"])
@@ -1632,6 +1636,9 @@ class IPCServer:
             return phone.set_call_audio(arguments["peer_id"], arguments["prefer_pc"], arguments.get("address"), arguments.get("echo_cancel"))
         calls = {
             "phone_report": ("report", ()),
+            "phone_contact_groups": ("contact_groups", ("peer_id", "fingerprint", "request")),
+            "phone_contact_values": ("contact_values", ("peer_id", "fingerprint", "request")),
+            "phone_contact_group_title": ("contact_group_title", ("peer_id", "fingerprint", "request")),
             "phone_read_time_zone": ("read_own_time_zone", ()),
             "phone_mcp_status": ("mcp_status", ()),
             "phone_mcp_action": ("mcp_action", ("request",)),
@@ -2227,6 +2234,15 @@ class PhoneServiceProxy:
 
     def read_contacts(self, peer_id, uids=None):
         return self._call("read_contacts", peer_id=peer_id, uids=uids)
+
+    def contact_groups(self, peer_id, fingerprint, request):
+        return self._call("contact_groups", peer_id=peer_id, fingerprint=fingerprint, request=request)
+
+    def contact_values(self, peer_id, fingerprint, request):
+        return self._call("contact_values", peer_id=peer_id, fingerprint=fingerprint, request=request)
+
+    def contact_group_title(self, peer_id, fingerprint, request):
+        return self._call("contact_group_title", peer_id=peer_id, fingerprint=fingerprint, request=request)
 
     def contact_source_current(self, peer_id, fingerprint):
         return self._call("contact_source_current", peer_id=peer_id, fingerprint=fingerprint)
@@ -2991,6 +3007,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         if holder["phone"] is None and create:
             holder["phone"] = server.phone_backend = make_phone()
             holder["phone"].personal_sync_available = server.gui_personal_ready
+            holder["phone"].contact_access_available = server.gui_notification_ready
         return holder["phone"]
 
     def apply_settings(value):
@@ -3016,6 +3033,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
                 "permissions"]["phone_monitor"]:
             holder["phone"] = server.phone_backend = make_phone()
             holder["phone"].personal_sync_available = server.gui_personal_ready
+            holder["phone"].contact_access_available = server.gui_notification_ready
         if holder["phone"] is not None:
             if clean["enabled"] and clean["permissions"]["phone_monitor"] and holder["phone"].store.settings()["enabled"]:
                 holder["phone"].enabled = True
@@ -3087,6 +3105,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         if settings["permissions"]["phone_monitor"]:
             phone = make_phone()
             phone.personal_sync_available = server.gui_personal_ready
+            phone.contact_access_available = server.gui_notification_ready
             holder["phone"] = server.phone_backend = phone
             if phone.enabled:
                 deadline = time.monotonic() + 3

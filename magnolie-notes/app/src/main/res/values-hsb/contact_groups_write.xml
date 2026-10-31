@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Tutomu ličakej změny kontaktnych skupinow dowolić</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Jenož skupinska přisłušnosć eksistowacych kontaktow da so změnić. Druhe kontaktne daty a systemowe skupiny wostanu njezměnjene.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Tutomu ličakej změny kontaktnych datow dowolić</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Skupiny, telefonowe čisła a e-mejlowe adresy eksistowacych kontaktow so awtomatisce synchronizuja.</string>
 </resources>

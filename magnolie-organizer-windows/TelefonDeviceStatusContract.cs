@@ -19,6 +19,14 @@ internal static class TelefonDeviceStatusContract
     internal static void ValidateRequest(JsonNode node)
     {
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
+        if (TelefonProtocolContract.TryInteger(value["version"], out var titleVersion) && titleVersion == PhoneContactGroupTitleWrite.Version)
+        { PhoneContactGroupTitleWrite.ValidateRequestShape(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var valueVersion) && valueVersion == PhoneContactValueWrite.Version)
+        { PhoneContactValueWrite.ValidateRequestShape(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var probeVersion) && probeVersion == PhoneContactRead.GroupProbeVersion)
+        { PhoneContactRead.ValidateGroupProbeRequest(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var groupVersion) && groupVersion == PhoneContactRead.GroupWriteVersion)
+        { PhoneContactRead.ValidateGroupRequest(value); return; }
         if (TelefonProtocolContract.TryInteger(value["version"], out var timeZoneVersion) && timeZoneVersion == TelefonTimeZoneContract.Version)
         { TelefonTimeZoneContract.ValidateRequest(value); return; }
         if (TelefonProtocolContract.TryInteger(value["version"], out var developerVersion) && developerVersion is 11 or 13)
@@ -38,6 +46,14 @@ internal static class TelefonDeviceStatusContract
     internal static void ValidateReport(JsonNode node)
     {
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
+        if (TelefonProtocolContract.TryInteger(value["version"], out var titleVersion) && titleVersion == PhoneContactGroupTitleWrite.Version)
+        { PhoneContactGroupTitleWrite.ValidateReportShape(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var valueVersion) && valueVersion == PhoneContactValueWrite.Version)
+        { PhoneContactValueWrite.ValidateReportShape(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var probeVersion) && probeVersion == PhoneContactRead.GroupProbeVersion)
+        { PhoneContactRead.ValidateGroupProbeReport(value); return; }
+        if (TelefonProtocolContract.TryInteger(value["version"], out var groupVersion) && groupVersion == PhoneContactRead.GroupWriteVersion)
+        { PhoneContactRead.ValidateGroupReport(value); return; }
         if (TelefonProtocolContract.TryInteger(value["version"], out var timeZoneVersion) && timeZoneVersion == TelefonTimeZoneContract.Version)
         { TelefonTimeZoneContract.ValidateReport(value); return; }
         if (TelefonProtocolContract.TryInteger(value["version"], out var developerVersion) && developerVersion is 11 or 13)

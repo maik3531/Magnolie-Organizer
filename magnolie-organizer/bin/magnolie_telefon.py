@@ -91,7 +91,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
                           "versions": [1, 2, 3, 4, 6, 7, 9, 10, 13, 14] if name == "personal_tasks_sync" else
-                                        [1, 2, 3, 4, 5, 7, 8, 12] if name == "device_status" else
+                                        [1, 2, 3, 4, 5, 7, 8, 12, 17, 19, 20] if name == "device_status" else
                                        [1, 2, 3, 5, 9, 10, 14] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
@@ -2040,7 +2040,7 @@ class PhoneStore:
 
     def merge_shared_settings(self, peer_id, expected_public, incoming, initial=None):
         return self._shared_settings_update(peer_id, expected_public,
-            lambda body, local: shared_sync_contract.merge(body, incoming, local, peer_id), initial)
+            lambda body, local: shared_sync_contract.merge_current_choices(body, incoming, local, peer_id), initial)
 
 
 class SecureChannel:
@@ -2491,6 +2491,8 @@ class PhoneService:
         self.personal_actor_admissions = {}
         self.status_requests = {}
         self.contact_requests = {}
+        self.contact_group_preparations = {}
+        self.contact_group_title_writes_enabled = phone_contacts.GROUP_TITLE_RUNTIME_ENABLED
         self.developer_requests = {}
         self.mcp_status_requests = {}
         self.time_control_requests = {}
@@ -2530,6 +2532,9 @@ class PhoneService:
         self.personal_commit_events = {}
         self.personal_dispatched = set()
         self.personal_sync_available = lambda: True
+        # Contact operations need a loaded, trusted book, not a visible notes
+        # review window. The daemon supplies its separate readiness predicate.
+        self.contact_access_available = lambda: self.personal_sync_available()
         self.personal_offers = deque(maxlen=256)
         self.personal_offer_keys = set()
 
@@ -2555,6 +2560,9 @@ class PhoneService:
             peers.append({"device_id": peer_id, "display_name": peer.get("display_name", ""),
                           "fingerprint": fingerprint(unb64(peer["static_public"], 32)),
                            "contacts_read_available": self.contacts_available(peer_id),
+                           "contact_groups_write_available": self.contact_groups_available(peer_id),
+                           "contact_values_write_available": self.contact_values_available(peer_id),
+                           "contact_group_titles_write_available": self.contact_group_titles_available(peer_id),
                            "contacts_fingerprint": hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest(),
                            "state": "online_" + transport if transport else "offline",
                            "transport": transport,
@@ -3337,7 +3345,7 @@ class PhoneService:
     def _contact_peer(self, peer_id, channel=None):
         peer = self.store.sole_peer(peer_id)
         current_channel = self.connections.get(peer_id)
-        if (not self.enabled or not self.personal_sync_available() or not peer or peer.get("state") != "paired" or
+        if (not self.enabled or not self.contact_access_available() or not peer or peer.get("state") != "paired" or
                 not current_channel or channel is not None and current_channel is not channel):
             return None
         personal = peer.get("personal_sync", {})
@@ -3361,6 +3369,101 @@ class PhoneService:
         with self.lock:
             current = self._contact_peer(peer_id)
             return bool(current and hashlib.sha256(unb64(current["static_public"], 32)).hexdigest() == fingerprint)
+
+    def contact_groups_available(self, peer_id):
+        with self.lock:
+            peer = self._contact_peer(peer_id)
+            return bool(peer and phone_contacts.GROUP_WRITE_VERSION in peer["capabilities"]["items"]["device_status"]["versions"])
+
+    def contact_groups(self, peer_id, fingerprint, request):
+        if not isinstance(request, dict) or request.get("version") not in (phone_contacts.GROUP_WRITE_VERSION, phone_contacts.GROUP_PROBE_VERSION):
+            raise ValueError("invalid_contact_group_version")
+        return self._contact_mutation(peer_id, fingerprint, request)
+
+    def contact_values_available(self, peer_id):
+        with self.lock:
+            peer = self._contact_peer(peer_id)
+            return bool(peer and phone_contacts.VALUE_WRITE_VERSION in peer["capabilities"]["items"]["device_status"]["versions"])
+
+    def contact_values(self, peer_id, fingerprint, request):
+        phone_contacts.validate_value_request_shape(request)
+        return self._contact_mutation(peer_id, fingerprint, request)
+
+    def contact_group_titles_available(self, peer_id):
+        with self.lock:
+            peer = self._contact_peer(peer_id)
+            return bool(self.contact_group_title_writes_enabled and peer and self.connection_transports.get(peer_id) == "wifi" and
+                        phone_contacts.GROUP_TITLE_VERSION in peer["capabilities"]["items"]["device_status"]["versions"])
+
+    def contact_group_title(self, peer_id, fingerprint, request):
+        phone_contacts.validate_group_title_request_shape(request)
+        return self._contact_mutation(peer_id, fingerprint, request)
+
+    def _contact_mutation(self, peer_id, fingerprint, request):
+        values = isinstance(request, dict) and request.get("version") == phone_contacts.VALUE_WRITE_VERSION
+        title = isinstance(request, dict) and request.get("version") == phone_contacts.GROUP_TITLE_VERSION
+        probe = isinstance(request, dict) and request.get("version") == phone_contacts.GROUP_PROBE_VERSION
+        (phone_contacts.validate_group_title_request_shape if title else phone_contacts.validate_value_request_shape if values else phone_contacts.validate_group_probe_request if probe else phone_contacts.validate_group_request)(request)
+        request = json.loads(json.dumps(request))
+        available = self.contact_group_titles_available if title else self.contact_values_available if values else self.contact_groups_available
+        with self.lock:
+            peer = self._contact_peer(peer_id)
+            if (not peer or not available(peer_id) or
+                    probe and (phone_contacts.GROUP_PROBE_VERSION not in peer["capabilities"]["items"]["device_status"]["versions"] or
+                               self.connection_transports.get(peer_id) != "wifi") or
+                    hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest() != fingerprint):
+                raise PermissionError("contact_groups_not_granted")
+            channel = self.connections[peer_id]
+            key = peer["static_public"]
+            controls = (peer["capabilities"]["revision"], peer["grants"]["revision"])
+            self.contact_group_preparations = {token: value for token, value in self.contact_group_preparations.items()
+                if value["deadline"] > time.monotonic() and self.connections.get(value["peer"]) is value["channel"]}
+            prepared = None
+            if request["action"] == "apply":
+                prepared = self.contact_group_preparations.get(request["token"])
+                if (not prepared or (prepared["peer"], prepared["key"], prepared["channel"], prepared["uid"]) !=
+                        (peer_id, key, channel, request["uid"]) or prepared["version"] != request["version"] or
+                        prepared["controls"] != controls or values and set(prepared["fields"]) != set(request["fields"]) or
+                        title and any(request[field] != prepared["report"][field] for field in ("old_title", "new_title"))):
+                    raise PermissionError("contact_groups_stale")
+                self.contact_group_preparations.pop(request["token"], None)
+            elif request["action"] == "prepare" and not probe and len(self.contact_group_preparations) + sum(1 for pending in self.contact_requests.values()
+                    if pending["request"].get("version") in (phone_contacts.GROUP_WRITE_VERSION, phone_contacts.VALUE_WRITE_VERSION, phone_contacts.GROUP_TITLE_VERSION) and pending["request"].get("action") == "prepare") >= 8:
+                raise RuntimeError("contact_groups_busy")
+            if len(self.contact_requests) >= 8 or request["request_id"] in self.contact_requests:
+                raise RuntimeError("contact_groups_busy")
+            entry = {"peer": peer_id, "key": key, "channel": channel, "request": request,
+                "deadline": time.monotonic() + 8, "event": threading.Event(), "result": None,
+                "message_id": str(uuid.uuid4()), "error": None, "group_prepared": prepared, "controls": controls}
+            self.contact_requests[request["request_id"]] = entry
+        try:
+            with self.lock:
+                current = self._contact_peer(peer_id, channel)
+                if (not current or current["static_public"] != key or not available(peer_id) or
+                        (current["capabilities"]["revision"], current["grants"]["revision"]) != controls):
+                    raise PermissionError("contact_groups_not_granted")
+                created = now_ms()
+                channel.send({"type": "message", "v": 1, "message_id": entry["message_id"], "kind": "device_status.request",
+                    "created_ms": created, "expires_ms": created + 8000, "body": request})
+            if not entry["event"].wait(max(0, entry["deadline"] - time.monotonic())):
+                raise TimeoutError("contact_groups_timeout")
+            if entry["error"]:
+                raise RuntimeError("contact_groups_" + entry["error"])
+            with self.lock:
+                current = self._contact_peer(peer_id, channel)
+                if (not current or current["static_public"] != key or not available(peer_id) or
+                        (current["capabilities"]["revision"], current["grants"]["revision"]) != controls):
+                    raise PermissionError("contact_groups_not_granted")
+                result = json.loads(json.dumps(entry["result"]))
+                if request["action"] == "prepare":
+                    self.contact_group_preparations[result["token"]] = {"peer": peer_id, "key": key, "channel": channel,
+                        "uid": request["uid"], "account": result["account"], "deadline": entry["deadline"] + 17,
+                         "version": request["version"], "fields": phone_contacts.value_field_names(request) if values else [], "controls": controls,
+                         **({"report": json.loads(json.dumps(result))} if title else {})}
+                return result
+        finally:
+            with self.lock:
+                self.contact_requests.pop(request["request_id"], None)
 
     def read_own_profile(self, peer_id):
         return self.read_contacts(peer_id, own_profile=True)
@@ -3446,7 +3549,12 @@ class PhoneService:
     def _receive_contacts(self, peer, channel, payload):
         error = "invalid_schema"
         try:
-            report = phone_contacts.validate_report(payload["body"])
+            probe = payload["body"].get("version") == phone_contacts.GROUP_PROBE_VERSION
+            values = payload["body"].get("version") == phone_contacts.VALUE_WRITE_VERSION
+            title = payload["body"].get("version") == phone_contacts.GROUP_TITLE_VERSION
+            groups = probe or payload["body"].get("version") == phone_contacts.GROUP_WRITE_VERSION
+            report = (phone_contacts.validate_group_title_report_shape(payload["body"]) if title else phone_contacts.validate_value_report_shape(payload["body"]) if values else phone_contacts.validate_group_probe_report(payload["body"]) if probe else
+                      phone_contacts.validate_group_report(payload["body"]) if groups else phone_contacts.validate_report(payload["body"]))
             with self.lock:
                 request = self.contact_requests.get(report["request_id"])
                 current = self._contact_peer(peer["device_id"], channel)
@@ -3454,13 +3562,40 @@ class PhoneService:
                 if (not current or current["static_public"] != peer["static_public"] or not request or
                         (request["peer"], request["key"], request["channel"]) != (peer["device_id"], peer["static_public"], channel)):
                     raise PermissionError
+                if (values or groups or title) and request.get("controls") != (current["capabilities"]["revision"], current["grants"]["revision"]):
+                    raise PermissionError
                 error = "expired"
                 if time.monotonic() >= request["deadline"] or now_ms() >= payload["expires_ms"]:
                     raise PermissionError
                 error = "invalid_schema"
                 expected = request["request"]
-                if (payload["expires_ms"] - payload["created_ms"] > 60000 or report["version"] != expected["version"] or report["action"] != expected["action"] or
-                        report["offset"] != expected["offset"] or report["action"] == "cards" and
+                if (payload["expires_ms"] - payload["created_ms"] > 60000 or report["version"] != expected["version"] or report["action"] != expected["action"]):
+                    raise ValueError
+                if title:
+                    error = "not_granted"
+                    if not self.contact_group_titles_available(peer["device_id"]):
+                        raise PermissionError
+                    error = "invalid_schema"
+                    prepared = request["group_prepared"]
+                    phone_contacts.validate_correlated_group_title_report(report, expected, prepared["report"] if prepared else None)
+                elif values:
+                    error = "not_granted"
+                    if not self.contact_values_available(peer["device_id"]):
+                        raise PermissionError
+                    error = "invalid_schema"
+                    prepared = request["group_prepared"]
+                    phone_contacts.validate_correlated_value_report(report, expected, prepared["account"] if prepared else None)
+                elif groups:
+                    error = "not_granted"
+                    if not self.contact_groups_available(peer["device_id"]) or report["uid"] != expected["uid"]:
+                        raise PermissionError
+                    error = "invalid_schema"
+                    if report["action"] == "apply":
+                        normalized = lambda values: {unicodedata.normalize("NFC", value.strip()).lower() for value in values}
+                        if (report["token"] != expected["token"] or report["account"] != request["group_prepared"]["account"] or
+                                normalized(report["groups"]) != normalized(expected["groups"])):
+                            raise ValueError
+                elif (report["offset"] != expected["offset"] or report["action"] == "cards" and
                         set(expected["uids"]) != {item["uid"] for item in report["contacts"]}):
                     raise ValueError
                 request["result"] = json.loads(json.dumps(report))
@@ -6991,7 +7126,7 @@ class PhoneService:
         if kind == 'device_status.report' and payload['body'].get('version') in (11, 13):
             self._receive_developer_diagnostics(peer, channel, payload)
             return
-        if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION, phone_contacts.PROFILE_DIAGNOSTIC_VERSION):
+        if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION, phone_contacts.PROFILE_DIAGNOSTIC_VERSION, phone_contacts.GROUP_WRITE_VERSION, phone_contacts.GROUP_PROBE_VERSION, phone_contacts.VALUE_WRITE_VERSION, phone_contacts.GROUP_TITLE_VERSION):
             self._receive_contacts(peer, channel, payload)
             return
         if kind == "device_status.report" and ("identifiers" in payload["body"] or "version" in payload["body"]):

@@ -617,6 +617,9 @@ msgstr "Адреса"
 msgid "Advanced"
 msgstr "Дополнительно"
 
+msgid "Advanced functions"
+msgstr "Дополнительные функции"
+
 msgid "After exercise"
 msgstr "После физической нагрузки"
 
@@ -3983,8 +3986,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "ХОРОШО"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "Импорт OR6: встречи, задачи, контакты и текст заметок. Проверенные конечные серии встреч, принадлежность контактов к группам и известные типы телефонных номеров сохраняются. Простые периоды планировщика и ежегодные памятные даты сохраняются; разовые памятные даты становятся событиями на весь день, записи звонков и веб-страниц — текстовыми заметками. Неподдерживаемые записи, оформление, вложения и напоминания не переносятся."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"Импорт OR6: встречи, задачи, контакты и текст заметок. Проверенные конечные "
+"серии встреч, принадлежность контактов к группам и известные типы телефонных "
+"номеров сохраняются. Простые периоды планировщика и ежегодные памятные даты "
+"сохраняются; разовые памятные даты становятся событиями на весь день, записи "
+"звонков и веб-страниц — текстовыми заметками. Неподдерживаемые записи, "
+"оформление, вложения и напоминания не переносятся."
 
 msgid "Objects"
 msgstr "Объекты"
@@ -4521,6 +4536,9 @@ msgstr "Позиция воспроизведения"
 msgid "Please create a notebook in another group first."
 msgstr "Сначала создайте блокнот в другой группе."
 
+msgid "Please enter a different group name."
+msgstr "Введите другое название группы."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Введите четырёхзначный год, начиная с 1000."
 
@@ -4557,7 +4575,9 @@ msgstr "Полностью введите интернет-IP и отпечат�
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Укажите свой адрес электронной почты в назначении платежа, иначе ContributorKey не удастся вам отправить."
+msgstr ""
+"Укажите свой адрес электронной почты в назначении платежа, иначе "
+"ContributorKey не удастся вам отправить."
 
 msgid "Please select a PDF file."
 msgstr "Выберите PDF-файл."
@@ -4917,6 +4937,14 @@ msgstr ""
 "Удалить «%(name)s»? Задачи этого человека сохранятся, но больше не будут "
 "никому назначены."
 
+msgid "Rename"
+msgstr "Переименовать"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Переименовывает группу этой учётной записи телефона для всех её участников. Состав группы сохраняется."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5017,6 +5045,9 @@ msgstr "Получение праздников …"
 
 msgid "Retrieving weather…"
 msgstr "Получение погоды…"
+
+msgid "Retry"
+msgstr "Повторить"
 
 msgid "Review and enable"
 msgstr "Проверить и включить"
@@ -5478,6 +5509,9 @@ msgstr "Показывать номера недель в месячном ви�
 msgid "Show week numbers in the planner"
 msgstr "Показывать номера недель в планировщике"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Показывать «Подключите телефон через WLAN» в меню трея"
+
 msgid "Sign in to Microsoft"
 msgstr "Войдите в Microsoft"
 
@@ -5632,6 +5666,9 @@ msgstr "Статус"
 
 msgid "Stop"
 msgstr "Остановить"
+
+msgid "Stop retrying"
+msgstr "Прекратить попытки"
 
 msgid "Street"
 msgstr "Улица"
@@ -8366,11 +8403,3 @@ msgstr "＋ Добавить встречу"
 #~ "разрешает, серийный номер и IMEI. Начиная с Android 10 аппаратные "
 #~ "идентификаторы ограничены для обычных приложений. Разрешение на номер "
 #~ "необязательно; специальные роли не запрашиваются."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Дополнительные функции"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Показывать «Подключите телефон через WLAN» в меню трея"

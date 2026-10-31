@@ -71,7 +71,16 @@ object TelefonNachrichten {
             TimeControlProtokoll.REQUEST -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateRequest(body) }
             TimeControlProtokoll.REPORT -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateReport(body) }
             "device_status.request" -> {
-                if (body["version"] == JsonPrimitive(ContactGroupWrite.VERSION)) {
+                if (body["version"] == JsonPrimitive(ContactGroupTitleWrite.VERSION)) {
+                    try { ContactGroupTitleWrite.validateRequest(body) } catch (_: Exception) { fail() }
+                }
+                else if (body["version"] == JsonPrimitive(ContactValueWrite.VERSION)) {
+                    try { ContactValueWrite.validateRequest(body) } catch (_: Exception) { fail() }
+                }
+                else if (body["version"] == JsonPrimitive(ContactGroupProbe.VERSION)) {
+                    try { ContactGroupProbe.validateRequest(body) } catch (_: Exception) { fail() }
+                }
+                else if (body["version"] == JsonPrimitive(ContactGroupWrite.VERSION)) {
                     try { ContactGroupWrite.validateRequest(body) } catch (_: Exception) { fail() }
                 }
                 else if (body["version"] == JsonPrimitive(PhoneTimeZone.VERSION)) {

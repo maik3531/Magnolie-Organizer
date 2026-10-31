@@ -93,7 +93,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte" or "zeitzone_erkennen")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte" or "telefon_kontaktgruppen" or "telefon_kontaktwerte" or "telefon_kontaktgruppentitel" or "zeitzone_erkennen")
             {
                 var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
                     command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
@@ -447,6 +447,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
                     case "telefon_kontaktfotos": await ReadContactPhotosAsync(message); break;
                     case "telefon_kontakte": await ReadContactPhotosAsync(message, fullContacts: true); break;
+                    case "telefon_kontaktgruppen": await ContactGroupsAsync(message); break;
+                    case "telefon_kontaktwerte": await ContactValuesAsync(message); break;
+                    case "telefon_kontaktgruppentitel": await ContactGroupTitleAsync(message); break;
                     case "kde_zeichnen": await ConfigureDrawingInputAsync(message); break;
                     case "kde_medien_geraete":
                     case "kde_player_stand":

@@ -541,6 +541,9 @@ msgstr "地址"
 msgid "Advanced"
 msgstr "高级"
 
+msgid "Advanced functions"
+msgstr "高级功能"
+
 msgid "After exercise"
 msgstr "运动后"
 
@@ -3785,8 +3788,18 @@ msgstr "ODS"
 msgid "OK"
 msgstr "好的"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6 导入：日程、任务、联系人和纯文本笔记。保留已验证的有限重复日程、联系人分组成员关系和已知电话号码类型。保留基本规划时段和每年重复的纪念日；一次性纪念日转为全天日程，通话和网页记录转为文本笔记。不传输不支持的条目、版式、附件和提醒。"
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6 导入：日程、任务、联系人和纯文本笔记。保留已验证的有限重复日程、联系人分"
+"组成员关系和已知电话号码类型。保留基本规划时段和每年重复的纪念日；一次性纪念"
+"日转为全天日程，通话和网页记录转为文本笔记。不传输不支持的条目、版式、附件和"
+"提醒。"
 
 msgid "Objects"
 msgstr "物体"
@@ -4295,6 +4308,9 @@ msgstr "播放位置"
 msgid "Please create a notebook in another group first."
 msgstr "请先在其他分组中创建一个笔记本。"
 
+msgid "Please enter a different group name."
+msgstr "请输入不同的群组名称。"
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "请输入 1000 年及之后的四位年份。"
 
@@ -4331,7 +4347,8 @@ msgstr "请输入完整的公网 IP 和指纹。"
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "请在付款用途说明中填写你的电子邮箱地址，否则无法向你发送ContributorKey。"
+msgstr ""
+"请在付款用途说明中填写你的电子邮箱地址，否则无法向你发送ContributorKey。"
 
 msgid "Please select a PDF file."
 msgstr "请选择 PDF 文件。"
@@ -4674,6 +4691,14 @@ msgid ""
 "to anyone."
 msgstr "移除“%(name)s”？其任务会保留，但将不再分配给任何人。"
 
+msgid "Rename"
+msgstr "重命名"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "为此手机帐户群组的所有成员重命名群组。成员关系保持不变。"
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -4767,6 +4792,9 @@ msgstr "正在获取节假日 …"
 
 msgid "Retrieving weather…"
 msgstr "正在获取天气…"
+
+msgid "Retry"
+msgstr "重试"
 
 msgid "Review and enable"
 msgstr "审核并启用"
@@ -5217,6 +5245,9 @@ msgstr "在月视图中显示周数"
 msgid "Show week numbers in the planner"
 msgstr "在计划器中显示周数"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "在托盘菜单中显示“通过无线局域网连接手机”"
+
 msgid "Sign in to Microsoft"
 msgstr "登录微软"
 
@@ -5365,6 +5396,9 @@ msgstr "地位"
 
 msgid "Stop"
 msgstr "停止"
+
+msgid "Stop retrying"
+msgstr "停止重试"
 
 msgid "Street"
 msgstr "街道"
@@ -7904,11 +7938,3 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "高级功能"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "在托盘菜单中显示“通过无线局域网连接手机”"

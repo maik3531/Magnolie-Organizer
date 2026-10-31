@@ -15,7 +15,8 @@ class ContactGroupWriteTest {
 
     @Test fun separateOptInAndBothGrantsAreRequiredEvenForAnOwnReadablePhone() {
         val read = TelefonPeer("peer", "Synthetic", "key", own_device = true, remote_own_device = true,
-            contacts_read_enabled = true, remote_device_status_available = true, remote_device_status_versions = listOf(5, 16))
+            contacts_read_enabled = true, contact_groups_write_enabled = false,
+            remote_device_status_available = true, remote_device_status_versions = listOf(5, ContactGroupWrite.VERSION))
         assertTrue(ContactRead.allowed(read, true))
         assertFalse(ContactGroupWrite.allowed(read, true))
         val write = read.copy(contact_groups_write_enabled = true)
@@ -30,9 +31,9 @@ class ContactGroupWriteTest {
 
     @Test fun readOnlyCapabilitiesDoNotAdvertiseTheWriteResource() {
         fun versions(read: Boolean, write: Boolean) = TelefonCapabilities.phase1(contactRead = read, contactGroupsWrite = write).getValue("device_status").versions
-        assertFalse(16 in versions(true, false))
-        assertFalse(16 in versions(false, true))
-        assertTrue(16 in versions(true, true))
+        assertFalse(ContactGroupWrite.VERSION in versions(true, false))
+        assertFalse(ContactGroupWrite.VERSION in versions(false, true))
+        assertTrue(ContactGroupWrite.VERSION in versions(true, true))
     }
 
     @Test fun exactRequestsRejectExtraContactFieldsInvalidTokensAndAmbiguousGroupNames() {
@@ -52,5 +53,26 @@ class ContactGroupWriteTest {
         val saved = ContactGroupWrite.report(apply(emptyList()), token, emptyList())
         assertEquals("saved", saved["state"]!!.jsonPrimitive.content)
         assertThrows(IllegalArgumentException::class.java) { ContactGroupWrite.validateReport(JsonObject(saved + ("catalog" to JsonArray(listOf(JsonPrimitive("Work")))))) }
+    }
+
+    @Test fun accountBoundSchemaRequiresVersion17AndExactAccountFields() {
+        val account = buildJsonObject { put("name", "owned@example.invalid"); put("type", "provider"); put("data_set", "") }
+        val report = ContactGroupWrite.report(request, token, listOf("Work"), account = account)
+        assertEquals(account, report["account"])
+        for (invalid in listOf(JsonObject(report - "account"), JsonObject(report + ("version" to JsonPrimitive(16))),
+            JsonObject(report + ("account" to JsonObject(account - "type"))),
+            JsonObject(report + ("account" to JsonObject(account + ("name" to JsonPrimitive("bad\naccount")))))))
+            assertThrows(Exception::class.java) { ContactGroupWrite.validateReport(invalid) }
+        assertThrows(Exception::class.java) { ContactGroupWrite.validateRequest(JsonObject(request + ("version" to JsonPrimitive(16)))) }
+    }
+
+    @Test fun debugProbeHasItsOwnReadOnlyVersionAndRejectsContactPayloads() {
+        val probe = JsonObject(request + mapOf("version" to JsonPrimitive(ContactGroupProbe.VERSION), "action" to JsonPrimitive("diagnostics")))
+        ContactGroupProbe.validateRequest(probe)
+        TelefonNachrichten.validate(TelefonNachrichten.message("device_status.request", probe, 60_000))
+        for (invalid in listOf(JsonObject(probe + ("groups" to JsonArray(listOf(JsonPrimitive("Work"))))),
+            JsonObject(probe + ("action" to JsonPrimitive("apply"))), JsonObject(probe + ("account" to JsonPrimitive("private")))))
+            assertThrows(Exception::class.java) { ContactGroupProbe.validateRequest(invalid) }
+        assertThrows(Exception::class.java) { ContactGroupWrite.validateRequest(probe) }
     }
 }

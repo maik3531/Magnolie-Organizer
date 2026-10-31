@@ -582,6 +582,9 @@ msgstr "Adresler"
 msgid "Advanced"
 msgstr "Gelişmiş"
 
+msgid "Advanced functions"
+msgstr "Gelişmiş işlevler"
+
 msgid "After exercise"
 msgstr "Egzersizden sonra"
 
@@ -3939,8 +3942,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "Tamam"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6 içe aktarma: randevular, görevler, kişiler ve düz metin notları. Doğrulanmış sonlu randevu serileri, kişi grubu üyelikleri ve bilinen telefon türleri korunur. Basit planlayıcı aralıkları ve yıllık yıldönümleri korunur; tek seferlik yıldönümleri tüm gün randevularına, arama ve web kayıtları metin notlarına dönüşür. Desteklenmeyen kayıtlar, düzen, ekler ve alarmlar aktarılmaz."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6 içe aktarma: randevular, görevler, kişiler ve düz metin notları. "
+"Doğrulanmış sonlu randevu serileri, kişi grubu üyelikleri ve bilinen telefon "
+"türleri korunur. Basit planlayıcı aralıkları ve yıllık yıldönümleri korunur; "
+"tek seferlik yıldönümleri tüm gün randevularına, arama ve web kayıtları "
+"metin notlarına dönüşür. Desteklenmeyen kayıtlar, düzen, ekler ve alarmlar "
+"aktarılmaz."
 
 msgid "Objects"
 msgstr "Nesneler"
@@ -4467,6 +4482,9 @@ msgstr "Oynatma konumu"
 msgid "Please create a notebook in another group first."
 msgstr "Lütfen önce başka bir grupta not defteri oluşturun."
 
+msgid "Please enter a different group name."
+msgstr "Lütfen farklı bir grup adı girin."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Lütfen 1000’den başlayarak dört basamaklı bir yıl girin."
 
@@ -4503,7 +4521,9 @@ msgstr "İnternet IP’sini ve parmak izini eksiksiz girin."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Ödeme açıklamasına e-posta adresini yaz; aksi takdirde ContributorKey sana gönderilemez."
+msgstr ""
+"Ödeme açıklamasına e-posta adresini yaz; aksi takdirde ContributorKey sana "
+"gönderilemez."
 
 msgid "Please select a PDF file."
 msgstr "Lütfen bir PDF dosyası seçin."
@@ -4867,6 +4887,14 @@ msgstr ""
 "“%(name)s” kaldırılsın mı? Görevleri korunacak ancak artık hiç kimseye "
 "atanmayacak."
 
+msgid "Rename"
+msgstr "Yeniden adlandır"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Bu telefon hesabındaki grubun adını tüm üyeleri için değiştirir. Üyelikler korunur."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -4966,6 +4994,9 @@ msgstr "Tatiller alınıyor …"
 
 msgid "Retrieving weather…"
 msgstr "Hava durumu alınıyor…"
+
+msgid "Retry"
+msgstr "Yeniden dene"
 
 msgid "Review and enable"
 msgstr "İncele ve etkinleştir"
@@ -5422,6 +5453,10 @@ msgstr "Aylık görünümde hafta numaralarını göster"
 msgid "Show week numbers in the planner"
 msgstr "Planlayıcıda hafta numaralarını göster"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr ""
+"Sistem tepsisi menüsünde “Telefonu WLAN üzerinden bağla” seçeneğini göster"
+
 msgid "Sign in to Microsoft"
 msgstr "Microsoft'ta oturum açın"
 
@@ -5578,6 +5613,9 @@ msgstr "Durum"
 
 msgid "Stop"
 msgstr "Durdur"
+
+msgid "Stop retrying"
+msgstr "Denemeyi durdur"
 
 msgid "Street"
 msgstr "Sokak"
@@ -8281,11 +8319,3 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Gelişmiş işlevler"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Sistem tepsisi menüsünde “Telefonu WLAN üzerinden bağla” seçeneğini göster"

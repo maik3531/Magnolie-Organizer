@@ -937,6 +937,9 @@ msgstr "العناوين"
 msgid "Advanced"
 msgstr "متقدم"
 
+msgid "Advanced functions"
+msgstr "وظائف متقدمة"
+
 msgid "After exercise"
 msgstr "بعد التمرين"
 
@@ -4782,8 +4785,19 @@ msgstr "ODS"
 msgid "OK"
 msgstr "حسناً"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "استيراد OR6: المواعيد والمهام وجهات الاتصال والنص العادي للملاحظات. تُحفظ سلاسل المواعيد المحدودة التي تم التحقق منها وعضويات مجموعات جهات الاتصال وأنواع الهواتف المعروفة. تُحفظ فترات المخطط البسيطة والذكريات السنوية؛ وتصبح الذكريات غير المتكررة مواعيد ليوم كامل، وسجلات المكالمات والويب ملاحظات نصية. لا تُنقل الإدخالات غير المدعومة أو التخطيط أو المرفقات أو التنبيهات."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"استيراد OR6: المواعيد والمهام وجهات الاتصال والنص العادي للملاحظات. تُحفظ "
+"سلاسل المواعيد المحدودة التي تم التحقق منها وعضويات مجموعات جهات الاتصال "
+"وأنواع الهواتف المعروفة. تُحفظ فترات المخطط البسيطة والذكريات السنوية؛ وتصبح "
+"الذكريات غير المتكررة مواعيد ليوم كامل، وسجلات المكالمات والويب ملاحظات "
+"نصية. لا تُنقل الإدخالات غير المدعومة أو التخطيط أو المرفقات أو التنبيهات."
 
 msgid "Objects"
 msgstr "أشياء"
@@ -5404,6 +5418,9 @@ msgstr "موضع التشغيل"
 msgid "Please create a notebook in another group first."
 msgstr "يرجى إنشاء دفتر ملاحظات في مجموعة أخرى أولًا."
 
+msgid "Please enter a different group name."
+msgstr "يُرجى إدخال اسم مختلف للمجموعة."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "يرجى إدخال سنة من أربعة أرقام بدءًا من 1000."
 
@@ -5440,7 +5457,9 @@ msgstr "يرجى إدخال عنوان IP على الإنترنت والبصمة
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "يرجى كتابة عنوان بريدك الإلكتروني في مرجع الدفع، وإلا فلن يمكن إرسال ContributorKey إليك."
+msgstr ""
+"يرجى كتابة عنوان بريدك الإلكتروني في مرجع الدفع، وإلا فلن يمكن إرسال "
+"ContributorKey إليك."
 
 msgid "Please select a PDF file."
 msgstr "يرجى تحديد ملف PDF."
@@ -5858,6 +5877,14 @@ msgid ""
 "to anyone."
 msgstr "إزالة «%(name)s»؟ ستبقى مهامه محفوظة، لكنها لن تعود مسندة إلى أي شخص."
 
+msgid "Rename"
+msgstr "إعادة التسمية"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "يغيّر اسم مجموعة هذا الحساب على الهاتف لجميع أعضائها. تبقى العضويات كما هي."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5988,6 +6015,9 @@ msgstr "فشل استرجاع الطقس (%s)."
 
 msgid "Retrieving weather…"
 msgstr "جارٍ استرجاع الطقس…"
+
+msgid "Retry"
+msgstr "إعادة المحاولة"
 
 msgid "Review and enable"
 msgstr "مراجعة وتفعيل"
@@ -6538,6 +6568,9 @@ msgstr "إظهار أرقام الأسابيع في العرض الشهري"
 msgid "Show week numbers in the planner"
 msgstr "إظهار أرقام الأسابيع في المخطِّط"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "إظهار «قم بتوصيل الهاتف عبر شبكة الواي فاي» في قائمة علبة النظام"
+
 msgctxt "time tracking"
 msgid "Signature"
 msgstr "التوقيع"
@@ -6694,6 +6727,9 @@ msgstr "حالة"
 
 msgid "Stop"
 msgstr "إيقاف"
+
+msgid "Stop retrying"
+msgstr "إيقاف المحاولات"
 
 msgid "Street"
 msgstr "الشارع"
@@ -9830,11 +9866,3 @@ msgstr "＋ إضافة موعد"
 #~ "الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد "
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "وظائف متقدمة"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "إظهار «قم بتوصيل الهاتف عبر شبكة الواي فاي» في قائمة علبة النظام"

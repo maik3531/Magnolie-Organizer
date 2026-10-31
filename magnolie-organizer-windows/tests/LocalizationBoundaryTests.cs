@@ -13,8 +13,11 @@ internal static class LocalizationBoundaryTests
                 $"{callback} gibt einen technischen oder deutschen Ausnahmetext an die Oberfläche weiter.");
         TestAssert.That(bridge.Contains("ReportErrorAsync(\"gesamtarchiv_pruefen\", error.ToString())", StringComparison.Ordinal) &&
                         bridge.Contains("T(\"The complete archive could not be verified.\")", StringComparison.Ordinal) &&
-                        sync.Contains("ReportErrorAsync(\"sync\", error.ToString())", StringComparison.Ordinal) &&
-                        sync.Contains("NextcloudStatusText.For(error)", StringComparison.Ordinal),
+                        sync.Contains("var diagnostic = error.ToString()", StringComparison.Ordinal) &&
+                        sync.Contains("http_status=", StringComparison.Ordinal) &&
+                        sync.Contains("ReportErrorAsync(\"sync\", diagnostic)", StringComparison.Ordinal) &&
+                        sync.Contains("SendAsync(\"App.syncFehler\", T(\"Synchronization failed.\"))", StringComparison.Ordinal) &&
+                        !sync.Contains("SendAsync(\"App.syncFehler\", NextcloudStatusText.For(error))", StringComparison.Ordinal),
             "Lokalisierte UI-Fehler und vollständige lokale Diagnosen sind nicht gemeinsam verdrahtet.");
         var language = MagnolieOrganizer.Windows.NativeLocalization.Language;
         try

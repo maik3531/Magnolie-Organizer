@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">允许此电脑更改联系人分组</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">只能更改现有联系人的分组成员关系。其他联系人数据和系统分组保持不变。</string>
+    <string name="telefon_kontaktgruppen_schreiben">允许此电脑修改联系人资料</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">自动同步现有联系人的分组、电话号码和电子邮件地址。</string>
 </resources>

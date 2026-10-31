@@ -22152,6 +22152,33 @@ class Fenster(_FENSTER_BASIS):
         elif befehl in ('kde_dateisystem_stand', 'kde_dateisystem_oeffnen'):
             threading.Thread(target=self._kde_dateisystem, args=(nachricht,), daemon=True).start()
 
+        elif befehl == "telefon_kontaktgruppentitel":
+            request_id = nachricht.get("requestId")
+            if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+                return
+            if getattr(self, "_kontakt_gruppentitel_laeuft", False):
+                self.antwort("App.kontaktGruppenTitelErgebnis", {"ok": False, "requestId": request_id, "code": "contact_group_title_busy"})
+                return
+            self._kontakt_gruppentitel_laeuft = True
+            threading.Thread(target=self._kontakt_gruppentitel_senden, args=(nachricht,), daemon=True).start()
+        elif befehl == "telefon_kontaktwerte":
+            request_id = nachricht.get("requestId")
+            if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+                return
+            if getattr(self, "_kontakt_werte_laeuft", False):
+                self.antwort("App.kontaktWerteErgebnis", {"ok": False, "requestId": request_id, "code": "contact_values_busy"})
+                return
+            self._kontakt_werte_laeuft = True
+            threading.Thread(target=self._kontakt_werte_senden, args=(nachricht,), daemon=True).start()
+        elif befehl == "telefon_kontaktgruppen":
+            request_id = nachricht.get("requestId")
+            if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+                return
+            if getattr(self, "_kontakt_gruppen_laeuft", False):
+                self.antwort("App.kontaktGruppenErgebnis", {"ok": False, "requestId": request_id, "code": "contact_groups_busy"})
+                return
+            self._kontakt_gruppen_laeuft = True
+            threading.Thread(target=self._kontakt_gruppen_senden, args=(nachricht,), daemon=True).start()
         elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
             if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
@@ -24656,6 +24683,82 @@ class Fenster(_FENSTER_BASIS):
         except Exception as error:
             self.antwort('App.kdeMedien', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
+    def _kontakt_gruppentitel_senden(self, nachricht):
+        request_id = nachricht.get("requestId", "")
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_group_title_not_granted")
+            device = nachricht.get("device_id")
+            if not isinstance(device, str) or not device.startswith("notes:") or len(device) > 200:
+                raise ValueError("invalid_contact_device")
+            from magnolie_phone_contacts import GROUP_TITLE_VERSION
+            request = {"version": GROUP_TITLE_VERSION, "request_id": request_id, "action": nachricht.get("action"),
+                "uid": nachricht.get("uid"), "old_title": nachricht.get("old_title"), "new_title": nachricht.get("new_title")}
+            if request["action"] == "apply":
+                request["token"] = nachricht.get("token")
+            elif request["action"] == "inspect":
+                request.update(group_id=nachricht.get("group_id"), account=nachricht.get("account"))
+            result = self._telefon.contact_group_title(device[6:], nachricht.get("fingerprint"), request)
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_group_title_not_granted")
+            self.antwort("App.kontaktGruppenTitelErgebnis", dict(result, ok=True, requestId=request_id,
+                device_id=device, fingerprint=nachricht.get("fingerprint")))
+        except Exception as error:
+            codes = {"contact_group_title_not_granted": "contact_group_title_not_granted", "contact_groups_not_granted": "contact_group_title_not_granted",
+                "contact_groups_stale": "contact_group_title_stale", "contact_groups_timeout": "contact_group_title_timeout", "contact_groups_busy": "contact_group_title_busy"}
+            self.antwort("App.kontaktGruppenTitelErgebnis", {"ok": False, "requestId": request_id, "code": codes.get(str(error), "contact_group_title_failed")})
+        finally:
+            self._kontakt_gruppentitel_laeuft = False
+
+    def _kontakt_werte_senden(self, nachricht):
+        request_id = nachricht.get("requestId", "")
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_values_not_granted")
+            device = nachricht.get("device_id")
+            if not isinstance(device, str) or not device.startswith("notes:") or len(device) > 200:
+                raise ValueError("invalid_contact_device")
+            from magnolie_phone_contacts import VALUE_WRITE_VERSION
+            request = {"version": VALUE_WRITE_VERSION, "request_id": request_id, "action": nachricht.get("action"), "uid": nachricht.get("uid")}
+            if request["action"] == "prepare":
+                request["field_names"] = nachricht.get("field_names")
+            elif request["action"] == "apply":
+                request.update(token=nachricht.get("token"), fields=nachricht.get("fields"))
+            result = self._telefon.contact_values(device[6:], nachricht.get("fingerprint"), request)
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_values_not_granted")
+            self.antwort("App.kontaktWerteErgebnis", dict(result, ok=True, requestId=request_id, device_id=device, fingerprint=nachricht.get("fingerprint")))
+        except Exception as error:
+            codes = {"contact_values_not_granted": "contact_values_not_granted", "contact_groups_not_granted": "contact_values_not_granted",
+                     "contact_groups_stale": "contact_values_stale", "contact_groups_timeout": "contact_values_timeout", "contact_groups_busy": "contact_values_busy"}
+            self.antwort("App.kontaktWerteErgebnis", {"ok": False, "requestId": request_id, "code": codes.get(str(error), "contact_values_failed")})
+        finally:
+            self._kontakt_werte_laeuft = False
+
+    def _kontakt_gruppen_senden(self, nachricht):
+        request_id = nachricht.get("requestId", "")
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_groups_not_granted")
+            device = nachricht.get("device_id")
+            if not isinstance(device, str) or not device.startswith("notes:") or len(device) > 200:
+                raise ValueError("invalid_contact_device")
+            from magnolie_phone_contacts import GROUP_WRITE_VERSION, GROUP_PROBE_VERSION
+            request = {"version": GROUP_PROBE_VERSION if nachricht.get("action") == "diagnostics" else GROUP_WRITE_VERSION,
+                "request_id": request_id, "action": nachricht.get("action"), "uid": nachricht.get("uid")}
+            if request["action"] == "apply":
+                request.update(token=nachricht.get("token"), groups=nachricht.get("groups"))
+            result = self._telefon.contact_groups(device[6:], nachricht.get("fingerprint"), request)
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("contact_groups_not_granted")
+            self.antwort("App.kontaktGruppenErgebnis", dict(result, ok=True, requestId=request_id,
+                device_id=device, fingerprint=nachricht.get("fingerprint")))
+        except Exception as error:
+            code = str(error) if str(error) in {"contact_groups_not_granted", "contact_groups_stale", "contact_groups_timeout", "contact_groups_busy"} else "contact_groups_failed"
+            self.antwort("App.kontaktGruppenErgebnis", {"ok": False, "requestId": request_id, "code": code})
+        finally:
+            self._kontakt_gruppen_laeuft = False
+
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")
         vollstaendig = nachricht.get("cmd") == "telefon_kontakte"
@@ -24678,9 +24781,11 @@ class Fenster(_FENSTER_BASIS):
                         contacts = vcf_lesen(item["vcard"])["kontakte"]
                         if len(contacts) != 1:
                             raise ValueError("invalid_contact_vcard")
+                        from magnolie_phone_contacts import readable_value_fields
+                        item["werteVollstaendig"] = readable_value_fields(item["vcard"], contacts[0])
                         del item["vcard"]
                         for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien"):
-                            item[field] = contacts[0].get(field)
+                            item[field] = "" if field == "foto" and nachricht.get("includePhoto", True) is False else contacts[0].get(field)
                         item["gruppenZeilen"] = [line for line in contacts[0].get("vcardRoundtrip", [])
                             if isinstance(line, str) and re.match(r"^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]", line, re.I)]
             elif not notes:

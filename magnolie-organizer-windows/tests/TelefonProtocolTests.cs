@@ -16,8 +16,8 @@ internal static class TelefonProtocolTests
         TestAssert.That(TelefonProtocolContract.ValidateCapabilities(capabilities) == 1 && capabilities["items"]!.AsObject().Count == 11,
             "Granulare Telefon-Capabilities fehlen.");
         TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5, 7, 12 }),
-            "Device status negotiation must retain legacy readers, contact-read v7 and the scoped timezone read without new capability names.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5, 7, 12, 17, 19, 20 }),
+            "Device status negotiation must retain legacy readers, timezone and group writes while explicitly negotiating scoped phone/email writes v19.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6, 7, 9, 10, 13, 14 }),
             "Ordinary tasks, Custom, time tracking, shared/scoped sync or native timer capability is missing.");

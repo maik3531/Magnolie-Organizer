@@ -822,6 +822,9 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Pokročilé"
 
+msgid "Advanced functions"
+msgstr "Rozšířené funkce"
+
 msgid "After exercise"
 msgstr "Po cvičení"
 
@@ -4706,8 +4709,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "Import OR6: události, úkoly, kontakty a prostý text poznámek. Ověřené konečné řady událostí, členství ve skupinách kontaktů a známé typy telefonních čísel zůstávají zachovány. Jednoduché intervaly plánovače a každoroční výročí se zachovají; jednorázová výročí se změní na celodenní události, záznamy hovorů a webu na textové poznámky. Nepodporované položky, rozvržení, přílohy a upozornění se nepřenášejí."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"Import OR6: události, úkoly, kontakty a prostý text poznámek. Ověřené "
+"konečné řady událostí, členství ve skupinách kontaktů a známé typy "
+"telefonních čísel zůstávají zachovány. Jednoduché intervaly plánovače a "
+"každoroční výročí se zachovají; jednorázová výročí se změní na celodenní "
+"události, záznamy hovorů a webu na textové poznámky. Nepodporované položky, "
+"rozvržení, přílohy a upozornění se nepřenášejí."
 
 msgid "Objects"
 msgstr "Objekty"
@@ -5302,6 +5317,9 @@ msgstr "Pozice přehrávání"
 msgid "Please create a notebook in another group first."
 msgstr "Nejprve vytvořte zápisník v jiné skupině."
 
+msgid "Please enter a different group name."
+msgstr "Zadejte jiný název skupiny."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Zadejte čtyřmístný rok od 1000 výše."
 
@@ -5338,7 +5356,9 @@ msgstr "Zadejte úplnou internetovou IP a otisk."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Uveď svou e-mailovou adresu do zprávy k platbě, jinak ti nebude možné zaslat ContributorKey."
+msgstr ""
+"Uveď svou e-mailovou adresu do zprávy k platbě, jinak ti nebude možné zaslat "
+"ContributorKey."
 
 msgid "Please select a PDF file."
 msgstr "Vyberte soubor PDF."
@@ -5759,6 +5779,14 @@ msgstr ""
 "Odstranit „%(name)s“? Jeho/její úkoly zůstanou zachovány, ale už nebudou "
 "nikomu přiřazeny."
 
+msgid "Rename"
+msgstr "Přejmenovat"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Přejmenuje skupinu tohoto účtu v telefonu pro všechny její členy. Členství se zachovají."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5890,6 +5918,9 @@ msgstr "Načítání počasí se nezdařilo (%s)."
 
 msgid "Retrieving weather…"
 msgstr "Načítání počasí…"
+
+msgid "Retry"
+msgstr "Zkusit znovu"
 
 msgid "Review and enable"
 msgstr "Zkontrolovat a povolit"
@@ -6443,6 +6474,9 @@ msgstr "Zobrazovat čísla týdnů v měsíčním zobrazení"
 msgid "Show week numbers in the planner"
 msgstr "Zobrazovat čísla týdnů v plánovači"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Zobrazit „Připojte telefon přes WLAN“ v nabídce oznamovací oblasti"
+
 msgctxt "time tracking"
 msgid "Signature"
 msgstr "Podpis"
@@ -6599,6 +6633,9 @@ msgstr "Postavení"
 
 msgid "Stop"
 msgstr "Zastavit"
+
+msgid "Stop retrying"
+msgstr "Zastavit pokusy"
 
 msgid "Street"
 msgstr "Ulice"
@@ -9739,11 +9776,3 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Rozšířené funkce"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Zobrazit „Připojte telefon přes WLAN“ v nabídce oznamovací oblasti"

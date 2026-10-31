@@ -32,7 +32,7 @@ data class TelefonPeer(
     val identifier_sharing_enabled: Boolean = false,
     val identifier_permission_mask: Int = 0,
     val contacts_read_enabled: Boolean = false,
-    val contact_groups_write_enabled: Boolean = false,
+    val contact_groups_write_enabled: Boolean = true,
     val remote_dial_request_granted: Boolean = false,
     val remote_dial_request_available: Boolean = false,
     val remote_dial_request_versions: List<Int> = listOf(1),
@@ -66,7 +66,8 @@ data class TelefonPeer(
     val remote_personal_note_policy: JsonObject? = null,
     val remote_desktop_features: JsonObject? = null,
     val personal_time_policy: JsonObject? = null,
-    val remote_personal_time_policy: JsonObject? = null
+    val remote_personal_time_policy: JsonObject? = null,
+    val contacts_write_enabled: Boolean = contact_groups_write_enabled
 )
 
 @Serializable
@@ -179,10 +180,13 @@ object TelefonCapabilities {
                incomingCalls: Boolean = false,
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
                   endCalls: Boolean = false, identifiers: Boolean = false, contactRead: Boolean = false,
-                  contactGroupsWrite: Boolean = false) = linkedMapOf(
+                   contactGroupsWrite: Boolean = false, contactValuesWrite: Boolean = false,
+                   contactGroupTitlesWrite: Boolean = false) = linkedMapOf(
         "device_status" to TelefonCapability(true, "available", (listOf(1, 2, 3, 11, PhoneTimeZone.VERSION, io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION) +
               (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION, ContactRead.PROFILE_VERSION, ContactRead.PROFILE_DIAGNOSTIC_VERSION) else emptyList()) +
-              (if (contactRead && contactGroupsWrite) listOf(ContactGroupWrite.VERSION) else emptyList())).sorted()),
+              (if (contactRead && contactGroupsWrite) listOf(ContactGroupWrite.VERSION, ContactGroupProbe.VERSION) else emptyList()) +
+              (if (contactRead && contactValuesWrite) listOf(ContactValueWrite.VERSION) else emptyList()) +
+              (if (contactRead && contactGroupTitlesWrite) listOf(ContactGroupTitleWrite.VERSION) else emptyList())).sorted()),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,
             if (dialRequest && dialResolvable && dialPermission) "available" else if (!dialResolvable) "os_restricted"

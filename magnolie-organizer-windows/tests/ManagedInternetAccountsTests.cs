@@ -58,7 +58,7 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(File.GetLastWriteTimeUtc(destination) == readyStamp && File.ReadAllText(Path.Combine(profile, "keep-account-data")) == "PRESERVE",
                 "An unchanged current addon was reinstalled or account data changed during a status restart.");
             var start = ManagedInternetAccounts.CreateStartInfo(Path.Combine(runtime, "thunderbird.exe"), profile);
-            TestAssert.That(start.ArgumentList.Contains("-silent") && !start.UseShellExecute && start.CreateNoWindow,
+            TestAssert.That(start.ArgumentList.Contains("-silent") && start.Environment["MOZ_APP_SILENT_START"] == "1" && !start.UseShellExecute && start.CreateNoWindow,
                 "Opening account settings may open Thunderbird's normal mail/privacy/start windows.");
             var lockPath = Path.Combine(profile, "parent.lock");
             File.WriteAllText(lockPath, "existing lock metadata");
@@ -148,7 +148,7 @@ internal static class ManagedInternetAccountsTests
         TestAssert.Throws<InvalidDataException>(() => ManagedAccountOperations.Project(malformed), "Malformed account rows were silently omitted from revision/readback.");
     }
 
-    internal static async Task<int> ProbeAsync(string runtime, string profile, string nativeExecutable, bool lifecycle = false)
+    internal static async Task<int> ProbeAsync(string runtime, string profile, string nativeExecutable, bool lifecycle = false, bool restart = false)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(lifecycle ? 180 : 60));
         System.Diagnostics.Process? process = null;
@@ -165,6 +165,24 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(string.Equals(process.MainModule!.FileName, Path.GetFullPath(Path.Combine(runtime, "thunderbird.exe")), StringComparison.OrdinalIgnoreCase),
                 "The probe used an installed mail client instead of the packaged helper.");
             Console.WriteLine("Managed account helper: bundled runtime, automatic isolated profile and add-on setup, dedicated native channel, Microsoft adapter ready.");
+            if (restart)
+            {
+                TestAssert.That(Path.GetFileName(profile).StartsWith("fresh-", StringComparison.Ordinal), "Owned fresh fixture profile required.");
+                status["bereit"] = true;
+                var before = ManagedAccountOperations.Project(status).Revision;
+                await ManagedInternetAccounts.StopAsync();
+                TestAssert.That(process.WaitForExit(5000), "The fresh helper did not exit.");
+                process.Dispose(); process = null;
+                await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token, profile, runtime, nativeExecutable, Console.WriteLine);
+                var warm = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "environment" }, timeout.Token, managed: true);
+                process = System.Diagnostics.Process.GetProcessById(warm["pid"]!.GetValue<int>());
+                TestAssert.That(warm["ready"]?.GetValue<bool>() == true && ManagedInternetAccounts.MailWindows(warm, hide: false) == 0,
+                    "Warm profile startup failed or exposed a mail window.");
+                var after = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "status" }, timeout.Token, managed: true);
+                after["bereit"] = true;
+                TestAssert.That(ManagedAccountOperations.Project(after).Revision == before, "Warm startup changed account state.");
+                Console.WriteLine("Warm account profile restart confirmed; account state preserved.");
+            }
             if (lifecycle)
             {
                 TestAssert.That(Path.GetFileName(profile).StartsWith("accounts38-lifecycle-", StringComparison.Ordinal), "Fixture profile required.");

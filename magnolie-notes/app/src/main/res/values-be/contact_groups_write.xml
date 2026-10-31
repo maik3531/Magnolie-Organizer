@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Дазволіць гэтаму камп’ютару змяняць групы кантактаў</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Можна змяняць толькі прыналежнасць існуючых кантактаў да груп. Іншыя даныя кантактаў і сістэмныя групы застаюцца нязменнымі.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Дазволіць гэтаму камп’ютару змяняць даныя кантактаў</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Групы, нумары тэлефонаў і адрасы электроннай пошты існуючых кантактаў сінхранізуюцца аўтаматычна.</string>
 </resources>

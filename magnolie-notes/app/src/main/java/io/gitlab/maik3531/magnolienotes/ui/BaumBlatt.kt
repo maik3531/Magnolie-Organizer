@@ -335,7 +335,7 @@ fun BaumBlatt(
                     { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })
                 Text(stringResource(R.string.telefon_kontakte_lesen_hinweis), fontSize = 12.sp)
                 if (telefon.peer?.contacts_read_enabled == true) {
-                    Schalterzeile(stringResource(R.string.telefon_kontaktgruppen_schreiben), telefon.peer?.contact_groups_write_enabled == true,
+                    Schalterzeile(stringResource(R.string.telefon_kontaktgruppen_schreiben), telefon.peer?.contacts_write_enabled == true,
                         { enabled -> telefon.peer?.let { telefonHandlungen.beiKontaktgruppenSchreiben(it.device_id, it.static_public, enabled) } })
                     Text(stringResource(R.string.telefon_kontaktgruppen_schreiben_hinweis), fontSize = 12.sp)
                 }

@@ -154,6 +154,10 @@ class KontaktProviderRegressionTest {
                            selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
             val columns = requireNotNull(projection)
             val values: List<Map<String, Any?>> = when (uri.pathSegments.first()) {
+                // This fixture models only portable contact rows, not Groups.
+                // Unknown URIs must not masquerade as readable group metadata
+                // by returning unrelated Data rows with the requested columns.
+                "groups" -> throw UnsupportedOperationException("Groups are not implemented by this fixture")
                 "raw_contacts" -> rawIds.filter { uri.pathSegments.size == 1 || it.toString() == uri.lastPathSegment }
                     .map { mapOf(RawContacts._ID to it, RawContacts.CONTACT_ID to it, RawContacts.VERSION to versions.getValue(it)) }
                 "contacts" -> rawIds.map { mapOf(ContactsContract.Contacts._ID to it,

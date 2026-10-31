@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.*
 import android.content.pm.ProviderInfo
 import android.database.Cursor
+import android.database.CursorWrapper
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.provider.ContactsContract
@@ -18,6 +19,7 @@ import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
 import io.gitlab.maik3531.magnolienotes.daten.Partner
 import io.gitlab.maik3531.magnolienotes.telefon.ContactGroupWrite
 import io.gitlab.maik3531.magnolienotes.telefon.ContactGroupWriteAndroid
+import io.gitlab.maik3531.magnolienotes.telefon.ContactGroupProbe
 import kotlinx.serialization.json.*
 import org.robolectric.Shadows.shadowOf
 import javax.crypto.spec.SecretKeySpec
@@ -202,6 +204,111 @@ class KontaktGruppenProviderTest {
         assertEquals(listOf("Coworkers"), contacts.liesRaw(other.rawContactId)!!.daten.gruppen)
     }
 
+    @Test fun debugGroupProbeReadsActualProviderWithoutWritesOrTicketLoss() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val owner = Any(); val writer = groupWriter()
+        val prepare = groupRequest("prepare", saved.lookupKey)
+        val ticket = writer.execute(prepare, owner)["token"]!!.jsonPrimitive.content
+        val probe = JsonObject(prepare + mapOf("version" to JsonPrimitive(ContactGroupProbe.VERSION), "action" to JsonPrimitive("diagnostics")))
+        val batches = provider.batchCalls; val memberships = provider.memberIds(saved.rawContactId)
+        val available = writer.diagnose(probe)
+        assertEquals("available", available["state"]!!.jsonPrimitive.content)
+        assertEquals(batches, provider.batchCalls)
+        assertEquals(memberships, provider.memberIds(saved.rawContactId))
+        provider.groupsMime = null
+        val missingHint = writer.diagnose(probe)
+        assertEquals("available", missingHint["state"]!!.jsonPrimitive.content)
+        assertFalse(missingHint["mime_supported"]!!.jsonPrimitive.boolean)
+        assertTrue(missingHint["reader_complete"]!!.jsonPrimitive.boolean)
+        assertEquals(1, missingHint["raw_count"]!!.jsonPrimitive.int)
+        assertEquals(1, missingHint["version_count"]!!.jsonPrimitive.int)
+        assertEquals(batches, provider.batchCalls)
+        assertEquals(memberships, provider.memberIds(saved.rawContactId))
+        // A debug probe must not clear a different live user's prepared ticket.
+        assertEquals("saved", writer.execute(groupRequest("apply", saved.lookupKey, ticket, listOf("Work")), owner)["state"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun actualGroupQueriesRemainRequiredWhenTheMimeHintIsMissing() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        provider.groupsMime = null; provider.groupsUnavailable = true
+        val before = provider.memberIds(saved.rawContactId); val batches = provider.batchCalls
+        val request = JsonObject(groupRequest("prepare", saved.lookupKey) + mapOf(
+            "version" to JsonPrimitive(ContactGroupProbe.VERSION), "action" to JsonPrimitive("diagnostics")))
+        val result = groupWriter().diagnose(request)
+        assertEquals("failed", result["state"]!!.jsonPrimitive.content)
+        assertFalse(result["reader_complete"]!!.jsonPrimitive.boolean)
+        assertEquals(before, provider.memberIds(saved.rawContactId))
+        assertEquals(batches, provider.batchCalls)
+    }
+
+    @Test fun debugGroupProbeIdentifiesDanglingMembershipsWithoutChangingThem() {
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        provider.member(saved.rawContactId, 999999)
+        val before = provider.memberIds(saved.rawContactId); val batches = provider.batchCalls
+        val request = JsonObject(groupRequest("prepare", saved.lookupKey) + mapOf(
+            "version" to JsonPrimitive(ContactGroupProbe.VERSION), "action" to JsonPrimitive("diagnostics")))
+        val report = groupWriter().diagnose(request)
+        assertEquals("failed", report["state"]!!.jsonPrimitive.content)
+        assertEquals("groups", report["stage"]!!.jsonPrimitive.content)
+        assertEquals("contact_groups_incomplete", report["reason"]!!.jsonPrimitive.content)
+        assertTrue(report["mime_supported"]!!.jsonPrimitive.boolean)
+        assertFalse(report["reader_complete"]!!.jsonPrimitive.boolean)
+        assertEquals(before, provider.memberIds(saved.rawContactId))
+        assertEquals(batches, provider.batchCalls)
+    }
+
+    @Test fun numericTextVersionsStillBindRealProviderWritesAndRejectConcurrentChanges() {
+        provider.versionStrings = true
+        val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val writer = groupWriter(); val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val report = writer.execute(groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work")), owner)
+        assertEquals(listOf("Work"), ContactGroupWrite.names(report, "groups"))
+        val stale = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        provider.bump(saved.rawContactId)
+        assertThrows(IllegalArgumentException::class.java) {
+            writer.execute(groupRequest("apply", saved.lookupKey, stale["token"]!!.jsonPrimitive.content, listOf("Family")), owner)
+        }
+        assertEquals(listOf("Work"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+        assertFalse(provider.hasGroup("Family"))
+    }
+
+    @Test fun linkedMessagingOverlayDoesNotBlockWritingTheUniqueGroupOwningAccount() {
+        val own = AndroidKontakte(context, android.accounts.Account("owned@example.invalid", "synthetic-provider"))
+        val messaging = AndroidKontakte(context, android.accounts.Account("messenger", "overlay-provider"))
+        val saved = own.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
+        val overlay = messaging.anlegen(KontaktDaten(vorname = "Overlay name", notiz = "Preserve overlay"))
+        provider.aggregate(overlay.rawContactId, saved.contactId)
+        val before = AndroidKontakte(context, rawScope = setOf(overlay.rawContactId)).liesRaw(overlay.rawContactId)!!
+        val writer = groupWriter(); val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        assertEquals("owned@example.invalid", prepared["account"]!!.jsonObject["name"]!!.jsonPrimitive.content)
+        val report = writer.execute(groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work")), owner)
+        assertEquals(listOf("Work"), ContactGroupWrite.names(report, "groups"))
+        assertEquals(before, AndroidKontakte(context, rawScope = setOf(overlay.rawContactId)).liesRaw(overlay.rawContactId))
+        assertEquals(listOf("Work"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
+        assertTrue(provider.memberIds(overlay.rawContactId).isEmpty())
+    }
+
+    @Test fun liveGroupTicketReportsExactAccountAndRejectsMultiAccountAggregates() {
+        val own = AndroidKontakte(context, android.accounts.Account("owned@example.invalid", "synthetic-provider"))
+        val foreign = AndroidKontakte(context, android.accounts.Account("other@example.invalid", "synthetic-provider"))
+        val saved = own.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Family")))
+        val writer = groupWriter(); val owner = Any()
+        val prepared = writer.execute(groupRequest("prepare", saved.lookupKey), owner)
+        val expected = buildJsonObject { put("name", "owned@example.invalid"); put("type", "synthetic-provider"); put("data_set", "") }
+        assertEquals(expected, prepared["account"])
+        val report = writer.execute(groupRequest("apply", saved.lookupKey, prepared["token"]!!.jsonPrimitive.content, listOf("Work")), owner)
+        assertEquals(expected, report["account"])
+        val other = foreign.anlegen(KontaktDaten(vorname = "Other account", gruppen = listOf("Family")))
+        val ownMemberships = provider.memberIds(saved.rawContactId)
+        val otherMemberships = provider.memberIds(other.rawContactId)
+        provider.aggregate(other.rawContactId, saved.contactId)
+        assertThrows(IllegalArgumentException::class.java) { writer.execute(groupRequest("prepare", saved.lookupKey), owner) }
+        assertEquals(ownMemberships, provider.memberIds(saved.rawContactId))
+        assertEquals(otherMemberships, provider.memberIds(other.rawContactId))
+    }
+
     @Test fun liveGroupTicketRejectsWrongSessionProviderChangesAndPermissionRevocation() {
         val saved = contacts.anlegen(KontaktDaten(vorname = "Synthetic", gruppen = listOf("Coworkers")))
         val owner = Any(); val writer = groupWriter()
@@ -266,25 +373,37 @@ class KontaktGruppenProviderTest {
         assertEquals(listOf("Coworkers"), contacts.liesRaw(saved.rawContactId)!!.daten.gruppen)
     }
 
-    private class GroupProvider : ContentProvider() {
+    class GroupProvider : ContentProvider() {
         private lateinit var db: SQLiteDatabase
         var beforeBatch: (() -> Unit)? = null
         var failAt = -1
+        var groupsMime: String? = Groups.CONTENT_TYPE
+        var batchCalls = 0
+        var versionStrings = false
+        var groupsUnavailable = false
         override fun onCreate(): Boolean {
             db = SQLiteDatabase.create(null)
             db.execSQL("CREATE TABLE raw_contacts (_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_id INTEGER, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, version INTEGER DEFAULT 1, deleted INTEGER DEFAULT 0, aggregation_mode INTEGER)")
             db.execSQL("CREATE TABLE contacts (_id INTEGER PRIMARY KEY, lookup TEXT, is_user_profile INTEGER DEFAULT 0, contact_last_updated_timestamp INTEGER DEFAULT 1000)")
-            db.execSQL("CREATE TABLE contact_groups (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, deleted INTEGER DEFAULT 0, auto_add INTEGER DEFAULT 0, favorites INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE contact_groups (_id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, account_name TEXT, account_type TEXT, data_set TEXT, sourceid TEXT, deleted INTEGER DEFAULT 0, auto_add INTEGER DEFAULT 0, favorites INTEGER DEFAULT 0, group_is_read_only INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE data (_id INTEGER PRIMARY KEY AUTOINCREMENT, raw_contact_id INTEGER, mimetype TEXT, " +
-                (1..14).joinToString { "data$it TEXT" } + ", data15 BLOB, " + (1..4).joinToString { "sync$it TEXT" } + ", is_primary INTEGER DEFAULT 0, is_super_primary INTEGER DEFAULT 0)")
+                (1..14).joinToString { "data$it TEXT" } + ", data15 BLOB, " + (1..4).joinToString { "sync$it TEXT" } + ", " +
+                listOf(Data.SYNC1, Data.SYNC2, Data.SYNC3, Data.SYNC4).joinToString { "$it TEXT" } +
+                ", is_primary INTEGER DEFAULT 0, is_super_primary INTEGER DEFAULT 0)")
             return true
         }
         private fun table(uri: Uri) = if (uri.pathSegments.first() == "groups") "contact_groups" else uri.pathSegments.first()
         private fun selection(uri: Uri, where: String?): String? = listOfNotNull(
             uri.lastPathSegment?.toLongOrNull()?.let { "_id=$it" }, where?.let { "($it)" }).joinToString(" AND ").ifBlank { null }
-        override fun getType(uri: Uri): String? = if (uri.pathSegments.first() == "groups") Groups.CONTENT_TYPE else null
-        override fun query(uri: Uri, projection: Array<out String>?, where: String?, args: Array<out String>?, order: String?): Cursor =
-            db.query(table(uri), projection, selection(uri, where), args, null, null, order)
+        override fun getType(uri: Uri): String? = if (uri.pathSegments.first() == "groups") groupsMime else null
+        override fun query(uri: Uri, projection: Array<out String>?, where: String?, args: Array<out String>?, order: String?): Cursor {
+            if (groupsUnavailable && table(uri) == "contact_groups") throw UnsupportedOperationException("Groups query unavailable")
+            val cursor = db.query(table(uri), projection, selection(uri, where), args, null, null, order)
+            return if (versionStrings && table(uri) == "raw_contacts") object : CursorWrapper(cursor) {
+                override fun getType(index: Int): Int = if (getColumnName(index) == RawContacts.VERSION &&
+                    super.getType(index) == Cursor.FIELD_TYPE_INTEGER) Cursor.FIELD_TYPE_STRING else super.getType(index)
+            } else cursor
+        }
         override fun insert(uri: Uri, values: ContentValues?): Uri {
             val table = table(uri); val copy = ContentValues(requireNotNull(values))
             val id = db.insertOrThrow(table, null, copy)
@@ -306,6 +425,7 @@ class KontaktGruppenProviderTest {
             return count
         }
         override fun applyBatch(operations: ArrayList<ContentProviderOperation>): Array<ContentProviderResult> {
+            batchCalls++
             beforeBatch?.also { beforeBatch = null }?.invoke()
             db.beginTransaction()
             try {

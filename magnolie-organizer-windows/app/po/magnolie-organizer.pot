@@ -4231,6 +4231,9 @@ msgstr ""
 msgid "Please create a notebook in another group first."
 msgstr ""
 
+msgid "Please enter a different group name."
+msgstr ""
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr ""
 
@@ -4609,6 +4612,14 @@ msgid ""
 "to anyone."
 msgstr ""
 
+msgid "Rename"
+msgstr ""
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr ""
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -4695,6 +4706,9 @@ msgid "Retrieving holidays …"
 msgstr ""
 
 msgid "Retrieving weather…"
+msgstr ""
+
+msgid "Retry"
 msgstr ""
 
 msgid "Review and enable"
@@ -5292,6 +5306,9 @@ msgid "Status"
 msgstr ""
 
 msgid "Stop"
+msgstr ""
+
+msgid "Stop retrying"
 msgstr ""
 
 msgid "Street"

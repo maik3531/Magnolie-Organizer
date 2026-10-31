@@ -783,6 +783,9 @@ msgstr "Adresser"
 msgid "Advanced"
 msgstr "Avanceret"
 
+msgid "Advanced functions"
+msgstr "Avancerede funktioner"
+
 msgid "After exercise"
 msgstr "Efter motion"
 
@@ -4682,8 +4685,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6-import: aftaler, opgaver, kontakter og noter som almindelig tekst. Kontrollerede endelige aftaleserier, medlemskaber af kontaktgrupper og kendte telefontyper bevares. Enkle planlæggerperioder og årlige mærkedage bevares; engangsmærkedage bliver heldagsaftaler, opkalds- og webposter tekstnoter. Ikke-understøttede poster, layout, vedhæftninger og alarmer overføres ikke."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: aftaler, opgaver, kontakter og noter som almindelig tekst. "
+"Kontrollerede endelige aftaleserier, medlemskaber af kontaktgrupper og "
+"kendte telefontyper bevares. Enkle planlæggerperioder og årlige mærkedage "
+"bevares; engangsmærkedage bliver heldagsaftaler, opkalds- og webposter "
+"tekstnoter. Ikke-understøttede poster, layout, vedhæftninger og alarmer "
+"overføres ikke."
 
 msgid "Objects"
 msgstr "Objekter"
@@ -5277,6 +5292,9 @@ msgstr "Afspilningsposition"
 msgid "Please create a notebook in another group first."
 msgstr "Opret først en notesbog i en anden gruppe."
 
+msgid "Please enter a different group name."
+msgstr "Indtast et andet gruppenavn."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Indtast et firecifret årstal fra og med 1000."
 
@@ -5313,7 +5331,9 @@ msgstr "Indtast internet-IP og fingeraftryk fuldstændigt."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Angiv din e-mailadresse som betalingsreference, da ContributorKey ellers ikke kan sendes til dig."
+msgstr ""
+"Angiv din e-mailadresse som betalingsreference, da ContributorKey ellers "
+"ikke kan sendes til dig."
 
 msgid "Please select a PDF file."
 msgstr "Vælg en PDF-fil."
@@ -5732,6 +5752,14 @@ msgstr ""
 "Fjern „%(name)s“? Personens opgaver bevares, men vil ikke længere være "
 "tildelt nogen."
 
+msgid "Rename"
+msgstr "Omdøb"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Omdøber gruppen for denne konto på telefonen for alle dens medlemmer. Medlemskaberne bevares."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5865,6 +5893,9 @@ msgstr "Hentning af vejr mislykkedes (%s)."
 
 msgid "Retrieving weather…"
 msgstr "Henter vejr…"
+
+msgid "Retry"
+msgstr "Prøv igen"
 
 msgid "Review and enable"
 msgstr "Kontrollér og aktivér"
@@ -6414,6 +6445,9 @@ msgstr "Vis ugenumre i månedsvisningen"
 msgid "Show week numbers in the planner"
 msgstr "Vis ugenumre i planlæggeren"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Vis »Forbind telefon via WLAN« i statusområdets menu"
+
 msgctxt "time tracking"
 msgid "Signature"
 msgstr "Underskrift"
@@ -6571,6 +6605,9 @@ msgstr "Status"
 
 msgid "Stop"
 msgstr "Stop"
+
+msgid "Stop retrying"
+msgstr "Stop forsøg"
 
 msgid "Street"
 msgstr "Gade"
@@ -9718,11 +9755,3 @@ msgstr "＋ Tilføj aftale"
 #~ "serienummer og IMEI. Fra Android 10 er hardwareidentifikatorer begrænset "
 #~ "for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig "
 #~ "rolle anmodes."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Avancerede funktioner"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Vis »Forbind telefon via WLAN« i statusområdets menu"

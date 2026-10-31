@@ -817,9 +817,12 @@ internal sealed partial class BridgeDispatcher
         }
         catch (Exception error)
         {
-            await ReportErrorAsync("sync", error.ToString());
+            var diagnostic = error.ToString();
+            if (error is System.Net.Http.HttpRequestException { StatusCode: { } status })
+                diagnostic = "http_status=" + ((int)status).ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + diagnostic;
+            await ReportErrorAsync("sync", diagnostic);
             if (Boolean(message, "mcp")) await form.SendAsync("App.syncMcpFehler", new { nativeId = Text(message, "transactionId"), code = "native_operation_failed" });
-            else await form.SendAsync("App.syncFehler", NextcloudStatusText.For(error));
+            else await form.SendAsync("App.syncFehler", T("Synchronization failed."));
         }
         finally
         {
@@ -944,6 +947,99 @@ internal sealed partial class BridgeDispatcher
         catch (ObjectDisposedException) { }
     }
 
+    private async Task ContactGroupTitleAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId"); var device = Text(message, "device_id");
+        if (!TelefonProtocolContract.IsUuidV4(requestId) || !device.StartsWith("notes:", StringComparison.Ordinal) || device.Length > 200) return;
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_group_title_not_granted");
+            var body = new JsonObject { ["version"] = PhoneContactGroupTitleWrite.Version, ["request_id"] = requestId,
+                ["action"] = Text(message, "action"), ["uid"] = Text(message, "uid"),
+                ["old_title"] = Text(message, "old_title"), ["new_title"] = Text(message, "new_title") };
+            if (Text(message, "action") == "apply") body["token"] = Text(message, "token");
+            else if (Text(message, "action") == "inspect")
+            {
+                body["group_id"] = Text(message, "group_id");
+                body["account"] = message.TryGetProperty("account", out var account) ? JsonNode.Parse(account.GetRawText()) : null;
+            }
+            using var deadline = NetworkDeadline(TimeSpan.FromSeconds(8));
+            var result = await telefon.ContactGroupTitleAsync(device[6..], Text(message, "fingerprint"), body, deadline.Token);
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_group_title_not_granted");
+            result["ok"] = true; result["requestId"] = requestId; result["device_id"] = device; result["fingerprint"] = Text(message, "fingerprint");
+            await form.SendAsync("App.kontaktGruppenTitelErgebnis", result);
+        }
+        catch (Exception error)
+        {
+            var code = error is TimeoutException or OperationCanceledException ? "contact_group_title_timeout" :
+                error.Message is "contact_group_title_not_granted" or "contact_groups_not_granted" ? "contact_group_title_not_granted" :
+                error.Message == "contact_groups_stale" ? "contact_group_title_stale" :
+                error.Message == "contact_groups_busy" ? "contact_group_title_busy" : "contact_group_title_failed";
+            await form.SendAsync("App.kontaktGruppenTitelErgebnis", new { ok = false, requestId, code });
+        }
+    }
+
+    private async Task ContactValuesAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId"); var device = Text(message, "device_id");
+        if (!TelefonProtocolContract.IsUuidV4(requestId) || !device.StartsWith("notes:", StringComparison.Ordinal) || device.Length > 200) return;
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_values_not_granted");
+            var body = new JsonObject { ["version"] = PhoneContactValueWrite.Version, ["request_id"] = requestId,
+                ["action"] = Text(message, "action"), ["uid"] = Text(message, "uid") };
+            if (Text(message, "action") == "prepare")
+                body["field_names"] = message.TryGetProperty("field_names", out var names) ? JsonNode.Parse(names.GetRawText()) : null;
+            else if (Text(message, "action") == "apply")
+            {
+                body["token"] = Text(message, "token");
+                body["fields"] = message.TryGetProperty("fields", out var fields) ? JsonNode.Parse(fields.GetRawText()) : null;
+            }
+            using var deadline = NetworkDeadline(TimeSpan.FromSeconds(8));
+            var result = await telefon.ContactValuesAsync(device[6..], Text(message, "fingerprint"), body, deadline.Token);
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_values_not_granted");
+            result["ok"] = true; result["requestId"] = requestId; result["device_id"] = device; result["fingerprint"] = Text(message, "fingerprint");
+            await form.SendAsync("App.kontaktWerteErgebnis", result);
+        }
+        catch (Exception error)
+        {
+            var code = error is TimeoutException or OperationCanceledException ? "contact_values_timeout" :
+                error.Message is "contact_values_not_granted" or "contact_groups_not_granted" ? "contact_values_not_granted" :
+                error.Message == "contact_groups_stale" ? "contact_values_stale" :
+                error.Message == "contact_groups_busy" ? "contact_values_busy" : "contact_values_failed";
+            await form.SendAsync("App.kontaktWerteErgebnis", new { ok = false, requestId, code });
+        }
+    }
+
+    private async Task ContactGroupsAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId"); var device = Text(message, "device_id");
+        if (!TelefonProtocolContract.IsUuidV4(requestId) || !device.StartsWith("notes:", StringComparison.Ordinal) || device.Length > 200) return;
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_groups_not_granted");
+            var body = new JsonObject { ["version"] = Text(message, "action") == "diagnostics" ? PhoneContactRead.GroupProbeVersion : PhoneContactRead.GroupWriteVersion, ["request_id"] = requestId,
+                ["action"] = Text(message, "action"), ["uid"] = Text(message, "uid") };
+            if (Text(message, "action") == "apply")
+            {
+                body["token"] = Text(message, "token");
+                body["groups"] = message.TryGetProperty("groups", out var groups) ? JsonNode.Parse(groups.GetRawText()) : null;
+            }
+            using var deadline = NetworkDeadline(TimeSpan.FromSeconds(8));
+            var result = await telefon.ContactGroupsAsync(device[6..], Text(message, "fingerprint"), body, deadline.Token);
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("contact_groups_not_granted");
+            result["ok"] = true; result["requestId"] = requestId;
+            result["device_id"] = device; result["fingerprint"] = Text(message, "fingerprint");
+            await form.SendAsync("App.kontaktGruppenErgebnis", result);
+        }
+        catch (Exception error)
+        {
+            var code = error.Message is "contact_groups_not_granted" or "contact_groups_stale" or "contact_groups_busy" ? error.Message :
+                error is TimeoutException or OperationCanceledException ? "contact_groups_timeout" : "contact_groups_failed";
+            await form.SendAsync("App.kontaktGruppenErgebnis", new { ok = false, requestId, code });
+        }
+    }
+
     private async Task ReadContactPhotosAsync(JsonElement message, bool fullContacts = false)
     {
         var requestId = Text(message, "requestId");
@@ -972,9 +1068,11 @@ internal sealed partial class BridgeDispatcher
                     var parsed = ExchangeCodec.ParseVCard(item["vcard"]!.GetValue<string>());
                     if (parsed.Kontakte.Count != 1) throw new InvalidDataException("invalid_contact_vcard");
                     var contact = parsed.Kontakte[0]!.AsObject();
+                    item["werteVollstaendig"] = new JsonArray(PhoneContactValueWrite.ReadableFields(item["vcard"]!.GetValue<string>(), contact).Select(name => JsonValue.Create(name)).ToArray());
                     item.Remove("vcard");
                     foreach (var field in new[] { "foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien" })
-                        item[field] = contact[field]?.DeepClone();
+                        item[field] = field == "foto" && message.TryGetProperty("includePhoto", out var includePhoto) && includePhoto.ValueKind == JsonValueKind.False
+                            ? JsonValue.Create("") : contact[field]?.DeepClone();
                     item["gruppenZeilen"] = new JsonArray((contact["vcardRoundtrip"] as JsonArray ?? new JsonArray()).Where(line =>
                         System.Text.RegularExpressions.Regex.IsMatch(line?.GetValue<string>() ?? "", @"^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]",
                             System.Text.RegularExpressions.RegexOptions.IgnoreCase)).Select(line => line!.DeepClone()).ToArray());
@@ -1051,14 +1149,13 @@ internal sealed partial class BridgeDispatcher
             var transport = status?["online"]?.GetValue<bool>() == true ? status["transport"]?.GetValue<string>() ?? "offline" : "offline";
             var bluetoothAddress = status?["bluetooth_address"]?.GetValue<string>() ?? "";
             var personal = telefon.PersonalSettings(peer.Id);
-            peers.Add(new JsonObject
+            peers.Add(new JsonObject(PhoneContactRead.GuiAvailability(status))
             {
                 ["device_id"] = peer.Id,
                 ["display_name"] = peer.Name,
                 ["state"] = peer.State == "pair_commit_pending" ? "pair_commit_pending" : transport is "wifi" or "bluetooth" ? "online_" + transport : "offline",
                 ["transport"] = transport,
                 ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
-                ["contacts_read_available"] = status?["contacts_read_available"]?.GetValue<bool>() == true,
                 ["contacts_fingerprint"] = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(peer.PublicKey)).ToLowerInvariant(),
                 ["last_contact_ms"] = peer.LastSeenMs,
                 ["capabilities"] = new JsonObject { ["revision"] = peer.CapabilityRevision,

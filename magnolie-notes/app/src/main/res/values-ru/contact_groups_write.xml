@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Разрешить этому компьютеру изменять группы контактов</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Можно изменять только принадлежность существующих контактов к группам. Другие данные контактов и системные группы сохраняются.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Разрешить этому компьютеру изменять данные контактов</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Группы, номера телефонов и адреса электронной почты существующих контактов синхронизируются автоматически.</string>
 </resources>

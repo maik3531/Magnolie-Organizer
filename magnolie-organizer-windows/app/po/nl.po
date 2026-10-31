@@ -586,6 +586,9 @@ msgstr "Adressen"
 msgid "Advanced"
 msgstr "Geavanceerd"
 
+msgid "Advanced functions"
+msgstr "Geavanceerde functies"
+
 msgid "After exercise"
 msgstr "Na het sporten"
 
@@ -3978,8 +3981,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6-import: afspraken, taken, contacten en notities als platte tekst. Gecontroleerde eindige afspraakreeksen, contactgroepslidmaatschappen en bekende telefoontypen blijven behouden. Eenvoudige plannerperioden en jaarlijkse gedenkdagen blijven behouden; eenmalige gedenkdagen worden dagafspraken, oproep- en webgegevens tekstnotities. Niet-ondersteunde items, opmaak, bijlagen en alarmen worden niet overgenomen."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: afspraken, taken, contacten en notities als platte tekst. "
+"Gecontroleerde eindige afspraakreeksen, contactgroepslidmaatschappen en "
+"bekende telefoontypen blijven behouden. Eenvoudige plannerperioden en "
+"jaarlijkse gedenkdagen blijven behouden; eenmalige gedenkdagen worden "
+"dagafspraken, oproep- en webgegevens tekstnotities. Niet-ondersteunde items, "
+"opmaak, bijlagen en alarmen worden niet overgenomen."
 
 msgid "Objects"
 msgstr "Objecten"
@@ -4517,6 +4532,9 @@ msgstr "Afspeelpositie"
 msgid "Please create a notebook in another group first."
 msgstr "Maak eerst een notitieboek in een andere groep."
 
+msgid "Please enter a different group name."
+msgstr "Voer een andere groepsnaam in."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Voer een viercijferig jaar vanaf 1000 in."
 
@@ -4553,7 +4571,9 @@ msgstr "Voer het internet-IP en de vingerafdruk volledig in."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Vermeld je e-mailadres in de betalingsomschrijving; anders kan de ContributorKey niet naar je worden verzonden."
+msgstr ""
+"Vermeld je e-mailadres in de betalingsomschrijving; anders kan de "
+"ContributorKey niet naar je worden verzonden."
 
 msgid "Please select a PDF file."
 msgstr "Selecteer een PDF-bestand."
@@ -4915,6 +4935,14 @@ msgstr ""
 "‘%(name)s’ verwijderen? De bijbehorende taken blijven behouden, maar worden "
 "niet meer aan iemand toegewezen."
 
+msgid "Rename"
+msgstr "Hernoemen"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Wijzigt de naam van de groep van dit telefoonaccount voor alle leden. De lidmaatschappen blijven behouden."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5015,6 +5043,9 @@ msgstr "Feestdagen ophalen …"
 
 msgid "Retrieving weather…"
 msgstr "Weer ophalen…"
+
+msgid "Retry"
+msgstr "Opnieuw proberen"
 
 msgid "Review and enable"
 msgstr "Controleren en inschakelen"
@@ -5475,6 +5506,9 @@ msgstr "Weeknummers in de maandweergave tonen"
 msgid "Show week numbers in the planner"
 msgstr "Weeknummers in de planner tonen"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "‘Telefoon via WLAN verbinden’ in het systeemvakmenu tonen"
+
 msgid "Sign in to Microsoft"
 msgstr "Meld u aan bij Microsoft"
 
@@ -5631,6 +5665,9 @@ msgstr "Status"
 
 msgid "Stop"
 msgstr "Stoppen"
+
+msgid "Stop retrying"
+msgstr "Niet meer proberen"
 
 msgid "Street"
 msgstr "Straat"
@@ -8381,11 +8418,3 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Geavanceerde functies"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "‘Telefoon via WLAN verbinden’ in het systeemvakmenu tonen"

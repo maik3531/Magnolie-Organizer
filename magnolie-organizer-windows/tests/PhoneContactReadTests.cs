@@ -89,6 +89,8 @@ internal static class PhoneContactReadTests
 
     internal static async Task<int> HostAsync()
     {
+        var valueUid = Environment.GetEnvironmentVariable("PHONE_TEST_VALUES_UID");
+        var titleUid = Environment.GetEnvironmentVariable("PHONE_TEST_GROUP_TITLE_UID");
         var phone = Environment.GetEnvironmentVariable("PHONE_TEST_DEVICE_ID") ?? "22222222-2222-4222-8222-222222222222";
         var root = Path.Combine(Path.GetTempPath(), "contact-read-host-" + Guid.NewGuid().ToString("N"));
         try
@@ -97,8 +99,9 @@ internal static class PhoneContactReadTests
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
             typeof(TelefonStore).GetMethod("SaveIdentity", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(store,
                 [store.LoadOrCreateIdentity() with { Id = "11111111-1111-4111-8111-111111111111" }]);
+            var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
             var peer = new TelefonPeer(phone, "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray(),
-                CapabilityRevision: 1, StoredCapabilities: TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject(),
+                CapabilityRevision: 1, StoredCapabilities: capabilities,
                 GrantRevision: 1, StoredGrants: TelefonProtocolContract.DesktopGrants());
             store.SavePeers([peer]); store.SetPersonalSettings(phone, ownDevice: true, remoteOwnDevice: false);
             store.InitializeSharedSettings(phone, peer.PublicKey, SharedSyncSettings.Effective(
@@ -113,6 +116,16 @@ internal static class PhoneContactReadTests
             var handler = typeof(TelefonCoordinator).GetMethod("HandleMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
             using var connection = new TelefonConnection(peer, socket.GetStream(), Enumerable.Repeat((byte)7, 32).ToArray(), material, store,
                 (source, message) => (Task<TelefonAck?>)handler.Invoke(coordinator, [source, message, "wifi"])!, deadline.Token, "wifi");
+            var groupHandler = typeof(TelefonCoordinator).GetMethod("AcceptContactGroupRead", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var discardTitleSave = !string.IsNullOrEmpty(titleUid);
+            connection.ContactGroupReportReceived = (source, message) => {
+                if (discardTitleSave && message["body"]?["version"]?.GetValue<int>() == 20 && message["body"]?["action"]?.GetValue<string>() == "apply")
+                {
+                    discardTitleSave = false; // Simulate a lost result after the provider has actually saved it.
+                    return new TelefonAck(message["message_id"]!.GetValue<string>(), "accepted", "none");
+                }
+                return (TelefonAck)groupHandler.Invoke(coordinator, [source, peer, message])!;
+            };
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator)
                 .GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[phone] = connection;
@@ -120,13 +133,26 @@ internal static class PhoneContactReadTests
             try
             {
                 TestAssert.That(!coordinator.ContactReadAvailable(phone), "Stored capabilities enabled contact access before fresh session controls.");
-                await connection.SendCapabilitiesAsync(1); await connection.SendGrantsAsync(1, store.LocalGrants());
+                await connection.SendCapabilitiesAsync(1);
+                await connection.SendGrantsAsync(1, store.LocalGrants());
                 await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }, 60_000);
                 while (!connection.ContactReadReady)
                 {
                     if (receive.IsCompleted) await receive;
                     await Task.Delay(5, deadline.Token);
                 }
+                if (!string.IsNullOrEmpty(titleUid))
+                    await PhoneContactGroupTitleWriteTests.TransportRoundTripAsync(coordinator, peer, titleUid, deadline.Token);
+                else if (!string.IsNullOrEmpty(valueUid))
+                    await PhoneContactValueWriteTests.TransportRoundTripAsync(coordinator, peer, valueUid, deadline.Token);
+                else if (Environment.GetEnvironmentVariable("PHONE_TEST_GROUP_UID") is { Length: > 0 } groupUid)
+                {
+                    while (!coordinator.ContactGroupsAvailable(phone)) await Task.Delay(5, deadline.Token);
+                    if (Environment.GetEnvironmentVariable("PHONE_TEST_GROUP_PROBE") == "1")
+                        await PhoneContactGroupTests.TransportProbeAsync(coordinator, peer, groupUid, deadline.Token);
+                    else await PhoneContactGroupTests.TransportRoundTripAsync(coordinator, peer, groupUid, deadline.Token);
+                }
+                else {
                 var index = await coordinator.ReadContactsAsync(phone, null, deadline.Token);
                 TestAssert.That(index["contacts"]!.AsArray().Count == 130 && index["device_id"]!.GetValue<string>() == "notes:" + phone,
                     "Paged Notes contact index was incomplete or attributed to KDE.");
@@ -143,6 +169,16 @@ internal static class PhoneContactReadTests
                     TestAssert.That(cards["contacts"]![0]!["bindung"]!.GetValue<string>().StartsWith("urn:magnolie:import:notes:", StringComparison.Ordinal),
                         "Notes preview lacks its own authenticated source binding.");
                 }
+                }
+                // Resource completion precedes its transport ACK. Fence the wire
+                // before testing revocation/closing, not by an arbitrary delay.
+                var pong = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var pingId = Guid.NewGuid().ToString("D");
+                connection.ControlPongObserved = (_, value) => { if (value["ping_id"]?.GetValue<string>() == pingId) pong.TrySetResult(); };
+                var send = typeof(TelefonConnection).GetMethod("SendPlainAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                await (Task)send.Invoke(connection, [new JsonObject { ["type"] = "ping", ["ping_id"] = pingId,
+                    ["sent_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }])!;
+                await pong.Task.WaitAsync(TimeSpan.FromSeconds(5), deadline.Token);
                 TestAssert.That(store.LoadStatus(phone) is null, "A contact response leaked into ordinary device-status history.");
                 var confirmed = store.LoadPeers().Single();
                 store.SavePeers([confirmed with { State = "pair_commit_pending" }]);
@@ -153,8 +189,9 @@ internal static class PhoneContactReadTests
                 TestAssert.That(!coordinator.ContactReadAvailable(phone), "Feature-grant revocation left contact access enabled.");
                 try { await coordinator.ReadContactsAsync(phone, null, deadline.Token); throw new Exception("Revoked contact read reached the network."); }
                 catch (InvalidOperationException) { }
-                var send = typeof(TelefonConnection).GetMethod("SendPlainAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 await (Task)send.Invoke(connection, [new JsonObject { ["type"] = "close", ["reason"] = "normal" }])!;
+                socket.Client.Shutdown(SocketShutdown.Send);
+                try { await receive.WaitAsync(TimeSpan.FromSeconds(5), deadline.Token); } catch (IOException) { }
                 Console.WriteLine("C# Notes contact paging, photo, messenger preview, source binding and revocation passed.");
             }
             finally

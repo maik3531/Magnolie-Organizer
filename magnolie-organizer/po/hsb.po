@@ -869,6 +869,9 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Rozšěrjene"
 
+msgid "Advanced functions"
+msgstr "Rozšěrjene funkcije"
+
 msgid "After exercise"
 msgstr "Po ćělesnym ćwicjenju"
 
@@ -4778,8 +4781,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "W porjadku"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6-import: terminy, nadawki, kontakty a tekst noticow. Přepruwowane skónčne serije terminow, čłonstwo w kontaktnych skupinach a znate typy telefonowych čisłow so zachowaja. Jednore časowe wotrězki planowaka a lětnje wjetowane wročnicy so zachowaja; jónkróćne wročnicy budu cyłodnjowske terminy, zapiski zawołanjow a webstronow tekstowe noticy. Njepodpěrane zapiski, wuhotowanje, přiwěški a dopomnjenki so njepřenjesu."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: terminy, nadawki, kontakty a tekst noticow. Přepruwowane skónčne "
+"serije terminow, čłonstwo w kontaktnych skupinach a znate typy telefonowych "
+"čisłow so zachowaja. Jednore časowe wotrězki planowaka a lětnje wjetowane "
+"wročnicy so zachowaja; jónkróćne wročnicy budu cyłodnjowske terminy, zapiski "
+"zawołanjow a webstronow tekstowe noticy. Njepodpěrane zapiski, wuhotowanje, "
+"přiwěški a dopomnjenki so njepřenjesu."
 
 msgid "Objects"
 msgstr "Předmjety"
@@ -5398,6 +5413,9 @@ msgstr "Pozicija wothrawanja"
 msgid "Please create a notebook in another group first."
 msgstr "Prošu załožće najprjedy noticnik w druhej skupinje."
 
+msgid "Please enter a different group name."
+msgstr "Prošu zapodajće druhe mjeno skupiny."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Prošu zapodajće štyriměstnowe lěto wot 1000."
 
@@ -5434,7 +5452,9 @@ msgstr "Prošu zapodajće internetowu IP a porstowy wotćišć dospołnje."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Podaj swoju e-mejlowu adresu jako zaměr płaćenja, hewak so ContributorKey tebi připosłać njemóže."
+msgstr ""
+"Podaj swoju e-mejlowu adresu jako zaměr płaćenja, hewak so ContributorKey "
+"tebi připosłać njemóže."
 
 msgid "Please select a PDF file."
 msgstr "Prošu wubjerće PDF-dataj."
@@ -5862,6 +5882,14 @@ msgstr ""
 "„%(name)s“ wotstronić? Jeho/jeje nadawki so wobchowaja, ale njebudu hižo "
 "nikomu připokazane."
 
+msgid "Rename"
+msgstr "Přemjenować"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Přemjenuje skupinu tutoho telefonoweho konta za wšě jeje čłony. Čłonstwa so wobchowaja."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5996,6 +6024,9 @@ msgstr "Wotwołanje wjedra njeje so poradźiło (%s)."
 
 msgid "Retrieving weather…"
 msgstr "Wjedro so wotwołuje…"
+
+msgid "Retry"
+msgstr "Hišće raz spytać"
 
 msgid "Review and enable"
 msgstr "Přepruwować a aktiwizować"
@@ -6548,6 +6579,9 @@ msgstr "Tydźenske čisła w měsačnym napohladźe pokazać"
 msgid "Show week numbers in the planner"
 msgstr "Tydźenske čisła w planowaku pokazać"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "„Telefon přez WLAN zwjazać“ w meniju systemoweje lajsty pokazać"
+
 msgctxt "time tracking"
 msgid "Signature"
 msgstr "Podpismo"
@@ -6705,6 +6739,9 @@ msgstr "Staw"
 
 msgid "Stop"
 msgstr "Zastajić"
+
+msgid "Stop retrying"
+msgstr "Spytowanje skónčić"
 
 msgid "Street"
 msgstr "Hasa"
@@ -9883,11 +9920,3 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Rozšěrjene funkcije"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "„Telefon přez WLAN zwjazać“ w meniju systemoweje lajsty pokazać"

@@ -249,21 +249,22 @@ object KontaktSync {
         vcardName = fern.vcardName.ifEmpty { lokal.vcardName },
         foto = lokal.foto.ifBlank { fern.foto },
         telefone = vereinige(lokal.telefone, fern.telefone) { normalWert(it.wert) },
-        emailEintraege = vereinige(lokal.emailEintraege, fern.emailEintraege) { it.wert.trim().lowercase() },
+        emailEintraege = vereinige(lokal.emailEintraege, fern.emailEintraege) { normalEmail(it.wert) },
         anschriften = vereinige(lokal.anschriften, fern.anschriften) { anschriftSchluessel(it) },
         gruppen = fern.gruppen ?: lokal.gruppen
     )
 
     fun normalisiere(k: KontaktDaten) = k.copy(
         telefone = vereinige(emptyList(), k.telefone.filter { it.wert.isNotBlank() }) { normalWert(it.wert) },
-        emailEintraege = vereinige(emptyList(), k.emailEintraege.filter { it.wert.isNotBlank() }) { it.wert.trim().lowercase() },
+        emailEintraege = vereinige(emptyList(), k.emailEintraege.filter { it.wert.isNotBlank() }) { normalEmail(it.wert) },
         anschriften = vereinige(emptyList(), k.anschriften.filter { anschriftSchluessel(it).isNotBlank() }) { anschriftSchluessel(it) },
         gruppen = k.gruppen?.let(::normalisiereGruppen)
     )
 
     private fun <T> vereinige(a: List<T>, b: List<T>, schluessel: (T) -> String): List<T> =
         (a + b).distinctBy(schluessel)
-    private fun normalWert(s: String) = s.filter { it.isDigit() || it == '+' }.trimStart('+')
+    internal fun normalWert(s: String) = s.filter { it.isDigit() || it == '+' }.trimStart('+')
+    internal fun normalEmail(s: String) = s.trim().lowercase()
     private fun anschriftSchluessel(a: KontaktAnschrift) =
         listOf(a.strasse, a.plz, a.ort, a.region, a.land).joinToString("|") { it.trim().lowercase() }
 

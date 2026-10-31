@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Tillad denne computer at ændre kontaktgrupper</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Kun eksisterende kontakters gruppemedlemskaber kan ændres. Andre kontaktoplysninger og systemgrupper forbliver uændrede.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Tillad denne computer at ændre kontaktoplysninger</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Grupper, telefonnumre og e-mailadresser for eksisterende kontakter synkroniseres automatisk.</string>
 </resources>

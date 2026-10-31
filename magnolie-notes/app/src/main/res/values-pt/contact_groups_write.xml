@@ -1,4 +1,4 @@
 <resources>
-    <string name="telefon_kontaktgruppen_schreiben">Permitir que este computador altere os grupos de contactos</string>
-    <string name="telefon_kontaktgruppen_schreiben_hinweis">Só é possível alterar a pertença a grupos de contactos existentes. Os restantes dados dos contactos e os grupos do sistema são mantidos.</string>
+    <string name="telefon_kontaktgruppen_schreiben">Permitir que este computador altere os dados dos contactos</string>
+    <string name="telefon_kontaktgruppen_schreiben_hinweis">Os grupos, números de telefone e endereços de e-mail dos contactos existentes são sincronizados automaticamente.</string>
 </resources>

@@ -9,6 +9,11 @@ import android.provider.ContactsContract.RawContacts
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import java.text.Normalizer
 import java.util.Locale
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.security.MessageDigest
+import java.nio.CharBuffer
+import java.nio.charset.CodingErrorAction
 
 /** Account-bound native memberships, shared by reviewed contact writes and snapshots. */
 internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
@@ -22,6 +27,9 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
             .withValue(Groups.SOURCE_ID, sourceId).withExpectedCount(1).build()
     }
     data class Angebot(val benutzer: List<String>, val system: List<String>, val pruefungen: List<ContentProviderOperation>)
+    data class TitelPlan(val id: Long, val konto: Konto, val sourceId: String?, val vorher: String,
+                         val nachher: String, val pruefungen: List<ContentProviderOperation>, val identitaet: String)
+    data class TitelStand(val id: Long, val konto: Konto, val title: String, val identitaet: String)
     private data class Mitglied(val id: Long, val raw: Long, val group: Long)
     private fun key(value: String) = Normalizer.normalize(value.trim(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
 
@@ -38,7 +46,9 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
     }
 
     private fun groups(): List<Gruppe> {
-        require(resolver.getType(Groups.CONTENT_URI) == Groups.CONTENT_TYPE) { "contact_groups_unavailable" }
+        // Some Android providers expose the complete Groups query interface but
+        // return no/another MIME hint. Only the actual bounded query and its
+        // referenced definitions establish readability, not getType().
         return requireNotNull(resolver.query(Groups.CONTENT_URI,
         arrayOf(Groups._ID, Groups.TITLE, Groups.ACCOUNT_NAME, Groups.ACCOUNT_TYPE, Groups.DATA_SET, Groups.AUTO_ADD, Groups.FAVORITES, Groups.SOURCE_ID),
         "${Groups.DELETED}=0", null, "${Groups._ID} ASC")).use { cursor ->
@@ -57,16 +67,24 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
         val rows = memberships(rawIds)
         val definitions = groups().associateBy { it.id }
         rawIds.associateWith { raw ->
-            runCatching {
-            val current = rows.filter { it.raw == raw }
-            require(current.all { it.group in definitions }) { "contact_groups_incomplete" }
-            KontaktSync.normalisiereGruppen(current.mapNotNull { definitions[it.group] }
-                .filterNot { it.system }.map { it.title }).also { names ->
-                require(names.size <= 100 && names.all { it.isNotBlank() && it.codePointCount(0, it.length) <= 256 && it.none { char -> char.code < 32 || char.code == 127 } })
-            }
-            }.getOrNull()
+            runCatching { namen(raw, rows, definitions) }.getOrNull()
         }
     }.getOrNull()
+
+    private fun namen(raw: Long, rows: List<Mitglied>, definitions: Map<Long, Gruppe>): List<String> {
+        val current = rows.filter { it.raw == raw }
+        require(current.all { it.group in definitions }) { "contact_groups_incomplete" }
+        return KontaktSync.normalisiereGruppen(current.mapNotNull { definitions[it.group] }
+            .filterNot { it.system }.map { it.title }).also { names ->
+            require(names.size <= 100 && names.all { it.isNotBlank() && it.codePointCount(0, it.length) <= 256 && it.none { char -> char.code < 32 || char.code == 127 } })
+        }
+    }
+
+    /** The debug probe follows the same reader but retains its finite failure cause. */
+    fun pruefeLesbarkeit(rawIds: Set<Long>) {
+        val rows = memberships(rawIds); val definitions = groups().associateBy { it.id }
+        rawIds.forEach { namen(it, rows, definitions) }
+    }
 
     private fun konto(raw: Long): Konto = requireNotNull(resolver.query(
         ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw),
@@ -90,6 +108,58 @@ internal class AndroidKontaktGruppen(private val resolver: ContentResolver) {
         return Angebot(KontaktSync.normalisiereGruppen(definitions.filterNot { it.system }.map { it.title }),
             KontaktSync.normalisiereGruppen(definitions.filter { it.system }.map { it.title }),
             listOf(count) + definitions.map { it.assertion() })
+    }
+
+    private fun titelIdentitaet(group: Gruppe): String {
+        val bytes = ByteArrayOutputStream()
+        DataOutputStream(bytes).use { out ->
+            for (part in listOf(group.id.toString(), group.konto.name, group.konto.type, group.konto.dataSet, group.sourceId)) {
+                val value = part?.let {
+                    val encoded = Charsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT).encode(CharBuffer.wrap(it))
+                    ByteArray(encoded.remaining()).also { buffer -> encoded.get(buffer) }
+                }
+                out.writeInt(value?.size ?: -1)
+                if (value != null) out.write(value)
+            }
+        }
+        return MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
+    /** Read a previously prepared group by native identity, never by its old label. */
+    fun titelStand(raw: Long, id: Long): TitelStand? {
+        val group = groups().singleOrNull { it.id == id } ?: return null
+        if (group.system || group.konto != konto(raw) || memberships(setOf(raw)).none { it.group == id }) return null
+        return TitelStand(group.id, group.konto, group.title, titelIdentitaet(group))
+    }
+
+    /** Explicit title changes keep the provider identity and every membership row. */
+    fun titelPlan(raw: Long, vorher: String, nachher: String): TitelPlan {
+        require(vorher != nachher)
+        for (name in listOf(vorher, nachher)) require(name.isNotBlank() && name == Normalizer.normalize(name.trim(), Normalizer.Form.NFC) &&
+            name.codePointCount(0, name.length) <= 256 && name.none(Char::isISOControl) && name.codePoints().noneMatch { it in 0xD800..0xDFFF })
+        val owner = konto(raw)
+        val offered = angebot(raw)
+        val definitions = groups().filter { it.konto == owner }
+        val group = definitions.filter { it.title == vorher && !it.system }.single()
+        require(definitions.none { it.id != group.id && key(it.title) == key(nachher) }) { "contact_group_title_exists" }
+        require(memberships(setOf(raw)).any { it.group == group.id }) { "contact_group_title_unbound" }
+        requireNotNull(resolver.query(ContentUris.withAppendedId(Groups.CONTENT_URI, group.id), arrayOf(Groups.GROUP_IS_READ_ONLY), null, null, null)).use { c ->
+            require(c.moveToFirst() && !c.isNull(0) && c.getString(0).toIntOrNull() == 0 && !c.moveToNext()) { "contact_group_title_readonly" }
+        }
+        val writable = ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(Groups.CONTENT_URI, group.id))
+            .withValue(Groups.GROUP_IS_READ_ONLY, 0).withExpectedCount(1).build()
+        return TitelPlan(group.id, owner, group.sourceId, vorher, nachher, offered.pruefungen + group.assertion() + writable, titelIdentitaet(group))
+    }
+
+    fun titelUebernehmen(plan: TitelPlan, rawChecks: List<ContentProviderOperation> = emptyList()): Long {
+        val operations = ArrayList(rawChecks + plan.pruefungen)
+        operations += ContentProviderOperation.newUpdate(ContentUris.withAppendedId(Groups.CONTENT_URI, plan.id))
+            .withValue(Groups.TITLE, plan.nachher).withExpectedCount(1).build()
+        resolver.applyBatch(android.provider.ContactsContract.AUTHORITY, operations)
+        val actual = groups().single { it.id == plan.id }
+        require(actual.title == plan.nachher && actual.konto == plan.konto && actual.sourceId == plan.sourceId && !actual.system)
+        return actual.id
     }
 
     /** Writes join the caller's existing version-asserted applyBatch transaction. */

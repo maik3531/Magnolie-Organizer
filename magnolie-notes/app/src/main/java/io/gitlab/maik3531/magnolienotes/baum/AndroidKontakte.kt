@@ -42,7 +42,9 @@ interface KontaktSchreiber {
 }
 
 /** Schmale Android-Grenze; Vertrag, Revision und Merge bleiben in [KontaktSync]. */
-class AndroidKontakte(private val context: Context, private val konto: android.accounts.Account? = null) : KontaktSchreiber {
+class AndroidKontakte(private val context: Context, private val konto: android.accounts.Account? = null,
+                      private val rawScope: Set<Long>? = null) : KontaktSchreiber {
+    init { require(rawScope == null || rawScope.isNotEmpty() && rawScope.size <= 1000 && rawScope.all { it > 0 }) }
     private val resolver get() = context.contentResolver
     private val gruppen get() = AndroidKontaktGruppen(resolver)
 
@@ -55,12 +57,21 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         val herkunft = mutableMapOf<Long, KontaktHerkunft>()
         resolver.query(RawContacts.CONTENT_URI, arrayOf(RawContacts._ID, RawContacts.CONTACT_ID,
             RawContacts.ACCOUNT_TYPE, RawContacts.ACCOUNT_NAME, RawContacts.DATA_SET, RawContacts.SOURCE_ID, RawContacts.VERSION),
-            "${RawContacts.DELETED}=0" + if (konto != null) " AND ${RawContacts.ACCOUNT_NAME}=? AND ${RawContacts.ACCOUNT_TYPE}=?" else "",
+             "${RawContacts.DELETED}=0" +
+                 (if (konto != null) " AND ${RawContacts.ACCOUNT_NAME}=? AND ${RawContacts.ACCOUNT_TYPE}=?" else "") +
+                 (rawScope?.let { " AND ${RawContacts._ID} IN (${it.joinToString(",")})" } ?: ""),
             konto?.let { arrayOf(it.name, it.type) }, null)?.use { c ->
             while (c.moveToNext()) {
                 if (ContactsContract.isProfileId(c.getLong(0)) || ContactsContract.isProfileId(c.getLong(1))) continue
                 rawZuKontakt[c.getLong(0)] = c.getLong(1)
-                if (c.getType(6) == android.database.Cursor.FIELD_TYPE_INTEGER) rawVersionen[c.getLong(0)] = c.getLong(6)
+                val version = when (c.getType(6)) {
+                    android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(6).takeIf { it >= 0 }
+                    android.database.Cursor.FIELD_TYPE_STRING -> c.getString(6)?.takeIf { text ->
+                        text.isNotEmpty() && text.length <= 19 && text.all { it in '0'..'9' }
+                    }?.toLongOrNull()
+                    else -> null
+                }
+                if (version != null) rawVersionen[c.getLong(0)] = version
                 herkunft[c.getLong(0)] = KontaktHerkunft(c.getString(2).orEmpty(), c.getString(3).orEmpty(),
                     c.getString(4).orEmpty(), c.getString(5).orEmpty())
             }
@@ -320,6 +331,86 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         require(ops.size <= 500)
         resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         requireNotNull(liesRaw(raw)).also { pruefeGruppen(it, ziel) }
+    }
+
+    fun telefonnummernUebernehmen(erwartet: AndroidKontakt, telefone: List<KontaktWert>): AndroidKontakt =
+        wertListenUebernehmen(erwartet, telefone = telefone)
+
+    /** Targeted fields share one provider transaction; omitted lists and native metadata stay intact. */
+    fun wertListenUebernehmen(erwartet: AndroidKontakt, telefone: List<KontaktWert>? = null,
+                             emailEintraege: List<KontaktWert>? = null): AndroidKontakt = synchronized(PROVIDER_SPERRE) {
+        require(telefone != null || emailEintraege != null)
+        require(erwartet.rawContactIds == setOf(erwartet.rawContactId))
+        val lokal = requireNotNull(liesRaw(erwartet.rawContactId))
+        require(lokal == erwartet && erwartet.rawVersionen.keys.containsAll(erwartet.rawContactIds))
+        require((telefone?.size ?: 0) <= 100 && (emailEintraege?.size ?: 0) <= 100)
+        val ziel = KontaktSync.normalisiere(lokal.daten.copy(telefone = telefone ?: lokal.daten.telefone,
+            emailEintraege = emailEintraege ?: lokal.daten.emailEintraege))
+        if (lokal.daten.telefone.toSet() == ziel.telefone.toSet() &&
+            lokal.daten.emailEintraege.toSet() == ziel.emailEintraege.toSet()) return@synchronized lokal
+        val raw = erwartet.rawContactId
+        val ops = arrayListOf(ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw))
+            .withValue(RawContacts.VERSION, erwartet.rawVersionen.getValue(raw)).withExpectedCount(1).build())
+        data class Zeile(val id: Long, val wert: KontaktWert)
+        fun plane(mime: String, vorher: List<KontaktWert>, gewuenscht: List<KontaktWert>, schluessel: (String) -> String) {
+            if (vorher.toSet() == gewuenscht.toSet()) return
+            val zeilen = requireNotNull(resolver.query(Data.CONTENT_URI,
+                arrayOf(Data._ID, Data.DATA1, Data.DATA2), "${Data.RAW_CONTACT_ID}=? AND ${Data.MIMETYPE}=?",
+                arrayOf(raw.toString(), mime), null)).use { c ->
+                buildList { while (c.moveToNext()) {
+                    require(size < 200)
+                    add(Zeile(c.getLong(0), KontaktWert(art(c.getString(2).orEmpty(), mime), c.getString(1).orEmpty())))
+                } }
+            }
+            val gelesen = if (mime == Phone.CONTENT_ITEM_TYPE)
+                KontaktSync.normalisiere(KontaktDaten(telefone = zeilen.map { it.wert })).telefone
+                else KontaktSync.normalisiere(KontaktDaten(emailEintraege = zeilen.map { it.wert })).emailEintraege
+            require(gelesen == vorher)
+            val unberuehrt = zeilen.filter { it.wert.wert.isBlank() }.map { it.id }.toMutableSet()
+            val hinzuSchluessel = gewuenscht.map { schluessel(it.wert) }.toSet() - vorher.map { schluessel(it.wert) }.toSet()
+            for ((key, doppelte) in zeilen.filter { it.wert.wert.isNotBlank() }.groupBy { schluessel(it.wert.wert) }) {
+                if (doppelte.size < 2) continue
+                val projektion = vorher.single { schluessel(it.wert) == key }
+                if (projektion !in gewuenscht) {
+                    // Pure removal of the projected identity removes every native
+                    // alias; an edit/type replacement cannot guess their pairing.
+                    require(hinzuSchluessel.isEmpty() && gewuenscht.none { schluessel(it.wert) == key }) { "contact_values_ambiguous_rows" }
+                    continue
+                }
+                unberuehrt += doppelte.map { it.id }
+            }
+            val entfernt = zeilen.filter { it.id !in unberuehrt && it.wert !in gewuenscht }.toMutableList()
+            val hinzu = gewuenscht.filter { wert -> zeilen.none { it.wert == wert } }.toMutableList()
+            fun aktualisiere(alt: Zeile, neu: KontaktWert) {
+                val update = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(Data.CONTENT_URI, alt.id))
+                    .withValue(Data.DATA1, neu.wert).withExpectedCount(1)
+                if (alt.wert.art != neu.art) update.withValue(Data.DATA2, typ(neu.art, mime)).withValue(Data.DATA3, null)
+                if (mime == Phone.CONTENT_ITEM_TYPE && alt.wert.wert != neu.wert) update.withValue(Phone.NORMALIZED_NUMBER, null)
+                ops += update.build(); entfernt.remove(alt); hinzu.remove(neu)
+            }
+            for (art in (entfernt.map { it.wert.art } + hinzu.map { it.art }).distinct()) {
+                val alt = entfernt.filter { it.wert.art == art }; val neu = hinzu.filter { it.art == art }
+                require(alt.isEmpty() || neu.isEmpty() || alt.size == 1 && neu.size == 1) { "contact_values_ambiguous_rows" }
+                if (alt.isEmpty() || neu.isEmpty()) continue
+                aktualisiere(alt.single(), neu.single())
+            }
+            if (entfernt.isNotEmpty() && hinzu.isNotEmpty()) {
+                require(entfernt.size == 1 && hinzu.size == 1) { "contact_values_ambiguous_rows" }
+                aktualisiere(entfernt.single(), hinzu.single())
+            }
+            entfernt.forEach { zeile -> ops += ContentProviderOperation.newDelete(ContentUris.withAppendedId(Data.CONTENT_URI, zeile.id))
+                .withExpectedCount(1).build() }
+            hinzu.forEach { wert -> ops += einfuegen(raw, mime, mapOf(Data.DATA1 to wert.wert, Data.DATA2 to typ(wert.art, mime))) }
+        }
+        if (telefone != null) plane(Phone.CONTENT_ITEM_TYPE, lokal.daten.telefone, ziel.telefone, KontaktSync::normalWert)
+        if (emailEintraege != null) plane(Email.CONTENT_ITEM_TYPE, lokal.daten.emailEintraege, ziel.emailEintraege, KontaktSync::normalEmail)
+        require(ops.size <= 500)
+        resolver.applyBatch(ContactsContract.AUTHORITY, ops)
+        requireNotNull(liesRaw(raw)).also { actual ->
+            require(actual.lookupKey == erwartet.lookupKey && actual.rawContactIds == erwartet.rawContactIds &&
+                actual.daten.telefone.toSet() == ziel.telefone.toSet() && actual.daten.emailEintraege.toSet() == ziel.emailEintraege.toSet()) {
+                "contact_values_readback_failed" }
+        }
     }
 
     private fun pruefeGruppen(actual: AndroidKontakt, wanted: KontaktDaten) {

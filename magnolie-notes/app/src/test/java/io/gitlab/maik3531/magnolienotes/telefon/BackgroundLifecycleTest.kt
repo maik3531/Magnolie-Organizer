@@ -264,6 +264,29 @@ class BackgroundLifecycleTest {
         assertFalse(storage.peers().peer!!.contacts_read_enabled)
     }
 
+    @Test fun groupWriteDefaultSurvivesMissingPermissionAndReadDisableButHonorsExplicitOptOut() = fixture { storage, work, _ ->
+        val app = Shadows.shadowOf(context as Application)
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)),
+            own_device = true, remote_own_device = true, contact_groups_write_enabled = false)
+        storage.savePeer(peer)
+        app.denyPermissions(android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.WRITE_CONTACTS)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertTrue(storage.peers().peer!!.contact_groups_write_enabled)
+        assertTrue(storage.peers().peer!!.contacts_write_enabled)
+        assertFalse(ContactGroupWrite.allowed(storage.peers().peer, false))
+        app.grantPermissions(android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.WRITE_CONTACTS)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        work.setContactReadEnabled(false, peer.device_id, peer.static_public)
+        assertTrue(storage.peers().peer!!.contact_groups_write_enabled)
+        assertTrue(storage.peers().peer!!.contacts_write_enabled)
+        work.setContactReadEnabled(true, peer.device_id, peer.static_public)
+        work.setContactGroupWriteEnabled(false, peer.device_id, peer.static_public)
+        assertFalse(storage.peers().peer!!.contacts_write_enabled)
+        storage.savePeer(storage.peers().peer!!.copy(contact_groups_write_enabled = true))
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertFalse(storage.peers().peer!!.contact_groups_write_enabled)
+    }
+
     @Test fun oneSyncModeChoicePreservesRemoteConsentAndNoteDirection() = fixture { storage, work, _ ->
         val direction = PersonalNoteMode.create(PersonalNoteMode.IMPORT)
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)),

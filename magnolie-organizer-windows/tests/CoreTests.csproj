@@ -107,6 +107,8 @@
     <Compile Include="..\TelefonTimeZoneContract.cs" Link="TelefonTimeZoneContract.cs" />
     <Compile Include="..\TelefonDeveloperDiagnostics.cs" Link="TelefonDeveloperDiagnostics.cs" />
     <Compile Include="..\PhoneContactRead.cs" Link="PhoneContactRead.cs" />
+    <Compile Include="..\PhoneContactValueWrite.cs" Link="PhoneContactValueWrite.cs" />
+    <Compile Include="..\PhoneContactGroupTitleWrite.cs" Link="PhoneContactGroupTitleWrite.cs" />
     <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
     <Compile Include="..\TelefonCallContract.cs" Link="TelefonCallContract.cs" />
     <Compile Include="..\PersonalSyncContract.cs" Link="PersonalSyncContract.cs" />

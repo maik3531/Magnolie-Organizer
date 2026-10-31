@@ -955,6 +955,7 @@ internal static partial class ExchangeCodec
             ["endDatum"] = end is not null && end.Value.DateTime.Date > start.DateTime.Date ? end.Value.DateTime.ToString("yyyy-MM-dd") : "", ["zeit"] = start.AllDay ? "" : start.DateTime.ToString("HH:mm"),
             ["endZeit"] = end is null || end.Value.AllDay ? "" : end.Value.DateTime.ToString("HH:mm"), ["titel"] = title,
             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""), ["kategorien"] = category,
+            ["ort"] = IcsText(First(values, "LOCATION")?.Value ?? "").Trim(),
             ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
             ["vertraulich"] = new[] { "PRIVATE", "CONFIDENTIAL" }.Contains((First(values, "CLASS")?.Value ?? "").ToUpperInvariant()),
             ["vorlaeufig"] = (First(values, "STATUS")?.Value ?? "").Equals("TENTATIVE", StringComparison.OrdinalIgnoreCase),
@@ -1294,9 +1295,13 @@ internal static partial class ExchangeCodec
         lines.Add($"SUMMARY:{V(J(item, "titel"))}");
         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
         if (J(item, "kategorien") is { Length: > 0 } category) lines.Add($"CATEGORIES:{V(category)}");
+        if (J(item, "ort") is { Length: > 0 } location) lines.Add($"LOCATION:{V(location)}");
         if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add($"X-MAGNOLIE-ACCENT-COLOR:{accent}");
         if (JBool(item, "vertraulich")) lines.Add("CLASS:PRIVATE");
-        if (JBool(item, "vorlaeufig")) lines.Add("STATUS:TENTATIVE");
+        var status = J(item, "icsStatus").ToUpperInvariant();
+        if (status == "CANCELLED") lines.Add("STATUS:CANCELLED");
+        else if (JBool(item, "vorlaeufig")) lines.Add("STATUS:TENTATIVE");
+        else if (status is "CONFIRMED" or "TENTATIVE") lines.Add("STATUS:CONFIRMED");
     }
 
     private static string AccentColor(string? value) => value is not null && Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$") ? value.ToLowerInvariant() : "";
@@ -1351,6 +1356,15 @@ internal static partial class ExchangeCodec
             else if (depth == 0) result.Add(value);
         }
         return result;
+    }
+
+    internal static string? CalendarRoundtripLocation(JsonObject value)
+    {
+        var lines = (value["icsRoundtrip"] as JsonArray ?? []).OfType<JsonValue>()
+            .Select(part => part.TryGetValue<string>(out var text) ? text : null).OfType<string>();
+        var location = TopLevelProperties(Unfold(string.Join("\r\n", lines)).Select(ParseIcsProperty).OfType<IcsProperty>())
+            .FirstOrDefault(property => property.Name == "LOCATION");
+        return location is null ? null : IcsText(location.Value).Trim();
     }
 
     internal static string ReplaceCalendarEvent(string resource, JsonObject appointment)
@@ -1457,6 +1471,24 @@ internal static partial class ExchangeCodec
                 if (name == "END") depth--;
                 return keep;
             }).ToArray();
+        }
+        if (!anniversary && lines[0] == "BEGIN:VEVENT" && item.TryGetProperty("ort", out var locationField) && locationField.ValueKind == JsonValueKind.String)
+        {
+            var priorLocation = TopLevelProperties(raw.Select(ParseIcsProperty).OfType<IcsProperty>())
+                .FirstOrDefault(property => property.Name == "LOCATION");
+            if (priorLocation is not null && IcsText(priorLocation.Value).Trim() == (locationField.GetString() ?? "").Trim())
+                lines.RemoveAll(line => PropertyName(line) == "LOCATION"); // Keep original parameters and spelling.
+            else
+            {
+                var depth = 0;
+                raw = raw.Where(line =>
+                {
+                    var name = PropertyName(line); if (name == "BEGIN") depth++;
+                    var keep = depth > 0 || name != "LOCATION";
+                    if (name == "END") depth = Math.Max(0, depth - 1);
+                    return keep;
+                }).ToArray();
+            }
         }
         var properties = raw.Select(ParseIcsProperty).OfType<IcsProperty>().ToList();
         var topLevel = TopLevelProperties(properties);

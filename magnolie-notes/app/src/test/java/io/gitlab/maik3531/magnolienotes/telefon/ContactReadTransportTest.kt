@@ -3,8 +3,12 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.ProviderInfo
+import android.provider.ContactsContract
 import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakt
+import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakte
+import io.gitlab.maik3531.magnolienotes.baum.KontaktGruppenProviderTest
 import io.gitlab.maik3531.magnolienotes.baum.KontaktDaten
 import io.gitlab.maik3531.magnolienotes.baum.KontaktWert
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
@@ -14,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
+import org.robolectric.shadows.ShadowContentResolver
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.io.File
@@ -40,9 +45,74 @@ class ContactReadTransportTest {
         System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
         System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--phone-contact-read-host"))
 
-    private fun runHost(command: List<String>) {
+    @Test fun pythonWritesGroupsThroughActualNotesProviderAndReadsThemBack() = runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
+        "../magnolie-organizer/pruefungen/phone_contact_read_host.py"), groups = true)
+
+    @Test fun windowsWritesGroupsThroughActualNotesProviderAndReadsThemBack() = runHost(listOf(
+        System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
+        System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--phone-contact-read-host"), groups = true)
+
+    @Test fun pythonCanReadNativeGroupFailurePhasesWithoutWritingContacts() = runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
+        "../magnolie-organizer/pruefungen/phone_contact_read_host.py"), groups = true, probe = true)
+
+    @Test fun pythonGroupProbeCannotBypassLocalDeveloperWifiOptIn() = runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
+        "../magnolie-organizer/pruefungen/phone_contact_read_host.py"), groups = true, probe = true, debugAllowed = false)
+
+    @Test fun windowsCanReadNativeGroupFailurePhasesWithoutWritingContacts() = runHost(listOf(
+        System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
+        System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--phone-contact-read-host"), groups = true, probe = true)
+
+    @Test fun pythonWritesPhoneAndEmailValuesThroughActualNotesProvider() = runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
+        "../magnolie-organizer/pruefungen/phone_contact_read_host.py"), values = true)
+
+    @Test fun windowsWritesPhoneAndEmailValuesThroughActualNotesProvider() = runHost(listOf(
+        System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
+        System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--phone-contact-read-host"), values = true)
+
+    @Test fun windowsRenamesTheSameNativeGroupAcrossItsMembers() = runHost(listOf(
+        System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
+        System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--phone-contact-read-host"), titles = true)
+
+    @Test fun pythonRecoversALostGroupTitleResultByNativeIdentity() = runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3",
+        "../magnolie-organizer/pruefungen/phone_contact_read_host.py"), titles = true)
+
+    private fun runHost(command: List<String>, groups: Boolean = false, probe: Boolean = false, debugAllowed: Boolean = true, values: Boolean = false, titles: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val debug = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
+        debug.deaktivieren()
+        if (probe && debugAllowed) { debug.aktivieren(); debug.wlanSetzen(true) }
         Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CONTACTS)
+        var groupProvider: KontaktGruppenProviderTest.GroupProvider? = null
+        var groupContact: AndroidKontakt? = null
+        var unrelated: AndroidKontakt? = null
+        var automatic = 0L
+        var contactMembers: Set<Long> = emptySet(); var otherMembers: Set<Long> = emptySet()
+        var batchesBefore = 0
+        if (groups || values || titles) {
+            Shadows.shadowOf(context).grantPermissions(Manifest.permission.WRITE_CONTACTS)
+            groupProvider = KontaktGruppenProviderTest.GroupProvider().also {
+                it.attachInfo(context, ProviderInfo().apply { authority = ContactsContract.AUTHORITY })
+                ShadowContentResolver.registerProviderInternal(ContactsContract.AUTHORITY, it)
+            }
+            val contacts = AndroidKontakte(context, android.accounts.Account("fixture@example.test", "synthetic-provider"))
+            groupContact = contacts.anlegen(KontaktDaten(vorname = "Preserve name", firma = "Preserve company", gruppen = listOf("Coworkers"),
+                telefone = if (values) listOf(KontaktWert("mobil", "111")) else emptyList(),
+                emailEintraege = if (values) listOf(KontaktWert("arbeit", "old@example.invalid")) else emptyList()))
+            if (groups) {
+                val overlay = AndroidKontakte(context, android.accounts.Account("messenger", "overlay-provider"))
+                    .anlegen(KontaktDaten(vorname = "Linked messaging contact"))
+                groupProvider.aggregate(overlay.rawContactId, groupContact.contactId)
+            }
+            unrelated = contacts.anlegen(KontaktDaten(vorname = "Unrelated", gruppen = listOf("Coworkers")))
+            automatic = groupProvider.group("MY CONTACTS", "fixture@example.test", "synthetic-provider", automatic = true)
+            groupProvider.member(groupContact.rawContactId, automatic)
+            contactMembers = groupProvider.memberIds(groupContact.rawContactId)
+            otherMembers = groupProvider.memberIds(unrelated.rawContactId)
+            batchesBefore = groupProvider.batchCalls
+            // The real Samsung report exposes fully readable groups while its
+            // MIME hint is not recognized. Exercise that actual failure shape.
+            groupProvider.groupsMime = null
+        }
         val provider = object : Provider("ContactReadFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
         }
@@ -89,6 +159,11 @@ class ContactReadTransportTest {
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
         val process = ProcessBuilder(command).apply {
             environment()["PHONE_TEST_DEVICE_ID"] = storage.identity("Synthetic phone").also { it.second.fill(0) }.first.device_id
+            if (groups) environment()["PHONE_TEST_GROUP_UID"] = groupContact!!.lookupKey
+            if (values) environment()["PHONE_TEST_VALUES_UID"] = groupContact!!.lookupKey
+            if (titles) environment()["PHONE_TEST_GROUP_TITLE_UID"] = groupContact!!.lookupKey
+            if (probe) environment()["PHONE_TEST_GROUP_PROBE"] = "1"
+            if (probe && !debugAllowed) environment()["PHONE_TEST_PROBE_DENIED"] = "1"
         }.redirectError(ProcessBuilder.Redirect.INHERIT).start()
         try {
             val output = process.inputStream.bufferedReader()
@@ -125,7 +200,7 @@ class ContactReadTransportTest {
                             "message" -> {
                                 TelefonNachrichten.validate(packet)
                                 val body = packet["body"] as JsonObject
-                                if (!injected && packet.string("kind") == "device_status.request" && body["version"] == JsonPrimitive(5)) {
+                                if (!groups && !injected && packet.string("kind") == "device_status.request" && body["version"] == JsonPrimitive(5)) {
                                     injected = true
                                     val unsolicited = ContactRead.report(JsonObject(body + ("request_id" to JsonPrimitive(UUID.randomUUID().toString()))), 0, emptyList())
                                     channel.send(TelefonNachrichten.message("device_status.report", unsolicited, 60_000, id = forgedId))
@@ -141,7 +216,8 @@ class ContactReadTransportTest {
                                 } else if (packet.string("message_id") == expiredId) {
                                     assertEquals("rejected", packet.string("status")); assertEquals("expired", packet.string("error")); rejectedExpired = true
                                 } else {
-                                    assertNotEquals(packet.toString(), "rejected", packet.string("status"))
+                                    val outgoing = queue.outboxWireMessage(peerId, packet.string("message_id"))
+                                    assertNotEquals("${packet}; queued_kind=${outgoing?.get("kind")}; queued_version=${(outgoing?.get("body") as? JsonObject)?.get("version")}", "rejected", packet.string("status"))
                                     acknowledge.invoke(work, peerId, packet.string("message_id"), packet.string("status"), packet.string("error"))
                                 }
                             }
@@ -154,9 +230,37 @@ class ContactReadTransportTest {
                         send.invoke(work, storage.peers().peer, channel)
                     }
                     assertTrue("Native contact host did not finish", closed)
-                    assertTrue("An unsolicited contact response was not rejected", rejectedForged)
-                    assertTrue("An expired contact response was not rejected", rejectedExpired)
-                    assertEquals("Only two index pages and the six explicitly requested cards may be read", 8, reads)
+                    if (titles) {
+                        assertEquals("Title writer must read the actual provider", 0, reads)
+                        val actual = AndroidKontakte(context).liesRaw(groupContact!!.rawContactId)!!
+                        assertEquals(listOf("Arbeit"), actual.daten.gruppen)
+                        assertEquals(listOf("Arbeit"), AndroidKontakte(context).liesRaw(unrelated!!.rawContactId)!!.daten.gruppen)
+                        assertEquals(contactMembers, groupProvider!!.memberIds(groupContact.rawContactId))
+                        assertEquals(otherMembers, groupProvider.memberIds(unrelated.rawContactId))
+                        assertEquals("Recovery inspection must not repeat the mutation", batchesBefore + 1, groupProvider.batchCalls)
+                        assertEquals("Preserve name", actual.daten.vorname); assertEquals("Preserve company", actual.daten.firma)
+                        assertTrue(automatic in groupProvider.memberIds(groupContact.rawContactId))
+                    } else if (values) {
+                        assertEquals("Value writer must read the actual provider", 0, reads)
+                        val actual = AndroidKontakte(context).liesRaw(groupContact!!.rawContactId)!!
+                        assertEquals(listOf(KontaktWert("mobil", "222")), actual.daten.telefone)
+                        assertTrue(actual.daten.emailEintraege.isEmpty())
+                        assertEquals("Preserve name", actual.daten.vorname); assertEquals("Preserve company", actual.daten.firma)
+                        assertEquals(listOf("Coworkers"), actual.daten.gruppen)
+                        assertEquals(listOf("Coworkers"), AndroidKontakte(context).liesRaw(unrelated!!.rawContactId)!!.daten.gruppen)
+                    } else if (groups) {
+                        assertEquals("Group writer must not use the synthetic contact-read source", 0, reads)
+                        val actual = AndroidKontakte(context).liesRaw(groupContact!!.rawContactId)!!
+                        assertEquals(if (probe) listOf("Coworkers") else emptyList<String>(), actual.daten.gruppen)
+                        assertEquals("Preserve name", actual.daten.vorname)
+                        assertEquals("Preserve company", actual.daten.firma)
+                        assertEquals(listOf("Coworkers"), AndroidKontakte(context).liesRaw(unrelated!!.rawContactId)!!.daten.gruppen)
+                        assertTrue(automatic in groupProvider!!.memberIds(groupContact.rawContactId))
+                    } else {
+                        assertTrue("An unsolicited contact response was not rejected", rejectedForged)
+                        assertTrue("An expired contact response was not rejected", rejectedExpired)
+                        assertEquals("Only two index pages and the six explicitly requested cards may be read", 8, reads)
+                    }
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS))
@@ -169,6 +273,7 @@ class ContactReadTransportTest {
             field(TelefonAblage::class.java, "instance").set(null, null)
             field(Ablage::class.java, "einzig").set(null, oldDocuments)
             Security.removeProvider(provider.name)
+            groupProvider?.shutdown()
         }
     }
 }

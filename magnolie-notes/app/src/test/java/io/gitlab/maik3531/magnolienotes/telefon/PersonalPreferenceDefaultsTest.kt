@@ -68,4 +68,43 @@ class PersonalPreferenceDefaultsTest {
         assertTrue(Baumzustand().dienstAn)
         assertFalse(Json.decodeFromString<Baumzustand>("""{"dienstAn":false}""").dienstAn)
     }
+
+    @Test fun groupWriteDefaultsOnAndExplicitChoiceIsBoundToComputerKey() {
+        val id = "11111111-1111-4111-8111-111111111111"
+        val key = TelefonKrypto.b64(ByteArray(32) { 3 })
+        assertTrue(TelefonPeer(id, "Computer", key).contact_groups_write_enabled)
+        assertTrue(storage().rememberedContactGroupWriteChoice(id, key))
+        storage().rememberContactGroupWriteChoice(id, key, false)
+        assertFalse(storage().rememberedContactGroupWriteChoice(id, key))
+        assertTrue(storage().rememberedContactGroupWriteChoice(id, TelefonKrypto.b64(ByteArray(32) { 4 })))
+        storage().rememberContactGroupWriteChoice(id, key, true)
+        assertTrue(storage().rememberedContactGroupWriteChoice(id, key))
+    }
+
+    @Test fun generalContactWriteChoiceMigratesOptOutAndKeepsBothChoicesBoundToTheComputerKey() {
+        val id = "11111111-1111-4111-8111-111111111111"
+        val key = TelefonKrypto.b64(ByteArray(32) { 3 })
+        val other = TelefonKrypto.b64(ByteArray(32) { 4 })
+        assertTrue(TelefonPeer(id, "Computer", key).contacts_write_enabled)
+        assertTrue(storage().rememberedContactWriteChoice(id, key))
+        storage().rememberContactGroupWriteChoice(id, key, false)
+        assertFalse(storage().rememberedContactWriteChoice(id, key))
+        storage().rememberContactWriteChoice(id, key, true)
+        assertTrue(storage().rememberedContactWriteChoice(id, key))
+        assertTrue(storage().rememberedContactGroupWriteChoice(id, key))
+        storage().rememberContactWriteChoice(id, key, false)
+        assertFalse(storage().rememberedContactWriteChoice(id, key))
+        assertFalse(storage().rememberedContactGroupWriteChoice(id, key))
+        assertTrue(storage().rememberedContactWriteChoice(id, other))
+        assertTrue(storage().rememberedContactWriteChoice("22222222-2222-4222-8222-222222222222", key))
+    }
+
+    @Test fun aLegacyEffectiveFlagIsNotMistakenForAnExplicitSavedOptOut() {
+        val id = "11111111-1111-4111-8111-111111111111"
+        val key = TelefonKrypto.b64(ByteArray(32) { 3 })
+        assertFalse(TelefonPeer(id, "Computer", key, contact_groups_write_enabled = false).contacts_write_enabled)
+        assertTrue(storage().rememberedContactWriteChoice(id, key))
+        storage().rememberContactGroupWriteChoice(id, key, false)
+        assertFalse(storage().rememberedContactWriteChoice(id, key))
+    }
 }

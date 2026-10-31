@@ -181,10 +181,35 @@ async function cardRequest(source, message, url, headers) {
 var magnolie = class extends ExtensionCommon.ExtensionAPI {
   managedSurvival = false;
 
+  traceLifecycle(phase) {
+    if (!managed() || Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") !== PathUtils.profileDir) return;
+    const path = PathUtils.join(PathUtils.profileDir, "browser-lifecycle.log");
+    void (async () => {
+      await IOUtils.writeUTF8(path, phase + "\n", { mode: await IOUtils.exists(path) ? "append" : "create" });
+    })().catch(() => {});
+  }
+
   retainManagedSurvival() {
     if (managed() && !this.managedSurvival) {
       Services.startup.enterLastWindowClosingSurvivalArea();
       this.managedSurvival = true;
+    }
+  }
+
+  startManagedProviderBackgrounds() {
+    if (!managed()) return;
+    const { ExtensionParent } = ChromeUtils.importESModule("resource://gre/modules/ExtensionParent.sys.mjs");
+    for (const id of ["tbsync@jobisoft.de", "eas4tbsync@jobisoft.de"]) {
+      const provider = ExtensionParent.GlobalManager.getExtension(id);
+      if (!provider || provider.hasShutdown || ["running", "starting"].includes(provider.backgroundState)) continue;
+      const start = () => {
+        if (!provider.hasShutdown) void Promise.resolve(provider.emit("start-background-script")).catch(() => {});
+      };
+      if (typeof provider.promiseBackgroundStarted === "function") start();
+      else {
+        this.providerStartupWaiting ||= new WeakSet();
+        if (!this.providerStartupWaiting.has(provider)) { this.providerStartupWaiting.add(provider); provider.once("ready", start); }
+      }
     }
   }
 
@@ -195,16 +220,42 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
     }
   }
 
-  onShutdown() { this.releaseManagedSurvival(); }
+  // On a previously used profile, the background page may start after Mozilla
+  // decides that its silent process has no windows. Retain at extension startup,
+  // before that decision, rather than waiting for the first API call.
+  onStartup() {
+    this.retainManagedSurvival(); this.traceLifecycle("startup");
+    if (managed() && Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") === PathUtils.profileDir) {
+      this.probeConsole = { observe: message => this.traceLifecycle("console:" + String(message.message).slice(0, 2000)) };
+      Services.console.registerListener(this.probeConsole);
+    }
+    if (managed()) this.extension.once("ready", () => {
+      // APP_STARTUP defers persistent backgrounds until the first browser window.
+      // This owned service intentionally has none; wake its native bridge once
+      // manifest initialization has installed the background context owner.
+      // wakeupBackground() still waits for browserPaintedPromise. Use the
+      // registered background builder's start event for this owned headless
+      // extension only; do not fake a global browser/window startup event.
+      this.traceLifecycle("start-background");
+      void Promise.resolve(this.extension.emit("start-background-script")).then(() =>
+        this.traceLifecycle("background-state:" + this.extension.backgroundState)).catch(error => this.traceLifecycle("background-error:" + String(error)));
+      this.startManagedProviderBackgrounds();
+    });
+  }
+  onShutdown() {
+    if (this.probeConsole) { Services.console.unregisterListener(this.probeConsole); this.probeConsole = null; }
+    this.traceLifecycle("shutdown"); this.releaseManagedSurvival();
+  }
 
   getAPI() {
     // -silent suppresses the default mail window. The managed account service
     // must then own its lifetime explicitly, including on Mozilla versions
     // where the CLI flag does not set startup.wasSilentlyStarted.
     this.retainManagedSurvival();
+    this.traceLifecycle("get-api");
     return { magnolie: { request: async message => {
       if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "")) throw new Error("protocol");
-      if (message.op === "environment") { return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
+      if (message.op === "environment") { this.startManagedProviderBackgrounds(); return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
         mailWindows: managed() ? Array.from(Services.wm.getEnumerator("mail:3pane"))
           .map(window => window.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle)
           .filter(handle => handle !== null && handle !== undefined && handle !== "" &&

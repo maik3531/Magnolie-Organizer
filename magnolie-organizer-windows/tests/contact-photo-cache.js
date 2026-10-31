@@ -19,8 +19,9 @@ function editGroups(b, values) {
   [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Edit").click();
   const picker = b.w.document.querySelector("#kontakt-personengruppen");
   assert.ok(picker);
-  for (const option of picker.options) option.selected = values.length ? values.includes(option.value) : option.value === "";
-  picker.dispatchEvent(new b.w.Event("change"));
+  const choices = [...picker.querySelectorAll('input[type="checkbox"]')];
+  if (!values.length) choices.find(input => input.value === "").click();
+  else for (const input of choices) if (input.value && input.checked !== values.includes(input.value)) input.click();
   [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Save changes").click();
 }
 
@@ -128,8 +129,8 @@ async function run(web, data, remote, options = {}) {
       assert.deepEqual(locallyEdited.groups[0], ["Work"], "A saved local edit BEFORE the photo request must not be replaced by the old phone membership");
       assert.equal(locallyEdited.data.kontakte[0].telefonGruppenAenderung.beobachtet.deviceId, sourceDevice);
       assert.deepEqual(locallyEdited.data.kontakte[0].telefonGruppenAenderung.beobachtet.groups, ["Family"]);
-      assert.ok(locallyEdited.conflicts.some(text => text.includes("Conflict") && text.includes("Work") && text.includes("Family")),
-        "Both the retained edit and actual phone membership must be visible, not silently treated as synchronized");
+      assert.ok(locallyEdited.conflicts.some(text => text.includes("Not sent.") && text.includes("Work") && text.includes("Family")),
+        "Without a proven common source baseline this is an unsent intent, not a confirmed competing edit");
       assert.ok(locallyEdited.saves.some(data => data.kontakte[0].telefonGruppenAenderung?.beobachtet), "Pending local edit and observed conflict must be saved");
       const restarted = plain(locallyEdited.data);
       restarted.kontaktFotoCache.entries.forEach(entry => { entry.checkedAt = Date.now() - 3600001; });
@@ -154,6 +155,23 @@ async function run(web, data, remote, options = {}) {
         beforeStart: b => editGroups(b, ["Colleagues"]) });
       assert.deepEqual(unchangedEditor.groups[0], ["Work"], "Saving an unchanged chooser must not block real phone changes");
       assert.equal(unchangedEditor.data.kontakte[0].telefonGruppenAenderung, null);
+      const baseline = await run(web, grouped, remote.map((card, index) => index ? card : {
+        ...card, gruppenZeilen: ["CATEGORIES:Coworkers"]
+      }), { status: sourceStatus, device: sourceDevice });
+      assert.deepEqual(baseline.data.kontakte[0].telefonGruppenStand.groups, ["Colleagues"]);
+      const ready = plain(baseline.data);
+      ready.kontaktFotoCache.entries.forEach(entry => { entry.checkedAt = Date.now() - 3600001; });
+      const waiting = await run(web, ready, remote.map((card, index) => index ? card : {
+        ...card, gruppenZeilen: ["CATEGORIES:Coworkers"]
+      }), { status: sourceStatus, device: sourceDevice, beforeStart: b => editGroups(b, ["Work"]) });
+      assert.deepEqual(waiting.groups[0], ["Work"]);
+      assert.deepEqual(waiting.data.kontakte[0].telefonGruppenAenderung.base.groups, ["Colleagues"]);
+      assert.ok(waiting.conflicts.some(text => text.includes("Not sent.") && !text.includes("Conflict")),
+        "Reading the unchanged old phone membership cannot turn an intentional local edit into a conflict");
+      const bothChanged = await run(web, ready, remote.map((card, index) => index ? card : {
+        ...card, gruppenZeilen: ["CATEGORIES:Family"]
+      }), { status: sourceStatus, device: sourceDevice, beforeStart: b => editGroups(b, ["Work"]) });
+      assert.ok(bothChanged.conflicts.some(text => text.includes("Conflict")), "A phone change after the common baseline must remain visible as a real conflict");
     }
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");
     const directProvider = await run(web, base, remote, { status: { ...notesStatus, kdeconnect: status.kdeconnect }, device: notesDevice });

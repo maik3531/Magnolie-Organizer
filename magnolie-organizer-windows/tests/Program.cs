@@ -7,6 +7,14 @@ if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLive
 if (args.FirstOrDefault() == "--birthday-thunderbird-live") return await CalendarBirthdayCleanupTests.RunBridgeLiveAsync();
 if (args.FirstOrDefault() == "--thunderbird-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync();
 if (args.FirstOrDefault() == "--managed-accounts-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync(managed: true);
+if (args.FirstOrDefault() == "--calendar-plan-readonly" && args.Length == 3)
+    return await CalendarSyncReadOnlyProbe.RunAsync(args[1], args[2]);
+if (args.FirstOrDefault() == "--sync-commit-readonly" && args.Length == 3)
+    return await SyncCommitReadOnlyProbe.RunAsync(args[1], args[2]);
+if (args.FirstOrDefault() == "--notes-state-readonly" && args.Length == 2)
+    return await NotesStateReadOnlyProbe.RunAsync(args[1]);
+if (args.FirstOrDefault() == "--notes-batch-copy-readonly" && args.Length == 3)
+    return await NotesStateReadOnlyProbe.RunAsync(args[1], args[2]);
 if (args.FirstOrDefault() == "--managed-runtime-policy-probe" && args.Length == 3)
     return ManagedAccountRuntimePolicyTests.NativeProbe(args[1], args[2]);
 if (args.FirstOrDefault() == "--managed-runtime-update-probe" && args.Length == 4)
@@ -28,6 +36,8 @@ if (args.FirstOrDefault() == "--contact-cleanup-fixture")
 }
 if (args.FirstOrDefault() == "--managed-account-host" && args.Length == 4)
     return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3]);
+if (args.FirstOrDefault() == "--managed-account-restart" && args.Length == 4)
+    return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3], restart: true);
 if (args.FirstOrDefault() == "--managed-account-lifecycle" && args.Length == 4)
     return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3], lifecycle: true);
 
@@ -86,6 +96,7 @@ if (args.FirstOrDefault() == "--published-release-audit")
 
 var runner = new TestRunner();
 runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
+runner.Add("Notes contact group title / strict preparation and saved identity", PhoneContactGroupTitleWriteTests.RunAsync);
 runner.Add("Shared preference storage / encryption / binding / restore", SharedSyncStorageTests.RunAsync);
 runner.Add("Shared preference transport / fresh controls / replay / reconnect", SharedSyncTransportTests.RunAsync);
 runner.Add("Phone content scope / subset updates / removal / bounded manifests", PhoneContentScopeTests.RunAsync);
@@ -155,12 +166,18 @@ runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);
 runner.Add("Own profile / LibreOffice field comparison", OfficeProfileTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
 runner.Add("Managed internet accounts / isolated profiles", ManagedInternetAccountsTests.RunAsync);
+runner.Add("Calendar diagnostics / read-only transport / no provider mutations", CalendarSyncReadOnlyProbe.SafetyAsync);
+runner.Add("Calendar resource identity / stale mapping / exact UID / no duplicate create", CalendarResourceIdentityTests.RunAsync);
+runner.Add("Sync commit projection / own transient marker / exact durable proof", SyncCommitProjectionTests.RunAsync);
+runner.Add("Calendar location projection / legacy baseline / genuine edits", CalendarLocationSyncTests.RunAsync);
 runner.Add("Recovery comparison / unchanged photo allocations", RecoveryComparisonAllocationTests.RunAsync);
 runner.Add("Magnolienbaum discovery / allowed UDP port / active listener", MagnolienbaumDiscoveryTests.RunAsync);
 runner.Add("Magnolienbaum Kontakte / Fotos / manuelle Löschvorschläge", ContractGroupTests.TreeContactsAsync);
 runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", TelefonProtocolTests.RunAsync);
 runner.Add("Telefon renewal / existing binding / pending proofs", TelefonRepairTests.RunAsync);
 runner.Add("Notes contacts / read-only / bounded pages / source binding", PhoneContactReadTests.RunAsync);
+runner.Add("Notes contact groups / separate opt-in / live tickets / saved readback", PhoneContactGroupTests.RunAsync);
+runner.Add("Notes contact values / scoped codec / correlated actual fields", PhoneContactValueWriteTests.RunAsync);
 runner.Add("Developer diagnostics / own Wi-Fi / bounded reports / revocation", DeveloperDiagnosticsTests.RunAsync);
 runner.Add("Contact groups sync / v4 sets / legacy fences", ContactGroupSyncContractTests.RunAsync);
 runner.Add("Telefon WLAN invitations / bounded discovery", TelefonInvitationTests.RunAsync);

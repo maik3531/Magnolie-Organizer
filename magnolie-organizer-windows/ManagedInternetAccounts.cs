@@ -293,6 +293,7 @@ internal static class ManagedInternetAccounts
             attemptedProfile = profile;
             ownedProcess?.Dispose();
             ownedProcess = Process.Start(start) ?? throw new IOException("Could not start account helper.");
+            diagnostics?.Invoke("started-pid=" + ownedProcess.Id.ToString(CultureInfo.InvariantCulture));
             ownedProfile = profile;
             if (diagnostics is not null) ownedProcess.ErrorDataReceived += (_, data) =>
             {
@@ -344,6 +345,10 @@ internal static class ManagedInternetAccounts
         var start = new ProcessStartInfo(executable)
         { WorkingDirectory = Path.GetDirectoryName(executable)!, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden,
             RedirectStandardOutput = true, RedirectStandardError = true };
+        // Mozilla reads this before command-line/extension startup. -silent
+        // alone suppresses the mail window but does not retain a warm profile's
+        // event loop, so deferred extensions otherwise run during shutdown.
+        start.Environment["MOZ_APP_SILENT_START"] = "1";
         // Thunderbird's supported silent mode suppresses default mail/privacy
         // windows while retaining the background extension/native-message host.
         foreach (var value in new[] { "-no-remote", "-silent", "-purgecaches", "-profile", profile }) start.ArgumentList.Add(value);

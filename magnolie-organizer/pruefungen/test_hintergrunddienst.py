@@ -264,9 +264,11 @@ def test_digitizer_ipc_requires_the_owning_visible_unlocked_gui_lease():
                 call('set_digitizer_target', request)
             call('gui_subscribe', {'subscriber': subscriber})
             call('gui_readiness', {'subscriber': subscriber, 'ready': True})
+            assert call('get_settings', {})['gui_personal_ready'] is False
             with pytest.raises(background.IPCError):
                 call('set_digitizer_target', request)
             call('gui_visibility', {'subscriber': subscriber, 'visible': True})
+            assert call('get_settings', {})['gui_personal_ready'] is True
             assert call('set_digitizer_target', request)['enabled'] is True
             call('gui_subscribe', {'subscriber': other})
             call('gui_readiness', {'subscriber': other, 'ready': True})

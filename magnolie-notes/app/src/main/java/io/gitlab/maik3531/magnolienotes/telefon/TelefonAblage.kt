@@ -92,6 +92,24 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     }
     fun rememberedContactReadChoice(deviceId: String, publicKey: String): Boolean =
         settings.getBoolean(contactChoiceKey(deviceId, publicKey), true)
+    private fun contactGroupWriteChoiceKey(deviceId: String, publicKey: String): String =
+        "contact_groups_write_choice_" + deviceId + "_" + TelefonKrypto.sha256(publicKey.toByteArray()).joinToString("") { "%02x".format(it) }
+    fun rememberContactGroupWriteChoice(deviceId: String, publicKey: String, enabled: Boolean) {
+        check(settings.edit().putBoolean(contactGroupWriteChoiceKey(deviceId, publicKey), enabled).commit())
+    }
+    fun rememberedContactGroupWriteChoice(deviceId: String, publicKey: String): Boolean =
+        settings.getBoolean(contactGroupWriteChoiceKey(deviceId, publicKey), true)
+    private fun contactWriteChoiceKey(deviceId: String, publicKey: String): String =
+        "contacts_write_choice_" + deviceId + "_" + TelefonKrypto.sha256(publicKey.toByteArray()).joinToString("") { "%02x".format(it) }
+    fun rememberContactWriteChoice(deviceId: String, publicKey: String, enabled: Boolean) {
+        check(settings.edit().putBoolean(contactWriteChoiceKey(deviceId, publicKey), enabled)
+            .putBoolean(contactGroupWriteChoiceKey(deviceId, publicKey), enabled).commit())
+    }
+    fun rememberedContactWriteChoice(deviceId: String, publicKey: String): Boolean = when {
+        settings.contains(contactWriteChoiceKey(deviceId, publicKey)) -> settings.getBoolean(contactWriteChoiceKey(deviceId, publicKey), false)
+        settings.contains(contactGroupWriteChoiceKey(deviceId, publicKey)) -> settings.getBoolean(contactGroupWriteChoiceKey(deviceId, publicKey), false)
+        else -> true
+    }
     fun setPersonalSyncLastCounter(value: Long) { settings.edit().putLong("personal_sync_last_counter", value).commit() }
     fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
                         deletions: Boolean = personalDeletionsEnabled(), rememberDeletions: Boolean = true) {

@@ -617,6 +617,9 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Zaawansowane"
 
+msgid "Advanced functions"
+msgstr "Funkcje zaawansowane"
+
 msgid "After exercise"
 msgstr "Po wysiłku fizycznym"
 
@@ -3986,8 +3989,20 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "Import OR6: spotkania, zadania, kontakty i zwykły tekst notatek. Sprawdzone skończone serie spotkań, członkostwo w grupach kontaktów i znane typy numerów telefonów są zachowywane. Proste okresy planera i coroczne rocznice są zachowywane; jednorazowe rocznice stają się wydarzeniami całodniowymi, a wpisy połączeń i stron internetowych notatkami tekstowymi. Nieobsługiwane wpisy, układ, załączniki i alarmy nie są przenoszone."
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"Import OR6: spotkania, zadania, kontakty i zwykły tekst notatek. Sprawdzone "
+"skończone serie spotkań, członkostwo w grupach kontaktów i znane typy "
+"numerów telefonów są zachowywane. Proste okresy planera i coroczne rocznice "
+"są zachowywane; jednorazowe rocznice stają się wydarzeniami całodniowymi, a "
+"wpisy połączeń i stron internetowych notatkami tekstowymi. Nieobsługiwane "
+"wpisy, układ, załączniki i alarmy nie są przenoszone."
 
 msgid "Objects"
 msgstr "Obiekty"
@@ -4524,6 +4539,9 @@ msgstr "Pozycja odtwarzania"
 msgid "Please create a notebook in another group first."
 msgstr "Najpierw utwórz notatnik w innej grupie."
 
+msgid "Please enter a different group name."
+msgstr "Wpisz inną nazwę grupy."
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Wpisz czterocyfrowy rok, nie wcześniejszy niż 1000."
 
@@ -4560,7 +4578,9 @@ msgstr "Wpisz w całości internetowy adres IP i odcisk."
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "Podaj swój adres e-mail w tytule płatności; w przeciwnym razie nie będzie można wysłać Ci ContributorKey."
+msgstr ""
+"Podaj swój adres e-mail w tytule płatności; w przeciwnym razie nie będzie "
+"można wysłać Ci ContributorKey."
 
 msgid "Please select a PDF file."
 msgstr "Wybierz plik PDF."
@@ -4923,6 +4943,14 @@ msgstr ""
 "Usunąć „%(name)s”? Zadania tej osoby zostaną zachowane, ale nie będą już "
 "nikomu przypisane."
 
+msgid "Rename"
+msgstr "Zmień nazwę"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "Zmienia nazwę grupy tego konta w telefonie dla wszystkich jej członków. Członkostwa zostają zachowane."
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -5023,6 +5051,9 @@ msgstr "Pobieranie świąt …"
 
 msgid "Retrieving weather…"
 msgstr "Pobieranie pogody…"
+
+msgid "Retry"
+msgstr "Spróbuj ponownie"
 
 msgid "Review and enable"
 msgstr "Sprawdź i włącz"
@@ -5485,6 +5516,9 @@ msgstr "Pokazuj numery tygodni w widoku miesięcznym"
 msgid "Show week numbers in the planner"
 msgstr "Pokazuj numery tygodni w planerze"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "Pokazuj „Połącz telefon przez WLAN” w menu zasobnika"
+
 msgid "Sign in to Microsoft"
 msgstr "Zaloguj się do Microsoftu"
 
@@ -5641,6 +5675,9 @@ msgstr "Status"
 
 msgid "Stop"
 msgstr "Zatrzymaj"
+
+msgid "Stop retrying"
+msgstr "Zatrzymaj próby"
 
 msgid "Street"
 msgstr "Ulica"
@@ -8374,11 +8411,3 @@ msgstr "＋ Dodaj spotkanie"
 #~ "pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są "
 #~ "ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest "
 #~ "opcjonalne; specjalne role nie są żądane."
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "Funkcje zaawansowane"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "Pokazuj „Połącz telefon przez WLAN” w menu zasobnika"

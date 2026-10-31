@@ -644,6 +644,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal var contactReadSource: ContactReadSource = ContactReadAndroid(context)
     private val contactGroupWriter = ContactGroupWriteAndroid(context)
+    private val contactValueWriter = ContactValueWriteAndroid(context)
+    private val contactGroupTitleWriter = ContactGroupTitleWriteAndroid(context)
+    internal var contactValueWritesEnabled = ContactValueWrite.RUNTIME_ENABLED
+    internal var contactGroupTitleWritesEnabled = ContactGroupTitleWrite.RUNTIME_ENABLED
     private var contactGroupPermissionTicket: Triple<String, Pair<String, String>, Long>? = null
     @Synchronized fun beginContactGroupWritePermission(deviceId: String, publicKey: String): String? {
         val peer = safePeer()?.takeIf { it.own_device && it.state == "paired" && it.contacts_read_enabled } ?: return null
@@ -660,11 +664,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
             setContactGroupWriteEnabled(true, peer.device_id, peer.static_public)
     }
     @Synchronized fun setContactGroupWriteEnabled(enabled: Boolean, deviceId: String, publicKey: String) {
+        setContactWriteEnabled(enabled, deviceId, publicKey)
+    }
+    @Synchronized fun setContactWriteEnabled(enabled: Boolean, deviceId: String, publicKey: String) {
         val peer = safePeer() ?: return
         if (peer.device_id != deviceId || peer.static_public != publicKey) return
         check(!enabled || peer.own_device && peer.state == "paired" && peer.contacts_read_enabled && contactGroupWriter.permission())
-        contactGroupPermissionTicket = null; contactGroupWriter.clear()
-        storage.savePeer(peer.copy(contact_groups_write_enabled = enabled))
+        contactGroupPermissionTicket = null; contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
+        storage.rememberContactWriteChoice(deviceId, publicKey, enabled)
+        storage.savePeer(peer.copy(contact_groups_write_enabled = enabled, contacts_write_enabled = enabled))
         closeTransport(); modulesChanged()
     }
     private var contactPermissionTicket: Triple<String, Pair<String, String>, Long>? = null
@@ -688,8 +696,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         contactPermissionTicket = null
         check(!enabled || peer.own_device && peer.state == "paired" && ContactReadAndroid(context).permission())
         storage.rememberContactReadChoice(deviceId, publicKey, enabled)
-        if (!enabled) { contactGroupPermissionTicket = null; contactGroupWriter.clear() }
-        storage.savePeer(peer.copy(contacts_read_enabled = enabled, contact_groups_write_enabled = enabled && peer.contact_groups_write_enabled))
+        if (!enabled) { contactGroupPermissionTicket = null; contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear() }
+        storage.savePeer(peer.copy(contacts_read_enabled = enabled))
         closeTransport(); modulesChanged()
     }
 
@@ -835,9 +843,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val deletions = own && storage.personalDeletionsEnabled()
         val contacts = own && ContactReadAndroid(context).permission() &&
             storage.rememberedContactReadChoice(peer.device_id, peer.static_public)
-        val groupWrite = contacts && peer.contact_groups_write_enabled && contactGroupWriter.permission()
-        val contactsChanged = peer.contacts_read_enabled != contacts || peer.contact_groups_write_enabled != groupWrite
-        if (contactsChanged) storage.savePeer(peer.copy(contacts_read_enabled = contacts, contact_groups_write_enabled = groupWrite))
+        val contactWrite = storage.rememberedContactWriteChoice(peer.device_id, peer.static_public)
+        val groupWrite = contactWrite && storage.rememberedContactGroupWriteChoice(peer.device_id, peer.static_public)
+        val contactsChanged = peer.contacts_read_enabled != contacts || peer.contact_groups_write_enabled != groupWrite || peer.contacts_write_enabled != contactWrite
+        if (contactsChanged) storage.savePeer(peer.copy(contacts_read_enabled = contacts, contact_groups_write_enabled = groupWrite, contacts_write_enabled = contactWrite))
         if (peer.own_device == own && peer.personal_notes_sync_granted == notes &&
             peer.personal_tasks_sync_granted == tasks && peer.personal_deletions_sync_granted == deletions) {
             if (contactsChanged) modulesChanged(reconnectAfterChange)
@@ -868,7 +877,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (peer != null) {
             storage.savePeer(peer.copy(own_device = own, identifier_sharing_enabled = own && peer.identifier_sharing_enabled, personal_notes_sync_granted = own && notes,
                 contacts_read_enabled = own && peer.contacts_read_enabled,
-                contact_groups_write_enabled = own && peer.contacts_read_enabled && peer.contact_groups_write_enabled,
+                contact_groups_write_enabled = peer.contact_groups_write_enabled,
                 personal_tasks_sync_granted = own && tasks, personal_deletions_sync_granted = own && deletions))
             queue.removeKind(peer.device_id, "personal_sync.settings")
             queue.queue(peer.device_id, "personal_sync.settings", buildJsonObject {
@@ -1169,6 +1178,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     // Never wait for a graceful network write from a lifecycle/consent callback.
     @Synchronized private fun closeTransport() {
+        contactGroupWriter.clear(); contactValueWriter.clear(); contactGroupTitleWriter.clear()
         val pipe = activeTransport?.second
         activeTransport = null
         activeChannel = null
@@ -1819,6 +1829,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
                         noteSessions.remove(channel)
+                        contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()
                         refreshSharedPreferenceState()
                     }
@@ -1885,7 +1896,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (message["kind"] == JsonPrimitive(TimeControlProtokoll.REPORT)) return
         if (unwrappedActorRun(sessionPeer, message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
-            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactGroupWrite.VERSION)) {
+            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactGroupTitleWrite.VERSION)) {
+            receiveContactGroupTitleWrite(sessionPeer, message, channel, generation)
+            return
+        }
+        if (message["kind"] == JsonPrimitive("device_status.request") &&
+            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactValueWrite.VERSION)) {
+            receiveContactValueWrite(sessionPeer, message, channel, generation)
+            return
+        }
+        if (message["kind"] == JsonPrimitive("device_status.request") &&
+            (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(ContactGroupWrite.VERSION), JsonPrimitive(ContactGroupProbe.VERSION))) {
             receiveContactGroupWrite(sessionPeer, message, channel, generation)
             return
         }
@@ -2327,7 +2348,60 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    private fun receiveContactGroupTitleWrite(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
+        }
+        try {
+            peerEffect(sessionPeer, generation) { current ->
+                val session = noteSessions[channel]
+                fun authorized() {
+                    if (!contactGroupTitleWritesEnabled || session == null || noteSessions[channel] !== session ||
+                        !session.capabilitiesReceived || !session.grantsReceived || !session.ownSettingsReceived ||
+                        activeTransport?.first != TelefonTransportArt.WIFI ||
+                        !ContactGroupTitleWrite.allowed(current, contactGroupTitleWriter.permission()) ||
+                        System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("contact_group_title_not_granted")
+                }
+                authorized()
+                val report = contactGroupTitleWriter.execute(message["body"] as JsonObject, channel)
+                authorized()
+                channel.send(TelefonNachrichten.message("device_status.report", report, 60_000))
+                channel.send(TelefonNachrichten.ack(messageId, "accepted", "none"))
+            }
+        } catch (error: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", if (error is SecurityException || !contactGroupTitleWriter.permission()) "not_granted" else "temporary_failure"))
+        }
+    }
+
+    private fun receiveContactValueWrite(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
+        }
+        try {
+            peerEffect(sessionPeer, generation) { current ->
+                val session = noteSessions[channel]
+                fun authorized() {
+                    if (!contactValueWritesEnabled || session == null || noteSessions[channel] !== session ||
+                        !session.capabilitiesReceived || !session.grantsReceived || !session.ownSettingsReceived ||
+                        activeTransport?.first != TelefonTransportArt.WIFI ||
+                        !ContactValueWrite.allowed(current, contactValueWriter.permission()) ||
+                        System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("contact_values_not_granted")
+                }
+                authorized()
+                val report = contactValueWriter.execute(message["body"] as JsonObject, channel)
+                authorized()
+                channel.send(TelefonNachrichten.message("device_status.report", report, 60_000))
+                channel.send(TelefonNachrichten.ack(messageId, "accepted", "none"))
+            }
+        } catch (error: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", if (error is SecurityException || !contactValueWriter.permission()) "not_granted" else "temporary_failure"))
+        }
+    }
+
     private fun receiveContactGroupWrite(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val probe = (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactGroupProbe.VERSION)
         val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
         try { TelefonNachrichten.validate(message) } catch (_: Exception) {
             channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
@@ -2339,10 +2413,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (session == null || noteSessions[channel] !== session || !session.capabilitiesReceived ||
                         !session.grantsReceived || !session.ownSettingsReceived ||
                         !ContactGroupWrite.allowed(current, contactGroupWriter.permission()) ||
+                        probe && (activeTransport?.first != TelefonTransportArt.WIFI || !developerDiagnostics.wlan) ||
                         System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("contact_groups_not_granted")
                 }
                 authorized()
-                val report = contactGroupWriter.execute(message["body"] as JsonObject, channel)
+                val report = if (probe) contactGroupWriter.diagnose(message["body"] as JsonObject)
+                    else contactGroupWriter.execute(message["body"] as JsonObject, channel)
                 authorized()
                 channel.send(TelefonNachrichten.message("device_status.report", report, 60_000))
                 channel.send(TelefonNachrichten.ack(messageId, "accepted", "none"))
@@ -3623,7 +3699,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     dialPermission, callState, incomingNumber, answerCalls, endCalls,
                     identifiers = peer.own_device && peer.identifier_sharing_enabled && identifierPermissionMask() and 1 != 0,
                     contactRead = peer.own_device && peer.remote_own_device && peer.contacts_read_enabled && ContactReadAndroid(context).permission(),
-                    contactGroupsWrite = peer.contact_groups_write_enabled && contactGroupWriter.permission())), 86_400_000)
+                    contactGroupsWrite = peer.contact_groups_write_enabled && contactGroupWriter.permission(),
+                    contactValuesWrite = contactValueWritesEnabled && peer.contacts_write_enabled && contactValueWriter.permission(),
+                    contactGroupTitlesWrite = contactGroupTitleWritesEnabled && peer.contacts_write_enabled && contactGroupTitleWriter.permission())), 86_400_000)
         }
         if (!queue.hasKind(peer.device_id, "grants.update")) {
             peer = peer.copy(grants_revision = peer.grants_revision + 1); storage.savePeer(peer)

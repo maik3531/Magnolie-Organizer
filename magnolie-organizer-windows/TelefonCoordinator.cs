@@ -228,10 +228,16 @@ internal sealed partial class TelefonCoordinator : IDisposable
         lock (gate)
         {
             if (setupPairing?.Token != token) return;
-            pairingUntil = 0;
-            setupPairing.Deadline.Cancel();
             if (confirmations.Remove(setupPairing.Target, out var pending)) pending.Completion.TrySetResult(false);
+            FinishSetupPairingLocked();
         }
+    }
+
+    private void FinishSetupPairingLocked()
+    {
+        setupPairing?.Deadline.Cancel(); setupPairing?.Deadline.Dispose(); setupPairing = null;
+        pairingToken = null; pairingUntil = 0;
+        EnsurePairingAvailableLocked();
     }
 
     internal async Task RemoveAsync(string id, string? expectedFingerprint = null, string? expectedRevision = null)
@@ -269,6 +275,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
     private sealed record ContactReadWait(string PeerId, byte[] PublicKey, TelefonConnection Connection,
         JsonObject Request, string MessageId, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation);
     private readonly Dictionary<string, ContactReadWait> contactReads = new(StringComparer.Ordinal);
+    private sealed record ContactGroupPreparation(string PeerId, byte[] PublicKey, TelefonConnection Connection,
+        string Uid, JsonObject Account, long Deadline, long Version, string[] Fields, long CapabilityRevision, long GrantRevision,
+        JsonObject? TitleReport = null);
+    private readonly Dictionary<string, ContactGroupPreparation> contactGroupPreparations = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, JsonObject> contactGroupAccounts = new(StringComparer.Ordinal);
 
     internal bool ContactReadAvailable(string id)
     {
@@ -279,6 +290,107 @@ internal sealed partial class TelefonCoordinator : IDisposable
     {
         lock (gate) return ContactReadAvailable(id) && Peers.Any(peer => peer.Id == id &&
             Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant() == fingerprint);
+    }
+
+    internal bool ContactGroupsAvailable(string id)
+    {
+        lock (gate) return online.TryGetValue(id, out var connection) && connection.ContactGroupsReady;
+    }
+
+    internal bool ContactValuesAvailable(string id)
+    {
+        lock (gate) return online.TryGetValue(id, out var connection) && connection.ContactValuesReady;
+    }
+
+    internal bool ContactGroupTitleWritesEnabled { get; set; } = PhoneContactGroupTitleWrite.RuntimeEnabled;
+    internal bool ContactGroupTitlesAvailable(string id)
+    {
+        lock (gate) return ContactGroupTitleWritesEnabled && online.TryGetValue(id, out var connection) && connection.ContactGroupTitlesReady;
+    }
+
+    internal Task<JsonObject> ContactGroupTitleAsync(string id, string fingerprint, JsonObject request, CancellationToken cancellation)
+    {
+        PhoneContactGroupTitleWrite.ValidateRequestShape(request);
+        return ContactMutationAsync(id, fingerprint, request, cancellation);
+    }
+
+    internal Task<JsonObject> ContactGroupsAsync(string id, string fingerprint, JsonObject request, CancellationToken cancellation)
+    {
+        if (!TelefonProtocolContract.TryInteger(request["version"], out var version) || !PhoneContactRead.IsGroupVersion(version))
+            throw new InvalidDataException("invalid_contact_group_version");
+        return ContactMutationAsync(id, fingerprint, request, cancellation);
+    }
+
+    internal Task<JsonObject> ContactValuesAsync(string id, string fingerprint, JsonObject request, CancellationToken cancellation)
+    {
+        PhoneContactValueWrite.ValidateRequestShape(request);
+        return ContactMutationAsync(id, fingerprint, request, cancellation);
+    }
+
+    private async Task<JsonObject> ContactMutationAsync(string id, string fingerprint, JsonObject request, CancellationToken cancellation)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        var version = TelefonProtocolContract.Integer(request["version"]);
+        var values = version == PhoneContactValueWrite.Version;
+        var title = version == PhoneContactGroupTitleWrite.Version;
+        var probe = version == PhoneContactRead.GroupProbeVersion;
+        if (title) PhoneContactGroupTitleWrite.ValidateRequestShape(request);
+        else if (values) PhoneContactValueWrite.ValidateRequestShape(request);
+        else if (probe) PhoneContactRead.ValidateGroupProbeRequest(request); else PhoneContactRead.ValidateGroupRequest(request);
+        bool Ready(TelefonConnection value) => title ? ContactGroupTitleWritesEnabled && value.ContactGroupTitlesReady :
+            values ? value.ContactValuesReady : value.ContactGroupsReady;
+        var body = request.DeepClone().AsObject();
+        var requestId = body["request_id"]!.GetValue<string>(); var messageId = Guid.NewGuid().ToString("D");
+        var action = body["action"]!.GetValue<string>(); var uid = body["uid"]!.GetValue<string>();
+        TelefonConnection connection; TelefonPeer peer;
+        var completion = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = Environment.TickCount64;
+        lock (gate)
+        {
+            if (!online.TryGetValue(id, out connection!) || !Ready(connection) || probe && !connection.ContactGroupProbeReady || !ContactSourceCurrent(id, fingerprint))
+                throw new InvalidOperationException("contact_groups_not_granted");
+            peer = Peers.Single(value => value.Id == id);
+            foreach (var key in contactGroupPreparations.Where(pair => pair.Value.Deadline <= started ||
+                !online.TryGetValue(pair.Value.PeerId, out var current) || !ReferenceEquals(current, pair.Value.Connection)).Select(pair => pair.Key).ToArray())
+                contactGroupPreparations.Remove(key);
+            if (contactReads.Count >= 8 || contactReads.ContainsKey(requestId)) throw new InvalidOperationException("contact_groups_busy");
+            if (action == "apply")
+            {
+                var token = body["token"]!.GetValue<string>();
+                if (!contactGroupPreparations.TryGetValue(token, out var prepared) || prepared.PeerId != id || prepared.Uid != uid ||
+                    prepared.Version != version || prepared.CapabilityRevision != peer.CapabilityRevision || prepared.GrantRevision != peer.GrantRevision ||
+                    !prepared.PublicKey.SequenceEqual(peer.PublicKey) || !ReferenceEquals(prepared.Connection, connection) ||
+                    values && !prepared.Fields.ToHashSet(StringComparer.Ordinal).SetEquals(PhoneContactValueWrite.ValidateFieldsShape(body)) ||
+                    title && (prepared.TitleReport is null || new[] { "old_title", "new_title" }.Any(field => !JsonNode.DeepEquals(body[field], prepared.TitleReport[field]))))
+                    throw new InvalidOperationException("contact_groups_stale");
+                // Title readback is also bound to the prepared native group ID.
+                contactGroupAccounts.Add(requestId, (title ? prepared.TitleReport! : prepared.Account).DeepClone().AsObject());
+                contactGroupPreparations.Remove(token);
+            }
+            else if (action == "prepare" && !probe && contactGroupPreparations.Count + contactReads.Values.Count(pending =>
+                TelefonProtocolContract.TryInteger(pending.Request["version"], out var pendingVersion) && pendingVersion is PhoneContactRead.GroupWriteVersion or PhoneContactValueWrite.Version or PhoneContactGroupTitleWrite.Version &&
+                pending.Request["action"]?.GetValue<string>() == "prepare") >= 8) throw new InvalidOperationException("contact_groups_busy");
+            contactReads.Add(requestId, new ContactReadWait(id, peer.PublicKey.ToArray(), connection, body.DeepClone().AsObject(), messageId,
+                completion, started + 8_000, cancellation));
+        }
+        try
+        {
+            cancellation.ThrowIfCancellationRequested();
+            await connection.SendMessageAsync("device_status.request", body, 8_000, messageId);
+            var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(8), cancellation);
+            lock (gate)
+            {
+                if (!online.TryGetValue(id, out var current) || !ReferenceEquals(current, connection) || !Ready(connection) || probe && !connection.ContactGroupProbeReady ||
+                    !Peers.Any(value => value.Id == id && value.PublicKey.SequenceEqual(peer.PublicKey) && value.CapabilityRevision == peer.CapabilityRevision && value.GrantRevision == peer.GrantRevision))
+                    throw new InvalidOperationException("contact_groups_not_granted");
+                if (action == "prepare") contactGroupPreparations.Add(result["token"]!.GetValue<string>(),
+                    new ContactGroupPreparation(id, peer.PublicKey.ToArray(), connection, uid, result["account"]!.DeepClone().AsObject(), started + 25_000,
+                        version, values ? PhoneContactValueWrite.FieldNames(body) : [], peer.CapabilityRevision, peer.GrantRevision,
+                        title ? result.DeepClone().AsObject() : null));
+            }
+            return result.DeepClone().AsObject();
+        }
+        finally { lock (gate) { contactReads.Remove(requestId); contactGroupAccounts.Remove(requestId); } }
     }
 
     internal Task<JsonObject> ReadOwnProfileAsync(string id, CancellationToken cancellation) => ReadContactsAsync(id, null, cancellation, true);
@@ -380,9 +492,25 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
     }
 
+    private TelefonAck AcceptContactGroupRead(TelefonConnection source, TelefonPeer peer, JsonObject message)
+    {
+        lock (gate)
+        {
+            if (!online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(current, source))
+                return new TelefonAck(message["message_id"]!.GetValue<string>(), "rejected", "not_granted");
+            return AcceptContactRead(peer, message, message["body"]!.AsObject());
+        }
+    }
+
     private TelefonAck AcceptContactRead(TelefonPeer peer, JsonObject message, JsonObject body)
     {
-        PhoneContactRead.ValidateReport(body);
+        var groups = TelefonProtocolContract.TryInteger(body["version"], out var version) && PhoneContactRead.IsGroupVersion(version);
+        var values = version == PhoneContactValueWrite.Version;
+        var title = version == PhoneContactGroupTitleWrite.Version;
+        var probe = groups && version == PhoneContactRead.GroupProbeVersion;
+        if (title) PhoneContactGroupTitleWrite.ValidateReportShape(body);
+        else if (values) PhoneContactValueWrite.ValidateReportShape(body);
+        else if (probe) PhoneContactRead.ValidateGroupProbeReport(body); else if (groups) PhoneContactRead.ValidateGroupReport(body); else PhoneContactRead.ValidateReport(body);
         lock (gate)
         {
             var messageId = message["message_id"]!.GetValue<string>();
@@ -393,8 +521,42 @@ internal sealed partial class TelefonCoordinator : IDisposable
             if (pending.Cancellation.IsCancellationRequested || Environment.TickCount64 >= pending.Deadline || Now() >= TelefonProtocolContract.Integer(message["expires_ms"]))
                 return new TelefonAck(messageId, "rejected", "expired");
             var request = pending.Request;
-            if (!JsonNode.DeepEquals(request["action"], body["action"]) || !JsonNode.DeepEquals(request["offset"], body["offset"]))
+            if (!JsonNode.DeepEquals(request["version"], body["version"]) || !JsonNode.DeepEquals(request["action"], body["action"]))
                 return new TelefonAck(messageId, "rejected", "invalid_schema");
+            if (title)
+            {
+                if (!ContactGroupTitleWritesEnabled || !connection.ContactGroupTitlesReady) return new TelefonAck(messageId, "rejected", "not_granted");
+                contactGroupAccounts.TryGetValue(id, out var prepared);
+                try { PhoneContactGroupTitleWrite.ValidateCorrelatedReport(body, request, prepared); }
+                catch (InvalidDataException) { return new TelefonAck(messageId, "rejected", "invalid_schema"); }
+                pending.Completion.TrySetResult(body.DeepClone().AsObject());
+                return new TelefonAck(messageId, "accepted", "none");
+            }
+            if (values)
+            {
+                if (!connection.ContactValuesReady) return new TelefonAck(messageId, "rejected", "not_granted");
+                contactGroupAccounts.TryGetValue(id, out var account);
+                try { PhoneContactValueWrite.ValidateCorrelatedReport(body, request, account); }
+                catch (InvalidDataException) { return new TelefonAck(messageId, "rejected", "invalid_schema"); }
+                pending.Completion.TrySetResult(body.DeepClone().AsObject());
+                return new TelefonAck(messageId, "accepted", "none");
+            }
+            if (groups)
+            {
+                if (!connection.ContactGroupsReady || probe && !connection.ContactGroupProbeReady || !JsonNode.DeepEquals(request["uid"], body["uid"]))
+                    return new TelefonAck(messageId, "rejected", "not_granted");
+                if (request["action"]!.GetValue<string>() == "apply")
+                {
+                    static HashSet<string> Names(JsonObject value) => PhoneContactRead.GroupNames(value, "groups")
+                        .Select(name => name.Normalize(System.Text.NormalizationForm.FormC).Trim().ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
+                    if (!JsonNode.DeepEquals(request["token"], body["token"]) || !contactGroupAccounts.TryGetValue(id, out var account) ||
+                        !JsonNode.DeepEquals(account, body["account"]) || !Names(request).SetEquals(Names(body)))
+                        return new TelefonAck(messageId, "rejected", "invalid_schema");
+                }
+                pending.Completion.TrySetResult(body.DeepClone().AsObject());
+                return new TelefonAck(messageId, "accepted", "none");
+            }
+            if (!JsonNode.DeepEquals(request["offset"], body["offset"])) return new TelefonAck(messageId, "rejected", "invalid_schema");
             if (request["action"]!.GetValue<string>() == "cards" &&
                 !request["uids"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal)
                     .SetEquals(body["contacts"]!.AsArray().Select(value => value!["uid"]!.GetValue<string>())))
@@ -1067,6 +1229,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
             state = peer.State,
             online = IsOnline(peer.Id), transport = OnlineTransport(peer.Id),
             contacts_read_available = ContactReadAvailable(peer.Id),
+            contact_groups_write_available = ContactGroupsAvailable(peer.Id),
+            contact_values_write_available = ContactValuesAvailable(peer.Id),
+            contact_group_titles_write_available = ContactGroupTitlesAvailable(peer.Id),
             shared_sync = SharedPreferences(peer.Id),
             dial_request = IsOnline(peer.Id) && RemoteCapability(peer, "dial_request") && peer.Grants["dial_request"]?.GetValue<bool>() == true,
             bluetooth_address = store.BluetoothAddress(peer.Id),
@@ -1410,7 +1575,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             throw new CryptographicException("Der Abschlussnachweis des Telefons passt nicht zur vorgemerkten Paarung.");
         await WriteFrameAsync(stream, desktopFinish, cancellation);
         Log("", "pair_finish", $"Paarung mit {peerId} abgeschlossen.");
-        lock (gate) { pairingToken = null; pairingUntil = 0; EnsurePairingAvailableLocked(); }
+        lock (gate) FinishSetupPairingLocked();
         if (mdns is not null) try { await mdns.AnnounceNowAsync(); } catch (SocketException) { }
         await emit("App.telefonPaarung", new { offen = false, fertig = true, code = "", kennung = peerId, name = peerName, fehler = "" });
         await ReportStatusAsync();
@@ -1423,6 +1588,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (!store.TryFinishPending(TelefonCrypto.StrictBase64(value, "transcript", 32), TelefonCrypto.StrictBase64(value, "proof", 32),
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), out var peer, out var finish)) throw new CryptographicException();
         await WriteFrameAsync(stream, finish, cancellation);
+        lock (gate) FinishSetupPairingLocked();
+        if (mdns is not null) try { await mdns.AnnounceNowAsync(); } catch (SocketException) { }
         await emit("App.telefonPaarung", new { offen = false, fertig = true, code = "", kennung = peer.Id, name = peer.Name, fehler = "" });
         await ReportStatusAsync();
     }
@@ -1465,6 +1632,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
+                    ContactGroupReportReceived = (source, message) => AcceptContactGroupRead(source, peer, message),
                     CallContextObserved = ObserveCallContext,
                     PrivateCallResultObserved = (source, receivedPeer, kind, body) => {
                         ReceivePrivateCallActorResult(source, receivedPeer, kind, body);
@@ -1630,6 +1798,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
         if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body, transport);
         if (kind != "device_status.report") return null;
+        if (TelefonProtocolContract.TryInteger(body["version"], out var groupVersion) && PhoneContactRead.IsScopedContactVersion(groupVersion))
+            return new TelefonAck(message["message_id"]!.GetValue<string>(), "rejected", "not_granted");
         if (TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion is PhoneContactRead.Version or PhoneContactRead.ProfileVersion)
             return AcceptContactRead(peer, message, body);
         TelefonDeviceStatusContract.ValidateReport(body); var status = body.DeepClone().AsObject();
@@ -1855,6 +2025,14 @@ internal sealed partial class TelefonConnection : IDisposable
             return own.OwnDevice && own.RemoteOwnDevice;
         }
     }
+    internal bool ContactGroupsReady => ContactReadReady && store.LoadPeers().Any(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey) &&
+        value.Capabilities["device_status"]?["versions"] is JsonArray versions && versions.Any(version => TelefonProtocolContract.TryInteger(version, out var number) && number == PhoneContactRead.GroupWriteVersion));
+    internal bool ContactValuesReady => ContactReadReady && store.LoadPeers().Any(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey) &&
+        value.Capabilities["device_status"]?["versions"] is JsonArray versions && versions.Any(version => TelefonProtocolContract.TryInteger(version, out var number) && number == PhoneContactValueWrite.Version));
+    internal bool ContactGroupTitlesReady => transport == "wifi" && ContactReadReady && store.LoadPeers().Any(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey) &&
+        value.Capabilities["device_status"]?["versions"] is JsonArray versions && versions.Any(version => TelefonProtocolContract.TryInteger(version, out var number) && number == PhoneContactGroupTitleWrite.Version));
+    internal bool ContactGroupProbeReady => transport == "wifi" && ContactGroupsReady && store.LoadPeers().Any(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey) &&
+        value.Capabilities["device_status"]?["versions"] is JsonArray versions && versions.Any(version => TelefonProtocolContract.TryInteger(version, out var number) && number == PhoneContactRead.GroupProbeVersion));
     private JsonObject? sentNotePolicy, receivedNotePolicy;
     internal bool NotePolicyReady
     {
@@ -1992,6 +2170,20 @@ internal sealed partial class TelefonConnection : IDisposable
                 ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
             return;
         }
+        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var groupVersion) && PhoneContactRead.IsScopedContactVersion(groupVersion))
+        {
+            var probe = groupVersion == PhoneContactRead.GroupProbeVersion;
+            var values = groupVersion == PhoneContactValueWrite.Version;
+            var title = groupVersion == PhoneContactGroupTitleWrite.Version;
+            if (title) PhoneContactGroupTitleWrite.ValidateRequestShape(body);
+            else if (values) PhoneContactValueWrite.ValidateRequestShape(body);
+            else if (probe) PhoneContactRead.ValidateGroupProbeRequest(body); else PhoneContactRead.ValidateGroupRequest(body);
+            if (!(title ? ContactGroupTitlesReady : values ? ContactValuesReady : ContactGroupsReady) || probe && !ContactGroupProbeReady || ttl is < 1 or > 8_000) throw new InvalidOperationException("contact_groups_not_granted");
+            if (contactMessageId is not null && !TelefonProtocolContract.IsUuidV4(contactMessageId)) throw new InvalidDataException("invalid_contact_group_message");
+            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = contactMessageId ?? Guid.NewGuid().ToString("D"),
+                ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
+            return;
+        }
         if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
         {
             PhoneContactRead.ValidateRequest(body);
@@ -2017,6 +2209,8 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
     internal Func<TelefonConnection, JsonObject, Task>? TimerControlReportReceived { get; set; }
+    internal Func<TelefonConnection, JsonObject, TelefonAck>? ContactGroupReportReceived { get; set; }
+    internal Action<TelefonConnection, JsonObject>? ControlPongObserved { get; set; }
     internal Action<TelefonConnection, TelefonPeer, JsonObject>? CallContextObserved { get; set; }
     internal Action<TelefonConnection, TelefonPeer, string, JsonObject>? PrivateCallResultObserved { get; set; }
     internal Func<TelefonConnection, Task>? ActorPump { get; set; }
@@ -2037,7 +2231,7 @@ internal sealed partial class TelefonConnection : IDisposable
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
         { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); await SendPlainAsync(new JsonObject { ["type"] = "pong", ["ping_id"] = plain["ping_id"]!.GetValue<string>(), ["sent_ms"] = TelefonProtocolContract.Integer(plain["sent_ms"]) }); return; }
-        if (type == "pong") { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); return; }
+        if (type == "pong") { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); ControlPongObserved?.Invoke(this, plain); return; }
         if (type == "close")
         {
             TelefonProtocolContract.ExactObject(plain, "type", "reason");
@@ -2134,9 +2328,11 @@ internal sealed partial class TelefonConnection : IDisposable
             (statusBody.ContainsKey("identifiers") || statusBody.ContainsKey("version")))
         {
             TelefonMessageContract.ValidateMessage(plain, now, true);
-            ack = TelefonProtocolContract.Integer(plain["expires_ms"]) - TelefonProtocolContract.Integer(plain["created_ms"]) > 60_000
-                ? new TelefonAck(plain["message_id"]!.GetValue<string>(), "rejected", "invalid_schema")
-                : await receive(peer, plain) ?? new TelefonAck(plain["message_id"]!.GetValue<string>(), "accepted", "none");
+            if (TelefonProtocolContract.Integer(plain["expires_ms"]) - TelefonProtocolContract.Integer(plain["created_ms"]) > 60_000)
+                ack = new TelefonAck(plain["message_id"]!.GetValue<string>(), "rejected", "invalid_schema");
+            else if (TelefonProtocolContract.TryInteger(statusBody["version"], out var groupVersion) && PhoneContactRead.IsScopedContactVersion(groupVersion))
+                ack = ContactGroupReportReceived?.Invoke(this, plain) ?? new TelefonAck(plain["message_id"]!.GetValue<string>(), "rejected", "not_granted");
+            else ack = await receive(peer, plain) ?? new TelefonAck(plain["message_id"]!.GetValue<string>(), "accepted", "none");
         }
         else if (plain["kind"]?.GetValue<string>() is string kind &&
             (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal) || TelefonProtocolContract.PersonalKinds.Contains(kind) && kind is not "personal_sync.settings"))

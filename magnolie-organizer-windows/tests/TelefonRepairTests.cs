@@ -50,7 +50,26 @@ internal static class TelefonRepairTests
             TestAssert.That(!store.TryFinishPending(peer.Id, new byte[32], new byte[32], 1, out _, out _), "Old proof completed renewed pairing.");
             TestAssert.That(store.TryFinishPending(peer.Id, transcript, phoneProof, 1, out var confirmed, out _)
                 && confirmed.State == "paired" && confirmed.PublicKey.SequenceEqual(peer.PublicKey), "New phone finish proof was not accepted.");
+            await coordinator.RemoveAsync(peer.Id);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            byte[]? AdvertisedToken() => (byte[]?)typeof(TelefonCoordinator).GetMethod("CurrentPairingToken", flags)!.Invoke(coordinator, null);
+            var cancelled = coordinator.OpenSetupPairing(peer.Id, System.Net.IPAddress.Parse("192.168.1.2"));
+            coordinator.EndSetupPairing(cancelled["token"]!.GetValue<string>());
+            TestAssert.That(AdvertisedToken() is { Length: 16 } fresh && Convert.ToBase64String(fresh) != cancelled["token"]!.GetValue<string>() && store.LoadPeers().Count == 0,
+                "Cancelled setup disabled desktop discovery instead of retiring only its bound token.");
+            var offer = coordinator.OpenSetupPairing(peer.Id, System.Net.IPAddress.Parse("192.168.1.2"));
+            store.SavePending(peer, transcript, phoneProof, desktopProof, long.MaxValue);
+            using var output = new MemoryStream();
+            var retry = (Task)typeof(TelefonCoordinator).GetMethod("RetryPairFinishAsync", flags)!.Invoke(coordinator,
+                [output, new JsonObject { ["p"] = TelefonCrypto.Protocol, ["type"] = "pair_finish", ["side"] = "phone",
+                    ["transcript"] = Convert.ToBase64String(transcript), ["proof"] = Convert.ToBase64String(phoneProof) }, CancellationToken.None])!;
+            await retry;
+            var afterFinish = AdvertisedToken();
+            coordinator.EndSetupPairing(offer["token"]!.GetValue<string>());
+            TestAssert.That(afterFinish is { Length: 16 } && AdvertisedToken()!.SequenceEqual(afterFinish) &&
+                store.LoadPeers().Single().PublicKey.SequenceEqual(peer.PublicKey) && store.PersonalSettings(peer.Id).OwnDevice,
+                "A late setup-dialog close disabled rediscovery after a completed phone finish or changed confirmed trust.");
         }
-        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 }

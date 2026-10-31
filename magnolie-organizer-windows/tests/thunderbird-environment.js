@@ -4,7 +4,8 @@ let managed = true, enumerations = 0, retained = 0, released = 0;
 const handles = ["0", "0x0", "0X0000", "", null, undefined, "0x1234", "3456", "malformed", 0];
 const context = {
   ChromeUtils: { importESModule: () => ({ ExtensionCommon: { ExtensionAPI: class {} },
-    XPCOMUtils: { defineLazyGlobalGetters() {} }, MailServices: {}, CardDAVDirectory: {}, cal: {}, CalDavGenericRequest: {} }) },
+    XPCOMUtils: { defineLazyGlobalGetters() {} }, MailServices: {}, CardDAVDirectory: {}, cal: {}, CalDavGenericRequest: {},
+    ExtensionParent: { GlobalManager: { getExtension: () => undefined } } }) },
   Services: { prefs: { getBoolPref: () => managed }, appinfo: { processID: 42 }, env: { get: () => "" },
     startup: { enterLastWindowClosingSurvivalArea() { retained++; }, exitLastWindowClosingSurvivalArea() { released++; } },
     wm: { getEnumerator() { enumerations++; return handles.map(nativeHandle => ({
@@ -14,6 +15,15 @@ const context = {
 };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../app/thunderbird/api.js"), "utf8"), context);
 const extension = new context.magnolie();
+let readyCallback, wakeups = 0;
+extension.extension = { once(event, callback) { assert.equal(event, "ready"); readyCallback = callback; },
+  emit(event) { assert.equal(event, "start-background-script"); wakeups++; } };
+const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../app/thunderbird/manifest.json"), "utf8"));
+assert.ok(manifest.experiment_apis.magnolie.parent.events.includes("startup"));
+extension.onStartup();
+assert.equal(retained, 1, "Warm-profile lifetime must be retained before the delayed background page requests its API");
+assert.equal(wakeups, 0, "Do not wake the background before its manifest is ready");
+readyCallback(); assert.equal(wakeups, 1, "A silent warm profile cannot wait for a browser window before connecting its native bridge");
 const request = extension.getAPI().magnolie.request;
 (async () => {
   assert.equal(retained, 1, "A silent managed helper must retain its native service lifetime without a mail window");
@@ -27,7 +37,7 @@ const request = extension.getAPI().magnolie.request;
   const personal = await request({ version: 1, id: "b".repeat(32), op: "environment" });
   assert.deepEqual(JSON.parse(JSON.stringify(personal.mailWindows)), []);
   assert.equal(enumerations, 1, "An ordinary personal profile must not enumerate managed mail windows");
-  const personalExtension = new context.magnolie(); personalExtension.getAPI(); personalExtension.onShutdown();
+  const personalExtension = new context.magnolie(); personalExtension.onStartup(); personalExtension.getAPI(); personalExtension.onShutdown();
   assert.equal(retained, 1); assert.equal(released, 0, "A personal profile must not alter the managed lifetime");
   extension.onShutdown(); extension.onShutdown();
   assert.equal(released, 1, "The managed lifetime must be released exactly once on shutdown");

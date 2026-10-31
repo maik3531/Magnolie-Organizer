@@ -573,6 +573,9 @@ msgstr "पते"
 msgid "Advanced"
 msgstr "उन्नत"
 
+msgid "Advanced functions"
+msgstr "उन्नत सुविधाएँ"
+
 msgid "After exercise"
 msgstr "व्यायाम के बाद"
 
@@ -3870,8 +3873,19 @@ msgstr "ODS"
 msgid "OK"
 msgstr "ठीक है"
 
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Verified finite appointment series, contact group memberships and known phone contexts are retained. Basic planner spans and annual anniversaries are retained; one-off anniversaries become all-day appointments, call and web records become text notes. Unsupported entries, layout, attachments and alarms are not transferred."
-msgstr "OR6 आयात: अपॉइंटमेंट, कार्य, संपर्क और सादा पाठ नोट। सत्यापित सीमित अपॉइंटमेंट शृंखलाएँ, संपर्क समूह सदस्यताएँ और ज्ञात फ़ोन प्रकार सुरक्षित रहते हैं। साधारण योजनाकार अवधि और वार्षिक वर्षगाँठ सुरक्षित रहती हैं; एकबारगी वर्षगाँठ पूरे दिन के अपॉइंटमेंट और कॉल व वेब प्रविष्टियाँ पाठ नोट बनती हैं। असमर्थित प्रविष्टियाँ, लेआउट, अनुलग्नक और अलार्म स्थानांतरित नहीं होते।"
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Verified "
+"finite appointment series, contact group memberships and known phone "
+"contexts are retained. Basic planner spans and annual anniversaries are "
+"retained; one-off anniversaries become all-day appointments, call and web "
+"records become text notes. Unsupported entries, layout, attachments and "
+"alarms are not transferred."
+msgstr ""
+"OR6 आयात: अपॉइंटमेंट, कार्य, संपर्क और सादा पाठ नोट। सत्यापित सीमित अपॉइंटमेंट शृंखलाएँ, "
+"संपर्क समूह सदस्यताएँ और ज्ञात फ़ोन प्रकार सुरक्षित रहते हैं। साधारण योजनाकार अवधि और "
+"वार्षिक वर्षगाँठ सुरक्षित रहती हैं; एकबारगी वर्षगाँठ पूरे दिन के अपॉइंटमेंट और कॉल व वेब "
+"प्रविष्टियाँ पाठ नोट बनती हैं। असमर्थित प्रविष्टियाँ, लेआउट, अनुलग्नक और अलार्म स्थानांतरित "
+"नहीं होते।"
 
 msgid "Objects"
 msgstr "वस्तुएँ"
@@ -4398,6 +4412,9 @@ msgstr "प्लेबैक स्थिति"
 msgid "Please create a notebook in another group first."
 msgstr "कृपया पहले किसी दूसरे समूह में एक नोटबुक बनाएँ।"
 
+msgid "Please enter a different group name."
+msgstr "कृपया समूह का कोई दूसरा नाम दर्ज करें।"
+
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "कृपया 1000 या उसके बाद का चार अंकों वाला वर्ष दर्ज करें।"
 
@@ -4434,7 +4451,9 @@ msgstr "इंटरनेट IP और फ़िंगरप्रिंट प
 msgid ""
 "Please enter your email address as the payment reference; otherwise the "
 "ContributorKey cannot be sent to you."
-msgstr "कृपया भुगतान के विवरण में अपना ईमेल पता दें, अन्यथा ContributorKey आपको भेजा नहीं जा सकेगा।"
+msgstr ""
+"कृपया भुगतान के विवरण में अपना ईमेल पता दें, अन्यथा ContributorKey आपको भेजा नहीं जा "
+"सकेगा।"
 
 msgid "Please select a PDF file."
 msgstr "कृपया PDF फ़ाइल चुनें।"
@@ -4788,6 +4807,14 @@ msgid ""
 msgstr ""
 "“%(name)s” को हटाएँ? उनके कार्य सुरक्षित रहेंगे, लेकिन अब किसी व्यक्ति को सौंपे नहीं रहेंगे।"
 
+msgid "Rename"
+msgstr "नाम बदलें"
+
+msgid ""
+"Rename this phone account's group for all its members. Memberships are "
+"preserved."
+msgstr "फ़ोन के इस खाते के समूह का नाम उसके सभी सदस्यों के लिए बदलता है। सदस्यताएँ बरकरार रहती हैं।"
+
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
@@ -4885,6 +4912,9 @@ msgstr "छुट्टियाँ प्राप्त की जा रह�
 
 msgid "Retrieving weather…"
 msgstr "मौसम प्राप्त किया जा रहा है…"
+
+msgid "Retry"
+msgstr "फिर कोशिश करें"
 
 msgid "Review and enable"
 msgstr "जाँचें और चालू करें"
@@ -5338,6 +5368,9 @@ msgstr "मासिक दृश्य में सप्ताह संख�
 msgid "Show week numbers in the planner"
 msgstr "प्लानर में सप्ताह संख्या दिखाएँ"
 
+msgid "Show “Connect phone via WLAN” in the tray menu"
+msgstr "ट्रे मेनू में “फोन को WLAN के माध्यम से कनेक्ट करें” दिखाएँ"
+
 msgid "Sign in to Microsoft"
 msgstr "माइक्रोसॉफ्ट में साइन इन करें"
 
@@ -5490,6 +5523,9 @@ msgstr "स्थिति"
 
 msgid "Stop"
 msgstr "रोकें"
+
+msgid "Stop retrying"
+msgstr "कोशिश करना बंद करें"
 
 msgid "Street"
 msgstr "सड़क"
@@ -8128,11 +8164,3 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
-
-#: web/anwendung.js
-msgid "Advanced functions"
-msgstr "उन्नत सुविधाएँ"
-
-#: web/anwendung.js
-msgid "Show “Connect phone via WLAN” in the tray menu"
-msgstr "ट्रे मेनू में “फोन को WLAN के माध्यम से कनेक्ट करें” दिखाएँ"

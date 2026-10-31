@@ -112,7 +112,9 @@ async function preview(web, data, mode = "apply", provider = "kde") {
           if (groupMode) assert.deepEqual(Array.from(b.t.kontaktGruppen(b.t.daten().kontakte[0])),
             mode === "groups-keep" ? ["Colleagues"] : mode === "groups-clear" ? [] : ["Work"]);
         }
-        assert.ok(!b.messages.some(m => m.cmd === "telefon_kontaktfotos"), "contact import works with photos disabled");
+        const background = b.messages.filter(m => m.cmd === "telefon_kontaktfotos");
+        assert.ok(provider === "notes" ? background.every(m => m.includePhoto === false) : !background.length,
+          "Disabled photos must not be requested while readable Notes contact data may resume after the explicit preview");
         return result;
       }
     }
