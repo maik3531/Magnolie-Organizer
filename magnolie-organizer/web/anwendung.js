@@ -25831,12 +25831,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function ordneReiter() {
     const reiter = document.querySelector(".einst-reiter");
     if (!reiter || !reiter.children.length) return "";
+    const knoepfe = Array.from(reiter.children);
+    const messwerte = knoepfe.map((knopf) => {
+      const text = knopf.dataset.reiterText || knopf.textContent;
+      knopf.dataset.reiterText = text;
+      knopf.textContent = text;
+      const vorher = knopf.style.flexShrink;
+      knopf.style.flexShrink = "0";
+      return vorher;
+    });
     reiter.classList.remove("zwei-reihen");
     const vorher = reiter.style.flexWrap;
     reiter.style.flexWrap = "nowrap";
     const ordnung = reiterOrdnung(reiter.scrollWidth, reiter.clientWidth);
     reiter.style.flexWrap = vorher;
+    knoepfe.forEach((knopf, index) => { knopf.style.flexShrink = messwerte[index]; });
     if (ordnung === "zwei-reihen") reiter.classList.add("zwei-reihen");
+    for (const knopf of knoepfe) {
+      const voll = knopf.dataset.reiterText;
+      const zeichen = Array.from(voll);
+      while (knopf.clientWidth > 0 && knopf.scrollWidth > knopf.clientWidth + 1 && zeichen.length > 1) {
+        zeichen.pop();
+        knopf.textContent = zeichen.join("").trimEnd() + "…";
+      }
+      if (knopf.textContent !== voll) {
+        knopf.title = voll;
+        knopf.setAttribute("aria-label", voll);
+      } else {
+        knopf.removeAttribute("title");
+        knopf.removeAttribute("aria-label");
+      }
+    }
     return ordnung;
   }
 

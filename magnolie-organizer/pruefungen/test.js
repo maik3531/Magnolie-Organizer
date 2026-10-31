@@ -6586,6 +6586,27 @@ function knopfMit(text, wurzel) {
     assert.ok(!reiterZeile.classList.contains("zwei-reihen"),
       "eine Reihe darf nicht als zwei gekennzeichnet sein");
   }
+  const messKnopf = reiterZeile.children[0];
+  const vollerReiterText = messKnopf.textContent;
+  let reiterBreite = 700, knopfBreite = 80;
+  Object.defineProperty(reiterZeile, "clientWidth", { configurable: true, get: () => reiterBreite });
+  Object.defineProperty(reiterZeile, "scrollWidth", { configurable: true,
+    get: () => Array.from(reiterZeile.children).every(k => k.style.flexShrink === "0") ? 1200 : 700 });
+  Object.defineProperty(messKnopf, "clientWidth", { configurable: true, get: () => knopfBreite });
+  Object.defineProperty(messKnopf, "scrollWidth", { configurable: true, get: () => messKnopf.textContent.length * 12 });
+  assert.strictEqual(T.ordneReiter(), "zwei-reihen", "schrumpfende Messreiter dürfen die gleichmäßige Zweireihenordnung nicht verhindern");
+  assert.ok(messKnopf.textContent.endsWith("…") && messKnopf.scrollWidth <= knopfBreite + 1,
+    "ein langer Reiter wird nicht passend einzeilig gekürzt");
+  assert.strictEqual(messKnopf.getAttribute("aria-label"), vollerReiterText,
+    "der vollständige Reitername muss zugänglich bleiben");
+  assert.ok(Array.from(reiterZeile.children).every(k => k.style.flexShrink === ""),
+    "temporäre Messstile dürfen nicht in der Oberfläche verbleiben");
+  reiterBreite = 1800; knopfBreite = 250;
+  assert.strictEqual(T.ordneReiter(), "eine-reihe");
+  assert.strictEqual(messKnopf.textContent, vollerReiterText, "bei mehr Platz muss der vollständige Reitername zurückkehren");
+  for (const element of [reiterZeile, messKnopf]) {
+    delete element.clientWidth; delete element.scrollWidth;
+  }
   T.schliesseEinstellungen();
   w.App.init({ gesperrt: true, wartet: 0, datenPfad: "/heim" });
 
