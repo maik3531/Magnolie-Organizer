@@ -96,7 +96,8 @@ def test_missing_or_changed_current_connection_evidence_rejects_shared_updates(t
         old = copy.deepcopy(peer); peer["static_public"] = phone.b64(b"k" * 32); peer = old
     elif gate == "unavailable": service.personal_sync_available = lambda: False
     service._payload(peer, channel, message(incoming))
-    assert channel.sent[-1]["status"] == "rejected" and channel.sent[-1]["error"] == "not_granted"
+    assert channel.sent[-1]["status"] == "rejected"
+    assert channel.sent[-1]["error"] == ("temporary_failure" if gate == "unavailable" else "not_granted")
     if gate != "key":
         assert service.store.shared_settings(peer["device_id"], peer["static_public"]) == before
 
@@ -124,3 +125,31 @@ def test_shared_feature_is_advertised_but_requires_support_on_both_sides():
     for item in legacy.values():
         item["versions"] = [version for version in item["versions"] if version < 9]
     assert not shared.supported(capabilities, legacy)
+
+
+def test_shared_frame_before_gui_is_retryable_without_merging_or_persisting(tmp_path, monkeypatch):
+    service, peer, channel, body = fixture(tmp_path, monkeypatch)
+    peer_id = peer['device_id']
+    incoming = shared.merge(shared.create(peer_id), body, peer_id, service.store.identity['device_id'])
+    payload = message(incoming)
+    service.personal_sync_available = lambda: False
+    service._payload(peer, channel, payload)
+    assert channel.sent[-1]['status'] == 'rejected'
+    assert channel.sent[-1]['error'] == 'temporary_failure', 'GUI startup was reported as terminal permission rejection'
+    assert service.store.shared_settings(peer_id, peer['static_public']) == body
+    assert service.store.dedupe_result(peer_id, payload['message_id']) is None
+    assert not service.shared_settings_ready(peer_id)
+    service.personal_sync_available = lambda: True
+    service._payload(peer, channel, payload)
+    assert channel.sent[-1]['status'] == 'accepted'
+    assert service.shared_settings_ready(peer_id)
+
+
+@pytest.mark.parametrize('control', ['capabilities.update', 'grants.update', 'personal_sync.settings'])
+def test_unready_gui_does_not_disguise_missing_connection_authority_as_transient(tmp_path, monkeypatch, control):
+    service, peer, channel, body = fixture(tmp_path, monkeypatch)
+    service.personal_sync_available = lambda: False
+    service.note_controls[channel].pop(control)
+    service._payload(peer, channel, message(shared.create(peer['device_id'])))
+    assert channel.sent[-1]['error'] == 'not_granted'
+    assert service.store.shared_settings(peer['device_id'], peer['static_public']) == body

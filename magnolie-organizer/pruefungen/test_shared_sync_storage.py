@@ -187,7 +187,7 @@ def test_runtime_distinguishes_controls_and_strict_merge_rejection(tmp_path):
     service.personal_sync_available = lambda: False
     service._payload(peer, channel, message)
     assert service.shared_settings_runtime(peer_id)["last_incoming"] == {
-        "status": "rejected", "error": "not_granted", "stage": "controls"}
+        "status": "rejected", "error": "temporary_failure", "stage": "controls"}
     service.personal_sync_available = lambda: True
     service._payload(peer, channel, message)
     result = service.shared_settings_runtime(peer_id)
@@ -204,3 +204,31 @@ def test_runtime_distinguishes_controls_and_strict_merge_rejection(tmp_path):
     assert all(isinstance(value, (bool, dict, type(None))) for value in result.values())
     service.connections[peer_id] = SharedChannel()
     assert service.shared_settings_runtime(peer_id)["last_incoming"] is None
+
+
+def test_explicit_local_choice_repairs_exact_one_step_echo_without_relaxing_merge(tmp_path):
+    service, peer_id, public = fixture(tmp_path)
+    local = service.store.identity["device_id"]
+    initial = dict(shared.DEFAULTS, auto_mode="wifi", content_mode="phone_scope",
+        skip_deletions=False, time_mode="two_way")
+    body = service.store.initialize_shared_settings(peer_id, public, initial)
+    before_peer = copy.deepcopy(service.store.peer(peer_id))
+    incoming = shared.merge(shared.create(peer_id, initial), body, peer_id, local)
+    incoming["settings"]["time_mode"][local]["counter"] = 1
+    incoming["settings"]["skip_deletions"][local]["value"] = True
+    with pytest.raises(ValueError, match="unknown local setting echo"):
+        service.store.merge_shared_settings(peer_id, public, incoming)
+    assert service.store.shared_settings(peer_id, public) == body
+    # Only the normal, explicit owner write creates this local clock. Receiving
+    # the unknown positive echo by itself remains strictly rejected.
+    chosen = service.store.change_shared_setting(peer_id, public, "time_mode", initial["time_mode"])
+    assert shared.effective(chosen) == initial
+    merged = service.store.merge_shared_settings(peer_id, public, incoming)
+    echo = shared.merge(incoming, merged, peer_id, local)
+    assert service.store.merge_shared_settings(peer_id, public, echo) == merged
+    assert shared.effective(merged) == initial
+    assert service.store.peer(peer_id) == before_peer
+    invalid = copy.deepcopy(incoming)
+    invalid["settings"]["time_mode"][local]["counter"] = 100
+    with pytest.raises(ValueError, match="unknown local setting echo"):
+        service.store.merge_shared_settings(peer_id, public, invalid)

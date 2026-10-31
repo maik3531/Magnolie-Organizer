@@ -4052,8 +4052,11 @@ class PhoneService:
                 and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
 
     def _shared_controls_ready(self, peer, channel):
+        return self.personal_sync_available() and self._shared_connection_controls_ready(peer, channel)
+
+    def _shared_connection_controls_ready(self, peer, channel):
         if (not peer or channel is None or self.connections.get(peer["device_id"]) is not channel or
-                not self.personal_sync_available() or not shared_sync_contract.supported(
+                not shared_sync_contract.supported(
                     desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
             return False
         personal = peer.get("personal_sync", {})
@@ -7006,6 +7009,11 @@ class PhoneService:
                     # is hidden. This never authorizes a merge or stores the body.
                     self._shared_session(current, channel)["wire_comparison"] = merge_checks
                     if not self._shared_controls_ready(current, channel):
+                        if (not self.personal_sync_available() and
+                                self._shared_connection_controls_ready(current, channel)):
+                            # GUI readiness is transient, not a revoked grant.
+                            # Keep the peer's existing bounded outbox retry alive.
+                            raise RuntimeError("Shared settings await native GUI readiness.")
                         raise PermissionError
                     stage = "initialized"
                     if saved is None:
