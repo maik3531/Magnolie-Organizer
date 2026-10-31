@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.29) unstable; urgency=medium
+
+  * Stabilisiert Notes-Abgleich, Startreihenfolge und Wiederverbindung.
+  * Korrigiert Kontaktgruppen, Schreibaufträge und frische Rückleseprüfungen.
+  * Erhält Kalender-UIDs und die bestätigte native Speicherprojektion.
+  * Aktualisiert Notes auf 1.0.21 und die zugehörigen Paketmetadaten.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 31 Oct 2026 12:20:00 +0100
+
 magnolie-organizer (2.0.28) unstable; urgency=medium
 
   * Gleicht Kontaktgruppen einschließlich Entfernungen mit Android ab.

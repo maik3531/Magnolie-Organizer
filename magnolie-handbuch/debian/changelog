@@ -1,3 +1,9 @@
+magnolie-handbuch (2.0.29) unstable; urgency=medium
+
+  * Gleicht Versions- und Paketverweise an den bestätigten Korrekturstand an.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 31 Oct 2026 12:20:00 +0100
+
 magnolie-handbuch (2.0.28) unstable; urgency=medium
 
   * Dokumentiert Kontaktgruppen, Kontaktwebseiten und Sendewege.
