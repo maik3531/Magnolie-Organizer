@@ -1183,7 +1183,8 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
 
     /** Called under the owner's peer lock when membership or content preference changes. */
-    internal fun purgeStaleScopedRuns(binding: SharedSettingsBinding, shared: SharedSyncStorage, reference: JsonObject?): Set<String> {
+    internal fun purgeStaleScopedRuns(binding: SharedSettingsBinding, shared: SharedSyncStorage, reference: JsonObject?,
+        nativeTerminalRuns: Set<String> = emptySet()): Set<String> {
         reference?.let(PhoneContentScope::validateReference); shared.requireWritable(binding)
         val settings = requireNotNull(shared.read(binding))
         val policy = if (SharedSyncSettings.effective(settings)["content_mode"] == JsonPrimitive("phone_scope")) contentPolicyHash(settings) else null
@@ -1192,7 +1193,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             while (cursor.moveToNext()) {
                 val runId = cursor.getString(0).substringAfterLast(':')
                 val marker = requireNotNull(readScopeRun(helper.readableDatabase, binding.peerActor, runId))
-                val finishingDeletion = reference != null && policy != null && hasDeletionReceipt(binding.peerActor, runId)
+                // Retention of native terminal metadata is not data admission.
+                // The controller has retired its data owner and must still check
+                // exact saved book/expected membership/authority before any send.
+                val finishingDeletion = reference != null && policy != null &&
+                    (runId in nativeTerminalRuns || hasDeletionReceipt(binding.peerActor, runId))
                 if (reference == null || policy == null || marker["scope"] != reference && !finishingDeletion || marker["peer_key"] != JsonPrimitive(binding.peerPublic) ||
                     marker["local_actor"] != JsonPrimitive(binding.localActor) || marker["content_policy"] != JsonPrimitive(policy) ||
                     marker["restore_epoch"] != JsonPrimitive(restoreEpoch())) stale.add(runId)
@@ -1216,7 +1221,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         while (cursor.moveToNext()) {
             val clear = storage.decryptPayload(cursor.getBlob(1), "outbox", cursor.getString(0))
             try {
-                val body = (TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject)["body"] as JsonObject
+                val wire = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                if (PersonalSyncActor.isReservedMessage(wire)) continue // Never use the legacy data-owner exception for actor frames.
+                val body = wire["body"] as JsonObject
                 if (body["run_id"] == JsonPrimitive(runId) && (body["decisions"] as JsonArray).all {
                     (it as JsonObject)["decision"] == JsonPrimitive("delete") }) found = true
             } finally { clear.fill(0) }

@@ -37,6 +37,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.long
 import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
 import io.gitlab.maik3531.magnolienotes.daten.PersonalDeletionProposal
+import io.gitlab.maik3531.magnolienotes.daten.AppliedPersonalDecision
+import io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection
 import io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung
 import kotlin.concurrent.thread
 
@@ -210,6 +212,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val personalActorTransports = mutableMapOf<String, TelefonSecureChannel>()
     private val personalActorDispatches = mutableSetOf<String>()
     private val personalActorReportReceipts = mutableMapOf<String, String>()
+    private class ActorDeletionCompletion(val choices: Map<String, String>, val intents: List<JsonObject>,
+        val savedBook: JsonObject, val expectedMembers: JsonObject, val guard: PersonalActorDecisionCompletion) {
+        var ledgerReady = false
+        var completed = false
+        val acknowledgments = linkedMapOf<String, DeletionDecisionAck>()
+    }
+    private val personalActorCompletions = mutableMapOf<String, ActorDeletionCompletion>()
     private val personalActorBooks = mutableMapOf<String, Bestand>()
 
     @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
@@ -240,6 +249,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorJournal.retire(handle) { stopActorRunAndPrivateStaging(handle.peerId, handle.runId) }
         personalActorWork.remove(handle.runId)
         personalActorReportReceipts.remove(handle.runId)
+        personalActorCompletions.remove(handle.runId)
         personalActorTransports.remove(handle.runId)
         personalActorBooks.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
@@ -260,6 +270,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorJournal.reapInactive { peer, run -> stopActorRunAndPrivateStaging(peer, run) }.forEach { (peer, run) ->
             personalActorWork.remove(run); personalActorHandles.remove(run)
             personalActorReportReceipts.remove(run)
+            personalActorCompletions.remove(run)
             personalActorKeys.remove(run); personalActorTransports.remove(run)
             personalActorBooks.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
@@ -270,6 +281,112 @@ class TelefonWerk private constructor(private val context: Context, private val 
         queue.stopCurrentActorRun(peer, run)
         queue.purgePersonal(PersonalSyncActor.storagePeer(run))
     }
+
+    /** Native review only. Public tools/producers remain disabled. Data ownership
+     * is retired before the actual one-save, outside any outer withActive block. */
+    @Synchronized internal fun commitPersonalActorDeletionReview(handle: PersonalActorHandle, choices: Map<String, String>): String =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            require(personalActorHandles[handle.runId] === handle)
+            val run = handle.runId
+            val documents = Ablage.hole(context)
+            personalActorCompletions[run]?.let { pending ->
+                require(pending.choices == choices && !pending.completed) { "actor_completion_review_changed" }
+                require(documents.personalActorSavedBookState() == pending.savedBook) { "actor_phone_book_changed" }
+                if (!pending.ledgerReady) {
+                    require(pending.guard.validator("read", null) == true) { "actor_completion_not_ready" }
+                    require(queue.commitActorDeletionIntents(run, pending.intents)) { "actor_intent_ledger_changed" }
+                    pending.ledgerReady = true
+                }
+                return@synchronized "completion"
+            }
+            val receipt = requireNotNull(actorDataReportReceipt(handle)) { "actor_data_report_ack_required" }
+            val channel = requireNotNull(personalActorTransports[run])
+            val publicKey = requireNotNull(personalActorKeys[run])
+            val generation = pairingGeneration
+            val peer = requireNotNull(safePeer()).also {
+                require(it.device_id == handle.peerId && it.static_public == publicKey &&
+                    it.personal_deletions_sync_granted && it.remote_personal_deletions_sync_granted &&
+                    commonValues(it)?.get("skip_deletions") == JsonPrimitive(false) &&
+                    commonValues(it)?.get("content_mode") != JsonPrimitive("phone_import")) { "actor_deletions_not_granted" }
+            }
+            val session = requireNotNull(noteSessions[channel])
+            val before = requireNotNull(session.localContentScope)
+            val authority = requireNotNull(currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation))
+            val retained = documents.bestand.value
+            val intents = queue.actorDeletionIntents(run)
+            require(intents.isNotEmpty() && intents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
+                "actor_incoming_decision_controller_required"
+            }
+            val decoded = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body") as JsonObject) }
+            for (batch in intents.groupBy { it.getValue("body").jsonObject.string("proposal_batch_id") }.values) {
+                val bodies = batch.map { it.getValue("body").jsonObject }.sortedBy { it.long("sequence") }
+                require(bodies.map { it.long("sequence") } == bodies.indices.map { it.toLong() } &&
+                    bodies.map { it["last"] == JsonPrimitive(true) } == bodies.indices.map { it == bodies.lastIndex }) { "actor_deletion_batch_incomplete" }
+            }
+            require(decoded.size in 1..256 && decoded.map { it.proposalId }.distinct().size == decoded.size &&
+                choices.keys == decoded.map { it.proposalId }.toSet() && choices.values.all { it in setOf("delete", "restore") }) {
+                "actor_deletion_review_required"
+            }
+            val proposals = decoded.map { value -> PersonalDeletionProposal(run, value.proposalId, value.kind, value.id,
+                value.parentId, value.clock, value.priorHash, value.deletedMs, value.label, peer.device_id) }
+            val decisions = proposals.map { AppliedPersonalDecision(it.proposal_id, choices.getValue(it.proposal_id), it.clock, UUID.randomUUID().toString()) }
+            val targets = JsonArray(intents.flatMap { (it.getValue("body") as JsonObject).getValue("proposals").jsonArray }
+                .map { JsonObject(it.jsonObject.filterKeys { key -> key !in setOf("deleted_ms", "label") }) })
+            val decisionBodies = decisions.map { value -> buildJsonObject {
+                put("format", 1); put("run_id", run); put("decision_id", value.decision_id)
+                put("decisions", buildJsonArray { add(buildJsonObject {
+                    put("proposal_id", value.proposal_id); put("decision", value.decision)
+                    put("expected_clock", JsonArray(value.expected_clock.map { buildJsonObject {
+                        put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                }) })
+            } }
+            val allDecisions = JsonArray(decisionBodies.flatMap { it.getValue("decisions").jsonArray })
+            val members = PersonalSyncActor.completionMembers(run, before, targets, allDecisions)
+            fun selection(value: JsonObject) = PersonalContentSelection(
+                value.getValue("notes").jsonArray.map { it.jsonPrimitive.content }.toSet(),
+                value.getValue("tasks").jsonArray.map { it.jsonPrimitive.content }.toSet())
+            val beforeSelection = selection(before.getValue("members").jsonObject)
+            val afterSelection = selection(members)
+            val preview = PersonalSync.prepareActorDeletion(retained, peer.device_id, run, proposals, decisions, emptyList())
+            require(preview.second == "applied" && PersonalSync.livePersonalContent(preview.first) == afterSelection) { "actor_deletion_conflict" }
+            val policy = requireNotNull(queue.personalRunPolicy(peer.device_id, run))
+            var terminal: ActorDeletionCompletion? = null
+            val nativeGuard: (String, JsonObject?) -> Boolean? = { operation, wire ->
+                val saved = terminal
+                if (saved != null) {
+                    if (saved.ledgerReady) saved.guard.validator(operation, wire) else null
+                } else if (operation == "begin") {
+                    documents.bestand.value === retained && documents.personalActorSavedBookState() == receipt["saved_book"] &&
+                        currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == authority &&
+                        noteSessions[channel]?.localContentScope == before
+                } else null
+            }
+            try {
+                val frames = decisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) }
+                personalActorJournal.beginCompletion(handle, nativeGuard)
+                personalActorWork.remove(run)
+                io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
+                require(documents.personalSyncApplyActorDeletionOnce(peer.device_id, run, "${peer.device_id}:$run:actor-deletions",
+                    retained, beforeSelection, afterSelection, proposals, decisions, emptyList()) == "applied") { "actor_deletion_conflict" }
+                personalActorBooks[run] = documents.bestand.value
+                val witness = requireNotNull(documents.personalActorSavedBookState())
+                val guard = PersonalActorDecisionCompletion(run, targets, frames,
+                    { currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) },
+                    { if (currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == null) null else noteSessions[channel]?.localContentScope },
+                    { documents.personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, before, authority)
+                val saved = ActorDeletionCompletion(choices.toMap(), intents, witness, members, guard)
+                terminal = saved
+                personalActorCompletions[run] = saved
+                // A failed ledger transaction keeps the saved native ticket but
+                // cannot dispatch metadata. Exact retry never repeats the save.
+                saved.ledgerReady = runCatching { queue.commitActorDeletionIntents(run, intents) }.getOrDefault(false)
+                queueContentScope(peer, session)
+                if (saved.ledgerReady) "completion" else "metadata_pending"
+            } catch (error: Exception) {
+                if (terminal == null) stopPersonalActor(handle)
+                throw error
+            }
+        }
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
     internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1() }
@@ -418,7 +535,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
         session.contentScopeSelection = live
         session.contentScopeRestoreEpoch = restoreEpoch
         if (current != previous || session.contentScopePreference != preference) {
-            queue.purgeStaleScopedRuns(binding, sharedPreferences, PhoneContentScope.reference(current))
+            val documents = Ablage.hole(context)
+            val saved = documents.personalActorSavedBookState()
+            val terminalRuns = personalActorCompletions.filter { (run, completion) ->
+                personalActorHandles[run]?.peerId == peer.device_id && personalActorTransports[run]?.let { noteSessions[it] === session } == true &&
+                    personalActorKeys[run] == peer.static_public && personalActorBooks[run] === documents.bestand.value &&
+                    !completion.completed && completion.savedBook == saved && completion.expectedMembers == current["members"]
+            }.keys
+            queue.purgeStaleScopedRuns(binding, sharedPreferences, PhoneContentScope.reference(current), terminalRuns)
             queue.removeKind(peer.device_id, PhoneContentScope.KIND)
             session.localContentScope = current
             session.contentScopePreference = preference
@@ -2132,6 +2256,26 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         val run = body.string("run_id")
                         val handle = personalActorHandles[run] ?: return@synchronized null
                         if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel) return@synchronized null
+                        personalActorCompletions[run]?.let { completion ->
+                            if (completion.completed) return@synchronized null
+                            personalActorJournal.putCompletionControl(handle, message)
+                            completion.guard.recordPersisted(message)
+                            queue.acknowledge(peer.device_id, body.string("message_id"), body.string("status"), body.string("error"))?.let {
+                                completion.acknowledgments[it.decisionId] = it
+                            }
+                            val rejected = body.string("status") == "rejected" && body.string("error") != "temporary_failure"
+                            val summary = completion.guard.summary()
+                            if (!rejected && summary["saved"] == summary["expected"]) {
+                                personalActorJournal.finishCompletion(handle)
+                                completion.completed = true
+                                queue.stopActorRun(peer.device_id, run)
+                                completion.acknowledgments.values.forEach(::applyDecisionAck)
+                            } else if (rejected) {
+                                completion.acknowledgments.values.forEach(::applyDecisionAck)
+                                stopPersonalActor(handle)
+                            }
+                            return@synchronized null
+                        }
                         var terminal = false
                         var decisionAck: DeletionDecisionAck? = null
                         personalActorJournal.withActive(handle) {
@@ -2216,7 +2360,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         require(report["format"] == request["format"] && report["state"] == JsonPrimitive("complete") &&
             report["trigger"] == JsonPrimitive("manual") && report["error"] == JsonPrimitive("none")) { "actor_completion_report_required" }
         if (queue.personalDirectionApplied(peer.device_id, run, true)) return
-        require(queue.isActorRun(peer.device_id, run) && queue.actorDeletionIntents(run).isEmpty()) { "actor_deletion_review_required" }
+        require(queue.isActorRun(peer.device_id, run))
         val privatePeer = PersonalSyncActor.storagePeer(run)
         val staged = queue.readyPersonalBatches().singleOrNull { it.first == privatePeer &&
             (it.second.last().getValue("body") as JsonObject).let { body -> body.string("run_id") == run && body["reply"] == JsonPrimitive(true) } }?.second
@@ -2243,7 +2387,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
         require(appliedKey in documents.bestand.value.personalSync.applied_batches && PersonalSync.livePersonalContent(documents.bestand.value) == selection)
         queue.markPersonalDirectionApplied(peer.device_id, run, true)
-        queue.stopActorRun(peer.device_id, run)
+        if (queue.actorDeletionIntents(run).isEmpty()) queue.stopActorRun(peer.device_id, run)
         queue.finishPersonalBatch(privatePeer, run, true)
         personalActorBooks[run] = documents.bestand.value
         if (records.any { it.kind == "task" }) Erinnerung.allesNeuStellen(context)
@@ -3439,10 +3583,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 if (semantic.string("kind") != "personal_sync.request" && !queue.scopedRequestAccepted(peer.device_id, run))
                     return@synchronized null
                 val current = runCatching {
-                    personalActorJournal.withActive(owner) {
+                    val completion = personalActorCompletions[run]
+                    fun requireQueuedFrame() {
                         check(queue.outboxWireMessage(peer.device_id, entry.messageId) == entry.payload)
                         val policy = queue.outboxPolicy(peer.device_id, entry.messageId)
                         check(policy == "any" || policy == "wifi_only" && activeTransport?.first == TelefonTransportArt.WIFI)
+                    }
+                    if (completion == null) personalActorJournal.withActive(owner) { requireQueuedFrame() }
+                    else {
+                        check(!completion.completed)
+                        requireQueuedFrame()
+                        personalActorJournal.checkCompletionSend(owner, entry.payload)
                     }
                 }.isSuccess
                 if (!current) return@synchronized null
@@ -3453,7 +3604,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 // The claim is source-bound; an already claimed write can have an unknown outcome on cancel.
                 channel.send(entry.payload)
                 synchronized(this) {
-                    runCatching { personalActorJournal.withActive(handle) { queue.sent(entry.messageId, queue.attempts(entry.messageId)) } }
+                    runCatching {
+                        if (personalActorCompletions[run] == null) personalActorJournal.withActive(handle) { queue.sent(entry.messageId, queue.attempts(entry.messageId)) }
+                        else {
+                            personalActorJournal.checkCompletionSend(handle, entry.payload)
+                            queue.sent(entry.messageId, queue.attempts(entry.messageId))
+                        }
+                    }
                 }
             } finally { synchronized(this) { personalActorDispatches.remove(entry.messageId) } }
         }

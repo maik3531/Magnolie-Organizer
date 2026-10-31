@@ -52,6 +52,10 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
     @Test fun nativeActorCompleteReportNeverRecordsFailedNetworkAckAsReceipt() = exercise("actor-commit-ack-failure")
     @Test fun nativeActorCompleteReportReceiptCannotSurviveChangedBookOrRevokedGrants() = exercise("actor-commit-receipt-revoked")
+    @Test fun nativeActorTerminalDeleteUsesOneSaveAndFreshScopeBeforeDecisionAck() = exercise("actor-commit-terminal-delete")
+    @Test fun nativeActorTerminalRestoreKeepsMembershipAndUsesExactDecisionAck() = exercise("actor-commit-terminal-restore")
+    @Test fun nativeActorTerminalLedgerFailureRetriesWithoutRepeatingBookSave() = exercise("actor-commit-terminal-ledger")
+    @Test fun nativeActorTerminalWriterFailureNeverConsumesIntentsOrSendsDecision() = exercise("actor-commit-terminal-write-failure")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -74,6 +78,7 @@ class ScopedDataRuntimeTest {
     private fun exercise(mode: String, format: Int = 3) {
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
+        val actorTerminal = mode.startsWith("actor-commit-terminal")
         val nativeActor = actorDeletion || actorCommit || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
@@ -87,7 +92,11 @@ class ScopedDataRuntimeTest {
         val priorDocuments = field(Ablage::class.java, "einzig").get(null)
         field(TelefonAblage::class.java, "instance").set(null, null)
         field(TelefonWerk::class.java, "instance").set(null, null)
-        val documents = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+        val failBookWrites = AtomicBoolean(false)
+        val documents = Ablage.fuerTest(context) {
+            if (failBookWrites.get()) throw java.io.IOException("Synthetic actual book writer failure")
+            SecretKeySpec(ByteArray(32) { 19 }, "AES")
+        }
         field(Ablage::class.java, "einzig").set(null, documents)
         var runtimeWork: TelefonWerk? = null
         try {
@@ -110,7 +119,7 @@ class ScopedDataRuntimeTest {
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
-                personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"),
+                personal_deletions_sync_granted = actorDeletion || actorTerminal || mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = actorDeletion || actorTerminal || mode in setOf("delete", "skip-delete"),
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
                 remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList(),
                 remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList())
@@ -141,7 +150,7 @@ class ScopedDataRuntimeTest {
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
-            if (mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
+            if (actorTerminal || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -397,6 +406,22 @@ class ScopedDataRuntimeTest {
                         @Suppress("UNCHECKED_CAST")
                         val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)
                         assertNull(work.actorDataReportReceipt(handle))
+                        val proposalId = UUID.randomUUID().toString()
+                        val review = mapOf(proposalId to if (mode == "actor-commit-terminal-restore") "restore" else "delete")
+                        if (actorTerminal) {
+                            val proposals = TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                                put("format", 1); put("run_id", run); put("proposal_batch_id", UUID.randomUUID().toString()); put("sequence", 0); put("last", true)
+                                put("proposals", buildJsonArray { add(buildJsonObject {
+                                    put("proposal_id", proposalId); put("kind", "note"); put("id", incoming.id); put("parent_id", "")
+                                    put("prior_hash", incoming.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Synthetic review")
+                                    put("clock", JsonArray(PersonalSync.merge(incoming.clock, listOf(PersonalSyncClock(peerId, 2))).map {
+                                        buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                                }) })
+                            }, 60000)
+                            work.receiveMessage(peer, PersonalSyncActor.wireMessage(proposals, run), channel, 0L)
+                            assertTrue(sent().isEmpty()); assertEquals(1, queue.actorDeletionIntents(run).size)
+                            assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, review) }.isFailure)
+                        }
                         if (mode == "actor-commit-changed") documents.setzeNotiz(documents.notizen().single { it.id == "phone-note" }.copy(text = "Concurrent phone edit"))
                         if (mode == "actor-commit-ack-failure") {
                             failNextFlush.set(true)
@@ -430,6 +455,64 @@ class ScopedDataRuntimeTest {
                             assertEquals(receipt, work.actorDataReportReceipt(handle))
                             assertArrayEquals(savedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                             assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
+                            if (actorTerminal) {
+                                val savedWitness = requireNotNull(documents.personalActorSavedBookState())
+                                val beforeDeletionBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                                if (mode == "actor-commit-terminal-ledger") database.execSQL("CREATE TRIGGER actor_terminal_ledger_failure BEFORE UPDATE ON inbox WHEN NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic terminal ledger failure'); END")
+                                if (mode == "actor-commit-terminal-write-failure") {
+                                    failBookWrites.set(true)
+                                    assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, review) }.isFailure)
+                                    failBookWrites.set(false)
+                                    assertNotNull(documents.notiz("phone-note"))
+                                    assertArrayEquals(beforeDeletionBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                    assertEquals(savedWitness, documents.personalActorSavedBookState())
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                                    assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                    return@use
+                                }
+                                val result = work.commitPersonalActorDeletionReview(handle, review)
+                                assertEquals(if (mode == "actor-commit-terminal-ledger") "metadata_pending" else "completion", result)
+                                val deletionWitness = requireNotNull(documents.personalActorSavedBookState())
+                                assertEquals(savedWitness.getValue("sequence").jsonPrimitive.long + 1, deletionWitness.getValue("sequence").jsonPrimitive.long)
+                                assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                if (mode == "actor-commit-terminal-restore") assertNotNull(documents.notiz("phone-note")) else assertNull(documents.notiz("phone-note"))
+                                val queuedDecision = queue.due(peerId, TelefonTransportArt.WIFI).single {
+                                    PersonalSyncActor.semanticMessage(it.payload)["kind"] == JsonPrimitive("personal_sync.deletion_decision") }.payload
+                                val terminalAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                    PersonalSyncActor.ack(run, queuedDecision.string("message_id")), 60000)
+                                if (mode != "actor-commit-terminal-restore") {
+                                    work.receiveMessage(peer, terminalAck, channel, 0L)
+                                    assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                }
+                                pump.invoke(work, peer, channel, 0L, false)
+                                val firstDispatch = sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                                if (mode != "actor-commit-terminal-restore") assertTrue(firstDispatch.isEmpty())
+                                if (session.contentScopeMessages.isNotEmpty()) ackScope()
+                                if (mode == "actor-commit-terminal-ledger") {
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                                    assertEquals(1, queue.actorDeletionIntents(run).size)
+                                    database.execSQL("DROP TRIGGER actor_terminal_ledger_failure")
+                                }
+                                assertEquals("completion", work.commitPersonalActorDeletionReview(handle, review))
+                                assertEquals(deletionWitness, documents.personalActorSavedBookState())
+                                assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                                pump.invoke(work, peer, channel, 0L, false)
+                                val dispatched = firstDispatch + sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                                assertEquals(listOf(queuedDecision), dispatched)
+                                work.receiveMessage(peer, terminalAck, channel, 0L)
+                                assertEquals("completed", work.personalActorJournal.completionState(handle))
+                                val afterAckBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                work.receiveMessage(peer, terminalAck, channel, 0L)
+                                assertArrayEquals(afterAckBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                val afterDelete = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                                if (mode != "actor-commit-terminal-restore") assertNull(afterDelete.notiz("phone-note"))
+                                assertEquals(documents.entwurf.value, afterDelete.entwurf.value)
+                                return@use
+                            }
                             if (mode == "actor-commit-receipt-revoked") {
                                 val boundPeer = requireNotNull(storage.peers().peer)
                                 storage.savePeer(boundPeer.copy(remote_personal_notes_sync_granted = false))

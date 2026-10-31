@@ -12,10 +12,14 @@ internal class PersonalActorDecisionCompletion(
     private val currentAuthority: () -> String?,
     private val currentScope: () -> JsonObject?,
     private val currentSavedBook: () -> JsonObject?,
-    private val persistedControls: () -> List<JsonObject>
+    private val persistedControls: () -> List<JsonObject>,
+    // Native controller may capture these before retiring data ownership and
+    // performing its actual one-save; they are never accepted from wire input.
+    nativeBeforeScope: JsonObject? = null,
+    nativeAuthority: String? = null
 ) {
-    private val before = snapshot(requireNotNull(currentScope())).also(PhoneContentScope::validate)
-    private val authority = requireNotNull(currentAuthority()).also { require(HEX.matches(it)) }
+    private val before = snapshot(requireNotNull(nativeBeforeScope ?: currentScope())).also(PhoneContentScope::validate)
+    private val authority = requireNotNull(nativeAuthority ?: currentAuthority()).also { require(HEX.matches(it)) }
     private val savedBook = checkedSavedBook(currentSavedBook())
     private val targets = Json.parseToJsonElement(nativeTargets.toString()).jsonArray
     private val controls = linkedMapOf<String, JsonObject>()
