@@ -5673,9 +5673,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         vorhanden.add(eintrag.uid);
         const stand = cache.get(eintrag.uid), alter = jetzt - Number(stand?.checkedAt || 0);
         const valueBindings = knownValueBindings.get(eintrag.uid) || [];
+        const pendingRead = valueBindings.some(contact => normalisiereTelefonGruppenAenderung(contact.telefonGruppenAenderung) ||
+          normalisiereTelefonWerteAenderung(contact.telefonWerteAenderung));
         // Group titles/membership can change without updating the contact stamp.
         // A positive photo cache must not freeze the accompanying groups forever.
-        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 && alter < 3600000 &&
+        if (!pendingRead && stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 && alter < 3600000 &&
             (valueBindings.length !== 1 || stand.valueContactId === valueBindings[0].id)) continue;
         offen.push(eintrag);
       }
@@ -20490,9 +20492,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (details.gruppen !== undefined) {
       setzeKontaktGruppen(ziel, details.gruppen);
       const pending = normalisiereTelefonGruppenAenderung(ziel.telefonGruppenAenderung);
-      if (!gleicheKontaktGruppen(gruppenVorher, kontaktGruppen(ziel)) || pending && !pending.base && pending.beobachtet) {
+      if (!gleicheKontaktGruppen(gruppenVorher, kontaktGruppen(ziel)) || pending && !pending.base) {
         const stand = normalisiereTelefonGruppenStand(ziel.telefonGruppenStand);
-        const basis = pending?.base || (!pending && stand && gleicheKontaktGruppen(stand.groups, gruppenVorher) ? stand : null) || pending?.beobachtet;
+        // Only an explicit normal editor save may confirm a retained legacy
+        // wish without a base. Prefer its fresh observation, otherwise the
+        // existing bound snapshot; the writer still requires fresh native CAS.
+        // Startup/reads never manufacture a baseline or discard a real conflict.
+        const basis = pending?.base || pending?.beobachtet || (stand && (pending || gleicheKontaktGruppen(stand.groups, gruppenVorher)) ? stand : null);
         ziel.telefonGruppenAenderung = normalisiereTelefonGruppenAenderung({ ...pending, version: 1, base: basis });
         kontaktGruppenWiederholung.delete(ziel);
       }
@@ -21429,7 +21435,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const alteGruppenAbsicht = normalisiereTelefonGruppenAenderung(ziel?.telefonGruppenAenderung);
       // Saving the displayed selection explicitly confirms a retained pre-baseline
       // edit too. Merely receiving a phone read must never confirm that intent.
-      const gruppenBestaetigt = gruppenGeaendert || !!(alteGruppenAbsicht && !alteGruppenAbsicht.base && alteGruppenAbsicht.beobachtet);
+      const gruppenBestaetigt = gruppenGeaendert || !!(alteGruppenAbsicht && !alteGruppenAbsicht.base &&
+        (alteGruppenAbsicht.beobachtet || normalisiereTelefonGruppenStand(ziel?.telefonGruppenStand)));
       if (gruppenBestaetigt && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
         zettel(_("Conflict")); return false;
       }

@@ -102,6 +102,23 @@ async function run(web, data, remote, options = {}) {
     assert.deepEqual(notes.groups[0], [notes.expectedFamily], "Imported group membership must survive locale alias normalization");
     assert.equal(notes.data.kontakte[1].foto, "");
     assert.equal(notes.data.kontakte[2].foto, other);
+    const cachedPending = plain(notes.data);
+    cachedPending.kontakte[0].vcardRoundtrip = ["CATEGORIES:Work"];
+    cachedPending.kontakte[0].telefonGruppenAenderung = { version: 1 };
+    cachedPending.kontaktFotoCache.entries.find(entry => entry.uid === "phone-one").valueContactId = "local";
+    const alreadyApplied = await run(web, cachedPending, remote.map((card, index) => index ? card : {
+      ...card, gruppenZeilen: ["CATEGORIES:Arbeit"]
+    }), { status: notesStatus, device: notesDevice });
+    assert.ok(alreadyApplied.requests.some(request => request.uids?.includes("phone-one")),
+      "A fresh positive cache hid the pending contact's unchanged-stamp native groups");
+    assert.equal(alreadyApplied.data.kontakte[0].telefonGruppenAenderung, null,
+      "A matching fresh native group read did not resolve the old unsent wish");
+    const stillDifferent = await run(web, cachedPending, remote, { status: notesStatus, device: notesDevice });
+    assert.deepEqual(stillDifferent.groups[0], ["Work"]);
+    assert.ok(stillDifferent.data.kontakte[0].telefonGruppenAenderung);
+    assert.ok(!stillDifferent.data.kontakte[0].telefonGruppenAenderung.base,
+      "A readonly cache refresh silently authorized a baseless write");
+    assert.deepEqual(stillDifferent.data.kontakte[0].telefonGruppenAenderung.beobachtet.groups, ["Family"]);
     for (const [sourceStatus, sourceDevice] of [[status, device], [notesStatus, notesDevice]]) {
       const grouped = plain(base);
       grouped.kontakte[0].vcardRoundtrip = ["CATEGORIES:Kollegen", "X-LOCAL:preserve"];

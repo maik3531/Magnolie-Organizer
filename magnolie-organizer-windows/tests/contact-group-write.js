@@ -15,10 +15,11 @@ const token = "22222222-2222-4222-8222-222222222222";
 const account = { name: "synthetic@example.invalid", type: "test-provider", data_set: "" };
 
 async function run(web, mode) {
-  const retainedSave = mode.startsWith("retained-save");
+  const retainedStand = mode.startsWith("retained-stand-save");
+  const retainedSave = mode.startsWith("retained-save") || retainedStand;
   const autoSave = mode === "auto-save" || mode === "auto-save-multiple" || retainedSave;
-  const saveFailed = mode === "save-failed" || mode === "retained-save-failed";
-  const remoteEdit = mode === "remote-edit" || mode === "retained-save-remote";
+  const saveFailed = mode === "save-failed" || mode === "retained-save-failed" || mode === "retained-stand-save-failed";
+  const remoteEdit = mode === "remote-edit" || mode === "retained-save-remote" || mode === "retained-stand-save-remote";
   const multiple = mode === "auto-save-multiple";
   const localized = mode.startsWith("localized-");
   const expectedProvider = mode === "localized-existing" ? "Work" : mode === "localized-custom" ? "My own group" : localized ? "Arbeit" : "Coworkers";
@@ -27,7 +28,10 @@ async function run(web, mode) {
   if (mode === "no-base") delete contact.telefonGruppenAenderung.base;
   if (["explicit-source", "observed-auto"].includes(mode)) { delete contact.telefonGruppenAenderung.base; contact.telefonGruppenAenderung.beobachtet = base; }
   if (autoSave && !retainedSave) { contact.vcardRoundtrip = ["CATEGORIES:Family"]; contact.telefonGruppenAenderung = null; }
-  if (retainedSave) { contact.telefonGruppenStand = null; contact.telefonGruppenAenderung = { version: 1, beobachtet: base }; }
+  if (retainedSave) {
+    contact.telefonGruppenStand = retainedStand ? base : null;
+    contact.telefonGruppenAenderung = retainedStand ? { version: 1 } : { version: 1, beobachtet: base };
+  }
   if (localized) contact.vcardRoundtrip = ["CATEGORIES:" + (mode === "localized-custom" ? "My own group" : "Work")];
   const b = await harness.exports.boot(web, { kontakte: [contact], einstellungen: { adressen: { foto: false } } });
   try {
@@ -64,7 +68,7 @@ async function run(web, mode) {
     }
     b.ack(!saveFailed); await tick();
     const seen = new Set(); let prepareCount = 0, applyCount = 0, ended = false;
-    promise.finally(() => { ended = true; });
+    Promise.resolve(promise).finally(() => { ended = true; });
     const deadline = Date.now() + 3000;
     while (!ended) {
       assert.ok(Date.now() < deadline, "Writer must settle");
@@ -96,9 +100,9 @@ async function run(web, mode) {
       await tick();
     }
     await promise;
-    assert.equal(prepareCount, saveFailed ? 0 : 1);
-    assert.equal(applyCount, localized || ["success", "auto-save", "auto-save-multiple", "retained-save", "auto-peer", "photo-busy", "explicit-source", "bad-readback", "account-changed"].includes(mode) ? 1 : 0);
-    if (localized || ["success", "auto-save", "auto-save-multiple", "retained-save", "auto-peer", "photo-busy", "explicit-source"].includes(mode)) {
+    assert.equal(prepareCount, saveFailed ? 0 : 1, mode + ": expected native preparation; marker=" + JSON.stringify(local.telefonGruppenAenderung) + "; stand=" + JSON.stringify(local.telefonGruppenStand));
+    assert.equal(applyCount, localized || ["success", "auto-save", "auto-save-multiple", "retained-save", "retained-stand-save", "auto-peer", "photo-busy", "explicit-source", "bad-readback", "account-changed"].includes(mode) ? 1 : 0);
+    if (localized || ["success", "auto-save", "auto-save-multiple", "retained-save", "retained-stand-save", "auto-peer", "photo-busy", "explicit-source"].includes(mode)) {
       assert.equal(local.telefonGruppenAenderung, null);
       assert.deepEqual(plain(local.telefonGruppenStand.groups).sort(), multiple ? ["Colleagues", "Family"] : [localized ? mode === "localized-custom" ? "My own group" : "Work" : "Colleagues"]);
       assert.ok(b.saves().some(m => JSON.parse(m.text).kontakte[0].telefonGruppenAenderung === null));
@@ -113,7 +117,7 @@ async function run(web, mode) {
 
 (async () => {
   for (const web of harness.exports.roots) {
-    for (const mode of ["success", "auto-save", "auto-save-multiple", "retained-save", "retained-save-failed", "retained-save-remote", "localized-new", "localized-existing", "localized-custom", "auto-peer", "photo-busy", "explicit-source", "observed-auto", "no-base", "old-capability", "duplicate", "save-failed", "remote-edit", "local-edit",
+    for (const mode of ["success", "auto-save", "auto-save-multiple", "retained-save", "retained-save-failed", "retained-save-remote", "retained-stand-save", "retained-stand-save-failed", "retained-stand-save-remote", "localized-new", "localized-existing", "localized-custom", "auto-peer", "photo-busy", "explicit-source", "observed-auto", "no-base", "old-capability", "duplicate", "save-failed", "remote-edit", "local-edit",
       "removed", "revoked", "key-changed", "book-switch", "timeout", "foreign-source", "old-schema", "bad-readback", "account-changed", "ambiguous"]) {
       try { await run(web, mode); } catch (error) { error.message = web + " / " + mode + ": " + error.message; throw error; }
     }
