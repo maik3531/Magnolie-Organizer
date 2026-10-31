@@ -2651,7 +2651,8 @@ pruefe(regional == {"language": "fr-CH", "formatLocale": "en-US",
                      "weekRule": "iso", "temperatureUnit": "fahrenheit",
                      "timeZone": "America/New_York", "homeCountry": "DE",
                      "timeZoneManagement": "off", "timeZoneDetection": "auto",
-                     "timeZoneManual": "America/New_York", "timeZoneDetectedSource": "manual", "timeZoneDetectedAt": "0"},
+                      "timeZoneManual": "America/New_York", "timeZoneDetectedSource": "manual", "timeZoneDetectedAt": "0",
+                      "timeZoneCalendarDisplay": "own", "timeZoneTaskDisplay": "own"},
        "Regionalwerte werden sprachunabhängig und begrenzt übernommen")
 pruefe(m.regional_einstellungen_schreiben(regional, regional_probe) and
        m.regional_einstellungen_lesen(regional_probe) == regional,
@@ -3148,7 +3149,7 @@ tray = m.tray_einstellungen({"aktiv": 1, "minimierenInTray": True,
 pruefe(tray == {"aktiv": True, "minimierenInTray": True,
                 "schliessenInTray": False,
                 "startMinimiert": True, "autostart": True,
-                 "oeffnen": "centered", "zaehler": True},
+                  "oeffnen": "centered", "zaehler": True, "telefonWlanVerbinden": True},
        "Tray-Einstellungen werden vollständig und begrenzt übernommen")
 pruefe(m.tray_einstellungen_schreiben(tray, tray_probe)["ok"] and
        m.tray_einstellungen_lesen(tray_probe) == tray,
