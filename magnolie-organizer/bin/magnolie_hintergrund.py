@@ -1861,7 +1861,9 @@ class KDEConnectProxy:
                         callback(item.get("event"), item.get("payload") or {})
             except Exception:
                 if not daemon_available(self.path):
-                    return
+                    # A configured service can be absent briefly during a normal
+                    # restart. Keep the GUI owner alive without starting a daemon.
+                    self._event_stop.wait(0.25)
 
     def get_settings(self):
         return self._call("get_settings")
@@ -2051,7 +2053,9 @@ class PhoneServiceProxy:
                         self.callback(delivered.get("event"), delivered.get("payload") or {})
             except Exception:
                 if not daemon_available(self.path):
-                    return
+                    # Preserve the native GUI lease across a service restart;
+                    # shutdown still interrupts this bounded backoff immediately.
+                    self._event_stop.wait(0.25)
 
     def set_ready(self, ready):
         with self._state_lock:

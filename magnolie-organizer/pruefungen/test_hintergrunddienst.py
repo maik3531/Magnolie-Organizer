@@ -633,6 +633,35 @@ def test_proxy_restores_tray_readiness_and_cursor_after_service_restart():
     assert sum(op == "gui_visibility" and data["visible"] is False for op, data in calls) == 2
 
 
+def test_gui_proxies_survive_temporary_daemon_absence_without_starting_service():
+    for kind in (background.KDEConnectProxy, background.PhoneServiceProxy):
+        proxy = kind(path="unused-test-socket")
+        proxy._cursor = 99
+        proxy._visible = True
+        proxy._ready = True
+        polls = []
+        restored = []
+
+        def request(operation, arguments, path, timeout):
+            if operation == "poll_events":
+                polls.append(arguments["after"])
+                if len(polls) == 1:
+                    raise background.IPCError("synthetic service restart gap")
+                return {"cursor": 1, "events": []}
+            restored.append(operation)
+            if operation == "gui_readiness": proxy._event_stop.set()
+            return {}
+
+        with mock.patch.object(background, "ipc_request", side_effect=request), \
+                mock.patch.object(background, "daemon_available", return_value=False), \
+                mock.patch.object(background, "start_service") as start, \
+                mock.patch.object(proxy._event_stop, "wait", return_value=False):
+            proxy._event_loop()
+        assert polls == [99, 99], kind.__name__ + " permanently lost its GUI lease during restart"
+        assert restored == ["gui_visibility", "gui_readiness"]
+        start.assert_not_called()
+
+
 def test_actionless_notification_server_still_shows_events_and_rejects_files():
     backend = FakeBackend()
     notifications = ActionlessNotifications()
