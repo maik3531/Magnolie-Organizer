@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.30) unstable; urgency=high
+
+  * Stellt gleichmäßige einzeilige Einstellungsreiter unter Linux wieder her.
+  * Trennt die Fristen für Windows-Updateabfrage und Installerdownload.
+  * Isoliert native Prüfprofile, EDS-Caches und Sitzungsbusse vollständig.
+  * Magnolie Notes 1.0.21 bleibt unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 31 Oct 2026 20:01:00 +0100
+
 magnolie-organizer (2.0.29) unstable; urgency=medium
 
   * Stabilisiert Notes-Abgleich, Startreihenfolge und Wiederverbindung.

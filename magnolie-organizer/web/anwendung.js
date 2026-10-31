@@ -15,130 +15,110 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.29";
+const FASSUNG = "2.0.30";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.29";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.30";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Stabilisiert den Notizabgleich und die Wiederverbindung mit Notes",
-    "Korrigiert Kontaktgruppen und Kalenderverknüpfungen",
-    "Magnolie Notes 1.0.21"
+    "Stellt einheitliche Linux-Einstellungsreiter wieder her und korrigiert die Downloadfrist des Windows-Installers",
+    "Magnolie Notes 1.0.21 — unverändert"
   ],
   "en": [
     "What's new in this version",
-    "Improves note synchronization and reconnection with Notes",
-    "Fixes contact groups and calendar bindings",
-    "Magnolie Notes 1.0.21"
+    "Restores uniform Linux settings tabs and corrects the Windows installer download timeout",
+    "Magnolie Notes 1.0.21 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Fiabilise la synchronisation des notes et la reconnexion à Notes",
-    "Corrige les groupes de contacts et les liaisons de calendriers",
-    "Magnolie Notes 1.0.21"
+    "Rétablit des onglets de paramètres Linux uniformes et corrige le délai de téléchargement du programme d’installation Windows",
+    "Magnolie Notes 1.0.21 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
-    "Mejora la sincronización de notas y la reconexión con Notes",
-    "Corrige los grupos de contactos y los vínculos de calendarios",
-    "Magnolie Notes 1.0.21"
+    "Restaura las pestañas uniformes de ajustes en Linux y corrige el plazo de descarga del instalador de Windows",
+    "Magnolie Notes 1.0.21 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
-    "Migliora la sincronizzazione delle note e la riconnessione a Notes",
-    "Corregge i gruppi di contatti e i collegamenti dei calendari",
-    "Magnolie Notes 1.0.21"
+    "Ripristina le schede uniformi delle impostazioni Linux e corregge il limite di tempo per il download del programma di installazione Windows",
+    "Magnolie Notes 1.0.21 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Verbetert notitiesynchronisatie en opnieuw verbinden met Notes",
-    "Herstelt contactgroepen en kalenderkoppelingen",
-    "Magnolie Notes 1.0.21"
+    "Herstelt uniforme Linux-instellingentabbladen en corrigeert de downloadtermijn van het Windows-installatieprogramma",
+    "Magnolie Notes 1.0.21 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
-    "Melhora a sincronização de notas e a ligação ao Notes",
-    "Corrige grupos de contactos e ligações de calendários",
-    "Magnolie Notes 1.0.21"
+    "Repõe os separadores uniformes das definições Linux e corrige o prazo de transferência do instalador Windows",
+    "Magnolie Notes 1.0.21 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
-    "Повышена надёжность синхронизации заметок и повторного подключения к Notes",
-    "Исправлены группы контактов и привязки календарей",
-    "Magnolie Notes 1.0.21"
+    "Восстанавливает одинаковые вкладки настроек Linux и исправляет время ожидания загрузки установщика Windows",
+    "Magnolie Notes 1.0.21 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Zlepšuje synchronizaci poznámek a opětovné připojení k Notes",
-    "Opravuje skupiny kontaktů a propojení kalendářů",
-    "Magnolie Notes 1.0.21"
+    "Obnovuje jednotné karty nastavení Linuxu a opravuje časový limit stahování instalátoru Windows",
+    "Magnolie Notes 1.0.21 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Poprawia synchronizację notatek i ponowne łączenie z Notes",
-    "Naprawia grupy kontaktów i powiązania kalendarzy",
-    "Magnolie Notes 1.0.21"
+    "Przywraca jednolite karty ustawień Linuksa i poprawia limit czasu pobierania instalatora Windows",
+    "Magnolie Notes 1.0.21 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Polěpšuje synchronizaciju noticow a znowazwjazanje z Notes",
-    "Porjedźa skupiny kontaktow a zwjazanja kalendrow",
-    "Magnolie Notes 1.0.21"
+    "Wobnowja jednotne rajtarki nastajenjow Linuxa a koriguje časowy limit za sćehnjenje instalaciskeho programa Windows",
+    "Magnolie Notes 1.0.21 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
-    "Forbedrer notesynkronisering og genoprettelse af forbindelsen til Notes",
-    "Retter kontaktgrupper og kalenderforbindelser",
-    "Magnolie Notes 1.0.21"
+    "Gendanner ensartede Linux-indstillingsfaner og retter tidsgrænsen for download af Windows-installationsprogrammet",
+    "Magnolie Notes 1.0.21 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Forbedrer notatsynkronisering og ny tilkobling til Notes",
-    "Retter kontaktgrupper og kalenderkoblinger",
-    "Magnolie Notes 1.0.21"
+    "Gjenoppretter ensartede Linux-innstillingsfaner og retter tidsgrensen for nedlasting av Windows-installasjonsprogrammet",
+    "Magnolie Notes 1.0.21 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "नोट्स का समन्वयन और Notes से फिर जुड़ना अधिक विश्वसनीय बनाता है",
-    "संपर्क समूहों और कैलेंडर के जुड़ाव को सुधारता है",
-    "Magnolie Notes 1.0.21"
+    "Linux सेटिंग टैब का एकसमान रूप बहाल करता है और Windows इंस्टॉलर डाउनलोड की समय-सीमा ठीक करता है",
+    "Magnolie Notes 1.0.21 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "提高笔记同步和重新连接 Notes 的可靠性",
-    "修复联系人分组和日历关联",
-    "Magnolie Notes 1.0.21"
+    "恢复统一的 Linux 设置选项卡，并修正 Windows 安装程序的下载时限",
+    "Magnolie Notes 1.0.21 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
-    "ノートの同期と Notes への再接続の信頼性を改善",
-    "連絡先グループとカレンダーの関連付けを修正",
-    "Magnolie Notes 1.0.21"
+    "Linux 設定タブの統一表示を復元し、Windows インストーラーのダウンロード制限時間を修正",
+    "Magnolie Notes 1.0.21 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "تحسين موثوقية مزامنة الملاحظات وإعادة الاتصال بتطبيق Notes",
-    "إصلاح مجموعات جهات الاتصال وروابط التقويمات",
-    "Magnolie Notes 1.0.21"
+    "يستعيد علامات تبويب إعدادات Linux المتناسقة ويصحح المهلة الزمنية لتنزيل مثبّت Windows",
+    "Magnolie Notes 1.0.21 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Підвищено надійність синхронізації нотаток і повторного підключення до Notes",
-    "Виправлено групи контактів і прив’язки календарів",
-    "Magnolie Notes 1.0.21"
+    "Відновлює однакові вкладки налаштувань Linux і виправляє час очікування завантаження інсталятора Windows",
+    "Magnolie Notes 1.0.21 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Палепшана надзейнасць сінхранізацыі нататак і паўторнага падключэння да Notes",
-    "Выпраўлены групы кантактаў і прывязкі календароў",
-    "Magnolie Notes 1.0.21"
+    "Аднаўляе аднолькавыя ўкладкі налад Linux і выпраўляе час чакання спампоўвання ўсталёўшчыка Windows",
+    "Magnolie Notes 1.0.21 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Not eşitleme ve Notes ile yeniden bağlantı daha güvenilir",
-    "Kişi grupları ve takvim bağlantıları düzeltildi",
-    "Magnolie Notes 1.0.21"
+    "Linux ayar sekmelerinin tutarlı görünümünü geri getirir ve Windows yükleyicisinin indirme zaman aşımını düzeltir",
+    "Magnolie Notes 1.0.21 — değişmedi"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {

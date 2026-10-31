@@ -1,3 +1,9 @@
+magnolie-organizer-kde (2.0.30) unstable; urgency=high
+
+  * Gleicht die optionale Akonadi-Erweiterung an Magnolie Organizer 2.0.30 an.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 31 Oct 2026 20:01:00 +0100
+
 magnolie-organizer-kde (2.0.29) unstable; urgency=medium
 
   * Gleicht die optionale Akonadi-Erweiterung an Magnolie Organizer 2.0.29 an.
