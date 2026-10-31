@@ -6,7 +6,7 @@ const context = {
   ChromeUtils: { importESModule: () => ({ ExtensionCommon: { ExtensionAPI: class {} },
     XPCOMUtils: { defineLazyGlobalGetters() {} }, MailServices: {}, CardDAVDirectory: {}, cal: {}, CalDavGenericRequest: {},
     ExtensionParent: { GlobalManager: { getExtension: () => undefined } } }) },
-  Services: { prefs: { getBoolPref: () => managed }, appinfo: { processID: 42 }, env: { get: () => "" },
+  Services: { prefs: { getBoolPref: () => managed, getStringPref: () => "11111111-1111-4111-8111-111111111111" }, appinfo: { processID: 42 }, env: { get: () => "" },
     startup: { enterLastWindowClosingSurvivalArea() { retained++; }, exitLastWindowClosingSurvivalArea() { released++; } },
     wm: { getEnumerator() { enumerations++; return handles.map(nativeHandle => ({
       docShell: { treeOwner: { QueryInterface: () => ({ nativeHandle }) } }
@@ -33,7 +33,10 @@ const request = extension.getAPI().magnolie.request;
   assert.deepEqual(JSON.parse(JSON.stringify(value.mailWindows)), ["0x1234", "3456", "malformed", 0],
     "Absent native widgets must be omitted, while nonzero/malformed values must still reach the native ownership validator");
   assert.equal(value.pid, 42); assert.equal(value.managed, true);
+  assert.equal((await request({ version: 1, id: "a".repeat(32), op: "managed-source-scope" })).profile_id,
+    "11111111-1111-4111-8111-111111111111", "Managed source RPC lost its persistent profile namespace");
   managed = false;
+  await assert.rejects(request({ version: 1, id: "a".repeat(32), op: "managed-source-scope" }));
   const personal = await request({ version: 1, id: "b".repeat(32), op: "environment" });
   assert.deepEqual(JSON.parse(JSON.stringify(personal.mailWindows)), []);
   assert.equal(enumerations, 1, "An ordinary personal profile must not enumerate managed mail windows");

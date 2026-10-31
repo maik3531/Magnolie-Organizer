@@ -166,6 +166,7 @@ runner.Add("Shared preference controller", SharedSyncControllerTests.RunAsync);
 runner.Add("Own profile / LibreOffice field comparison", OfficeProfileTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
 runner.Add("Managed internet accounts / isolated profiles", ManagedInternetAccountsTests.RunAsync);
+runner.Add("Managed EAS source folder contracts", ManagedEasSourceFolderTests.RunAsync);
 runner.Add("Calendar diagnostics / read-only transport / no provider mutations", CalendarSyncReadOnlyProbe.SafetyAsync);
 runner.Add("Calendar resource identity / stale mapping / exact UID / no duplicate create", CalendarResourceIdentityTests.RunAsync);
 runner.Add("Sync commit projection / own transient marker / exact durable proof", SyncCommitProjectionTests.RunAsync);

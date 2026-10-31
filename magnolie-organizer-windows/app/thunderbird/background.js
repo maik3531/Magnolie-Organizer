@@ -22,7 +22,24 @@ async function connect() {
       await trace("received");
       let response;
       try {
-        if (message.op === "manage-account" && environment.managed) {
+        if (["eas-source-list", "eas-source-inspect", "eas-source-prepare", "eas-source-enable"].includes(message.op) && environment.managed) {
+          const list = message.op === "eas-source-list", apply = message.op === "eas-source-enable";
+          const allowed = ["version", "id", "op", ...(list ? [] : ["account_id", "folder_id"]), ...(apply ? ["token", "revision"] : [])];
+          if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "") || Object.keys(message).length !== allowed.length ||
+              Object.keys(message).some(key => !allowed.includes(key))) throw new Error("protocol");
+          const scope = await browser.magnolie.request({ version: 1, id: message.id, op: "managed-source-scope" });
+          if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(scope.profile_id || "")) throw new Error("scope");
+          response = await accountControl("tbsync@jobisoft.de", { protocol: 1,
+            op: list ? "source-folder-list" : message.op.replace("eas-source-", "source-folder-"),
+            ...(list ? {} : { accountId: message.account_id, folderId: message.folder_id }),
+            ...(apply ? { token: message.token, revision: message.revision } : {}) });
+          if (response?.protocol !== 1 || response?.version !== 1 ||
+              list && (response.complete !== true || !Array.isArray(response.folders) || response.folders.length > 256) ||
+              !list && (response.account_id !== message.account_id || response.folder_id !== message.folder_id)) throw new Error("source");
+          const currentScope = await browser.magnolie.request({ version: 1, id: message.id, op: "managed-source-scope" });
+          if (currentScope.profile_id !== scope.profile_id) throw new Error("scope");
+          response = { ...response, profile_id: scope.profile_id };
+        } else if (message.op === "manage-account" && environment.managed) {
           if (!["rename", "remove", "edit"].includes(message.action)) throw new Error("action");
           if (message.provider === "microsoft") {
             response = await accountControl("tbsync@jobisoft.de", { protocol: 1, op: message.action,

@@ -100,6 +100,60 @@ async function lateFailures() {
   assert.equal(rebound.folder.selected, true, "An uncertain setup was blindly rolled back");
   await assert.rejects(rebound.apply(prepared));
 }
+async function discovery() {
+  const b = boot();
+  const list = () => b.call("source-folder-list", { accountId: undefined, folderId: undefined });
+  // List requests deliberately have no account/folder fields, even undefined.
+  await assert.rejects(list());
+  const code = fs.readFileSync(path.join(__dirname, "../app/account-bridge/tbsync-managed.mjs"), "utf8");
+  let handler;
+  vm.runInNewContext(code.replace(/^import .*;\r?\n/gm, ""), {
+    crypto: webcrypto, TextEncoder, Date,
+    browser: { runtime: { onMessageExternal: { addListener(fn) { handler = fn; } } } },
+    accounts: { list: async () => [b.account, { provider: "other", accountId: "foreign", enabled: true }], get: async () => b.account },
+    folders: { listForAccount: async () => b.rows }, isProviderConnected: () => b.connected, ui: {}
+  });
+  b.rows.push({ folderId: "unsupported-task", targetType: "tasks", displayName: "Tasks" });
+  const result = await handler({ protocol: 1, op: "source-folder-list" }, sender);
+  assert.equal(result.complete, true); assert.equal(result.folders.length, 1); assert.equal(result.folders[0].name, "Contacts");
+  assert.equal(result.folders[0].selected, false); assert.equal(result.folders[0].provider_sync_confirmed, false);
+  assert.ok(!JSON.stringify(result).includes("NEVER-EXPORT"));
+  b.account.error = true; await assert.rejects(handler({ protocol: 1, op: "source-folder-list" }, sender));
+}
+async function nativeRouting() {
+  const replies = [], calls = [];
+  const first = "11111111-1111-4111-8111-111111111111", second = "22222222-2222-4222-8222-222222222222";
+  let listener, profile = first, changed = false, wrongAccount = false, incomplete = false;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../app/thunderbird/background.js"), "utf8"), {
+    setTimeout: () => 0, clearTimeout() {},
+    browser: { magnolie: { async request(message) {
+      if (message.op === "environment") return { managed: true, profile: "owned-test-profile" };
+      if (message.op === "managed-source-scope") return { profile_id: profile };
+      throw new Error("Unexpected native operation");
+    } }, runtime: {
+      connectNative: () => ({ onMessage: { addListener(fn) { listener = fn; } }, onDisconnect: { addListener() {} },
+        postMessage(value) { replies.push(value); }, disconnect() { throw new Error("Unexpected disconnect"); } }),
+      async sendMessage(id, message) {
+        assert.equal(id, "tbsync@jobisoft.de"); calls.push(JSON.parse(JSON.stringify(message)));
+        if (changed) profile = second;
+        return message.op === "source-folder-list" ? { protocol: 1, version: 1, complete: !incomplete, folders: [] } :
+          { protocol: 1, version: 1, account_id: wrongAccount ? "other" : message.accountId, folder_id: message.folderId, state: "current" };
+      }
+    } }
+  });
+  const tick = () => new Promise(resolve => setImmediate(resolve)); await tick();
+  const request = async (op, extra = {}) => { listener({ version: 1, id: "a".repeat(32), op, ...extra }); await tick(); return replies.at(-1); };
+  assert.equal((await request("eas-source-list")).profile_id, first);
+  assert.equal(calls[0].op, "source-folder-list"); assert.equal(Object.keys(calls[0]).length, 2);
+  assert.equal((await request("eas-source-inspect", { account_id: "a1", folder_id: "f1" })).ok, true);
+  assert.equal(calls.at(-1).accountId, "a1"); assert.equal(calls.at(-1).folderId, "f1");
+  const count = calls.length;
+  for (const extra of [{ version: 2 }, { id: "bad" }, { password: "forbidden" }]) assert.equal((await request("eas-source-list", extra)).ok, false);
+  assert.equal(calls.length, count);
+  incomplete = true; assert.equal((await request("eas-source-list")).ok, false); incomplete = false;
+  wrongAccount = true; assert.equal((await request("eas-source-inspect", { account_id: "a1", folder_id: "f1" })).ok, false); wrongAccount = false;
+  changed = true; assert.equal((await request("eas-source-list")).ok, false, "Profile rebinding was accepted across provider dispatch");
+}
 async function busy() {
   const b = boot(); let release, started;
   const waiting = new Promise(resolve => { release = resolve; }), entered = new Promise(resolve => { started = resolve; });
@@ -115,6 +169,6 @@ async function busy() {
   for (const kind of ["contacts", "calendars"]) await success(kind);
   for (const mode of ["user", "server", "provider", "account", "disabled", "error", "offline", "kind", "server-folder", "missing", "ambiguous", "target", "selection", "expired", "revision"])
     await invalid(mode);
-  await recovery(); await boundedAndScoped(); await lateFailures(); await busy();
+  await recovery(); await boundedAndScoped(); await lateFailures(); await discovery(); await nativeRouting(); await busy();
   console.log("PASS managed source folders: scoped prepare/enable/inspect, native identity, one-use/TTL, lost-result recovery, no target recreation and no false provider-sync receipt");
 })().catch(error => { console.error(error); process.exitCode = 1; });

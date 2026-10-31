@@ -88,7 +88,7 @@ function multiStatus(response) {
   return Array.from(document.documentElement.children).filter(item => item.namespaceURI === D && item.localName === "response");
 }
 
-function sources() {
+function sourceProfile() {
   const pref = "extensions.magnolie.profileId";
   let profile = Services.prefs.getStringPref(pref, "");
   if (!profile) {
@@ -96,7 +96,10 @@ function sources() {
     Services.prefs.setStringPref(pref, profile);
     Services.prefs.savePrefFile(null);
   }
-  const owner = managed() ? "managed:" + profile : profile;
+  return profile;
+}
+function sources() {
+  const profile = sourceProfile(), owner = managed() ? "managed:" + profile : profile;
   const result = [];
   for (const directory of MailServices.ab.directories) {
     if (directory.dirType !== Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE || directory.readOnly) continue;
@@ -255,6 +258,7 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
     this.traceLifecycle("get-api");
     return { magnolie: { request: async message => {
       if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "")) throw new Error("protocol");
+      if (message.op === "managed-source-scope" && managed()) return { profile_id: sourceProfile() };
       if (message.op === "environment") { this.startManagedProviderBackgrounds(); return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
         mailWindows: managed() ? Array.from(Services.wm.getEnumerator("mail:3pane"))
           .map(window => window.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle)

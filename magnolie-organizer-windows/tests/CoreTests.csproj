@@ -43,6 +43,7 @@
     <Compile Include="..\DocumentExportService.Time.cs" Link="DocumentExportService.Time.cs" />
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
+    <Compile Include="..\ManagedEasSourceFolders.cs" Link="ManagedEasSourceFolders.cs" />
     <Compile Include="..\ContactGroupExclusions.cs" Link="ContactGroupExclusions.cs" />
     <Compile Include="..\NoteSendTransport.cs" Link="NoteSendTransport.cs" />
     <Compile Include="..\NoteSendJobs.cs" Link="NoteSendJobs.cs" />

@@ -14,7 +14,7 @@ let login = { pending: false, error: false };
 const sourceTickets = new Map();
 let sourceBusy = false;
 const sourceText = (value, maximum = 256) => typeof value === "string" && value.length > 0 && value.length <= maximum &&
-  value === value.trim().normalize("NFC") && !/[\x00-\x1f\x7f\uD800-\uDFFF]/u.test(value);
+  value === value.trim().normalize("NFC") && !/[\x00-\x1f\x7f-\x9f\uD800-\uDFFF]/u.test(value);
 async function sourceDigest(value) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -36,6 +36,7 @@ async function sourceFolder(accountId, folderId) {
   const identity = await sourceDigest([provider, accountId, configuration.servertype, configuration.server, configuration.user,
     folderId, row.targetType, row.custom?.serverID ?? null]);
   const selected = row.selected === true, target = row.targetID || null;
+  if (!selected && target !== null) throw new Error("source_folder_unavailable");
   return { protocol: 1, version: 1, account_id: accountId, folder_id: folderId, kind: row.targetType,
     source_identity: identity, revision: await sourceDigest([identity, selected, target]), selected, target_id: target,
     // This API confirms folder setup only. A materialized cache or empty queue
@@ -74,6 +75,25 @@ async function sourceControl(message) {
     return { ...saved, state: "selected" };
   } finally { sourceBusy = false; }
 }
+async function sourceList(message) {
+  if (Object.keys(message).length !== 2 || message.protocol !== 1 || message.op !== "source-folder-list") throw new Error("invalid_source_folder_request");
+  if (!isProviderConnected(provider) || login.pending || sourceBusy) throw new Error("source_folder_unavailable");
+  const owned = (await accounts.list()).filter(account => account.provider === provider && account.enabled === true);
+  if (owned.length > 32) throw new Error("source_folder_limit");
+  const result = [];
+  for (const account of owned) {
+    const rows = await folders.listForAccount(account.accountId);
+    if (rows.length > 256) throw new Error("source_folder_limit");
+    for (const row of rows) {
+      if (!["contacts", "calendars"].includes(row.targetType)) continue;
+      if (result.length >= 256 || !sourceText(row.displayName, 256)) throw new Error("source_folder_limit");
+      const current = await sourceFolder(account.accountId, row.folderId);
+      result.push({ ...current, name: row.displayName });
+    }
+  }
+  if (sourceBusy || login.pending || !isProviderConnected(provider)) throw new Error("source_folder_unavailable");
+  return { protocol: 1, version: 1, complete: true, folders: result };
+}
 
 async function status() {
   const visible = [];
@@ -95,6 +115,7 @@ async function status() {
 
 browser.runtime.onMessageExternal.addListener((message, sender) => {
   if (sender.id !== caller || message?.protocol !== 1) return;
+  if (message.op === "source-folder-list") return sourceList(message);
   if (["source-folder-inspect", "source-folder-prepare", "source-folder-enable"].includes(message.op)) return sourceControl(message);
   if (message.op === "ping") return Promise.resolve({ protocol: 1, ready: isProviderConnected(provider) });
   if (message.op === "status") return status();
