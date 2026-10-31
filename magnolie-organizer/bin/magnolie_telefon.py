@@ -6969,6 +6969,8 @@ class PhoneService:
         if kind == shared_sync_contract.KIND:
             status, error = "accepted", "none"
             stage = "schema"
+            merge_checks = None
+            rejection = None
             try:
                 shared_sync_contract.validate(payload["body"])
                 stage = "expiry"
@@ -6988,6 +6990,18 @@ class PhoneService:
                     if previous and not self.store.received_matches(peer["device_id"], payload):
                         raise ValueError("conflicting shared settings identity")
                     stage = "merge"
+                    saved = self.store.shared_settings(peer["device_id"], peer["static_public"])
+                    local_actor = self.store.identity["device_id"]
+                    merge_checks = {}
+                    for field, edits in payload["body"]["settings"].items():
+                        own = saved["settings"].get(field, {}).get(local_actor)
+                        echo = edits.get(local_actor)
+                        merge_checks[field] = {
+                            "foreign_actor": bool(set(edits) - {local_actor, peer["device_id"]}),
+                            "local_counter": own["counter"] if own else None,
+                            "echo_counter": echo["counter"] if echo else None,
+                            "echo_value_matches": bool(own and echo and own["value"] == echo["value"]),
+                            "peer_counter": edits.get(peer["device_id"], {}).get("counter")}
                     self.store.merge_shared_settings(peer["device_id"], peer["static_public"], payload["body"])
                     self._shared_session(current, channel)["received"] = json.loads(json.dumps(payload["body"]))
                     stage = "persist"
@@ -6995,8 +7009,13 @@ class PhoneService:
                     self._queue_shared_settings(peer["device_id"], channel)
             except PermissionError:
                 status, error = "rejected", "not_granted"
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as failure:
                 status, error = "rejected", "invalid_schema"
+                reasons = {"shared settings belong to a different paired device": "foreign_actor",
+                    "unknown local setting echo": "unknown_local_echo",
+                    "conflicting local setting echo": "conflicting_local_echo",
+                    "conflicting shared setting edit": "conflicting_peer_edit"}
+                rejection = reasons.get(str(failure)) if stage == "merge" else None
             except (OSError, RuntimeError, sqlite3.Error):
                 status, error = "rejected", "temporary_failure"
             with self.lock:
@@ -7004,6 +7023,9 @@ class PhoneService:
                         (self.store.peer(peer["device_id"]) or {}).get("static_public") == peer["static_public"]):
                     self._shared_session(peer, channel)["last_incoming"] = {
                         "status": status, "error": error, "stage": stage}
+                    if stage == "merge" and rejection:
+                        self._shared_session(peer, channel)["last_incoming"].update(
+                            {"merge_rejection": rejection, "merge_checks": merge_checks})
             channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
             self.callback("status", self.report())
             return

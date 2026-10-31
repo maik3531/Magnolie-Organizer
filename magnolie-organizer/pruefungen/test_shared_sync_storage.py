@@ -191,8 +191,13 @@ def test_runtime_distinguishes_controls_and_strict_merge_rejection(tmp_path):
     service.personal_sync_available = lambda: True
     service._payload(peer, channel, message)
     result = service.shared_settings_runtime(peer_id)
-    assert result["last_incoming"] == {
+    last = result["last_incoming"]
+    assert {key: last[key] for key in ("status", "error", "stage")} == {
         "status": "rejected", "error": "invalid_schema", "stage": "merge"}
+    assert last["merge_rejection"] == "unknown_local_echo"
+    assert last["merge_checks"]["auto_mode"] == {"foreign_actor": False,
+        "local_counter": 0, "echo_counter": 100, "echo_value_matches": False, "peer_counter": 0}
+    assert local not in str(last) and peer_id not in str(last)
     assert not result["received_present"]
     assert service.store.shared_settings(peer_id, peer["static_public"]) == body
     assert service.store.dedupe_result(peer_id, message["message_id"]) is None
