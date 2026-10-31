@@ -21,3 +21,5 @@ Optional connections and permissions:
 * A permitted own desktop can read, start, pause, resume or end local timers when time tracking is enabled. Developer options can separately allow redacted technical connection and crash diagnostics over the confirmed own Wi-Fi link.
 
 These integrations are opt-in through pairing, feature choices and the relevant Android permission or access prompts. They are not required for local note-taking. You can disable a feature, revoke its permission or remove a paired device. Bluetooth data transport is separate from any system-managed hands-free call-audio connection. Magnolie Notes does not provide native SMS or RCS messaging.
+
+Version information: Opening the About page requests public release information from GitHub and compares the published Notes version locally. No note content or account credentials are sent. A release link opens your browser; Notes does not download or install APK updates itself.

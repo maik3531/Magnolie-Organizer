@@ -21,3 +21,5 @@ Optionale Verbindungen und Berechtigungen:
 * Ein freigegebener eigener Desktop kann bei eingeschalteter Zeiterfassung lokale Timer lesen, starten, pausieren, fortsetzen oder beenden. Entwickleroptionen erlauben getrennt maskierte technische Verbindungs- und Absturzdiagnosen über die bestätigte eigene WLAN-Verbindung.
 
 Diese Integrationen werden durch Kopplung, Funktionsauswahl und die jeweiligen Android-Berechtigungs- oder Zugriffsabfragen freigegeben. Für lokale Notizen sind sie nicht erforderlich. Funktionen und Berechtigungen lassen sich abschalten oder Kopplungen entfernen. Bluetooth-Datenübertragung ist von einer systemverwalteten Freisprech-Audioverbindung getrennt. Magnolie Notes bietet keinen eigenen SMS- oder RCS-Nachrichtendienst.
+
+Versionshinweis: Beim Öffnen der Über-Seite fragt Notes öffentliche GitHub-Veröffentlichungsinfos ab. Der Vergleich bleibt lokal, ohne Notizinhalte oder Kontozugangsdaten zu senden. Ein Link öffnet den Browser; Notes lädt oder installiert selbst keine APK-Updates.

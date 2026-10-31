@@ -333,7 +333,7 @@ def test_capability_and_grant_schemas_are_strict():
     assert phone.validate_capabilities(capabilities) is capabilities
     assert phone.validate_grants(grants) is grants
     assert set(capabilities["items"]) == phone.CAPABILITY_NAMES
-    assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3, 4, 5, 7, 8, 12]
+    assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3, 4, 5, 7, 8, 12, 17, 19, 20]
     assert capabilities["items"]["personal_tasks_sync"]["versions"] == [1, 2, 3, 4, 6, 7, 9, 10, 13, 14]
     assert grants["grants"] == {"device_status": True, "dial_request": True,
             "selected_notifications_readonly": False, "incoming_call_state": False,
@@ -383,7 +383,7 @@ def test_control_contract_matches_android_golden():
     # Keep the shared old-peer vector byte-identical, just as the Android
     # contract test does. Current desktop offers add these exact role versions.
     current = json.loads(json.dumps(golden["desktop_capabilities"]))
-    for name, added in {"device_status": [7, 8, 12],
+    for name, added in {"device_status": [7, 8, 12, 17, 19, 20],
                         "personal_notes_sync": [9, 10, 14],
                         "personal_tasks_sync": [9, 10, 13, 14]}.items():
         current[name]["versions"] += added
