@@ -307,6 +307,19 @@ internal class PersonalSyncActorJournal(
         requireCompletion(this, handle, "read"); result
     }
 
+    /** Authorize an exact queued terminal frame before I/O, never a data read.
+     * Network writes must occur after releasing these native locks. */
+    fun checkCompletionSend(handle: PersonalActorHandle, wire: JsonObject) {
+        validateCompletionWire(handle, wire, true)
+        val clear = TelefonKanonisch.bytes(wire)
+        completionOperation(handle) {
+            requireCompletion(this, handle, "send", wire)
+            require(MessageDigest.isEqual(TelefonKanonisch.bytes(wire), clear)) { "actor_completion_callback_mutated_packet" }
+            requireCompletion(this, handle, "send", wire)
+            require(MessageDigest.isEqual(TelefonKanonisch.bytes(wire), clear)) { "actor_completion_callback_mutated_packet" }
+        }
+    }
+
     fun finishCompletion(handle: PersonalActorHandle): String {
         completionOperation(handle) {
             val binding = requireCompletion(this, handle, "finish")

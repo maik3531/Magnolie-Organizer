@@ -310,6 +310,108 @@ class PersonalSyncActorJournalTest {
         }
     }
 
+    @Test fun decisionCompletionNeedsFreshScopeAndActualEncryptedAckPersistence() = fixture { db, storage ->
+        val f = completionFixture(db, storage)
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.journal.finishCompletion(f.handle) }.isFailure)
+        f.scope = f.after
+        assertTrue(runCatching { f.guard.recordPersisted(f.ack) }.isFailure)
+        assertTrue(f.journal.putCompletionControl(f.handle, f.ack))
+        db.close() // Read the actual encrypted SQLite row again, not an acceptance flag.
+        f.guard.recordPersisted(f.ack)
+        assertEquals(JsonPrimitive(1), f.guard.summary()["saved"])
+        assertEquals("completed", f.journal.finishCompletion(f.handle))
+        assertTrue(runCatching { f.journal.withActive(f.handle) { 0 } }.isFailure)
+    }
+
+    @Test fun completionSendAllowsOnlyExactQueuedDecisionWithoutReopeningData() = fixture { db, storage ->
+        val f = completionFixture(db, storage)
+        f.journal.checkCompletionSend(f.handle, f.wire)
+        val changed = JsonObject(f.wire + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())))
+        assertTrue(runCatching { f.journal.checkCompletionSend(f.handle, changed) }.isFailure)
+        assertTrue(runCatching { f.journal.checkCompletionSend(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.journal.withActive(f.handle) { 0 } }.isFailure)
+        f.journal.checkCompletionSend(f.handle, f.wire)
+    }
+
+    @Test fun completionRejectsUnrelatedBookAuthorityAndMembershipChanges() = fixture { db, storage ->
+        for (mode in listOf("book", "authority", "scope")) {
+            val f = completionFixture(db, storage)
+            when (mode) {
+                "book" -> f.saved = JsonObject(f.saved!! + ("sha256" to JsonPrimitive("b".repeat(64))))
+                "authority" -> f.authority = "b".repeat(64)
+                "scope" -> f.scope = PhoneContentScope.create(setOf("foreign"), setOf("t"))
+            }
+            assertTrue(mode, runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+            assertEquals(JsonPrimitive(0), f.guard.summary()["saved"])
+            assertTrue(runCatching { f.journal.withActive(f.handle) { 0 } }.isFailure)
+        }
+    }
+
+    @Test fun incompleteScopeWaitsAndExactRestoreStillNeedsPersistedReceipt() = fixture { db, storage ->
+        val f = completionFixture(db, storage, restore = true)
+        f.scope = null
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        f.scope = f.before
+        val unrelated = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(f.handle.runId, java.util.UUID.randomUUID().toString()), 60000)
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, unrelated) }.isFailure)
+        assertTrue(f.journal.putCompletionControl(f.handle, f.ack))
+        f.guard.recordPersisted(f.ack)
+        assertFalse(f.journal.putCompletionControl(f.handle, f.ack))
+        f.guard.recordPersisted(f.ack)
+        assertEquals("completed", f.journal.finishCompletion(f.handle))
+    }
+
+    @Test fun failedMetadataWriteAndTemporaryRejectionNeverCountAsSaved() = fixture { db, storage ->
+        val f = completionFixture(db, storage)
+        f.scope = f.after
+        db.writableDatabase.execSQL("CREATE TRIGGER completion_write_failure BEFORE INSERT ON meta WHEN NEW.key GLOB 'personal_actor_completion_wire:*' BEGIN SELECT RAISE(ABORT,'synthetic write failure'); END")
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.guard.recordPersisted(f.ack) }.isFailure)
+        db.writableDatabase.execSQL("DROP TRIGGER completion_write_failure")
+        val rejected = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(f.handle.runId, f.wire.string("message_id"), "rejected", "temporary_failure"), 60000)
+        assertTrue(f.journal.putCompletionControl(f.handle, rejected))
+        f.guard.recordPersisted(rejected)
+        assertEquals(JsonPrimitive(0), f.guard.summary()["saved"])
+        assertTrue(runCatching { f.journal.finishCompletion(f.handle) }.isFailure)
+        assertTrue(f.journal.putCompletionControl(f.handle, f.ack))
+        f.guard.recordPersisted(f.ack)
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, rejected) }.isFailure)
+        assertEquals("completed", f.journal.finishCompletion(f.handle))
+    }
+
+    private class CompletionFixture(val journal: PersonalSyncActorJournal, val handle: PersonalActorHandle,
+        val before: JsonObject, val after: JsonObject, val wire: JsonObject) {
+        var scope: JsonObject? = before
+        var authority: String? = REV
+        var saved: JsonObject? = buildJsonObject { put("book_source", REV); put("sequence", 1); put("sha256", REV) }
+        lateinit var guard: PersonalActorDecisionCompletion
+        val ack = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, wire.string("message_id")), 60000)
+    }
+
+    private fun completionFixture(db: TelefonDatenbank, storage: TelefonAblage, restore: Boolean = false): CompletionFixture {
+        val cases = Json.parseToJsonElement(requireNotNull(javaClass.getResource("/notes-actor-completion-scope.json")).readText())
+            .jsonObject.getValue("cases").jsonArray
+        val vector = cases.first { it.jsonObject.string("name") == "delete-note" }.jsonObject
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" })
+        val handle = journal.create(PEER, KEY, REV)
+        val decisions = if (!restore) vector.getValue("decisions").jsonArray else JsonArray(
+            vector.getValue("decisions").jsonArray.map { JsonObject(it.jsonObject + ("decision" to JsonPrimitive("restore"))) })
+        val body = buildJsonObject {
+            put("format", 1); put("run_id", handle.runId); put("decision_id", java.util.UUID.randomUUID().toString()); put("decisions", decisions)
+        }
+        val wire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision", body, 60000), handle.runId)
+        val f = CompletionFixture(journal, handle, vector.getValue("before").jsonObject,
+            vector.getValue(if (restore) "before" else "actual_after").jsonObject, wire)
+        f.guard = PersonalActorDecisionCompletion(handle.runId, vector.getValue("native_targets").jsonArray, listOf(wire),
+            { f.authority }, { f.scope }, { f.saved }, { journal.readCompletionControls(handle) })
+        journal.beginCompletion(handle, f.guard.validator)
+        return f
+    }
+
     private fun fixture(test: (TelefonDatenbank, TelefonAblage) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ActorJournalFixture", 1.0, "Synthetic keys only") {
