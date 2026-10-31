@@ -169,6 +169,10 @@ rpm_builder = text(ROOT / "werkzeuge/rpm_bauen.sh")
 for marker in ("REVIEW", "ENTWURF", "OFFENE-PUNKTE", "ANALYSE", "PLAN", "AUDIT"):
     assert marker in rpm_builder
 appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
+jammy_builder = text(ROOT / "werkzeuge/appimage_jammy_bauen.sh")
+assert "pulseaudio-utils" in jammy_builder
+assert "-pdf1-audio1" in jammy_builder
+assert 'install -m 0755 "$(command -v pactl)"' in appimage_builder
 assert appimage_builder.startswith("#!/bin/sh\nset -eu\numask 022\n")
 assert "phonenumbers-9.0.38-py2.py3-none-any.whl" in appimage_builder
 assert "f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6" in appimage_builder
