@@ -377,8 +377,10 @@ internal static class PersonalSyncActorSourceTests
             await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(commitHandle.ActorId, reportWire["message_id"]!.GetValue<string>())));
             TestAssert.That((await coordinator.PersonalActorStatusAsync(commitHandle))["phone_persisted"]!.GetValue<bool>(), "Exact marked completion report receipt did not confirm remote book commit.");
             await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
-            // Independently exercise a native typed intent review without
-            // authorizing a membership-changing save or public actor activation.
+            // Native typed review/save-report/terminal controller with a native
+            // writer-state fixture, not the GUI book writer or public activation.
+            foreach (var terminalChoice in new[] { "restore", "delete" })
+            {
             var reviewHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
             await coordinator.StartPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
             var reviewRequest = commitRequest.DeepClone().AsObject(); reviewRequest["run_id"] = reviewHandle.ActorId;
@@ -398,7 +400,7 @@ internal static class PersonalSyncActorSourceTests
             var reviewPayload = JsonNode.Parse(Convert.FromBase64String(reviewView["data_base64"]!.GetValue<string>()))!.AsObject();
             var reviewIntent = reviewPayload["intents"]!.AsArray().OfType<JsonObject>().Single();
             var typedPlan = new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["proposal_id"] = reviewProposalId,
-                ["decision"] = "restore", ["expected_clock"] = reviewClock.DeepClone(), ["allow_conflict"] = false }),
+                ["decision"] = terminalChoice, ["expected_clock"] = reviewClock.DeepClone(), ["allow_conflict"] = false }),
                 ["intents"] = new JsonArray(new JsonObject { ["kind"] = reviewIntent["kind"]!.DeepClone(),
                     ["message_id"] = reviewIntent["pending_message_id"]!.DeepClone(), ["commit_token"] = reviewIntent["commit_token"]!.DeepClone() }) };
             var badPlan = typedPlan.DeepClone().AsObject(); badPlan["intents"]![0]!["commit_token"] = "foreign";
@@ -407,7 +409,7 @@ internal static class PersonalSyncActorSourceTests
             catch (InvalidDataException) { deniedReview = true; }
             TestAssert.That(deniedReview, "Foreign native intent token authorized a commit plan.");
             var reviewedClaim = await coordinator.PreparePersonalActorCommitAsync(reviewHandle, reviewView["revision"]!.GetValue<string>(), new string('d', 64), deletionPlan: typedPlan);
-            badPlan = typedPlan.DeepClone().AsObject(); badPlan["choices"]![0]!["decision"] = "delete"; deniedReview = false;
+            badPlan = typedPlan.DeepClone().AsObject(); badPlan["choices"]![0]!["decision"] = terminalChoice == "restore" ? "delete" : "restore"; deniedReview = false;
             try { await coordinator.PreparePersonalActorCommitAsync(reviewHandle, reviewView["revision"]!.GetValue<string>(), new string('d', 64), deletionPlan: badPlan); }
             catch (InvalidOperationException) { deniedReview = true; }
             TestAssert.That(deniedReview, "Bound native review silently changed its decision.");
@@ -423,7 +425,56 @@ internal static class PersonalSyncActorSourceTests
                 !privateStore.DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == reviewedPeer) &&
                 !privateStore.ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == reviewedPeer) && wire.Length == 0,
                 "Reviewed native batch/intent commit was partial or claimed remote persistence.");
+            var replyReviewBatch = reviewBatch.DeepClone().AsObject(); replyReviewBatch["reply"] = true; replyReviewBatch["batch_id"] = Guid.NewGuid().ToString("D");
+            await coordinator.QueuePersonalActorReplyAsync(reviewHandle, reviewedClaim["claim_token"]!.GetValue<string>(), new JsonArray(replyReviewBatch), new JsonArray());
+            deniedReview = false;
+            try { await coordinator.BeginPersonalActorCompletionAsync(reviewHandle, reviewedClaim["claim_token"]!.GetValue<string>()); }
+            catch (InvalidOperationException) { deniedReview = true; }
+            TestAssert.That(deniedReview, "A native saved claim skipped the phone DataSaveACK prerequisite.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            var reviewReplyWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                value["body"]!["run_id"]!.GetValue<string>() == reviewHandle.ActorId);
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(reviewHandle.ActorId, reviewReplyWire["message_id"]!.GetValue<string>())));
+            await coordinator.PumpPersonalActorAsync(connection);
+            var reviewReportWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                value["body"]!["run_id"]!.GetValue<string>() == reviewHandle.ActorId);
+            TestAssert.That(PersonalSyncActorContract.Unwrap(reviewReportWire["body"]!.AsObject()).Kind == "personal_sync.report", "Terminal start lacked the actual queued data completion report.");
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(reviewHandle.ActorId, reviewReportWire["message_id"]!.GetValue<string>())));
+            var dataOnly = await coordinator.PersonalActorStatusAsync(reviewHandle);
+            TestAssert.That(dataOnly["phone_data_persisted"]!.GetValue<bool>() && !dataOnly["phone_persisted"]!.GetValue<bool>(), "Data SaveACK incorrectly completed reviewed deletions.");
+            await coordinator.PumpPersonalActorAsync(connection); // Actual controller starts the terminal owner.
+            var decisionWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                value["body"]!["run_id"]!.GetValue<string>() == reviewHandle.ActorId);
+            TestAssert.That(PersonalSyncActorContract.Unwrap(decisionWire["body"]!.AsObject()).Kind == "personal_sync.deletion_decision" &&
+                PersonalSyncActorContract.Unwrap(decisionWire["body"]!.AsObject()).Body["decisions"]![0]!["decision"]!.GetValue<string>() == terminalChoice,
+                "Native terminal sender changed its exact reviewed choice.");
+            deniedReview = false;
+            try { await coordinator.ReadPersonalActorStagingAsync(reviewHandle); } catch (InvalidOperationException) { deniedReview = true; }
+            TestAssert.That(deniedReview, "Terminal owner reopened native content staging.");
+            var finalAck = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(reviewHandle.ActorId, decisionWire["message_id"]!.GetValue<string>()));
+            var terminalScope = manifest;
+            if (terminalChoice == "delete")
+            {
+                await connection.HandlePlainAsync(finalAck.DeepClone().AsObject());
+                TestAssert.That(!(await coordinator.PersonalActorStatusAsync(reviewHandle))["phone_persisted"]!.GetValue<bool>(), "Positive deletion ACK before fresh resulting membership counted as saved.");
+                terminalScope = PhoneContentScope.Advance(manifest, [], ["task-one"]);
+                foreach (var part in PhoneContentScope.Chunks(terminalScope)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
+                await SharedSyncTransportTests.DrainAsync(wire);
+            }
+            await connection.HandlePlainAsync(finalAck);
+            var terminalStatus = await coordinator.PersonalActorStatusAsync(reviewHandle);
+            TestAssert.That(terminalStatus["phase"]!.GetValue<string>() == "completed" && terminalStatus["phone_persisted"]!.GetValue<bool>() &&
+                terminalStatus["deletion_completion"]!["saved"]!.GetValue<int>() == 1, "Native terminal controller did not finish exact persisted ACK: " + terminalChoice);
+            await connection.HandlePlainAsync(finalAck.DeepClone().AsObject());
+            TestAssert.That((await coordinator.PersonalActorStatusAsync(reviewHandle))["phase"]!.GetValue<string>() == "completed", "Exact terminal ACK replay changed completed state.");
+            if (terminalChoice == "delete")
+            {
+                manifest = PhoneContentScope.Advance(terminalScope, ["note-one"], ["task-one"]);
+                foreach (var part in PhoneContentScope.Chunks(manifest)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
+                await SharedSyncTransportTests.DrainAsync(wire);
+            }
             await coordinator.CancelPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
+            }
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
             TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",

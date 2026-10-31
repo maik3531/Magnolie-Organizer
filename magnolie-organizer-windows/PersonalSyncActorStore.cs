@@ -420,6 +420,19 @@ internal sealed class PersonalSyncActorStore
         RequireCompletion(db, transaction, handle, "read"); return result;
     });
 
+    // Exact native terminal dispatch claim only. I/O belongs outside owner gates.
+    internal void CheckCompletionSend(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire, completion: true);
+        CompletionOperation(handle, (db, transaction) => {
+            RequireCompletion(db, transaction, handle, "send", wire);
+            if (!TelefonCrypto.Canonical(wire).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+            RequireCompletion(db, transaction, handle, "send", wire);
+            if (!TelefonCrypto.Canonical(wire).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+            return true;
+        });
+    }
+
     internal JsonObject FinishCompletion(PersonalActorHandle handle)
     {
         CompletionOperation(handle, (db, transaction) => {

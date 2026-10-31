@@ -45,7 +45,7 @@ internal static class PersonalActorCompletionTests
         internal PersonalSyncActorStore NewRegistry(string? epoch = null) => new(Store,
             (id, fingerprint) => id == Peer && fingerprint == Fingerprint ? Source : null,
             epoch: epoch, clock: () => Now, monotonicClock: () => Mono);
-        private JsonObject Message(string kind, JsonObject body) => new() { ["type"] = "message", ["v"] = 1,
+        internal JsonObject Message(string kind, JsonObject body) => new() { ["type"] = "message", ["v"] = 1,
             ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["created_ms"] = Now, ["expires_ms"] = Now + 60000, ["body"] = body };
         internal long Count(string table)
         {
@@ -147,6 +147,93 @@ internal static class PersonalActorCompletionTests
             TestAssert.Throws<InvalidOperationException>(() => f.Registry.Create(f.Peer, f.Fingerprint, f.Source), "Completion owner escaped active capacity.");
             f.Registry.Cancel(f.Handle); f.Registry.Create(f.Peer, f.Fingerprint, f.Source);
         }
+        ExactSavedDecisionCorrelation();
         return Task.CompletedTask;
+    }
+
+    private sealed class DecisionFixture : IDisposable
+    {
+        internal readonly Fixture Native = new();
+        internal readonly NativeBookOwnerScope Book = new();
+        internal readonly JsonObject Before, After, Frame, Ack;
+        internal JsonObject? Scope;
+        internal string? Authority = new string('a', 64);
+        internal readonly PersonalActorDecisionCompletion Completion;
+        internal DecisionFixture(bool restore = false)
+        {
+            var path = Path.Combine(TestSource.Root("contracts/notes-actor-completion-scope.json"), "contracts", "notes-actor-completion-scope.json");
+            var vector = JsonNode.Parse(File.ReadAllText(path))!["cases"]!.AsArray().OfType<JsonObject>().Single(value => value["name"]!.GetValue<string>() == "delete-note");
+            Before = vector["before"]!.DeepClone().AsObject(); After = (restore ? Before : vector["actual_after"]!).DeepClone().AsObject(); Scope = Before;
+            var decisions = vector["decisions"]!.DeepClone().AsArray();
+            if (restore) decisions[0]!["decision"] = "restore";
+            var body = new JsonObject { ["format"] = 1, ["run_id"] = Native.Handle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"), ["decisions"] = decisions };
+            Frame = PersonalSyncActorContract.WireMessage(Native.Message("personal_sync.deletion_decision", body), Native.Handle.ActorId);
+            Ack = Native.Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Native.Handle.ActorId, Frame["message_id"]!.GetValue<string>()));
+            Book.SetReady(true); Book.RecordSaved("native-synthetic-writer", true, new string('a', 64));
+            Completion = new(Native.Handle.ActorId, vector["native_targets"]!.AsArray(), [Frame], () => Authority, () => Scope,
+                () => Book.SaveState("native-synthetic-writer", true), () => Native.Registry.ReadCompletionControls(Native.Handle));
+            Native.Registry.BeginCompletion(Native.Handle, Completion.Validator);
+        }
+        internal void Sql(string sql)
+        {
+            using var db = Native.Store.OpenDatabase(); db.Open(); using var command = db.CreateCommand(); command.CommandText = sql; command.ExecuteNonQuery();
+        }
+        public void Dispose() => Native.Dispose();
+    }
+
+    private static void ExactSavedDecisionCorrelation()
+    {
+        using (var f = new DecisionFixture())
+        {
+            f.Native.Registry.CheckCompletionSend(f.Native.Handle, f.Frame);
+            TestAssert.That(f.Native.Registry.Reap() == 0, "Maintenance retired an exact native completion owner.");
+            var changed = f.Frame.DeepClone().AsObject(); changed["message_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Registry.CheckCompletionSend(f.Native.Handle, changed), "Another queued identity inherited native terminal send rights.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Success before resulting scope was counted.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.FinishCompletion(f.Native.Handle), "Missing fresh scope and receipt finished deletion.");
+            f.Scope = f.After;
+            TestAssert.Throws<InvalidOperationException>(() => f.Completion.RecordPersisted(f.Ack), "Queue acceptance substituted for encrypted metadata persistence.");
+            f.Sql("CREATE TRIGGER decision_write_failure BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic write failure'); END");
+            TestAssert.Throws<SqliteException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Actual SQLite write failure disappeared.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Completion.RecordPersisted(f.Ack), "Failed SQL transaction counted as saved.");
+            f.Sql("DROP TRIGGER decision_write_failure");
+            TestAssert.That(f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Exact completion ACK was not persisted.");
+            f.Completion.RecordPersisted(f.Ack);
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 1 && f.Native.Registry.FinishCompletion(f.Native.Handle)["phase"]!.GetValue<string>() == "completed", "Fresh saved claim and actual native ACK did not complete.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.RequireCurrent(f.Native.Handle), "Completed receipt reopened content.");
+        }
+        using (var f = new DecisionFixture(restore: true))
+        {
+            f.Scope = null;
+            TestAssert.That(f.Native.Registry.Reap() == 0, "Maintenance confused a pending fresh scope with revoked ownership.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Incomplete scope accepted a receipt.");
+            f.Scope = f.Before;
+            TestAssert.That(f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Exact same-scope restore failed.");
+            f.Completion.RecordPersisted(f.Ack);
+            TestAssert.That(!f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Exact ACK replay duplicated a row.");
+            f.Completion.RecordPersisted(f.Ack); f.Native.Registry.FinishCompletion(f.Native.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.RequireCurrent(f.Native.Handle), "Restore receipt revived a data owner.");
+        }
+        foreach (var mode in new[] { "authority", "book", "profile", "scope" })
+        {
+            using var f = new DecisionFixture();
+            if (mode == "authority") f.Authority = new string('b', 64);
+            if (mode == "book") f.Book.RecordSaved("native-synthetic-writer", true, new string('b', 64));
+            if (mode == "profile") f.Book.Invalidate();
+            if (mode == "scope") f.Scope = PhoneContentScope.Create(["foreign"], ["t"]);
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Unrelated native state accepted receipt: " + mode);
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 0, "Unrelated state claimed saved: " + mode);
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.RequireCurrent(f.Native.Handle), "Unrelated state revived data: " + mode);
+        }
+        using (var f = new DecisionFixture())
+        {
+            var rejected = f.Native.Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(f.Native.Handle.ActorId, f.Frame["message_id"]!.GetValue<string>(), "rejected", "temporary_failure"));
+            f.Native.Registry.PutCompletionControl(f.Native.Handle, rejected); f.Completion.RecordPersisted(rejected);
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 0, "Temporary rejection became a saved receipt.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.FinishCompletion(f.Native.Handle), "Temporary rejection completed native deletion.");
+            f.Scope = f.After; f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack); f.Completion.RecordPersisted(f.Ack);
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, rejected), "Remote outcome downgraded after success.");
+            f.Native.Registry.FinishCompletion(f.Native.Handle);
+        }
     }
 }

@@ -18,6 +18,9 @@ internal sealed partial class TelefonCoordinator
         internal HashSet<string> ReplyIds { get; } = [];
         internal string CompletionReportId { get; set; } = "";
         internal bool PhonePersisted { get; set; }
+        internal bool PhoneDataPersisted { get; set; }
+        internal PersonalActorDecisionCompletion? Completion { get; set; }
+        internal HashSet<string> CompletionIds { get; } = [];
         internal JsonObject IncomingCounts { get; set; } = new() { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
         internal int IncomingAttachments { get; set; }
     }
@@ -352,15 +355,81 @@ internal sealed partial class TelefonCoordinator
             ["notebooks"] = records.Count(value => value["kind"]!.GetValue<string>() == "notebook") };
     }
 
+    internal Task<JsonObject> BeginPersonalActorCompletionAsync(PersonalActorHandle handle, string claimToken,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle ||
+            admission.CommitPlan is not { } plan || plan.Token != claimToken) throw new InvalidOperationException("actor_completion_claim_unavailable");
+        BeginPersonalActorCompletion(registry, admission);
+        return ActorStatus(registry, handle);
+    }, cancellation);
+
+    private void BeginPersonalActorCompletion(PersonalSyncActorStore registry, ActorAdmission admission)
+    {
+        var handle = admission.Handle;
+        if (admission.Completion is not null) { registry.ReadCompletionControls(handle); return; }
+        registry.RequireCurrent(handle);
+        var plan = admission.CommitPlan ?? throw new InvalidOperationException("actor_completion_claim_unavailable");
+        var choices = plan.DeletionReview["choices"]!.AsArray().OfType<JsonObject>().ToArray();
+        if (admission.SaveReceipt is not { } receipt || !admission.PhoneDataPersisted || choices.Length == 0)
+            throw new InvalidOperationException("actor_completion_not_ready");
+        if (plan.DeletionReview["intents"]!.AsArray().OfType<JsonObject>().Any(value => value["kind"]!.GetValue<string>() != "personal_sync.deletion_proposals"))
+            throw new InvalidOperationException("actor_incoming_decision_controller_required");
+        var saved = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
+        if (saved != receipt || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("actor_saved_completion_changed");
+        var frames = new List<JsonObject>(); var targets = new JsonArray();
+        var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+        try
+        {
+            foreach (var chunk in choices.Chunk(32))
+            {
+                if (admission.Outbound.Count + frames.Count >= 4096) throw new InvalidOperationException("actor_capacity");
+                var body = new JsonObject { ["format"] = 1, ["run_id"] = handle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(chunk.Select(value => (JsonNode)new JsonObject {
+                        ["proposal_id"] = value["proposal_id"]!.DeepClone(), ["decision"] = value["decision"]!.DeepClone(),
+                        ["expected_clock"] = value["expected_clock"]!.DeepClone() }).ToArray()) };
+                var native = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(handle.ActorId), body, true)
+                    ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+                foreach (var target in native) targets.Add(target!.DeepClone());
+                var id = store.Enqueue(admission.PeerId, "personal_sync.deletion_decision", body, 86400000, Now(), actorRunId: handle.ActorId);
+                frames.Add(store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing"));
+            }
+            JsonObject? Scope()
+            {
+                if (CurrentActorCompletionAuthority(admission.PeerId, fingerprint) is null) return null;
+                return admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject());
+            }
+            var completion = new PersonalActorDecisionCompletion(handle.ActorId, targets, frames,
+                () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), Scope, () => NativeSavedBook(),
+                () => registry.ReadCompletionControls(handle));
+            registry.BeginCompletion(handle, completion.Validator);
+            admission.Completion = completion;
+            admission.CompletionIds.UnionWith(frames.Select(value => value["message_id"]!.GetValue<string>()));
+            admission.Outbound.UnionWith(admission.CompletionIds);
+            admission.PhonePersisted = false;
+        }
+        catch
+        {
+            foreach (var frame in frames) store.CompleteOutbox(admission.PeerId, frame["message_id"]!.GetValue<string>());
+            throw;
+        }
+    }
+
+    private JsonObject ActorStatus(PersonalSyncActorStore registry, PersonalActorHandle handle)
+    {
+        var result = registry.Status(handle);
+        if (actorAdmissions.TryGetValue(handle.ActorId, out var admission) && admission.Handle == handle)
+        {
+            result["book_persisted"] = admission.SaveReceipt is not null; result["reply_queued"] = admission.ReplyCount != 0;
+            result["phone_data_persisted"] = admission.PhoneDataPersisted;
+            result["phone_persisted"] = admission.PhonePersisted; result["completion_report_queued"] = admission.CompletionReportId.Length != 0;
+            if (admission.Completion is not null) result["deletion_completion"] = admission.Completion.Summary();
+        }
+        return result;
+    }
+
     internal Task<JsonObject> PersonalActorStatusAsync(PersonalActorHandle handle, CancellationToken cancellation = default) =>
         WithPersonalActorStoreAsync(registry => {
-            var result = registry.Status(handle);
-            if (actorAdmissions.TryGetValue(handle.ActorId, out var admission) && admission.Handle == handle)
-            {
-                result["book_persisted"] = admission.SaveReceipt is not null; result["reply_queued"] = admission.ReplyCount != 0;
-                result["phone_persisted"] = admission.PhonePersisted; result["completion_report_queued"] = admission.CompletionReportId.Length != 0;
-            }
-            return result;
+            return ActorStatus(registry, handle);
         }, cancellation);
 
     private void QueueActorCompletionReport(ActorAdmission admission)
@@ -404,8 +473,26 @@ internal sealed partial class TelefonCoordinator
                     !actorAdmissions.TryGetValue(run, out var admission) || admission.PeerId != peer.Id ||
                     admission.PublicKey != Convert.ToBase64String(peer.PublicKey) || admission.Connection != connection ||
                     online.GetValueOrDefault(peer.Id) != connection) return false;
-                registry.RequireCurrent(admission.Handle);
                 var kind = message["kind"]!.GetValue<string>();
+                if (admission.Completion is { } completion)
+                {
+                    if (kind != PersonalSyncActorContract.AckKind) return false;
+                    registry.PutCompletionControl(admission.Handle, message);
+                    completion.RecordPersisted(message);
+                    var state = body["status"]!.GetValue<string>();
+                    if (state is "accepted" or "duplicate") store.CompleteOutbox(peer.Id, body["message_id"]!.GetValue<string>());
+                    else if (body["error"]!.GetValue<string>() != "temporary_failure")
+                    {
+                        registry.Cancel(admission.Handle);
+                        foreach (var pendingId in admission.Outbound) store.CompleteOutbox(peer.Id, pendingId);
+                        return true;
+                    }
+                    var summary = completion.Summary();
+                    if (summary["saved"]!.GetValue<int>() == summary["expected"]!.GetValue<int>())
+                    { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+                    return true;
+                }
+                registry.RequireCurrent(admission.Handle);
                 if (kind == PersonalSyncActorContract.AckKind)
                 {
                     PersonalSyncActorContract.ValidateAck(body);
@@ -415,7 +502,11 @@ internal sealed partial class TelefonCoordinator
                         registry.Put(admission.Handle, message);
                         if (body["status"]!.GetValue<string>() is "accepted" or "duplicate") {
                             store.CompleteOutbox(peer.Id, acknowledged);
-                            if (acknowledged == admission.CompletionReportId) admission.PhonePersisted = true;
+                            if (acknowledged == admission.CompletionReportId)
+                            {
+                                admission.PhoneDataPersisted = true;
+                                admission.PhonePersisted = admission.CommitPlan?.DeletionReview["intents"]?.AsArray().Count == 0;
+                            }
                         }
                     }
                     return true;
@@ -630,15 +721,22 @@ internal sealed partial class TelefonCoordinator
                             continue; // Retain the bound cancellation target until its lease expires.
                     }
                     catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
-                    registry.RequireCurrent(admission.Handle);
-                    QueueActorCompletionReport(admission);
+                    if (admission.Completion is null)
+                    {
+                        registry.RequireCurrent(admission.Handle);
+                        QueueActorCompletionReport(admission);
+                        if (admission.PhoneDataPersisted && admission.CommitPlan?.DeletionReview["choices"] is JsonArray choices && choices.Count != 0)
+                            BeginPersonalActorCompletion(registry, admission);
+                    }
                     if (online.GetValueOrDefault(admission.PeerId) != connection) continue;
                     foreach (var item in store.Due(admission.PeerId, Now(), transport: connection.Transport))
                     {
                         if (item.Message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
                             item.Message["body"]?["run_id"]?.GetValue<string>() != admission.Handle.ActorId || !admission.Outbound.Contains(item.Id)) continue;
+                        if (admission.Completion is not null && !admission.CompletionIds.Contains(item.Id)) continue;
+                        if (admission.Completion is null) registry.RequireCurrent(admission.Handle);
+                        else registry.CheckCompletionSend(admission.Handle, item.Message);
                         store.MarkAttempt(item.Id, item.Attempts, Now());
-                        registry.RequireCurrent(admission.Handle);
                         dispatch.Add(item.Message);
                     }
                 }
