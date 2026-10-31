@@ -1,5 +1,23 @@
 # Changelog / Änderungen
 
+## 2.0.30 / Notes 1.0.21 unchanged — 2026-10-31
+
+### English
+
+- Restores uniform Linux settings tabs with single-line shortening and accessible full labels (#286).
+- Separates the Windows installer-download deadline from the short manifest deadline, retaining signature, checksum and file-permission checks (#287). Existing 2.0.29 installations whose download times out may need the direct 2.0.30 installer once.
+- Isolates native Linux package checks from personal EDS source profiles and caches (#285). This does not claim a verified personal Internet-provider write synchronization.
+- Notes remains unchanged at 1.0.21. The reported unwanted tree activation remains under investigation (#289); no proven root-cause fix is claimed. The additional complete Microsoft contacts/calendar pipeline remains unfinished (#29).
+- TuxedoOS AppImage retains the documented system-bubblewrap AppArmor prerequisite (#209); global security restrictions must not be disabled.
+
+### Deutsch
+
+- Stellt einheitliche Linux-Einstellungsreiter mit einzeiliger Kürzung und zugänglichen vollständigen Namen wieder her (#286).
+- Trennt die Windows-Installerdownloadfrist von der kurzen Manifestfrist; Signatur-, Prüfsummen- und Dateirechteprüfungen bleiben erhalten (#287). Bei Downloadabbrüchen im bereits installierten 2.0.29 kann einmal der direkte 2.0.30-Installer erforderlich sein.
+- Trennt native Linux-Paketprüfungen von persönlichen EDS-Quellen und Caches (#285). Ein erfolgreicher Schreibabgleich mit dem persönlichen Internetanbieter wird damit nicht behauptet.
+- Notes bleibt unverändert bei 1.0.21. Die unerwünschte Baumaktivierung wird weiter untersucht (#289); hierfür wird kein belegter Ursachenfix behauptet. Der zusätzliche vollständige Microsoft-Kontakt-/Kalenderpfad bleibt unvollständig (#29).
+- Für das TuxedoOS-AppImage gilt weiterhin die dokumentierte AppArmor-Voraussetzung für System-bubblewrap (#209); globale Schutzfunktionen nicht abschalten.
+
 ## 2.0.28 / Notes 1.0.20 — 2026-10-22
 
 ### English
