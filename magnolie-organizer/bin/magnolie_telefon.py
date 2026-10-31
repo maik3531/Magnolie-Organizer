@@ -2880,7 +2880,7 @@ class PhoneService:
                     "local_mode": peer.get("note_sync", {}).get("local", {}).get("mode")},
                 "policies": {"custom": {"supported": self._custom_supported(peer), "local_enabled": peer.get("custom_sync", {}).get("local", {}).get("enabled")},
                     "time": {"supported": self._time_supported(peer), "local_enabled": control["time"].get("local", {}).get("enabled")}},
-                "shared": shared}
+                "shared": shared, "shared_runtime": self.shared_settings_runtime(peer_id)}
 
     def _mcp_bluetooth_status(self):
         available, reason = self.bluetooth_backend.availability()
@@ -4121,6 +4121,29 @@ class PhoneService:
                         peer.get("capabilities", {}).get("items", {})),
                     "initialized": body is not None, "ready": self.shared_settings_ready(peer_id),
                     "values": shared_sync_contract.effective(body) if body is not None else None}
+
+    def shared_settings_runtime(self, peer_id):
+        """Read bounded connection metadata without creating a session or queue."""
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            channel = self.connections.get(peer_id) if peer else None
+            session = self.shared_sessions.get(channel) if channel is not None else None
+            if session and session.get("owner") != (peer_id, peer["static_public"]):
+                session = None
+            body = self.store.shared_settings(peer_id, peer["static_public"]) if peer else None
+            controls = self._note_controls_for(channel)
+            return {"connected": channel is not None,
+                    "personal_available": self.personal_sync_available() is True,
+                    "controls_ready": bool(peer and self._shared_controls_ready(peer, channel)),
+                    "capabilities_match": bool(peer and controls.get("capabilities.update") == peer.get("capabilities")),
+                    "grants_match": bool(peer and controls.get("grants.update") == peer.get("grants")),
+                    "session_present": session is not None,
+                    "sent_present": bool(session and session.get("sent") is not None),
+                    "received_present": bool(session and session.get("received") is not None),
+                    "sent_matches": bool(body is not None and session and session.get("sent") == body),
+                    "received_matches": bool(body is not None and session and session.get("received") == body),
+                    "last_ack": copy.deepcopy(session.get("last_ack")) if session else None,
+                    "last_incoming": copy.deepcopy(session.get("last_incoming")) if session else None}
 
     def _apply_common_function_policies(self, peer_id, body):
         peer = self.store.sole_peer(peer_id)
@@ -6855,6 +6878,13 @@ class PhoneService:
             if (ack_policy == "invalid" or ack_policy == "wifi_only"
                     and self.connection_transports.get(peer["device_id"]) != "wifi"):
                 raise ValueError("acknowledgement violates current transport or content scope policy")
+            queued = self.store.outbox_message(peer["device_id"], payload["message_id"])
+            if (queued and queued.get("kind") == shared_sync_contract.KIND and
+                    self.connections.get(peer["device_id"]) is channel and
+                    (self.store.peer(peer["device_id"]) or {}).get("static_public") == peer["static_public"]):
+                with self.lock:
+                    self._shared_session(peer, channel)["last_ack"] = {
+                        "status": payload["status"], "error": payload["error"]}
             if payload["status"] == "rejected" and payload["error"] == "temporary_failure":
                 return
             decision_id = self.store.acknowledge(peer["device_id"], payload["message_id"],
@@ -6938,22 +6968,29 @@ class PhoneService:
             return
         if kind == shared_sync_contract.KIND:
             status, error = "accepted", "none"
+            stage = "schema"
             try:
                 shared_sync_contract.validate(payload["body"])
+                stage = "expiry"
                 if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > DAY_MS:
                     raise ValueError("expired shared settings")
                 with self.lock:
+                    stage = "controls"
                     current = self.store.sole_peer(peer["device_id"])
                     if (not current or current["static_public"] != peer["static_public"] or
                             not self._shared_controls_ready(current, channel)):
                         raise PermissionError
+                    stage = "initialized"
                     if self.store.shared_settings(peer["device_id"], peer["static_public"]) is None:
                         raise RuntimeError("Local shared preferences have not been initialized.")
+                    stage = "identity"
                     previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
                     if previous and not self.store.received_matches(peer["device_id"], payload):
                         raise ValueError("conflicting shared settings identity")
+                    stage = "merge"
                     self.store.merge_shared_settings(peer["device_id"], peer["static_public"], payload["body"])
                     self._shared_session(current, channel)["received"] = json.loads(json.dumps(payload["body"]))
+                    stage = "persist"
                     self.store.remember_message(peer["device_id"], payload, status, error)
                     self._queue_shared_settings(peer["device_id"], channel)
             except PermissionError:
@@ -6962,6 +6999,11 @@ class PhoneService:
                 status, error = "rejected", "invalid_schema"
             except (OSError, RuntimeError, sqlite3.Error):
                 status, error = "rejected", "temporary_failure"
+            with self.lock:
+                if (self.connections.get(peer["device_id"]) is channel and
+                        (self.store.peer(peer["device_id"]) or {}).get("static_public") == peer["static_public"]):
+                    self._shared_session(peer, channel)["last_incoming"] = {
+                        "status": status, "error": error, "stage": stage}
             channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
             self.callback("status", self.report())
             return

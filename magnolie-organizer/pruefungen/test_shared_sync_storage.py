@@ -1,5 +1,6 @@
 """Private common-function metadata is encrypted, transactional and pair-bound."""
 import copy
+import uuid
 import sqlite3
 from pathlib import Path
 import sys
@@ -121,3 +122,80 @@ def test_changed_peer_key_and_unpair_do_not_reuse_old_common_settings(tmp_path):
     service.remove(peer_id)
     with sqlite3.connect(service.store.database_path) as db:
         assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'shared_settings:%'").fetchone()[0] == 0
+
+
+class SharedChannel:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, payload):
+        self.sent.append(payload)
+
+
+def connected_fixture(tmp_path):
+    service, peer_id, public = fixture(tmp_path)
+    peer = service.store.peer(peer_id)
+    peer["capabilities"] = phone.desktop_capabilities()
+    channel = SharedChannel()
+    service.connections[peer_id] = channel
+    service.connection_transports[peer_id] = "wifi"
+    service.note_controls[channel] = {"capabilities.update": copy.deepcopy(peer["capabilities"]),
+        "grants.update": copy.deepcopy(peer["grants"]),
+        "personal_sync.settings": {"format": 1, "own_device": True}}
+    return service, peer, channel
+
+
+def test_runtime_read_does_not_initialize_queue_or_create_session(tmp_path):
+    service, peer, channel = connected_fixture(tmp_path)
+    before = copy.deepcopy(peer)
+    result = service.shared_settings_runtime(peer["device_id"])
+    assert result["controls_ready"] and not result["session_present"]
+    assert result["last_ack"] is None and result["last_incoming"] is None
+    assert service.store.shared_settings(peer["device_id"], peer["static_public"]) is None
+    assert not service.shared_sessions and not service.store.pending(peer["device_id"])
+    assert peer == before and not channel.sent
+
+
+def test_runtime_records_rejected_ack_without_changing_retry_policy(tmp_path):
+    service, peer, channel = connected_fixture(tmp_path)
+    peer_id = peer["device_id"]
+    body = service.store.initialize_shared_settings(peer_id, peer["static_public"], {})
+    session = service._shared_session(peer, channel)
+    session["sent"] = copy.deepcopy(body)
+    message = service.store.queue(peer_id, shared.KIND, body, phone.DAY_MS)
+    service._payload(peer, channel, {"type": "ack", "message_id": message["message_id"],
+        "status": "rejected", "error": "not_granted"})
+    result = service.shared_settings_runtime(peer_id)
+    assert result["last_ack"] == {"status": "rejected", "error": "not_granted"}
+    assert result["sent_matches"] and not result["received_present"]
+    assert service.store.outbox_message(peer_id, message["message_id"]) is None
+    result["last_ack"]["error"] = "changed"
+    assert session["last_ack"]["error"] == "not_granted"
+    assert service.store.shared_settings(peer_id, peer["static_public"]) == body
+
+
+def test_runtime_distinguishes_controls_and_strict_merge_rejection(tmp_path):
+    service, peer, channel = connected_fixture(tmp_path)
+    peer_id = peer["device_id"]
+    local = service.store.identity["device_id"]
+    body = service.store.initialize_shared_settings(peer_id, peer["static_public"], {})
+    incoming = shared.merge(shared.create(peer_id), body, peer_id, local)
+    incoming["settings"]["auto_mode"][local] = {"counter": 100, "value": "wifi"}
+    now = phone.now_ms()
+    message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+        "kind": shared.KIND, "created_ms": now, "expires_ms": now + 60000, "body": incoming}
+    service.personal_sync_available = lambda: False
+    service._payload(peer, channel, message)
+    assert service.shared_settings_runtime(peer_id)["last_incoming"] == {
+        "status": "rejected", "error": "not_granted", "stage": "controls"}
+    service.personal_sync_available = lambda: True
+    service._payload(peer, channel, message)
+    result = service.shared_settings_runtime(peer_id)
+    assert result["last_incoming"] == {
+        "status": "rejected", "error": "invalid_schema", "stage": "merge"}
+    assert not result["received_present"]
+    assert service.store.shared_settings(peer_id, peer["static_public"]) == body
+    assert service.store.dedupe_result(peer_id, message["message_id"]) is None
+    assert all(isinstance(value, (bool, dict, type(None))) for value in result.values())
+    service.connections[peer_id] = SharedChannel()
+    assert service.shared_settings_runtime(peer_id)["last_incoming"] is None
