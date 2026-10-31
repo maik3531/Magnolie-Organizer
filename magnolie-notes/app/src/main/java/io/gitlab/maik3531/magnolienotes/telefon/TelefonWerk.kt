@@ -209,6 +209,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val personalActorKeys = mutableMapOf<String, String>()
     private val personalActorTransports = mutableMapOf<String, TelefonSecureChannel>()
     private val personalActorDispatches = mutableSetOf<String>()
+    private val personalActorReportReceipts = mutableMapOf<String, String>()
     private val personalActorBooks = mutableMapOf<String, Bestand>()
 
     @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
@@ -238,6 +239,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized internal fun stopPersonalActor(handle: PersonalActorHandle) = synchronized(Ablage.SCHREIBSPERRE) {
         personalActorJournal.retire(handle) { stopActorRunAndPrivateStaging(handle.peerId, handle.runId) }
         personalActorWork.remove(handle.runId)
+        personalActorReportReceipts.remove(handle.runId)
         personalActorTransports.remove(handle.runId)
         personalActorBooks.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
@@ -257,6 +259,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun reapPersonalActors() {
         personalActorJournal.reapInactive { peer, run -> stopActorRunAndPrivateStaging(peer, run) }.forEach { (peer, run) ->
             personalActorWork.remove(run); personalActorHandles.remove(run)
+            personalActorReportReceipts.remove(run)
             personalActorKeys.remove(run); personalActorTransports.remove(run)
             personalActorBooks.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
@@ -1995,6 +1998,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     private fun receiveActorMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        var savedReportRun: String? = null
         val reply = synchronized(this) {
             if (generation != pairingGeneration || activeChannel !== channel) return@synchronized null
             val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
@@ -2119,6 +2123,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             }
                         }
                         if (deletionIntent) return@synchronized null // No successful deletion receipt before native book commit.
+                        if (kind == "personal_sync.report") savedReportRun = run
                         TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                             PersonalSyncActor.ack(run, message.string("message_id")), 60000)
                     }
@@ -2161,8 +2166,49 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
         // An authorized dispatch claim precedes I/O; lifecycle cancellation can close the pipe.
         // Never hold service/book/SQLite guards while waiting for a network write.
-        if (reply != null) channel.send(reply)
+        if (reply != null) {
+            channel.send(reply)
+            // A queued reply, a successful book save, or a failed/unknown network
+            // write is not this receipt. Record only after the real send returned.
+            savedReportRun?.let { run -> synchronized(this) {
+                val handle = personalActorHandles[run] ?: return@synchronized
+                if (generation != pairingGeneration || activeChannel !== channel ||
+                    personalActorTransports[run] !== channel || handle.peerId != sessionPeer.device_id ||
+                    personalActorKeys[run] != sessionPeer.static_public) return@synchronized
+                runCatching {
+                    personalActorJournal.withActive(handle) {
+                        check(queue.personalDirectionApplied(handle.peerId, run, true) &&
+                            personalActorBooks[run] === Ablage.hole(context).bestand.value)
+                        if (run !in personalActorReportReceipts) personalActorJournal.putWire(handle, reply)
+                    }
+                    personalActorReportReceipts.putIfAbsent(run, reply.string("message_id"))
+                }
+            } }
+        }
     }
+
+    /** Native terminal-start prerequisite, not peer receipt of our ACK or deletion completion.
+     * Reads back exact encrypted report/ACK evidence and checks the retained saved book. */
+    @Synchronized internal fun actorDataReportReceipt(handle: PersonalActorHandle): JsonObject? = runCatching {
+        val receiptId = personalActorReportReceipts[handle.runId] ?: return@runCatching null
+        require(personalActorHandles[handle.runId] === handle)
+        personalActorJournal.withActive(handle) {
+            require(queue.personalDirectionApplied(handle.peerId, handle.runId, true) &&
+                personalActorBooks[handle.runId] === Ablage.hole(context).bestand.value)
+            val ack = personalActorJournal.readWire(handle, receiptId)
+            require(ack["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND))
+            val body = PersonalSyncActor.validateAck(ack.getValue("body") as JsonObject)
+            require(body.string("status") == "accepted" && body.string("error") == "none")
+            val report = personalActorJournal.readWire(handle, body.string("message_id"))
+            var semantic = PersonalSyncActor.unwrap(report.getValue("body") as JsonObject)
+            if (semantic.first == PhoneContentScope.DATA_KIND) {
+                val manifest = requireNotNull(noteSessions[personalActorTransports[handle.runId]]?.localContentScope)
+                semantic = PhoneContentScope.unwrap(semantic.second, manifest)
+            }
+            require(semantic.first == "personal_sync.report" && semantic.second["state"] == JsonPrimitive("complete"))
+            buildJsonObject { put("report", report); put("sent_ack", ack) }
+        }
+    }.getOrNull()
 
     private fun applyActorCompletionReport(peer: TelefonPeer, run: String, report: JsonObject, manifest: JsonObject) {
         val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")

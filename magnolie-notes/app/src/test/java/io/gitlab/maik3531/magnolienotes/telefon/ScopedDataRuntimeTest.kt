@@ -50,6 +50,8 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorDeletionSkipChoiceBlocksIntentsWithBothGrantsPresent() = exercise("actor-deletions-skip")
     @Test fun nativeActorCompleteReportCheckpointsAndPersistsPrivateReplyExactlyOnce() = exercise("actor-commit")
     @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
+    @Test fun nativeActorCompleteReportNeverRecordsFailedNetworkAckAsReceipt() = exercise("actor-commit-ack-failure")
+    @Test fun nativeActorCompleteReportReceiptCannotSurviveChangedBookOrRevokedGrants() = exercise("actor-commit-receipt-revoked")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -125,8 +127,12 @@ class ScopedDataRuntimeTest {
             (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
             val closed = AtomicInteger()
             val wake = AtomicReference<CountDownLatch?>()
+            val failNextFlush = AtomicBoolean(false)
             val wireOutput = object : ByteArrayOutputStream() {
-                override fun flush() { super.flush(); wake.get()?.countDown() }
+                override fun flush() {
+                    if (failNextFlush.getAndSet(false)) throw java.io.IOException("Synthetic encrypted channel write failure")
+                    super.flush(); wake.get()?.countDown()
+                }
             }
             val pipe = object : TelefonRoehre {
                 override val input = ByteArrayInputStream(ByteArray(0))
@@ -388,14 +394,30 @@ class ScopedDataRuntimeTest {
                     assertEquals(1, sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
                         .count { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.attachment_result" })
                     if (actorCommit) {
+                        @Suppress("UNCHECKED_CAST")
+                        val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)
+                        assertNull(work.actorDataReportReceipt(handle))
                         if (mode == "actor-commit-changed") documents.setzeNotiz(documents.notizen().single { it.id == "phone-note" }.copy(text = "Concurrent phone edit"))
-                        work.receiveMessage(peer, completionWire, channel, 0L)
+                        if (mode == "actor-commit-ack-failure") {
+                            failNextFlush.set(true)
+                            assertTrue(runCatching { work.receiveMessage(peer, completionWire, channel, 0L) }.isFailure)
+                            // The write may have reached the stream before flush failed:
+                            // its outcome is unknown, never a successful receipt.
+                            sent()
+                            assertTrue(queue.personalDirectionApplied(peerId, run, true))
+                            assertNull(work.actorDataReportReceipt(handle))
+                        } else work.receiveMessage(peer, completionWire, channel, 0L)
                         if (mode == "actor-commit-changed") {
                             assertTrue(sent().isEmpty()); assertFalse(queue.personalDirectionApplied(peerId, run, true))
                             assertEquals("Concurrent phone edit", documents.notizen().single { it.id == "phone-note" }.text)
                         } else {
+                            if (mode == "actor-commit-ack-failure") work.receiveMessage(peer, completionWire, channel, 0L)
                             assertEquals(completionWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
                             assertTrue(queue.personalDirectionApplied(peerId, run, true))
+                            val receipt = requireNotNull(work.actorDataReportReceipt(handle))
+                            assertEquals(completionWire, receipt["report"])
+                            assertEquals(completionWire.string("message_id"), receipt.getValue("sent_ack").jsonObject.getValue("body").jsonObject.string("message_id"))
+                            assertNull(work.actorDataReportReceipt(PersonalActorHandle(handle.peerId, handle.runId, "0".repeat(64))))
                             assertEquals("Private desktop draft", documents.notizen().single { it.id == "phone-note" }.text)
                             val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
                             assertEquals("Private desktop draft", reopened.notizen().single { it.id == "phone-note" }.text)
@@ -404,10 +426,21 @@ class ScopedDataRuntimeTest {
                             assertTrue(io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).state.value.entries.any { it.reason == "pre-sync-note" })
                             val savedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
                             work.receiveMessage(peer, completionWire, channel, 0L); assertEquals(1, sent().size)
+                            assertEquals(receipt, work.actorDataReportReceipt(handle))
                             assertArrayEquals(savedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                             assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
+                            if (mode == "actor-commit-receipt-revoked") {
+                                val boundPeer = requireNotNull(storage.peers().peer)
+                                storage.savePeer(boundPeer.copy(remote_personal_notes_sync_granted = false))
+                                assertNull(work.actorDataReportReceipt(handle))
+                                storage.savePeer(boundPeer)
+                                assertNotNull(work.actorDataReportReceipt(handle))
+                                documents.setzeNotiz(documents.notizen().single { it.id == "phone-note" }.copy(text = "Later phone edit"))
+                                assertNull(work.actorDataReportReceipt(handle))
+                            }
                         }
                         work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000), channel, 0L); sent()
+                        assertNull(work.actorDataReportReceipt(handle))
                         return@use
                     }
                     val foreign = incoming.copy(id = "outside-phone-scope")
