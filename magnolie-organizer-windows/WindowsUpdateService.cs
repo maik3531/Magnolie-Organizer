@@ -22,6 +22,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
     private const string PublicKey = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y=";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly HttpClient http;
+    private readonly HttpClient packageHttp;
     private readonly string updateDirectory;
     private readonly bool requireWindowsOwnership;
     private readonly Func<string, bool> startInstaller;
@@ -39,6 +40,8 @@ internal sealed partial class WindowsUpdateService : IDisposable
         lastRelease = initialReleaseForTests;
         http = DeadlineHttp.Create(TimeSpan.FromSeconds(30), handler, MaximumPackageBytes);
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2");
+        packageHttp = DeadlineHttp.Create(TimeSpan.FromMinutes(10), handler, MaximumPackageBytes);
+        packageHttp.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2");
     }
 
     internal ValidatedManualRelease? LastManualRelease { get; private set; }
@@ -234,7 +237,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
     {
         try
         {
-            using var response = await SendCheckedAsync(release.Url, release.Url, "application/octet-stream").ConfigureAwait(false);
+            using var response = await SendCheckedAsync(release.Url, release.Url, "application/octet-stream", packageHttp).ConfigureAwait(false);
             if (response.Content.Headers.ContentLength is < 0 or > MaximumPackageBytes)
                 throw new InvalidDataException("The update package has an invalid size.");
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -281,7 +284,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
         return memory.ToArray();
     }
 
-    private async Task<HttpResponseMessage> SendCheckedAsync(string url, string exactUrl, string accept)
+    private async Task<HttpResponseMessage> SendCheckedAsync(string url, string exactUrl, string accept, HttpClient? client = null)
     {
         var current = url;
         for (var redirects = 0; redirects <= 8; redirects++)
@@ -289,7 +292,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
             if (!IsExactSignedUrl(current, exactUrl)) throw new InvalidDataException("The update redirect target is not allowed.");
             using var request = new HttpRequestMessage(HttpMethod.Get, current);
             request.Headers.Accept.ParseAdd(accept);
-            var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            var response = await (client ?? http).SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             if ((int)response.StatusCode is >= 300 and <= 399)
             {
                 var location = response.Headers.Location;
@@ -462,6 +465,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
     {
         DeletePreparedFile();
         http.Dispose();
+        packageHttp.Dispose();
     }
 
     [GeneratedRegex(@"^[vV]?\d+(?:\.\d+)*(?:-\d+)?$", RegexOptions.CultureInvariant)]

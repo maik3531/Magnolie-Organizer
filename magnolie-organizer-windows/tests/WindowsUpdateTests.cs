@@ -47,6 +47,12 @@ internal static class WindowsUpdateTests
         {
             using var updater = new WindowsUpdateService(root, new FixtureHandler(signed, package), false,
                 path => { started = path; return true; }, release);
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var manifestHttp = (HttpClient)typeof(WindowsUpdateService).GetField("http", flags)!.GetValue(updater)!;
+            var installerHttp = (HttpClient)typeof(WindowsUpdateService).GetField("packageHttp", flags)!.GetValue(updater)!;
+            TestAssert.That(manifestHttp.Timeout == TimeSpan.FromSeconds(30) &&
+                installerHttp.Timeout == TimeSpan.FromMinutes(10) && !ReferenceEquals(manifestHttp, installerHttp),
+                "Der große Installer muss eine eigene begrenzte Downloadfrist erhalten; die Manifestfrist bleibt kurz.");
             TestAssert.That(updater.IsValidatedReleaseUrl(release.Url) &&
                             !updater.IsValidatedReleaseUrl(release.Url + "?untrusted=1") &&
                             !updater.IsValidatedReleaseUrl(release.Url.Replace("9.8.7", "9.8.8", StringComparison.Ordinal)),
