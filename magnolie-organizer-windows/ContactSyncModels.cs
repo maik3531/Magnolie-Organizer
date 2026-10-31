@@ -516,13 +516,27 @@ internal static class SyncBaseline
     internal static bool Dirty(JsonObject value, JsonObject? mapping, IEnumerable<string> fields,
         JsonObject? unchangedRemote = null)
     {
-        var hash = Hash(value, fields);
+        var names = fields as string[] ?? fields.ToArray();
+        var hash = Hash(value, names);
         if (mapping?["inhaltFormat"]?.GetValue<string>() == "windows-1" &&
             mapping["inhaltSha256"] is JsonValue baseline && baseline.TryGetValue<string>(out var saved))
-            return saved != hash;
+        {
+            if (saved == hash || unchangedRemote is not null && hash == Hash(unchangedRemote, names)) return false;
+            // Older native ICS readers kept LOCATION only in opaque metadata;
+            // the frontend already projected the same location into `ort`.
+            // Accept that exact old fingerprint, not a genuine location edit.
+            if (names.Contains("ort") && names.Contains("icsRoundtrip") && value["ort"] is JsonValue location &&
+                location.TryGetValue<string>(out var current) && ExchangeCodec.CalendarRoundtripLocation(value) is { } projected &&
+                current.Trim() == projected)
+            {
+                var legacy = value.DeepClone().AsObject(); legacy.Remove("ort");
+                if (Hash(legacy, names) == saved) return false;
+            }
+            return true;
+        }
         // Shipped mappings have no content baseline. Only an unchanged remote
         // revision can establish one without hiding an unsynchronized local edit.
-        return unchangedRemote is null || hash != Hash(unchangedRemote, fields);
+        return unchangedRemote is null || hash != Hash(unchangedRemote, names);
     }
 
     internal static void RequireDeletionRevision(JsonObject? mapping, string etag)
@@ -548,6 +562,19 @@ internal static class SyncBaseline
                 if (basis["geloescht"]?[field] is not JsonArray before || current["geloescht"]?[field] is not JsonArray local || result["geloescht"]?[field] is not JsonArray remote) return false;
                 result["geloescht"]![field] = Reconcile(before, local, remote);
             }
+        }
+        // The frontend retires its own in-progress marker when adopting a
+        // completed result. A matching durable handoff proves which transaction
+        // it adopted; no domain fields, mappings or other commit markers are optional.
+        var transaction = result["transactionId"] is JsonValue transactionValue && transactionValue.TryGetValue<string>(out var text) ? text : "";
+        if (transaction is { Length: 64 } && transaction.All(Uri.IsHexDigit) && result["syncAbgleichBasis"] is JsonObject &&
+            saved["syncAbgleichNachweis"] is JsonObject markerProof && JsonNode.DeepEquals(markerProof["transactionId"], result["transactionId"]) &&
+            result["syncMetadaten"] is JsonObject expectedMetadata && expectedMetadata["nextcloud"] is JsonObject expectedProgress &&
+            JsonNode.DeepEquals(expectedProgress["ausstehendeTransaktion"], result["transactionId"]) &&
+            saved["syncMetadaten"] is JsonObject savedMetadata && savedMetadata["nextcloud"] is JsonObject savedProgress && !savedProgress.ContainsKey("ausstehendeTransaktion"))
+        {
+            result = result.DeepClone().AsObject();
+            result["syncMetadaten"]!["nextcloud"]!.AsObject().Remove("ausstehendeTransaktion");
         }
         static bool Contains(JsonNode? expected, JsonNode? actual)
         {

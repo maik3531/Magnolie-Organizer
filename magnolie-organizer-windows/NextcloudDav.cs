@@ -652,6 +652,19 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                     }
                     processedBirthdays[uid] = value;
                 }
+                if (!additiveOnly && !remote.ContainsKey(id))
+                {
+                    // A resource address can change, or a previous platform may
+                    // have stored a different mapping-key representation. The
+                    // exact UID in this selected calendar still identifies the
+                    // existing event. Preserve the old comparison baseline and
+                    // use the normal ETag/conflict path instead of creating it again.
+                    var match = remote.FirstOrDefault(pair => pair.Value.Anniversary == anniversary &&
+                        ContactFields.Text(pair.Value.Data, "uid") == uid);
+                    // A create with a lost response must still verify its exact
+                    // durable payload through the existing recovery path.
+                    if (!string.IsNullOrEmpty(match.Key) && !client.HasPendingCreate(match.Value.Object.Href)) id = match.Key;
+                }
                 if (additiveOnly && id.Length == 0)
                 {
                     var match = remote.FirstOrDefault(pair => pair.Value.Anniversary == anniversary &&
