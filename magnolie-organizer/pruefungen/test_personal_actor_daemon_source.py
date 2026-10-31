@@ -8,6 +8,8 @@ import uuid
 import base64
 import json
 import hashlib
+import copy
+from contextlib import contextmanager
 from test_personal_actor_transport import record, gtk_actor_bridge
 from test_personal_actor_source import actor_source_fixture
 import magnolie_personal_actor as actor_contract
@@ -17,6 +19,198 @@ import magnolie_telefon as phone
 import magnolie_hintergrund as background
 from magnolie_personal_actor_store import NativeBookOwnerScope
 from test_hintergrunddienst import FakeBackend
+
+
+@contextmanager
+def proxy_completion_session(tmp_path, monkeypatch, decision="delete"):
+    """Actual private IPC and sealed native stores; GUI writer/phone adapter fixture."""
+    from test_personal_actor_transport import frame
+    service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
+    peer["local_grants"]["grants"]["personal_deletions_sync"] = True
+    peer["grants"]["grants"]["personal_deletions_sync"] = True
+    service.note_controls[channel]["grants.update"] = copy.deepcopy(peer["grants"])
+    service.store.save_peers()
+    shared = service.store.change_shared_setting(peer["device_id"], peer["static_public"], "skip_deletions", False)
+    service.shared_sessions[channel]["sent"] = copy.deepcopy(shared)
+    service.shared_sessions[channel]["received"] = copy.deepcopy(shared)
+    owner = NativeBookOwnerScope(); owner.set_ready(True)
+    profile = ["native-proxy-completion"]
+    original_send = channel.send
+    def send(value):
+        assert not service.lock._is_owned(), "Proxy terminal I/O held the native service guard"
+        original_send(value)
+    channel.send = send
+    with tempfile.TemporaryDirectory(prefix="actor-completion-ipc-") as root:
+        path = str(Path(root) / "bridge.sock")
+        server = background.IPCServer(FakeBackend(), path, phone_backend=service).start()
+        service.personal_sync_available = server.gui_personal_ready
+        proxy = background.PhoneServiceProxy(path)
+        proxy.native_actor_book_source = lambda: owner.current(profile[0], True)
+        proxy.native_actor_saved_book = lambda: owner.save_state(profile[0], True)
+        handle = None
+        try:
+            proxy.start(); proxy.set_visible(True); proxy.set_ready(True)
+            handle = proxy.create_personal_actor(peer["device_id"], fingerprint)
+            proxy.start_personal_actor(handle); channel.sent.clear()
+            run = handle.actor_id
+            request = {"format": 3, "run_id": run, "trigger": "manual", "modules": ["notes", "tasks"]}
+            batch = {"format": 3, "run_id": run, "batch_id": str(uuid.uuid4()), "sequence": 0,
+                "last": True, "reply": False, "records": [], "records_hash": phone.personal_sync_contract.records_hash([])}
+            proposal_id = str(uuid.uuid4())
+            clock = [{"actor_id": peer["device_id"], "counter": 2}]
+            proposal = {"format": 1, "run_id": run, "proposal_batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+                "proposals": [{"proposal_id": proposal_id, "kind": "note", "id": "note-one", "parent_id": "", "clock": clock,
+                    "prior_hash": "a" * 64, "deleted_ms": 2, "label": "Synthetic private IPC"}]}
+            for kind, body in [("personal_sync.request", request), ("personal_sync.batch", batch), ("personal_sync.deletion_proposals", proposal)]:
+                service._payload(peer, channel, actor_contract.wire_message(frame(kind, body), run))
+            channel.sent.clear()
+            view = proxy.read_personal_actor_staging(handle)
+            intent = json.loads(base64.b64decode(view["data_base64"]))["intents"][0]
+            plan = {"choices": [{"proposal_id": proposal_id, "decision": decision, "expected_clock": clock, "allow_conflict": False}],
+                "intents": [{"kind": intent["kind"], "message_id": intent["pending_message_id"], "commit_token": intent["commit_token"]}]}
+            owner.record_saved(profile[0], True, "a" * 64)
+            claim = proxy.prepare_personal_actor_commit(handle, view["revision"], "b" * 64, proxy.native_actor_saved_book(), plan)
+            owner.record_saved(profile[0], True, "b" * 64)
+            proxy.commit_personal_actor(handle, claim["claim_token"], proxy.native_actor_saved_book())
+            reply = dict(batch, batch_id=str(uuid.uuid4()), reply=True)
+            proxy.queue_personal_actor_reply(handle, claim["claim_token"], [reply], [], proxy.native_actor_saved_book())
+            admission = service.personal_actor_admissions[run]
+            reply_wire = service.store.outbox_message(peer["device_id"], admission["reply_ids"][0])
+            assert service._send_personal_actor_queued(channel, peer["device_id"], reply_wire)
+            service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(run, reply_wire["message_id"])))
+            report = service.store.outbox_message(peer["device_id"], admission["completion_report_id"])
+            assert service._send_personal_actor_queued(channel, peer["device_id"], report)
+            with pytest.raises(background.IPCError): proxy.begin_personal_actor_completion(handle, claim["claim_token"])
+            assert not server._phone_actor_book_probes
+            service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(run, report["message_id"])))
+            channel.sent.clear()
+            yield service, peer, channel, server, proxy, handle, claim, owner, profile, manifest
+        finally:
+            if handle is not None:
+                try: proxy.cancel_personal_actor(handle)
+                except background.IPCError: pass
+            proxy.stop()
+            if proxy._event_thread is not None: proxy._event_thread.join(3)
+            server.close()
+
+
+@pytest.mark.parametrize("decision", ["delete", "restore"])
+def test_proxy_terminal_uses_only_operation_live_writer_proof(tmp_path, monkeypatch, decision):
+    from test_personal_actor_transport import frame
+    from magnolie_personal_actor_completion import NativeBookProofPending
+    import magnolie_content_scope as scope
+    with proxy_completion_session(tmp_path, monkeypatch, decision) as values:
+        service, peer, channel, server, proxy, handle, claim, owner, profile, manifest = values
+        forged = proxy.native_actor_saved_book(); forged["sequence"] = True
+        with pytest.raises(background.IPCError):
+            background.ipc_request("phone_actor_registry", {"subscriber": proxy._subscriber, "book_source": handle.book_source,
+                "request": {"action": "begin_completion", "actor_id": handle.actor_id, "owner_token": handle.owner_token,
+                    "claim_token": claim["claim_token"], "native_saved_book": forged}}, proxy.path)
+        result = proxy.begin_personal_actor_completion(handle, claim["claim_token"])
+        assert result["phase"] == "completion" and not result["phone_persisted"]
+        wire = channel.sent.pop(); assert wire["kind"] == actor_contract.DATA_KIND
+        assert actor_contract.unwrap(wire["body"])[0] == "personal_sync.deletion_decision"
+        assert not channel.sent and not server._phone_actor_book_probes
+        admission = service.personal_actor_admissions[handle.actor_id]
+        completion = admission["completion"]
+        with pytest.raises(NativeBookProofPending): completion.current_saved_book()
+        with service.lock:
+            server._phone_actor_book_probes[handle.actor_id] = ((proxy._subscriber, handle.book_source), proxy.native_actor_saved_book(), time.monotonic() - 1, object())
+            try:
+                with pytest.raises(NativeBookProofPending): completion.current_saved_book()
+            finally:
+                server._phone_actor_book_probes.pop(handle.actor_id)
+        assert not service._send_personal_actor_queued(channel, peer["device_id"], wire)
+        assert proxy.personal_actor_status(handle)["phase"] == "completion", "Missing fresh proof cancelled or reopened the owner"
+        registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
+        native_handle = ActorHandle(handle.actor_id, handle.owner_token)
+        with pytest.raises(background.IPCError): proxy.read_personal_actor_staging(handle)
+        ack = frame(actor_contract.ACK_KIND, actor_contract.ack(handle.actor_id, wire["message_id"]))
+        service._payload(peer, channel, ack)
+        assert admission["completion_deferred_controls"] and completion.summary()["saved"] == 0
+        assert not proxy.personal_actor_status(handle)["phone_persisted"]
+        assert not server._phone_actor_book_probes
+        if decision == "delete":
+            assert not proxy.advance_personal_actor_completion(handle)["phone_persisted"], "Early positive ACK substituted for resulting membership"
+            updated = scope.advance(manifest, [], ["task-one"])
+            for part in scope.chunks(updated): service._payload(peer, channel, frame(scope.KIND, part))
+            channel.sent.clear()
+        result = proxy.advance_personal_actor_completion(handle)
+        assert result["phase"] == "completed" and result["phone_persisted"]
+        assert result["deletion_completion"]["saved"] == 1 and not admission["completion_deferred_controls"]
+        assert not server._phone_actor_book_probes
+        with pytest.raises(PermissionError): registry.require_current(native_handle)
+        assert service.server is None, "Private completion started a personal handset listener"
+
+
+@pytest.mark.parametrize("change", ["save", "same_hash_save", "profile", "closed_gui"])
+def test_proxy_terminal_rejects_changed_native_writer_or_gui_lease(tmp_path, monkeypatch, change):
+    from test_personal_actor_transport import frame
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, peer, channel, server, proxy, handle, claim, owner, profile, _ = values
+        proxy.begin_personal_actor_completion(handle, claim["claim_token"])
+        wire = channel.sent.pop(); channel.sent.clear()
+        service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(handle.actor_id, wire["message_id"])))
+        if change == "save": owner.record_saved(profile[0], True, "c" * 64)
+        elif change == "same_hash_save": owner.record_saved(profile[0], True, "b" * 64)
+        elif change == "profile": profile[0] = "other-native-profile"
+        else: proxy.set_ready(False)
+        with pytest.raises(background.IPCError): proxy.advance_personal_actor_completion(handle)
+        server._retire_inactive_phone_actors()
+        assert proxy.personal_actor_status(handle)["phase"] == "cancelled"
+        assert not server._phone_actor_book_probes and not channel.sent
+
+
+def test_proxy_terminal_rejects_foreign_subscriber_and_worker_thread(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, _, channel, server, proxy, handle, claim, _, _, _ = values
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with pytest.raises(background.IPCError): pool.submit(proxy.begin_personal_actor_completion, handle, claim["claim_token"]).result(3)
+        other = background.PhoneServiceProxy(proxy.path)
+        other.native_actor_book_source = proxy.native_actor_book_source
+        other.native_actor_saved_book = proxy.native_actor_saved_book
+        try:
+            other.start(); other.set_visible(True); other.set_ready(True)
+            with pytest.raises(background.IPCError): other.begin_personal_actor_completion(handle, claim["claim_token"])
+            assert service.personal_actor_admissions[handle.actor_id].get("completion") is None
+            assert not server._phone_actor_book_probes and not channel.sent
+        finally:
+            other.stop()
+            if other._event_thread is not None: other._event_thread.join(3)
+
+
+def test_proxy_terminal_deferral_is_bounded_and_never_a_saved_receipt(tmp_path, monkeypatch):
+    from test_personal_actor_transport import frame
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, peer, channel, server, proxy, handle, claim, _, _, _ = values
+        proxy.begin_personal_actor_completion(handle, claim["claim_token"])
+        wire = channel.sent.pop(); channel.sent.clear()
+        admission = service.personal_actor_admissions[handle.actor_id]
+        for _ in range(257):
+            service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(handle.actor_id, wire["message_id"])))
+        deferred = admission["completion_deferred_controls"]
+        assert len(deferred) == 256
+        assert sum(len(phone.canonical(value)) for value in deferred.values()) <= 1024 * 1024
+        assert admission["completion"].summary()["saved"] == 0
+        assert not proxy.personal_actor_status(handle)["phone_persisted"]
+        assert not server._phone_actor_book_probes and not channel.sent
+
+
+def test_proxy_terminal_advance_respects_existing_outbox_backoff(tmp_path, monkeypatch):
+    import sqlite3
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, peer, channel, server, proxy, handle, claim, _, _, _ = values
+        proxy.begin_personal_actor_completion(handle, claim["claim_token"])
+        wire = channel.sent.pop(); channel.sent.clear()
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("UPDATE outbox SET next_attempt_ms=? WHERE message_id=?", (phone.now_ms() + 60000, wire["message_id"]))
+        assert proxy.advance_personal_actor_completion(handle)["phase"] == "completion"
+        assert not channel.sent and not server._phone_actor_book_probes
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("UPDATE outbox SET next_attempt_ms=0 WHERE message_id=?", (wire["message_id"],))
+        assert proxy.advance_personal_actor_completion(handle)["phase"] == "completion"
+        assert channel.sent == [wire] and not server._phone_actor_book_probes
 
 
 def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkeypatch):

@@ -4484,7 +4484,8 @@ class PhoneService:
             return {"reply_queued": True, "message_count": admission["reply_count"], "book_persisted": True,
                 "phone_persisted": False, "delivery_confirmed": False}
 
-    def begin_personal_actor_completion(self, registry, handle, claim_token):
+    def begin_personal_actor_completion(self, registry, handle, claim_token, *, native_saved_book=None,
+                                        native_completion_authority=None, defer_native_book=False):
         """Native controller only: queue reviewed controls after the data SaveACK.
 
         The live writer provider is mandatory. No caller-supplied saved Boolean,
@@ -4503,10 +4504,11 @@ class PhoneService:
             registry.require_current(handle)
             plan = admission["commit_plan"]
             choices = plan["deletion_review"]["choices"]
+            saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
             if (not admission.get("save_receipt") or not admission.get("phone_persisted") or not choices or
-                    not callable(self.native_actor_saved_book)):
+                    not callable(saved_provider)):
                 raise PermissionError("actor_completion_not_ready")
-            saved = self._actor_saved_book(self.native_actor_saved_book(), plan["book_source"])
+            saved = self._actor_saved_book(saved_provider(), plan["book_source"])
             if saved != admission["save_receipt"]:
                 raise PermissionError("actor_saved_completion_changed")
             private = personal_actor_contract.storage_peer(handle.actor_id)
@@ -4529,8 +4531,8 @@ class PhoneService:
                     reference = session.current_reference((admission["peer"], admission["key"], id(admission["channel"])))
                     return self.current_content_scope(admission["peer"], admission["key"], reference)
                 completion = DecisionAckCompletion(handle.actor_id, targets, frames,
-                    current_authority=lambda:self.current_actor_completion_authority(admission["peer"], fingerprint),
-                    current_scope=native_scope, current_saved_book=self.native_actor_saved_book,
+                    current_authority=native_completion_authority or (lambda:self.current_actor_completion_authority(admission["peer"], fingerprint)),
+                    current_scope=native_scope, current_saved_book=saved_provider,
                     persisted_controls=lambda:registry.read_completion_controls(handle))
                 registry.begin_completion(handle, completion.validator)
             except BaseException:
@@ -4542,7 +4544,43 @@ class PhoneService:
             admission["outbound"].update(admission["completion_ids"])
             admission["phone_data_persisted"] = True
             admission["phone_persisted"] = False
+            if defer_native_book:
+                admission["completion_deferred_controls"] = {}
             return self.personal_actor_status(registry, handle)
+
+    def advance_personal_actor_completion(self, registry, handle):
+        """Private native controller step; live GUI proof must cover this operation.
+
+        Deferred wire ACKs are untrusted pending metadata, not persisted receipts.
+        Network writes remain outside native service/SQLite guards.
+        """
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
+                    admission.get("completion") is None):
+                raise PermissionError("actor_completion_not_ready")
+            try:
+                registry.check_completion(handle, "read")
+            except PermissionError as error:
+                if str(error) == "actor_completion_not_ready":
+                    return self.personal_actor_status(registry, handle)
+                raise
+            pending = list(admission.get("completion_deferred_controls", {}).items())
+            peer = self.store.peer(admission["peer"])
+            channel = admission["channel"]
+        for message_id, wire in pending:
+            if self._receive_personal_actor(peer, channel, wire) is True:
+                with self.lock:
+                    deferred = admission.get("completion_deferred_controls", {})
+                    if deferred.get(message_id) == wire:
+                        deferred.pop(message_id)
+        with self.lock:
+            frames = [wire for wire in self.store.pending(admission["peer"], self.connection_transports.get(admission["peer"], ""))
+                if wire["message_id"] in admission.get("completion_ids", ())]
+        for wire in frames:
+            if wire is not None:
+                self._send_personal_actor_queued(channel, admission["peer"], wire)
+        return self.personal_actor_status(registry, handle)
 
     def personal_actor_status(self, registry, handle):
         with self.lock:
@@ -4652,14 +4690,34 @@ class PhoneService:
                 if completion is not None:
                     if payload.get("kind") != personal_actor_contract.ACK_KIND:
                         return  # This terminal lane cannot stage new content.
-                    registry.put_completion_control(handle, payload)
+                    try:
+                        registry.put_completion_control(handle, payload)
+                    except PermissionError as error:
+                        from magnolie_personal_actor_completion import NativeBookProofPending
+                        deferred = admission.get("completion_deferred_controls")
+                        if deferred is None or str(error) != "actor_completion_not_ready":
+                            raise
+                        try:
+                            completion.current_saved_book()
+                        except NativeBookProofPending:
+                            # put_completion_control already validated the exact
+                            # expected ACK before observing the missing GUI proof.
+                            identity = payload["message_id"]
+                            if identity in deferred and deferred[identity] != payload:
+                                raise ValueError("actor_frame_conflict")
+                            if identity not in deferred and (len(deferred) >= 256 or
+                                    sum(len(canonical(value)) for value in deferred.values()) + len(canonical(payload)) > 1024 * 1024):
+                                return
+                            deferred[identity] = copy.deepcopy(payload)
+                            return
+                        raise
                     completion.record_persisted(payload)
                     if body["status"] in ("accepted", "duplicate"):
                         self.store.acknowledge(peer["device_id"], body["message_id"])
                     if completion.validate("finish", None) is True:
                         registry.finish_completion(handle)
                         admission["phone_persisted"] = True
-                    return
+                    return True
                 try:
                     registry.require_current(handle)
                 except PermissionError:
@@ -4872,7 +4930,9 @@ class PhoneService:
                     registry.check_completion(handle, "send", message)
                 else:
                     registry.require_current(handle)
-            except PermissionError:
+            except PermissionError as error:
+                if admission.get("completion") is not None and str(error) == "actor_completion_not_ready":
+                    return False
                 self.cancel_personal_actor(registry, handle, notify=False)
                 return False
             except (ValueError, RuntimeError, KeyError):

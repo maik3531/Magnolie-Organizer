@@ -1042,7 +1042,7 @@ def _request_shape(operation, arguments):
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
-                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel")):
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel", "begin_completion", "advance_completion")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
             fields = {"action", "peer_id", "fingerprint"} | ({"expected_source"} if "expected_source" in request else set())
@@ -1063,6 +1063,8 @@ def _request_shape(operation, arguments):
                         any(not isinstance(plan[name], list) or len(plan[name]) > 256 for name in ("choices", "intents"))):
                     raise IPCError("invalid native actor deletion review")
             if request["action"] == "commit": fields |= {"claim_token", "native_saved_book"}
+            if request["action"] == "begin_completion": fields |= {"claim_token", "native_saved_book"}
+            if request["action"] == "advance_completion": fields.add("native_saved_book")
             if (set(request) != fields or not _status_query_id(request["actor_id"]) or
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
@@ -1077,9 +1079,10 @@ def _request_shape(operation, arguments):
                     not isinstance(request["attachment_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", request["attachment_sha256"]) is None or
                     request["expected_revision"] == ""):
                 raise IPCError("invalid native actor attachment read")
-            if request["action"] in ("prepare_commit", "commit"):
+            if request["action"] in ("prepare_commit", "commit", "begin_completion", "advance_completion"):
                 book = request["native_saved_book"]
-                hashes = (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (request["claim_token"],)
+                hashes = (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (
+                    () if request["action"] == "advance_completion" else (request["claim_token"],))
                 if (any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None for value in hashes) or
                         not isinstance(book, dict) or set(book) != {"book_source", "sequence", "sha256"} or
                         book["book_source"] != arguments["book_source"] or type(book["sequence"]) is not int or book["sequence"] <= 0 or
@@ -1139,6 +1142,7 @@ class IPCServer:
         self._phone_actor_registries = {}
         self._phone_actor_owners = {}
         self._phone_actor_handles = {}
+        self._phone_actor_book_probes = {}
         self.backend = backend
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
@@ -1214,6 +1218,58 @@ class IPCServer:
                     source_owned=lambda actor_id: self._phone_actor_owners.get(actor_id) == key)
                 self._phone_actor_registries[key] = registry
             return registry
+
+    def _live_actor_saved_book(self, actor_id, subscriber, book_source):
+        from magnolie_personal_actor_completion import NativeBookProofPending
+        with self.phone_backend.lock:
+            owner = (subscriber, book_source)
+            if self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                return None
+            probe = self._phone_actor_book_probes.get(actor_id)
+            if probe is None or probe[0] != owner or probe[2] <= time.monotonic():
+                raise NativeBookProofPending("Fresh native GUI writer observation required")
+            return json.loads(json.dumps(probe[1]))
+
+    def _phone_actor_completion_operation(self, arguments):
+        """Explicit synchronous GUI-owner step, never a cached writer provider.
+
+        The native proxy requires its GUI owner thread to remain in this RPC.
+        Proofs expire conservatively and are erased in finally; between calls
+        terminal controls may wait, but cannot acquire data or dispatch rights.
+        """
+        from magnolie_personal_actor_store import ActorHandle
+        phone = self.phone_backend
+        request = arguments["request"]
+        actor_id, subscriber, book_source = request["actor_id"], arguments["subscriber"], arguments["book_source"]
+        owner = (subscriber, book_source)
+        token = object()
+        with phone.lock:
+            if self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                raise IPCError("Native actor owner is unavailable")
+            if actor_id in self._phone_actor_book_probes:
+                raise IPCError("Native actor writer proof is already in use")
+            registry = self._phone_actor_registry(*owner)
+            handle = ActorHandle(actor_id, request["owner_token"])
+            fingerprint = registry.status(handle)["fingerprint"]
+            admission = phone.personal_actor_admissions.get(actor_id)
+            if admission is None or admission["registry"] is not registry or admission["handle"] != handle:
+                raise IPCError("Native actor admission is unavailable")
+            peer_id = admission["peer"]
+            self._phone_actor_book_probes[actor_id] = (owner, json.loads(json.dumps(request["native_saved_book"])), time.monotonic() + 1, token)
+        try:
+            if request["action"] == "begin_completion":
+                phone.begin_personal_actor_completion(registry, handle, request["claim_token"],
+                    native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source),
+                    native_completion_authority=lambda: phone.current_actor_completion_authority(peer_id, fingerprint,
+                        lambda: self.gui_actor_book_source(subscriber, book_source)), defer_native_book=True)
+            # Authority is claimed in the native methods, not by this caller
+            # holding the phone guard across actual channel I/O.
+            return phone.advance_personal_actor_completion(registry, handle)
+        finally:
+            with phone.lock:
+                probe = self._phone_actor_book_probes.get(actor_id)
+                if probe is not None and probe[3] is token:
+                    self._phone_actor_book_probes.pop(actor_id, None)
 
     def _retire_inactive_phone_actors(self):
         phone = self.phone_backend
@@ -1602,6 +1658,8 @@ class IPCServer:
         if operation == "phone_actor_registry":
             from magnolie_personal_actor_store import ActorHandle
             request = arguments["request"]
+            if request["action"] in ("begin_completion", "advance_completion"):
+                return self._phone_actor_completion_operation(arguments)
             with phone.lock:
                 if request["action"] == "create":
                     source = phone.current_actor_source(request["peer_id"], request["fingerprint"],
@@ -1977,6 +2035,7 @@ class PhoneServiceProxy:
         self._ready = None
         self._state_lock = threading.RLock()
         self.native_actor_book_source = None
+        self.native_actor_saved_book = None
         self._actor_book_source_active = False
 
     def _call(self, operation, **arguments):
@@ -2176,6 +2235,24 @@ class PhoneServiceProxy:
     def cancel_personal_actor(self, handle):
         return self._call("actor_cancel", subscriber=self._subscriber, book_source=handle.book_source,
             actor_id=handle.actor_id, owner_token=handle.owner_token)
+
+    def _actor_completion_request(self, handle, action, **fields):
+        if threading.current_thread() is not threading.main_thread():
+            raise IPCError("Native actor completion requires the GUI owner thread")
+        with self._state_lock:
+            if self._publish_actor_book_source() != handle.book_source or not callable(self.native_actor_saved_book):
+                raise IPCError("Native actor writer is unavailable")
+            observed = json.loads(json.dumps(self.native_actor_saved_book()))
+            result = self._actor_book_request(handle, {"action": action, "native_saved_book": observed, **fields})
+            if self.native_actor_saved_book() != observed:
+                raise IPCError("Native actor completion outcome is unknown after book change")
+            return result
+
+    def begin_personal_actor_completion(self, handle, claim_token):
+        return self._actor_completion_request(handle, "begin_completion", claim_token=claim_token)
+
+    def advance_personal_actor_completion(self, handle):
+        return self._actor_completion_request(handle, "advance_completion")
 
     def _set_ready(self, ready):
         ready = bool(ready)

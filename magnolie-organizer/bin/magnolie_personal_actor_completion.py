@@ -14,6 +14,10 @@ import magnolie_personal_sync as personal
 HEX = re.compile(r"^[0-9a-f]{64}$")
 
 
+class NativeBookProofPending(RuntimeError):
+    """Private broker has no live GUI proof in this operation; never use a cache."""
+
+
 class DecisionAckCompletion:
     def __init__(self, run_id, native_targets, queued_decisions, *, current_authority, current_scope, current_saved_book, persisted_controls):
         actor.start(run_id)
@@ -83,6 +87,8 @@ class DecisionAckCompletion:
         try:
             if self._checked_saved_book(self.current_saved_book()) != self.saved_book:
                 return False
+        except NativeBookProofPending:
+            return None
         except PermissionError:
             return False
         authority = self.current_authority()
