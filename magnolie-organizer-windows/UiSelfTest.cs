@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows;
 
 internal static partial class UiSelfTest
 {
-    internal static int Run(bool contacts = false)
+    internal static int Run(bool contacts = false, bool notes = false)
     {
         if (!OperatingSystem.IsWindows()) return 0;
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-ui-self-test-{Guid.NewGuid():N}");
@@ -57,6 +57,14 @@ internal static partial class UiSelfTest
                     }
                     timer.Stop();
 
+                    if (notes)
+                    {
+                        await TestNotesRoundTripAsync(form, webView.CoreWebView2
+                            ?? throw new InvalidOperationException("WebView2 war für den Notiztest nicht bereit."), paths);
+                        form.Dispose();
+                        Application.ExitThread();
+                        return;
+                    }
                     if (contacts)
                     {
                         await TestContactImportAsync(webView.CoreWebView2
@@ -220,6 +228,11 @@ internal static partial class UiSelfTest
             Application.Run(form);
             if (failure is not null) throw failure;
             Test(iteration > 12, "Der Start-hidden/WebView-Lifecycle erreichte den Hide/Restore-Test nicht.");
+            if (notes)
+            {
+                Console.WriteLine("WINDOWS-NOTES-UI-NATIVE-ROUNDTRIP-OK");
+                return 0;
+            }
             if (contacts)
             {
                 Test(Equals(autostartBefore, TraySettingsService.CaptureAutostart()),

@@ -71,6 +71,11 @@ internal static class Program
             Environment.ExitCode = UiSelfTest.Run();
             return;
         }
+        if (args.Length == 1 && args[0] == "--notes-ui-self-test")
+        {
+            Environment.ExitCode = UiSelfTest.Run(notes: true);
+            return;
+        }
         if (args.Length == 1 && args[0] == "--contacts-ui-self-test")
         {
             Environment.ExitCode = UiSelfTest.Run(contacts: true);
