@@ -5,7 +5,28 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+from pathlib import Path
+import subprocess
 import sys
+import tempfile
+
+
+# The real EDS services clean caches for sources absent from their registry.
+# A test configuration must therefore never share the user's cache or bus.
+if os.environ.get("MAGNOLIE_GTK_TEST_ISOLATED") != "1":
+    temporary_root = "/tmp/opencode" if Path("/tmp/opencode").is_dir() else None
+    with tempfile.TemporaryDirectory(prefix="magnolie-gtk-test-", dir=temporary_root) as folder:
+        environment = dict(os.environ, MAGNOLIE_GTK_TEST_ISOLATED="1")
+        for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
+                    "XDG_STATE_HOME", "XDG_RUNTIME_DIR"):
+            path = Path(folder) / key
+            path.mkdir(mode=0o700)
+            environment[key] = str(path)
+        environment.pop("DBUS_SESSION_BUS_ADDRESS", None)
+        result = subprocess.run(["dbus-run-session", "--", sys.executable,
+                                 str(Path(__file__).resolve()), *sys.argv[1:]],
+                                env=environment)
+        raise SystemExit(result.returncode)
 
 
 PROGRAMM = os.environ.get("MAGNOLIE_TEST_PROGRAMM", "/usr/bin/magnolie-organizer")

@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Maik Walter <maik3531@gmail.com>
 Build-Depends: debhelper-compat (= 13), python3:any (>= 3.9), python3-cryptography, python3-openssl, python3-phonenumbers, python3-pytest, python3-qrcode, python3-zeroconf,
- gettext, nodejs, node-jsdom, tzdata, poppler-utils, python3-cairo, pulseaudio-utils
+ gettext, nodejs, node-jsdom, tzdata, poppler-utils, python3-cairo, pulseaudio-utils, dbus-daemon
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 

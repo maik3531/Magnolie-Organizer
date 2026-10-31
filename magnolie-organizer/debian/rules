@@ -27,8 +27,9 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 		python3 werkzeuge/katalog_pruefen.py po/magnolie-organizer.pot po/$$sprache.po; \
 	done < po/LINGUAS
 	python3 -m pytest -q pruefungen/test_locale_completeness.py
-	mkdir -p debian/test-data debian/test-config
-	DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME=$(CURDIR)/debian/test-data XDG_CONFIG_HOME=$(CURDIR)/debian/test-config TZ=Europe/Berlin python3 pruefungen/test_parser.py
+	mkdir -p debian/test-home debian/test-data debian/test-config debian/test-cache debian/test-state debian/test-runtime
+	chmod 700 debian/test-runtime
+	DISPLAY= WAYLAND_DISPLAY= HOME=$(CURDIR)/debian/test-home XDG_DATA_HOME=$(CURDIR)/debian/test-data XDG_CONFIG_HOME=$(CURDIR)/debian/test-config XDG_CACHE_HOME=$(CURDIR)/debian/test-cache XDG_STATE_HOME=$(CURDIR)/debian/test-state XDG_RUNTIME_DIR=$(CURDIR)/debian/test-runtime TZ=Europe/Berlin dbus-run-session -- python3 pruefungen/test_parser.py
 	TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
 	TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 	TZ=Europe/Berlin python3 pruefungen/test_telefon.py

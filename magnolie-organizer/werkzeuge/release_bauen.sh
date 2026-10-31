@@ -169,9 +169,12 @@ rm -f "$WURZEL/native/akonadi-helper/debian/files" \
 cd "$WURZEL"
 debian/rules build
 python3 -m pytest -q pruefungen/test_locale_completeness.py
-DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$STAGE/test-data" \
-XDG_CONFIG_HOME="$STAGE/test-config" TZ=Europe/Berlin \
-    python3 pruefungen/test_parser.py
+mkdir -p "$STAGE/test-home" "$STAGE/test-runtime"
+chmod 700 "$STAGE/test-runtime"
+DISPLAY= WAYLAND_DISPLAY= HOME="$STAGE/test-home" XDG_DATA_HOME="$STAGE/test-data" \
+XDG_CONFIG_HOME="$STAGE/test-config" XDG_CACHE_HOME="$STAGE/test-cache" \
+XDG_STATE_HOME="$STAGE/test-state" XDG_RUNTIME_DIR="$STAGE/test-runtime" TZ=Europe/Berlin \
+    dbus-run-session -- python3 pruefungen/test_parser.py
 python3 -m pytest -q pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py \
     pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py \
     pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py \
