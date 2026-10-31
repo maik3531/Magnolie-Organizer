@@ -4505,7 +4505,7 @@ class PhoneService:
             plan = admission["commit_plan"]
             choices = plan["deletion_review"]["choices"]
             saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
-            if (not admission.get("save_receipt") or not admission.get("phone_persisted") or not choices or
+            if (not admission.get("save_receipt") or not admission.get("phone_data_persisted") or not choices or
                     not callable(saved_provider)):
                 raise PermissionError("actor_completion_not_ready")
             saved = self._actor_saved_book(saved_provider(), plan["book_source"])
@@ -4588,6 +4588,7 @@ class PhoneService:
             admission = self.personal_actor_admissions.get(handle.actor_id)
             if admission is not None and admission["registry"] is registry and admission["handle"] == handle:
                 value.update(book_persisted=bool(admission.get("save_receipt")), reply_queued=bool(admission.get("reply_queued")),
+                    phone_data_persisted=bool(admission.get("phone_data_persisted")),
                     phone_persisted=bool(admission.get("phone_persisted")), completion_report_queued=bool(admission.get("completion_report_id")))
                 if admission.get("completion") is not None:
                     value.update(phone_data_persisted=bool(admission.get("phone_data_persisted")),
@@ -4733,7 +4734,8 @@ class PhoneService:
                             queued["body"]["run_id"] == run and body["status"] in {"accepted", "duplicate"}):
                         self.store.acknowledge(peer["device_id"], body["message_id"])
                         if body["message_id"] == admission.get("completion_report_id"):
-                            admission["phone_persisted"] = True
+                            admission["phone_data_persisted"] = True
+                            admission["phone_persisted"] = not bool(admission.get("commit_plan", {}).get("deletion_review", {}).get("intents"))
                     self._queue_actor_completion_report(admission)
                     return  # No ACK of an actor ACK and no ordinary queue/GUI handling.
                 if payload["kind"] != personal_actor_contract.DATA_KIND:

@@ -395,10 +395,15 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
     service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,reply['message_id'])))
     report = next(value for value in service.store.pending(peer['device_id']) if value['kind'] == actor.DATA_KIND and actor.unwrap(value['body'])[0] == 'personal_sync.report')
     service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,report['message_id'])))
-    assert service.personal_actor_status(registry,handle)['phone_persisted']
+    data_status = service.personal_actor_status(registry,handle)
+    assert data_status['phone_data_persisted'] and not data_status['phone_persisted']
     with pytest.raises(PermissionError): service.begin_personal_actor_completion(registry,handle,claim['claim_token'])
     service.native_actor_saved_book = lambda:book.save_state('native-review-profile',True)
-    started = service.begin_personal_actor_completion(registry,handle,claim['claim_token'])
+    from types import SimpleNamespace
+    host = SimpleNamespace(_telefon_actor_buchnachweis=service.native_actor_saved_book)
+    bridge = gtk_actor_bridge()
+    bridge_handle = {'actorId':handle.actor_id, 'ownerToken':handle.owner_token}
+    started = bridge(host,service,dict(bridge_handle,action='notes_actor_begin_completion',claimToken=claim['claim_token']))['actor']
     assert started['phase'] == 'completion' and started['phone_data_persisted'] and not started['phone_persisted']
     with pytest.raises(PermissionError): service.read_personal_actor_staging(registry,handle)
     control = next(value for value in service.store.pending(peer['device_id']) if value['kind'] == actor.DATA_KIND and actor.unwrap(value['body'])[0] == 'personal_sync.deletion_decision')
@@ -418,6 +423,7 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
     completed = service.personal_actor_status(registry,handle)
     assert completed['phase'] == 'completed' and completed['phone_persisted']
     assert completed['deletion_completion']['saved'] == 1
+    assert bridge(host,service,dict(bridge_handle,action='notes_actor_advance_completion'))['actor']['phase'] == 'completed'
     with pytest.raises(PermissionError): registry.require_current(handle)
     assert not events
 

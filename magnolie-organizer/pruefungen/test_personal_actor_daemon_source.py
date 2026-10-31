@@ -213,6 +213,28 @@ def test_proxy_terminal_advance_respects_existing_outbox_backoff(tmp_path, monke
         assert channel.sent == [wire] and not server._phone_actor_book_probes
 
 
+def test_private_gtk_bridge_terminal_actions_use_live_native_proxy_writer(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from test_personal_actor_transport import frame
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, peer, channel, server, proxy, handle, claim, _, _, _ = values
+        bridge = gtk_actor_bridge()
+        host = SimpleNamespace(_telefon_actor_buchnachweis=proxy.native_actor_saved_book)
+        request = {"actorId": handle.actor_id, "ownerToken": handle.owner_token, "bookSource": handle.book_source}
+        host._telefon_actor_buchnachweis = lambda: None
+        with pytest.raises(PermissionError):
+            bridge(host, proxy, dict(request, action="notes_actor_begin_completion", claimToken=claim["claim_token"], native_saved_book={"saved": True}))
+        assert service.personal_actor_admissions[handle.actor_id].get("completion") is None
+        host._telefon_actor_buchnachweis = proxy.native_actor_saved_book
+        started = bridge(host, proxy, dict(request, action="notes_actor_begin_completion", claimToken=claim["claim_token"]))
+        assert started["ok"] and started["actor"]["phase"] == "completion"
+        wire = channel.sent.pop(); channel.sent.clear()
+        service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(handle.actor_id, wire["message_id"])))
+        result = bridge(host, proxy, dict(request, action="notes_actor_advance_completion"))
+        assert result["ok"] and result["actor"]["phase"] == "completed" and result["actor"]["phone_persisted"]
+        assert not server._phone_actor_book_probes
+
+
 def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkeypatch):
     service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
     owner = NativeBookOwnerScope(); owner.set_ready(True)

@@ -24360,6 +24360,17 @@ class Fenster(_FENSTER_BASIS):
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":
             value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
+        elif action == "notes_actor_begin_completion":
+            # Only the native writer callback is authority. A request cannot
+            # supply a saved-book assertion or reuse an earlier GUI snapshot.
+            if self._telefon_actor_buchnachweis() is None:
+                raise PermissionError("Native book has no current actual-save observation")
+            value = source.begin_personal_actor_completion(handle, request.get("claimToken")) if proxy else source.begin_personal_actor_completion(
+                registry, handle, request.get("claimToken"))
+        elif action == "notes_actor_advance_completion":
+            if self._telefon_actor_buchnachweis() is None:
+                raise PermissionError("Native book has no current actual-save observation")
+            value = source.advance_personal_actor_completion(handle) if proxy else source.advance_personal_actor_completion(registry, handle)
         elif action == "notes_actor_read":
             arguments = {"offset": request.get("offset", 0), "limit": request.get("limit", 65536),
                 "expected_revision": request.get("expectedRevision", ""), "attachment_sha256": request.get("attachmentSha256", "")}
