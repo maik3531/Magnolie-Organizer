@@ -37,6 +37,9 @@ erwartet = {
     "magnolie-organizer://app/zeichenblatt.js",
     "magnolie-organizer://app/contact-group-aliases.js",
     "magnolie-organizer://app/mcp-protocol.js",
+    "magnolie-organizer://app/qr-decoder.js",
+    "magnolie-organizer://app/qr-dialog.js",
+    "magnolie-organizer://app/qr-dialog.css",
 }
 zustand = {"bereit": False, "layout": False, "phase": "startup",
            "fehler": "Zeitüberschreitung beim WebKit-Start"}
