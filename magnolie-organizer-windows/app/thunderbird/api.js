@@ -98,6 +98,18 @@ function sourceProfile() {
   }
   return profile;
 }
+function sourceDisplayName(name, url, username, kind) {
+  const parsed = new URL(url);
+  const google = parsed.protocol === "https:" && !parsed.username && !parsed.password &&
+    (kind === "calendar" ? parsed.origin === "https://apidata.googleusercontent.com" && parsed.pathname.startsWith("/caldav/") :
+      parsed.origin === "https://www.googleapis.com" && parsed.pathname.startsWith("/carddav/"));
+  if (!google) return name;
+  // Project the actual provider/account beside the provider's freely named
+  // collection. Never rename it, derive identity from its label, or change UID.
+  const account = typeof username === "string" && username.length <= 254 &&
+    username === username.trim() && !/[\x00-\x1f\x7f]/.test(username) ? username : "";
+  return ["Google", account, name].filter(Boolean).join(" · ");
+}
 function sources() {
   const profile = sourceProfile(), owner = managed() ? "managed:" + profile : profile;
   const result = [];
@@ -106,7 +118,8 @@ function sources() {
     const book = CardDAVDirectory.forFile(directory.fileName);
     if (!book || !book._serverURL?.startsWith("https://")) continue;
     result.push({ uid: `thunderbird-addressbook:${owner}:${directory.UID}`, kind: "addressbook",
-      name: directory.dirName, url: book._serverURL, tasks: false, book });
+      name: sourceDisplayName(directory.dirName, book._serverURL, directory.getStringValue?.("carddav.username", ""), "addressbook"),
+      url: book._serverURL, tasks: false, book });
   }
   for (const calendar of cal.manager.getCalendars()) {
     if (calendar.type !== "caldav" || calendar.readOnly || calendar.getProperty("disabled")) continue;
@@ -114,7 +127,8 @@ function sources() {
     const provider = object?.mUncachedCalendar?.wrappedJSObject || object;
     if (!provider?.session || !calendar.uri?.spec.startsWith("https://")) continue;
     result.push({ uid: `thunderbird-calendar:${owner}:${calendar.id}`, kind: "calendar",
-      name: calendar.name, url: calendar.uri.spec, tasks: calendar.getProperty("capabilities.tasks.supported") !== false,
+      name: sourceDisplayName(calendar.name, calendar.uri.spec, calendar.getProperty("username"), "calendar"),
+      url: calendar.uri.spec, tasks: calendar.getProperty("capabilities.tasks.supported") !== false,
       calendar: provider });
   }
   return result;

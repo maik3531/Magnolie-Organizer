@@ -100,6 +100,39 @@ async function main() {
   assert.equal((await api.request(deletion)).status, 412, "revision conflict must reach the organizer unchanged");
   calendarStatus = 503;
   assert.equal((await api.request(calendarRequest)).status, 503, "failed REPORT is not an empty calendar");
+  const googleCalendar = { ...calendarFixture, id: "google-primary", name: "Microsoft account label",
+    uri: { spec: "https://apidata.googleusercontent.com/caldav/v2/google@example.invalid/events/" },
+    getProperty(key) { return key === "username" ? "google@example.invalid" : key === "disabled" ? false : true; } };
+  calendarFixtures.push(googleCalendar);
+  const labelled = (await api.request({ version: 1, id, op: "sources" })).sources;
+  const labelledGoogle = labelled.find(item => item.uid.endsWith(":google-primary"));
+  assert.equal(labelledGoogle.name, "Google · google@example.invalid · Microsoft account label",
+    "A Google calendar was exposed under another provider's account label without its real identity");
+  assert.equal(labelledGoogle.url, googleCalendar.uri.spec);
+  assert.equal(googleCalendar.name, "Microsoft account label", "Source projection renamed the provider calendar");
+  assert.equal(labelled.find(item => item.uid === calendarSource.uid).name, calendarFixture.name);
+  googleCalendar.uri = { spec: "https://apidata.googleusercontent.com.evil.invalid/caldav/v2/account/events/" };
+  assert.equal((await api.request({ version: 1, id, op: "sources" })).sources.find(item => item.uid.endsWith(":google-primary")).name,
+    googleCalendar.name, "A hostname lookalike was labelled as Google");
+  googleCalendar.uri = { spec: labelledGoogle.url };
+  googleCalendar.readOnly = true;
+  assert.ok(!(await api.request({ version: 1, id, op: "sources" })).sources.some(item => item.uid.endsWith(":google-primary")),
+    "Provider labelling accidentally enabled writes to a read-only calendar");
+  const originalBookUrl = book._serverURL;
+  book._serverURL = "https://www.googleapis.com/carddav/v1/principals/google@example.invalid/lists/default/";
+  const directory = modules["MailServices.sys.mjs"].MailServices.ab.directories[0];
+  directory.getStringValue = key => key === "carddav.username" ? "google@example.invalid" : "";
+  const labelledBook = (await api.request({ version: 1, id, op: "sources" })).sources[0];
+  assert.equal(labelledBook.name, "Google · google@example.invalid · Test");
+  assert.equal(labelledBook.uid, sources[0].uid);
+  assert.equal(directory.dirName, "Test");
+  const invalidOrigins = ["https://www.googleapis.com.evil.invalid/carddav/", "https://www.googleapis.com:8443/carddav/",
+    "https://www.googleapis.com/not-carddav/"];
+  for (const url of invalidOrigins) {
+    book._serverURL = url;
+    assert.equal((await api.request({ version: 1, id, op: "sources" })).sources[0].name, "Test");
+  }
+  book._serverURL = originalBookUrl;
   const prefs=new Map();
   const makeBook=email=>({dirType:102,URI:email,
     getStringValue:key=>key==="carddav.username"?email:"https://www.googleapis.com/carddav/v1/principals/"+email});
