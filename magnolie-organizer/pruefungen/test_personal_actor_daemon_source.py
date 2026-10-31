@@ -235,6 +235,89 @@ def test_private_gtk_bridge_terminal_actions_use_live_native_proxy_writer(tmp_pa
         assert not server._phone_actor_book_probes
 
 
+def native_completion_host(proxy):
+    """Execute the actual native GUI scheduler methods; fake only GLib timing."""
+    import ast
+    from types import SimpleNamespace, MethodType
+    nodes = ast.parse(Path(phone.__file__).with_name("magnolie-organizer").read_text())
+    names = {"_telefon_actor_abschluss_planen", "_telefon_actor_abschluss_schritt"}
+    methods = [node for node in ast.walk(nodes) if isinstance(node, ast.FunctionDef) and node.name in names]
+    scheduled = []
+    namespace = {"time": time, "threading": threading,
+        "GLib": SimpleNamespace(timeout_add=lambda interval, callback, *args: scheduled.append((interval, callback, args)))}
+    exec(compile(ast.Module(body=methods, type_ignores=[]), "native-actor-completion-scheduler", "exec"), namespace)
+    host = SimpleNamespace(_telefon=proxy, _gesperrt=False, _wirklich_beenden=False,
+        _organizer_vertraut=lambda: True, _telefon_actor_buchnachweis=proxy.native_actor_saved_book)
+    for name in names: setattr(host, name, MethodType(namespace[name], host))
+    host._telefon_actor_mcp = MethodType(gtk_actor_bridge(), host)
+    return host, scheduled
+
+
+@pytest.mark.parametrize("decision", ["delete", "restore"])
+def test_native_gui_scheduler_advances_proxy_terminal_on_owner_thread(tmp_path, monkeypatch, decision):
+    from test_personal_actor_transport import frame
+    import magnolie_content_scope as scope
+    with proxy_completion_session(tmp_path, monkeypatch, decision) as values:
+        service, peer, channel, server, proxy, handle, claim, _, _, manifest = values
+        host, scheduled = native_completion_host(proxy)
+        request = {"actorId": handle.actor_id, "ownerToken": handle.owner_token, "bookSource": handle.book_source,
+            "claimToken": claim["claim_token"]}
+        host._telefon_actor_abschluss_planen(proxy, request)
+        host._telefon_actor_abschluss_planen(proxy, dict(request))
+        assert len(scheduled) == 1 and scheduled[0][0] == 250
+        _, tick, args = scheduled[0]
+        assert tick(*args)
+        wire = channel.sent.pop(); channel.sent.clear()
+        service._payload(peer, channel, frame(actor_contract.ACK_KIND, actor_contract.ack(handle.actor_id, wire["message_id"])))
+        assert service.personal_actor_admissions[handle.actor_id]["completion"].summary()["saved"] == 0
+        if decision == "delete":
+            assert tick(*args)  # Old membership must wait, not complete or cancel.
+            assert not proxy.personal_actor_status(handle)["phone_persisted"]
+            for part in scope.chunks(scope.advance(manifest, [], ["task-one"])):
+                service._payload(peer, channel, frame(scope.KIND, part))
+        assert tick(*args) is False
+        assert proxy.personal_actor_status(handle)["phase"] == "completed"
+        assert not host._notes_actor_abschluesse and not server._phone_actor_book_probes
+        assert tick(*args) is False  # A stale GLib callback cannot regain rights.
+
+
+@pytest.mark.parametrize("change", ["book", "locked", "untrusted", "closed", "deadline", "service"])
+def test_native_gui_scheduler_cancels_when_its_native_owner_changes(tmp_path, monkeypatch, change):
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        service, _, channel, server, proxy, handle, claim, owner, profile, _ = values
+        host, scheduled = native_completion_host(proxy)
+        host._telefon_actor_abschluss_planen(proxy, {"actorId": handle.actor_id, "ownerToken": handle.owner_token,
+            "bookSource": handle.book_source, "claimToken": claim["claim_token"]})
+        if change == "book": owner.record_saved(profile[0], True, "c" * 64)
+        elif change == "locked": host._gesperrt = True
+        elif change == "untrusted": host._organizer_vertraut = lambda: False
+        elif change == "closed": host._wirklich_beenden = True
+        elif change == "deadline": host._notes_actor_abschluesse[handle.actor_id]["deadline"] = time.monotonic() - 1
+        else: host._telefon = None
+        _, tick, args = scheduled[0]
+        assert tick(*args) is False
+        assert not host._notes_actor_abschluesse and not server._phone_actor_book_probes
+        assert proxy.personal_actor_status(handle)["phase"] == "cancelled"
+        assert not service.personal_actor_admissions.get(handle.actor_id, {}).get("phone_persisted")
+        assert all(value["kind"] != actor_contract.DATA_KIND for value in channel.sent)
+
+
+def test_native_gui_scheduler_rejects_worker_start_and_replaced_plan(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    with proxy_completion_session(tmp_path, monkeypatch, "restore") as values:
+        _, _, _, _, proxy, handle, claim, _, _, _ = values
+        host, scheduled = native_completion_host(proxy)
+        request = {"actorId": handle.actor_id, "ownerToken": handle.owner_token, "bookSource": handle.book_source,
+            "claimToken": claim["claim_token"]}
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with pytest.raises(PermissionError): pool.submit(host._telefon_actor_abschluss_planen, proxy, request).result(3)
+        assert not scheduled
+        host._telefon_actor_abschluss_planen(proxy, request)
+        with pytest.raises(PermissionError):
+            host._telefon_actor_abschluss_planen(proxy, dict(request, claimToken="f" * 64))
+        assert len(scheduled) == 1
+
+
 def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkeypatch):
     service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
     owner = NativeBookOwnerScope(); owner.set_ready(True)

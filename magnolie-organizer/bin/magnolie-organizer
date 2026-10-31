@@ -24392,6 +24392,73 @@ class Fenster(_FENSTER_BASIS):
             raise ValueError("Unsupported actor bridge action")
         return {"ok": True, "actor": value}
 
+    def _telefon_actor_abschluss_planen(self, source, request):
+        """Private GUI-owner continuation after native reply queueing, not a tool.
+
+        Only metadata may advance here. The exact native saved book remains
+        fixed; no background thread may synthesize a writer observation.
+        """
+        if threading.current_thread() is not threading.main_thread():
+            raise PermissionError("Native actor completion requires the GUI owner thread")
+        saved = self._telefon_actor_buchnachweis()
+        if saved is None:
+            raise PermissionError("Native actor completion requires a saved book")
+        jobs = getattr(self, "_notes_actor_abschluesse", None)
+        if jobs is None:
+            jobs = self._notes_actor_abschluesse = {}
+        run = request["actorId"]
+        selection = {key: request[key] for key in ("actorId", "ownerToken", "claimToken")}
+        if "bookSource" in request:
+            selection["bookSource"] = request["bookSource"]
+        previous = jobs.get(run)
+        if previous is not None:
+            if previous["source"] is not source or previous["request"] != selection or previous["saved"] != saved:
+                raise PermissionError("Native actor completion owner changed")
+            return
+        job = {"source": source, "request": selection, "saved": dict(saved), "deadline": time.monotonic() + 120}
+        jobs[run] = job
+        try:
+            GLib.timeout_add(250, self._telefon_actor_abschluss_schritt, run, job)
+        except BaseException:
+            jobs.pop(run, None)
+            raise
+
+    def _telefon_actor_abschluss_schritt(self, run, job):
+        jobs = getattr(self, "_notes_actor_abschluesse", {})
+        if jobs.get(run) is not job:
+            return False
+        source, request = job["source"], job["request"]
+        finished = False
+        try:
+            if (threading.current_thread() is not threading.main_thread() or self._telefon is not source or
+                    self._gesperrt or self._wirklich_beenden or not self._organizer_vertraut() or
+                    time.monotonic() >= job["deadline"] or self._telefon_actor_buchnachweis() != job["saved"]):
+                raise PermissionError("Native actor completion owner changed")
+            state = self._telefon_actor_mcp(source, dict(request, action="notes_actor_status"))["actor"]
+            if state.get("phase") in ("cancelled", "cancelled_clean"):
+                jobs.pop(run, None)
+                return False
+            if state.get("phase") == "completion":
+                state = self._telefon_actor_mcp(source, dict(request, action="notes_actor_advance_completion"))["actor"]
+            elif state.get("phone_data_persisted") and not state.get("phone_persisted"):
+                state = self._telefon_actor_mcp(source, dict(request, action="notes_actor_begin_completion"))["actor"]
+            if self._telefon_actor_buchnachweis() != job["saved"]:
+                raise PermissionError("Native actor completion book changed")
+            finished = bool(state.get("phone_persisted"))
+            if finished:
+                jobs.pop(run, None)
+            return not finished
+        except Exception:
+            # Unknown/failed native completion never implies a successful save,
+            # and cannot revive the already retired content owner.
+            jobs.pop(run, None)
+            if not finished:
+                try:
+                    self._telefon_actor_mcp(source, dict(request, action="notes_actor_cancel"))
+                except Exception:
+                    pass
+            return False
+
     def _telefon_mcp(self, nachricht):
         result = {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
         source = None
@@ -24407,6 +24474,8 @@ class Fenster(_FENSTER_BASIS):
             source = self._telefon
             if str(request.get("action", "")).startswith("notes_actor_"):
                 result = self._telefon_actor_mcp(source, request)
+                if request.get("action") == "notes_actor_reply" and result.get("ok") and result.get("actor", {}).get("reply_queued"):
+                    self._telefon_actor_abschluss_planen(source, request)
             elif request.get("action") == "read":
                 result = {"ok": True, "status": self._telefon.mcp_status()}
             else:
