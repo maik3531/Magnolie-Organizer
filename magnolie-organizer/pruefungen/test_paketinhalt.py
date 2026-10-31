@@ -148,7 +148,9 @@ for optional_desktop in ("bluez", "gnome-shell-extension-appindicator",
                          "libcanberra-gtk3-module"):
     assert optional_desktop not in recommends
     assert optional_desktop in suggests
-for audio_client in ("pulseaudio-utils", "pipewire-bin", "alsa-utils"):
+assert "pulseaudio-utils" in recommends
+assert "pulseaudio-utils" not in suggests
+for audio_client in ("pipewire-bin", "alsa-utils"):
     assert audio_client in suggests
 assert not INTERNAL_NOTE.search(install_manifest)
 assert "web/kaffee-qr.mga" in install_manifest
