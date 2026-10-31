@@ -17,6 +17,11 @@ if os.environ.get("MAGNOLIE_GTK_TEST_ISOLATED") != "1":
     temporary_root = "/tmp/opencode" if Path("/tmp/opencode").is_dir() else None
     with tempfile.TemporaryDirectory(prefix="magnolie-gtk-test-", dir=temporary_root) as folder:
         environment = dict(os.environ, MAGNOLIE_GTK_TEST_ISOLATED="1")
+        # This probe uses local resources and its own URI scheme, not remote
+        # GIO mounts. Avoid a GVfs FUSE mount outliving the private session bus
+        # and making TemporaryDirectory cleanup fail with ENOTCONN.
+        environment["GIO_USE_VFS"] = "local"
+        environment["GIO_USE_VOLUME_MONITOR"] = "unix"
         for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR"):
             path = Path(folder) / key
