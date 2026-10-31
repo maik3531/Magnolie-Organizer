@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -247,6 +250,29 @@ class Ablage private constructor(
 
     private val _baum = MutableStateFlow(Baumzustand())
     val baum: StateFlow<Baumzustand> = _baum.asStateFlow()
+
+    // Volatile native writer evidence, never restored from document/queue claims.
+    private val actorBookSource = MessageDigest.getInstance("SHA-256")
+        .digest(UUID.randomUUID().toString().encodeToByteArray()).joinToString("") { "%02x".format(it) }
+    private var actorSavedSequence = 0L
+    private var actorSavedBook: Bestand? = null
+    private var actorSavedHash = ""
+    private var actorSavedRestoreEpoch = ""
+
+    /** Actual successful document-write witness; not source/grant/scope authority.
+     * Transaction previews, replaced instances and changed restore epochs cannot
+     * masquerade as the saved book. Native controllers must hold their own gates. */
+    internal fun personalActorSavedBookState(): JsonObject? = synchronized(sperre) {
+        if (recoveryErforderlich || baumNachrichtenTransaktion || actorSavedSequence <= 0 ||
+            actorSavedBook !== _bestand.value || actorSavedRestoreEpoch != _baum.value.syncEpoch) return@synchronized null
+        if (actorBookHash(json.encodeToString(Bestand.serializer(), _bestand.value)) != actorSavedHash) return@synchronized null
+        buildJsonObject {
+            put("book_source", actorBookSource); put("sequence", actorSavedSequence); put("sha256", actorSavedHash)
+        }
+    }
+
+    private fun actorBookHash(encoded: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(encoded.encodeToByteArray()).joinToString("") { "%02x".format(it) }
 
     init {
         // Vor jeglicher Recovery-Bereinigung muss Aliasverlust erkannt sein.
@@ -773,8 +799,15 @@ class Ablage private constructor(
             merkeBestandInTransaktion(neu)
             return
         }
-        schreiben(notizDatei, json.encodeToString(Bestand.serializer(), neu))
+        check(actorSavedSequence < Long.MAX_VALUE) { "Native writer sequence exhausted" }
+        val encoded = json.encodeToString(Bestand.serializer(), neu)
+        val hash = actorBookHash(encoded)
+        schreiben(notizDatei, encoded)
         _bestand.value = neu
+        actorSavedBook = _bestand.value
+        actorSavedHash = hash
+        actorSavedRestoreEpoch = _baum.value.syncEpoch
+        actorSavedSequence++
     }
 
     private fun merkeBestandInTransaktion(neu: Bestand) {

@@ -415,6 +415,7 @@ class ScopedDataRuntimeTest {
                             assertEquals(completionWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
                             assertTrue(queue.personalDirectionApplied(peerId, run, true))
                             val receipt = requireNotNull(work.actorDataReportReceipt(handle))
+                            assertEquals(documents.personalActorSavedBookState(), receipt["saved_book"])
                             assertEquals(completionWire, receipt["report"])
                             assertEquals(completionWire.string("message_id"), receipt.getValue("sent_ack").jsonObject.getValue("body").jsonObject.string("message_id"))
                             assertNull(work.actorDataReportReceipt(PersonalActorHandle(handle.peerId, handle.runId, "0".repeat(64))))

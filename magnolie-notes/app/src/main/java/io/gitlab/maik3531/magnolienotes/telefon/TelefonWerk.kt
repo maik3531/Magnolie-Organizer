@@ -2206,7 +2206,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 semantic = PhoneContentScope.unwrap(semantic.second, manifest)
             }
             require(semantic.first == "personal_sync.report" && semantic.second["state"] == JsonPrimitive("complete"))
-            buildJsonObject { put("report", report); put("sent_ack", ack) }
+            val saved = requireNotNull(Ablage.hole(context).personalActorSavedBookState()) { "native_book_not_saved" }
+            buildJsonObject { put("report", report); put("sent_ack", ack); put("saved_book", saved) }
         }
     }.getOrNull()
 

@@ -11,6 +11,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.*
 
 /** Actual encrypted document writes, synthetic key and paired peer identity. */
 @RunWith(RobolectricTestRunner::class)
@@ -49,17 +50,24 @@ class PersonalActorDeletionSaveTest {
     @Test fun completeReviewUsesOneEncryptedWriteAndReplayUsesNone() {
         val f = Fixture(); val (proposals, choices) = f.review()
         val before = f.storage.bestand.value; val live = PersonalSync.livePersonalContent(before)
+        val beforeWitness = requireNotNull(f.storage.personalActorSavedBookState())
         val after = live.copy(notes = live.notes - setOf("a", "b")); val reads = f.keyReads
         assertEquals("applied", f.apply(proposals, choices, after, before))
         assertEquals(1, f.keyReads - reads)
+        val savedWitness = requireNotNull(f.storage.personalActorSavedBookState())
+        assertEquals(beforeWitness["book_source"], savedWitness["book_source"])
+        assertEquals(beforeWitness.getValue("sequence").jsonPrimitive.long + 1, savedWitness.getValue("sequence").jsonPrimitive.long)
+        assertNotEquals(beforeWitness["sha256"], savedWitness["sha256"])
         assertNull(f.storage.notiz("a")); assertNull(f.storage.notiz("b"))
         assertEquals(2, f.storage.bestand.value.personalSync.pending_decisions.count { it.run_id == RUN })
         val reopened = Ablage.fuerTest(f.context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
         assertNull(reopened.notiz("a")); assertNull(reopened.notiz("b"))
+        assertNotEquals(savedWitness["book_source"], requireNotNull(reopened.personalActorSavedBookState())["book_source"])
         assertTrue(TOKEN in reopened.bestand.value.personalSync.applied_batches)
         val saved = f.file.readBytes(); val savedReads = f.keyReads
         assertEquals("applied", f.apply(proposals, choices, after, before))
         assertEquals(savedReads, f.keyReads); assertArrayEquals(saved, f.file.readBytes())
+        assertEquals(savedWitness, f.storage.personalActorSavedBookState())
     }
 
     @Test fun laterConflictDoesNotSaveEarlierDeletionOrReconciliation() {
@@ -82,10 +90,30 @@ class PersonalActorDeletionSaveTest {
     @Test fun actualWriteFailureLeavesBookAndDiskAtTheOriginalState() {
         val f = Fixture(); val (proposals, choices) = f.review(); val before = f.storage.bestand.value
         val bytes = f.file.readBytes(); f.failWrites = true
+        val witness = f.storage.personalActorSavedBookState()
         assertTrue(runCatching { f.apply(proposals, choices, PersonalSync.livePersonalContent(before).copy(notes = emptySet()), before) }.isFailure)
         assertSame(before, f.storage.bestand.value); assertArrayEquals(bytes, f.file.readBytes())
+        assertEquals(witness, f.storage.personalActorSavedBookState())
         f.failWrites = false
         assertNotNull(f.storage.notiz("a")); assertNotNull(f.storage.notiz("b"))
+    }
+
+    @Test fun transactionPreviewAndRestoreEpochCannotReuseAnEarlierWriterWitness() {
+        val f = Fixture()
+        val witness = requireNotNull(f.storage.personalActorSavedBookState())
+        val bytes = f.file.readBytes()
+        val transaction = Ablage::class.java.getDeclaredField("baumNachrichtenTransaktion").apply { isAccessible = true }
+        transaction.setBoolean(f.storage, true)
+        f.storage.setzeNotiz(requireNotNull(f.storage.notiz("a")).copy(text = "Unsaved transaction preview"))
+        assertNull(f.storage.personalActorSavedBookState())
+        transaction.setBoolean(f.storage, false)
+        assertNull(f.storage.personalActorSavedBookState())
+        assertArrayEquals(bytes, f.file.readBytes())
+        f.storage.setzeNotiz(requireNotNull(f.storage.notiz("a")).copy(text = "Actually saved"))
+        val saved = requireNotNull(f.storage.personalActorSavedBookState())
+        assertEquals(witness.getValue("sequence").jsonPrimitive.long + 1, saved.getValue("sequence").jsonPrimitive.long)
+        f.storage.setzeBaum(f.storage.baum.value.copy(syncEpoch = "native-restore-epoch"))
+        assertNull(f.storage.personalActorSavedBookState())
     }
 
     @Test fun acknowledgedRestoreUsesExistingTrashAndOneDurableWrite() {
