@@ -26,7 +26,8 @@ def test_control_adapter_preserves_provider_authentication(tmp_path, monkeypatch
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, "w") as archive:
             archive.writestr("manifest.json", json.dumps({"version": "5.0.0", "name": "Upstream",
-                "browser_specific_settings": {"gecko": {"id": addon_id}}}))
+                "browser_specific_settings": {"gecko": {"id": addon_id,
+                    "strict_min_version": "153.0", "strict_max_version": "157.*"}}}))
             archive.writestr("background.mjs", 'async function openManagerTab() {\n  if (await focusManagerTab()) return;\n  await browser.tabs.create({ url: "manager/manager.html" });\n}\nasync function focusManagerTab() {\n  const id = await getManagerTabId();\n  return id !== null;\n}\n')
             archive.writestr("modules/eas-provider.mjs", 'const config = { setupPath: "dialogs/setup/setup.html" };')
             archive.writestr("modules/eas/oauth.mjs", oauth)
@@ -34,7 +35,7 @@ def test_control_adapter_preserves_provider_authentication(tmp_path, monkeypatch
         digest = hashlib.sha256(data).hexdigest()
         (cache / digest).write_bytes(data)
         specifications[name] = {"id": addon_id, "version": "5.0.0", "sha256": digest, "url": "https://example.invalid/unused"}
-    tool.COMPONENTS = specifications
+    tool.COMPONENTS = {**tool.COMPONENTS, **specifications}
     monkeypatch.setattr(tool.urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("Cached components must be reused")))
     tool.prepare_extensions(output, cache)
     first = {}
@@ -45,7 +46,8 @@ def test_control_adapter_preserves_provider_authentication(tmp_path, monkeypatch
             assert archive.read("modules/eas/oauth.mjs") == oauth
             manifest = json.loads(archive.read("manifest.json"))
             assert "Magnolie integration" in manifest["name"]
-            assert manifest["version"] == ("5.0.0.2" if name == "tbsync" else "5.0.0.1")
+            assert manifest["version"] == ("5.0.0.4" if name == "tbsync" else "5.0.0.2")
+            assert manifest["browser_specific_settings"]["gecko"]["strict_max_version"] == "158.*"
             assert "MAGNOLIE-CHANGES.txt" in archive.namelist()
     tool.prepare_extensions(output, cache)
     for name, spec in specifications.items():

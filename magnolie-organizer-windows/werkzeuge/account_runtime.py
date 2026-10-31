@@ -85,7 +85,7 @@ def prepare_extensions(output, cache):
         # This is the Magnolie-integrated variant, whose adapter/native gates
         # are checked against the supported stable Thunderbird 158 runtime.
         gecko["strict_max_version"] = "158.*"
-        manifest["version"] += ".3" if name == "tbsync" else ".2"
+        manifest["version"] += ".4" if name == "tbsync" else ".2"
         manifest["name"] = ("TbSync Manager" if name == "tbsync" else "Exchange ActiveSync") + " (Magnolie integration)"
         manifest["browser_specific_settings"]["gecko"].pop("update_url", None)
         files["manifest.json"] = json.dumps(manifest, indent=2).encode()
