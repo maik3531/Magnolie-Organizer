@@ -3267,7 +3267,7 @@ label.hak.ganztags {
   letter-spacing: 0.02em;
   min-width: 0;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   line-height: 1.15;
   padding: 6px 11px 7px;
   margin-bottom: -1px;
