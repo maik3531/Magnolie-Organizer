@@ -4412,9 +4412,6 @@ msgstr "प्लेबैक स्थिति"
 msgid "Please create a notebook in another group first."
 msgstr "कृपया पहले किसी दूसरे समूह में एक नोटबुक बनाएँ।"
 
-msgid "Please enter a different group name."
-msgstr "कृपया समूह का कोई दूसरा नाम दर्ज करें।"
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "कृपया 1000 या उसके बाद का चार अंकों वाला वर्ष दर्ज करें।"
 
@@ -4806,14 +4803,6 @@ msgid ""
 "to anyone."
 msgstr ""
 "“%(name)s” को हटाएँ? उनके कार्य सुरक्षित रहेंगे, लेकिन अब किसी व्यक्ति को सौंपे नहीं रहेंगे।"
-
-msgid "Rename"
-msgstr "नाम बदलें"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "फ़ोन के इस खाते के समूह का नाम उसके सभी सदस्यों के लिए बदलता है। सदस्यताएँ बरकरार रहती हैं।"
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -7714,6 +7703,19 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "कृपया समूह का कोई दूसरा नाम दर्ज करें।"
+
+#~ msgid "Rename"
+#~ msgstr "नाम बदलें"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr ""
+#~ "फ़ोन के इस खाते के समूह का नाम उसके सभी सदस्यों के लिए बदलता है। सदस्यताएँ बरकरार "
+#~ "रहती हैं।"
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "CSV / Lotus Organizer संपर्क …"

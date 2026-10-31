@@ -4580,9 +4580,6 @@ msgstr "Pozicija wothrawanja"
 msgid "Please create a notebook in another group first."
 msgstr "Prošu załožće najprjedy noticnik w druhej skupinje."
 
-msgid "Please enter a different group name."
-msgstr "Prošu zapodajće druhe mjeno skupiny."
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Prošu zapodajće štyriměstnowe lěto wot 1000."
 
@@ -4985,14 +4982,6 @@ msgid ""
 msgstr ""
 "„%(name)s“ wotstronić? Jeho/jeje nadawki so wobchowaja, ale njebudu hižo "
 "nikomu připokazane."
-
-msgid "Rename"
-msgstr "Přemjenować"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "Přemjenuje skupinu tutoho telefonoweho konta za wšě jeje čłony. Čłonstwa so wobchowaja."
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -7964,6 +7953,19 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "Prošu zapodajće druhe mjeno skupiny."
+
+#~ msgid "Rename"
+#~ msgstr "Přemjenować"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr ""
+#~ "Přemjenuje skupinu tutoho telefonoweho konta za wšě jeje čłony. Čłonstwa "
+#~ "so wobchowaja."
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "Kontakty CSV / Lotus Organizer …"

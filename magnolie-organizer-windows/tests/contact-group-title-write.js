@@ -93,6 +93,10 @@ async function durableJob(web, mode) {
     const contact = { id: "title-contact", uid: "local-contact", vorname: "Synthetic", nachname: "", firma: "", foto: "",
       vcardRoundtrip: ["CATEGORIES:Work"], telefonGruppenStand: { ...plain(source), groups: ["Work"] } };
     b.t.daten().kontakte.push(contact);
+    if (mode === "ui") {
+      b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8")); b.w.MagnolieI18n.setLocale("de");
+      b.t.daten().einstellungen.adressen.personengruppenAn = true;
+    }
     b.t.daten().kontaktFotoCache = { version: 4, deviceId: source.deviceId, fingerprint: source.fingerprint,
       entries: [{ uid: source.uid, modified_ms: 1 }, { uid: "unbound-native-contact", modified_ms: 1 }] };
     const epoch = String(b.t.daten().syncEpoch || "");
@@ -101,20 +105,16 @@ async function durableJob(web, mode) {
     if (resume) contact.telefonGruppenTitelAenderung = b.t.normalisiereTelefonGruppenTitelAenderung({ version: 1,
       id: "55555555-5555-4555-8555-555555555555", source, proof, wish: "Arbeit", baseTitle: "Work", epoch: mode === "restore" ? epoch + "-old" : epoch, state: "pending" });
     b.w.App.telefonStand({ peers: [{ device_id: source.deviceId.slice(6), own_device: true, remote_own_device: true,
-      state: "online_wifi", contact_group_titles_write_available: true, contacts_fingerprint: source.fingerprint }] });
+      state: "online_wifi", contact_groups_write_available: mode === "ui", contact_group_titles_write_available: true, contacts_fingerprint: source.fingerprint }] });
     let done = false, failure = null, edited = false, retried = false, applyCount = 0, mutations = 0, saves = 0, durableClear = false;
     let nativeTitle = mode === "converged" ? "Arbeit" : mode === "remote" ? "Phone change" : "Work";
     const track = promise => promise.then(() => { done = true; }, error => { failure = error; done = true; });
     if (mode === "ui") {
       const card = b.t.kontaktKarte(contact); b.w.document.body.append(card);
-      const select = card.querySelector(".kontakt-gruppentitel-auswahl select"); assert.equal(select.value, "Work");
-      assert.ok(card.querySelector("[data-gruppentitel-umbenennen]"));
-      const action = b.t.oeffneTelefonGruppenTitelDialog(contact, select.value);
-      const dialog = b.w.document.querySelector("#eingabe-schleier form");
-      assert.ok(dialog.textContent.includes("Memberships are preserved"));
-      dialog.querySelector("input").value = "Arbeit";
-      dialog.dispatchEvent(new b.w.Event("submit", { bubbles: true, cancelable: true }));
-      track(action);
+      assert.equal(card.querySelector(".kontakt-gruppentitel-auswahl"), null);
+      assert.equal(card.querySelector("[data-gruppentitel-umbenennen]"), null);
+      assert.ok(card.textContent.includes("Arbeit"));
+      track(b.t.synchronisiereTelefonGruppenSprache(contact));
     } else track(resume ? b.t.sendeTelefonKontaktGruppenTitel(contact) : b.t.starteTelefonGruppenTitelAenderung(contact, "Work", "Arbeit"));
     const deadline = Date.now() + 4000;
     while (Date.now() < deadline) {
@@ -135,6 +135,12 @@ async function durableJob(web, mode) {
           assert.ok(!("token" in marker.proof), "An ephemeral native ticket was persisted instead of just its group identity");
         } else durableClear = true;
         b.w.App.gespeichert({ id: message.id, ok: mode !== "save-failed" }); saves++; continue;
+      }
+      if (message.cmd === "telefon_kontaktgruppen") {
+        assert.equal(message.action, "prepare", "Language normalization must not recreate memberships");
+        b.w.App.kontaktGruppenErgebnis({ ok: true, version: 17, requestId: message.requestId,
+          device_id: source.deviceId, fingerprint: source.fingerprint, uid: source.uid, action: "prepare",
+          token, state: "prepared", groups: [nativeTitle], catalog: [nativeTitle], account }); continue;
       }
       if (message.cmd !== "telefon_kontaktgruppentitel") continue;
       const report = response(message);
@@ -184,6 +190,85 @@ async function durableJob(web, mode) {
     }
   } finally { b.w.close(); }
 }
+async function automaticLanguage(web, mode) {
+  const b = boot(web);
+  try {
+    b.w.eval(fs.readFileSync(path.join(web, "i18n/de.js"), "utf8")); b.w.MagnolieI18n.setLocale("de");
+    const change = mode === "editor" || mode === "offline-editor";
+    const contact = { id: "automatic-language", vorname: "Synthetic", nachname: "", firma: "", foto: "",
+      vcardRoundtrip: ["CATEGORIES:" + (change ? "Colleagues" : mode === "custom" ? "My own group" : "Work")],
+      telefonGruppenStand: { ...plain(source), groups: [change ? "Colleagues" : mode === "custom" ? "My own group" : "Work"] } };
+    b.t.daten().kontakte.push(contact); b.t.daten().einstellungen.adressen.personengruppenAn = true;
+    const peer = { device_id: source.deviceId.slice(6), own_device: true, remote_own_device: true,
+      state: mode === "offline-editor" ? "offline" : "online_wifi", contact_groups_write_available: true,
+      contact_group_titles_write_available: true, contacts_fingerprint: source.fingerprint };
+    b.w.App.telefonStand({ peers: [peer] });
+    const noRename = ["ambiguous", "custom", "remote-membership", "local-edit", "key-switch", "already-localized"].includes(mode);
+    let nativeTitle = mode === "custom" ? "My own group" : mode === "already-localized" ? "Arbeit" : "Work", nativeGroups = [change ? "Colleagues" : nativeTitle];
+    const translate = value => b.w.MagnolieI18n.gettext(value);
+    if (change) {
+      b.t.zustand().adressen.auswahlId = contact.id; b.t.zustand().adressen.buchstabe = "S"; b.t.wechsel("adressen");
+      [...b.w.document.querySelectorAll("button")].find(button => button.textContent === translate("Edit")).click();
+      const picker = b.w.document.querySelector("#kontakt-personengruppen"); assert.ok(picker);
+      assert.ok(picker.textContent.includes("Arbeit"));
+      for (const input of picker.querySelectorAll('input[type="checkbox"]'))
+        if (input.value && input.checked !== (input.value === "Work")) input.click();
+      const save = [...b.w.document.querySelectorAll("button")].find(button => button.textContent === "Änderungen speichern");
+      assert.ok(save, [...b.w.document.querySelectorAll("button")].map(button => button.textContent).join(" / ")); save.click();
+    }
+    let titleApplies = 0, membershipApplies = 0, savedWish = false, reconnected = false;
+    const trace = [];
+    const deadline = Date.now() + 4500;
+    while (Date.now() < deadline) {
+      const message = b.messages.shift();
+      if (message) trace.push(message.cmd + ":" + (message.action || ""));
+      if (!message) {
+        if (mode === "offline-editor" && !reconnected) {
+          assert.equal(titleApplies + membershipApplies, 0); assert.ok(contact.telefonGruppenAenderung);
+          peer.state = "online_wifi"; b.w.App.telefonStand({ peers: [peer] }); reconnected = true;
+        }
+        if (nativeTitle === "Arbeit" && !contact.telefonGruppenTitelAenderung && !contact.telefonGruppenAenderung) break;
+        if (noRename && Date.now() > deadline - 3500) break;
+        await new Promise(resolve => setTimeout(resolve, 5)); continue;
+      }
+      if (message.cmd === "speichern") {
+        const persisted = JSON.parse(message.text).kontakte.find(value => value.id === contact.id);
+        if (persisted?.telefonGruppenTitelAenderung) savedWish = true;
+        b.w.App.gespeichert({ id: message.id, ok: true }); continue;
+      }
+      if (message.cmd === "telefon_kontaktgruppen") {
+        if (mode === "local-edit") contact.vcardRoundtrip = ["CATEGORIES:Family"];
+        if (mode === "key-switch") b.w.App.telefonStand({ peers: [{ ...peer, contacts_fingerprint: "c".repeat(64) }] });
+        if (message.action === "apply") {
+          membershipApplies++; assert.deepEqual(plain(message.groups), ["Work"], "Reuse the existing group before localizing its native identity");
+          nativeGroups = plain(message.groups);
+        }
+        b.w.App.kontaktGruppenErgebnis({ ok: true, version: 17, requestId: message.requestId,
+          device_id: source.deviceId, fingerprint: source.fingerprint, uid: source.uid, action: message.action,
+          token, state: message.action === "prepare" ? "prepared" : "saved",
+          groups: mode === "remote-membership" ? ["Family"] : nativeGroups,
+          catalog: message.action !== "prepare" ? [] : mode === "ambiguous" ? ["Work", "Arbeit"] : [nativeTitle, "Colleagues"], account }); continue;
+      }
+      if (message.cmd === "telefon_kontaktgruppentitel") {
+        assert.equal(message.old_title, "Work"); assert.equal(message.new_title, "Arbeit");
+        if (message.action === "apply") {
+          assert.ok(savedWish, "Automatic provider mutation preceded durable intent SaveACK");
+          titleApplies++; nativeTitle = "Arbeit"; nativeGroups = [nativeTitle];
+        }
+        const report = response(message); if (message.action === "inspect") report.current_title = nativeTitle;
+        b.w.App.kontaktGruppenTitelErgebnis(report);
+      }
+    }
+    assert.equal(b.w.document.querySelector(".kontakt-gruppentitel-auswahl"), null);
+    assert.equal(b.w.document.querySelector("[data-gruppentitel-umbenennen]"), null);
+    assert.equal(titleApplies, noRename ? 0 : 1,
+      mode + " " + trace.join(",") + " " + JSON.stringify(b.t.daten().kontakte.map(value => ({ id: value.id, groups: value.vcardRoundtrip, pending: value.telefonGruppenAenderung, base: value.telefonGruppenStand }))));
+    assert.equal(membershipApplies, change ? 1 : 0, mode);
+    if (!noRename) {
+      assert.equal(nativeTitle, "Arbeit"); assert.equal(contact.telefonGruppenTitelAenderung, null);
+    }
+  } finally { b.w.close(); }
+}
 (async () => {
   const windows = path.resolve(__dirname, "../app/web"), linux = path.resolve(__dirname, "../../magnolie-organizer/web");
   assert.ok(fs.existsSync(path.join(windows, "index.html")), "The packaged Windows frontend is missing");
@@ -194,6 +279,8 @@ async function durableJob(web, mode) {
     await invalidAndBounded(web);
     for (const mode of ["success", "ui", "cancel", "resume", "converged", "lost", "bad-saved", "late-edit", "late-undo", "before-prepare", "remote", "rebound", "restore", "key-switch", "book-switch", "save-failed"])
       await durableJob(web, mode);
-    console.log("PASS contact group title broker and 16 durable/UI jobs: native identity, SaveACKs, lost results, late edits/undo, source/book/restore and selective refresh " + web);
+    for (const mode of ["existing", "editor", "offline-editor", "ambiguous", "custom", "remote-membership", "local-edit", "key-switch", "already-localized"])
+      await automaticLanguage(web, mode);
+    console.log("PASS contact group title broker, 16 durable jobs and 9 automatic-language cases: German editor save/offline reconnect without rename UI, native identity, SaveACKs, ambiguity/custom/concurrent guards " + web);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

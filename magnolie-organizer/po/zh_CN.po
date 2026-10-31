@@ -5058,9 +5058,6 @@ msgstr "播放位置"
 msgid "Please create a notebook in another group first."
 msgstr "请先在其他分组中创建一个笔记本。"
 
-msgid "Please enter a different group name."
-msgstr "请输入不同的群组名称。"
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "请输入 1000 年及之后的四位年份。"
 
@@ -5498,14 +5495,6 @@ msgid ""
 "Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
 "to anyone."
 msgstr "移除“%(name)s”？其任务会保留，但将不再分配给任何人。"
-
-msgid "Rename"
-msgstr "重命名"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "为此手机帐户群组的所有成员重命名群组。成员关系保持不变。"
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -8969,6 +8958,17 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "请输入不同的群组名称。"
+
+#~ msgid "Rename"
+#~ msgstr "重命名"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr "为此手机帐户群组的所有成员重命名群组。成员关系保持不变。"
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "CSV / Lotus Organizer 联系人 …"

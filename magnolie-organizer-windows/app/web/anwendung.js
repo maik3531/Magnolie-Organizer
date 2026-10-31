@@ -5131,6 +5131,41 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let kontaktGruppenLauf = null;
   let kontaktGruppenTitelLauf = null, kontaktGruppenTitelTimer = null;
   const kontaktGruppenTitelWiederholung = new WeakMap();
+  const kontaktGruppenSprachPruefung = new WeakMap();
+  const kontaktGruppenSpracheGestoppt = new WeakSet();
+  function telefonGruppenSprachQuelle(kontakt) {
+    if (kontakt.telefonGruppenAenderung || kontakt.telefonGruppenTitelAenderung || kontaktGruppenSpracheGestoppt.has(kontakt)) return null;
+    const source = telefonGruppenTitelQuelle(kontakt, null);
+    const peer = source && telefonStand?.peers?.find(value => "notes:" + value.device_id === source.deviceId);
+    return peer?.contact_groups_write_available === true && kontaktGruppen(kontakt).some(group =>
+      KONTAKT_STANDARDGRUPPEN.includes(group) && kontaktGruppenName(group) !== group) ? source : null;
+  }
+  async function synchronisiereTelefonGruppenSprache(kontakt) {
+    const source = telefonGruppenSprachQuelle(kontakt), book = DATEN, epoch = DATEN.syncEpoch;
+    if (!source || gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenLauf || kontaktWerteLauf || kontaktGruppenTitelLauf ||
+        DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) return;
+    const groups = kontaktGruppen(kontakt), run = { book, kontakt, source };
+    kontaktGruppenTitelLauf = run; kontaktFotoLauf = null;
+    kontaktGruppenSprachPruefung.set(kontakt, Date.now() + 60000);
+    let rename = null;
+    try {
+      // Inspect fresh provider labels, not the canonicalized local category.
+      // Membership must already match; its normal writer always runs first.
+      const prepared = await kontaktGruppenAbfragen(source, "prepare");
+      if (DATEN !== book || DATEN.syncEpoch !== epoch || gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf ||
+          !DATEN.kontakte.includes(kontakt) || !gleicheTelefonWerteQuelle(telefonGruppenSprachQuelle(kontakt), source) ||
+          !gleicheKontaktGruppen(kontaktGruppen(kontakt), groups) || !gleicheKontaktGruppen(prepared.groups, groups)) return;
+      for (const group of groups) {
+        if (!KONTAKT_STANDARDGRUPPEN.includes(group)) continue;
+        const desired = kontaktGruppenName(group), matches = prepared.catalog.filter(name => gleicheKontaktGruppen([name], [group]));
+        // Never merge two account groups, or rename an unrelated/custom title.
+        if (matches.length !== 1 || !prepared.groups.includes(matches[0]) || matches[0] === desired) continue;
+        rename = { oldTitle: matches[0], newTitle: desired }; break;
+      }
+    } catch (_) { /* Offline wishes remain in the ordinary saved category selection. */ }
+    finally { if (kontaktGruppenTitelLauf === run) kontaktGruppenTitelLauf = null; }
+    if (rename) await starteTelefonGruppenTitelAenderung(kontakt, rename.oldTitle, rename.newTitle);
+  }
   const gleicherTelefonGruppenTitelBeleg = (a, b) => !!a && !!b && a.uid === b.uid && a.group_id === b.group_id &&
     a.group_identity === b.group_identity && ["name", "type", "data_set"].every(key => a.account?.[key] === b.account?.[key]);
   function telefonGruppenTitelQuelle(kontakt, marker = normalisiereTelefonGruppenTitelAenderung(kontakt?.telefonGruppenTitelAenderung)) {
@@ -5155,7 +5190,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
   function planeTelefonKontaktGruppenTitel() {
     clearTimeout(kontaktGruppenTitelTimer);
-    if (!initialisiert || gesperrt || !DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) return;
+    if (!initialisiert || gesperrt) return;
     kontaktGruppenTitelTimer = setTimeout(() => {
       kontaktGruppenTitelTimer = null;
       if (aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenTitelLauf || kontaktGruppenLauf || kontaktWerteLauf) return;
@@ -5167,6 +5202,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (contact) sendeTelefonKontaktGruppenTitel(contact);
       else if (waiting.length) kontaktGruppenTitelTimer = setTimeout(planeTelefonKontaktGruppenTitel,
         Math.max(250, waiting.reduce((minimum, value) => Math.min(minimum, kontaktGruppenTitelWiederholung.get(value) || 0), Infinity) - Date.now()));
+      else if (!DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung)) {
+        const candidates = DATEN.kontakte.filter(value => telefonGruppenSprachQuelle(value));
+        const next = candidates.find(value => (kontaktGruppenSprachPruefung.get(value) || 0) <= Date.now());
+        if (next) synchronisiereTelefonGruppenSprache(next).catch(() => {}).finally(planeTelefonKontaktGruppenTitel);
+        else if (candidates.length) kontaktGruppenTitelTimer = setTimeout(planeTelefonKontaktGruppenTitel,
+          Math.max(250, Math.min(...candidates.map(value => kontaktGruppenSprachPruefung.get(value) || 0)) - Date.now()));
+      }
     }, 250);
   }
   function setzeTelefonGruppenTitelWunsch(kontakt, title, fallback = null) {
@@ -5181,6 +5223,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
   async function starteTelefonGruppenTitelAenderung(kontakt, oldTitle, newTitle) {
     const source = telefonGruppenTitelQuelle(kontakt, null), book = DATEN, epoch = DATEN.syncEpoch;
+    const groups = kontaktGruppen(kontakt);
     if (!source || !kontaktGruppenTitelText(oldTitle) || !kontaktGruppenTitelText(newTitle) || oldTitle === newTitle ||
         gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf || kontaktGruppenTitelLauf || kontaktGruppenLauf || kontaktWerteLauf ||
         DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung) || kontakt.telefonGruppenAenderung)
@@ -5191,7 +5234,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     try {
       prepared = await kontaktGruppenTitelAbfragen(source, "prepare", { old_title: oldTitle, new_title: newTitle });
       if (DATEN !== book || DATEN.syncEpoch !== epoch || gesperrt || aktiverEditor || syncLaeuft || kdeKontaktLauf ||
-          !DATEN.kontakte.includes(kontakt) || !gleicheTelefonWerteQuelle(telefonGruppenTitelQuelle(kontakt, null), source))
+          !DATEN.kontakte.includes(kontakt) || kontakt.telefonGruppenAenderung || !gleicheKontaktGruppen(kontaktGruppen(kontakt), groups) ||
+          !gleicheTelefonWerteQuelle(telefonGruppenTitelQuelle(kontakt, null), source))
         throw new Error("contact_group_title_stale");
       kontakt.telefonGruppenTitelAenderung = normalisiereTelefonGruppenTitelAenderung({ version: 1, id: anrufClientRef(), source,
         proof: prepared, wish: newTitle, baseTitle: oldTitle, epoch: String(epoch || ""), state: "pending" });
@@ -5213,6 +5257,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       requireOwned(); const current = marker();
       kontakt.telefonGruppenTitelAenderung = current.wish === title ? null : { ...current, baseTitle: title, state: "pending" };
       invalidiereTelefonGruppenTitelCache(source);
+      kontaktGruppenSprachPruefung.delete(kontakt);
       await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
     };
     try {
@@ -5245,24 +5290,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           gleicheTelefonWerteQuelle(telefonWerteKontaktQuelle(kontakt), source)) invalidiereTelefonGruppenTitelCache(source);
       if (DATEN === run.book && !gesperrt) { planeTelefonKontaktGruppen(); planeKontaktFotoAbruf(); }
     }
-  }
-  async function oeffneTelefonGruppenTitelDialog(kontakt, oldTitle, pending = null) {
-    const book = DATEN, epoch = DATEN.syncEpoch;
-    const current = pending?.wish || oldTitle;
-    const value = await magnolieEingabe({ titel: _("Rename") + " · Magnolie Notes", label: _("Name"), wert: current,
-      text: _("Rename this phone account's group for all its members. Memberships are preserved."), bestaetigen: _("Rename"),
-      pruefen: input => {
-        const title = input.trim().normalize("NFC");
-        return kontaktGruppenTitelText(title) && title !== current ? "" : _("Please enter a different group name.");
-      } });
-    if (value === null) return;
-    if (DATEN !== book || DATEN.syncEpoch !== epoch || !DATEN.kontakte.includes(kontakt) || gesperrt) return zettel(_("Conflict"));
-    try {
-      const action = pending ? setzeTelefonGruppenTitelWunsch(kontakt, value.trim().normalize("NFC"), pending) :
-        starteTelefonGruppenTitelAenderung(kontakt, oldTitle, value.trim().normalize("NFC"));
-      zeichneAlles(); await action;
-    } catch { zettel(_("Not sent.")); }
-    if (DATEN === book && !gesperrt && !aktiverEditor) zeichneAlles();
   }
   let kontaktGruppenTimer = null;
   const kontaktGruppenWiederholung = new WeakMap();
@@ -5358,6 +5385,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (DATEN === lauf.daten && !gesperrt) zettel(_("Not sent."));
     } finally {
       if (kontaktGruppenLauf === lauf) kontaktGruppenLauf = null;
+      kontaktGruppenSprachPruefung.delete(kontakt);
       if (DATEN === lauf.daten && !gesperrt && !aktiverEditor) zeichneAlles();
       planeTelefonKontaktGruppen();
     }
@@ -19962,27 +19990,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         (kontaktGruppenTitelLauf?.kontakt === k ? _("Please wait …") : titelAenderung.state === "conflict" ? _("Conflict") : _("Not sent."))),
         el("p", null, titelAenderung.proof.old_title + " → " + titelAenderung.wish));
       if (titelAenderung.observed) pending.append(el("p", null, _("Incoming") + ": " + titelAenderung.observed.current_title));
-      const change = knopf(_("Rename"), "klein", () => oeffneTelefonGruppenTitelDialog(k, titelAenderung.proof.old_title, titelAenderung));
-      change.dataset.gruppentitelWunsch = k.id;
       const retry = knopf(_("Retry"), "klein", () => Promise.resolve().then(() => setzeTelefonGruppenTitelWunsch(k, titelAenderung.wish, titelAenderung)).catch(() => zettel(_("Not sent."))));
       retry.disabled = !!kontaktGruppenTitelLauf || !telefonGruppenTitelQuelle(k, { ...titelAenderung, epoch: String(DATEN.syncEpoch || "") });
       const book = DATEN, stop = knopf(_("Stop retrying"), "klein", () => {
         if (DATEN !== book || normalisiereTelefonGruppenTitelAenderung(k.telefonGruppenTitelAenderung)?.id !== titelAenderung.id) return;
         k.telefonGruppenTitelAenderung = null; invalidiereTelefonGruppenTitelCache(titelAenderung.source);
+        kontaktGruppenSpracheGestoppt.add(k);
         nachDauerhaftemSpeichern(() => { planeKontaktFotoAbruf(); zeichneAlles(); }, () => zettel(_("Not sent.")));
       });
       stop.dataset.gruppentitelStop = k.id;
-      pending.append(change, retry, stop); karte.append(pending);
-    } else if (!eigenesProfil && telefonGruppenTitelQuelle(k, null)) {
-      const native = normalisiereTelefonGruppenStand(k.telefonGruppenStand);
-      if (native?.groups.length) {
-        const row = el("div", "kontakt-gruppentitel-auswahl"), select = auswahlFeld(native.groups.map(group => [group, group]), native.groups[0]);
-        select.setAttribute("aria-label", _("Contact groups") + " · Magnolie Notes");
-        const rename = knopf(_("Rename"), "klein", () => oeffneTelefonGruppenTitelDialog(k, select.value));
-        rename.dataset.gruppentitelUmbenennen = k.id;
-        rename.disabled = !!kontaktGruppenTitelLauf || !!k.telefonGruppenAenderung || DATEN.kontakte.some(value => value.telefonGruppenTitelAenderung);
-        row.append(select, rename); karte.append(row);
-      }
+      pending.append(retry, stop); karte.append(pending);
     }
 
     const gruppenAenderung = normalisiereTelefonGruppenAenderung(k.telefonGruppenAenderung);
@@ -40616,7 +40633,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     starteTelefonGruppenTitelAenderung: starteTelefonGruppenTitelAenderung,
     sendeTelefonKontaktGruppenTitel: sendeTelefonKontaktGruppenTitel,
     setzeTelefonGruppenTitelWunsch: setzeTelefonGruppenTitelWunsch,
-    oeffneTelefonGruppenTitelDialog: oeffneTelefonGruppenTitelDialog,
+    synchronisiereTelefonGruppenSprache: synchronisiereTelefonGruppenSprache,
     kontaktWerteProjektion: kontaktWerteProjektion,
     merkeTelefonWerteAenderung: merkeTelefonWerteAenderung,
     normalisiereTelefonWerteAenderung: normalisiereTelefonWerteAenderung,

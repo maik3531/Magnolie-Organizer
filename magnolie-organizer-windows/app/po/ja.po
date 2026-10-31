@@ -4445,9 +4445,6 @@ msgstr "再生位置"
 msgid "Please create a notebook in another group first."
 msgstr "先に別のグループにノートブックを作成してください。"
 
-msgid "Please enter a different group name."
-msgstr "別のグループ名を入力してください。"
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "1000 年以降の4桁の年を入力してください。"
 
@@ -4835,14 +4832,6 @@ msgid ""
 msgstr ""
 "「%(name)s」を削除しますか？その人のタスクは保持されますが、誰にも割り当てら"
 "れなくなります。"
-
-msgid "Rename"
-msgstr "名前を変更"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "この電話のアカウントのグループ名を、すべてのメンバーに対して変更します。所属関係は維持されます。"
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -7765,6 +7754,19 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "別のグループ名を入力してください。"
+
+#~ msgid "Rename"
+#~ msgstr "名前を変更"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr ""
+#~ "この電話のアカウントのグループ名を、すべてのメンバーに対して変更します。所"
+#~ "属関係は維持されます。"
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "CSV / Lotus Organizerの連絡先…"

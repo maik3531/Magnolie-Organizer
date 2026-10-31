@@ -5335,9 +5335,6 @@ msgstr "Пазіцыя прайгравання"
 msgid "Please create a notebook in another group first."
 msgstr "Спачатку стварыце нататнік у іншай групе."
 
-msgid "Please enter a different group name."
-msgstr "Увядзіце іншую назву групы."
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Увядзіце чатырохзначны год, пачынаючы з 1000."
 
@@ -5799,14 +5796,6 @@ msgid ""
 msgstr ""
 "Выдаліць «%(name)s»? Задачы гэтага чалавека захаваюцца, але больш не будуць "
 "нікому прызначаны."
-
-msgid "Rename"
-msgstr "Перайменаваць"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "Пераймяноўвае групу гэтага ўліковага запісу тэлефона для ўсіх яе ўдзельнікаў. Склад групы захоўваецца."
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -9440,6 +9429,19 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "Увядзіце іншую назву групы."
+
+#~ msgid "Rename"
+#~ msgstr "Перайменаваць"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr ""
+#~ "Пераймяноўвае групу гэтага ўліковага запісу тэлефона для ўсіх яе "
+#~ "ўдзельнікаў. Склад групы захоўваецца."
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "Кантакты CSV / Lotus Organizer …"

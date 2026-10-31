@@ -4586,9 +4586,6 @@ msgstr "Position de lecture"
 msgid "Please create a notebook in another group first."
 msgstr "Veuillez d’abord créer un carnet dans un autre groupe."
 
-msgid "Please enter a different group name."
-msgstr "Veuillez saisir un autre nom de groupe."
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr "Veuillez saisir une année à quatre chiffres à partir de 1000."
 
@@ -4997,14 +4994,6 @@ msgid ""
 msgstr ""
 "Retirer « %(name)s » ? Ses tâches seront conservées, mais ne seront plus "
 "attribuées à personne."
-
-msgid "Rename"
-msgstr "Renommer"
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
-msgstr "Renomme le groupe de ce compte du téléphone pour tous ses membres. Les appartenances sont conservées."
 
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
@@ -8036,6 +8025,19 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
+
+#~ msgid "Please enter a different group name."
+#~ msgstr "Veuillez saisir un autre nom de groupe."
+
+#~ msgid "Rename"
+#~ msgstr "Renommer"
+
+#~ msgid ""
+#~ "Rename this phone account's group for all its members. Memberships are "
+#~ "preserved."
+#~ msgstr ""
+#~ "Renomme le groupe de ce compte du téléphone pour tous ses membres. Les "
+#~ "appartenances sont conservées."
 
 #~ msgid "CSV / Lotus Organizer contacts …"
 #~ msgstr "Contacts CSV / Lotus Organizer …"

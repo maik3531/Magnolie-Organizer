@@ -4231,9 +4231,6 @@ msgstr ""
 msgid "Please create a notebook in another group first."
 msgstr ""
 
-msgid "Please enter a different group name."
-msgstr ""
-
 msgid "Please enter a four-digit year from 1000 onwards."
 msgstr ""
 
@@ -4610,14 +4607,6 @@ msgstr ""
 msgid ""
 "Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
 "to anyone."
-msgstr ""
-
-msgid "Rename"
-msgstr ""
-
-msgid ""
-"Rename this phone account's group for all its members. Memberships are "
-"preserved."
 msgstr ""
 
 msgid ""
