@@ -56,6 +56,8 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorTerminalRestoreKeepsMembershipAndUsesExactDecisionAck() = exercise("actor-commit-terminal-restore")
     @Test fun nativeActorTerminalLedgerFailureRetriesWithoutRepeatingBookSave() = exercise("actor-commit-terminal-ledger")
     @Test fun nativeActorTerminalWriterFailureNeverConsumesIntentsOrSendsDecision() = exercise("actor-commit-terminal-write-failure")
+    @Test fun nativeActorTerminalAutoPolicyRunsThroughActualTransportPump() = exercise("actor-commit-terminal-auto")
+    @Test fun nativeActorTerminalAutoWaitsForSuccessfulDataAckWrite() = exercise("actor-commit-terminal-auto-ack-failure")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -86,6 +88,7 @@ class ScopedDataRuntimeTest {
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
         val actorTerminal = mode.startsWith("actor-commit-terminal")
+        val actorAckFailure = mode in setOf("actor-commit-ack-failure", "actor-commit-terminal-auto-ack-failure")
         val nativeActor = actorDeletion || actorCommit || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
@@ -433,7 +436,7 @@ class ScopedDataRuntimeTest {
                             assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, review) }.isFailure)
                         }
                         if (mode == "actor-commit-changed") documents.setzeNotiz(documents.notizen().single { it.id == "phone-note" }.copy(text = "Concurrent phone edit"))
-                        if (mode == "actor-commit-ack-failure") {
+                        if (actorAckFailure) {
                             failNextFlush.set(true)
                             assertTrue(runCatching { work.receiveMessage(peer, completionWire, channel, 0L) }.isFailure)
                             // The write may have reached the stream before flush failed:
@@ -441,12 +444,18 @@ class ScopedDataRuntimeTest {
                             sent()
                             assertTrue(queue.personalDirectionApplied(peerId, run, true))
                             assertNull(work.actorDataReportReceipt(handle))
+                            if (actorTerminal) {
+                                pump.invoke(work, peer, channel, 0L, false)
+                                assertTrue(sent().none { PersonalSyncActor.semanticMessage(it)["kind"] == JsonPrimitive("personal_sync.deletion_decision") })
+                                assertNotNull(documents.notiz("phone-note"))
+                                assertEquals("active", work.personalActorJournal.completionState(handle))
+                            }
                         } else work.receiveMessage(peer, completionWire, channel, 0L)
                         if (mode == "actor-commit-changed") {
                             assertTrue(sent().isEmpty()); assertFalse(queue.personalDirectionApplied(peerId, run, true))
                             assertEquals("Concurrent phone edit", documents.notizen().single { it.id == "phone-note" }.text)
                         } else {
-                            if (mode == "actor-commit-ack-failure") work.receiveMessage(peer, completionWire, channel, 0L)
+                            if (actorAckFailure) work.receiveMessage(peer, completionWire, channel, 0L)
                             assertEquals(completionWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
                             assertTrue(queue.personalDirectionApplied(peerId, run, true))
                             val receipt = requireNotNull(work.actorDataReportReceipt(handle))
@@ -486,7 +495,11 @@ class ScopedDataRuntimeTest {
                                     assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
                                     return@use
                                 }
-                                val result = work.commitPersonalActorDeletionReview(handle, review)
+                                val result = if (mode.startsWith("actor-commit-terminal-auto")) {
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                                    work.personalActorJournal.completionState(handle)
+                                } else work.commitPersonalActorDeletionReview(handle, review)
                                 assertEquals(if (mode == "actor-commit-terminal-ledger") "metadata_pending" else "completion", result)
                                 val deletionWitness = requireNotNull(documents.personalActorSavedBookState())
                                 assertEquals(savedWitness.getValue("sequence").jsonPrimitive.long + 1, deletionWitness.getValue("sequence").jsonPrimitive.long)

@@ -3564,7 +3564,32 @@ class TelefonWerk private constructor(private val context: Context, private val 
         return controls
     }
 
+    private fun prepareActorTerminalWork(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) = synchronized(this) {
+        if (!serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration) return@synchronized
+        val peer = safePeer()?.takeIf { it.device_id == expected.device_id && it.static_public == expected.static_public } ?: return@synchronized
+        // Existing explicitly agreed auto-delete policy only; the commit method
+        // repeats native grants, ownership, scope, writer and exact-review checks.
+        for (run in personalActorWork.toList()) runCatching {
+            val handle = personalActorHandles[run] ?: return@runCatching
+            if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel ||
+                actorDataReportReceipt(handle) == null) return@runCatching
+            val intents = queue.actorDeletionIntents(run)
+            if (intents.isEmpty() || intents.any { it.string("kind") != "personal_sync.deletion_proposals" }) return@runCatching
+            val proposals = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
+            commitPersonalActorDeletionReview(handle, proposals.associate { it.proposalId to "delete" })
+        }
+        // A durable book plus failed metadata transaction is not another save.
+        // Wait for fresh native authority/scope before retrying only that ledger.
+        for ((run, pending) in personalActorCompletions.toMap()) runCatching {
+            val handle = personalActorHandles[run] ?: return@runCatching
+            if (!pending.ledgerReady && !pending.completed && handle.peerId == peer.device_id &&
+                personalActorKeys[run] == peer.static_public && personalActorTransports[run] === channel &&
+                pending.guard.validator("read", null) == true) commitPersonalActorDeletionReview(handle, pending.choices)
+        }
+    }
+
     private fun sendActorDue(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
+        prepareActorTerminalWork(expected, channel, generation)
         val entries = synchronized(this) {
             if (!serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration ||
                 personalActorTransports.values.none { it === channel }) return
