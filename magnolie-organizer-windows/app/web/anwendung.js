@@ -22,102 +22,102 @@ const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.30";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Stellt einheitliche Linux-Einstellungsreiter wieder her und korrigiert die Downloadfrist des Windows-Installers",
+    "Korrigiert die Downloadfrist für Windows-Updateinstaller",
     "Magnolie Notes 1.0.21 — unverändert"
   ],
   "en": [
     "What's new in this version",
-    "Restores uniform Linux settings tabs and corrects the Windows installer download timeout",
+    "Corrects the timeout for downloading Windows update installers",
     "Magnolie Notes 1.0.21 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Rétablit des onglets de paramètres Linux uniformes et corrige le délai de téléchargement du programme d’installation Windows",
+    "Corrige le délai de téléchargement des programmes de mise à jour Windows",
     "Magnolie Notes 1.0.21 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
-    "Restaura las pestañas uniformes de ajustes en Linux y corrige el plazo de descarga del instalador de Windows",
+    "Corrige el plazo de descarga de los instaladores de actualizaciones de Windows",
     "Magnolie Notes 1.0.21 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
-    "Ripristina le schede uniformi delle impostazioni Linux e corregge il limite di tempo per il download del programma di installazione Windows",
+    "Corregge il limite di tempo per il download degli aggiornamenti Windows",
     "Magnolie Notes 1.0.21 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Herstelt uniforme Linux-instellingentabbladen en corrigeert de downloadtermijn van het Windows-installatieprogramma",
+    "Corrigeert de downloadtermijn van Windows-update-installatieprogramma’s",
     "Magnolie Notes 1.0.21 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
-    "Repõe os separadores uniformes das definições Linux e corrige o prazo de transferência do instalador Windows",
+    "Corrige o prazo de transferência dos instaladores de atualizações Windows",
     "Magnolie Notes 1.0.21 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
-    "Восстанавливает одинаковые вкладки настроек Linux и исправляет время ожидания загрузки установщика Windows",
+    "Исправляет время ожидания загрузки установщиков обновлений Windows",
     "Magnolie Notes 1.0.21 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Obnovuje jednotné karty nastavení Linuxu a opravuje časový limit stahování instalátoru Windows",
+    "Opravuje časový limit stahování instalačních programů aktualizací Windows",
     "Magnolie Notes 1.0.21 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Przywraca jednolite karty ustawień Linuksa i poprawia limit czasu pobierania instalatora Windows",
+    "Poprawia limit czasu pobierania instalatorów aktualizacji Windows",
     "Magnolie Notes 1.0.21 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Wobnowja jednotne rajtarki nastajenjow Linuxa a koriguje časowy limit za sćehnjenje instalaciskeho programa Windows",
+    "Koriguje časowy limit za sćehnjenje aktualizaciskich instalatorow Windows",
     "Magnolie Notes 1.0.21 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
-    "Gendanner ensartede Linux-indstillingsfaner og retter tidsgrænsen for download af Windows-installationsprogrammet",
+    "Retter tidsgrænsen for download af Windows-opdateringsprogrammer",
     "Magnolie Notes 1.0.21 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Gjenoppretter ensartede Linux-innstillingsfaner og retter tidsgrensen for nedlasting av Windows-installasjonsprogrammet",
+    "Retter tidsgrensen for nedlasting av Windows-oppdateringsprogrammer",
     "Magnolie Notes 1.0.21 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "Linux सेटिंग टैब का एकसमान रूप बहाल करता है और Windows इंस्टॉलर डाउनलोड की समय-सीमा ठीक करता है",
+    "Windows अपडेट इंस्टॉलर डाउनलोड की समय-सीमा ठीक करता है",
     "Magnolie Notes 1.0.21 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "恢复统一的 Linux 设置选项卡，并修正 Windows 安装程序的下载时限",
+    "修正 Windows 更新安装程序的下载时限",
     "Magnolie Notes 1.0.21 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
-    "Linux 設定タブの統一表示を復元し、Windows インストーラーのダウンロード制限時間を修正",
+    "Windows 更新インストーラーのダウンロード制限時間を修正",
     "Magnolie Notes 1.0.21 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "يستعيد علامات تبويب إعدادات Linux المتناسقة ويصحح المهلة الزمنية لتنزيل مثبّت Windows",
+    "يصحح المهلة الزمنية لتنزيل مثبّتات تحديث Windows",
     "Magnolie Notes 1.0.21 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Відновлює однакові вкладки налаштувань Linux і виправляє час очікування завантаження інсталятора Windows",
+    "Виправляє час очікування завантаження інсталяторів оновлень Windows",
     "Magnolie Notes 1.0.21 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Аднаўляе аднолькавыя ўкладкі налад Linux і выпраўляе час чакання спампоўвання ўсталёўшчыка Windows",
+    "Выпраўляе час чакання спампоўвання ўсталёўшчыкаў абнаўленняў Windows",
     "Magnolie Notes 1.0.21 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Linux ayar sekmelerinin tutarlı görünümünü geri getirir ve Windows yükleyicisinin indirme zaman aşımını düzeltir",
+    "Windows güncelleme yükleyicilerinin indirme zaman aşımını düzeltir",
     "Magnolie Notes 1.0.21 — değişmedi"
   ]
 };
