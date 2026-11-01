@@ -262,3 +262,51 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
     assert completion.summary()['saved']==1 and registry.read_completion_controls(handle)==[ack]
     assert all(wire==ack for wire in channel.sent) and not admission['completion_native_acks']
     assert book.save_state('native-completion-profile',True)==completion.saved_book and not events
+
+
+def test_native_ack_partial_claim_retries_only_unsent_frame_and_fences_reentry(tmp_path,monkeypatch):
+    book=NativeBookOwnerScope(); book.set_ready(True)
+    service,peer,channel,registry,handle,events=owned_transport(tmp_path,monkeypatch,
+        deletions=True,skip_deletions=False,book_source=lambda:book.current('partial-native-profile',True))
+    service.start_personal_actor(registry,handle); channel.sent.clear()
+    admission=service.personal_actor_admissions[handle.actor_id]
+    fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32))
+    targets=[]; frames=[]; acks=[]
+    for kind,identifier in [('note','note-one'),('task','task-one')]:
+        proposal=str(uuid.uuid4()); clock=[{'actor_id':peer['device_id'],'counter':2}]
+        targets.append({'proposal_id':proposal,'kind':kind,'id':identifier,'parent_id':'','prior_hash':'a'*64,'clock':clock})
+        wire=actor.wire_message(frame('personal_sync.deletion_decision',{'format':1,'run_id':handle.actor_id,
+            'decision_id':str(uuid.uuid4()),'decisions':[{'proposal_id':proposal,'decision':'restore','expected_clock':clock}]}),handle.actor_id)
+        frames.append(wire); acks.append(frame(actor.ACK_KIND,actor.ack(handle.actor_id,wire['message_id'])))
+    book.record_saved('partial-native-profile',True,'a'*64)
+    session=service.content_scope_sessions[channel]
+    def current_scope():
+        reference=session.current_reference((peer['device_id'],peer['static_public'],id(channel)))
+        return service.current_content_scope(peer['device_id'],peer['static_public'],reference)
+    completion=DecisionAckCompletion(handle.actor_id,targets,frames,
+        current_authority=lambda:service.current_actor_completion_authority(peer['device_id'],fingerprint),current_scope=current_scope,
+        current_saved_book=lambda:book.save_state('partial-native-profile',True),persisted_controls=lambda:registry.read_completion_controls(handle),
+        native_sent_acknowledgments=acks)
+    registry.begin_completion(handle,completion.validator)
+    admission.update(completion=completion,save_receipt=copy.deepcopy(completion.saved_book),phone_data_persisted=True,
+        completion_native_acks={wire['message_id']:copy.deepcopy(wire) for wire in acks})
+    original=channel.send; calls=[]
+    def send(wire):
+        assert not service.lock._is_owned()
+        calls.append(wire['message_id'])
+        if len(calls)==1:
+            # Reentrant due processing cannot claim the same private ACK queue.
+            assert service.advance_personal_actor_completion(registry,handle)['phase']=='completion'
+        if len(calls)==2: raise OSError('Synthetic second ACK flush failure')
+        original(wire)
+    channel.send=send
+    with pytest.raises(OSError): service.advance_personal_actor_completion(registry,handle)
+    assert completion.summary()['saved']==1 and registry.read_completion_controls(handle)==[acks[0]]
+    assert list(admission['completion_native_acks'])==[acks[1]['message_id']] and channel.sent==[acks[0]]
+    service.advance_personal_actor_completion(registry,handle)
+    assert len(calls)==2, 'Immediate partial retry bypassed backoff'
+    admission['completion_native_ack_next']=0
+    assert service.advance_personal_actor_completion(registry,handle)['phase']=='completed'
+    assert calls==[acks[0]['message_id'],acks[1]['message_id'],acks[1]['message_id']]
+    assert channel.sent==acks and completion.summary()['saved']==2
+    assert book.save_state('partial-native-profile',True)==completion.saved_book and not events
