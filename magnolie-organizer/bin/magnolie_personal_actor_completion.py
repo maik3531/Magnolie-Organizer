@@ -19,7 +19,8 @@ class NativeBookProofPending(RuntimeError):
 
 
 class DecisionAckCompletion:
-    def __init__(self, run_id, native_targets, queued_decisions, *, current_authority, current_scope, current_saved_book, persisted_controls):
+    def __init__(self, run_id, native_targets, queued_decisions, *, current_authority, current_scope, current_saved_book, persisted_controls,
+                 native_sent_acknowledgments=None):
         actor.start(run_id)
         if not all(callable(value) for value in (current_authority, current_scope, current_saved_book, persisted_controls)):
             raise TypeError("Native completion observations are required")
@@ -53,6 +54,17 @@ class DecisionAckCompletion:
         self.decisions = copy.deepcopy(decisions)
         self.members = actor.completion_members(run_id, self.before, self.targets, self.decisions)
         self.received = {}
+        self.own_acknowledgments = {}
+        self.successfully_sent = set()
+        own = [] if native_sent_acknowledgments is None else native_sent_acknowledgments
+        if not isinstance(own, list) or len(own) > 256:
+            raise ValueError("invalid_actor_completion_controls")
+        for queued in own:
+            wire = copy.deepcopy(queued)
+            body = self._ack(wire)
+            if (body["status"] != "accepted" or body["error"] != "none" or body["message_id"] in self.own_acknowledgments):
+                raise ValueError("invalid_actor_completion_controls")
+            self.own_acknowledgments[body["message_id"]] = wire
         # Stable native callback identity: it cannot be replaced on retry.
         self.validator = self.validate
 
@@ -71,6 +83,9 @@ class DecisionAckCompletion:
         actor.validate_ack(body)
         if body["run_id"] != self.run_id or body["message_id"] not in self.controls:
             raise ValueError("unexpected_actor_completion_control")
+        own = self.own_acknowledgments.get(body["message_id"])
+        if own is not None and own != wire:
+            raise ValueError("unexpected_actor_completion_control")
         previous = self.received.get(body["message_id"])
         if previous is not None and previous["status"] in ("accepted", "duplicate") and body["status"] == "rejected":
             raise ValueError("actor_completion_outcome_changed")
@@ -78,10 +93,17 @@ class DecisionAckCompletion:
 
     def validate(self, operation, wire):
         if operation == "send":
-            if (not isinstance(wire, dict) or not isinstance(wire.get("message_id"), str) or
-                    wire != self.queued_frames.get(wire["message_id"])):
+            if not isinstance(wire, dict):
                 raise ValueError("unexpected_actor_completion_control")
-            body = None
+            if wire.get("kind") == actor.ACK_KIND:
+                body = self._ack(wire)
+                if wire != self.own_acknowledgments.get(body["message_id"]):
+                    raise ValueError("unexpected_actor_completion_control")
+            else:
+                if (not isinstance(wire.get("message_id"), str) or wire != self.queued_frames.get(wire["message_id"]) or
+                        wire["message_id"] in self.own_acknowledgments):
+                    raise ValueError("unexpected_actor_completion_control")
+                body = None
         else:
             body = self._ack(wire) if wire is not None else None
         try:
@@ -113,11 +135,26 @@ class DecisionAckCompletion:
             return False
         if body is not None and body["status"] in ("accepted", "duplicate") and not at_after:
             return None  # A success before fresh resulting membership is not evidence.
+        if (operation == "put" and body is not None and body["message_id"] in self.own_acknowledgments and
+                body["message_id"] not in self.successfully_sent):
+            return None
         if operation == "finish":
             if not at_after or set(self.received) != set(self.controls) or any(
                     value["status"] not in ("accepted", "duplicate") for value in self.received.values()):
                 return None
         return True
+
+    def expects_native_acknowledgment(self, message_id):
+        return message_id in self.own_acknowledgments
+
+    def record_successful_acknowledgment_send(self, wire):
+        """Native post-I/O marker under fresh owner gates; enqueue/peer ACK is not a send."""
+        if self.validate("send", wire) is not True:
+            raise PermissionError("actor_completion_not_ready")
+        body = self._ack(wire)
+        if self.own_acknowledgments.get(body["message_id"]) != wire:
+            raise ValueError("unexpected_actor_completion_control")
+        self.successfully_sent.add(body["message_id"])
 
     def record_persisted(self, wire):
         """Call only after the owner's protected metadata store committed it."""
