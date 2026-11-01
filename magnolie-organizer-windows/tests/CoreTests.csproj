@@ -25,6 +25,7 @@
     <Compile Include="..\PersonalActorDecisionCompletion.cs" Link="PersonalActorDecisionCompletion.cs" />
     <Compile Include="..\NativeBookOwnerScope.cs" Link="NativeBookOwnerScope.cs" />
     <Compile Include="..\PersonalActorOutgoingProducer.cs" Link="PersonalActorOutgoingProducer.cs" />
+    <Compile Include="..\TelefonStore.ActorProducer.cs" Link="TelefonStore.ActorProducer.cs" />
     <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />
     <Compile Include="..\ProfileLease.cs" Link="ProfileLease.cs" />
     <Compile Include="..\SmsSubmissionJournal.cs" Link="SmsSubmissionJournal.cs" />

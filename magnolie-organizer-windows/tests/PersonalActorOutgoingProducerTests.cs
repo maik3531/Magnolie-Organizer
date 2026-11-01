@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -96,6 +97,69 @@ internal static class PersonalActorOutgoingProducerTests
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException) { denied = true; }
             TestAssert.That(denied, "Native preparation crossed writer/source/identity/capacity fence: " + gate);
         }
+        AtomicPreparedGroups();
         return Task.CompletedTask;
+    }
+
+    private static void AtomicPreparedGroups()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "actor-native-group-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            foreach (var fault in new[] { "none", "second-frame", "last-target", "source-before", "source-after", "saved-before", "saved-after", "missing-last", "changed-batch", "duplicate-target", "incomplete-first" })
+            {
+                var key = Enumerable.Repeat((byte)37, 32).ToArray(); var path = new WindowsPaths(Path.Combine(root, fault));
+                var store = new TelefonStore(path, key); var (book, scope) = Fixture(); var (owner, snapshot) = Capture(book);
+                var bodies = PersonalActorOutgoingProducer.Prepare(snapshot, scope, Peer, Run,
+                    () => owner.SaveState("native-producer-fixture", true), () => new string('a', 64)).ToArray();
+                var privatePeer = PersonalSyncActorContract.StoragePeer(Run);
+                if (fault == "missing-last") bodies[^1]["last"] = false;
+                if (fault == "changed-batch") bodies[^1]["proposal_batch_id"] = Peer;
+                if (fault == "duplicate-target") bodies[^1]["proposals"]![0]!["id"] = bodies[0]["proposals"]![0]!["id"]!.DeepClone();
+                if (fault == "incomplete-first") bodies[0]["proposals"]!.AsArray().RemoveAt(0);
+                if (fault is "second-frame" or "last-target")
+                {
+                    using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
+                    var trigger = fault == "second-frame" ? "BEFORE INSERT ON outbox WHEN (SELECT COUNT(*) FROM outbox)>=1" :
+                        "BEFORE INSERT ON meta WHEN NEW.key='personal_proposal_kind:" + privatePeer + ":out:" + bodies[^1]["proposals"]![0]!["proposal_id"]!.GetValue<string>() + "'";
+                    sql.CommandText = "CREATE TRIGGER group_atomic_failure " + trigger + " BEGIN SELECT RAISE(ABORT,'synthetic group transaction failure'); END"; sql.ExecuteNonQuery();
+                }
+                var sources = 0; var savedReads = 0;
+                string Source() { sources++; return new string(fault == "source-before" || fault == "source-after" && sources == 2 ? 'b' : 'a', 64); }
+                NativeBookSaveState? Saved()
+                {
+                    savedReads++;
+                    if (fault == "saved-after" && savedReads == 2) owner.RecordSaved("native-producer-fixture", true, snapshot.SavedBook.Sha256);
+                    return owner.SaveState("native-producer-fixture", true);
+                }
+                if (fault == "saved-before") owner.RecordSaved("native-producer-fixture", true, snapshot.SavedBook.Sha256);
+                IReadOnlyList<JsonObject> Commit() => store.QueueActorDeletionProposals(Peer, Run, bodies, new string('a', 64), snapshot.SavedBook, Source, Saved);
+                if (fault != "none")
+                {
+                    var denied = false;
+                    try { Commit(); } catch (Exception error) when (error is InvalidDataException or InvalidOperationException or SqliteException) { denied = true; }
+                    using var db = store.OpenDatabase(); db.Open(); using var count = db.CreateCommand();
+                    count.CommandText = "SELECT (SELECT COUNT(*) FROM outbox)+(SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%')";
+                    TestAssert.That(denied && Convert.ToInt64(count.ExecuteScalar()) == 0, "Native group fault retained partial frames/targets: " + fault);
+                    continue;
+                }
+                var wire = Commit(); var reopened = new TelefonStore(path, key);
+                TestAssert.That(wire.Count == 2, "Native prepared group lost a frame.");
+                foreach (var frame in wire)
+                {
+                    TestAssert.That(frame["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                        JsonNode.DeepEquals(frame, reopened.OutboxMessage(Peer, frame["message_id"]!.GetValue<string>())), "Actual native group envelope did not survive reopen.");
+                    var body = PersonalSyncActorContract.Unwrap(frame["body"]!.AsObject()).Body;
+                    TestAssert.That(JsonNode.DeepEquals(body, bodies[body["sequence"]!.GetValue<int>()]), "Native group changed prepared proposal bytes.");
+                    var decision = new JsonObject { ["format"] = 1, ["run_id"] = Run, ["decision_id"] = Run,
+                        ["decisions"] = new JsonArray(body["proposals"]!.AsArray().OfType<JsonObject>().Select(p => (JsonNode)new JsonObject {
+                            ["proposal_id"] = p["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = p["clock"]!.DeepClone() }).ToArray()) };
+                    TestAssert.That(reopened.PersonalDecisionTargets(privatePeer, decision, false)?.Count == body["proposals"]!.AsArray().Count &&
+                        reopened.PersonalDecisionTargets(Peer, decision, false) is null, "Native group proof escaped its private run or lost target coverage.");
+                }
+                TestAssert.That(owner.SaveState("native-producer-fixture", true) == snapshot.SavedBook && book.ToJsonString() == snapshot.Text, "Native group commit mutated its source book.");
+            }
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 }
