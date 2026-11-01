@@ -4,6 +4,7 @@ if (args.Length == 2 && args[0] == "--mcp-stdio-fixture")
 
 if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
 if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLiveTests.RunAsync(thunderbird: true);
+if (args.Length == 2 && args[0] == "--readonly-calendar-fixture") return await NextcloudDavTests.ReadOnlyCalendarFixtureAsync(args[1]);
 if (args.FirstOrDefault() == "--birthday-thunderbird-live") return await CalendarBirthdayCleanupTests.RunBridgeLiveAsync();
 if (args.FirstOrDefault() == "--thunderbird-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync();
 if (args.FirstOrDefault() == "--managed-accounts-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync(managed: true);

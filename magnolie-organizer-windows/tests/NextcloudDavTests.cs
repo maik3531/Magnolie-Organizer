@@ -49,7 +49,7 @@ internal static class NextcloudDavTests
             "An already mapped source reintroducing 1604 was not repaired or created conflict copies.");
     }
 
-    private static async Task TestReadOnlyCalendar(NextcloudMailboxSettingsStore settings)
+    private static async Task<NextcloudCalendarResult> TestReadOnlyCalendar(NextcloudMailboxSettingsStore settings)
     {
         var calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:halloween\r\nDTSTART;VALUE=DATE:20261031\r\nSUMMARY:Halloween\r\nEND:VEVENT\r\n" +
@@ -104,6 +104,30 @@ internal static class NextcloudDavTests
             "Read-only remote removal discarded personal/local edits or attempted writeback.");
         await TestAssert.ThrowsAsync<InvalidOperationException>(() => client.CreateAsync(source, "new", ".ics", "text/calendar", calendar, default),
             "Read-only source accepted a direct native create.");
+        return first;
+    }
+
+    internal static async Task<int> ReadOnlyCalendarFixtureAsync(string output)
+    {
+        output = Path.GetFullPath(output);
+        if (Path.GetFileName(output) != "calendar291-native-fixture.json" || File.Exists(output))
+            throw new InvalidOperationException("A new explicit readonly-calendar fixture output is required.");
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-readonly-calendar-fixture-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "password.dpapi"), new Protector());
+            settings.Save(new NextcloudMailboxSettings(true, "https://cloud.example/nc", "a user"));
+            settings.SetApplicationPassword("synthetic-fixture-only");
+            var result = await TestReadOnlyCalendar(settings);
+            var proof = new JsonObject { ["ok"] = true, ["scope"] = "Synthetic readonly CalDAV provider; actual native sync engine, not personal account data",
+                ["termine"] = result.Termine.DeepClone(), ["jahrestage"] = result.Jahrestage.DeepClone(),
+                ["sourceReadOnly"] = true, ["providerWrites"] = 0, ["validatedReports"] = 7 };
+            File.WriteAllText(output, proof.ToJsonString());
+            Console.WriteLine("Readonly calendar fixture: native engine import/replay/update/local-edit/hide/removal passed; 7 REPORTs, no provider writes.");
+            return 0;
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     internal static async Task RunAsync()
