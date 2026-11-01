@@ -309,7 +309,7 @@ internal sealed class PersonalSyncActorStore
     {
         var value = Require(db, handle, transaction, active: false, source: false);
         if (Text(value, "phase") is not ("decision_review" or "completion" or "completed")) throw new InvalidOperationException("actor_completion_inactive");
-        if (Text(value, "phase") == "decision_review" && operation is not ("begin" or "put" or "read" or "handoff"))
+        if (Text(value, "phase") == "decision_review" && operation is not ("begin" or "put" or "read" or "handoff" or "send_report"))
             throw new InvalidOperationException("actor_decision_review_metadata_only");
         var wall = clock(); var mono = monotonicClock();
         if (wall < Number(value, "created_ms") || wall >= Number(value, "expires_ms") ||
@@ -323,6 +323,20 @@ internal sealed class PersonalSyncActorStore
         if (result is null) throw new InvalidOperationException("actor_completion_not_ready");
         if (result != true) throw new CompletionSourceLost("actor_completion_source_changed");
         return value;
+    }
+
+    internal void CheckDecisionReportSend(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire);
+        if (PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject()).Kind != "personal_sync.report") throw new InvalidDataException("actor_ordinary_report_required");
+        CompletionOperation(handle, (db, transaction) => {
+            var value = Require(db, handle, transaction, active: false, source: false);
+            if (Text(value, "phase") != "decision_review") throw new InvalidOperationException("actor_decision_review_inactive");
+            RequireCompletion(db, transaction, handle, "send_report", wire);
+            RequireCompletion(db, transaction, handle, "send_report", wire);
+            if (!TelefonCrypto.Canonical(wire).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+            return true;
+        });
     }
 
     /// <summary>Native-only post-data review. Old data rights never return. The guard must bind the ordinary

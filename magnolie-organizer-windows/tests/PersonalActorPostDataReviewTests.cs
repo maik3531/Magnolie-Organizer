@@ -14,7 +14,59 @@ internal static class PersonalActorPostDataReviewTests
         foreach (var scenario in new[] { "complete", "missing", "duplicate", "foreign", "clock", "frame-conflict", "ordinary-data", "scope", "authority", "writer",
             "token", "revision", "claim-hash", "wrong-save", "newer-writer", "source-change", "note-scope", "wrong-report", "wrong-run", "rejected", "registry", "source-race", "writer-race" })
             Exercise(scenario);
+        ExerciseReportOwner();
         return Task.CompletedTask;
+    }
+
+    private static void ExerciseReportOwner()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-pre-report-owner-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new TelefonStore(new WindowsPaths(root), testStorageKey: Enumerable.Repeat((byte)36, 32).ToArray());
+            var source = new string('a', 64); var authority = new string('a', 64);
+            var registry = new PersonalSyncActorStore(store, (_, _) => source);
+            var handle = registry.Create(Actor, "ABCD-1234-5678-90EF", source, Run);
+            var owner = new NativeBookOwnerScope(); owner.SetReady(true); owner.RecordSaved("pre-report-fixture", true, new string('a', 64));
+            NativeBookSaveState? Saved() => owner.SaveState("pre-report-fixture", true);
+            var scope = PhoneContentScope.Create(["parent"], []);
+            var clock = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 });
+            var id = PersonalSyncContract.DeletionProposalId(Actor, "attachment", "gone", "parent", clock, new string('a', 64));
+            var target = new JsonObject { ["proposal_id"] = id, ["kind"] = "attachment", ["id"] = "gone", ["parent_id"] = "parent", ["clock"] = clock, ["prior_hash"] = new string('a', 64) };
+            var proposal = target.DeepClone().AsObject(); proposal["deleted_ms"] = 2; proposal["label"] = "Synthetic native attachment";
+            var producer = PersonalSyncActorContract.WireMessage(Frame("personal_sync.deletion_proposals", new JsonObject { ["format"] = 1, ["run_id"] = Run,
+                ["proposal_batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(proposal) }), Run);
+            var zero = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
+            var report = PersonalSyncActorContract.WireMessage(Frame("personal_sync.report", new JsonObject { ["format"] = 3, ["run_id"] = Run, ["state"] = "complete",
+                ["trigger"] = "manual", ["transport"] = "wifi", ["sent"] = zero.DeepClone(), ["received"] = zero.DeepClone(), ["conflicts"] = 0,
+                ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = 1, ["finished_ms"] = 2, ["error"] = "none",
+                ["attachments"] = new JsonObject { ["declared"] = 0, ["requested"] = 0, ["sent"] = 0, ["received"] = 0, ["reused"] = 0, ["preserved"] = 0, ["failed"] = 0, ["bytes"] = 0 },
+                ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
+                    ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } }), Run);
+            var waiting = new PersonalActorReportOwner(Run, new JsonArray(target), scope, report, Saved()!, () => authority,
+                () => registry.ReadCompletionControls(handle), [producer]);
+            registry.BeginDecisionReview(handle, waiting.Validator);
+            registry.CheckDecisionReportSend(handle, report);
+            source = new string('b', 64);
+            TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Pre-report owner reopened old data source after legitimate scope change.");
+            var changedReport = report.DeepClone().AsObject(); changedReport["message_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionReportSend(handle, changedReport), "Pre-report owner sent another report identity.");
+            TestAssert.Throws<InvalidOperationException>(() => waiting.BeginReview(() => scope, Saved), "Unacknowledged ordinary report unlocked review.");
+            registry.PutCompletionControl(handle, Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, producer["message_id"]!.GetValue<string>())));
+            TestAssert.Throws<InvalidOperationException>(() => waiting.BeginReview(() => scope, Saved), "Producer ACK was mistaken for ordinary data SaveACK.");
+            registry.PutCompletionControl(handle, Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, report["message_id"]!.GetValue<string>())));
+            var decision = PersonalSyncActorContract.WireMessage(Frame("personal_sync.deletion_decision", new JsonObject { ["format"] = 1, ["run_id"] = Run,
+                ["decision_id"] = Guid.NewGuid().ToString("D"), ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = id, ["decision"] = "delete", ["expected_clock"] = clock.DeepClone() }) }), Run);
+            registry.PutCompletionControl(handle, decision);
+            var review = waiting.BeginReview(() => scope, Saved);
+            var view = review.Review(); var claim = review.PrepareSave(view["revision"]!.GetValue<string>(), new string('b', 64));
+            owner.RecordSaved("pre-report-fixture", true, new string('b', 64));
+            review.ConfirmSaved(claim["claim_token"]!.GetValue<string>());
+            bool? Completion(string operation, JsonObject? wire) => true; // Registry boundary only, not delivery confirmation.
+            registry.PromoteDecisionReview(handle, waiting.Validator, Completion);
+            TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Pre-report metadata handoff restored general data authority.");
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
     private static void Exercise(string scenario)

@@ -24,6 +24,7 @@
     <Compile Include="..\PersonalSyncActorStore.cs" Link="PersonalSyncActorStore.cs" />
     <Compile Include="..\PersonalActorDecisionCompletion.cs" Link="PersonalActorDecisionCompletion.cs" />
     <Compile Include="..\PersonalActorPostDataReview.cs" Link="PersonalActorPostDataReview.cs" />
+    <Compile Include="..\PersonalActorReportOwner.cs" Link="PersonalActorReportOwner.cs" />
     <Compile Include="..\NativeBookOwnerScope.cs" Link="NativeBookOwnerScope.cs" />
     <Compile Include="..\PersonalActorOutgoingProducer.cs" Link="PersonalActorOutgoingProducer.cs" />
     <Compile Include="..\TelefonStore.ActorProducer.cs" Link="TelefonStore.ActorProducer.cs" />
