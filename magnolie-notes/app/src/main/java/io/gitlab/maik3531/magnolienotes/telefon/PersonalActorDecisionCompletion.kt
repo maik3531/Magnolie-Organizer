@@ -16,7 +16,10 @@ internal class PersonalActorDecisionCompletion(
     // Native controller may capture these before retiring data ownership and
     // performing its actual one-save; they are never accepted from wire input.
     nativeBeforeScope: JsonObject? = null,
-    nativeAuthority: String? = null
+    nativeAuthority: String? = null,
+    // Exact locally generated ACKs for incoming native decisions. They must
+    // actually be sent before their encrypted journal controls can count.
+    nativeSentAcknowledgments: List<JsonObject> = emptyList()
 ) {
     private val before = snapshot(requireNotNull(nativeBeforeScope ?: currentScope())).also(PhoneContentScope::validate)
     private val authority = requireNotNull(nativeAuthority ?: currentAuthority()).also { require(HEX.matches(it)) }
@@ -25,6 +28,8 @@ internal class PersonalActorDecisionCompletion(
     private val controls = linkedMapOf<String, JsonObject>()
     private val frames = linkedMapOf<String, JsonObject>()
     private val received = linkedMapOf<String, JsonObject>()
+    private val ownAcknowledgments = linkedMapOf<String, JsonObject>()
+    private val successfullySent = mutableSetOf<String>()
     private val decisions: JsonArray
 
     // Stable callback identity is part of the volatile native owner capability.
@@ -47,12 +52,22 @@ internal class PersonalActorDecisionCompletion(
         }
         decisions = JsonArray(all)
         PersonalSyncActor.completionMembers(runId, before, targets, decisions)
+        require(nativeSentAcknowledgments.size <= 256)
+        for (queued in nativeSentAcknowledgments) {
+            val wire = snapshot(queued)
+            val body = ack(wire)
+            require(body.string("status") == "accepted" && body.string("error") == "none" &&
+                ownAcknowledgments.putIfAbsent(body.string("message_id"), wire) == null) { "invalid_actor_completion_controls" }
+        }
     }
 
     private fun ack(wire: JsonObject): JsonObject {
         require(wire["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND)) { "unexpected_actor_completion_control" }
         val body = PersonalSyncActor.validateAck(wire.getValue("body").jsonObject)
         require(body.string("run_id") == runId && body.string("message_id") in controls) { "unexpected_actor_completion_control" }
+        ownAcknowledgments[body.string("message_id")]?.let {
+            require(it == wire) { "unexpected_actor_completion_control" }
+        }
         val previous = received[body.string("message_id")]
         require(previous?.string("status") !in SUCCESS || body.string("status") != "rejected") { "actor_completion_outcome_changed" }
         return body
@@ -61,8 +76,16 @@ internal class PersonalActorDecisionCompletion(
     private fun validate(operation: String, wire: JsonObject?): Boolean? {
         require(operation in setOf("begin", "put", "read", "send", "finish")) { "unexpected_actor_completion_operation" }
         val body = if (operation == "send") {
-            require(wire != null && frames[wire.string("message_id")] == wire) { "unexpected_actor_completion_control" }
-            null
+            requireNotNull(wire)
+            if (wire["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND)) {
+                val value = ack(wire)
+                require(ownAcknowledgments[value.string("message_id")] == wire) { "unexpected_actor_completion_control" }
+                value
+            } else {
+                require(frames[wire.string("message_id")] == wire &&
+                    wire.string("message_id") !in ownAcknowledgments) { "unexpected_actor_completion_control" }
+                null
+            }
         } else wire?.let(::ack)
         if (runCatching { checkedSavedBook(currentSavedBook()) }.getOrNull() != savedBook) return false
         val actualAuthority = currentAuthority() ?: return null
@@ -73,9 +96,22 @@ internal class PersonalActorDecisionCompletion(
         val atAfter = runCatching { PersonalSyncActor.requireCompletionScope(runId, before, targets, decisions, actual) }.isSuccess
         if (!atBefore && !atAfter) return false
         if (body?.string("status") in SUCCESS && !atAfter) return null
+        if (operation == "put" && body != null && body.string("message_id") in ownAcknowledgments &&
+            body.string("message_id") !in successfullySent) return null
         if (operation == "finish" && (!atAfter || received.keys != controls.keys ||
                 received.values.any { it.string("status") !in SUCCESS })) return null
         return true
+    }
+
+    fun expectsNativeAcknowledgment(messageId: String): Boolean = messageId in ownAcknowledgments
+
+    /** Native controller calls only after the actual channel send returned, under
+     * fresh service/book gates. An outbox enqueue or failed flush cannot call it. */
+    fun recordSuccessfulAcknowledgmentSend(wire: JsonObject) {
+        check(validate("send", wire) == true) { "actor_completion_not_ready" }
+        val body = ack(wire)
+        check(ownAcknowledgments[body.string("message_id")] == wire) { "unexpected_actor_completion_control" }
+        successfullySent.add(body.string("message_id"))
     }
 
     /** Only call after the journal transaction committed this exact encrypted control. */

@@ -382,6 +382,40 @@ class PersonalSyncActorJournalTest {
         assertEquals("completed", f.journal.finishCompletion(f.handle))
     }
 
+    @Test fun nativeIncomingDecisionAckCannotCountBeforeSendAndEncryptedPersistence() = fixture { db, storage ->
+        val f = completionFixture(db, storage, nativeAck = true)
+        assertTrue(runCatching { f.journal.checkCompletionSend(f.handle, f.wire) }.isFailure)
+        assertTrue(runCatching { f.journal.checkCompletionSend(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.guard.recordSuccessfulAcknowledgmentSend(f.ack) }.isFailure)
+        f.scope = f.after
+        f.journal.checkCompletionSend(f.handle, f.ack)
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.guard.recordPersisted(f.ack) }.isFailure)
+        val substituted = JsonObject(f.ack + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())))
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, substituted) }.isFailure)
+        f.guard.recordSuccessfulAcknowledgmentSend(f.ack)
+        assertTrue(runCatching { f.guard.recordPersisted(f.ack) }.isFailure)
+        assertTrue(f.journal.putCompletionControl(f.handle, f.ack))
+        f.guard.recordPersisted(f.ack)
+        assertEquals("completed", f.journal.finishCompletion(f.handle))
+        assertTrue(runCatching { f.journal.withActive(f.handle) { 0 } }.isFailure)
+    }
+
+    @Test fun nativeSentAckStillRequiresTheSameWriterAndAtomicControlWrite() = fixture { db, storage ->
+        val f = completionFixture(db, storage, restore = true, nativeAck = true)
+        f.journal.checkCompletionSend(f.handle, f.ack)
+        f.guard.recordSuccessfulAcknowledgmentSend(f.ack)
+        db.writableDatabase.execSQL("CREATE TRIGGER sent_ack_write_failure BEFORE INSERT ON meta WHEN NEW.key GLOB 'personal_actor_completion_wire:*' BEGIN SELECT RAISE(ABORT,'synthetic sent ACK metadata failure'); END")
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.guard.recordPersisted(f.ack) }.isFailure)
+        assertEquals(JsonPrimitive(0), f.guard.summary()["saved"])
+        db.writableDatabase.execSQL("DROP TRIGGER sent_ack_write_failure")
+        f.saved = JsonObject(f.saved!! + ("sequence" to JsonPrimitive(2)))
+        assertTrue(runCatching { f.journal.putCompletionControl(f.handle, f.ack) }.isFailure)
+        assertTrue(runCatching { f.journal.finishCompletion(f.handle) }.isFailure)
+        assertTrue(runCatching { f.journal.withActive(f.handle) { 0 } }.isFailure)
+    }
+
     private class CompletionFixture(val journal: PersonalSyncActorJournal, val handle: PersonalActorHandle,
         val before: JsonObject, val after: JsonObject, val wire: JsonObject) {
         var scope: JsonObject? = before
@@ -392,7 +426,8 @@ class PersonalSyncActorJournalTest {
             PersonalSyncActor.ack(handle.runId, wire.string("message_id")), 60000)
     }
 
-    private fun completionFixture(db: TelefonDatenbank, storage: TelefonAblage, restore: Boolean = false): CompletionFixture {
+    private fun completionFixture(db: TelefonDatenbank, storage: TelefonAblage, restore: Boolean = false,
+        nativeAck: Boolean = false): CompletionFixture {
         val cases = Json.parseToJsonElement(requireNotNull(javaClass.getResource("/notes-actor-completion-scope.json")).readText())
             .jsonObject.getValue("cases").jsonArray
         val vector = cases.first { it.jsonObject.string("name") == "delete-note" }.jsonObject
@@ -407,7 +442,8 @@ class PersonalSyncActorJournalTest {
         val f = CompletionFixture(journal, handle, vector.getValue("before").jsonObject,
             vector.getValue(if (restore) "before" else "actual_after").jsonObject, wire)
         f.guard = PersonalActorDecisionCompletion(handle.runId, vector.getValue("native_targets").jsonArray, listOf(wire),
-            { f.authority }, { f.scope }, { f.saved }, { journal.readCompletionControls(handle) })
+            { f.authority }, { f.scope }, { f.saved }, { journal.readCompletionControls(handle) },
+            nativeSentAcknowledgments = if (nativeAck) listOf(f.ack) else emptyList())
         journal.beginCompletion(handle, f.guard.validator)
         return f
     }
