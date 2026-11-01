@@ -16,6 +16,32 @@ from magnolie_personal_actor_completion import DecisionAckCompletion, NativeBook
 
 
 class PostDataDecisionReview:
+    @staticmethod
+    def checked_fixed_evidence(run_id, before_scope, late_targets, native_fixed_targets, fixed_decision_frames):
+        """Native original-frame proof only; never invent an ordinary report ACK."""
+        targets = copy.deepcopy([] if native_fixed_targets is None else native_fixed_targets)
+        if (not isinstance(targets, list) or
+                fixed_decision_frames is not None and not isinstance(fixed_decision_frames, list) or
+                len(late_targets) + len(targets) > 256 or len(fixed_decision_frames or []) > 256):
+            raise ValueError('invalid_actor_fixed_review_targets')
+        frames, decisions = {}, []
+        for wire in fixed_decision_frames or []:
+            if not isinstance(wire, dict) or wire.get('kind') != actor.DATA_KIND:
+                raise ValueError('invalid_actor_fixed_review_frame')
+            actor.start(wire.get('message_id'))
+            kind, body = actor.unwrap(wire.get('body'))
+            if kind != 'personal_sync.deletion_decision' or body['run_id'] != run_id or wire['message_id'] in frames:
+                raise ValueError('invalid_actor_fixed_review_frame')
+            frames[wire['message_id']] = copy.deepcopy(wire)
+            decisions.extend(copy.deepcopy(body['decisions']))
+        actor.completion_members(run_id, before_scope, targets, decisions)
+        # Check union identities now, not hypothetical parent directions. Actual
+        # compatibility needs the complete late decisions, not dummy restores.
+        union_targets = late_targets + targets
+        dummy = [{'proposal_id': value['proposal_id'], 'decision': 'restore', 'expected_clock': value['clock']} for value in union_targets]
+        actor.completion_members(run_id, before_scope, union_targets, dummy)
+        return targets, frames, decisions
+
     def __init__(self, run_id, native_targets, before_scope, report_id, report_ack, *,
                  current_authority, current_scope, current_saved_book, persisted_controls,
                  native_fixed_targets=None, fixed_decision_frames=None):
@@ -35,31 +61,8 @@ class PostDataDecisionReview:
         # They participate in result-scope/receipt binding, NEVER in the late
         # mutation list. Controllers must supply protected original frames and
         # their exact native target proofs, not frontend-authored choices.
-        self.fixed_targets = copy.deepcopy([] if native_fixed_targets is None else native_fixed_targets)
-        self.fixed_frames = {}
-        self.fixed_decisions = []
-        if (not isinstance(self.fixed_targets, list) or
-                fixed_decision_frames is not None and not isinstance(fixed_decision_frames, list) or
-                len(self.targets) + len(self.fixed_targets) > 256):
-            raise ValueError('invalid_actor_fixed_review_targets')
-        for wire in fixed_decision_frames or []:
-            if not isinstance(wire, dict) or wire.get('kind') != actor.DATA_KIND:
-                raise ValueError('invalid_actor_fixed_review_frame')
-            actor.start(wire.get('message_id'))
-            kind, fixed_body = actor.unwrap(wire.get('body'))
-            if (kind != 'personal_sync.deletion_decision' or fixed_body['run_id'] != run_id or
-                    wire['message_id'] in self.fixed_frames):
-                raise ValueError('invalid_actor_fixed_review_frame')
-            self.fixed_frames[wire['message_id']] = copy.deepcopy(wire)
-            self.fixed_decisions.extend(copy.deepcopy(fixed_body['decisions']))
-        if len(self.fixed_frames) > 256:
-            raise ValueError('invalid_actor_fixed_review_frame')
-        actor.completion_members(run_id, self.before, self.fixed_targets, self.fixed_decisions)
-        # Check union identities now, not hypothetical parent directions: an
-        # attachment may legitimately be deleted alongside its fixed deleted
-        # parent. Actual restore/delete compatibility needs the late decisions.
-        fixed_dummy = [{'proposal_id': value['proposal_id'], 'decision': 'restore', 'expected_clock': value['clock']} for value in self.fixed_targets]
-        actor.completion_members(run_id, self.before, self.targets + self.fixed_targets, dummy + fixed_dummy)
+        self.fixed_targets, self.fixed_frames, self.fixed_decisions = self.checked_fixed_evidence(
+            run_id, self.before, self.targets, native_fixed_targets, fixed_decision_frames)
         if not isinstance(report_ack, dict) or report_ack.get('kind') != actor.ACK_KIND:
             raise PermissionError('actor_data_report_ack_required')
         body = report_ack.get('body'); actor.validate_ack(body)

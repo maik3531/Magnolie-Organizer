@@ -14,7 +14,8 @@ from magnolie_personal_actor_decision_review import PostDataDecisionReview
 
 
 class PostDataReportOwner:
-    def __init__(self, run_id, native_targets, before_scope, report_frame, data_saved_book, *, current_authority, persisted_controls, producer_frames=None):
+    def __init__(self, run_id, native_targets, before_scope, report_frame, data_saved_book, *, current_authority, persisted_controls, producer_frames=None,
+                 native_fixed_targets=None, fixed_decision_frames=None):
         actor.start(run_id)
         if not callable(current_authority) or not callable(persisted_controls):
             raise TypeError('Native report owner observations are required')
@@ -54,6 +55,10 @@ class PostDataReportOwner:
                 witnessed.add(value['proposal_id'])
         if producer_frames and witnessed != set(self.expected):
             raise ValueError('actor_producer_frames_incomplete')
+        self.fixed_targets, self.fixed_frames, self.fixed_decisions = PostDataDecisionReview.checked_fixed_evidence(
+            run_id, self.before, self.targets, native_fixed_targets, fixed_decision_frames)
+        if set(self.fixed_frames) & (self.producer_ids | {self.report['message_id']}):
+            raise ValueError('actor_fixed_frame_direction_collision')
         self.current_authority = current_authority
         self.persisted_controls = persisted_controls
         self.authority = current_authority()
@@ -67,9 +72,10 @@ class PostDataReportOwner:
             raise ValueError('unexpected_actor_report_control')
         if wire.get('kind') == actor.ACK_KIND:
             body = wire.get('body'); actor.validate_ack(body)
-            if body['run_id'] != self.run_id or body['message_id'] not in self.producer_ids | {self.report['message_id']}:
+            if body['run_id'] != self.run_id or body['message_id'] not in self.producer_ids | set(self.fixed_frames) | {self.report['message_id']}:
                 raise ValueError('unexpected_actor_report_control')
-            return 'report_ack' if body['message_id'] == self.report['message_id'] else 'producer_ack'
+            return ('report_ack' if body['message_id'] == self.report['message_id'] else
+                'fixed_decision_ack' if body['message_id'] in self.fixed_frames else 'producer_ack')
         if wire.get('kind') != actor.DATA_KIND:
             raise ValueError('unexpected_actor_report_control')
         kind, body = actor.unwrap(wire.get('body'))
@@ -82,7 +88,7 @@ class PostDataReportOwner:
         return 'decision'
 
     def validate(self, operation, wire):
-        if operation not in ('begin', 'put', 'read', 'maintain', 'handoff', 'send_report'):
+        if operation not in ('begin', 'put', 'read', 'maintain', 'handoff', 'send_report', 'send_fixed_decision'):
             raise ValueError('actor_report_owner_metadata_only')
         current = self.current_authority()
         if current is None:
@@ -93,11 +99,15 @@ class PostDataReportOwner:
             if wire != self.report:
                 raise ValueError('actor_ordinary_report_changed')
             return True
+        if operation == 'send_fixed_decision':
+            if not isinstance(wire, dict) or self.fixed_frames.get(wire.get('message_id')) != wire:
+                raise ValueError('actor_fixed_decision_frame_changed')
+            return True  # Original ordinary-saved choice only, not a general send.
         if wire is not None:
             if operation != 'put':
                 raise ValueError('unexpected_actor_report_control')
             kind = self._control(wire)
-            if kind in ('report_ack', 'producer_ack'):
+            if kind in ('report_ack', 'producer_ack', 'fixed_decision_ack'):
                 return True  # Persistence only, not a deletion/book receipt.
         if self.review is not None:
             return self.review.validator(operation, wire)
@@ -126,7 +136,7 @@ class PostDataReportOwner:
             return [wire for wire in self.persisted_controls() if self._control(wire) == 'decision']
         review = PostDataDecisionReview(self.run_id, self.targets, self.before, self.report['message_id'], acknowledgments[0],
             current_authority=self.current_authority, current_scope=current_scope, current_saved_book=current_saved_book,
-            persisted_controls=decisions)
+            persisted_controls=decisions, native_fixed_targets=self.fixed_targets, fixed_decision_frames=list(self.fixed_frames.values()))
         if self.current_authority() != self.authority:
             raise PermissionError('actor_report_owner_changed')
         if current_saved_book() != self.data_saved_book:

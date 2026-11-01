@@ -421,7 +421,7 @@ class ActorStore:
             raise PermissionError("actor_not_found")
         if value["phase"] not in ("decision_review", "completion", "completed"):
             raise PermissionError("actor_completion_inactive")
-        if value['phase'] == 'decision_review' and operation not in ('begin', 'put', 'read', 'handoff', 'send_report'):
+        if value['phase'] == 'decision_review' and operation not in ('begin', 'put', 'read', 'handoff', 'send_report', 'send_fixed_decision'):
             raise PermissionError('actor_decision_review_metadata_only')
         wall, mono = self.clock(), self.monotonic_clock()
         if (type(wall) is not int or type(mono) is not int or
@@ -457,6 +457,20 @@ class ActorStore:
                 raise PermissionError('actor_decision_review_inactive')
             self._require_completion(db, handle, 'send_report', wire)
             self._require_completion(db, handle, 'send_report', wire)
+            if personal.canonical(wire) != clear:
+                raise ValueError('actor_completion_callback_mutated_packet')
+
+    def check_decision_control_send(self, handle, wire):
+        """Original ordinary-saved fixed decision only, never general data I/O."""
+        clear = self._wire_payload(handle, wire, completion=True)
+        if wire['kind'] != actor.DATA_KIND:
+            raise ValueError('actor_fixed_decision_frame_required')
+        with self._completion_database(handle) as db:
+            value = self._require(db, handle, active=False, source=False)
+            if value['phase'] != 'decision_review':
+                raise PermissionError('actor_decision_review_inactive')
+            self._require_completion(db, handle, 'send_fixed_decision', wire)
+            self._require_completion(db, handle, 'send_fixed_decision', wire)
             if personal.canonical(wire) != clear:
                 raise ValueError('actor_completion_callback_mutated_packet')
 
