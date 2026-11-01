@@ -2,12 +2,16 @@
 import copy
 import hashlib
 import json
+import sqlite3
 import pytest
 
 import magnolie_content_scope as scope
 import magnolie_personal_sync as personal
 from magnolie_personal_actor_producer import prepare_deletion_proposals
 from magnolie_personal_actor_store import NativeBookOwnerScope, NativeProducerBookSnapshot
+import magnolie_personal_actor as actor
+import magnolie_telefon as phone
+from test_mcp_phone import owned_service
 
 PEER = '22222222-2222-4222-8222-222222222222'
 RUN = '44444444-4444-4444-8444-444444444444'
@@ -117,3 +121,52 @@ def test_native_preparation_fences_writer_source_identity_and_capacity(gate):
         return None if gate == 'missing-source' else ('b' if gate == 'source-changed' and calls[0] == 2 else 'a') * 64
     with pytest.raises((PermissionError, ValueError)):
         prepare_deletion_proposals(snapshot, manifest, PEER, RUN, current_saved_book=read, current_source=source)
+
+
+@pytest.mark.parametrize('fault', ('none', 'second-frame', 'last-target', 'source-before', 'source-after',
+    'saved-before', 'saved-after', 'missing-last', 'changed-batch', 'duplicate-target', 'incomplete-first'))
+def test_native_prepared_group_commits_all_frames_and_targets_or_rolls_back(tmp_path, fault):
+    service, _, events = owned_service(tmp_path); store = service.store
+    book, manifest = fixture(); owner, read, snapshot = native(book)
+    bodies = prepare_deletion_proposals(snapshot, manifest, PEER, RUN, current_saved_book=read, current_source=lambda: 'a' * 64)
+    private = actor.storage_peer(RUN)
+    if fault == 'missing-last': bodies[-1]['last'] = False
+    if fault == 'changed-batch': bodies[-1]['proposal_batch_id'] = PEER
+    if fault == 'duplicate-target': bodies[-1]['proposals'][0]['id'] = bodies[0]['proposals'][0]['id']
+    if fault == 'incomplete-first': bodies[0]['proposals'].pop()
+    if fault in ('second-frame', 'last-target'):
+        with sqlite3.connect(store.database_path) as db:
+            trigger = ("BEFORE INSERT ON outbox WHEN (SELECT COUNT(*) FROM outbox)>=1" if fault == 'second-frame' else
+                "BEFORE INSERT ON meta WHEN NEW.key='personal_proposal_kind:" + private + ":out:" + bodies[-1]['proposals'][0]['proposal_id'] + "'")
+            db.execute("CREATE TRIGGER group_atomic_failure " + trigger + " BEGIN SELECT RAISE(ABORT,'synthetic group transaction failure'); END")
+    sources = [0]; saved_reads = [0]
+    def source():
+        sources[0] += 1
+        return ('b' if fault == 'source-before' or fault == 'source-after' and sources[0] == 2 else 'a') * 64
+    def saved():
+        saved_reads[0] += 1
+        if fault == 'saved-after' and saved_reads[0] == 2: owner.record_saved('native-producer-fixture', True, snapshot.saved_sha256)
+        return read()
+    if fault == 'saved-before': owner.record_saved('native-producer-fixture', True, snapshot.saved_sha256)
+    def commit():
+        return store.queue_actor_deletion_proposals(PEER, RUN, bodies, expected_source='a' * 64,
+            saved_book=snapshot.saved_book, current_source=source, current_saved_book=saved)
+    if fault != 'none':
+        with pytest.raises((ValueError, PermissionError, sqlite3.DatabaseError)):
+            commit()
+        with sqlite3.connect(store.database_path) as db:
+            assert db.execute('SELECT COUNT(*) FROM outbox').fetchone()[0] == 0
+            assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] == 0
+        assert not events and service.server is None
+        return
+    wire = commit()
+    assert len(wire) == 2 and all(frame['kind'] == actor.DATA_KIND for frame in wire)
+    assert [actor.unwrap(frame['body'])[1] for frame in wire] == bodies
+    reopened = phone.PhoneStore(str(tmp_path / 'phone'), 'Owned desktop')
+    assert {frame['message_id'] for frame in reopened.pending(PEER)} == {frame['message_id'] for frame in wire}
+    for body in bodies:
+        decision = {'format': 1, 'run_id': RUN, 'decision_id': RUN, 'decisions': [
+            {'proposal_id': proposal['proposal_id'], 'decision': 'restore', 'expected_clock': proposal['clock']} for proposal in body['proposals']]}
+        assert len(reopened.personal_decision_targets(private, decision, False)) == len(body['proposals'])
+        assert reopened.personal_decision_targets(PEER, decision, False) is None
+    assert snapshot.book() == book and read() == snapshot.saved_book and not events and service.server is None

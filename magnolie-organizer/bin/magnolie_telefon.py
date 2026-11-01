@@ -945,6 +945,58 @@ class PhoneStore:
                          encrypted, 0, now, "", transport_policy))
         return message
 
+    def queue_actor_deletion_proposals(self, peer_id, run_id, bodies, *, expected_source, saved_book,
+                                      current_source, current_saved_book):
+        """Native caller holds source/owner gates; persist the whole prepared group.
+
+        No wire/caller-supplied target list is admitted by this primitive alone.
+        The native producer must supply its pinned source and actual saved book;
+        both are reobserved inside this one SQL transaction before/after writes.
+        """
+        personal_actor_contract.start(run_id)
+        if (not isinstance(peer_id, str) or not personal_sync_contract.UUID4.fullmatch(peer_id) or
+                not isinstance(expected_source, str) or re.fullmatch(r'[a-f0-9]{64}', expected_source) is None or
+                not callable(current_source) or not callable(current_saved_book) or
+                not isinstance(saved_book, dict) or set(saved_book) != {'book_source', 'sequence', 'sha256'} or
+                type(saved_book['sequence']) is not int or saved_book['sequence'] <= 0 or
+                any(not isinstance(saved_book[key], str) or re.fullmatch(r'[a-f0-9]{64}', saved_book[key]) is None for key in ('book_source', 'sha256'))):
+            raise ValueError('invalid_native_proposal_group_binding')
+        witness = copy.deepcopy(saved_book)
+        bodies = copy.deepcopy(bodies)
+        if not isinstance(bodies, list) or not 1 <= len(bodies) <= 8:
+            raise ValueError('invalid_native_proposal_group')
+        proposal_ids, targets = [], []
+        for index, body in enumerate(bodies):
+            validate_personal_sync_body('personal_sync.deletion_proposals', body)
+            if (body['run_id'] != run_id or body['proposal_batch_id'] != bodies[0]['proposal_batch_id'] or
+                    body['sequence'] != index or body['last'] != (index == len(bodies) - 1) or
+                    not 1 <= len(body['proposals']) <= 32 or index < len(bodies) - 1 and len(body['proposals']) != 32):
+                raise ValueError('incomplete_native_proposal_group')
+            proposal_ids.extend(value['proposal_id'] for value in body['proposals'])
+            targets.extend((value['kind'], value['id'], value['parent_id']) for value in body['proposals'])
+        if (proposal_ids != sorted(set(proposal_ids), key=lambda value: value.encode('utf-8')) or len(set(targets)) != len(targets)):
+            raise ValueError('ambiguous_native_proposal_group')
+        now = now_ms(); prepared = []
+        for body in bodies:
+            message = personal_actor_contract.wire_message({'type': 'message', 'v': 1, 'message_id': str(uuid.uuid4()),
+                'kind': 'personal_sync.deletion_proposals', 'created_ms': now, 'expires_ms': now + DAY_MS, 'body': body}, run_id)
+            prepared.append((message, self._encrypt(canonical(message), 'outbox', message['message_id']), body))
+        private = personal_actor_contract.storage_peer(run_id)
+        def require_current():
+            if current_source() != expected_source or current_saved_book() != witness:
+                raise PermissionError('actor_producer_source_changed')
+        with sqlite3.connect(self.database_path) as db:
+            db.execute('BEGIN IMMEDIATE'); require_current()
+            size = db.execute('SELECT COALESCE(SUM(length(payload)),0) FROM outbox').fetchone()[0]
+            if size + sum(len(payload) for _, payload, _ in prepared) > 50 * 1024 * 1024:
+                raise RuntimeError('queue_full')
+            for wire, payload, body in prepared:
+                self._remember_personal_proposal_kinds(db, private, body, True, now)
+                db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (wire['message_id'], peer_id, 'personal_sync.deletion_proposals', now, now + DAY_MS, payload, 0, now, '', 'any'))
+            require_current()
+        return [copy.deepcopy(wire) for wire, _, _ in prepared]
+
     def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None):
         """Atomically encrypt-stage every source before record messages enter outbox."""
         if transport_policy not in {"any", "wifi_only"} or not messages:
