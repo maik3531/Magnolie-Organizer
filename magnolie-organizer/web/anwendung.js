@@ -1496,6 +1496,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const value = { ...record.value, origin_app: localValue.origin_app };
         record = { ...record, value, hash: await personalSyncHash(value) }; options.guard?.();
       }
+      if (options.independentRemovals && record.kind === "note" && Array.isArray(record.value.attachments)) {
+        const attachments = record.value.attachments.filter(value => {
+          const child = DATEN.personalSync.entities["attachment\u0000" + record.id + "\u0000" + personalSyncAnhangId(record.id, value.attachment_id, DATEN)];
+          return child?.state !== "deleted" || child.status !== "local_pending";
+        });
+        if (attachments.length !== record.value.attachments.length) {
+          // Parent data is not a decision about an independently pending child.
+          // Original wire bytes/hash were verified above and remain untouched;
+          // this effective projection describes only the content actually saved.
+          const value = { ...record.value, attachments };
+          record = { ...record, value, hash: await personalSyncHash(value) }; options.guard?.();
+        }
+      }
       if (lokal && lokal.state === "deleted") continue;
       if (!lokal) { personalSyncSetze(record, record.id, true, attachmentData, DATEN); DATEN.personalSync.entities[key] = {
         clock: record.clock, hash: record.hash, modified_ms: record.modified_ms, conflict: false }; eigeneWerte.set(key, record.value); continue; }
