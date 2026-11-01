@@ -217,6 +217,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
         var ledgerReady = false
         var completed = false
         val acknowledgments = linkedMapOf<String, DeletionDecisionAck>()
+        var ownAcknowledgments: List<JsonObject> = emptyList()
+        var ownAckAttempts = 0
+        var nextOwnAckAttempt = 0L
     }
     private val personalActorCompletions = mutableMapOf<String, ActorDeletionCompletion>()
     private val personalActorBooks = mutableMapOf<String, Bestand>()
@@ -314,25 +317,52 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val authority = requireNotNull(currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation))
             val retained = documents.bestand.value
             val intents = queue.actorDeletionIntents(run)
-            require(intents.isNotEmpty() && intents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
-                "actor_incoming_decision_controller_required"
+            val incomingOnly = intents.isNotEmpty() && intents.all { it.string("kind") == "personal_sync.deletion_decision" }
+            require(intents.isNotEmpty() && (incomingOnly || intents.all { it.string("kind") == "personal_sync.deletion_proposals" })) {
+                "actor_mixed_decision_controller_required"
             }
-            val decoded = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body") as JsonObject) }
-            for (batch in intents.groupBy { it.getValue("body").jsonObject.string("proposal_batch_id") }.values) {
+            val outgoing = if (incomingOnly) queue.actorDeletionIntents(run, true) else emptyList()
+            val proposalIntents = if (incomingOnly) outgoing else intents
+            require(proposalIntents.isNotEmpty() && proposalIntents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
+                "actor_outgoing_target_proof_required"
+            }
+            val decoded = proposalIntents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body") as JsonObject) }
+            for (batch in proposalIntents.groupBy { it.getValue("body").jsonObject.string("proposal_batch_id") }.values) {
                 val bodies = batch.map { it.getValue("body").jsonObject }.sortedBy { it.long("sequence") }
                 require(bodies.map { it.long("sequence") } == bodies.indices.map { it.toLong() } &&
                     bodies.map { it["last"] == JsonPrimitive(true) } == bodies.indices.map { it == bodies.lastIndex }) { "actor_deletion_batch_incomplete" }
             }
             require(decoded.size in 1..256 && decoded.map { it.proposalId }.distinct().size == decoded.size &&
-                choices.keys == decoded.map { it.proposalId }.toSet() && choices.values.all { it in setOf("delete", "restore") }) {
+                (if (incomingOnly) choices.isEmpty() else choices.keys == decoded.map { it.proposalId }.toSet()) &&
+                choices.values.all { it in setOf("delete", "restore") }) {
                 "actor_deletion_review_required"
             }
-            val proposals = decoded.map { value -> PersonalDeletionProposal(run, value.proposalId, value.kind, value.id,
+            val incoming = if (!incomingOnly) emptyList() else intents.flatMap { wire ->
+                val body = wire.getValue("body").jsonObject
+                PersonalSyncProtokoll.decodeDeletionDecisions(body).map {
+                    AppliedPersonalDecision(it.proposalId, it.decision, it.expectedClock, body.string("decision_id"))
+                }
+            }
+            if (incomingOnly) {
+                val native = decoded.associateBy { it.proposalId }
+                require(incoming.size == native.size && incoming.map { it.proposal_id }.toSet() == native.keys &&
+                    incoming.map { it.proposal_id }.distinct().size == incoming.size &&
+                    incoming.all { native[it.proposal_id]?.clock == it.expected_clock }) { "actor_decision_clock_changed" }
+                // Retain the actual encrypted received frames before retiring
+                // data ownership. Their semantic envelope must match the ledger.
+                for (intent in intents) {
+                    val actual = personalActorJournal.readWire(handle, intent.string("message_id"))
+                    var semantic = PersonalSyncActor.unwrap(actual.getValue("body").jsonObject)
+                    if (semantic.first == PhoneContentScope.DATA_KIND) semantic = PhoneContentScope.unwrap(semantic.second, before)
+                    require(semantic.first == "personal_sync.deletion_decision" && semantic.second == intent["body"]) { "actor_decision_envelope_changed" }
+                }
+            }
+            val proposals = if (incomingOnly) emptyList() else decoded.map { value -> PersonalDeletionProposal(run, value.proposalId, value.kind, value.id,
                 value.parentId, value.clock, value.priorHash, value.deletedMs, value.label, peer.device_id) }
             val decisions = proposals.map { AppliedPersonalDecision(it.proposal_id, choices.getValue(it.proposal_id), it.clock, UUID.randomUUID().toString()) }
-            val targets = JsonArray(intents.flatMap { (it.getValue("body") as JsonObject).getValue("proposals").jsonArray }
+            val targets = JsonArray(proposalIntents.flatMap { (it.getValue("body") as JsonObject).getValue("proposals").jsonArray }
                 .map { JsonObject(it.jsonObject.filterKeys { key -> key !in setOf("deleted_ms", "label") }) })
-            val decisionBodies = decisions.map { value -> buildJsonObject {
+            val decisionBodies = if (incomingOnly) intents.map { it.getValue("body").jsonObject } else decisions.map { value -> buildJsonObject {
                 put("format", 1); put("run_id", run); put("decision_id", value.decision_id)
                 put("decisions", buildJsonArray { add(buildJsonObject {
                     put("proposal_id", value.proposal_id); put("decision", value.decision)
@@ -347,7 +377,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 value.getValue("tasks").jsonArray.map { it.jsonPrimitive.content }.toSet())
             val beforeSelection = selection(before.getValue("members").jsonObject)
             val afterSelection = selection(members)
-            val preview = PersonalSync.prepareActorDeletion(retained, peer.device_id, run, proposals, decisions, emptyList())
+            val preview = PersonalSync.prepareActorDeletion(retained, peer.device_id, run, proposals, decisions, incoming)
             require(preview.second == "applied" && PersonalSync.livePersonalContent(preview.first) == afterSelection) { "actor_deletion_conflict" }
             val policy = requireNotNull(queue.personalRunPolicy(peer.device_id, run))
             var terminal: ActorDeletionCompletion? = null
@@ -362,19 +392,24 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 } else null
             }
             try {
-                val frames = decisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) }
+                val frames = if (incomingOnly) intents.map { PersonalSyncActor.wireMessage(it, run) }
+                    else decisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) }
+                val ownAcknowledgments = if (incomingOnly) intents.map { TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                    PersonalSyncActor.ack(run, it.string("message_id")), 60000) } else emptyList()
                 personalActorJournal.beginCompletion(handle, nativeGuard)
                 personalActorWork.remove(run)
                 io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
                 require(documents.personalSyncApplyActorDeletionOnce(peer.device_id, run, "${peer.device_id}:$run:actor-deletions",
-                    retained, beforeSelection, afterSelection, proposals, decisions, emptyList()) == "applied") { "actor_deletion_conflict" }
+                    retained, beforeSelection, afterSelection, proposals, decisions, incoming) == "applied") { "actor_deletion_conflict" }
                 personalActorBooks[run] = documents.bestand.value
                 val witness = requireNotNull(documents.personalActorSavedBookState())
                 val guard = PersonalActorDecisionCompletion(run, targets, frames,
                     { currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) },
                     { if (currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == null) null else noteSessions[channel]?.localContentScope },
-                    { Ablage.hole(context).personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, before, authority)
+                    { Ablage.hole(context).personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, before, authority,
+                    nativeSentAcknowledgments = ownAcknowledgments)
                 val saved = ActorDeletionCompletion(choices.toMap(), intents, witness, members, guard)
+                saved.ownAcknowledgments = ownAcknowledgments
                 terminal = saved
                 personalActorCompletions[run] = saved
                 // A failed ledger transaction keeps the saved native ticket but
@@ -2292,6 +2327,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel) return@synchronized null
                         personalActorCompletions[run]?.let { completion ->
                             if (completion.completed) return@synchronized null
+                            // A peer ACK can never substitute for an ACK which
+                            // this native endpoint must actually send itself.
+                            if (completion.guard.expectsNativeAcknowledgment(body.string("message_id"))) return@synchronized null
                             personalActorJournal.putCompletionControl(handle, message)
                             completion.guard.recordPersisted(message)
                             queue.acknowledge(peer.device_id, body.string("message_id"), body.string("status"), body.string("error"))?.let {
@@ -3608,9 +3646,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
             if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel ||
                 actorDataReportReceipt(handle) == null) return@runCatching
             val intents = queue.actorDeletionIntents(run)
-            if (intents.isEmpty() || intents.any { it.string("kind") != "personal_sync.deletion_proposals" }) return@runCatching
-            val proposals = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
-            commitPersonalActorDeletionReview(handle, proposals.associate { it.proposalId to "delete" })
+            if (intents.isEmpty()) return@runCatching
+            if (intents.all { it.string("kind") == "personal_sync.deletion_decision" }) commitPersonalActorDeletionReview(handle, emptyMap())
+            else if (intents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
+                val proposals = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
+                commitPersonalActorDeletionReview(handle, proposals.associate { it.proposalId to "delete" })
+            }
         }
         // A durable book plus failed metadata transaction is not another save.
         // Wait for fresh native authority/scope before retrying only that ledger.
@@ -3622,8 +3663,65 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    private fun sendActorNativeAcknowledgments(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
+        val runs = synchronized(this) { personalActorCompletions.keys.toList() }
+        for (run in runs) {
+            val claim = synchronized(this) {
+                val peer = safePeer()?.takeIf { it.device_id == expected.device_id && it.static_public == expected.static_public }
+                val handle = personalActorHandles[run]
+                val completion = personalActorCompletions[run]
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (!serviceRunning || !storage.enabled() || peer == null || handle == null || handle.peerId != peer.device_id ||
+                    completion == null || completion.completed || !completion.ledgerReady || completion.nextOwnAckAttempt > now ||
+                    activeChannel !== channel || generation != pairingGeneration || personalActorTransports[run] !== channel ||
+                    personalActorKeys[run] != peer.static_public) return@synchronized null
+                val pending = completion.ownAcknowledgments.filter { it.string("message_id") !in personalActorDispatches }.take(32)
+                if (pending.isEmpty()) return@synchronized null
+                try {
+                    for (wire in pending) personalActorJournal.checkCompletionSend(handle, wire)
+                } catch (error: Exception) {
+                    if (error.message != "actor_completion_not_ready") stopPersonalActor(handle)
+                    return@synchronized null
+                }
+                completion.nextOwnAckAttempt = now + (1000L shl completion.ownAckAttempts.coerceAtMost(5)).coerceAtMost(30000L)
+                completion.ownAckAttempts++
+                personalActorDispatches.addAll(pending.map { it.string("message_id") })
+                Triple(handle, completion, pending)
+            } ?: continue
+            val (handle, completion, frames) = claim
+            try {
+                for (wire in frames) {
+                    // Actual encrypted I/O is outside service/book/SQLite guards.
+                    // A failed/unknown flush leaves this frame uncounted, even
+                    // if earlier frames in this bounded claim already succeeded.
+                    channel.send(wire)
+                    synchronized(this) {
+                        synchronized(Ablage.SCHREIBSPERRE) {
+                            check(personalActorCompletions[run] === completion && personalActorHandles[run] === handle &&
+                                activeChannel === channel && generation == pairingGeneration)
+                            personalActorJournal.checkCompletionSend(handle, wire)
+                            completion.guard.recordSuccessfulAcknowledgmentSend(wire)
+                            personalActorJournal.putCompletionControl(handle, wire)
+                            completion.guard.recordPersisted(wire)
+                            completion.ownAcknowledgments = completion.ownAcknowledgments.filterNot { it == wire }
+                            val summary = completion.guard.summary()
+                            if (summary["saved"] == summary["expected"]) {
+                                personalActorJournal.finishCompletion(handle)
+                                completion.completed = true
+                                queue.stopActorRun(expected.device_id, run)
+                            }
+                        }
+                    }
+                }
+            } finally {
+                synchronized(this) { frames.forEach { personalActorDispatches.remove(it.string("message_id")) } }
+            }
+        }
+    }
+
     private fun sendActorDue(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
         prepareActorTerminalWork(expected, channel, generation)
+        sendActorNativeAcknowledgments(expected, channel, generation)
         val entries = synchronized(this) {
             if (!serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration ||
                 personalActorTransports.values.none { it === channel }) return

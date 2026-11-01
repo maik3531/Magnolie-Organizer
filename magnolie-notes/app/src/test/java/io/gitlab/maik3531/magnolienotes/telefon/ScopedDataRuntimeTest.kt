@@ -63,6 +63,12 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorProducerRequiresDeletionGrants() = exercise("actor-producer-no-grants")
     @Test fun nativeActorProducerHonorsAgreedSkipDeletions() = exercise("actor-producer-skip")
     @Test fun nativeActorProducerRollsBackOutboxAndTargetProofTogether() = exercise("actor-producer-sql-failure")
+    @Test fun nativeIncomingDecisionDeleteUsesActualOutgoingProofAndOneSave() = exercise("actor-producer-incoming-delete")
+    @Test fun nativeIncomingDecisionRestoreRetainsDraftAndActuallySendsTheAck() = exercise("actor-producer-incoming-restore")
+    @Test fun nativeIncomingDecisionFailedAckFlushNeverCountsAsSuccess() = exercise("actor-producer-incoming-send-failure")
+    @Test fun nativeIncomingDecisionLedgerRetryDoesNotRepeatTheBookWrite() = exercise("actor-producer-incoming-ledger-failure")
+    @Test fun nativeIncomingDecisionWriterFailureNeverSendsSuccess() = exercise("actor-producer-incoming-writer-failure")
+    @Test fun nativeIncomingDecisionSentAckMetadataFailureStillNeedsPersistence() = exercise("actor-producer-incoming-metadata-failure")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -170,8 +176,12 @@ class ScopedDataRuntimeTest {
             val closed = AtomicInteger()
             val wake = AtomicReference<CountDownLatch?>()
             val failNextFlush = AtomicBoolean(false)
+            val checkNativeAckLocks = AtomicBoolean(false)
             val wireOutput = object : ByteArrayOutputStream() {
                 override fun flush() {
+                    if (checkNativeAckLocks.get()) {
+                        check(!Thread.holdsLock(work) && !Thread.holdsLock(Ablage.SCHREIBSPERRE)) { "Native ACK I/O held service/book guards" }
+                    }
                     if (failNextFlush.getAndSet(false)) throw java.io.IOException("Synthetic encrypted channel write failure")
                     super.flush(); wake.get()?.countDown()
                 }
@@ -333,6 +343,114 @@ class ScopedDataRuntimeTest {
                                 PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_proposals" }.map { it.string("message_id") }.toSet())
                         }
                         assertNull(documents.notiz("removed-note")); assertTrue(documents.notiz("phone-note")!!.anhaenge.isEmpty())
+                        if (mode.startsWith("actor-producer-incoming-")) {
+                            @Suppress("UNCHECKED_CAST")
+                            val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)
+                            val native = proofs.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }.sortedBy { it.proposalId }
+                            val choice = if (mode.endsWith("restore")) "restore" else "delete"
+                            val decisionBodies = native.chunked(32).map { chunk -> buildJsonObject {
+                                put("format", 1); put("run_id", run); put("decision_id", UUID.randomUUID().toString())
+                                put("decisions", JsonArray(chunk.map { proposal -> buildJsonObject {
+                                    put("proposal_id", proposal.proposalId); put("decision", choice)
+                                    put("expected_clock", JsonArray(proposal.clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                                } }))
+                            } }
+                            val decisionBody = decisionBodies.first()
+                            val wrongDecisions = decisionBody.getValue("decisions").jsonArray.toMutableList()
+                            wrongDecisions[0] = JsonObject(wrongDecisions[0].jsonObject + ("expected_clock" to buildJsonArray { add(buildJsonObject {
+                                put("actor_id", peerId); put("counter", 999) }) }))
+                            work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision",
+                                JsonObject(decisionBody + ("decisions" to JsonArray(wrongDecisions))), 60000), run), channel, 0L)
+                            assertTrue(sent().isEmpty()); assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                            val incomingDecisions = decisionBodies.map { PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision", it, 60000), run) }
+                            val incomingDecision = incomingDecisions.first()
+                            val incomingIds = incomingDecisions.map { it.getValue("message_id") }.toSet()
+                            for (wire in incomingDecisions) work.receiveMessage(peer, wire, channel, 0L)
+                            assertTrue(sent().isEmpty()); assertEquals(2, queue.actorDeletionIntents(run).size)
+                            assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, emptyMap()) }.isFailure)
+                            // Complete the actual data direction first. Its ACK
+                            // is distinct from the ACK for this deletion decision.
+                            val replyRecords = batches.filter { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
+                                .flatMap { PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(it.getValue("body").jsonObject).second) }
+                            val incomingBatch = PersonalSyncProtokoll.batch(run, replyRecords, 0, true, true, format, PersonalSync.recordsHash(replyRecords))
+                            work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBatch, 60000), run), channel, 0L)
+                            assertEquals(1, sent().size)
+                            val reportBody = buildJsonObject {
+                                put("format", format); put("run_id", run); put("state", "complete"); put("trigger", "manual"); put("transport", "wifi")
+                                for (direction in listOf("sent", "received")) put(direction, buildJsonObject {
+                                    put("notes", replyRecords.count { it.kind == "note" }); put("tasks", replyRecords.count { it.kind == "task" }); put("notebooks", replyRecords.count { it.kind == "notebook" }) })
+                                put("conflicts", 0); put("attachments_omitted", 0); put("oversized_skipped", 0)
+                                put("started_ms", System.currentTimeMillis()); put("finished_ms", System.currentTimeMillis()); put("error", "none")
+                                put("attachments", buildJsonObject {
+                                    for (name in listOf("declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes")) put(name, 0)
+                                })
+                                put("deletions", buildJsonObject {
+                                    put("pending", native.size)
+                                    for (name in listOf("deleted", "restored", "conflicts", "blocked")) put(name, 0)
+                                    put("trash", buildJsonObject {
+                                        for (name in listOf("notes", "tasks", "notebooks")) put(name, 0)
+                                        put("attachments", native.size)
+                                    })
+                                })
+                            }
+                            work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.report", reportBody, 60000), run), channel, 0L)
+                            assertEquals(1, sent().size); assertNotNull(work.actorDataReportReceipt(handle))
+                            documents.setzeNotizEntwurf(documents.notiz("phone-note")!!.copy(text = "Retained incoming-decision GUI draft")); documents.sichereEntwurf()
+                            val draft = documents.entwurf.value
+                            val witness = requireNotNull(documents.personalActorSavedBookState())
+                            val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                            if (mode.endsWith("ledger-failure")) database.execSQL("CREATE TRIGGER incoming_ledger_failure BEFORE UPDATE ON inbox WHEN NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic incoming decision ledger failure'); END")
+                            if (mode.endsWith("metadata-failure")) database.execSQL("CREATE TRIGGER incoming_metadata_failure BEFORE INSERT ON meta WHEN NEW.key GLOB 'personal_actor_completion_wire:*' BEGIN SELECT RAISE(ABORT,'synthetic sent ACK persistence failure'); END")
+                            if (mode.endsWith("writer-failure")) failBookWrites.set(true)
+                            if (mode.endsWith("send-failure")) failNextFlush.set(true)
+                            checkNativeAckLocks.set(true)
+                            val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
+                            val firstWire = sent()
+                            if (mode.endsWith("writer-failure")) {
+                                failBookWrites.set(false)
+                                assertEquals(witness, documents.personalActorSavedBookState())
+                                assertTrue(documents.notiz("phone-note")!!.anhaenge.isEmpty())
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                assertEquals(draft, documents.entwurf.value)
+                                assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                return@use
+                            }
+                            val after = requireNotNull(documents.personalActorSavedBookState())
+                            assertEquals(witness.getValue("sequence").jsonPrimitive.long + 1, after.getValue("sequence").jsonPrimitive.long)
+                            assertEquals(if (choice == "restore") 33 else 0, documents.notiz("phone-note")!!.anhaenge.size)
+                            assertEquals(draft, documents.entwurf.value)
+                            if (mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
+                                assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                @Suppress("UNCHECKED_CAST")
+                                val completion = (field(TelefonWerk::class.java, "personalActorCompletions").get(work) as Map<String, Any>).getValue(run)
+                                val guard = field(completion.javaClass, "guard").get(completion) as PersonalActorDecisionCompletion
+                                assertEquals(JsonPrimitive(0), guard.summary()["saved"])
+                                if (mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) assertTrue(first.isFailure)
+                                val peerAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND, PersonalSyncActor.ack(run, incomingDecision.string("message_id")), 60000)
+                                work.receiveMessage(peer, peerAck, channel, 0L)
+                                assertEquals(JsonPrimitive(0), guard.summary()["saved"])
+                                if (mode.endsWith("ledger-failure")) database.execSQL("DROP TRIGGER incoming_ledger_failure")
+                                if (mode.endsWith("metadata-failure")) database.execSQL("DROP TRIGGER incoming_metadata_failure")
+                                // No immediate resend may bypass the native retry delay.
+                                if (mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
+                                    pump.invoke(work, peer, channel, 0L, false); assertTrue(sent().isEmpty())
+                                }
+                                field(completion.javaClass, "nextOwnAckAttempt").setLong(completion, 0)
+                                pump.invoke(work, peer, channel, 0L, false)
+                            } else assertTrue(first.isSuccess)
+                            val allWire = firstWire + sent()
+                            val actualAcks = allWire.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) &&
+                                it.getValue("body").jsonObject["message_id"] in incomingIds }.toSet()
+                            assertEquals(incomingIds, actualAcks.map { it.getValue("body").jsonObject.getValue("message_id") }.toSet())
+                            assertEquals("completed", work.personalActorJournal.completionState(handle))
+                            assertEquals(actualAcks, work.personalActorJournal.readCompletionControls(handle).toSet())
+                            assertEquals(after, documents.personalActorSavedBookState())
+                            assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                            assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                            val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                            assertEquals(draft, reopened.entwurf.value)
+                            assertEquals(if (choice == "restore") 33 else 0, reopened.notiz("phone-note")!!.anhaenge.size)
+                        }
                         return@use
                     }
                     val batch = batches.single { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
