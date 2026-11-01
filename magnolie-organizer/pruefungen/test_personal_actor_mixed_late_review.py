@@ -90,3 +90,22 @@ def test_mixed_review_requires_both_result_scope_directions(scope_case):
     members = {'only-late': ([], ['selected-task']), 'only-fixed': (['canonical-parent'], []), 'unrelated': (['unrelated'], [])}[scope_case]
     state['scope'] = scope.advance(before, *members)
     with pytest.raises(ValueError): create().review()
+
+
+@pytest.mark.parametrize('late_choice', ['delete', 'restore'])
+def test_actual_late_parent_direction_is_checked_after_complete_decisions_not_dummy_restores(late_choice):
+    original, state, owner, read, snapshot, report_id, ack = review_fixture(1)
+    fixed = {'proposal_id': str(uuid.uuid4()), 'kind': 'note', 'id': 'canonical-parent', 'parent_id': '',
+        'clock': [{'actor_id': '22222222-2222-4222-8222-222222222222', 'counter': 7}], 'prior_hash': 'f' * 64}
+    fixed_wire = actor.wire_message(frame('personal_sync.deletion_decision', {'format': 1, 'run_id': original.run_id,
+        'decision_id': str(uuid.uuid4()), 'decisions': [{'proposal_id': fixed['proposal_id'], 'decision': 'delete', 'expected_clock': fixed['clock']}]}), original.run_id)
+    state['controls'][0]['body']['body']['decisions'][0]['decision'] = late_choice
+    state['scope'] = scope.advance(original.before, [], original.before['members']['tasks'])
+    review = PostDataDecisionReview(original.run_id, original.targets, original.before, report_id, ack,
+        current_authority=lambda: state['authority'], current_scope=lambda: state['scope'], current_saved_book=read,
+        persisted_controls=lambda: state['controls'], native_fixed_targets=[fixed], fixed_decision_frames=[fixed_wire])
+    if late_choice == 'restore':
+        with pytest.raises(ValueError, match='actor_completion_parent_unavailable'): review.review()
+    else:
+        assert review.review()['decisions'][0]['decision'] == 'delete'
+    assert review.claim is None and review.saved is None

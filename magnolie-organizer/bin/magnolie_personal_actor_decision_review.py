@@ -55,9 +55,11 @@ class PostDataDecisionReview:
         if len(self.fixed_frames) > 256:
             raise ValueError('invalid_actor_fixed_review_frame')
         actor.completion_members(run_id, self.before, self.fixed_targets, self.fixed_decisions)
-        # Reject overlapping proposals/entity identities and incompatible parent
-        # directions even before the actual late decisions have all arrived.
-        actor.completion_members(run_id, self.before, self.targets + self.fixed_targets, dummy + self.fixed_decisions)
+        # Check union identities now, not hypothetical parent directions: an
+        # attachment may legitimately be deleted alongside its fixed deleted
+        # parent. Actual restore/delete compatibility needs the late decisions.
+        fixed_dummy = [{'proposal_id': value['proposal_id'], 'decision': 'restore', 'expected_clock': value['clock']} for value in self.fixed_targets]
+        actor.completion_members(run_id, self.before, self.targets + self.fixed_targets, dummy + fixed_dummy)
         if not isinstance(report_ack, dict) or report_ack.get('kind') != actor.ACK_KIND:
             raise PermissionError('actor_data_report_ack_required')
         body = report_ack.get('body'); actor.validate_ack(body)

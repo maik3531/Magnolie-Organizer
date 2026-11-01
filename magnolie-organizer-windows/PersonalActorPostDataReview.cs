@@ -59,7 +59,11 @@ internal sealed class PersonalActorPostDataReview
             foreach (var decision in semantic.Body["decisions"]!.AsArray()) fixedDecisions.Add(decision!.DeepClone());
         }
         PersonalSyncActorContract.CompletionMembers(runId, before, fixedTargets, fixedDecisions);
-        PersonalSyncActorContract.CompletionMembers(runId, before, Union(targets, fixedTargets), Union(dummy, fixedDecisions));
+        // Early union checks must not reject deleting an attachment alongside
+        // its fixed deleted parent by pretending the late choice was restore.
+        var fixedDummy = new JsonArray(fixedTargets.OfType<JsonObject>().Select(target => (JsonNode)new JsonObject {
+            ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = target["clock"]!.DeepClone() }).ToArray());
+        PersonalSyncActorContract.CompletionMembers(runId, before, Union(targets, fixedTargets), Union(dummy, fixedDummy));
         reportAck = dataReportAck.DeepClone().AsObject();
         if (Text(reportAck, "kind") != PersonalSyncActorContract.AckKind) throw new InvalidOperationException("actor_data_report_ack_required");
         var body = reportAck["body"]!.AsObject(); PersonalSyncActorContract.ValidateAck(body);

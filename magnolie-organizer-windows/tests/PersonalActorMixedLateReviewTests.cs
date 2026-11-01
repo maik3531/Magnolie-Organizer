@@ -16,6 +16,7 @@ internal static class PersonalActorMixedLateReviewTests
     internal static Task RunAsync()
     {
         foreach (var late in new[] { "delete", "restore" }) foreach (var initial in new[] { "delete", "restore" }) Exercise(late, initial, "complete");
+        foreach (var late in new[] { "delete", "restore" }) Exercise(late, "delete", "parent-direction");
         foreach (var fault in new[] { "missing-frame", "missing-target", "foreign-frame", "clock", "duplicate-frame", "duplicate-proposal", "duplicate-entity", "wrong-run", "direction-collision",
             "only-late", "only-fixed", "unrelated", "pinning" }) Exercise("delete", "delete", fault);
         return Task.CompletedTask;
@@ -23,12 +24,18 @@ internal static class PersonalActorMixedLateReviewTests
     private static void Exercise(string late, string initial, string scenario)
     {
         var lateTarget = Target("note", "canonical-parent"); var fixedTarget = Target("task", "selected-task");
+        if (scenario == "parent-direction")
+        {
+            lateTarget = Target("attachment", "gone"); lateTarget["parent_id"] = "canonical-parent";
+            fixedTarget = Target("note", "canonical-parent");
+        }
         var incoming = DecisionFrame(lateTarget, late); var outgoing = DecisionFrame(fixedTarget, initial);
         var targets = new JsonArray(fixedTarget.DeepClone()); var frames = new List<JsonObject> { outgoing.DeepClone().AsObject() };
         var before = PhoneContentScope.Create(["canonical-parent"], ["selected-task"]);
         var notes = late == "delete" ? Array.Empty<string>() : ["canonical-parent"];
         var tasks = initial == "delete" ? Array.Empty<string>() : ["selected-task"];
         var actual = late == "restore" && initial == "restore" ? before : PhoneContentScope.Create(notes, tasks, revision: 2, epoch: Guid.NewGuid().ToString("D"));
+        if (scenario == "parent-direction") actual = PhoneContentScope.Create([], ["selected-task"], revision: 2, epoch: Guid.NewGuid().ToString("D"));
         var owner = new NativeBookOwnerScope(); owner.SetReady(true); owner.RecordSaved("mixed-native-review", true, new string('a', 64));
         NativeBookSaveState? Read() => owner.SaveState("mixed-native-review", true);
         var reportId = Guid.NewGuid().ToString("D"); var reportAck = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, reportId));
@@ -46,7 +53,9 @@ internal static class PersonalActorMixedLateReviewTests
         if (scenario == "only-late") actual = PhoneContentScope.Create([], ["selected-task"], revision: 2, epoch: Guid.NewGuid().ToString("D"));
         if (scenario == "only-fixed") actual = PhoneContentScope.Create(["canonical-parent"], [], revision: 2, epoch: Guid.NewGuid().ToString("D"));
         if (scenario == "unrelated") actual = PhoneContentScope.Create(["unrelated"], [], revision: 2, epoch: Guid.NewGuid().ToString("D"));
-        if (scenario is not ("complete" or "pinning"))
+        if (scenario == "parent-direction" && late == "restore")
+        { TestAssert.Throws<InvalidDataException>(() => Create().Review(), "Late attachment restore ignored its fixed deleted parent."); return; }
+        if (scenario is not ("complete" or "pinning" or "parent-direction"))
         { TestAssert.Throws<InvalidDataException>(() => Create().Review(), "Native mixed review accepted an ambiguous/unbound fixed group: " + scenario); return; }
         var review = Create(); var observed = review.Review(); var revision = observed["revision"]!.GetValue<string>();
         TestAssert.That(observed["decisions"]!.AsArray().Count == 1 && observed["decisions"]![0]!["proposal_id"]!.GetValue<string>() == lateTarget["proposal_id"]!.GetValue<string>() &&
