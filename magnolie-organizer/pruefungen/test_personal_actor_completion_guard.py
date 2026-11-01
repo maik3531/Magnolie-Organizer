@@ -209,3 +209,56 @@ def test_receive_peer_ack_cannot_attest_to_or_abort_native_ack_send(tmp_path,mon
     completion.record_persisted(ack)
     assert registry.finish_completion(handle)['phase']=='completed'
     assert not channel.sent and not events
+
+
+@pytest.mark.parametrize('fault',('none','send','metadata','post_send_book','scope_wait','missing_data_receipt','expired'))
+def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_path,monkeypatch,fault):
+    service,peer,channel,registry,handle,events,book,completion,ack,advance = fixture(tmp_path,monkeypatch,own_ack=True,admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion,save_receipt=copy.deepcopy(completion.saved_book),phone_data_persisted=True,
+        completion_native_acks={ack['message_id']:copy.deepcopy(ack)})
+    if fault!='scope_wait': advance([])
+    original = channel.send
+    failures = [fault=='send']
+    def send(wire):
+        assert not service.lock._is_owned()
+        if failures[0]:
+            failures[0]=False
+            raise OSError('Synthetic actual ACK channel failure')
+        original(wire)
+        if fault=='post_send_book': book.record_saved('native-completion-profile',True,'b'*64)
+    channel.send = send
+    if fault=='metadata':
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("CREATE TRIGGER dispatch_ack_failure BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic dispatch ACK persistence failure'); END")
+    if fault=='missing_data_receipt': admission['phone_data_persisted']=False
+    if fault=='expired': monkeypatch.setattr(phone,'now_ms',lambda:ack['expires_ms']+1)
+    if fault in ('send','metadata'):
+        with pytest.raises(OSError if fault=='send' else sqlite3.DatabaseError): service.advance_personal_actor_completion(registry,handle)
+        assert completion.summary()['saved']==0 and not admission.get('phone_persisted')
+        assert registry.read_completion_controls(handle)==[]
+        if fault=='metadata':
+            with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER dispatch_ack_failure')
+        sent = len(channel.sent)
+        service.advance_personal_actor_completion(registry,handle)
+        assert len(channel.sent)==sent, 'Immediate retry bypassed native ACK backoff'
+        admission['completion_native_ack_next']=0
+    elif fault in ('post_send_book','expired'):
+        service.advance_personal_actor_completion(registry,handle)
+        assert completion.summary()['saved']==0 and not admission.get('phone_persisted')
+        assert registry.status(handle)['phase']=='cancelled'
+        with sqlite3.connect(service.store.database_path) as db:
+            assert db.execute('SELECT COUNT(*) FROM personal_actor_completion_wire').fetchone()[0]==0
+        assert len(channel.sent)==(1 if fault=='post_send_book' else 0) and not events
+        return
+    elif fault in ('scope_wait','missing_data_receipt'):
+        service.advance_personal_actor_completion(registry,handle)
+        assert not channel.sent and completion.summary()['saved']==0
+        if fault=='scope_wait': advance([])
+        else: admission['phone_data_persisted']=True
+        admission['completion_native_ack_next']=0
+    result = service.advance_personal_actor_completion(registry,handle)
+    assert result['phase']=='completed' and admission['phone_persisted'] is True
+    assert completion.summary()['saved']==1 and registry.read_completion_controls(handle)==[ack]
+    assert all(wire==ack for wire in channel.sent) and not admission['completion_native_acks']
+    assert book.save_state('native-completion-profile',True)==completion.saved_book and not events

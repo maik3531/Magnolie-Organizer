@@ -4574,6 +4574,7 @@ class PhoneService:
                     deferred = admission.get("completion_deferred_controls", {})
                     if deferred.get(message_id) == wire:
                         deferred.pop(message_id)
+        self._send_personal_actor_native_acknowledgments(registry, handle)
         with self.lock:
             frames = [wire for wire in self.store.pending(admission["peer"], self.connection_transports.get(admission["peer"], ""))
                 if wire["message_id"] in admission.get("completion_ids", ())]
@@ -4581,6 +4582,70 @@ class PhoneService:
             if wire is not None:
                 self._send_personal_actor_queued(channel, admission["peer"], wire)
         return self.personal_actor_status(registry, handle)
+
+    def _send_personal_actor_native_acknowledgments(self, registry, handle):
+        """Private exact native ACK queue, never the legacy/data outbox."""
+        if self.lock._is_owned():
+            return
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
+                    admission.get("completion") is None or admission.get("completion_native_ack_inflight")):
+                return
+            acknowledgments = admission.get("completion_native_acks", {})
+            if not acknowledgments:
+                return
+            completion = admission["completion"]
+            if (admission.get("save_receipt") != completion.saved_book or admission.get("phone_data_persisted") is not True or
+                    admission.get("phone_persisted")):
+                return
+            if admission.get("completion_native_ack_next", 0) > time.monotonic():
+                return
+            frames = list(acknowledgments.values())[:32]
+            attempt = admission.get("completion_native_ack_attempts", 0)
+            admission["completion_native_ack_next"] = time.monotonic() + min(30, 2 ** min(attempt, 5))
+            admission["completion_native_ack_attempts"] = attempt + 1
+            admission["completion_native_ack_inflight"] = True
+            channel = admission["channel"]
+        try:
+            for wire in frames:
+                with self.lock:
+                    peer = self.store.sole_peer(admission["peer"])
+                    if (self.personal_actor_admissions.get(handle.actor_id) is not admission or admission.get("completion") is not completion or peer is None or
+                            peer["static_public"] != admission["key"] or self.connections.get(admission["peer"]) is not channel or
+                            admission.get("completion_native_acks", {}).get(wire["message_id"]) != wire):
+                        return
+                    if wire["expires_ms"] <= now_ms():
+                        self.cancel_personal_actor(registry, handle, notify=False)
+                        return
+                    try:
+                        registry.check_completion(handle, "send", wire)
+                    except PermissionError as error:
+                        if str(error) != "actor_completion_not_ready":
+                            self.cancel_personal_actor(registry, handle, notify=False)
+                        return
+                channel.send(wire)
+                with self.lock:
+                    peer = self.store.sole_peer(admission["peer"])
+                    if (self.personal_actor_admissions.get(handle.actor_id) is not admission or admission.get("completion") is not completion or peer is None or
+                            peer["static_public"] != admission["key"] or self.connections.get(admission["peer"]) is not channel):
+                        return
+                    try:
+                        registry.check_completion(handle, "send", wire)
+                    except PermissionError as error:
+                        if str(error) != "actor_completion_not_ready":
+                            self.cancel_personal_actor(registry, handle, notify=False)
+                        return
+                    completion.record_successful_acknowledgment_send(wire)
+                    registry.put_completion_control(handle, wire)
+                    completion.record_persisted(wire)
+                    admission["completion_native_acks"].pop(wire["message_id"], None)
+                    if completion.validate("finish", None) is True:
+                        registry.finish_completion(handle)
+                        admission["phone_persisted"] = True
+        finally:
+            with self.lock:
+                admission["completion_native_ack_inflight"] = False
 
     def personal_actor_status(self, registry, handle):
         with self.lock:
