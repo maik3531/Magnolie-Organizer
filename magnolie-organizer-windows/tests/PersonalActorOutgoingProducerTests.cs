@@ -40,6 +40,57 @@ internal static class PersonalActorOutgoingProducerTests
     private static JsonObject FirstMeta(JsonObject book) => book["personalSync"]!["entities"]!.AsObject().First().Value!.AsObject();
     private static JsonObject[] Proposals(IReadOnlyList<JsonObject> bodies) => bodies.SelectMany(body => body["proposals"]!.AsArray().OfType<JsonObject>()).ToArray();
 
+    private static void OutgoingTargetEvidence()
+    {
+        // Evidence-only primitive. No controller, queue, data or wire grant.
+        foreach (var scenario in new[] { "success", "owner", "source", "scope", "book", "missing-book", "old-ack", "live", "resolved", "other-peer", "missing-parent", "tree-parent", "live-alias", "current-content" })
+        {
+            var (book, _) = Fixture(1); var entities = book["personalSync"]!["entities"]!.AsObject();
+            entities["note\0removed-note"] = Tombstone("note", "removed-note"); entities["task\0removed-task"] = Tombstone("task", "removed-task");
+            if (scenario == "old-ack") book["personalSync"]!["entities"] = new JsonObject { ["note\0old"] = new JsonObject { ["acknowledged_by_peer"] = true } };
+            if (scenario is "live" or "resolved") foreach (var meta in entities.Select(value => value.Value!.AsObject()))
+                meta[scenario == "live" ? "state" : "status"] = scenario == "live" ? "live" : "resolved";
+            if (scenario == "other-peer") book["personalSync"]!["peer_device_id"] = Guid.NewGuid().ToString("D");
+            if (scenario == "missing-parent") book["notizen"] = new JsonArray();
+            if (scenario == "tree-parent") book["notizen"]![0]!["baumQuelle"] = "unowned";
+            if (scenario == "live-alias")
+            {
+                book["notizen"]![0]!["anhaenge"] = new JsonArray(new JsonObject { ["id"] = "local-alias" });
+                book["personalSync"]!["attachment_aliases"] = new JsonObject { ["canonical-parent\0local-alias"] = "file-000" };
+            }
+            var (owner, captured) = Capture(book); NativeActorBookSnapshot? snapshot = captured;
+            var allowed = true; string? source = new string('b', 64);
+            var scope = scenario == "current-content" ? PhoneContentScope.Create(["canonical-parent", "removed-note"], ["removed-task"]) : PhoneContentScope.Create([], []);
+            var originalText = book.ToJsonString(); var originalSaved = owner.SaveState("native-producer-fixture", true); var originalScope = scope.DeepClone();
+            var proof = new PersonalActorOutgoingTargetEvidence(Peer, Run, () => allowed, () => source, () => snapshot, () => scope);
+            var targets = proof.Targets();
+            TestAssert.That(book.ToJsonString() == originalText && owner.SaveState("native-producer-fixture", true) == originalSaved && JsonNode.DeepEquals(scope, originalScope),
+                "Native target evidence modified its book/selection/save state.");
+            if (scenario is "old-ack" or "live" or "resolved" or "other-peer" or "current-content")
+            { TestAssert.That(targets.Count == 0, "Old ACK/nonpending/content target acquired independent offscope evidence: " + scenario); continue; }
+            if (scenario is "missing-parent" or "tree-parent" or "live-alias")
+            { TestAssert.That(targets.OfType<JsonObject>().All(value => value["kind"]!.GetValue<string>() != "attachment"), "Unavailable/unowned/live child became removal evidence."); continue; }
+            TestAssert.That(targets.Count == 3, "Exact offscope note/task/child pending proofs were not derived.");
+            var target = targets[0]!.AsObject();
+            if (scenario == "success")
+            {
+                TestAssert.That(proof.RequireExact(Run, target), "Exact outgoing target proof was refused.");
+                target["prior_hash"] = new string('f', 64);
+                TestAssert.Throws<InvalidOperationException>(() => proof.RequireExact(Run, target), "Changed target hash acquired evidence.");
+                TestAssert.That(proof.Targets()[0]!["prior_hash"]!.GetValue<string>() == new string('a', 64), "Returned target mutation changed pinned evidence.");
+                TestAssert.Throws<InvalidOperationException>(() => proof.RequireExact(Guid.NewGuid().ToString("D"), proof.Targets()[0]!.AsObject()), "Another run reused target evidence.");
+                continue;
+            }
+            if (scenario == "owner") allowed = false;
+            if (scenario == "source") source = new string('c', 64);
+            if (scenario == "scope") scope = PhoneContentScope.Create(["different"], []);
+            if (scenario == "book") { book["notizen"]![0]!["text"] = "New actual book"; snapshot = Capture(book).Snapshot; }
+            if (scenario == "missing-book") snapshot = null;
+            TestAssert.Throws<InvalidOperationException>(() => proof.Targets(), "Changed native observation retained offscope evidence: " + scenario);
+            TestAssert.Throws<InvalidOperationException>(() => proof.RequireExact(Run, target), "Changed native observation retained exact target permission: " + scenario);
+        }
+    }
+
     internal static Task RunAsync()
     {
         var (book, scope) = Fixture(); var bodies = Prepare(book, scope); var proposals = Proposals(bodies);
@@ -113,6 +164,7 @@ internal static class PersonalActorOutgoingProducerTests
         }
         AtomicPreparedGroups();
         SuccessfulGroupReplay();
+        OutgoingTargetEvidence();
         return Task.CompletedTask;
     }
 
