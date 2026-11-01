@@ -17,7 +17,8 @@ from magnolie_personal_actor_completion import DecisionAckCompletion, NativeBook
 
 class PostDataDecisionReview:
     def __init__(self, run_id, native_targets, before_scope, report_id, report_ack, *,
-                 current_authority, current_scope, current_saved_book, persisted_controls):
+                 current_authority, current_scope, current_saved_book, persisted_controls,
+                 native_fixed_targets=None, fixed_decision_frames=None):
         actor.start(run_id); actor.start(report_id)
         if not all(callable(value) for value in (current_authority, current_scope, current_saved_book, persisted_controls)):
             raise TypeError('Native post-data observations are required')
@@ -30,6 +31,33 @@ class PostDataDecisionReview:
         actor.completion_members(run_id, before_scope, self.targets, dummy)
         self.expected = {value['proposal_id']: value for value in self.targets}
         self.before = copy.deepcopy(before_scope)
+        # Native-only initial choices already adopted by the ordinary SaveACK.
+        # They participate in result-scope/receipt binding, NEVER in the late
+        # mutation list. Controllers must supply protected original frames and
+        # their exact native target proofs, not frontend-authored choices.
+        self.fixed_targets = copy.deepcopy([] if native_fixed_targets is None else native_fixed_targets)
+        self.fixed_frames = {}
+        self.fixed_decisions = []
+        if (not isinstance(self.fixed_targets, list) or
+                fixed_decision_frames is not None and not isinstance(fixed_decision_frames, list) or
+                len(self.targets) + len(self.fixed_targets) > 256):
+            raise ValueError('invalid_actor_fixed_review_targets')
+        for wire in fixed_decision_frames or []:
+            if not isinstance(wire, dict) or wire.get('kind') != actor.DATA_KIND:
+                raise ValueError('invalid_actor_fixed_review_frame')
+            actor.start(wire.get('message_id'))
+            kind, fixed_body = actor.unwrap(wire.get('body'))
+            if (kind != 'personal_sync.deletion_decision' or fixed_body['run_id'] != run_id or
+                    wire['message_id'] in self.fixed_frames):
+                raise ValueError('invalid_actor_fixed_review_frame')
+            self.fixed_frames[wire['message_id']] = copy.deepcopy(wire)
+            self.fixed_decisions.extend(copy.deepcopy(fixed_body['decisions']))
+        if len(self.fixed_frames) > 256:
+            raise ValueError('invalid_actor_fixed_review_frame')
+        actor.completion_members(run_id, self.before, self.fixed_targets, self.fixed_decisions)
+        # Reject overlapping proposals/entity identities and incompatible parent
+        # directions even before the actual late decisions have all arrived.
+        actor.completion_members(run_id, self.before, self.targets + self.fixed_targets, dummy + self.fixed_decisions)
         if not isinstance(report_ack, dict) or report_ack.get('kind') != actor.ACK_KIND:
             raise PermissionError('actor_data_report_ack_required')
         body = report_ack.get('body'); actor.validate_ack(body)
@@ -124,6 +152,8 @@ class PostDataDecisionReview:
         for wire in frames:
             body = self._decision(wire)
             identifier = wire['message_id']
+            if identifier in self.fixed_frames:
+                raise ValueError('actor_review_frame_direction_collision')
             if identifier in wires:
                 if wire != wires[identifier]:
                     raise ValueError('actor_review_frame_changed')
@@ -136,16 +166,25 @@ class PostDataDecisionReview:
         if identities != set(self.expected):
             raise PermissionError('actor_producer_decisions_incomplete')
         actual = self.current_scope()
-        actor.require_completion_scope(self.run_id, self.before, self.targets, decisions, actual)
+        actor.require_completion_scope(self.run_id, self.before, self.targets + self.fixed_targets,
+            decisions + self.fixed_decisions, actual)
         decisions.sort(key=lambda value: value['proposal_id'])
         binding = {'run_id': self.run_id, 'targets': self.targets, 'decisions': decisions, 'scope': actual,
             'report_ack': self.report_ack, 'saved_before': self.before_saved,
             'frames': sorted((key, hashlib.sha256(personal.canonical(value)).hexdigest()) for key, value in wires.items())}
+        if self.fixed_targets:
+            binding['fixed_targets'] = self.fixed_targets
+            binding['fixed_decisions'] = self.fixed_decisions
+            binding['fixed_frames'] = sorted((key, hashlib.sha256(personal.canonical(value)).hexdigest()) for key, value in self.fixed_frames.items())
         revision = hashlib.sha256(personal.canonical(binding)).hexdigest()
         if self._authority() is not True or require_saved and self.validate('read', None) is not True:
             raise PermissionError('actor_decision_review_not_ready')
-        return {'revision': revision, 'decisions': decisions, 'scope': copy.deepcopy(actual),
+        result = {'revision': revision, 'decisions': decisions, 'scope': copy.deepcopy(actual),
             'frame_hashes': dict(binding['frames']), 'book_persisted': self.saved is not None}
+        if self.fixed_targets:
+            result.update(fixed_targets=copy.deepcopy(self.fixed_targets), fixed_decisions=copy.deepcopy(self.fixed_decisions),
+                fixed_frame_hashes=dict(binding['fixed_frames']))
+        return result
 
     def prepare_save(self, expected_revision, after_sha256):
         if not isinstance(after_sha256, str) or HEX.fullmatch(after_sha256) is None:
