@@ -37774,7 +37774,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const decision of decisions) {
       if (decision.decision !== "restore") continue;
       const target = targets.find(value => value.proposal_id === decision.proposal_id);
-      if (!["note", "task"].includes(target.kind)) continue; // No unproved attachment/notebook fallback.
+      if (target.kind === "attachment") {
+        if (!selection.notes.has(target.parent_id)) throw new MagnolieMcp.ToolError("not_granted", "Original attachment parent is outside the accepted scope");
+        const parentId = personalSyncNotizLokalId(target.parent_id, "note", book), localId = personalSyncAnhangLokalId(target.parent_id, target.id, book);
+        if (book.papierkorb.some(value => value.art === "attachment" && value.parent_id === parentId && value.eintrag?.id === localId)) continue;
+        const parent = book.notizen.find(value => value.id === parentId);
+        if (!parent) throw new MagnolieMcp.ToolError("restore_unavailable", "Original attachment parent is not present in this book");
+        const records = job.review.data.batch.records.filter(value => value.kind === "note" && value.id === target.parent_id);
+        if (records.length !== 1) continue;
+        const record = records[0], descriptors = (record.value.attachments || []).filter(value => value.attachment_id === target.id);
+        if (descriptors.length !== 1) continue;
+        const descriptor = descriptors[0];
+        // The exact child decision/clock was checked against its native proof
+        // above. Parent-record clocks are a different entity/domain and may
+        // legitimately advance without changing this original child content.
+        if ((parent.anhaenge || []).some(value => personalSyncAnhangId(target.parent_id, value.id, book) === target.id) ||
+            await personalSyncHash(record.value) !== record.hash || await personalSyncHash(descriptor) !== target.prior_hash)
+          throw new MagnolieMcp.ToolError("conflict", "Original accepted attachment no longer matches its native target proof");
+        mcpNotesActorGuard(job);
+        const bytes = job.restoreAttachmentData?.[descriptor.sha256];
+        if (typeof bytes !== "string" || !bytes.startsWith("data:" + descriptor.mime + ";base64,"))
+          throw new MagnolieMcp.ToolError("restore_unavailable", "Original verified attachment bytes are not available");
+        // Reconstruct just the exact child. Never replay the original parent
+        // record: its text, sharing state and other attachments may have changed.
+        book.papierkorb.push({ id: uid(), art: "attachment", name: descriptor.name, geloescht: Date.now(), parent_id: parentId,
+          notiz_zuordnungen: {}, eintrag: { id: localId, name: descriptor.name, art: descriptor.kind, daten: bytes } });
+        count++; continue;
+      }
+      if (!["note", "task"].includes(target.kind)) continue; // Never synthesize an unsupported notebook target.
       if (!(target.kind === "note" ? selection.notes : selection.tasks).has(target.id))
         throw new MagnolieMcp.ToolError("not_granted", "Original restore target is outside the accepted scope");
       const localId = target.kind === "note" ? personalSyncNotizLokalId(target.id, "note", book) : target.id;
