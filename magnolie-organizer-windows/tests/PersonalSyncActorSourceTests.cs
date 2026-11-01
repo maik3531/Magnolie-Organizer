@@ -661,7 +661,13 @@ internal static class PersonalSyncActorSourceTests
                 await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(incomingHandle.ActorId, incomingReport["message_id"]!.GetValue<string>())));
                 TestAssert.That(!(await coordinator.PersonalActorStatusAsync(incomingHandle))["phone_persisted"]!.GetValue<bool>(), "Data report ACK skipped incoming terminal decisions.");
                 var terminalWitness = nativeSaved;
-                await coordinator.PumpPersonalActorAsync(connection);
+                var beganIncoming = await coordinator.ExecuteMcpActorAsync(new JsonObject { ["action"] = "notes_actor_begin_completion",
+                    ["actorId"] = incomingHandle.ActorId, ["ownerToken"] = incomingHandle.OwnerToken, ["claimToken"] = incomingToken }, default);
+                TestAssert.That(beganIncoming["ok"]!.GetValue<bool>() && beganIncoming["actor"]!["phase"]!.GetValue<string>() == "completion",
+                    "Private GUI bridge could not begin native incoming/mixed completion.");
+                var advancedIncoming = await coordinator.ExecuteMcpActorAsync(new JsonObject { ["action"] = "notes_actor_advance_completion",
+                    ["actorId"] = incomingHandle.ActorId, ["ownerToken"] = incomingHandle.OwnerToken }, default);
+                TestAssert.That(advancedIncoming["ok"]!.GetValue<bool>(), "Private GUI advance did not use native completion dispatch.");
                 var terminalWires = (await SharedSyncTransportTests.DrainAsync(wire)).Where(value => value["body"]?["run_id"]?.GetValue<string>() == incomingHandle.ActorId).ToArray();
                 TestAssert.That(terminalWires.Count(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind &&
                     value["body"]!["message_id"]!.GetValue<string>() == incomingWire["message_id"]!.GetValue<string>()) == 1,

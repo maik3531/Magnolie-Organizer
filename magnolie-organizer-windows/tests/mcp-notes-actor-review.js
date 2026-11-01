@@ -8,7 +8,8 @@ const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value 
 const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
   for (const web of harness.exports.roots) for (const recordFormat of [3, 14]) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
-    "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel"]) {
+    "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel",
+    "commit_decision_delete", "commit_decision_restore", "commit_decision_receipt_failed", "commit_decision_cancel", "commit_decision_late_draft", "commit_decision_save_failed", "commit_decision_stage_changed", "commit_decision_checkpoint_failed"]) {
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
       notizen: [{ id: "phone-note", titel: "Owned", text: "Original", ursprungApp: "notes" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
     try {
@@ -16,6 +17,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const owner = "a".repeat(48), target = { peer_id: "22222222-2222-4222-8222-222222222222", fingerprint: "ABCD-1234-5678-90EF" };
       const actorId = "44444444-4444-4444-8444-444444444444", ownerToken = "d".repeat(64);
+      const typedCommit = scenario.startsWith("commit_decision_"), typedDelete = scenario === "commit_decision_delete";
       const selection = { notes: new b.w.Set(["phone-note"]), tasks: new b.w.Set() };
       const local = (await b.t.personalSyncSnapshot(["notes"], recordFormat, target.peer_id, { selection, independentRemovals: true })).find(record => record.kind === "note");
       const incoming = plain(local), image = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
@@ -35,11 +37,12 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       if (scenario === "commit_deletions") projection.intents = [{ kind: "personal_sync.deletion_proposals", body: { run_id: actorId } }];
       const typedProposal = { proposal_id: "88888888-8888-4888-8888-888888888888", kind: "note", id: "phone-note", parent_id: "",
         clock: plain(incoming.clock), prior_hash: incoming.hash, deleted_ms: incoming.modified_ms, label: "Native typed deletion" };
-      if (scenario.startsWith("decision_")) projection.intents = [{ kind: "personal_sync.deletion_proposals", pending_message_id: "99999999-9999-4999-8999-999999999999",
-        commit_token: "c".repeat(64), body: { run_id: actorId, proposals: [typedProposal] } }];
+      if (scenario.startsWith("decision_") || typedCommit) projection.intents = [{ kind: "personal_sync.deletion_proposals", pending_message_id: "99999999-9999-4999-8999-999999999999",
+        commit_token: "c".repeat(64), body: { format: 1, run_id: actorId, proposal_batch_id: "88888888-8888-4888-8888-888888888887", sequence: 0, last: true, proposals: [typedProposal] } }];
       const raw = Buffer.from(JSON.stringify(projection)), viewRevision = createHash("sha256").update(raw).digest("hex");
       const before = JSON.stringify(b.t.daten()), saves = b.saves().length;
       let held = null, creates = 0, starts = 0, cancels = 0, savedSequence = 0, savedHash = "", plan = null, coreCommits = 0, heldSave = null, holdDecision = false;
+      let terminalBegins = 0, terminalAdvances = 0, heldTerminal = null, actorSaves = 0;
       let signalDecisionRead;
       const decisionReadReady = new Promise(resolve => { signalDecisionRead = resolve; });
       const pendingCreates = [];
@@ -52,22 +55,42 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         else if (r.action === "notes_actor_cancel") response = { actor: { phase: "cancelled" } };
         else if (r.action === "notes_actor_status") response = { actor: { phase: "receiving", packets: 3,
           phone_persisted: scenario === "commit_remote" && coreCommits === 1, book_persisted: coreCommits === 1,
-          reply_queued: coreCommits === 1, completion_report_queued: scenario === "commit_remote" && coreCommits === 1 } };
+          phone_data_persisted: typedCommit && coreCommits === 1,
+          reply_queued: coreCommits === 1, completion_report_queued: (scenario === "commit_remote" || typedCommit) && coreCommits === 1 } };
+        else if (r.action === "notes_actor_begin_completion" || r.action === "notes_actor_advance_completion") {
+          assert.equal(coreCommits, 1, "Terminal controller preceded native core commit");
+          assert.equal(savedHash, plan.hash);
+          if (r.action === "notes_actor_begin_completion") { terminalBegins++; assert.equal(r.claimToken, "e".repeat(64)); }
+          else terminalAdvances++;
+          const complete = r.action === "notes_actor_advance_completion", badReceipt = scenario === "commit_decision_receipt_failed";
+          response = { actor: { phase: complete && !badReceipt ? "completed" : "completion", packets: 4,
+            phone_data_persisted: true, phone_persisted: complete, book_persisted: true, reply_queued: true, completion_report_queued: true,
+            deletion_completion: { expected: 1, received: complete && !badReceipt ? 1 : 0, saved: complete && !badReceipt ? 1 : 0, rejected: 0 } } };
+          if (complete && scenario === "commit_decision_late_draft") {
+            b.t.oeffneTerminBlatt(null, "2026-10-19"); b.input("#tb-titel", "Late terminal draft");
+          }
+        }
         else if (r.action === "notes_actor_prepare_commit") {
           assert.ok(savedSequence > 0, "Native plan preceded actual baseline SaveACK");
+          if (typedCommit) {
+            assert.deepEqual(plain(r.deletionPlan.intents), projection.intents.map(intent => ({ kind: intent.kind, message_id: intent.pending_message_id, commit_token: intent.commit_token })));
+            assert.equal(r.deletionPlan.choices[0].decision, typedDelete ? "delete" : "restore");
+            assert.deepEqual(plain(r.deletionPlan.choices[0].expected_clock), typedProposal.clock);
+          }
           plan = { sequence: savedSequence, hash: r.bookSha256 };
           response = { actor: { claim_token: "e".repeat(64), after_sha256: plan.hash, view_revision: viewRevision, book_persisted: false } };
         } else if (r.action === "notes_actor_commit") {
           assert.ok(savedSequence > plan.sequence, "Core commit preceded a new actual native SaveACK");
           assert.equal(savedHash, plan.hash); assert.equal(r.claimToken, "e".repeat(64));
-          if (scenario === "commit_stage_changed") { b.w.App.telefonMcpErgebnis({ requestId: message.requestId, ok: false, code: "source_changed" }); return; }
+          if (["commit_stage_changed", "commit_decision_stage_changed"].includes(scenario)) { b.w.App.telefonMcpErgebnis({ requestId: message.requestId, ok: false, code: "source_changed" }); return; }
           coreCommits++; response = { actor: { book_persisted: true, core_committed: true, phone_persisted: false, book_sha256: savedHash, save_sequence: savedSequence } };
         } else if (r.action === "notes_actor_reply") {
           assert.equal(coreCommits, 1, "Reply queued before the actual native core commit");
           assert.equal(r.claimToken, "e".repeat(64));
           assert.ok(r.batches.every(batch => batch.format === recordFormat), "Actor reply changed its negotiated format");
           if (recordFormat === 14) assert.ok(r.batches.flatMap(batch => batch.records).filter(record => record.kind === "note").every(record => record.value.origin_app === "notes"));
-          assert.ok(r.batches.flatMap(batch => batch.records).some(record => record.kind === "note" && record.value.text === "Incoming Grüße 🌸"));
+          if (typedDelete) { assert.ok(!r.batches.flatMap(batch => batch.records).some(record => record.id === "phone-note")); assert.equal(r.sources.length, 0); }
+          else assert.ok(r.batches.flatMap(batch => batch.records).some(record => record.kind === "note" && record.value.text === "Incoming Grüße 🌸"));
           response = { actor: { reply_queued: true, message_count: r.batches.length, book_persisted: true, phone_persisted: false, delivery_confirmed: false } };
         }
         else if (r.action === "notes_actor_read") {
@@ -85,8 +108,9 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text); const message = JSON.parse(text);
         if (message.cmd === "speichern") {
-          const isActor = JSON.parse(message.text).notizen.some(note => note.id === "phone-note" && note.text === "Incoming Grüße 🌸");
-          const ok = !(scenario === "commit_save_failed" && isActor);
+          const isActor = plan !== null;
+          if (isActor) actorSaves++;
+          const ok = !(["commit_save_failed", "commit_decision_save_failed"].includes(scenario) && isActor);
           if (ok) { savedSequence++; savedHash = createHash("sha256").update(message.text).digest("hex"); }
           const ack = () => {
             b.w.App.gespeichert({ id: message.id, ok, standSha256: savedHash });
@@ -96,12 +120,13 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
           else queueMicrotask(ack);
           return;
         }
-        if (message.cmd === "mutations_snapshot") { queueMicrotask(() => b.w.App.mutationsSnapshot({ token: message.token, ok: scenario !== "commit_checkpoint_failed" })); return; }
+        if (message.cmd === "mutations_snapshot") { queueMicrotask(() => b.w.App.mutationsSnapshot({ token: message.token, ok: !["commit_checkpoint_failed", "commit_decision_checkpoint_failed"].includes(scenario) })); return; }
         if (message.cmd !== "telefon_mcp") return;
         const action = message.request.action;
         if (action === "notes_actor_create") creates++;
         if (action === "notes_actor_start") starts++;
         if (action === "notes_actor_cancel") cancels++;
+        if (scenario === "commit_decision_cancel" && action === "notes_actor_advance_completion") { heldTerminal = message; return; }
         if (scenario === "capacity" && action === "notes_actor_create") { pendingCreates.push(message); return; }
         if (holdDecision && action === "notes_actor_read" && message.request.limit === 1) { held = message; signalDecisionRead(); return; }
         if (scenario === "cancel_create" && action === "notes_actor_create" || ["cancel_read", "source_changed", "session_closed"].includes(scenario) && action === "notes_actor_read") { held = message; return; }
@@ -152,7 +177,34 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         assert.equal(reply.find(record => record.kind === "note").value.text, "Incoming Grüße 🌸");
         assert.ok(!reply.some(record => record.id === "desktop-only")); assert.equal(review.sources.length, 1);
         assert.ok(!JSON.stringify(state).includes(ownerToken));
-        if (scenario.startsWith("decision_")) {
+        if (typedCommit) {
+          const choice = { proposal_id: typedProposal.proposal_id, decision: typedDelete ? "delete" : "restore", expected_clock: plain(typedProposal.clock), allow_conflict: true };
+          const decided = await b.t.mcpNotesActorDecide(owner, id, state.review_revision, [choice]);
+          b.t.mcpNotesActorCommit(owner, id, decided.review_revision);
+          for (let n = 0; n < 600; n++) {
+            await tick();
+            if (heldTerminal) {
+              b.t.mcpNotesActorCancel(owner, id); b.t.oeffneTerminBlatt(null, "2026-10-19"); b.input("#tb-titel", "Late terminal draft");
+              const message = heldTerminal; heldTerminal = null; answer(message);
+            }
+            state = b.t.mcpNotesActorStatus(owner, id);
+            if (["completed", "failed", "cancelled"].includes(state.phase)) break;
+          }
+          const positive = ["commit_decision_delete", "commit_decision_restore"].includes(scenario);
+          assert.equal(state.phase, positive ? "completed" : scenario === "commit_decision_cancel" ? "cancelled" : "failed", scenario + JSON.stringify(state));
+          const persisted = !["commit_decision_save_failed", "commit_decision_checkpoint_failed"].includes(scenario);
+          const core = persisted && scenario !== "commit_decision_stage_changed";
+          assert.equal(state.book_persisted, persisted); assert.equal(coreCommits, core ? 1 : 0); assert.equal(state.reply_queued, core);
+          assert.equal(state.phone_persisted, positive); assert.equal(actorSaves, scenario === "commit_decision_checkpoint_failed" ? 0 : 1);
+          assert.equal(terminalBegins, core ? 1 : 0); assert.equal(terminalAdvances, core ? 1 : 0);
+          if (persisted) {
+            assert.equal(b.t.daten().notizen.some(note => note.id === "phone-note"), !typedDelete);
+            assert.equal(b.t.daten().notizen.find(note => note.id === "desktop-only").text, "Never send this");
+            assert.equal(b.t.daten().papierkorb.filter(item => item.art === "note" && item.eintrag.id === "phone-note").length, typedDelete ? 1 : 0);
+          }
+          if (["commit_decision_cancel", "commit_decision_late_draft"].includes(scenario)) assert.equal(b.w.document.querySelector("#tb-titel").value, "Late terminal draft");
+          b.t.mcpNotesActorCancel(owner, id);
+        } else if (scenario.startsWith("decision_")) {
           const choice = { proposal_id: typedProposal.proposal_id, decision: scenario === "decision_delete" ? "delete" : "restore",
             expected_clock: plain(typedProposal.clock), allow_conflict: true };
           await assert.rejects(b.t.mcpNotesActorDecide("z".repeat(48), id, state.review_revision, [choice]), error => error.code === "not_found");
@@ -175,7 +227,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
             assert.equal(typed.book.notizen.some(note => note.id === "phone-note"), scenario === "decision_restore");
             assert.equal(typed.deletionPlan.choices[0].proposal_id, typedProposal.proposal_id);
             assert.throws(() => b.t.mcpNotesActorCommit(owner, id, state.review_revision), error => error.code === "conflict");
-            assert.throws(() => b.t.mcpNotesActorCommit(owner, id, decided.review_revision), error => error.code === "unsupported_feature");
+            assert.equal(typed.deletionPlan.intents.length, 1, "Private preview lost its exact native adoption plan");
             if (scenario === "decision_delete") {
               const changed = await b.t.mcpNotesActorDecide(owner, id, decided.review_revision, [{ ...choice, decision: "restore" }]);
               const restored = b.t.mcpNotesActorReview(owner, id);

@@ -59,6 +59,8 @@ internal sealed partial class TelefonCoordinator
                 "notes_actor_commit" => await CommitPersonalActorAsync(handle, McpText(request, "claimToken", true), cancellation),
                 "notes_actor_reply" => await QueuePersonalActorReplyAsync(handle, McpText(request, "claimToken", true),
                     request["batches"]?.AsArray() ?? throw new InvalidDataException(), request["sources"]?.AsArray() ?? throw new InvalidDataException(), cancellation),
+                "notes_actor_begin_completion" => await BeginPersonalActorCompletionAsync(handle, McpText(request, "claimToken", true), cancellation),
+                "notes_actor_advance_completion" => await AdvancePersonalActorCompletionAsync(handle, cancellation),
                 _ => throw new InvalidDataException("unsupported_actor_action")
             };
             return new() { ["ok"] = true, ["actor"] = result };
@@ -387,6 +389,17 @@ internal sealed partial class TelefonCoordinator
         BeginPersonalActorCompletion(registry, admission);
         return ActorStatus(registry, handle);
     }, cancellation);
+
+    internal async Task<JsonObject> AdvancePersonalActorCompletionAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
+    {
+        var connection = await WithPersonalActorStoreAsync(registry => {
+            if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.Completion is null)
+                throw new InvalidOperationException("actor_completion_not_ready");
+            registry.Status(handle); return admission.Connection;
+        }, cancellation);
+        await PumpPersonalActorAsync(connection); // I/O stays outside owner/store guards.
+        return await PersonalActorStatusAsync(handle, cancellation);
+    }
 
     private void BeginPersonalActorCompletion(PersonalSyncActorStore registry, ActorAdmission admission)
     {

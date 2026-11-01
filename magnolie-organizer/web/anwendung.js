@@ -37629,7 +37629,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpNotesActorCommit(owner, id, expectedRevision) {
     const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job);
     if (job.phase !== "review" || job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current Notes actor review before committing");
-    if (job.review.summary.unapplied_deletion_intents) throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
+    const hasDeletions = job.review.summary.unapplied_deletion_intents > 0;
+    if (hasDeletions && (!job.review.deletionPlan || job.review.summary.reviewed_deletion_intents !== job.review.data.intents.length ||
+        job.review.deletionPlan.intents.length !== job.review.data.intents.length))
+      throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
     job.phase = "checkpointing";
     Promise.resolve().then(async () => {
       try {
@@ -37639,14 +37642,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const proposedText = JSON.stringify(proposed);
         const afterHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proposedText))), value => value.toString(16).padStart(2, "0")).join("");
         mcpNotesActorGuard(job);
-        const plan = (await mcpNotesActorNative(job, "notes_actor_prepare_commit", { expectedRevision: job.review.nativeRevision, bookSha256: afterHash })).actor;
+        const plan = (await mcpNotesActorNative(job, "notes_actor_prepare_commit", { expectedRevision: job.review.nativeRevision, bookSha256: afterHash,
+          ...(hasDeletions ? { deletionPlan: kopie(job.review.deletionPlan) } : {}) })).actor;
         mcpNotesActorGuard(job);
         if (!/^[a-f0-9]{64}$/.test(plan?.claim_token) || plan.after_sha256 !== afterHash || plan.view_revision !== job.review.nativeRevision || plan.book_persisted !== false)
           throw new MagnolieMcp.ToolError("invalid_result", "Native Notes commit plan was inconsistent");
         job.phase = "saving";
         await mcpSchreiben(job.controller.signal, () => {
           mcpNotesActorGuard(job);
-          for (const field of ["notizen", "notizbuecher", "aufgaben", "personalSync"]) DATEN[field] = proposed[field];
+          const fields = ["notizen", "notizbuecher", "aufgaben", "papierkorb", "personalSync"], candidate = kopie(DATEN);
+          for (const field of fields) candidate[field] = proposed[field];
+          if (JSON.stringify(candidate) !== proposedText) throw new MagnolieMcp.ToolError("conflict", "Notes review changed an unrelated book field");
+          for (const field of fields) DATEN[field] = proposed[field];
           job.before = JSON.stringify(DATEN); letzterSpeicherText = null;
           if (job.before !== proposedText) throw new MagnolieMcp.ToolError("conflict", "Book changed before applying the Notes review");
           return {};
@@ -37665,14 +37672,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         job.replyQueued = true; job.phase = "committed";
         let packets = -1, progress = Date.now();
         for (;;) {
-          const state = (await mcpNotesActorNative(job, "notes_actor_status")).actor; mcpNotesActorGuard(job);
+          let state = (await mcpNotesActorNative(job, "notes_actor_status")).actor; mcpNotesActorGuard(job);
+          if (hasDeletions && state?.phone_data_persisted === true) {
+            if (!["completion", "completed"].includes(state.phase)) {
+              state = (await mcpNotesActorNative(job, "notes_actor_begin_completion", { claimToken: plan.claim_token })).actor; mcpNotesActorGuard(job);
+            }
+            if (state?.phase === "completion") {
+              state = (await mcpNotesActorNative(job, "notes_actor_advance_completion")).actor; mcpNotesActorGuard(job);
+            }
+          }
           if (state?.phone_persisted === true) {
             if (state.book_persisted !== true || state.reply_queued !== true || state.completion_report_queued !== true)
               throw new MagnolieMcp.ToolError("invalid_result", "Native Notes completion lacked its correlated book-save phase");
+            if (hasDeletions && (state.phase !== "completed" || state.phone_data_persisted !== true ||
+                !Number.isInteger(state.deletion_completion?.expected) || state.deletion_completion.expected < 1 || state.deletion_completion.expected > 256 ||
+                state.deletion_completion.saved !== state.deletion_completion.expected ||
+                state.deletion_completion.received !== state.deletion_completion.expected || state.deletion_completion.rejected !== 0))
+              throw new MagnolieMcp.ToolError("invalid_result", "Native Notes deletion completion lacked both exact receipt directions");
             job.phoneSaved = true; job.phase = "completed"; mcpNotesActorStopNative(job);
             job.review = null; job.book = null; job.before = ""; break;
           }
-          if (!["registered", "receiving"].includes(state?.phase)) throw new MagnolieMcp.ToolError("source_changed", "Native Notes owner retired before phone save confirmation");
+          if (!(hasDeletions ? ["registered", "receiving", "completion"] : ["registered", "receiving"]).includes(state?.phase)) throw new MagnolieMcp.ToolError("source_changed", "Native Notes owner retired before phone save confirmation");
           if (state.packets !== packets) { packets = state.packets; progress = Date.now(); }
           if (Date.now() - progress > 120000) throw new MagnolieMcp.ToolError("native_timeout", "Notes phone save confirmation stopped progressing");
           await new Promise(resolve => setTimeout(resolve, 250)); mcpNotesActorGuard(job);
@@ -37830,7 +37850,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const plan = { choices: kopie(choices), intents: previous.data.intents.map(intent => ({ kind: intent.kind,
         message_id: intent.pending_message_id, commit_token: intent.commit_token })) };
       const summary = { ...previous.summary, reviewed_deletion_intents: previous.data.intents.length };
-      // Native intent consumption stays gated until terminal scope-changing save receipts exist.
+      // Preview remains private until the exact typed native plan and all terminal receipts commit.
       const review = await mcpNotesActorBuildReview(job, book, previous.data, previous.nativeRevision, summary,
         { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) }, plan);
       review.decisionBaseBook = baseBook;
