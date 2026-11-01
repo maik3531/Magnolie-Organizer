@@ -17,11 +17,63 @@ internal static class PersonalActorCommitTests
         try
         {
             CheckDecisionTargets(Path.Combine(root, "targets"));
+            foreach (var fault in new[] { "none", "outbox", "second-target", "legacy" })
+                CheckAtomicOutgoingProposals(Path.Combine(root, "outgoing-" + fault), fault);
             foreach (var mode in new[] { "missing", "partial", "foreign_token", "extra", "duplicate", "expired", "foreign_run", "atomic" })
                 Check(Path.Combine(root, mode), mode);
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
         return Task.CompletedTask;
+    }
+
+    private static void CheckAtomicOutgoingProposals(string path, string fault)
+    {
+        var key = Enumerable.Repeat((byte)37, 32).ToArray();
+        var store = new TelefonStore(new WindowsPaths(path), key);
+        const string physicalPeer = "22222222-2222-4222-8222-222222222222";
+        var privatePeer = PersonalSyncActorContract.StoragePeer(Run);
+        var clock = new JsonArray(new JsonObject { ["actor_id"] = physicalPeer, ["counter"] = 2 });
+        var proposals = new JsonArray(Enumerable.Range(0, 2).Select(index => (JsonNode)new JsonObject {
+            ["proposal_id"] = index == 0 ? "33333333-3333-4333-8333-333333333333" : "33333333-3333-4333-8333-333333333334",
+            ["kind"] = "attachment", ["id"] = "synthetic-file-" + index, ["parent_id"] = "selected-parent", ["clock"] = clock.DeepClone(),
+            ["prior_hash"] = new string('a', 64), ["deleted_ms"] = 2, ["label"] = "Synthetic native proposal" }).ToArray());
+        var body = new JsonObject { ["format"] = 1, ["run_id"] = Run, ["proposal_batch_id"] = Run,
+            ["sequence"] = 0, ["last"] = true, ["proposals"] = proposals };
+        var decision = new JsonObject { ["format"] = 1, ["run_id"] = Run, ["decision_id"] = Run,
+            ["decisions"] = new JsonArray(proposals.OfType<JsonObject>().Select(proposal => (JsonNode)new JsonObject {
+                ["proposal_id"] = proposal["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = clock.DeepClone() }).ToArray()) };
+        if (fault is "outbox" or "second-target")
+        {
+            using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
+            sql.CommandText = fault == "outbox"
+                ? "CREATE TRIGGER outgoing_atomic_failure BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT,'synthetic outbox failure'); END"
+                : "CREATE TRIGGER outgoing_atomic_failure BEFORE INSERT ON meta WHEN NEW.key LIKE 'personal_proposal_kind:%33333333-3333-4333-8333-333333333334' BEGIN SELECT RAISE(ABORT,'synthetic second target failure'); END";
+            sql.ExecuteNonQuery();
+            TestAssert.Throws<SqliteException>(() => store.Enqueue(physicalPeer, "personal_sync.deletion_proposals", body, 60000, Now, actorRunId: Run),
+                "Failed outgoing proposal transaction unexpectedly succeeded.");
+            TestAssert.That(store.PersonalDecisionTargets(privatePeer, decision, false) is null && store.PersonalDecisionTargets(physicalPeer, decision, false) is null,
+                "Partial outgoing proposal failure retained private or physical-peer target rights.");
+            using var count = db.CreateCommand(); count.CommandText = "SELECT (SELECT COUNT(*) FROM outbox)+(SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%')";
+            TestAssert.That(Convert.ToInt64(count.ExecuteScalar()) == 0, "Failed proposal group left an orphaned target row or outbox frame.");
+            using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER outgoing_atomic_failure"; drop.ExecuteNonQuery();
+        }
+        var id = store.Enqueue(physicalPeer, "personal_sync.deletion_proposals", body, 60000, Now, actorRunId: fault == "legacy" ? null : Run);
+        var reopened = new TelefonStore(new WindowsPaths(path), key);
+        var wire = reopened.OutboxMessage(physicalPeer, id)!;
+        var expectedPeer = fault == "legacy" ? physicalPeer : privatePeer;
+        var wrongPeer = fault == "legacy" ? privatePeer : physicalPeer;
+        TestAssert.That(reopened.PersonalDecisionTargets(expectedPeer, decision, false)?.Count == 2 && reopened.PersonalDecisionTargets(wrongPeer, decision, false) is null,
+            "Queued proposals did not retain exact direction/run-private target authority through reopen.");
+        TestAssert.That(wire["kind"]!.GetValue<string>() == (fault == "legacy" ? "personal_sync.deletion_proposals" : PersonalSyncActorContract.DataKind),
+            "Atomic queue changed the actual wire envelope kind.");
+        if (fault != "legacy")
+            TestAssert.That(JsonNode.DeepEquals(PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject()).Body, body), "Atomic native queue changed proposal bytes.");
+        var changed = body.DeepClone().AsObject(); changed["proposals"]![0]!["parent_id"] = "forged-parent";
+        TestAssert.Throws<InvalidDataException>(() => reopened.Enqueue(physicalPeer, "personal_sync.deletion_proposals", changed, 60000, Now,
+            actorRunId: fault == "legacy" ? null : Run), "Changed target identity acquired another outgoing frame.");
+        using var finalDb = reopened.OpenDatabase(); finalDb.Open(); using var finalCount = finalDb.CreateCommand();
+        finalCount.CommandText = "SELECT COUNT(*) FROM outbox";
+        TestAssert.That(Convert.ToInt64(finalCount.ExecuteScalar()) == 1, "Target identity conflict did not roll back its outbox enqueue.");
     }
 
     private static void CheckDecisionTargets(string path)

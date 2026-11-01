@@ -309,35 +309,40 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            foreach (var proposal in body["proposals"]!.AsArray().OfType<JsonObject>())
-            {
-                var key = "personal_proposal_kind:" + peerId + ":" + (outgoing ? "out:" : "in:") + proposal["proposal_id"]!.GetValue<string>();
-                var value = new JsonObject { ["kind"] = proposal["kind"]!.DeepClone(), ["clock"] = proposal["clock"]!.DeepClone(),
-                    ["expires_ms"] = (now ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) + MaximumMessageTtlMs,
-                    ["target"] = new JsonObject(new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash" }
-                        .Select(name => new KeyValuePair<string, JsonNode?>(name, proposal[name]!.DeepClone()))) };
-                using var read = connection.CreateCommand(); read.Transaction = transaction;
-                read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
-                if (read.ExecuteScalar() is byte[] existing)
-                {
-                    var previous = JsonNode.Parse(Open("personal_proposal_kind", key, existing))!.AsObject();
-                    if (!JsonNode.DeepEquals(previous["kind"], value["kind"]) || !JsonNode.DeepEquals(previous["clock"], value["clock"]) ||
-                        previous.ContainsKey("target") && !JsonNode.DeepEquals(previous["target"], value["target"]))
-                        throw new InvalidDataException("Conflicting personal proposal identity.");
-                    if (previous["expires_ms"] is not null) value["expires_ms"] = previous["expires_ms"]!.DeepClone();
-                }
-                else
-                {
-                    using var count = connection.CreateCommand(); count.Transaction = transaction;
-                    count.CommandText = "SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'";
-                    if (Convert.ToInt64(count.ExecuteScalar()) >= 10000) throw new InvalidOperationException("queue_full");
-                }
-                using var write = connection.CreateCommand(); write.Transaction = transaction;
-                write.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
-                write.Parameters.AddWithValue("$key", key); write.Parameters.AddWithValue("$value", Seal("personal_proposal_kind", key, TelefonCrypto.Canonical(value)));
-                write.ExecuteNonQuery();
-            }
+            RememberPersonalProposalKinds(connection, transaction, peerId, body, outgoing, now ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             transaction.Commit();
+        }
+    }
+
+    private void RememberPersonalProposalKinds(SqliteConnection connection, SqliteTransaction transaction, string peerId, JsonObject body, bool outgoing, long now)
+    {
+        foreach (var proposal in body["proposals"]!.AsArray().OfType<JsonObject>())
+        {
+            var key = "personal_proposal_kind:" + peerId + ":" + (outgoing ? "out:" : "in:") + proposal["proposal_id"]!.GetValue<string>();
+            var value = new JsonObject { ["kind"] = proposal["kind"]!.DeepClone(), ["clock"] = proposal["clock"]!.DeepClone(),
+                ["expires_ms"] = checked(now + MaximumMessageTtlMs),
+                ["target"] = new JsonObject(new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash" }
+                    .Select(name => new KeyValuePair<string, JsonNode?>(name, proposal[name]!.DeepClone()))) };
+            using var read = connection.CreateCommand(); read.Transaction = transaction;
+            read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
+            if (read.ExecuteScalar() is byte[] existing)
+            {
+                var previous = JsonNode.Parse(Open("personal_proposal_kind", key, existing))!.AsObject();
+                if (!JsonNode.DeepEquals(previous["kind"], value["kind"]) || !JsonNode.DeepEquals(previous["clock"], value["clock"]) ||
+                    previous.ContainsKey("target") && !JsonNode.DeepEquals(previous["target"], value["target"]))
+                    throw new InvalidDataException("Conflicting personal proposal identity.");
+                if (previous["expires_ms"] is not null) value["expires_ms"] = previous["expires_ms"]!.DeepClone();
+            }
+            else
+            {
+                using var count = connection.CreateCommand(); count.Transaction = transaction;
+                count.CommandText = "SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'";
+                if (Convert.ToInt64(count.ExecuteScalar()) >= 10000) throw new InvalidOperationException("queue_full");
+            }
+            using var write = connection.CreateCommand(); write.Transaction = transaction;
+            write.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
+            write.Parameters.AddWithValue("$key", key); write.Parameters.AddWithValue("$value", Seal("personal_proposal_kind", key, TelefonCrypto.Canonical(value)));
+            write.ExecuteNonQuery();
         }
     }
 
@@ -766,12 +771,14 @@ internal sealed partial class TelefonStore
             ["created_ms"] = now, ["expires_ms"] = expires, ["body"] = body.DeepClone() };
         TelefonMessageContract.ValidateMessage(message, now, false);
         if (actorRunId is not null) message = PersonalSyncActorContract.WireMessage(message, actorRunId);
-        if (kind == "personal_sync.deletion_proposals") RememberPersonalProposalKinds(peerId, body, true);
         var payload = Seal("outbox", id, TelefonCrypto.Canonical(message));
         lock (gate)
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+            if (kind == "personal_sync.deletion_proposals")
+                RememberPersonalProposalKinds(connection, transaction,
+                    actorRunId is null ? peerId : PersonalSyncActorContract.StoragePeer(actorRunId), body, true, now);
             if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind or SharedSyncSettings.Kind)
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
