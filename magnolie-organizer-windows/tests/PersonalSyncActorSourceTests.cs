@@ -202,6 +202,35 @@ internal static class PersonalSyncActorSourceTests
                             "Private native producer dispatch did not write its actual encrypted frame or falsely claimed delivery.");
                         TestAssert.That((await coordinator.DispatchPersonalActorProposalsAsync(producerHandle))["message_count"]!.GetValue<int>() == 0 && wire.Length == 0,
                             "Explicit native dispatch bypassed the original outbox retry backoff.");
+                        var sourceIncoming = new JsonObject { ["format"] = 3, ["run_id"] = producerHandle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                            ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records"] = new JsonArray(), ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()) };
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", sourceIncoming), producerHandle.ActorId));
+                        await SharedSyncTransportTests.DrainAsync(wire);
+                        var sourceView = await coordinator.ReadPersonalActorStagingAsync(producerHandle);
+                        var sourceClaim = await coordinator.PreparePersonalActorCommitAsync(producerHandle, sourceView["revision"]!.GetValue<string>(), new string('c', 64));
+                        hostBook.RecordSaved("actual-host-profile", true, new string('c', 64));
+                        await coordinator.CommitPersonalActorAsync(producerHandle, sourceClaim["claim_token"]!.GetValue<string>());
+                        var sourceReply = sourceIncoming.DeepClone().AsObject(); sourceReply["batch_id"] = Guid.NewGuid().ToString("D"); sourceReply["reply"] = true;
+                        await coordinator.QueuePersonalActorReplyAsync(producerHandle, sourceClaim["claim_token"]!.GetValue<string>(), new JsonArray(sourceReply), new JsonArray());
+                        await coordinator.PumpPersonalActorAsync(connection);
+                        var sourceReplyWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+                        await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(producerHandle.ActorId, sourceReplyWire["message_id"]!.GetValue<string>())));
+                        await coordinator.PumpPersonalActorAsync(connection);
+                        var sourceReportWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+                        TestAssert.That(PersonalSyncActorContract.Unwrap(sourceReportWire["body"]!.AsObject()).Kind == "personal_sync.report" &&
+                            (await coordinator.PersonalActorStatusAsync(producerHandle))["phase"]!.GetValue<string>() == "decision_review",
+                            "Native ordinary report was sent before irreversibly closing original data ownership.");
+                        await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(producerHandle.ActorId, sourceReportWire["message_id"]!.GetValue<string>())));
+                        var sourceStatus = await coordinator.PersonalActorStatusAsync(producerHandle);
+                        TestAssert.That(sourceStatus["phone_data_persisted"]!.GetValue<bool>() && !sourceStatus["phone_persisted"]!.GetValue<bool>(),
+                            "Native ordinary report receipt falsely completed pending producer decisions.");
+                        var sourceDecision = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", decision.DeepClone().AsObject()), producerHandle.ActorId);
+                        await connection.HandlePlainAsync(sourceDecision);
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", sourceIncoming), producerHandle.ActorId));
+                        TestAssert.That(wire.Length == 0, "Native report owner acknowledged deletion success or reopened old batch staging.");
+                        var retainedDecision = await coordinator.WithPersonalActorStoreAsync(registry => registry.ReadCompletionControls(producerHandle)
+                            .OfType<JsonObject>().Any(value => value["message_id"]!.GetValue<string>() == sourceDecision["message_id"]!.GetValue<string>()));
+                        TestAssert.That(retainedDecision, "Native late decision was not retained in the protected metadata namespace.");
                     }
                     if (producerCase == "changed-writer")
                     {

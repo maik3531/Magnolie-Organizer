@@ -30,6 +30,8 @@ internal sealed partial class TelefonCoordinator
         internal NativeBookSaveState? ProducerBook { get; set; }
         internal IReadOnlyList<JsonObject>? ProducerBodies { get; set; }
         internal HashSet<string> ProducerIds { get; } = new(StringComparer.Ordinal);
+        internal IReadOnlyList<JsonObject> ProducerFrames { get; set; } = [];
+        internal PersonalActorReportOwner? ReportOwner { get; set; }
         internal bool StartDispatched { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
@@ -181,6 +183,7 @@ internal sealed partial class TelefonCoordinator
             {
                 var id = frame["message_id"]!.GetValue<string>(); admission.Outbound.Add(id); admission.ProducerIds.Add(id);
             }
+            admission.ProducerFrames = frames.Select(value => value.DeepClone().AsObject()).ToArray();
             Current();
             if (NativeSavedBook() != snapshot.SavedBook) throw new InvalidOperationException("actor_producer_book_changed");
             return new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
@@ -649,7 +652,7 @@ internal sealed partial class TelefonCoordinator
             return ActorStatus(registry, handle);
         }, cancellation);
 
-    private void QueueActorCompletionReport(ActorAdmission admission)
+    private void QueueActorCompletionReport(PersonalSyncActorStore registry, ActorAdmission admission)
     {
         if (admission.SaveReceipt is null || admission.ReplyCount == 0 || admission.CompletionReportId.Length != 0 ||
             admission.ReplyIds.Any(id => store.OutboxMessage(admission.PeerId, id) is not null)) return;
@@ -670,6 +673,29 @@ internal sealed partial class TelefonCoordinator
             ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
                 ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } };
         var id = store.Enqueue(admission.PeerId, "personal_sync.report", report, 86400000, Now(), actorRunId: run);
+        try
+        {
+            if (admission.ProducerBodies is { Count: > 0 } prepared)
+            {
+                if (admission.CommitPlan!.DeletionReview["intents"]!.AsArray().Count != 0)
+                    throw new InvalidOperationException("actor_mixed_post_data_review_not_ready");
+                var fingerprint = registry.Status(admission.Handle)["fingerprint"]!.GetValue<string>();
+                var targets = new JsonArray();
+                foreach (var proposal in prepared.SelectMany(value => value["proposals"]!.AsArray().OfType<JsonObject>()))
+                {
+                    var target = new JsonObject();
+                    foreach (var key in new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash", "clock" }) target[key] = proposal[key]!.DeepClone();
+                    targets.Add(target);
+                }
+                var queued = store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing");
+                var waiting = new PersonalActorReportOwner(run, targets, admission.Connection.CurrentContentScope(admission.Scope), queued, admission.SaveReceipt,
+                    () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), () => registry.ReadCompletionControls(admission.Handle), admission.ProducerFrames);
+                registry.BeginDecisionReview(admission.Handle, waiting.Validator);
+                admission.ReportOwner = waiting;
+            }
+            else registry.RequireCurrent(admission.Handle);
+        }
+        catch { store.CompleteOutbox(admission.PeerId, id); throw; }
         admission.CompletionReportId = id; admission.Outbound.Add(id);
     }
 
@@ -711,6 +737,16 @@ internal sealed partial class TelefonCoordinator
                     if (summary["saved"]!.GetValue<int>() == summary["expected"]!.GetValue<int>())
                     { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
                     return true;
+                }
+                if (admission.ReportOwner is not null)
+                {
+                    registry.PutCompletionControl(admission.Handle, message);
+                    if (kind == PersonalSyncActorContract.AckKind && body["status"]!.GetValue<string>() is "accepted" or "duplicate")
+                    {
+                        var acknowledged = body["message_id"]!.GetValue<string>(); store.CompleteOutbox(peer.Id, acknowledged);
+                        if (acknowledged == admission.CompletionReportId) { admission.PhoneDataPersisted = true; admission.PhonePersisted = false; }
+                    }
+                    return true; // Protected decision metadata is not a successful decision ACK.
                 }
                 registry.RequireCurrent(admission.Handle);
                 if (kind == PersonalSyncActorContract.AckKind)
@@ -999,10 +1035,10 @@ internal sealed partial class TelefonCoordinator
                             continue; // Retain the bound cancellation target until its lease expires.
                     }
                     catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
-                    if (admission.Completion is null)
+                    if (admission.Completion is null && admission.ReportOwner is null)
                     {
                         registry.RequireCurrent(admission.Handle);
-                        QueueActorCompletionReport(admission);
+                        QueueActorCompletionReport(registry, admission);
                         if (admission.PhoneDataPersisted && admission.CommitPlan?.DeletionReview["intents"] is JsonArray intents && intents.Count != 0)
                             BeginPersonalActorCompletion(registry, admission);
                     }
@@ -1012,10 +1048,13 @@ internal sealed partial class TelefonCoordinator
                         if (item.Message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
                             item.Message["body"]?["run_id"]?.GetValue<string>() != admission.Handle.ActorId || !admission.Outbound.Contains(item.Id)) continue;
                         if (admission.Completion is not null && !admission.CompletionIds.Contains(item.Id)) continue;
+                        if (admission.ReportOwner is not null && admission.Completion is null && item.Id != admission.CompletionReportId) continue;
                         if (admission.ProducerIds.Contains(item.Id) && (!admission.StartDispatched || NativeSavedBook() != admission.ProducerBook)) continue;
-                        if (admission.Completion is null) registry.RequireCurrent(admission.Handle);
-                        else registry.CheckCompletionSend(admission.Handle, item.Message);
+                        if (admission.Completion is not null) registry.CheckCompletionSend(admission.Handle, item.Message);
+                        else if (admission.ReportOwner is not null) registry.CheckDecisionReportSend(admission.Handle, item.Message);
+                        else registry.RequireCurrent(admission.Handle);
                         store.MarkAttempt(item.Id, item.Attempts, Now());
+                        if (admission.ReportOwner is not null && admission.Completion is null) registry.CheckDecisionReportSend(admission.Handle, item.Message);
                         dispatch.Add(item.Message);
                     }
                 }
@@ -1025,6 +1064,22 @@ internal sealed partial class TelefonCoordinator
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { return; }
         foreach (var message in dispatch)
         {
+            var reportOwner = admitted.SingleOrDefault(value => value.ReportOwner is not null && value.Completion is null &&
+                value.CompletionReportId == message["message_id"]!.GetValue<string>());
+            if (reportOwner is not null)
+            {
+                var allowed = false;
+                try
+                {
+                    allowed = await WithPersonalActorStoreAsync(registry => {
+                        registry.CheckDecisionReportSend(reportOwner.Handle, message);
+                        return actorAdmissions.GetValueOrDefault(reportOwner.Handle.ActorId) == reportOwner && online.GetValueOrDefault(reportOwner.PeerId) == connection &&
+                            JsonNode.DeepEquals(store.OutboxMessage(reportOwner.PeerId, message["message_id"]!.GetValue<string>()), message);
+                    });
+                }
+                catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { }
+                if (!allowed) continue;
+            }
             var producer = admitted.SingleOrDefault(value => value.ProducerIds.Contains(message["message_id"]!.GetValue<string>()));
             if (producer is not null)
             {
@@ -1042,6 +1097,12 @@ internal sealed partial class TelefonCoordinator
                 if (!allowed) continue;
             }
             await connection.SendPlainAsync(message);
+            if (reportOwner is not null)
+                await WithPersonalActorStoreAsync(registry => {
+                    if (actorAdmissions.GetValueOrDefault(reportOwner.Handle.ActorId) != reportOwner || online.GetValueOrDefault(reportOwner.PeerId) != connection)
+                        throw new InvalidOperationException("actor_report_dispatch_outcome_unknown");
+                    registry.CheckDecisionReportSend(reportOwner.Handle, message); return true;
+                });
         }
         foreach (var admission in admitted) await SendPersonalActorNativeAcknowledgmentsAsync(admission, connection);
     }
