@@ -50,6 +50,12 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       const answer = message => {
         const r = message.request; let response;
         if (r.action === "notes_actor_source") response = { sourceRevision: "b".repeat(64) };
+        else if (r.action === "notes_actor_scope") {
+          assert.equal(r.sourceRevision, "b".repeat(64)); assert.equal(r.offset, 0); assert.equal(r.limit, 128);
+          response = { scopePage: { scope: { scope_epoch: projection.content_scope.epoch, scope_revision: projection.content_scope.revision,
+            scope_hash: projection.content_scope.scope_hash }, offset: 0, total: 1, notes_total: 1, tasks_total: 0,
+            next_offset: null, members: plain(members), sourceRevision: "b".repeat(64) } };
+        }
         else if (r.action === "notes_actor_create") response = { actorId: scenario === "capacity" ? "44444444-4444-4444-8444-" + pendingCreates.indexOf(message).toString(16).padStart(12, "0") : actorId, ownerToken, bookSource: "" };
         else if (r.action === "notes_actor_start") response = { actor: { dispatch_started: true, persisted: false } };
         else if (r.action === "notes_actor_cancel") response = { actor: { phase: "cancelled" } };
@@ -137,9 +143,12 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         const results = await Promise.allSettled(Array.from({ length: 5 }, () => b.t.mcpNotesActorStart(owner, args, new b.w.AbortController().signal)));
         assert.equal(results.filter(result => result.status === "fulfilled").length, 4);
         assert.equal(results.find(result => result.status === "rejected").reason.code, "native_busy");
-        for (const result of results.filter(result => result.status === "fulfilled")) b.t.mcpNotesActorCancel(owner, result.value.operation_id);
+        // Scope collection now precedes creation. Reach all held create calls
+        // before cancellation to keep testing late native-owner cleanup here.
         for (let n = 0; n < 50 && pendingCreates.length < 4; n++) await tick();
-        assert.equal(pendingCreates.length, 4); pendingCreates.forEach(answer);
+        assert.equal(pendingCreates.length, 4);
+        for (const result of results.filter(result => result.status === "fulfilled")) b.t.mcpNotesActorCancel(owner, result.value.operation_id);
+        pendingCreates.forEach(answer);
         for (let n = 0; n < 50 && cancels < 4; n++) await tick();
         assert.equal(cancels, 4); assert.equal(starts, 0);
         assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); continue;

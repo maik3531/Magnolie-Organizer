@@ -37501,8 +37501,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (digest !== (attachment?.sha256 || revision)) throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor byte digest did not match");
     return { bytes, revision };
   }
+  async function mcpNotesActorScope(job) {
+    const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) &&
+      Object.keys(value).length === keys.length && keys.every(key => Object.prototype.hasOwnProperty.call(value, key));
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Native Notes scope pages were incomplete or inconsistent"); };
+    const members = { notes: [], tasks: [] }; let header = null, offset = 0;
+    for (;;) {
+      mcpNotesActorGuard(job);
+      const page = (await mcpNotesActorNative(job, "notes_actor_scope", { sourceRevision: job.source, offset, limit: 128 })).scopePage;
+      mcpNotesActorGuard(job);
+      if (!exact(page, ["scope", "offset", "total", "notes_total", "tasks_total", "next_offset", "members", "sourceRevision"]) ||
+          page.sourceRevision !== job.source || page.offset !== offset ||
+          ![page.total, page.notes_total, page.tasks_total].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50000) ||
+          page.notes_total + page.tasks_total !== page.total || !exact(page.scope, ["scope_epoch", "scope_revision", "scope_hash"]) ||
+          !exact(page.members, ["notes", "tasks"]) || !Array.isArray(page.members.notes) || !Array.isArray(page.members.tasks) ||
+          new TextEncoder().encode(JSON.stringify(page)).length > 32768) invalid();
+      const currentHeader = [page.scope, page.total, page.notes_total, page.tasks_total];
+      if (header && personalSyncKanonisch(header) !== personalSyncKanonisch(currentHeader)) invalid();
+      header ||= currentHeader;
+      const count = page.members.notes.length + page.members.tasks.length, next = offset + count;
+      if (count > 128 || next > page.total || page.members.notes.length !== Math.min(count, Math.max(0, page.notes_total - offset)) ||
+          page.next_offset !== (next < page.total ? next : null) || next < page.total && count === 0) invalid();
+      for (const kind of ["notes", "tasks"]) for (const id of page.members[kind]) {
+        const previous = members[kind].at(-1);
+        if (!personalSyncNotizIdGueltig(id) || previous !== undefined && personalSyncUtf8(previous, id) >= 0) invalid();
+        members[kind].push(id);
+      }
+      if (page.next_offset === null) break;
+      offset = next;
+    }
+    const scope = { format: 10, epoch: header[0].scope_epoch, revision: header[0].scope_revision,
+      scope_hash: header[0].scope_hash, members };
+    try { await personalSyncScopeAusManifest(scope); } catch { invalid(); }
+    mcpNotesActorGuard(job);
+    return scope;
+  }
   async function mcpNotesActorArbeit(job) {
     try {
+      job.phase = "reading_scope";
+      const acceptedScope = await mcpNotesActorScope(job);
+      mcpNotesActorGuard(job);
       // Retain a late create result for cleanup even when the job was cancelled meanwhile.
       const created = await mcpNotesActorNative(job, "notes_actor_create", { sourceRevision: job.source }, new AbortController().signal);
       if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(created.actorId) || !/^[a-f0-9]{64}$/.test(created.ownerToken) || typeof created.bookSource !== "string")
@@ -37523,6 +37561,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               !Array.isArray(data.batch?.records) || !Array.isArray(data.intents) ||
               await personalSyncHash(data.batch.records) !== data.batch.records_hash)
             throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor aggregate was inconsistent");
+          if (personalSyncKanonisch(data.content_scope) !== personalSyncKanonisch(acceptedScope))
+            throw new MagnolieMcp.ToolError("source_changed", "Notes snapshot no longer matches the accepted pre-admission scope");
           mcpNotesActorGuard(job); attachments = Object.create(null);
           const descriptors = new Map();
           for (const record of data.batch.records.filter(record => record.kind === "note")) for (const item of record.value.attachments || []) {
