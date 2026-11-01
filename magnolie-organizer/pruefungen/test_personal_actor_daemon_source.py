@@ -47,6 +47,8 @@ def proxy_completion_session(tmp_path, monkeypatch, decision="delete"):
         proxy = background.PhoneServiceProxy(path)
         proxy.native_actor_book_source = lambda: owner.current(profile[0], True)
         proxy.native_actor_saved_book = lambda: owner.save_state(profile[0], True)
+        writer_guard = threading.RLock()
+        proxy.native_actor_producer_guard = lambda: writer_guard
         handle = None
         try:
             proxy.start(); proxy.set_visible(True); proxy.set_ready(True)

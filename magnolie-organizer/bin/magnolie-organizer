@@ -22194,7 +22194,8 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "telefon_mcp":
             action = str((nachricht.get("request") or {}).get("action", ""))
             if action in ("notes_actor_produce", "notes_actor_dispatch_proposals", "notes_actor_reply",
-                          "notes_actor_begin_completion", "notes_actor_advance_completion", "notes_actor_late_review"):
+                          "notes_actor_begin_completion", "notes_actor_advance_completion", "notes_actor_late_review",
+                          "notes_actor_prepare_late_save", "notes_actor_confirm_late_save"):
                 # These private steps use the native GUI-owner writer lease or
                 # schedule its terminal continuation. Never silently reroute
                 # them to the generic phone-control worker thread.
@@ -24390,12 +24391,18 @@ class Fenster(_FENSTER_BASIS):
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":
             value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
-        elif action == 'notes_actor_late_review':
+        elif action in ('notes_actor_late_review', 'notes_actor_prepare_late_save', 'notes_actor_confirm_late_save'):
             with self._daten_sperre:
                 if self._telefon_actor_buchnachweis() is None:
                     raise PermissionError('Native late review has no actual-save observation')
-                fields = {'offset': request.get('offset', 0), 'limit': request.get('limit', 65536), 'expected_revision': request.get('expectedRevision', '')}
-                value = source.read_personal_actor_late_review(handle, **fields) if proxy else source.read_personal_actor_late_review(registry, handle, **fields)
+                if action == 'notes_actor_late_review':
+                    fields = {'offset': request.get('offset', 0), 'limit': request.get('limit', 65536), 'expected_revision': request.get('expectedRevision', '')}
+                    value = source.read_personal_actor_late_review(handle, **fields) if proxy else source.read_personal_actor_late_review(registry, handle, **fields)
+                elif action == 'notes_actor_prepare_late_save':
+                    args = (request.get('reviewRevision'), request.get('bookSha256'))
+                    value = source.prepare_personal_actor_late_save(handle, *args) if proxy else source.prepare_personal_actor_late_save(registry, handle, *args)
+                else:
+                    value = source.confirm_personal_actor_late_save(handle, request.get('claimToken')) if proxy else source.confirm_personal_actor_late_save(registry, handle, request.get('claimToken'))
         elif action == "notes_actor_begin_completion":
             # Only the native writer callback is authority. A request cannot
             # supply a saved-book assertion or reuse an earlier GUI snapshot.
@@ -24468,9 +24475,17 @@ class Fenster(_FENSTER_BASIS):
         try:
             if (threading.current_thread() is not threading.main_thread() or self._telefon is not source or
                     self._gesperrt or self._wirklich_beenden or not self._organizer_vertraut() or
-                    time.monotonic() >= job["deadline"] or self._telefon_actor_buchnachweis() != job["saved"]):
+                    time.monotonic() >= job["deadline"]):
                 raise PermissionError("Native actor completion owner changed")
             state = self._telefon_actor_mcp(source, dict(request, action="notes_actor_status"))["actor"]
+            if state.get('phase') == 'decision_review' or state.get('deletion_book_persisted') is True:
+                # The separate post-data review/save owner has taken over. The
+                # old ordinary-save timer must neither replay its claim nor
+                # cancel the new owner because its writer sequence advanced.
+                jobs.pop(run, None)
+                return False
+            if self._telefon_actor_buchnachweis() != job['saved']:
+                raise PermissionError('Native actor completion book changed')
             if state.get("phase") in ("cancelled", "cancelled_clean"):
                 jobs.pop(run, None)
                 return False

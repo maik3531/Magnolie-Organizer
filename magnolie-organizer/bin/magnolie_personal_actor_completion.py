@@ -20,7 +20,7 @@ class NativeBookProofPending(RuntimeError):
 
 class DecisionAckCompletion:
     def __init__(self, run_id, native_targets, queued_decisions, *, current_authority, current_scope, current_saved_book, persisted_controls,
-                 native_sent_acknowledgments=None):
+                  native_sent_acknowledgments=None, before_scope=None):
         actor.start(run_id)
         if not all(callable(value) for value in (current_authority, current_scope, current_saved_book, persisted_controls)):
             raise TypeError("Native completion observations are required")
@@ -29,7 +29,7 @@ class DecisionAckCompletion:
         self.current_scope = current_scope
         self.current_saved_book = current_saved_book
         self.persisted_controls = persisted_controls
-        self.before = copy.deepcopy(current_scope())
+        self.before = copy.deepcopy(current_scope() if before_scope is None else before_scope)
         scope.validate(self.before)
         self.authority = current_authority()
         if not isinstance(self.authority, str) or not HEX.fullmatch(self.authority):

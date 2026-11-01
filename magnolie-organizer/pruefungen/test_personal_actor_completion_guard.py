@@ -64,6 +64,23 @@ def test_success_requires_fresh_expected_scope_and_durable_control(tmp_path,monk
     assert not channel.sent and not events
 
 
+def test_post_data_completion_pins_original_scope_when_peer_membership_already_advanced(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events, book, original, ack, advance = fixture(tmp_path, monkeypatch)
+    advance([])
+    book.record_saved('native-completion-profile', True, 'b' * 64)
+    arguments = dict(current_authority=original.current_authority, current_scope=original.current_scope,
+        current_saved_book=lambda: book.save_state('native-completion-profile', True), persisted_controls=lambda: [])
+    # Current membership alone is not the pre-deletion target scope. The exact
+    # accepted native before-scope must survive the separate late SaveACK.
+    with pytest.raises(ValueError): DecisionAckCompletion(handle.actor_id, original.targets, list(original.queued_frames.values()), **arguments)
+    pinned = DecisionAckCompletion(handle.actor_id, original.targets, list(original.queued_frames.values()), before_scope=original.before, **arguments)
+    assert pinned.validate('begin', None) is True
+    forged = scope.create(['note-one', 'unrelated-member'], ['task-one'])
+    invalid = DecisionAckCompletion(handle.actor_id, original.targets, list(original.queued_frames.values()), before_scope=forged, **arguments)
+    assert invalid.validate('begin', None) is False
+    assert not channel.sent and not events
+
+
 @pytest.mark.parametrize('gate',('foreign_scope','changed_book','changed_profile','partial_scope'))
 def test_unrelated_native_changes_never_complete_a_saved_claim(tmp_path,monkeypatch,gate):
     service,peer,channel,registry,handle,events,book,completion,ack,advance = fixture(tmp_path,monkeypatch)

@@ -4825,7 +4825,7 @@ class PhoneService:
             if not acknowledgments:
                 return
             completion = admission["completion"]
-            if (admission.get("save_receipt") != completion.saved_book or admission.get("phone_data_persisted") is not True or
+            if (admission.get('late_save_receipt', admission.get("save_receipt")) != completion.saved_book or admission.get("phone_data_persisted") is not True or
                     admission.get("phone_persisted")):
                 return
             if admission.get("completion_native_ack_next", 0) > time.monotonic():
@@ -4882,6 +4882,7 @@ class PhoneService:
             admission = self.personal_actor_admissions.get(handle.actor_id)
             if admission is not None and admission["registry"] is registry and admission["handle"] == handle:
                 value.update(book_persisted=bool(admission.get("save_receipt")), reply_queued=bool(admission.get("reply_queued")),
+                    deletion_book_persisted=bool(admission.get('late_save_receipt')),
                     phone_data_persisted=bool(admission.get("phone_data_persisted")),
                     phone_persisted=bool(admission.get("phone_persisted")), completion_report_queued=bool(admission.get("completion_report_id")))
                 if admission.get("completion") is not None:
@@ -4945,6 +4946,75 @@ class PhoneService:
             return {'review_ready': True, 'expected_proposals': expected, 'revision': revision, 'review_revision': view['revision'],
                 'total_bytes': len(raw), 'offset': offset, 'next_offset': next_offset if next_offset < len(raw) else None,
                 'data_base64': base64.b64encode(page).decode('ascii'), 'deletion_book_persisted': view['book_persisted'], 'phone_persisted': False}
+
+    def prepare_personal_actor_late_save(self, registry, handle, expected_revision, after_sha256, *, native_saved_book=None):
+        with self.lock:
+            page = self.read_personal_actor_late_review(registry, handle, limit=1, native_saved_book=native_saved_book)
+            if not page['review_ready']:
+                raise PermissionError('actor_producer_decisions_incomplete')
+            admission = self.personal_actor_admissions[handle.actor_id]
+            claim = admission['report_owner'].review.prepare_save(expected_revision, after_sha256)
+            admission['late_claim_token'] = claim['claim_token']
+            return dict(claim, deletion_book_persisted=claim['book_persisted'], phone_persisted=False)
+
+    def confirm_personal_actor_late_save(self, registry, handle, claim_token, *, native_saved_book=None):
+        """Confirm the separate actual SaveACK, then hand off metadata only.
+
+        Retry never repeats the ordinary commit, document write or peer decision
+        mutation. Incoming original frames are references, never re-enqueued.
+        """
+        from magnolie_personal_actor_completion import DecisionAckCompletion
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        if not callable(saved_provider):
+            raise PermissionError('actor_native_saved_book_unavailable')
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission['registry'] is not registry or admission['handle'] != handle or
+                    not isinstance(claim_token, str) or not secrets.compare_digest(admission.get('late_claim_token', ''), claim_token)):
+                raise PermissionError('actor_review_save_claim_unavailable')
+            waiting = admission.get('report_owner')
+            if waiting is None or waiting.review is None:
+                raise PermissionError('actor_late_review_owner_unavailable')
+            if admission.get('completion') is not None:
+                # Fresh writer proof is still mandatory on successful retries.
+                admission['completion'].current_saved_book = saved_provider
+                registry.check_completion(handle, 'read')
+                return {'deletion_book_persisted': True, 'completion_started': True, 'phone_persisted': bool(admission.get('phone_persisted')),
+                    'book_sha256': admission['late_save_receipt']['sha256'], 'save_sequence': admission['late_save_receipt']['sequence']}
+            self.read_personal_actor_late_review(registry, handle, limit=1, native_saved_book=saved_provider)
+            receipt = waiting.review.confirm_saved(claim_token)
+            admission['late_save_receipt'] = copy.deepcopy(waiting.review.saved)
+            if admission.get('late_completion') is None:
+                controls = registry.read_completion_controls(handle)
+                frames = [wire for wire in controls if wire['kind'] == personal_actor_contract.DATA_KIND]
+                native = []
+                for wire in frames:
+                    kind, body = personal_actor_contract.unwrap(wire['body'])
+                    if kind != 'personal_sync.deletion_decision':
+                        raise PermissionError('actor_completion_decision_envelope_changed')
+                    proof = self.store.personal_decision_targets(personal_actor_contract.storage_peer(handle.actor_id), body, False)
+                    if proof is None:
+                        raise PermissionError('actor_completion_target_proof_missing')
+                    native.extend(proof)
+                if sorted(native, key=lambda value: value['proposal_id']) != sorted(waiting.targets, key=lambda value: value['proposal_id']):
+                    raise PermissionError('actor_completion_target_proof_changed')
+                own_acks = [self._actor_control_message(personal_actor_contract.ACK_KIND,
+                    personal_actor_contract.ack(handle.actor_id, wire['message_id'])) for wire in frames]
+                completion = DecisionAckCompletion(handle.actor_id, native, frames,
+                    current_authority=waiting.current_authority, current_scope=waiting.review.current_scope, current_saved_book=saved_provider,
+                    persisted_controls=lambda: registry.read_completion_controls(handle), native_sent_acknowledgments=own_acks, before_scope=waiting.before)
+                admission['late_completion'] = completion
+                admission['late_own_acks'] = own_acks
+            completion = admission['late_completion']
+            completion.current_saved_book = saved_provider
+            registry.promote_decision_review(handle, waiting.validator, completion.validator)
+            admission['completion'] = completion
+            admission['completion_ids'] = set()  # Received original decisions are references only.
+            admission['completion_native_acks'] = {wire['message_id']: wire for wire in admission['late_own_acks']}
+            admission['completion_deferred_controls'] = {}
+            admission['phone_persisted'] = False
+            return {'deletion_book_persisted': True, 'completion_started': True, 'phone_persisted': False,
+                'book_sha256': receipt['book_sha256'], 'save_sequence': receipt['save_sequence']}
 
     def _queue_actor_completion_report(self, admission):
         if (not admission.get("reply_queued") or not admission.get("save_receipt") or admission.get("completion_report_id") or

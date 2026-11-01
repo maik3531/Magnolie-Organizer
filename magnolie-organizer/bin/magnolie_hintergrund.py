@@ -1080,7 +1080,7 @@ def _request_shape(operation, arguments):
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
-                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel", "begin_completion", "advance_completion", "late_review")):
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel", "begin_completion", "advance_completion", "late_review", "late_prepare", "late_confirm")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
             fields = {"action", "peer_id", "fingerprint"} | ({"expected_source"} if "expected_source" in request else set())
@@ -1093,6 +1093,8 @@ def _request_shape(operation, arguments):
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
             if request['action'] == 'late_review': fields |= {'offset', 'limit', 'expected_revision', 'native_saved_book'}
+            if request['action'] == 'late_prepare': fields |= {'review_revision', 'after_sha256', 'native_saved_book'}
+            if request['action'] == 'late_confirm': fields |= {'claim_token', 'native_saved_book'}
             if request["action"] == "staging" and "attachment_sha256" in request: fields.add("attachment_sha256")
             if request["action"] == "prepare_commit": fields |= {"view_revision", "after_sha256", "native_saved_book"}
             if request["action"] == "prepare_commit" and "deletion_plan" in request:
@@ -1118,9 +1120,9 @@ def _request_shape(operation, arguments):
                     not isinstance(request["attachment_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", request["attachment_sha256"]) is None or
                     request["expected_revision"] == ""):
                 raise IPCError("invalid native actor attachment read")
-            if request["action"] in ("prepare_commit", "commit", "begin_completion", "advance_completion", "late_review"):
+            if request["action"] in ("prepare_commit", "commit", "begin_completion", "advance_completion", "late_review", "late_prepare", "late_confirm"):
                 book = request["native_saved_book"]
-                hashes = (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (
+                hashes = (request['review_revision'], request['after_sha256']) if request['action'] == 'late_prepare' else (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (
                     () if request["action"] in ("advance_completion", "late_review") else (request["claim_token"],))
                 if (any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None for value in hashes) or
                         not isinstance(book, dict) or set(book) != {"book_source", "sequence", "sha256"} or
@@ -1396,6 +1398,12 @@ class IPCServer:
             if request['action'] == 'late_review':
                 return phone.read_personal_actor_late_review(registry, handle, offset=request['offset'], limit=request['limit'],
                     expected_revision=request['expected_revision'], native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source))
+            if request['action'] == 'late_prepare':
+                return phone.prepare_personal_actor_late_save(registry, handle, request['review_revision'], request['after_sha256'],
+                    native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source))
+            if request['action'] == 'late_confirm':
+                return phone.confirm_personal_actor_late_save(registry, handle, request['claim_token'],
+                    native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source))
             if request["action"] == "begin_completion":
                 phone.begin_personal_actor_completion(registry, handle, request["claim_token"],
                     native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source),
@@ -1807,7 +1815,7 @@ class IPCServer:
         if operation == "phone_actor_registry":
             from magnolie_personal_actor_store import ActorHandle
             request = arguments["request"]
-            if request["action"] in ("begin_completion", "advance_completion", "late_review"):
+            if request["action"] in ("begin_completion", "advance_completion", "late_review", "late_prepare", "late_confirm"):
                 return self._phone_actor_completion_operation(arguments)
             with phone.lock:
                 if request["action"] == "create":
@@ -2469,7 +2477,9 @@ class PhoneServiceProxy:
     def _actor_completion_request(self, handle, action, **fields):
         if threading.current_thread() is not threading.main_thread():
             raise IPCError("Native actor completion requires the GUI owner thread")
-        with self._state_lock:
+        if not callable(self.native_actor_producer_guard):
+            raise IPCError('Native actor metadata operation requires the GUI writer guard')
+        with self.native_actor_producer_guard(), self._state_lock:
             if self._publish_actor_book_source() != handle.book_source or not callable(self.native_actor_saved_book):
                 raise IPCError("Native actor writer is unavailable")
             observed = json.loads(json.dumps(self.native_actor_saved_book()))
@@ -2483,6 +2493,12 @@ class PhoneServiceProxy:
             raise IPCError('Native late review requires the GUI writer guard')
         with self.native_actor_producer_guard():
             return self._actor_completion_request(handle, 'late_review', offset=offset, limit=limit, expected_revision=expected_revision)
+
+    def prepare_personal_actor_late_save(self, handle, review_revision, after_sha256):
+        return self._actor_completion_request(handle, 'late_prepare', review_revision=review_revision, after_sha256=after_sha256)
+
+    def confirm_personal_actor_late_save(self, handle, claim_token):
+        return self._actor_completion_request(handle, 'late_confirm', claim_token=claim_token)
 
     def begin_personal_actor_completion(self, handle, claim_token):
         return self._actor_completion_request(handle, "begin_completion", claim_token=claim_token)

@@ -243,7 +243,8 @@ def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual
 
 
 @pytest.mark.parametrize('handoff_fault', [False, True])
-def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisions(tmp_path, monkeypatch, handoff_fault):
+@pytest.mark.parametrize('late_fault', [None, 'ok', 'handoff_sql', 'ack_sql', 'ack_io'])
+def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisions(tmp_path, monkeypatch, handoff_fault, late_fault):
     import uuid
     from test_personal_actor_transport import frame
     with proxy_producer(tmp_path, monkeypatch) as values:
@@ -298,7 +299,7 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
         native_host = SimpleNamespace(_daten_sperre=proxy.native_actor_producer_guard(), _telefon_actor_buchnachweis=read)
         original_call = proxy._call
         def guarded_call(operation, **fields):
-            if operation == 'actor_registry' and fields.get('request', {}).get('action') == 'late_review':
+            if operation == 'actor_registry' and fields.get('request', {}).get('action') in ('late_review', 'late_prepare', 'late_confirm', 'advance_completion'):
                 assert proxy.native_actor_producer_guard()._is_owned(), 'Late review IPC lost the actual GUI writer lock'
             return original_call(operation, **fields)
         monkeypatch.setattr(proxy, '_call', guarded_call)
@@ -329,6 +330,67 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
             except background.IPCError as error: worker_errors.append(error)
         worker = threading.Thread(target=late_worker); worker.start(); worker.join(3)
         assert not worker.is_alive() and worker_errors and not server._phone_actor_book_probes
+        if late_fault is not None:
+            def native_action(action, **fields):
+                return native_bridge(native_host, proxy, {'action': action, 'actorId': handle.actor_id, 'ownerToken': handle.owner_token,
+                    'bookSource': handle.book_source, **fields})['actor']
+            ordinary_receipt = copy.deepcopy(admission['save_receipt'])
+            def no_ordinary_recommit(*args, **kwargs): raise AssertionError('Late save repeated the original ordinary data commit')
+            monkeypatch.setattr(service, 'commit_personal_actor', no_ordinary_recommit)
+            late_claim = native_action('notes_actor_prepare_late_save', reviewRevision=first_page['review_revision'], bookSha256='c' * 64)
+            assert not late_claim['deletion_book_persisted'] and not late_claim['phone_persisted']
+            assert native_action('notes_actor_prepare_late_save', reviewRevision=first_page['review_revision'], bookSha256='c' * 64) == late_claim
+            with pytest.raises(background.IPCError): native_action('notes_actor_confirm_late_save', claimToken=late_claim['claim_token'])
+            assert channel.sent == before_wire
+            owner.record_saved('native-producer-fixture', True, 'c' * 64)
+            confirmed_sequence = read()['sequence']
+            if late_fault == 'handoff_sql':
+                original_promote = native_registry.promote_decision_review; promotions = [0]
+                def fail_promotion_once(*args, **kwargs):
+                    promotions[0] += 1
+                    if promotions[0] != 1: return original_promote(*args, **kwargs)
+                    with sqlite3.connect(service.store.database_path) as db:
+                        db.execute("CREATE TRIGGER late_handoff_fault BEFORE INSERT ON personal_actor_context BEGIN SELECT RAISE(ABORT,'synthetic late handoff SQL fault'); END")
+                    try: return original_promote(*args, **kwargs)
+                    finally:
+                        with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER late_handoff_fault')
+                monkeypatch.setattr(native_registry, 'promote_decision_review', fail_promotion_once)
+                with pytest.raises(background.IPCError): native_action('notes_actor_confirm_late_save', claimToken=late_claim['claim_token'])
+                partial = proxy.personal_actor_status(handle)
+                assert partial['phase'] == 'decision_review' and partial['deletion_book_persisted'] and not partial['phone_persisted']
+            receipt = native_action('notes_actor_confirm_late_save', claimToken=late_claim['claim_token'])
+            assert receipt['deletion_book_persisted'] and receipt['completion_started'] and not receipt['phone_persisted']
+            assert channel.sent == before_wire
+            assert native_action('notes_actor_confirm_late_save', claimToken=late_claim['claim_token']) == receipt
+            actual_ack = copy.deepcopy(next(iter(admission['completion_native_acks'].values())))
+            original_send = channel.send
+            if late_fault == 'ack_sql':
+                with sqlite3.connect(service.store.database_path) as db:
+                    db.execute("CREATE TRIGGER late_ack_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic late ACK ledger fault'); END")
+            if late_fault == 'ack_io':
+                def failed_ack(wire):
+                    if wire == actual_ack: raise OSError('Synthetic encrypted ACK send failure')
+                    original_send(wire)
+                channel.send = failed_ack
+            if late_fault in ('ack_sql', 'ack_io'):
+                with pytest.raises(background.IPCError): native_action('notes_actor_advance_completion')
+                pending = proxy.personal_actor_status(handle)
+                assert pending['deletion_book_persisted'] and not pending['phone_persisted'] and pending['deletion_completion']['saved'] == 0
+                if late_fault == 'ack_sql':
+                    with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER late_ack_fault')
+                channel.send = original_send
+                before_backoff = len(channel.sent)
+                native_action('notes_actor_advance_completion')
+                assert len(channel.sent) == before_backoff, 'Late completion bypassed its existing ACK retry backoff'
+                admission['completion_native_ack_next'] = 0  # Controlled due-time fixture, not production retry logic.
+            completed = native_action('notes_actor_advance_completion')
+            assert completed['phase'] == 'completed' and completed['phone_persisted'] and completed['deletion_book_persisted']
+            assert completed['deletion_completion'] == {'expected': 1, 'received': 1, 'saved': 1, 'rejected': 0}
+            assert channel.sent[-1] == actual_ack and read()['sequence'] == confirmed_sequence
+            assert admission['save_receipt'] == ordinary_receipt, 'Late deletion save overwrote the original data receipt'
+            assert service.store.outbox_message(peer['device_id'], decision['message_id']) is None, 'Received decision was requeued as outgoing data'
+            assert not server._phone_actor_book_probes
+            return
         import magnolie_content_scope as scope
         registry = admission['registry']
         fingerprint = registry.status(admission['handle'])['fingerprint']
@@ -361,6 +423,19 @@ def test_late_review_native_page_arguments_are_strict_before_any_owner_or_book_a
 def test_late_review_ipc_requires_exact_bounded_native_fields(field, value):
     request = {'action': 'late_review', 'actor_id': RUN, 'owner_token': 'a' * 64, 'offset': 0, 'limit': 65536, 'expected_revision': '',
         'native_saved_book': {'book_source': 'c' * 64, 'sequence': 1, 'sha256': 'd' * 64}}
+    request[field] = value
+    with pytest.raises(background.IPCError):
+        background._request_shape('phone_actor_registry', {'subscriber': 'b' * 32, 'book_source': 'c' * 64, 'request': request})
+
+
+@pytest.mark.parametrize('action,field,value', [('late_prepare', 'review_revision', True), ('late_prepare', 'after_sha256', 'caller-content'),
+    ('late_prepare', 'targets', []), ('late_confirm', 'claim_token', ''), ('late_confirm', 'decisions', []),
+    ('late_confirm', 'native_saved_book', {'book_source': 'd' * 64, 'sequence': 2, 'sha256': 'e' * 64})])
+def test_separate_late_save_ipc_rejects_caller_targets_or_unbound_claims(action, field, value):
+    request = {'action': action, 'actor_id': RUN, 'owner_token': 'a' * 64,
+        'native_saved_book': {'book_source': 'c' * 64, 'sequence': 2, 'sha256': 'e' * 64}}
+    if action == 'late_prepare': request.update(review_revision='f' * 64, after_sha256='b' * 64)
+    else: request['claim_token'] = 'f' * 64
     request[field] = value
     with pytest.raises(background.IPCError):
         background._request_shape('phone_actor_registry', {'subscriber': 'b' * 32, 'book_source': 'c' * 64, 'request': request})

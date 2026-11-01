@@ -1,6 +1,7 @@
 """Execute the actual native script-message dispatch branch, without GTK/VM."""
 import ast
 import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 import pytest
@@ -8,6 +9,7 @@ import pytest
 
 @pytest.mark.parametrize('action,on_owner', [('notes_actor_produce', True), ('notes_actor_dispatch_proposals', True),
     ('notes_actor_reply', True), ('notes_actor_begin_completion', True), ('notes_actor_advance_completion', True), ('notes_actor_late_review', True),
+    ('notes_actor_prepare_late_save', True), ('notes_actor_confirm_late_save', True),
     ('notes_actor_source', False), ('notes_actor_scope', False), ('notes_actor_status', False), ('read', False)])
 def test_private_writer_actions_reach_the_native_gui_owner_not_the_generic_worker(action, on_owner):
     source = Path(__file__).resolve().parents[1] / 'bin/magnolie-organizer'
@@ -34,3 +36,22 @@ def test_private_writer_actions_reach_the_native_gui_owner_not_the_generic_worke
         item.join(1); assert not item.is_alive()
     assert len(observed) == 1 and observed[0][1] is request
     assert (observed[0][0] == caller) is on_owner
+
+
+@pytest.mark.parametrize('phase,late_saved', [('decision_review', False), ('completion', True), ('completed', True)])
+def test_original_gui_terminal_timer_relinquishes_post_data_ownership_without_recommit_or_cancel(phase, late_saved):
+    source = Path(__file__).resolve().parents[1] / 'bin/magnolie-organizer'
+    node = next(node for node in ast.walk(ast.parse(source.read_text())) if isinstance(node, ast.FunctionDef) and node.name == '_telefon_actor_abschluss_schritt')
+    namespace = {'threading': threading, 'time': time}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(source), 'exec'), namespace)
+    native = object(); actions = []
+    job = {'source': native, 'request': {}, 'saved': {'sequence': 2}, 'deadline': time.monotonic() + 30}
+    jobs = {'synthetic-run': job}
+    def call(source, request):
+        actions.append(request['action'])
+        if request['action'] != 'notes_actor_status': raise AssertionError('Old timer interfered with post-data owner: ' + request['action'])
+        return {'actor': {'phase': phase, 'phone_data_persisted': True, 'phone_persisted': phase == 'completed', 'deletion_book_persisted': late_saved}}
+    host = SimpleNamespace(_notes_actor_abschluesse=jobs, _telefon=native, _gesperrt=False, _wirklich_beenden=False,
+        _organizer_vertraut=lambda: True, _telefon_actor_buchnachweis=lambda: {'sequence': 3 if late_saved else 2}, _telefon_actor_mcp=call)
+    assert namespace['_telefon_actor_abschluss_schritt'](host, 'synthetic-run', job) is False
+    assert actions == ['notes_actor_status'] and not jobs
