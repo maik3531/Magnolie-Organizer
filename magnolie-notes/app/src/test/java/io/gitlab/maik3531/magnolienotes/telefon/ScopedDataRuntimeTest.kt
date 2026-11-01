@@ -49,6 +49,10 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorStartOwnsEncryptedSnapshotDispatchAndMarkedAckCancellation() = exercise("actor-transport")
     @Test fun nativeActorDeletionIntentsStayPrivateAndRequirePriorClockScopeAndGrants() = exercise("actor-deletions")
     @Test fun nativeActorDeletionSkipChoiceBlocksIntentsWithBothGrantsPresent() = exercise("actor-deletions-skip")
+    @Test fun authenticatedHistoricalTargetsStayInPrivateOriginWithoutDataSaveOrSuccessAck() = exercise("actor-deletions-origin")
+    @Test fun rawActorJournalCannotSupplyAuthenticatedHistoricalOrigin() = exercise("actor-deletions-origin-raw")
+    @Test fun conflictingHistoricalFrameRetiresItsPrivateOrigin() = exercise("actor-deletions-origin-conflict")
+    @Test fun historicalOriginCannotSurviveNativeGrantRevocation() = exercise("actor-deletions-origin-grants")
     @Test fun nativeActorCompleteReportCheckpointsAndPersistsPrivateReplyExactlyOnce() = exercise("actor-commit")
     @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
     @Test fun nativeActorCompleteReportNeverRecordsFailedNetworkAckAsReceipt() = exercise("actor-commit-ack-failure")
@@ -236,7 +240,7 @@ class ScopedDataRuntimeTest {
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
-            if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
+            if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode.startsWith("actor-deletions-origin") || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -720,6 +724,43 @@ class ScopedDataRuntimeTest {
                         }, 86_400_000)
                         fun receive(value: JsonObject) { work.receiveMessage(peer, PersonalSyncActor.wireMessage(value, run), channel, 0L); assertTrue(sent().isEmpty()) }
                         val valid = proposals()
+                        if (mode.startsWith("actor-deletions-origin")) {
+                            @Suppress("UNCHECKED_CAST")
+                            val handle = requireNotNull((field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>)[run])
+                            val historical = proposals(JsonObject(proposal + ("id" to JsonPrimitive("outside-scope"))))
+                            val wire = PersonalSyncActor.wireMessage(historical, run)
+                            val saved = documents.personalActorSavedBookState()
+                            val bytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                            val currentBook = documents.bestand.value
+                            if (mode.endsWith("-raw")) {
+                                work.personalActorJournal.putWire(handle, wire)
+                                assertTrue(runCatching { work.readPersonalActorIncomingTargetFrames(handle) }.isFailure)
+                            } else {
+                                assertTrue(runCatching { work.readPersonalActorIncomingTargetFrames(handle) }.isFailure)
+                                receive(historical)
+                                assertEquals(listOf(wire), work.readPersonalActorIncomingTargetFrames(handle))
+                                assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                                assertTrue(runCatching { work.personalActorJournal.readWire(handle, wire.string("message_id")) }.isFailure)
+                                // Origin is not evidence that this unselected target exists locally.
+                                assertTrue(runCatching { work.reviewPersonalActorIncomingTargets(handle) }.isFailure)
+                                if (mode.endsWith("-conflict")) {
+                                    val changed = JsonObject(wire + ("expires_ms" to JsonPrimitive(wire.long("expires_ms") - 1)))
+                                    work.receiveMessage(peer, changed, channel, 0L); assertTrue(sent().isEmpty())
+                                    assertTrue(runCatching { work.readPersonalActorIncomingTargetFrames(handle) }.isFailure)
+                                }
+                                if (mode.endsWith("-grants")) {
+                                    storage.savePeer(requireNotNull(storage.peers().peer).copy(remote_personal_deletions_sync_granted = false))
+                                    assertTrue(runCatching { work.readPersonalActorIncomingTargetFrames(handle) }.isFailure)
+                                }
+                            }
+                            assertSame(currentBook, documents.bestand.value)
+                            assertEquals(saved, documents.personalActorSavedBookState())
+                            assertArrayEquals(bytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                            work.stopPersonalActor(handle)
+                            assertTrue((field(TelefonWerk::class.java, "personalActorTargetOrigins").get(work) as Map<*, *>).isEmpty())
+                            assertTrue(sent().isEmpty())
+                            return@use
+                        }
                         if (mode == "actor-deletions-skip") {
                             receive(valid); assertTrue(queue.actorDeletionIntents(run).isEmpty())
                             assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)

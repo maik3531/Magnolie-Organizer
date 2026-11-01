@@ -157,6 +157,13 @@ internal class PersonalSyncActorJournal(
             (!fresh || wire.long("expires_ms") > clock()) && TelefonKanonisch.bytes(wire).size <= 256 * 1024)
     }
 
+    /** Validation only, never raw persistence or proof of authenticated incoming origin. */
+    internal fun validateIncomingTargetWire(handle: PersonalActorHandle, wire: JsonObject) = withActive(handle) {
+        validateWire(handle, wire, true)
+        require(wire.string("kind") == PersonalSyncActor.DATA_KIND &&
+            PersonalSyncActor.unwrap(wire.getValue("body").jsonObject).first == "personal_sync.deletion_proposals")
+    }
+
     /** Raw persistence/deduplication only. A stored frame does not authorize a successful wire ACK. */
     fun putWire(handle: PersonalActorHandle, wire: JsonObject): Boolean = withActive(handle) {
         validateWire(handle, wire, true)

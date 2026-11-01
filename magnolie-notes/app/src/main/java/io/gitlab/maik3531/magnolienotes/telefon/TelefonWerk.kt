@@ -223,6 +223,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
     private val personalActorCompletions = mutableMapOf<String, ActorDeletionCompletion>()
     private val personalActorBooks = mutableMapOf<String, Bestand>()
+    private val personalActorTargetOrigins = mutableMapOf<String, PersonalActorIncomingTargetOrigin>()
 
     @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
         startWire: JsonObject? = null): PersonalActorHandle =
@@ -255,6 +256,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorCompletions.remove(handle.runId)
         personalActorTransports.remove(handle.runId)
         personalActorBooks.remove(handle.runId)
+        personalActorTargetOrigins.remove(handle.runId)?.clear()
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
             pendingScopedSync = null
     }
@@ -276,6 +278,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             personalActorCompletions.remove(run)
             personalActorKeys.remove(run); personalActorTransports.remove(run)
             personalActorBooks.remove(run)
+            personalActorTargetOrigins.remove(run)?.clear()
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
                 pendingScopedSync = null
         }
@@ -706,6 +709,63 @@ class TelefonWerk private constructor(private val context: Context, private val 
             { current() != null }, current, { documents.bestand.value },
             { documents.personalActorSavedBookState() }, { noteSessions[channel]?.localContentScope })
         observation.observeMany(handle.runId, targets)
+    }
+
+    private fun personalActorTargetOriginCurrent(handle: PersonalActorHandle): Pair<String, JsonObject> {
+        require(personalActorHandles[handle.runId] === handle) { "actor_target_owner_changed" }
+        personalActorJournal.withActive(handle) {}
+        val channel = requireNotNull(personalActorTransports[handle.runId])
+        val publicKey = requireNotNull(personalActorKeys[handle.runId])
+        val peer = requireNotNull(safePeer())
+        check(peer.device_id == handle.peerId && peer.static_public == publicKey &&
+            peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted &&
+            commonValues(peer)?.get("skip_deletions") == JsonPrimitive(false)) { "actor_deletions_not_granted" }
+        val request = queue.personalRun(peer.device_id, handle.runId)
+        check(queue.isActorRun(peer.device_id, handle.runId) && request?.string("trigger") == "manual" &&
+            !queue.personalDirectionApplied(peer.device_id, handle.runId, true)) { "actor_target_origin_run_retired" }
+        val source = checkNotNull(currentActorSource(peer.device_id, publicKey, channel, pairingGeneration)) { "actor_source_changed" }
+        val scope = checkNotNull(noteSessions[channel]?.localContentScope)
+        return source to scope
+    }
+
+    /** Authenticated receive ONLY. Never invoked by raw journal storage or caller JSON. */
+    private fun quarantinePersonalActorIncomingTargets(handle: PersonalActorHandle, wire: JsonObject) {
+        personalActorJournal.validateIncomingTargetWire(handle, wire)
+        val (source, scope) = personalActorTargetOriginCurrent(handle)
+        val now = System.currentTimeMillis(); val elapsed = android.os.SystemClock.elapsedRealtime()
+        val origin = personalActorTargetOrigins.getOrPut(handle.runId) {
+            PersonalActorIncomingTargetOrigin(handle.runId, source, scope, now, elapsed)
+        }
+        origin.capture(wire, source, scope, now, elapsed)
+        val after = personalActorTargetOriginCurrent(handle)
+        origin.current(after.first, after.second, System.currentTimeMillis(), android.os.SystemClock.elapsedRealtime())
+    }
+
+    /** Native-only provenance handoff, no public tool/wire route, data/save or ACK rights. */
+    @Synchronized internal fun readPersonalActorIncomingTargetFrames(handle: PersonalActorHandle): List<JsonObject> =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val (source, scope) = personalActorTargetOriginCurrent(handle)
+            val origin = checkNotNull(personalActorTargetOrigins[handle.runId]) { "actor_target_origin_missing" }
+            val frames = origin.read(source, scope, System.currentTimeMillis(), android.os.SystemClock.elapsedRealtime())
+            frames.forEach { personalActorJournal.validateIncomingTargetWire(handle, it) }
+            val after = personalActorTargetOriginCurrent(handle)
+            origin.current(after.first, after.second, System.currentTimeMillis(), android.os.SystemClock.elapsedRealtime())
+            frames
+        }
+
+    /** Operation-local native review; no book closures/review object retained after return.
+     * In particular, the existing current-live-selection/source guard is NOT relaxed. */
+    @Synchronized internal fun reviewPersonalActorIncomingTargets(handle: PersonalActorHandle,
+        expectedRevision: String? = null, choices: List<JsonObject>? = null): JsonObject = synchronized(Ablage.SCHREIBSPERRE) {
+        require((choices == null) == (expectedRevision == null) &&
+            (expectedRevision == null || Regex("[a-f0-9]{64}").matches(expectedRevision)))
+        val copied = choices?.map { TelefonKanonisch.json.parseToJsonElement(it.toString()).jsonObject }
+        val documents = Ablage.hole(context)
+        val review = PersonalActorIncomingTargetChoiceReview(handle.runId,
+            { readPersonalActorIncomingTargetFrames(handle) }, { observePersonalActorIncomingTargets(handle, it) },
+            { personalActorTargetOriginCurrent(handle).first }, { personalActorTargetOriginCurrent(handle).second },
+            { documents.personalActorSavedBookState() })
+        if (copied == null) review.review() else review.draftChoices(requireNotNull(expectedRevision), copied)
     }
 
     /** Called only while preparing the actual native scoped snapshot under the
@@ -2280,9 +2340,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                                 val members = manifest.getValue("members") as JsonObject
                                 val notes = (members.getValue("notes") as JsonArray).map { (it as JsonPrimitive).content }.toSet()
                                 val tasks = (members.getValue("tasks") as JsonArray).map { (it as JsonPrimitive).content }.toSet()
-                                require(proposals.all { when (it.kind) {
+                                if (!proposals.all { when (it.kind) {
                                     "note" -> it.id in notes; "task" -> it.id in tasks; "attachment" -> it.parentId in notes; else -> false
-                                } }) { "actor_record_outside_scope" }
+                                } }) {
+                                    if (kind == "personal_sync.deletion_proposals") quarantinePersonalActorIncomingTargets(handle, message)
+                                    else error("actor_record_outside_scope")
+                                    return@withActive // No journal/data staging or successful ACK.
+                                }
                             }
                             val incomingBatches = if (kind == "personal_sync.attachment_chunk") {
                                 require(content["reply"] == JsonPrimitive(true)) { "actor_reply_required" }
