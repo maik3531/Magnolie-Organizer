@@ -90,16 +90,28 @@ def test_cancel_and_wrong_owner_do_not_recall_or_publish_late_timer_data(tmp_pat
     assert not events and not service.time_control_requests
 
 
-def test_unnegotiated_or_withdrawn_source_never_dispatches_timer_requests(tmp_path, monkeypatch):
+@pytest.mark.parametrize('withdrawal', ['own_control', 'grants', 'capabilities', 'channel', 'unavailable'])
+def test_withdrawn_current_source_never_dispatches_timer_requests(tmp_path, monkeypatch, withdrawal):
     service, peer, channel, fingerprint, events = runtime(tmp_path, monkeypatch)
-    peer["personal_sync"]["remote_own_device"] = False
+    # Paired single-device own flags are normalized by the store. Withdraw the
+    # actual current-session authority instead of mutating legacy cached flags.
+    assert service._time_control_source(peer['device_id'], fingerprint) is not None
+    if withdrawal == 'own_control': service.note_controls[channel].pop('personal_sync.settings')
+    elif withdrawal == 'grants': service.note_controls[channel].pop('grants.update')
+    elif withdrawal == 'capabilities': service.note_controls[channel].pop('capabilities.update')
+    elif withdrawal == 'channel': service.connections.pop(peer['device_id'])
+    else: service.personal_sync_available = lambda: False
+    assert service._time_control_source(peer['device_id'], fingerprint) is None
     with pytest.raises(PermissionError): service.request_time_control(peer["device_id"], fingerprint, control.request(str(uuid4())))
     assert not channel.sent and not events
-    peer["personal_sync"]["remote_own_device"] = True
+
+
+def test_unnegotiated_timer_version_never_dispatches_requests(tmp_path, monkeypatch):
+    service, peer, channel, fingerprint, events = runtime(tmp_path, monkeypatch)
     peer["capabilities"]["items"]["personal_tasks_sync"]["versions"].remove(13)
     assert service.mcp_action({"action": "time_control_source", "peerId": peer["device_id"], "fingerprint": fingerprint})["code"] == "unsupported_feature"
     with pytest.raises(PermissionError): service.request_time_control(peer["device_id"], fingerprint, control.request(str(uuid4())))
-    assert not channel.sent
+    assert not channel.sent and not events
 
 
 def test_daemon_timer_command_roundtrip_preserves_large_unicode_and_stays_ephemeral(tmp_path, monkeypatch):
