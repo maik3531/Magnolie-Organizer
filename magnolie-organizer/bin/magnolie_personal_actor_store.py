@@ -420,7 +420,7 @@ class ActorStore:
             raise PermissionError("actor_not_found")
         if value["phase"] not in ("decision_review", "completion", "completed"):
             raise PermissionError("actor_completion_inactive")
-        if value['phase'] == 'decision_review' and operation not in ('begin', 'put', 'read', 'handoff'):
+        if value['phase'] == 'decision_review' and operation not in ('begin', 'put', 'read', 'handoff', 'send_report'):
             raise PermissionError('actor_decision_review_metadata_only')
         wall, mono = self.clock(), self.monotonic_clock()
         if (type(wall) is not int or type(mono) is not int or
@@ -443,6 +443,21 @@ class ActorStore:
         if result is not True:
             raise _CompletionSourceLost("actor_completion_source_changed")
         return value
+
+    def check_decision_report_send(self, handle, wire):
+        """Exact immutable ordinary-report send; never a general data capability."""
+        clear = self._wire_payload(handle, wire)
+        kind, _ = actor.unwrap(wire['body'])
+        if kind != 'personal_sync.report':
+            raise ValueError('actor_ordinary_report_required')
+        with self._completion_database(handle) as db:
+            value = self._require(db, handle, active=False, source=False)
+            if value['phase'] != 'decision_review':
+                raise PermissionError('actor_decision_review_inactive')
+            self._require_completion(db, handle, 'send_report', wire)
+            self._require_completion(db, handle, 'send_report', wire)
+            if personal.canonical(wire) != clear:
+                raise ValueError('actor_completion_callback_mutated_packet')
 
     def begin_decision_review(self, handle, native_guard):
         """Native-only post-data handoff; receiving data rights never return.
