@@ -78,6 +78,10 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionDeniedAfterCancellation() = exercise("actor-producer-incoming-deny-cancel")
     @Test fun nativeIncomingDecisionMixedDeleteRequiresBothReceiptDirectionsAndOneDataCommit() = exercise("actor-producer-incoming-mixed-delete")
     @Test fun nativeIncomingDecisionMixedRestoreKeepsBothTargetsAndDraft() = exercise("actor-producer-incoming-mixed-restore")
+    @Test fun nativeIncomingDecisionMixedRejectedWithMissingReview() = exercise("actor-producer-incoming-mixed-reject-review-missing")
+    @Test fun nativeIncomingDecisionMixedRejectedWithExtraReview() = exercise("actor-producer-incoming-mixed-reject-review-extra")
+    @Test fun nativeIncomingDecisionMixedRejectedWithPartialDecisions() = exercise("actor-producer-incoming-mixed-reject-partial")
+    @Test fun nativeIncomingDecisionMixedRejectedWithOverlappingTargets() = exercise("actor-producer-incoming-mixed-reject-overlap")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -387,11 +391,12 @@ class ScopedDataRuntimeTest {
                             work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision",
                                 JsonObject(decisionBody + ("decisions" to JsonArray(wrongDecisions))), 60000), run), channel, 0L)
                             assertTrue(sent().isEmpty()); assertTrue(queue.actorDeletionIntents(run).isEmpty())
-                            val incomingDecisions = decisionBodies.map { PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision", it, 60000), run) }
+                            val incomingDecisions = (if (mode.endsWith("reject-partial")) decisionBodies.take(1) else decisionBodies)
+                                .map { PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_decision", it, 60000), run) }
                             val incomingDecision = incomingDecisions.first()
                             val incomingIds = incomingDecisions.map { it.getValue("message_id") }.toSet()
                             for (wire in incomingDecisions) work.receiveMessage(peer, wire, channel, 0L)
-                            assertTrue(sent().isEmpty()); assertEquals(2, queue.actorDeletionIntents(run).size)
+                            assertTrue(sent().isEmpty()); assertEquals(incomingDecisions.size, queue.actorDeletionIntents(run).size)
                             assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, emptyMap()) }.isFailure)
                             // Complete the actual data direction first. Its ACK
                             // is distinct from the ACK for this deletion decision.
@@ -401,17 +406,18 @@ class ScopedDataRuntimeTest {
                             val localProposalId = UUID.randomUUID().toString()
                             if (mixed) {
                                 val task = replyRecords.single { it.kind == "task" }
+                                val overlap = if (mode.endsWith("reject-overlap")) native.first() else null
                                 val localProposal = TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
                                     put("format", 1); put("run_id", run); put("proposal_batch_id", UUID.randomUUID().toString()); put("sequence", 0); put("last", true)
                                     put("proposals", buildJsonArray { add(buildJsonObject {
-                                        put("proposal_id", localProposalId); put("kind", "task"); put("id", task.id); put("parent_id", "")
-                                        put("prior_hash", task.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Mixed native task review")
-                                        put("clock", JsonArray(PersonalSync.merge(task.clock, listOf(PersonalSyncClock(peerId, 2))).map {
+                                        put("proposal_id", localProposalId); put("kind", overlap?.kind ?: "task"); put("id", overlap?.id ?: task.id); put("parent_id", overlap?.parentId ?: "")
+                                        put("prior_hash", overlap?.priorHash ?: task.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Mixed native review")
+                                        put("clock", JsonArray((overlap?.clock ?: PersonalSync.merge(task.clock, listOf(PersonalSyncClock(peerId, 2)))).map {
                                             buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
                                     }) })
                                 }, 60000)
                                 work.receiveMessage(peer, PersonalSyncActor.wireMessage(localProposal, run), channel, 0L)
-                                assertTrue(sent().isEmpty()); assertEquals(3, queue.actorDeletionIntents(run).size)
+                                assertTrue(sent().isEmpty()); assertEquals(incomingDecisions.size + 1, queue.actorDeletionIntents(run).size)
                             }
                             val incomingBatch = PersonalSyncProtokoll.batch(run, replyRecords, 0, true, true, format, PersonalSync.recordsHash(replyRecords))
                             work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBatch, 60000), run), channel, 0L)
@@ -446,6 +452,27 @@ class ScopedDataRuntimeTest {
                             if (mode.endsWith("writer-failure")) failBookWrites.set(true)
                             if (mode.endsWith("send-failure")) failNextFlush.set(true)
                             checkNativeAckLocks.set(true)
+                            if (mode.startsWith("actor-producer-incoming-mixed-reject-")) {
+                                val retainedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                val exactReview = mapOf(localProposalId to choice)
+                                val review = when {
+                                    mode.endsWith("review-missing") -> emptyMap()
+                                    mode.endsWith("review-extra") -> exactReview + (native.first().proposalId to choice)
+                                    else -> exactReview
+                                }
+                                assertTrue(runCatching { work.commitPersonalActorDeletionReview(handle, review) }.isFailure)
+                                assertEquals(witness, documents.personalActorSavedBookState())
+                                assertArrayEquals(retainedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                assertEquals(draft, documents.entwurf.value)
+                                assertEquals(incomingDecisions.size + 1, queue.actorDeletionIntents(run).size)
+                                assertTrue(sent().isEmpty())
+                                assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).none {
+                                    it.payload["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                        PersonalSyncActor.unwrap(it.payload.getValue("body").jsonObject).first == "personal_sync.deletion_decision"
+                                })
+                                assertEquals(0, work.personalActorJournal.withActive(handle) { 0 })
+                                return@use
+                            }
                             if (mixed) assertEquals("completion", work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
                             val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
                             val firstWire = sent().toMutableList()
