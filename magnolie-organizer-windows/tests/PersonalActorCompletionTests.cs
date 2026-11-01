@@ -148,6 +148,7 @@ internal static class PersonalActorCompletionTests
             f.Registry.Cancel(f.Handle); f.Registry.Create(f.Peer, f.Fingerprint, f.Source);
         }
         ExactSavedDecisionCorrelation();
+        NativeSentAcknowledgmentCorrelation();
         return Task.CompletedTask;
     }
 
@@ -159,7 +160,7 @@ internal static class PersonalActorCompletionTests
         internal JsonObject? Scope;
         internal string? Authority = new string('a', 64);
         internal readonly PersonalActorDecisionCompletion Completion;
-        internal DecisionFixture(bool restore = false)
+        internal DecisionFixture(bool restore = false, bool ownAck = false)
         {
             var path = Path.Combine(TestSource.Root("contracts/notes-actor-completion-scope.json"), "contracts", "notes-actor-completion-scope.json");
             var vector = JsonNode.Parse(File.ReadAllText(path))!["cases"]!.AsArray().OfType<JsonObject>().Single(value => value["name"]!.GetValue<string>() == "delete-note");
@@ -171,7 +172,8 @@ internal static class PersonalActorCompletionTests
             Ack = Native.Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Native.Handle.ActorId, Frame["message_id"]!.GetValue<string>()));
             Book.SetReady(true); Book.RecordSaved("native-synthetic-writer", true, new string('a', 64));
             Completion = new(Native.Handle.ActorId, vector["native_targets"]!.AsArray(), [Frame], () => Authority, () => Scope,
-                () => Book.SaveState("native-synthetic-writer", true), () => Native.Registry.ReadCompletionControls(Native.Handle));
+                () => Book.SaveState("native-synthetic-writer", true), () => Native.Registry.ReadCompletionControls(Native.Handle),
+                nativeSentAcknowledgments: ownAck ? [Ack] : []);
             Native.Registry.BeginCompletion(Native.Handle, Completion.Validator);
         }
         internal void Sql(string sql)
@@ -179,6 +181,57 @@ internal static class PersonalActorCompletionTests
             using var db = Native.Store.OpenDatabase(); db.Open(); using var command = db.CreateCommand(); command.CommandText = sql; command.ExecuteNonQuery();
         }
         public void Dispose() => Native.Dispose();
+    }
+
+    private static void NativeSentAcknowledgmentCorrelation()
+    {
+        using (var f = new DecisionFixture(ownAck: true))
+        {
+            var id = f.Frame["message_id"]!.GetValue<string>();
+            TestAssert.That(f.Completion.ExpectsNativeAcknowledgment(id) && !f.Completion.ExpectsNativeAcknowledgment(Guid.NewGuid().ToString("D")),
+                "Native ACK direction was not bound to the exact decision frame.");
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Registry.CheckCompletionSend(f.Native.Handle, f.Frame), "Incoming reference frame became outgoing data.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.CheckCompletionSend(f.Native.Handle, f.Ack), "Own ACK was sendable before the exact resulting scope.");
+            f.Scope = f.After;
+            f.Native.Registry.CheckCompletionSend(f.Native.Handle, f.Ack);
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "An unsent own ACK became persisted success.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Completion.RecordPersisted(f.Ack), "An outbox/peer claim substituted for native ACK send.");
+            var forged = f.Ack.DeepClone().AsObject(); forged["message_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.Throws<InvalidDataException>(() => f.Completion.RecordSuccessfulAcknowledgmentSend(forged), "Another ACK identity acquired the native send receipt.");
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 0, "Unsent native ACK counted as saved.");
+            // This is the native post-I/O marker contract, not a transport test.
+            f.Completion.RecordSuccessfulAcknowledgmentSend(f.Ack);
+            f.Sql("CREATE TRIGGER own_ack_failure BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic own ACK write failure'); END");
+            TestAssert.Throws<SqliteException>(() => f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Own ACK persistence failure disappeared.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Completion.RecordPersisted(f.Ack), "Send alone substituted for protected persistence.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.FinishCompletion(f.Native.Handle), "Sent but unpersisted own ACK finished completion.");
+            f.Sql("DROP TRIGGER own_ack_failure");
+            TestAssert.That(f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Sent own ACK was not persisted.");
+            f.Completion.RecordPersisted(f.Ack);
+            TestAssert.That(!f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack), "Native ACK replay duplicated a row.");
+            f.Completion.RecordPersisted(f.Ack);
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 1, "Exact sent and persisted own ACK was not counted once.");
+            f.Native.Registry.FinishCompletion(f.Native.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => f.Native.Registry.RequireCurrent(f.Native.Handle), "Own ACK completion revived data access.");
+        }
+        foreach (var mode in new[] { "authority", "book", "profile", "scope" })
+        {
+            using var f = new DecisionFixture(ownAck: true);
+            f.Scope = f.After;
+            if (mode == "authority") f.Authority = new string('b', 64);
+            if (mode == "book") f.Book.RecordSaved("native-synthetic-writer", true, new string('b', 64));
+            if (mode == "profile") f.Book.Invalidate();
+            if (mode == "scope") f.Scope = PhoneContentScope.Create(["foreign"], ["t"]);
+            TestAssert.Throws<InvalidOperationException>(() => f.Completion.RecordSuccessfulAcknowledgmentSend(f.Ack), "Changed native state marked ACK sent: " + mode);
+            TestAssert.That(f.Completion.Summary()["saved"]!.GetValue<int>() == 0, "Changed native state counted own ACK: " + mode);
+        }
+        using (var f = new DecisionFixture(restore: true, ownAck: true))
+        {
+            f.Native.Registry.CheckCompletionSend(f.Native.Handle, f.Ack);
+            f.Completion.RecordSuccessfulAcknowledgmentSend(f.Ack);
+            f.Native.Registry.PutCompletionControl(f.Native.Handle, f.Ack); f.Completion.RecordPersisted(f.Ack);
+            f.Native.Registry.FinishCompletion(f.Native.Handle);
+        }
     }
 
     private static void ExactSavedDecisionCorrelation()

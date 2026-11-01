@@ -17,11 +17,13 @@ internal sealed class PersonalActorDecisionCompletion
     private readonly Func<NativeBookSaveState?> currentSavedBook;
     private readonly Func<JsonArray> persistedControls;
     private readonly Dictionary<string, JsonObject> frames = new(StringComparer.Ordinal), received = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, JsonObject> ownAcknowledgments = new(StringComparer.Ordinal);
+    private readonly HashSet<string> successfullySent = new(StringComparer.Ordinal);
     internal Func<string, JsonObject?, bool?> Validator { get; }
 
     internal PersonalActorDecisionCompletion(string runId, JsonArray nativeTargets, IReadOnlyList<JsonObject> queuedDecisions,
         Func<string?> currentAuthority, Func<JsonObject?> currentScope, Func<NativeBookSaveState?> currentSavedBook,
-        Func<JsonArray> persistedControls)
+        Func<JsonArray> persistedControls, IReadOnlyList<JsonObject>? nativeSentAcknowledgments = null)
     {
         PersonalSyncActorContract.Start(runId);
         this.runId = runId; this.currentAuthority = currentAuthority; this.currentScope = currentScope;
@@ -44,6 +46,14 @@ internal sealed class PersonalActorDecisionCompletion
             foreach (var decision in body["decisions"]!.AsArray()) decisions.Add(decision!.DeepClone());
         }
         PersonalSyncActorContract.CompletionMembers(runId, before, targets, decisions);
+        if (nativeSentAcknowledgments?.Count > 256) throw new InvalidDataException("invalid_actor_completion_controls");
+        foreach (var queued in nativeSentAcknowledgments ?? [])
+        {
+            var wire = queued.DeepClone().AsObject(); var body = Ack(wire);
+            if (Text(body, "status") != "accepted" || Text(body, "error") != "none" ||
+                !ownAcknowledgments.TryAdd(Text(body, "message_id"), wire))
+                throw new InvalidDataException("invalid_actor_completion_controls");
+        }
         Validator = Validate; // Stable delegate identity is part of native ownership.
     }
 
@@ -59,6 +69,8 @@ internal sealed class PersonalActorDecisionCompletion
         var body = wire["body"]!.AsObject(); PersonalSyncActorContract.ValidateAck(body);
         var id = Text(body, "message_id");
         if (Text(body, "run_id") != runId || !frames.ContainsKey(id)) throw new InvalidDataException("unexpected_actor_completion_control");
+        if (ownAcknowledgments.TryGetValue(id, out var own) && !JsonNode.DeepEquals(own, wire))
+            throw new InvalidDataException("unexpected_actor_completion_control");
         if (received.TryGetValue(id, out var previous) && Success(previous) && Text(body, "status") == "rejected")
             throw new InvalidDataException("actor_completion_outcome_changed");
         return body;
@@ -70,7 +82,15 @@ internal sealed class PersonalActorDecisionCompletion
         JsonObject? body = null;
         if (operation == "send")
         {
-            if (wire is null || !frames.TryGetValue(Text(wire, "message_id"), out var queued) || !JsonNode.DeepEquals(queued, wire))
+            if (wire is null) throw new InvalidDataException("unexpected_actor_completion_control");
+            if (Text(wire, "kind") == PersonalSyncActorContract.AckKind)
+            {
+                body = Ack(wire);
+                if (!ownAcknowledgments.TryGetValue(Text(body, "message_id"), out var own) || !JsonNode.DeepEquals(own, wire))
+                    throw new InvalidDataException("unexpected_actor_completion_control");
+            }
+            else if (!frames.TryGetValue(Text(wire, "message_id"), out var queued) || !JsonNode.DeepEquals(queued, wire) ||
+                ownAcknowledgments.ContainsKey(Text(wire, "message_id")))
                 throw new InvalidDataException("unexpected_actor_completion_control");
         }
         else if (wire is not null) body = Ack(wire);
@@ -86,8 +106,23 @@ internal sealed class PersonalActorDecisionCompletion
         catch (InvalidDataException) { }
         if (!atBefore && !atAfter) return false;
         if (body is not null && Success(body) && !atAfter) return null;
+        if (operation == "put" && body is not null && ownAcknowledgments.ContainsKey(Text(body, "message_id")) &&
+            !successfullySent.Contains(Text(body, "message_id"))) return null;
         if (operation == "finish" && (!atAfter || received.Count != frames.Count || received.Values.Any(value => !Success(value)))) return null;
         return true;
+    }
+
+    internal bool ExpectsNativeAcknowledgment(string messageId) => ownAcknowledgments.ContainsKey(messageId);
+
+    // Native controller calls only after actual channel I/O returned, under
+    // fresh native gates. Enqueue, peer ACK or failed flush is not a send receipt.
+    internal void RecordSuccessfulAcknowledgmentSend(JsonObject wire)
+    {
+        if (Validate("send", wire) != true) throw new InvalidOperationException("actor_completion_not_ready");
+        var body = Ack(wire); var id = Text(body, "message_id");
+        if (!ownAcknowledgments.TryGetValue(id, out var own) || !JsonNode.DeepEquals(own, wire))
+            throw new InvalidDataException("unexpected_actor_completion_control");
+        successfullySent.Add(id);
     }
 
     internal void RecordPersisted(JsonObject wire)
