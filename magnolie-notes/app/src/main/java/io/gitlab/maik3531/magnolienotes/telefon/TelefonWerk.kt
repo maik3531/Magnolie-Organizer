@@ -317,52 +317,57 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val authority = requireNotNull(currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation))
             val retained = documents.bestand.value
             val intents = queue.actorDeletionIntents(run)
-            val incomingOnly = intents.isNotEmpty() && intents.all { it.string("kind") == "personal_sync.deletion_decision" }
-            require(intents.isNotEmpty() && (incomingOnly || intents.all { it.string("kind") == "personal_sync.deletion_proposals" })) {
-                "actor_mixed_decision_controller_required"
+            require(intents.isNotEmpty() && intents.all { it.string("kind") in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision") }) {
+                "actor_deletion_intent_required"
             }
-            val outgoing = if (incomingOnly) queue.actorDeletionIntents(run, true) else emptyList()
-            val proposalIntents = if (incomingOnly) outgoing else intents
+            val incomingProposalIntents = intents.filter { it.string("kind") == "personal_sync.deletion_proposals" }
+            val incomingDecisionIntents = intents.filter { it.string("kind") == "personal_sync.deletion_decision" }
+            val outgoing = if (incomingDecisionIntents.isNotEmpty()) queue.actorDeletionIntents(run, true) else emptyList()
+            require(incomingDecisionIntents.isEmpty() || outgoing.isNotEmpty()) { "actor_outgoing_target_proof_required" }
+            val proposalIntents = incomingProposalIntents + outgoing
             require(proposalIntents.isNotEmpty() && proposalIntents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
                 "actor_outgoing_target_proof_required"
             }
             val decoded = proposalIntents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body") as JsonObject) }
+            val localReview = incomingProposalIntents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
+            val nativeOutgoing = outgoing.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
             for (batch in proposalIntents.groupBy { it.getValue("body").jsonObject.string("proposal_batch_id") }.values) {
                 val bodies = batch.map { it.getValue("body").jsonObject }.sortedBy { it.long("sequence") }
                 require(bodies.map { it.long("sequence") } == bodies.indices.map { it.toLong() } &&
                     bodies.map { it["last"] == JsonPrimitive(true) } == bodies.indices.map { it == bodies.lastIndex }) { "actor_deletion_batch_incomplete" }
             }
             require(decoded.size in 1..256 && decoded.map { it.proposalId }.distinct().size == decoded.size &&
-                (if (incomingOnly) choices.isEmpty() else choices.keys == decoded.map { it.proposalId }.toSet()) &&
+                decoded.map { Triple(it.kind, it.id, it.parentId) }.distinct().size == decoded.size &&
+                choices.keys == localReview.map { it.proposalId }.toSet() &&
                 choices.values.all { it in setOf("delete", "restore") }) {
                 "actor_deletion_review_required"
             }
-            val incoming = if (!incomingOnly) emptyList() else intents.flatMap { wire ->
+            val incoming = incomingDecisionIntents.flatMap { wire ->
                 val body = wire.getValue("body").jsonObject
                 PersonalSyncProtokoll.decodeDeletionDecisions(body).map {
                     AppliedPersonalDecision(it.proposalId, it.decision, it.expectedClock, body.string("decision_id"))
                 }
             }
-            if (incomingOnly) {
-                val native = decoded.associateBy { it.proposalId }
+            if (incomingDecisionIntents.isNotEmpty()) {
+                val native = nativeOutgoing.associateBy { it.proposalId }
                 require(incoming.size == native.size && incoming.map { it.proposal_id }.toSet() == native.keys &&
                     incoming.map { it.proposal_id }.distinct().size == incoming.size &&
                     incoming.all { native[it.proposal_id]?.clock == it.expected_clock }) { "actor_decision_clock_changed" }
                 // Retain the actual encrypted received frames before retiring
                 // data ownership. Their semantic envelope must match the ledger.
-                for (intent in intents) {
+                for (intent in incomingDecisionIntents) {
                     val actual = personalActorJournal.readWire(handle, intent.string("message_id"))
                     var semantic = PersonalSyncActor.unwrap(actual.getValue("body").jsonObject)
                     if (semantic.first == PhoneContentScope.DATA_KIND) semantic = PhoneContentScope.unwrap(semantic.second, before)
                     require(semantic.first == "personal_sync.deletion_decision" && semantic.second == intent["body"]) { "actor_decision_envelope_changed" }
                 }
             }
-            val proposals = if (incomingOnly) emptyList() else decoded.map { value -> PersonalDeletionProposal(run, value.proposalId, value.kind, value.id,
+            val proposals = localReview.map { value -> PersonalDeletionProposal(run, value.proposalId, value.kind, value.id,
                 value.parentId, value.clock, value.priorHash, value.deletedMs, value.label, peer.device_id) }
             val decisions = proposals.map { AppliedPersonalDecision(it.proposal_id, choices.getValue(it.proposal_id), it.clock, UUID.randomUUID().toString()) }
             val targets = JsonArray(proposalIntents.flatMap { (it.getValue("body") as JsonObject).getValue("proposals").jsonArray }
                 .map { JsonObject(it.jsonObject.filterKeys { key -> key !in setOf("deleted_ms", "label") }) })
-            val decisionBodies = if (incomingOnly) intents.map { it.getValue("body").jsonObject } else decisions.map { value -> buildJsonObject {
+            val localDecisionBodies = decisions.map { value -> buildJsonObject {
                 put("format", 1); put("run_id", run); put("decision_id", value.decision_id)
                 put("decisions", buildJsonArray { add(buildJsonObject {
                     put("proposal_id", value.proposal_id); put("decision", value.decision)
@@ -370,6 +375,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         put("actor_id", it.actor_id); put("counter", it.counter) } }))
                 }) })
             } }
+            val decisionBodies = localDecisionBodies + incomingDecisionIntents.map { it.getValue("body").jsonObject }
             val allDecisions = JsonArray(decisionBodies.flatMap { it.getValue("decisions").jsonArray })
             val members = PersonalSyncActor.completionMembers(run, before, targets, allDecisions)
             fun selection(value: JsonObject) = PersonalContentSelection(
@@ -392,10 +398,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 } else null
             }
             try {
-                val frames = if (incomingOnly) intents.map { PersonalSyncActor.wireMessage(it, run) }
-                    else decisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) }
-                val ownAcknowledgments = if (incomingOnly) intents.map { TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
-                    PersonalSyncActor.ack(run, it.string("message_id")), 60000) } else emptyList()
+                val frames = localDecisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) } +
+                    incomingDecisionIntents.map { PersonalSyncActor.wireMessage(it, run) }
+                val ownAcknowledgments = incomingDecisionIntents.map { TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                    PersonalSyncActor.ack(run, it.string("message_id")), 60000) }
                 personalActorJournal.beginCompletion(handle, nativeGuard)
                 personalActorWork.remove(run)
                 io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
@@ -3647,9 +3653,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 actorDataReportReceipt(handle) == null) return@runCatching
             val intents = queue.actorDeletionIntents(run)
             if (intents.isEmpty()) return@runCatching
-            if (intents.all { it.string("kind") == "personal_sync.deletion_decision" }) commitPersonalActorDeletionReview(handle, emptyMap())
-            else if (intents.all { it.string("kind") == "personal_sync.deletion_proposals" }) {
-                val proposals = intents.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
+            if (intents.all { it.string("kind") in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision") }) {
+                val proposals = intents.filter { it.string("kind") == "personal_sync.deletion_proposals" }
+                    .flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }
                 commitPersonalActorDeletionReview(handle, proposals.associate { it.proposalId to "delete" })
             }
         }

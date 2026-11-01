@@ -76,6 +76,8 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionDeniedAfterBookInstanceReplacement() = exercise("actor-producer-incoming-deny-instance")
     @Test fun nativeIncomingDecisionDeniedAfterRestore() = exercise("actor-producer-incoming-deny-restore")
     @Test fun nativeIncomingDecisionDeniedAfterCancellation() = exercise("actor-producer-incoming-deny-cancel")
+    @Test fun nativeIncomingDecisionMixedDeleteRequiresBothReceiptDirectionsAndOneDataCommit() = exercise("actor-producer-incoming-mixed-delete")
+    @Test fun nativeIncomingDecisionMixedRestoreKeepsBothTargetsAndDraft() = exercise("actor-producer-incoming-mixed-restore")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -137,7 +139,7 @@ class ScopedDataRuntimeTest {
                 ursprungApp = if (format == 14) "notes" else "",
                 baumQuelle = if (mode == "send-route") "linked-origin" else "",
                 persoenlichVerknuepft = mode == "send-route"))
-            if (actorDeletion || actorCommit || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (actorDeletion || actorCommit || mode.startsWith("actor-producer-incoming-mixed-") || mode.startsWith("send-") || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             if (mode.startsWith("send-")) {
                 documents.setzeNotiz(Notiz("private-note", "Unselected note", "Never transfer", notizbuchId = book.id))
                 documents.setzeAufgabe(Aufgabe("private-task", "Unselected task",
@@ -184,10 +186,26 @@ class ScopedDataRuntimeTest {
             val wake = AtomicReference<CountDownLatch?>()
             val failNextFlush = AtomicBoolean(false)
             val checkNativeAckLocks = AtomicBoolean(false)
+            val nativeAckLockChecks = AtomicInteger()
             val wireOutput = object : ByteArrayOutputStream() {
                 override fun flush() {
                     if (checkNativeAckLocks.get()) {
-                        check(!Thread.holdsLock(work) && !Thread.holdsLock(Ablage.SCHREIBSPERRE)) { "Native ACK I/O held service/book guards" }
+                        // Normal ownership/settings controls use a different
+                        // existing send lane. Check the actual encrypted Actor
+                        // ACK, not every unrelated control flushed by the pump.
+                        val input = ByteArrayInputStream(toByteArray())
+                        var envelope: JsonObject? = null
+                        while (input.available() > 0) envelope = TelefonRahmen.lesen(input, TelefonParameter.VERSCHLUESSELT_RAHMEN_MAX)
+                        val frame = requireNotNull(envelope)
+                        val clear = TelefonKrypto.entschluesseln(ByteArray(32) { 11 },
+                            TelefonKrypto.nonce(ByteArray(4) { 12 }, frame.long("seq")),
+                            java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(JsonObject(frame - "ciphertext")))
+                        val ack = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) }
+                            finally { clear.fill(0) }
+                        if (ack) {
+                            check(!Thread.holdsLock(work) && !Thread.holdsLock(Ablage.SCHREIBSPERRE)) { "Native ACK I/O held service/book guards" }
+                            nativeAckLockChecks.incrementAndGet()
+                        }
                     }
                     if (failNextFlush.getAndSet(false)) throw java.io.IOException("Synthetic encrypted channel write failure")
                     super.flush(); wake.get()?.countDown()
@@ -379,6 +397,22 @@ class ScopedDataRuntimeTest {
                             // is distinct from the ACK for this deletion decision.
                             val replyRecords = batches.filter { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
                                 .flatMap { PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(it.getValue("body").jsonObject).second) }
+                            val mixed = mode.startsWith("actor-producer-incoming-mixed-")
+                            val localProposalId = UUID.randomUUID().toString()
+                            if (mixed) {
+                                val task = replyRecords.single { it.kind == "task" }
+                                val localProposal = TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                                    put("format", 1); put("run_id", run); put("proposal_batch_id", UUID.randomUUID().toString()); put("sequence", 0); put("last", true)
+                                    put("proposals", buildJsonArray { add(buildJsonObject {
+                                        put("proposal_id", localProposalId); put("kind", "task"); put("id", task.id); put("parent_id", "")
+                                        put("prior_hash", task.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Mixed native task review")
+                                        put("clock", JsonArray(PersonalSync.merge(task.clock, listOf(PersonalSyncClock(peerId, 2))).map {
+                                            buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                                    }) })
+                                }, 60000)
+                                work.receiveMessage(peer, PersonalSyncActor.wireMessage(localProposal, run), channel, 0L)
+                                assertTrue(sent().isEmpty()); assertEquals(3, queue.actorDeletionIntents(run).size)
+                            }
                             val incomingBatch = PersonalSyncProtokoll.batch(run, replyRecords, 0, true, true, format, PersonalSync.recordsHash(replyRecords))
                             work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBatch, 60000), run), channel, 0L)
                             assertEquals(1, sent().size)
@@ -412,8 +446,9 @@ class ScopedDataRuntimeTest {
                             if (mode.endsWith("writer-failure")) failBookWrites.set(true)
                             if (mode.endsWith("send-failure")) failNextFlush.set(true)
                             checkNativeAckLocks.set(true)
+                            if (mixed) assertEquals("completion", work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
                             val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
-                            val firstWire = sent()
+                            val firstWire = sent().toMutableList()
                             if (mode.endsWith("writer-failure")) {
                                 failBookWrites.set(false)
                                 assertEquals(witness, documents.personalActorSavedBookState())
@@ -427,6 +462,37 @@ class ScopedDataRuntimeTest {
                             assertEquals(witness.getValue("sequence").jsonPrimitive.long + 1, after.getValue("sequence").jsonPrimitive.long)
                             assertEquals(if (choice == "restore") 33 else 0, documents.notiz("phone-note")!!.anhaenge.size)
                             assertEquals(draft, documents.entwurf.value)
+                            var mixedPeerAck: JsonObject? = null
+                            var finalWitness = after
+                            if (mixed) {
+                                if (session.contentScopeMessages.isNotEmpty()) ackScope()
+                                pump.invoke(work, peer, channel, 0L, false)
+                                firstWire += sent()
+                                val localFrames = firstWire.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" }
+                                assertEquals(1, localFrames.size)
+                                val localDecisions = PersonalSyncProtokoll.decodeDeletionDecisions(PersonalSyncActor.unwrap(localFrames.single().getValue("body").jsonObject).second)
+                                assertEquals(setOf(localProposalId), localDecisions.map { it.proposalId }.toSet())
+                                // Own ACKs for received decisions cannot replace
+                                // the peer's receipt for our locally made decision.
+                                assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                mixedPeerAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                    PersonalSyncActor.ack(run, localFrames.single().string("message_id")), 60000)
+                                val committedBook = documents.bestand.value
+                                work.receiveMessage(peer, mixedPeerAck, channel, 0L)
+                                // Terminal data is committed once. The existing
+                                // receipt handler separately removes only the
+                                // now-acknowledged pending decision metadata.
+                                assertEquals(committedBook.copy(personalSync = committedBook.personalSync.copy(
+                                    pending_decisions = committedBook.personalSync.pending_decisions.filterNot {
+                                        it.decision_id == PersonalSyncActor.unwrap(localFrames.single().getValue("body").jsonObject).second.string("decision_id")
+                                    })), documents.bestand.value)
+                                finalWitness = requireNotNull(documents.personalActorSavedBookState())
+                                assertEquals(after.getValue("sequence").jsonPrimitive.long + 1, finalWitness.getValue("sequence").jsonPrimitive.long)
+                                work.receiveMessage(peer, mixedPeerAck, channel, 0L)
+                                assertEquals(finalWitness, documents.personalActorSavedBookState())
+                                assertEquals(choice == "restore", documents.aufgaben().any { it.id == "phone-task" })
+                            }
                             if (denyIncomingAck) {
                                 assertEquals("completion", work.personalActorJournal.completionState(handle))
                                 assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
@@ -487,9 +553,31 @@ class ScopedDataRuntimeTest {
                             val actualAcks = allWire.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) &&
                                 it.getValue("body").jsonObject["message_id"] in incomingIds }.toSet()
                             assertEquals(incomingIds, actualAcks.map { it.getValue("body").jsonObject.getValue("message_id") }.toSet())
+                            assertTrue(nativeAckLockChecks.get() >= actualAcks.size)
                             assertEquals("completed", work.personalActorJournal.completionState(handle))
-                            assertEquals(actualAcks, work.personalActorJournal.readCompletionControls(handle).toSet())
-                            assertEquals(after, documents.personalActorSavedBookState())
+                            val controls = if (mixed) {
+                                // Receipt cleanup is a new writer observation;
+                                // the retired completion must reject a fresh read
+                                // against its old saved-book witness. Inspect only
+                                // the actual protected SQLite bytes in this test.
+                                assertTrue(runCatching { work.personalActorJournal.readCompletionControls(handle) }.isFailure)
+                                val persisted = mutableListOf<JsonObject>()
+                                database.query("meta", arrayOf("key", "value"), "key GLOB ?",
+                                    arrayOf("personal_actor_completion_wire:$peerId:$run:*"), null, null, "key").use { rows ->
+                                    while (rows.moveToNext()) {
+                                        val id = rows.getString(0)
+                                        val sealed = rows.getBlob(1)
+                                        val clear = storage.decryptPayload(sealed, "personal_actor_completion_wire", id)
+                                        try {
+                                            assertFalse(sealed.contentEquals(clear))
+                                            persisted += TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject
+                                        } finally { clear.fill(0) }
+                                    }
+                                }
+                                persisted
+                            } else work.personalActorJournal.readCompletionControls(handle)
+                            assertEquals(actualAcks + listOfNotNull(mixedPeerAck), controls.toSet())
+                            assertEquals(finalWitness, documents.personalActorSavedBookState())
                             assertTrue(queue.actorDeletionIntents(run).isEmpty())
                             assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
                             val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
