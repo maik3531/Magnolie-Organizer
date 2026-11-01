@@ -37613,6 +37613,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
       summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: job.phoneSaved === true,
       reply_queued: job.replyQueued === true,
+      deletion_book_persisted: job.lateSaved === true,
       baseline_saved: job.baselineSaved === true,
       cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
   }
@@ -37629,19 +37630,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function mcpNotesActorCommit(owner, id, expectedRevision) {
     const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job);
+    if (["late_review", "late_metadata_pending"].includes(job.phase)) return mcpNotesActorCommitLate(job, expectedRevision);
     if (job.phase !== "review" || job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current Notes actor review before committing");
     const hasDeletions = job.review.summary.unapplied_deletion_intents > 0;
+    if (job.lateMode && hasDeletions) throw new MagnolieMcp.ToolError("unsupported_feature", "Mixed producer reviews require a complete native scope and receipt union");
     if (hasDeletions && (!job.review.deletionPlan || job.review.summary.reviewed_deletion_intents !== job.review.data.intents.length ||
         job.review.deletionPlan.intents.length !== job.review.data.intents.length))
       throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
     const received = new Set(job.review.data.intents.filter(intent => intent.kind === "personal_sync.deletion_decision")
       .flatMap(intent => intent.body.decisions.map(value => value.proposal_id)));
-    if ((job.producerIds || []).some(id => !received.has(id)))
+    if (!job.lateMode && (job.producerIds || []).some(id => !received.has(id)))
       throw new MagnolieMcp.ToolError("unsupported_feature", "Outgoing Notes decisions require their complete native terminal review before data commit");
     job.phase = "checkpointing";
     Promise.resolve().then(async () => {
       try {
-        mcpNotesActorGuard(job); letzterSpeicherText = null;
+        mcpNotesActorGuard(job); if (!job.lateMode) letzterSpeicherText = null;
         await mcpMutationsSnapshot("pre-sync", job.controller.signal); mcpNotesActorGuard(job);
         const proposed = kopie(job.review.book); personalSyncMerkeBatch(proposed, job.review.data.batch.commit_token);
         const proposedText = JSON.stringify(proposed);
@@ -37669,6 +37672,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (receipt?.book_persisted !== true || receipt.core_committed !== true || receipt.phone_persisted !== false || receipt.book_sha256 !== afterHash)
           throw new MagnolieMcp.ToolError("invalid_result", "Native Notes core commit did not confirm the saved review");
         job.committed = true; job.phase = "reply_queueing";
+        if (job.lateMode) {
+          if (!Number.isSafeInteger(receipt.save_sequence) || receipt.save_sequence <= job.baselineSequence)
+            throw new MagnolieMcp.ToolError("invalid_result", "Native ordinary save sequence did not advance");
+          job.dataSaved = { sha256: afterHash, sequence: receipt.save_sequence };
+        }
         const queued = (await mcpNotesActorNative(job, "notes_actor_reply", { claimToken: plan.claim_token,
           batches: job.review.batches, sources: job.review.sources })).actor;
         mcpNotesActorGuard(job);
@@ -37678,6 +37686,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         let packets = -1, progress = Date.now();
         for (;;) {
           let state = (await mcpNotesActorNative(job, "notes_actor_status")).actor; mcpNotesActorGuard(job);
+          if (job.lateMode) {
+            if (state?.phone_persisted === true || !["registered", "receiving", "decision_review"].includes(state?.phase))
+              throw new MagnolieMcp.ToolError("invalid_result", "Ordinary data receipt cannot complete producer decisions");
+            job.phase = "waiting_decisions";
+            if (state.phone_data_persisted === true) {
+              if (state.phase !== "decision_review" || state.book_persisted !== true || state.reply_queued !== true || state.completion_report_queued !== true)
+                throw new MagnolieMcp.ToolError("invalid_result", "Late decision owner lacked its ordinary saved data receipt");
+              if (await mcpNotesActorLateReview(job)) break;
+            }
+          }
           if (hasDeletions && state?.phone_data_persisted === true) {
             if (!["completion", "completed"].includes(state.phase)) {
               state = (await mcpNotesActorNative(job, "notes_actor_begin_completion", { claimToken: plan.claim_token })).actor; mcpNotesActorGuard(job);
@@ -37697,7 +37715,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             job.phoneSaved = true; job.phase = "completed"; mcpNotesActorStopNative(job);
             job.review = null; job.book = null; job.before = ""; break;
           }
-          if (!(hasDeletions ? ["registered", "receiving", "completion"] : ["registered", "receiving"]).includes(state?.phase)) throw new MagnolieMcp.ToolError("source_changed", "Native Notes owner retired before phone save confirmation");
+          if (!(job.lateMode ? ["registered", "receiving", "decision_review"] : hasDeletions ? ["registered", "receiving", "completion"] : ["registered", "receiving"]).includes(state?.phase)) throw new MagnolieMcp.ToolError("source_changed", "Native Notes owner retired before phone save confirmation");
           if (state.packets !== packets) { packets = state.packets; progress = Date.now(); }
           if (Date.now() - progress > 120000) throw new MagnolieMcp.ToolError("native_timeout", "Notes phone save confirmation stopped progressing");
           await new Promise(resolve => setTimeout(resolve, 250)); mcpNotesActorGuard(job);
@@ -37705,6 +37723,144 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       } catch (error) {
         job.unknown = true; job.error = error.code || "native_operation_failed";
         job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort();
+      }
+    });
+    return mcpNotesActorAntwort(job);
+  }
+  async function mcpNotesActorLateReview(job) {
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Native late decision review was inconsistent"); };
+    const uuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
+    let offset = 0, total = null, bytes, revision = "", nativeRevision = "";
+    do {
+      const page = (await mcpNotesActorNative(job, "notes_actor_late_review", { offset, limit: 65536, expectedRevision: revision })).actor;
+      mcpNotesActorGuard(job);
+      if (page?.review_ready === false && offset === 0 && page.expected_proposals === job.producerIds.length) return false;
+      if (page?.review_ready !== true || page.expected_proposals !== job.producerIds.length || page.deletion_book_persisted !== false || page.phone_persisted !== false ||
+          !/^[a-f0-9]{64}$/.test(page.revision) || !/^[a-f0-9]{64}$/.test(page.review_revision) ||
+          revision && (revision !== page.revision || nativeRevision !== page.review_revision) ||
+          !Number.isSafeInteger(page.total_bytes) || page.total_bytes < 1 || page.total_bytes > 4 * 1024 * 1024 || page.offset !== offset ||
+          typeof page.data_base64 !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(page.data_base64)) invalid();
+      if (total === null) { total = page.total_bytes; revision = page.revision; nativeRevision = page.review_revision; bytes = new Uint8Array(total); }
+      if (total !== page.total_bytes) invalid();
+      const part = Uint8Array.from(atob(page.data_base64), value => value.charCodeAt(0)), end = offset + part.length;
+      if (!part.length || part.length > 65536 || end > total || page.next_offset !== (end < total ? end : null)) invalid();
+      bytes.set(part, offset); offset = end;
+    } while (offset < total);
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), value => value.toString(16).padStart(2, "0")).join("");
+    mcpNotesActorGuard(job); if (hash !== revision) invalid();
+    const data = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    if (data.review_revision !== nativeRevision || !Array.isArray(data.targets) || !Array.isArray(data.decisions) ||
+        data.targets.length !== job.producerIds.length || data.decisions.length !== job.producerIds.length ||
+        !Array.isArray(data.decision_message_ids) || !data.decision_message_ids.length || data.decision_message_ids.length > data.decisions.length ||
+        data.decision_message_ids.some((id, index, ids) => !uuid(id) || index > 0 && personalSyncUtf8(ids[index - 1], id) >= 0) ||
+        !/^[a-f0-9]{64}$/.test(data.data_saved_book?.book_source) || data.data_saved_book.sha256 !== job.dataSaved.sha256 ||
+        data.data_saved_book.sequence !== job.dataSaved.sequence) invalid();
+    const targets = new Map(), decisions = new Map(), identities = new Set();
+    for (const target of data.targets) {
+      if (!target || Object.keys(target).sort().join() !== "clock,id,kind,parent_id,prior_hash,proposal_id" || !uuid(target.proposal_id) ||
+          !job.producerIds.includes(target.proposal_id) || targets.has(target.proposal_id) || !["note", "task", "attachment"].includes(target.kind) ||
+          !personalSyncNotizIdGueltig(target.id) || typeof target.parent_id !== "string" ||
+          (target.kind === "attachment" ? !personalSyncNotizIdGueltig(target.parent_id) : target.parent_id !== "") || !/^[a-f0-9]{64}$/.test(target.prior_hash)) invalid();
+      const key = target.kind === "attachment" ? "attachment\u0000" + target.parent_id + "\u0000" + target.id : target.kind + "\u0000" + target.id;
+      const meta = DATEN.personalSync?.entities?.[key];
+      if (identities.has(key) || meta?.proposal_id !== target.proposal_id || meta.state !== "deleted" || meta.status !== "local_pending" ||
+          meta.prior_hash !== target.prior_hash || personalSyncKanonisch(meta.clock) !== personalSyncKanonisch(target.clock)) invalid();
+      identities.add(key); targets.set(target.proposal_id, target);
+    }
+    for (const decision of data.decisions) {
+      if (!decision || Object.keys(decision).sort().join() !== "decision,expected_clock,proposal_id" || !targets.has(decision.proposal_id) || decisions.has(decision.proposal_id) ||
+          !["delete", "restore"].includes(decision.decision) || personalSyncKanonisch(decision.expected_clock) !== personalSyncKanonisch(targets.get(decision.proposal_id).clock)) invalid();
+      decisions.set(decision.proposal_id, decision.decision);
+    }
+    const before = job.review.data.content_scope, selection = await personalSyncScopeAusManifest(before);
+    await personalSyncScopeAusManifest(data.content_scope);
+    const members = { notes: new Set(before.members.notes), tasks: new Set(before.members.tasks) };
+    const restored = new Set(data.targets.filter(target => target.kind === "note" && decisions.get(target.proposal_id) === "restore").map(target => target.id));
+    const deleted = new Set(data.targets.filter(target => target.kind === "note" && decisions.get(target.proposal_id) === "delete").map(target => target.id));
+    for (const target of data.targets) {
+      const choice = decisions.get(target.proposal_id);
+      if (target.kind === "attachment") {
+        if (!selection.notes.has(target.parent_id) && !restored.has(target.parent_id) || choice === "restore" && deleted.has(target.parent_id)) invalid();
+      } else {
+        const values = members[target.kind === "note" ? "notes" : "tasks"];
+        if (choice === "delete") { if (!values.delete(target.id)) invalid(); } else values.add(target.id);
+      }
+    }
+    const expectedMembers = Object.fromEntries(Object.entries(members).map(([name, values]) => [name, [...values].sort(personalSyncUtf8)]));
+    if (personalSyncKanonisch(expectedMembers) !== personalSyncKanonisch(data.content_scope.members)) invalid();
+    if (personalSyncKanonisch(expectedMembers) === personalSyncKanonisch(before.members)) {
+      if (personalSyncKanonisch(before) !== personalSyncKanonisch(data.content_scope)) invalid();
+    } else if (data.content_scope.revision <= before.revision || data.content_scope.epoch === before.epoch) invalid();
+    mcpNotesActorGuard(job);
+    const book = kopie(DATEN), applied = personalSyncEingehendeEntscheidungenAusBestand(book, data.decisions, selection);
+    if (applied !== "applied") throw new MagnolieMcp.ToolError(applied, "Late decision candidate could not be adopted safely");
+    const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length };
+    const reviewRevision = await personalSyncHash([revision, await personalSyncHash(JSON.stringify(book)), summary]);
+    mcpNotesActorGuard(job);
+    job.review = { book, data, nativeRevision, revision: reviewRevision, summary }; job.phase = "late_review";
+    return true;
+  }
+  function mcpNotesActorCommitLate(job, expectedRevision) {
+    if (job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current late decision review before saving");
+    job.phase = job.lateSaved ? "confirming_late_save" : "checkpointing_late_save";
+    Promise.resolve().then(async () => {
+      try {
+        if (!job.lateSaved) {
+          mcpNotesActorGuard(job);
+          // An unchanged recovery snapshot must not manufacture another save
+          // sequence and invalidate the ordinary-data saved-book witness.
+          await mcpMutationsSnapshot("pre-sync", job.controller.signal); mcpNotesActorGuard(job);
+          const proposed = kopie(job.review.book), text = JSON.stringify(proposed);
+          const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))), value => value.toString(16).padStart(2, "0")).join("");
+          const claim = (await mcpNotesActorNative(job, "notes_actor_prepare_late_save", { reviewRevision: job.review.nativeRevision, bookSha256: hash })).actor;
+          mcpNotesActorGuard(job);
+          if (!/^[a-f0-9]{64}$/.test(claim?.claim_token) || claim.revision !== job.review.nativeRevision || claim.after_sha256 !== hash ||
+              claim.before_sequence !== job.dataSaved.sequence || claim.book_source !== job.review.data.data_saved_book.book_source ||
+              claim.deletion_book_persisted !== false || claim.book_persisted !== false || claim.phone_persisted !== false)
+            throw new MagnolieMcp.ToolError("invalid_result", "Native late save claim did not match its separate review");
+          job.lateClaim = { token: claim.claim_token, hash }; job.phase = "saving_late_review";
+          await mcpSchreiben(job.controller.signal, () => {
+            mcpNotesActorGuard(job);
+            const fields = ["notizen", "notizbuecher", "aufgaben", "papierkorb", "personalSync"], guarded = kopie(DATEN);
+            for (const field of fields) guarded[field] = proposed[field];
+            if (JSON.stringify(guarded) !== text) throw new MagnolieMcp.ToolError("conflict", "Late review changed unrelated book fields");
+            for (const field of fields) DATEN[field] = proposed[field];
+            job.before = JSON.stringify(DATEN); letzterSpeicherText = null;
+            return {};
+          }, { pristineOnly: true });
+          job.lateSaved = true;
+        }
+        mcpNotesActorGuard(job); job.phase = "confirming_late_save";
+        const receipt = (await mcpNotesActorNative(job, "notes_actor_confirm_late_save", { claimToken: job.lateClaim.token })).actor;
+        mcpNotesActorGuard(job);
+        if (receipt?.deletion_book_persisted !== true || receipt.completion_started !== true || receipt.book_sha256 !== job.lateClaim.hash ||
+            !Number.isSafeInteger(receipt.save_sequence) || receipt.save_sequence <= job.dataSaved.sequence ||
+            job.lateSequence && job.lateSequence !== receipt.save_sequence)
+          throw new MagnolieMcp.ToolError("invalid_result", "Native late SaveACK did not confirm the exact candidate");
+        job.lateSequence = receipt.save_sequence; job.phase = "late_completing";
+        let progress = Date.now(), saved = -1;
+        for (;;) {
+          const state = (await mcpNotesActorNative(job, "notes_actor_advance_completion")).actor; mcpNotesActorGuard(job);
+          const completion = state?.deletion_completion, expected = job.review.data.decision_message_ids.length;
+          if (state?.book_persisted !== true || state.deletion_book_persisted !== true || state.phone_data_persisted !== true ||
+              state.reply_queued !== true || state.completion_report_queued !== true || !["completion", "completed"].includes(state.phase) ||
+              completion?.expected !== expected || !Number.isInteger(completion.saved) || completion.saved < 0 || completion.saved > expected ||
+              !Number.isInteger(completion.received) || completion.received < completion.saved || completion.received > expected || completion.rejected !== 0)
+            throw new MagnolieMcp.ToolError("invalid_result", "Late completion lacked exact saved receipt directions");
+          if (state.phone_persisted === true) {
+            if (state.phase !== "completed" || completion.saved !== expected || completion.received !== expected)
+              throw new MagnolieMcp.ToolError("invalid_result", "Late completion claimed premature peer persistence");
+            job.phoneSaved = true; job.phase = "completed"; job.error = ""; job.unknown = false;
+            mcpNotesActorStopNative(job); job.review = null; job.book = null; job.before = ""; break;
+          }
+          if (completion.saved !== saved) { saved = completion.saved; progress = Date.now(); }
+          if (Date.now() - progress > 120000) throw new MagnolieMcp.ToolError("native_timeout", "Late metadata completion stopped progressing");
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+      } catch (error) {
+        job.unknown = true; job.error = error.code || "native_operation_failed";
+        if (job.lateSaved && !job.controller.signal.aborted) job.phase = "late_metadata_pending";
+        else { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort(); }
       }
     });
     return mcpNotesActorAntwort(job);
@@ -37830,6 +37986,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           produced.proposal_ids.some((id, index, ids) => !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id) || index > 0 && personalSyncUtf8(ids[index - 1], id) >= 0))
         throw new MagnolieMcp.ToolError("invalid_result", "Native Notes producer did not match the actual saved baseline");
       job.producerIds = produced.proposal_ids.slice(); job.producerMessages = produced.message_count;
+      job.lateMode = produced.late_decision_phase === 1 && job.producerIds.length > 0;
+      job.baselineSequence = produced.save_sequence;
       job.dispatched = true;
       await mcpNotesActorNative(job, "notes_actor_start"); mcpNotesActorGuard(job); job.phase = "receiving";
       let data, attachments, viewRevision, lastPackets = -1, progress = Date.now();
