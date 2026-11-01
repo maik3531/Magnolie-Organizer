@@ -60,7 +60,7 @@ internal fun ZeitKonfliktDialog(auswahl: ZeitKonfliktAuswahl, now: Long, speiche
                             onClick = {
                                 speichern({ state -> ZeiterfassungAbgleich.resolve(state, auswahl.local.id, entry,
                                     auswahl.versions, auswahl.local) }, schliessen)
-                            }) { Text(choice) }
+                            }) { Text(choice, color = if (entry.deleted) Magnolie.rot else androidx.compose.ui.graphics.Color.Unspecified) }
                     }
                 }
             }

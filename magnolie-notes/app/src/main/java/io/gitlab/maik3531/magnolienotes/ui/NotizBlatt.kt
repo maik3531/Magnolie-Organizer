@@ -421,7 +421,7 @@ fun NotizEditor(
                         stringResource(R.string.notiz_teilen),
                         aktiv = !speichert
                     ) { fragtTeilen = true }
-                    Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { fragtLoeschen = true }
+                    Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert, destruktiv = true) { fragtLoeschen = true }
                 }
                 if (speichert) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
             }

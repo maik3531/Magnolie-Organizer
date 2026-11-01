@@ -139,6 +139,14 @@ fun Lederknopf(
     }
 }
 
+/** Destruktive Beschriftungen bleiben auch bei gesperrter Bedienung rot. */
+internal fun papierknopfSchriftfarbe(aktiv: Boolean, ausgewaehlt: Boolean, destruktiv: Boolean = false) = when {
+    destruktiv -> Magnolie.rot
+    !aktiv -> Magnolie.braunHell
+    ausgewaehlt -> Magnolie.gold
+    else -> Magnolie.braun
+}
+
 /** Der zurückhaltende Knopf: nur Goldrand auf Papier. */
 @Composable
 fun Papierknopf(
@@ -146,6 +154,7 @@ fun Papierknopf(
     modifier: Modifier = Modifier,
     aktiv: Boolean = true,
     ausgewaehlt: Boolean = false,
+    destruktiv: Boolean = false,
     beiKlick: () -> Unit
 ) {
     OutlinedButton(
@@ -156,7 +165,8 @@ fun Papierknopf(
         border = BorderStroke(if (ausgewaehlt) 2.dp else 1.dp, Magnolie.goldDunkel),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (ausgewaehlt) Magnolie.leder else Magnolie.papier,
-            contentColor = if (ausgewaehlt) Magnolie.gold else Magnolie.braun
+            contentColor = papierknopfSchriftfarbe(true, ausgewaehlt, destruktiv),
+            disabledContentColor = papierknopfSchriftfarbe(false, ausgewaehlt, destruktiv)
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)
     ) {
@@ -164,11 +174,7 @@ fun Papierknopf(
             beschriftung,
             fontFamily = FontFamily.SansSerif,
             fontSize = 13.sp,
-            color = when {
-                !aktiv -> Magnolie.braunHell
-                ausgewaehlt -> Magnolie.gold
-                else -> Magnolie.braun
-            },
+            color = papierknopfSchriftfarbe(aktiv, ausgewaehlt, destruktiv),
             fontWeight = if (ausgewaehlt) FontWeight.Bold else FontWeight.Normal
         )
     }

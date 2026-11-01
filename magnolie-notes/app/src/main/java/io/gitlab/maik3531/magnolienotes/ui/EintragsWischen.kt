@@ -78,7 +78,7 @@ internal class WischEinstellungen(context: Context) {
     direction?.let { left ->
         AlertDialog(onDismissRequest = { direction = null }, title = { Text(stringResource(if (left) R.string.wischen_links else R.string.wischen_rechts)) },
             text = { Column { WischAktion.entries.forEach { action ->
-                Papierknopf(wischText(action), Modifier.fillMaxWidth()) {
+                Papierknopf(wischText(action), Modifier.fillMaxWidth(), destruktiv = action == WischAktion.LOESCHEN) {
                     beiAenderung(if (left) value.copy(links = action) else value.copy(rechts = action)); direction = null
                 }
             } } }, confirmButton = { Papierknopf(stringResource(R.string.abbrechen)) { direction = null } })
@@ -90,8 +90,10 @@ internal class WischEinstellungen(context: Context) {
             Checkbox(value.aktiv, null)
             Text(stringResource(R.string.wischen_aktiv))
         }
-        Papierknopf(stringResource(R.string.wischen_links) + ": " + wischText(value.links), Modifier.fillMaxWidth()) { direction = true }
-        Papierknopf(stringResource(R.string.wischen_rechts) + ": " + wischText(value.rechts), Modifier.fillMaxWidth()) { direction = false }
+        Papierknopf(stringResource(R.string.wischen_links) + ": " + wischText(value.links), Modifier.fillMaxWidth(),
+            destruktiv = value.links == WischAktion.LOESCHEN) { direction = true }
+        Papierknopf(stringResource(R.string.wischen_rechts) + ": " + wischText(value.rechts), Modifier.fillMaxWidth(),
+            destruktiv = value.rechts == WischAktion.LOESCHEN) { direction = false }
     }
 }
 

@@ -79,7 +79,7 @@ fun ZeitPausenOptionen(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                         end / 60, end % 60, DateFormat.is24HourFormat(context)).show()
                 }
             }
-            if (edit!! < expected.size / 2) Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { save(true) }
+            if (edit!! < expected.size / 2) Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert, destruktiv = true) { save(true) }
         } },
         confirmButton = { TextButton(enabled = !speichert && start != end, onClick = { save(false) }) {
             Text(stringResource(R.string.sichern))

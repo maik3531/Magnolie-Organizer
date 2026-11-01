@@ -97,7 +97,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
             title = { Text(stringResource(R.string.papierkorb_endgueltig_titel)) },
             text = { Text(stringResource(R.string.papierkorb_endgueltig_hinweis)) },
             confirmButton = { TextButton(onClick = { zeitLoeschen = null; handlungen.beiZeitLoeschen(id) }) {
-                Text(stringResource(R.string.loeschen))
+                Text(stringResource(R.string.loeschen), color = Magnolie.rot)
             } }, dismissButton = { TextButton(onClick = { zeitLoeschen = null }) { Text(stringResource(R.string.abbrechen)) } })
     }
     Column(Modifier.fillMaxSize().background(Magnolie.papier).verticalScroll(rememberScrollState())) {
@@ -121,11 +121,11 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                     Papierknopf(stringResource(R.string.baum_annehmen)) {
                         handlungen.beiPapierkorbWiederherstellen(eintrag.id)
                     }
-                    Papierknopf(stringResource(R.string.loeschen)) { papierkorbLoeschen = eintrag.id }
+                    Papierknopf(stringResource(R.string.loeschen), destruktiv = true) { papierkorbLoeschen = eintrag.id }
                 }
             }
             if (bestand.papierkorb.isNotEmpty()) {
-                Papierknopf(stringResource(R.string.papierkorb_leeren)) { papierkorbLeeren = true }
+                Papierknopf(stringResource(R.string.papierkorb_leeren), destruktiv = true) { papierkorbLeeren = true }
             }
         }
         val zeitPapierkorb = bestand.zeiterfassung.trash.filter { it.expiresMs > System.currentTimeMillis() }
@@ -143,7 +143,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                     Papierknopf(stringResource(R.string.journal_restore), aktiv = !handlungen.zeitSpeichert) {
                         handlungen.beiZeitWiederherstellen(item.id)
                     }
-                    Papierknopf(stringResource(R.string.papierkorb_endgueltig_titel), aktiv = !handlungen.zeitSpeichert) { zeitLoeschen = item.id }
+                    Papierknopf(stringResource(R.string.papierkorb_endgueltig_titel), aktiv = !handlungen.zeitSpeichert, destruktiv = true) { zeitLoeschen = item.id }
                 }
             }
         }
@@ -257,7 +257,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                                 Papierknopf(stringResource(R.string.journal_vorschau), modifier = Modifier.weight(1f)) {
                                     vorschau = entry
                                 }
-                                Papierknopf(stringResource(R.string.loeschen), modifier = Modifier.weight(1f)) {
+                                Papierknopf(stringResource(R.string.loeschen), modifier = Modifier.weight(1f), destruktiv = true) {
                                     loeschen = entry
                                 }
                             }
@@ -268,7 +268,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                             Lederknopf(stringResource(R.string.journal_restore), modifier = Modifier.weight(1.55f)) {
                                 wiederherstellen = entry
                             }
-                            Papierknopf(stringResource(R.string.loeschen), modifier = Modifier.weight(1f)) {
+                            Papierknopf(stringResource(R.string.loeschen), modifier = Modifier.weight(1f), destruktiv = true) {
                                 loeschen = entry
                             }
                         }
@@ -298,7 +298,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
     loeschen?.let { entry -> AlertDialog(onDismissRequest = { loeschen = null },
         title = { Text(stringResource(R.string.loeschen)) }, text = { Text(stringResource(R.string.journal_loeschen_frage)) },
         confirmButton = { TextButton(onClick = { handlungen.beiLoeschen(entry.uuid); loeschen = null }) {
-            Text(stringResource(R.string.loeschen)) } }, dismissButton = { TextButton(onClick = { loeschen = null }) {
+            Text(stringResource(R.string.loeschen), color = Magnolie.rot) } }, dismissButton = { TextButton(onClick = { loeschen = null }) {
             Text(stringResource(R.string.abbrechen)) } }) }
     kontaktKonflikt?.let { (entry, operation) -> AlertDialog(onDismissRequest = { kontaktKonflikt = null },
         title = { Text(stringResource(R.string.journal_kontakt_konflikt)) },

@@ -92,7 +92,7 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
                     .onFailure { error() }
             })
         }
-        Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty()) {
+        Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty(), destruktiv = true) {
             removal = selected to monthEntries.toList()
         }
         Papierknopf(stringResource(R.string.papierkorb_titel), beiKlick = beiPapierkorb)

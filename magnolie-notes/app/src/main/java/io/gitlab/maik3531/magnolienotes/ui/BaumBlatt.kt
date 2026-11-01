@@ -188,7 +188,7 @@ fun BaumBlatt(
                 }
             } },
             confirmButton = { TextButton(onClick = { telefonHandlungen.beiCustomEntscheidung(id, revision, true); customDelete = null }) {
-                Text(stringResource(R.string.loeschen)) } },
+                Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
             dismissButton = { TextButton(onClick = { telefonHandlungen.beiCustomEntscheidung(id, revision, false); customDelete = null }) {
                 Text(stringResource(R.string.personal_custom_keep)) } })
     }
@@ -279,6 +279,7 @@ fun BaumBlatt(
                 Text(stringResource(R.string.telefon_mehrere_rechner), fontFamily = FontFamily.SansSerif,
                     fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
                 Papierknopf(stringResource(R.string.telefon_entkoppeln), modifier = Modifier.fillMaxWidth(),
+                    destruktiv = true,
                     beiKlick = { telefonEntfernenWarnung = true })
             }
             if (telefon.error.isNotBlank()) Text(telefon.error, color = Magnolie.rot,
@@ -396,7 +397,7 @@ fun BaumBlatt(
                     fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
                 if (activeProposals.isNotEmpty()) Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Papierknopf(stringResource(R.string.personal_sync_alle_loeschen)) {
+                    Papierknopf(stringResource(R.string.personal_sync_alle_loeschen), destruktiv = true) {
                         requestMass("delete", activeProposals) }
                     Papierknopf(stringResource(R.string.personal_sync_alle_wiederherstellen)) {
                         requestMass("restore", activeProposals) }
@@ -897,10 +898,9 @@ fun BaumBlatt(
                         Text(stringResource(R.string.baum_verbindung_gefahr_hinweis),
                             fontFamily = FontFamily.SansSerif, fontSize = 11.sp,
                             lineHeight = 16.sp, color = Magnolie.braunHell)
-                        Button(onClick = { entfernenWarnung = zweig.kennung },
-                            modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Magnolie.rot)) {
-                            Text(stringResource(R.string.baum_verbindung_entfernen))
+                        Papierknopf(stringResource(R.string.baum_verbindung_entfernen),
+                            modifier = Modifier.fillMaxWidth().padding(top = 5.dp), destruktiv = true) {
+                            entfernenWarnung = zweig.kennung
                         }
                         Box(
                             Modifier.fillMaxWidth().padding(top = 8.dp)
@@ -1148,15 +1148,15 @@ private fun Papierkorbknopf(beiKlick: () -> Unit) {
     ) {
         Canvas(Modifier.size(22.dp)) {
             val strich = Stroke(width = 1.8.dp.toPx())
-            drawLine(Magnolie.braun, Offset(size.width * .22f, size.height * .25f),
+            drawLine(Magnolie.rot, Offset(size.width * .22f, size.height * .25f),
                 Offset(size.width * .78f, size.height * .25f), strokeWidth = strich.width)
-            drawLine(Magnolie.braun, Offset(size.width * .40f, size.height * .16f),
+            drawLine(Magnolie.rot, Offset(size.width * .40f, size.height * .16f),
                 Offset(size.width * .60f, size.height * .16f), strokeWidth = strich.width)
-            drawRect(Magnolie.braun, Offset(size.width * .29f, size.height * .34f),
+            drawRect(Magnolie.rot, Offset(size.width * .29f, size.height * .34f),
                 Size(size.width * .42f, size.height * .49f), style = strich)
-            drawLine(Magnolie.braun, Offset(size.width * .43f, size.height * .43f),
+            drawLine(Magnolie.rot, Offset(size.width * .43f, size.height * .43f),
                 Offset(size.width * .43f, size.height * .72f), strokeWidth = strich.width)
-            drawLine(Magnolie.braun, Offset(size.width * .57f, size.height * .43f),
+            drawLine(Magnolie.rot, Offset(size.width * .57f, size.height * .43f),
                 Offset(size.width * .57f, size.height * .72f), strokeWidth = strich.width)
         }
     }

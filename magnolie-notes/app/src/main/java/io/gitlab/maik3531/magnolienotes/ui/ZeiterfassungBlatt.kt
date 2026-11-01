@@ -307,14 +307,12 @@ fun ZeiteintragEditor(entwurf: ZeitEntwurf, aktuell: () -> ZeitEntwurf, speicher
             Schreibfeld(entwurf.note, stringResource(R.string.baum_kontakt_notiz),
                 { beiAenderung(aktuell().copy(note = it)) }, einzeilig = false, aktiv = !speichert)
             if (invalid) Text(stringResource(R.string.zeit_ungueltig), color = Magnolie.rot)
-            Lederknopf(stringResource(R.string.sichern), aktiv = !speichert) {
+            ZeiteintragAktionen(entwurf.neu, speichert, beiSichern = {
                 val latest = aktuell()
                 val replacement = runCatching { latest.record() }.getOrNull()
                 if (replacement == null) invalid = true
                 else beiSichern(latest, replacement)
-            }
-            Papierknopf(stringResource(R.string.abbrechen), aktiv = !speichert, beiKlick = abbrechen)
-            if (!entwurf.neu) Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { loeschen = true }
+            }, abbrechen = abbrechen, beiLoeschen = { loeschen = true })
         }
     }
     if (loeschen) AlertDialog(onDismissRequest = { if (!speichert) loeschen = false }, containerColor = Magnolie.papier,

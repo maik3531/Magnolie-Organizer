@@ -517,7 +517,7 @@ fun AufgabenEditor(
                     stringResource(R.string.aufgabe_weitergeben),
                     aktiv = partnernamen.isNotEmpty() && !aufgabe.istFremd && !speichert
                 ) { fragtGeben = true }
-                Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { fragtLoeschen = true }
+                Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert, destruktiv = true) { fragtLoeschen = true }
             }
             if (speichert) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
         }
