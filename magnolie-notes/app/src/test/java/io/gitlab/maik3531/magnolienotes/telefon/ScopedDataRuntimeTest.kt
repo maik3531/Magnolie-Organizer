@@ -92,6 +92,7 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionMixedDeniedAfterBookInstanceReplacement() = exercise("actor-producer-incoming-mixed-restore-deny-instance")
     @Test fun nativeIncomingDecisionMixedDeniedAfterRestore() = exercise("actor-producer-incoming-mixed-restore-deny-restore")
     @Test fun nativeIncomingDecisionMixedDeniedAfterCancellation() = exercise("actor-producer-incoming-mixed-restore-deny-cancel")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterNativeOwnerEpochReplacement() = exercise("actor-producer-incoming-mixed-restore-deny-epoch")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -598,6 +599,21 @@ class ScopedDataRuntimeTest {
                                     }
                                     "restore" -> documents.setzeBaum(documents.baum.value.copy(syncEpoch = "new-incoming-restore-epoch"))
                                     "cancel" -> work.stopPersonalActor(handle)
+                                    "epoch" -> {
+                                        val replacement = queue.actorJournal(work, Ablage.SCHREIBSPERRE) { id, key ->
+                                            work.currentActorSource(id, key, channel, 0L)
+                                        }
+                                        val retired = replacement.reapInactive { id, oldRun ->
+                                            queue.stopCurrentActorRun(id, oldRun)
+                                            queue.purgePersonal(PersonalSyncActor.storagePeer(oldRun))
+                                        }
+                                        assertEquals(listOf(peerId to run), retired)
+                                        assertTrue(runCatching { work.personalActorJournal.completionState(handle) }.isFailure)
+                                        for (wire in incomingDecisions) work.receiveMessage(peer, wire, channel, 0L)
+                                        work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                            PersonalSyncActor.ack(run, incomingDecision.string("message_id")), 60000), channel, 0L)
+                                        assertEquals(after, documents.personalActorSavedBookState())
+                                    }
                                     else -> error("Unexpected incoming ACK deny fixture")
                                 }
                                 val retainedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
@@ -607,7 +623,8 @@ class ScopedDataRuntimeTest {
                                 assertTrue(deniedWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
                                 if (mixed) assertTrue(deniedWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
                                     PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" })
-                                assertNotEquals("completed", work.personalActorJournal.completionState(handle))
+                                if (mode.endsWith("deny-epoch")) assertTrue(runCatching { work.personalActorJournal.completionState(handle) }.isFailure)
+                                else assertNotEquals("completed", work.personalActorJournal.completionState(handle))
                                 assertArrayEquals(retainedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                                 assertEquals(draft, documents.entwurf.value)
                                 if (mode.endsWith("deny-book")) assertEquals("Must not be overwritten", documents.notiz("other-local-note")?.text)
