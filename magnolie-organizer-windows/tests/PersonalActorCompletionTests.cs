@@ -149,6 +149,7 @@ internal static class PersonalActorCompletionTests
         }
         ExactSavedDecisionCorrelation();
         NativeSentAcknowledgmentCorrelation();
+        MixedAcknowledgmentDirections();
         return Task.CompletedTask;
     }
 
@@ -181,6 +182,43 @@ internal static class PersonalActorCompletionTests
             using var db = Native.Store.OpenDatabase(); db.Open(); using var command = db.CreateCommand(); command.CommandText = sql; command.ExecuteNonQuery();
         }
         public void Dispose() => Native.Dispose();
+    }
+
+    private static void MixedAcknowledgmentDirections()
+    {
+        var path = Path.Combine(TestSource.Root("contracts/notes-actor-completion-scope.json"), "contracts", "notes-actor-completion-scope.json");
+        var vector = JsonNode.Parse(File.ReadAllText(path))!["cases"]!.AsArray().OfType<JsonObject>().Single(value => value["name"]!.GetValue<string>() == "delete-parent-and-attachment");
+        foreach (var ownFirst in new[] { true, false })
+        {
+            using var native = new Fixture(); var book = new NativeBookOwnerScope();
+            book.SetReady(true); book.RecordSaved("mixed-native-profile", true, new string('a', 64));
+            var observed = vector["before"]!.DeepClone().AsObject();
+            var frames = vector["decisions"]!.AsArray().Select(decision => PersonalSyncActorContract.WireMessage(
+                native.Message("personal_sync.deletion_decision", new JsonObject { ["format"] = 1, ["run_id"] = native.Handle.ActorId,
+                    ["decision_id"] = Guid.NewGuid().ToString("D"), ["decisions"] = new JsonArray(decision!.DeepClone()) }), native.Handle.ActorId)).ToArray();
+            var peerAck = native.Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(native.Handle.ActorId, frames[0]["message_id"]!.GetValue<string>()));
+            var ownAck = native.Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(native.Handle.ActorId, frames[1]["message_id"]!.GetValue<string>()));
+            var completion = new PersonalActorDecisionCompletion(native.Handle.ActorId, vector["native_targets"]!.AsArray(), frames,
+                () => new string('a', 64), () => observed, () => book.SaveState("mixed-native-profile", true),
+                () => native.Registry.ReadCompletionControls(native.Handle), nativeSentAcknowledgments: [ownAck]);
+            native.Registry.BeginCompletion(native.Handle, completion.Validator);
+            native.Registry.CheckCompletionSend(native.Handle, frames[0]);
+            TestAssert.Throws<InvalidDataException>(() => native.Registry.CheckCompletionSend(native.Handle, frames[1]), "Mixed incoming reference became outgoing data.");
+            observed = vector["actual_after"]!.DeepClone().AsObject();
+            TestAssert.Throws<InvalidOperationException>(() => native.Registry.PutCompletionControl(native.Handle, ownAck), "Mixed own ACK persisted before native send.");
+            foreach (var own in new[] { ownFirst, !ownFirst })
+            {
+                var wire = own ? ownAck : peerAck;
+                if (own) completion.RecordSuccessfulAcknowledgmentSend(wire);
+                TestAssert.That(native.Registry.PutCompletionControl(native.Handle, wire), "Mixed exact receipt was not persisted.");
+                completion.RecordPersisted(wire);
+                if (completion.Summary()["saved"]!.GetValue<int>() == 1)
+                    TestAssert.Throws<InvalidOperationException>(() => native.Registry.FinishCompletion(native.Handle), "One receipt direction substituted for both.");
+            }
+            TestAssert.That(completion.Summary()["saved"]!.GetValue<int>() == 2 && completion.Summary()["expected"]!.GetValue<int>() == 2, "Mixed receipt sets were not kept distinct.");
+            native.Registry.FinishCompletion(native.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => native.Registry.RequireCurrent(native.Handle), "Mixed completion revived data.");
+        }
     }
 
     private static void NativeSentAcknowledgmentCorrelation()

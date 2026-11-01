@@ -1,7 +1,9 @@
 """Bound saved/scope/queued-control evidence, using the actual native adapters."""
 import copy
+import json
 import sqlite3
 import uuid
+from pathlib import Path
 
 import pytest
 from test_personal_actor_transport import owned_transport, frame
@@ -147,4 +149,40 @@ def test_own_ack_restore_preserves_membership_and_direction(tmp_path,monkeypatch
     completion.record_successful_acknowledgment_send(ack)
     registry.put_completion_control(handle,ack); completion.record_persisted(ack)
     assert registry.finish_completion(handle)['phase'] == 'completed'
+    assert not channel.sent and not events
+
+
+@pytest.mark.parametrize('own_first',(True,False))
+def test_mixed_own_and_peer_receipts_require_both_exact_directions(tmp_path,monkeypatch,own_first):
+    book = NativeBookOwnerScope(); book.set_ready(True)
+    service,peer,channel,registry,handle,events = owned_transport(tmp_path,monkeypatch,
+        deletions=True,skip_deletions=False,book_source=lambda:book.current('mixed-native-profile',True))
+    vectors = json.loads((Path(__file__).resolve().parents[2]/'contracts/notes-actor-completion-scope.json').read_text())
+    vector = next(value for value in vectors['cases'] if value['name']=='delete-parent-and-attachment')
+    observed = {'scope':copy.deepcopy(vector['before'])}
+    book.record_saved('mixed-native-profile',True,'a'*64)
+    frames = [actor.wire_message(frame('personal_sync.deletion_decision',{
+        'format':1,'run_id':handle.actor_id,'decision_id':str(uuid.uuid4()),'decisions':[decision]}),handle.actor_id)
+        for decision in vector['decisions']]
+    peer_ack = frame(actor.ACK_KIND,actor.ack(handle.actor_id,frames[0]['message_id']))
+    own_ack = frame(actor.ACK_KIND,actor.ack(handle.actor_id,frames[1]['message_id']))
+    completion = DecisionAckCompletion(handle.actor_id,vector['native_targets'],frames,
+        current_authority=lambda:'a'*64,current_scope=lambda:observed['scope'],
+        current_saved_book=lambda:book.save_state('mixed-native-profile',True),
+        persisted_controls=lambda:registry.read_completion_controls(handle),native_sent_acknowledgments=[own_ack])
+    registry.begin_completion(handle,completion.validator)
+    with pytest.raises(ValueError): registry.check_completion(handle,'send',frames[1])
+    registry.check_completion(handle,'send',frames[0])
+    observed['scope'] = copy.deepcopy(vector['actual_after'])
+    with pytest.raises(PermissionError): registry.put_completion_control(handle,own_ack)
+    for own in (own_first,not own_first):
+        wire = own_ack if own else peer_ack
+        if own: completion.record_successful_acknowledgment_send(wire)
+        assert registry.put_completion_control(handle,wire)
+        completion.record_persisted(wire)
+        if completion.summary()['saved']==1:
+            with pytest.raises(PermissionError): registry.finish_completion(handle)
+    assert completion.summary()=={'expected':2,'received':2,'saved':2,'rejected':0}
+    assert registry.finish_completion(handle)['phase']=='completed'
+    with pytest.raises(PermissionError): registry.require_current(handle)
     assert not channel.sent and not events
