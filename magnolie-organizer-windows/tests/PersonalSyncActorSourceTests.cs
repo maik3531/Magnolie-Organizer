@@ -162,12 +162,24 @@ internal static class PersonalSyncActorSourceTests
                     });
                     TestAssert.That(wire.Length == 0 && emitted == ownEmitted, "Peer claim emitted wire/GUI side effects.");
                 }
+                var nativeAcks = (Dictionary<string, JsonObject>)admitted.GetType().GetProperty("NativeAcknowledgments", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(admitted)!;
+                nativeAcks.Add(ownAck["message_id"]!.GetValue<string>(), ownAck.DeepClone().AsObject());
+                var savedOwnBook = hostBook.SaveState("actual-host-profile", true);
+                admitted.GetType().GetProperty("SaveReceipt", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, savedOwnBook);
+                admitted.GetType().GetProperty("PhoneDataPersisted", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, true);
+                coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
+                await coordinator.PumpPersonalActorAsync(connection);
+                var sentOwnAck = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+                TestAssert.That(JsonNode.DeepEquals(sentOwnAck, ownAck) && nativeAcks.Count == 0 &&
+                    hostBook.SaveState("actual-host-profile", true) == savedOwnBook && emitted == ownEmitted,
+                    "Native ACK dispatch changed data, emitted GUI events or lost its exact identity.");
                 await coordinator.WithPersonalActorStoreAsync(registry => {
-                    if (!afterNativeSend) ownCompletion.RecordSuccessfulAcknowledgmentSend(ownAck);
-                    registry.PutCompletionControl(ownHandle, ownAck); ownCompletion.RecordPersisted(ownAck);
-                    registry.FinishCompletion(ownHandle); return true;
+                    TestAssert.That(registry.Status(ownHandle)["phase"]!.GetValue<string>() == "completed" &&
+                        ownCompletion.Summary()["saved"]!.GetValue<int>() == 1 && registry.ReadCompletionControls(ownHandle).Count == 1,
+                        "Actual encrypted native ACK send did not persist before completion."); return true;
                 });
             }
+            coordinator.NativeSavedBook = () => null;
             var transportHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
             var started = await coordinator.StartPersonalActorAsync(transportHandle);
             var startFrame = (await SharedSyncTransportTests.DrainAsync(wire)).Single();

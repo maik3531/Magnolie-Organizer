@@ -21,6 +21,10 @@ internal sealed partial class TelefonCoordinator
         internal bool PhoneDataPersisted { get; set; }
         internal PersonalActorDecisionCompletion? Completion { get; set; }
         internal HashSet<string> CompletionIds { get; } = [];
+        internal Dictionary<string, JsonObject> NativeAcknowledgments { get; } = new(StringComparer.Ordinal);
+        internal bool NativeAckInFlight { get; set; }
+        internal int NativeAckAttempts { get; set; }
+        internal long NativeAckNextAttempt { get; set; }
         internal JsonObject IncomingCounts { get; set; } = new() { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
         internal int IncomingAttachments { get; set; }
     }
@@ -706,6 +710,63 @@ internal sealed partial class TelefonCoordinator
         admission.Outbound.Add(id); admission.AttachmentResults.Add(key);
     }
 
+    private async Task SendPersonalActorNativeAcknowledgmentsAsync(ActorAdmission admission, TelefonConnection connection)
+    {
+        lock (gate) if (admission.NativeAcknowledgments.Count == 0) return;
+        (PersonalActorDecisionCompletion Completion, JsonObject[] Frames)? claim;
+        try
+        {
+            claim = await WithPersonalActorStoreAsync<(PersonalActorDecisionCompletion, JsonObject[])?>(registry => {
+                if (actorAdmissions.GetValueOrDefault(admission.Handle.ActorId) != admission || admission.Connection != connection ||
+                    online.GetValueOrDefault(admission.PeerId) != connection || admission.Completion is not { } completion ||
+                    admission.SaveReceipt is null || !admission.PhoneDataPersisted || admission.PhonePersisted ||
+                    NativeSavedBook() != admission.SaveReceipt || admission.NativeAckInFlight ||
+                    admission.NativeAckNextAttempt > Environment.TickCount64 || admission.NativeAcknowledgments.Count == 0) return null;
+                var frames = admission.NativeAcknowledgments.Values.Take(32).ToArray();
+                foreach (var wire in frames)
+                {
+                    if (TelefonProtocolContract.Integer(wire["expires_ms"]) <= Now()) { registry.Cancel(admission.Handle); return null; }
+                    registry.CheckCompletionSend(admission.Handle, wire);
+                }
+                admission.NativeAckNextAttempt = Environment.TickCount64 + Math.Min(30000L, 1000L << Math.Min(admission.NativeAckAttempts, 5));
+                admission.NativeAckAttempts++; admission.NativeAckInFlight = true;
+                return (completion, frames);
+            });
+        }
+        catch (InvalidOperationException) { return; } // Pending fresh scope/writer is not success.
+        if (claim is not { } claimed) return;
+        bool Current() => actorAdmissions.GetValueOrDefault(admission.Handle.ActorId) == admission &&
+            admission.Connection == connection && online.GetValueOrDefault(admission.PeerId) == connection &&
+            ReferenceEquals(admission.Completion, claimed.Completion) && !admission.PhonePersisted;
+        try
+        {
+            foreach (var wire in claimed.Frames)
+            {
+                var ready = await WithPersonalActorStoreAsync(registry => {
+                    if (!Current() || !admission.NativeAcknowledgments.TryGetValue(wire["message_id"]!.GetValue<string>(), out var queued) ||
+                        !JsonNode.DeepEquals(queued, wire)) return false;
+                    if (TelefonProtocolContract.Integer(wire["expires_ms"]) <= Now()) { registry.Cancel(admission.Handle); return false; }
+                    registry.CheckCompletionSend(admission.Handle, wire); return true;
+                });
+                if (!ready) return;
+                await connection.SendPlainAsync(wire); // Outside policy/source/store guards.
+                var recorded = await WithPersonalActorStoreAsync(registry => {
+                    if (!Current()) return false;
+                    registry.CheckCompletionSend(admission.Handle, wire);
+                    claimed.Completion.RecordSuccessfulAcknowledgmentSend(wire);
+                    registry.PutCompletionControl(admission.Handle, wire);
+                    claimed.Completion.RecordPersisted(wire);
+                    admission.NativeAcknowledgments.Remove(wire["message_id"]!.GetValue<string>());
+                    if (claimed.Completion.Validator("finish", null) == true)
+                    { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+                    return true;
+                });
+                if (!recorded) return;
+            }
+        }
+        finally { lock (gate) admission.NativeAckInFlight = false; }
+    }
+
     internal async Task PumpPersonalActorAsync(TelefonConnection connection)
     {
         ActorAdmission[] admitted;
@@ -748,5 +809,6 @@ internal sealed partial class TelefonCoordinator
         }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { return; }
         foreach (var message in dispatch) await connection.SendPlainAsync(message);
+        foreach (var admission in admitted) await SendPersonalActorNativeAcknowledgmentsAsync(admission, connection);
     }
 }
