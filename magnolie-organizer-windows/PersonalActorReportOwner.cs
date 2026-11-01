@@ -119,6 +119,8 @@ internal sealed class PersonalActorReportOwner
     }
     // Native post-I/O marker only. Caller must repeat registry/connection gates;
     // no MCP saved Boolean or peer receipt may manufacture this observation.
+    internal bool IsFixedDecisionFrame(string id) => fixedFrames.ContainsKey(id);
+
     internal void RecordSuccessfulFixedDecisionSend(JsonObject wire)
     {
         if (Validate("send_fixed_decision", wire) != true) throw new InvalidOperationException("actor_fixed_decision_send_not_ready");

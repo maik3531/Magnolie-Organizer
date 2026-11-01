@@ -28,7 +28,7 @@ internal static class PersonalActorMixedLateReviewTests
             ExerciseReportOwner(scenario);
         return Task.CompletedTask;
     }
-    private static JsonObject ReportFrame()
+    internal static JsonObject ReportFrame()
     {
         var zero = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
         return PersonalSyncActorContract.WireMessage(Frame("personal_sync.report", new JsonObject { ["format"] = 3, ["run_id"] = Run, ["state"] = "complete",

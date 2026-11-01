@@ -347,6 +347,70 @@ internal static class PersonalSyncActorSourceTests
                 }
                 new PersonalSyncStore(store).PurgeProtocol(producerPrivatePeer);
             }
+            // Inject only the prepared metadata owner/group into a real admitted
+            // controller. Pump, encrypted SendPlainAsync, sealed outbox and
+            // post-I/O guards are actual; normal Mixed preparation remains blocked.
+            foreach (var sendOrderCase in new[] { "report-first", "fixed-first", "channel-after-send" })
+            {
+                hostBook.RecordSaved("actual-host-profile", true, new string('a', 64));
+                coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
+                var orderHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+                await coordinator.StartPersonalActorAsync(orderHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", new JsonObject {
+                    ["format"] = 3, ["run_id"] = orderHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }), orderHandle.ActorId));
+                await SharedSyncTransportTests.DrainAsync(wire);
+                var fixedTarget = new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = "task", ["id"] = "task-one", ["parent_id"] = "",
+                    ["prior_hash"] = new string('a', 64), ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 }) };
+                var proposal = fixedTarget.DeepClone().AsObject(); proposal["deleted_ms"] = 2; proposal["label"] = "Synthetic fixed native proof";
+                store.RememberPersonalProposalKinds(PersonalSyncActorContract.StoragePeer(orderHandle.ActorId), new JsonObject { ["format"] = 1,
+                    ["run_id"] = orderHandle.ActorId, ["proposal_batch_id"] = orderHandle.ActorId, ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(proposal) }, false);
+                var reportBody = PersonalSyncActorContract.Unwrap(PersonalActorMixedLateReviewTests.ReportFrame()["body"]!.AsObject()).Body;
+                reportBody["run_id"] = orderHandle.ActorId;
+                string QueueReport() => store.Enqueue(peer.Id, "personal_sync.report", reportBody, 60000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), actorRunId: orderHandle.ActorId);
+                var reportId = sendOrderCase == "fixed-first" ? "" : QueueReport();
+                var fixedFrames = await coordinator.WithPersonalActorStoreAsync(registry => store.QueueActorFixedDecisions(peer.Id, orderHandle.ActorId,
+                    [new JsonObject { ["proposal_id"] = fixedTarget["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = fixedTarget["clock"]!.DeepClone() }],
+                    new string('c', 64), hostBook.SaveState("actual-host-profile", true)!, () => { registry.RequireCurrent(orderHandle); return new string('c', 64); },
+                    () => hostBook.SaveState("actual-host-profile", true)));
+                if (reportId == "") reportId = QueueReport();
+                var orderReportWire = store.OutboxMessage(peer.Id, reportId)!;
+                var lateTarget = fixedTarget.DeepClone().AsObject(); lateTarget["proposal_id"] = Guid.NewGuid().ToString("D"); lateTarget["kind"] = "note"; lateTarget["id"] = "note-one";
+                var waiting = await coordinator.WithPersonalActorStoreAsync(registry => {
+                    var guard = new PersonalActorReportOwner(orderHandle.ActorId, new JsonArray(lateTarget), manifest, orderReportWire,
+                        hostBook.SaveState("actual-host-profile", true)!, () => coordinator.CurrentActorCompletionAuthority(peer.Id, fingerprint),
+                        () => registry.ReadCompletionControls(orderHandle), nativeFixedTargets: new JsonArray(fixedTarget.DeepClone()), fixedDecisionFrames: fixedFrames);
+                    registry.BeginDecisionReview(orderHandle, guard.Validator); return guard;
+                });
+                var admissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                var admittedOrder = admissions[orderHandle.ActorId]!; var flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
+                admittedOrder.GetType().GetProperty("ReportOwner", flags)!.SetValue(admittedOrder, waiting);
+                admittedOrder.GetType().GetProperty("CompletionReportId", flags)!.SetValue(admittedOrder, reportId);
+                var outbound = (HashSet<string>)admittedOrder.GetType().GetProperty("Outbound", flags)!.GetValue(admittedOrder)!;
+                outbound.Add(reportId); foreach (var value in fixedFrames) outbound.Add(value["message_id"]!.GetValue<string>());
+                wire.AssertActorWrite = () => {
+                    TestAssert.That(store.NotePolicyGate.CurrentCount == 1 && !Monitor.IsEntered(typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
+                        "Fixed decision encrypted network I/O held native policy/source guards.");
+                    if (sendOrderCase == "channel-after-send") online.Remove(peer.Id);
+                };
+                var unknown = false;
+                try { await coordinator.PumpPersonalActorAsync(connection); }
+                catch (InvalidOperationException) { unknown = true; }
+                wire.AssertActorWrite = null; online[peer.Id] = connection;
+                var firstSent = await SharedSyncTransportTests.DrainAsync(wire);
+                TestAssert.That(firstSent.Count == 1 && JsonNode.DeepEquals(firstSent[0], fixedFrames[0]),
+                    "A deferred report discarded collected fixed decisions or preceded their actual send.");
+                if (sendOrderCase == "channel-after-send")
+                    TestAssert.That(unknown && waiting.Validator("send_report", orderReportWire) is null, "A changed channel manufactured the successful fixed-send marker.");
+                else
+                {
+                    TestAssert.That(!unknown && waiting.Validator("send_report", orderReportWire) == true, "Successful actual fixed send did not unlock the exact report.");
+                    await coordinator.PumpPersonalActorAsync(connection);
+                    var secondSent = await SharedSyncTransportTests.DrainAsync(wire);
+                    TestAssert.That(secondSent.Count == 1 && JsonNode.DeepEquals(secondSent[0], orderReportWire), "Mixed report remained deadlocked or resent fixed decisions without waiting for due retry.");
+                }
+                await coordinator.CancelPersonalActorAsync(orderHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                new PersonalSyncStore(store).PurgeProtocol(PersonalSyncActorContract.StoragePeer(orderHandle.ActorId));
+            }
             coordinator.NativeSavedBook = () => null; coordinator.NativeProducerBook = () => null;
             var actorHandle = await coordinator.WithPersonalActorStoreAsync(registry => {
                 TestAssert.That(store.NotePolicyGate.CurrentCount == 0 && Monitor.IsEntered(

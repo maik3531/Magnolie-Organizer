@@ -1152,7 +1152,7 @@ internal sealed partial class TelefonCoordinator
         ActorAdmission[] admitted;
         lock (gate) admitted = actorAdmissions.Values.Where(value => value.Connection == connection).ToArray();
         if (admitted.Length == 0) return;
-        var dispatch = new List<JsonObject>();
+        var dispatch = new List<(JsonObject Message, ActorAdmission? ReportAdmission, PersonalActorReportOwner? Waiting)>();
         try
         {
             await WithPersonalActorStoreAsync(registry => {
@@ -1191,31 +1191,50 @@ internal sealed partial class TelefonCoordinator
                         if (item.Message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
                             item.Message["body"]?["run_id"]?.GetValue<string>() != admission.Handle.ActorId || !admission.Outbound.Contains(item.Id)) continue;
                         if (admission.Completion is not null && !admission.CompletionIds.Contains(item.Id)) continue;
-                        if (admission.ReportOwner is not null && admission.Completion is null && item.Id != admission.CompletionReportId) continue;
+                        var fixedDecision = admission.ReportOwner?.IsFixedDecisionFrame(item.Id) == true;
+                        if (admission.ReportOwner is not null && admission.Completion is null && item.Id != admission.CompletionReportId && !fixedDecision) continue;
                         if (admission.ProducerIds.Contains(item.Id) && (!admission.StartDispatched || NativeSavedBook() != admission.ProducerBook)) continue;
                         if (admission.Completion is not null) registry.CheckCompletionSend(admission.Handle, item.Message);
-                        else if (admission.ReportOwner is not null) registry.CheckDecisionReportSend(admission.Handle, item.Message);
+                        else if (admission.ReportOwner is not null)
+                        {
+                            try
+                            {
+                                if (fixedDecision) registry.CheckDecisionControlSend(admission.Handle, item.Message);
+                                else registry.CheckDecisionReportSend(admission.Handle, item.Message);
+                            }
+                            catch (InvalidOperationException error) when (error.Message == "actor_completion_not_ready")
+                            { continue; } // Defer this frame, not fixed decisions already collected in this pump.
+                        }
                         else registry.RequireCurrent(admission.Handle);
                         store.MarkAttempt(item.Id, item.Attempts, Now());
-                        if (admission.ReportOwner is not null && admission.Completion is null) registry.CheckDecisionReportSend(admission.Handle, item.Message);
-                        dispatch.Add(item.Message);
+                        if (admission.ReportOwner is not null && admission.Completion is null)
+                        {
+                            if (fixedDecision) registry.CheckDecisionControlSend(admission.Handle, item.Message);
+                            else registry.CheckDecisionReportSend(admission.Handle, item.Message);
+                        }
+                        var waiting = admission.Completion is null ? admission.ReportOwner : null;
+                        dispatch.Add((item.Message, waiting is null ? null : admission, waiting));
                     }
                 }
                 return true;
             });
         }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { return; }
-        foreach (var message in dispatch)
+        foreach (var claim in dispatch)
         {
-            var reportOwner = admitted.SingleOrDefault(value => value.ReportOwner is not null && value.Completion is null &&
-                value.CompletionReportId == message["message_id"]!.GetValue<string>());
+            var message = claim.Message;
+            var reportOwner = claim.ReportAdmission;
+            var waiting = claim.Waiting;
+            var fixedDecision = waiting?.IsFixedDecisionFrame(message["message_id"]!.GetValue<string>()) == true;
             if (reportOwner is not null)
             {
                 var allowed = false;
                 try
                 {
                     allowed = await WithPersonalActorStoreAsync(registry => {
-                        registry.CheckDecisionReportSend(reportOwner.Handle, message);
+                        if (reportOwner.ReportOwner != waiting || reportOwner.Completion is not null) return false;
+                        if (fixedDecision) registry.CheckDecisionControlSend(reportOwner.Handle, message);
+                        else registry.CheckDecisionReportSend(reportOwner.Handle, message);
                         return actorAdmissions.GetValueOrDefault(reportOwner.Handle.ActorId) == reportOwner && online.GetValueOrDefault(reportOwner.PeerId) == connection &&
                             JsonNode.DeepEquals(store.OutboxMessage(reportOwner.PeerId, message["message_id"]!.GetValue<string>()), message);
                     });
@@ -1242,9 +1261,16 @@ internal sealed partial class TelefonCoordinator
             await connection.SendPlainAsync(message);
             if (reportOwner is not null)
                 await WithPersonalActorStoreAsync(registry => {
-                    if (actorAdmissions.GetValueOrDefault(reportOwner.Handle.ActorId) != reportOwner || online.GetValueOrDefault(reportOwner.PeerId) != connection)
+                    if (actorAdmissions.GetValueOrDefault(reportOwner.Handle.ActorId) != reportOwner || online.GetValueOrDefault(reportOwner.PeerId) != connection ||
+                        reportOwner.ReportOwner != waiting || reportOwner.Completion is not null)
                         throw new InvalidOperationException("actor_report_dispatch_outcome_unknown");
-                    registry.CheckDecisionReportSend(reportOwner.Handle, message); return true;
+                    if (fixedDecision)
+                    {
+                        registry.CheckDecisionControlSend(reportOwner.Handle, message);
+                        waiting!.RecordSuccessfulFixedDecisionSend(message);
+                    }
+                    else registry.CheckDecisionReportSend(reportOwner.Handle, message);
+                    return true;
                 });
         }
         foreach (var admission in admitted) await SendPersonalActorNativeAcknowledgmentsAsync(admission, connection);

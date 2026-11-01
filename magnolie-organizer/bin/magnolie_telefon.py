@@ -5523,6 +5523,14 @@ class PhoneService:
             if any(wire['body']['message_id'] == message['message_id'] for wire in admission.get('completion_deferred_controls', {}).values()):
                 return False  # An exact peer ACK is awaiting metadata adoption, not another decision send.
             producer = message['message_id'] in admission.get('producer_ids', ())
+            waiting = admission.get('report_owner')
+            post_data = waiting is not None and admission.get('completion') is None
+            fixed = waiting is not None and message['message_id'] in waiting.fixed_frames
+            def check_post_data_send():
+                if fixed:
+                    registry.check_decision_control_send(handle, message)
+                else:
+                    registry.check_decision_report_send(handle, message)
             saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
             # Daemon has intentionally NO permanent writer callback. Generated
             # proposal frames wait for an operation-live native dispatch proof.
@@ -5534,7 +5542,7 @@ class PhoneService:
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)
                 elif admission.get('report_owner') is not None:
-                    registry.check_decision_report_send(handle, message)
+                    check_post_data_send()
                 else:
                     registry.require_current(handle)
                 if message != self.store.outbox_message(peer_id, message["message_id"]) or message["expires_ms"] <= now_ms():
@@ -5543,7 +5551,7 @@ class PhoneService:
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)
                 elif admission.get('report_owner') is not None:
-                    registry.check_decision_report_send(handle, message)
+                    check_post_data_send()
                 else:
                     registry.require_current(handle)
                 if producer and saved_provider() != admission.get('producer_book'):
@@ -5556,12 +5564,15 @@ class PhoneService:
             except (ValueError, RuntimeError, KeyError):
                 return False
         channel.send(message)
-        if admission.get('report_owner') is not None and admission.get('completion') is None:
+        if post_data:
             with self.lock:
                 if (self.personal_actor_admissions.get(handle.actor_id) is not admission or
-                        self.connections.get(peer_id) is not channel):
+                        self.connections.get(peer_id) is not channel or admission.get('report_owner') is not waiting or
+                        admission.get('completion') is not None):
                     raise PermissionError('actor_report_dispatch_outcome_unknown')
-                registry.check_decision_report_send(handle, message)
+                check_post_data_send()
+                if fixed:
+                    waiting.record_successful_fixed_decision_send(message)
         return True
 
     def cancel_personal_actor(self, registry, handle, *, notify=True):
