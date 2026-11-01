@@ -14,6 +14,7 @@ internal sealed partial class TelefonCoordinator
     private readonly SemaphoreSlim mcpOperations = new(1, 1);
     internal Func<string?> NativeBookSource { private get; set; } = () => null;
     internal Func<NativeBookSaveState?> NativeSavedBook { private get; set; } = () => null;
+    internal Func<NativeActorBookSnapshot?> NativeProducerBook { private get; set; } = () => null;
     internal string? CurrentActorSource(string id, string fingerprint) => CurrentActorSource(id, fingerprint, NativeBookSource);
     private PersonalSyncActorStore? nativeActorStore;
 

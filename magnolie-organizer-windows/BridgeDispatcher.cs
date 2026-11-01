@@ -36,6 +36,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var state = actorBookOwner.SaveState(Path.GetFullPath(paths.Data), currentPlainTextAvailable && !restoreInProgress && !disposed);
         return state is not null && state.Sequence > 0 && state.Sha256 == BaumSyncSnapshot.Hash(currentPlainText) ? state : null;
     }
+    internal NativeActorBookSnapshot? NativeActorBook() =>
+        NativeActorBookSnapshot.Capture(NativeActorSavedBook, () => currentPlainTextAvailable && !restoreInProgress && !disposed ? currentPlainText : null);
     private int failedUnlocks;
     private long unlockBlockedUntil;
     private readonly ReminderScheduler reminders;

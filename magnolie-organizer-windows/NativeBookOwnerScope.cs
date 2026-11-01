@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -59,3 +61,38 @@ internal sealed class NativeBookOwnerScope
 }
 
 internal sealed record NativeBookSaveState(string BookSource, long Sequence, string Sha256);
+
+// Native-only producer input, not target authority and never a wire response.
+// Capture must be called afresh under the consumer's native ownership gates;
+// retaining this object cannot replace a later source/writer recheck.
+internal sealed class NativeActorBookSnapshot
+{
+    internal NativeBookSaveState SavedBook { get; }
+    internal string Text { get; }
+
+    private NativeActorBookSnapshot(NativeBookSaveState savedBook, string text)
+    { SavedBook = savedBook; Text = text; }
+
+    internal static NativeActorBookSnapshot? Capture(Func<NativeBookSaveState?> currentSavedBook, Func<string?> currentPlainText)
+    {
+        ArgumentNullException.ThrowIfNull(currentSavedBook);
+        ArgumentNullException.ThrowIfNull(currentPlainText);
+        var before = currentSavedBook();
+        if (before is null || before.Sequence <= 0 || !Hex(before.BookSource) || !Hex(before.Sha256)) return null;
+        var text = currentPlainText();
+        if (text is null || text.Length > 256L * 1024 * 1024) return null;
+        var bytes = Encoding.UTF8.GetBytes(text);
+        try
+        {
+            if (bytes.LongLength > 256L * 1024 * 1024 ||
+                Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() != before.Sha256) return null;
+            using var document = JsonDocument.Parse(bytes);
+            if (document.RootElement.ValueKind != JsonValueKind.Object || currentSavedBook() != before) return null;
+            return new(before, text);
+        }
+        catch (JsonException) { return null; }
+        finally { CryptographicOperations.ZeroMemory(bytes); }
+    }
+
+    private static bool Hex(string value) => value.Length == 64 && value.All(letter => letter is >= '0' and <= '9' or >= 'a' and <= 'f');
+}

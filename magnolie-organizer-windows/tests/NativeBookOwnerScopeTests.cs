@@ -1,4 +1,6 @@
 using MagnolieOrganizer.Windows;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -37,6 +39,41 @@ internal static class NativeBookOwnerScopeTests
         TestAssert.That(owner.SaveState("profile-b", true)!.Sequence == 0, "Restore inherited an earlier actual-store observation.");
         TestAssert.That(owner.Current("profile-b", false) is null && owner.Current("profile-b", true) != restored,
             "Lost native book availability recovered old source authority.");
+        FreshProducerSnapshot();
         return Task.CompletedTask;
+    }
+
+    private static void FreshProducerSnapshot()
+    {
+        const string text = "{\"notizen\":[{\"id\":\"synthetic\",\"text\":\"Grüße 🌸\"}]}";
+        static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+        var owner = new NativeBookOwnerScope(); owner.SetReady(true);
+        NativeBookSaveState? Read() => owner.SaveState("synthetic-native-profile", true);
+        TestAssert.That(NativeActorBookSnapshot.Capture(Read, () => text) is null, "Readiness fabricated saved producer data.");
+        var saved = owner.RecordSaved("synthetic-native-profile", true, Hash(text));
+        var snapshot = NativeActorBookSnapshot.Capture(Read, () => text);
+        TestAssert.That(snapshot is not null && snapshot.Text == text && snapshot.SavedBook == saved, "Exact native saved text was not captured.");
+        TestAssert.That(NativeActorBookSnapshot.Capture(Read, () => text + " ") is null, "Different producer bytes inherited a writer proof.");
+        TestAssert.That(NativeActorBookSnapshot.Capture(Read, () => null) is null, "Missing native plaintext became producer input.");
+        foreach (var invalid in new[] { "[]", "null", "{broken" })
+        {
+            owner.RecordSaved("synthetic-native-profile", true, Hash(invalid));
+            TestAssert.That(NativeActorBookSnapshot.Capture(Read, () => invalid) is null, "Non-book native JSON was accepted: " + invalid);
+        }
+        foreach (var change in new[] { "same-bytes-new-save", "lock", "restore", "profile" })
+        {
+            owner.SetReady(true); owner.RecordSaved("synthetic-native-profile", true, Hash(text));
+            var result = NativeActorBookSnapshot.Capture(Read, () => {
+                if (change == "same-bytes-new-save") owner.RecordSaved("synthetic-native-profile", true, Hash(text));
+                if (change == "lock") owner.SetReady(false);
+                if (change == "restore") owner.Invalidate();
+                if (change == "profile") owner.Current("another-profile", true);
+                return text;
+            });
+            TestAssert.That(result is null, "Producer capture crossed a native writer/lifecycle change: " + change);
+        }
+        owner.SetReady(true); owner.RecordSaved("synthetic-native-profile", true, Hash(text));
+        TestAssert.That(NativeActorBookSnapshot.Capture(Read, () => text) is not null, "A fresh saved book could not acquire a new snapshot.");
+        TestAssert.That(snapshot!.SavedBook != Read(), "An old snapshot silently acquired the new writer proof.");
     }
 }
