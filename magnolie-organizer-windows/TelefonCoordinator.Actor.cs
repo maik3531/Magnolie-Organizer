@@ -208,6 +208,21 @@ internal sealed partial class TelefonCoordinator
             var manifest = admission.Connection.CurrentContentScope(admission.Scope);
             var notes = manifest["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
             var tasks = manifest["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            var targets = new JsonArray(); var decisions = new JsonArray();
+            void AddProof(JsonObject body, bool outgoingDecision)
+            {
+                var proof = store.PersonalDecisionTargets(privatePeer, body, outgoingDecision)
+                    ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+                foreach (var target in proof.OfType<JsonObject>())
+                {
+                    var valid = target["kind"]!.GetValue<string>() switch {
+                        "note" => notes.Contains(target["id"]!.GetValue<string>()), "task" => tasks.Contains(target["id"]!.GetValue<string>()),
+                        "attachment" => notes.Contains(target["parent_id"]!.GetValue<string>()), _ => false };
+                    if (!valid) throw new InvalidOperationException("actor_completion_target_outside_scope");
+                    targets.Add(target.DeepClone());
+                }
+                foreach (var decision in body["decisions"]!.AsArray()) decisions.Add(decision!.DeepClone());
+            }
             foreach (var intent in intents)
                 if (intent.Kind == "personal_sync.deletion_proposals")
                 {
@@ -221,10 +236,16 @@ internal sealed partial class TelefonCoordinator
                 }
                 else
                 {
-                    var kinds = store.PersonalDecisionKinds(privatePeer, intent.Body, false);
-                    if (kinds is null || kinds.Count == 0 || kinds.Any(value => value is not ("note" or "task" or "attachment")))
-                        throw new InvalidOperationException("actor_deletion_proposal_missing");
+                    AddProof(intent.Body, false);
                 }
+            foreach (var choices in review["choices"]!.AsArray().OfType<JsonObject>().Chunk(32))
+                AddProof(new JsonObject { ["format"] = 1, ["run_id"] = runId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(choices.Select(value => (JsonNode)new JsonObject {
+                        ["proposal_id"] = value["proposal_id"]!.DeepClone(), ["decision"] = value["decision"]!.DeepClone(),
+                        ["expected_clock"] = value["expected_clock"]!.DeepClone() }).ToArray()) }, true);
+            // Validate the whole bounded/disjoint group before a GUI save plan,
+            // not only after data persistence at terminal-owner creation.
+            PersonalSyncActorContract.CompletionMembers(runId, manifest, targets, decisions);
         }
         return review;
     }

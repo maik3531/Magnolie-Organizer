@@ -579,8 +579,9 @@ internal static class PersonalSyncActorSourceTests
             // Actual native review/core/data-report/terminal flow. The outgoing
             // full target proof is seeded through the protected store here;
             // this does not stand in for the unfinished desktop producer/GUI.
-            foreach (var mixedIncoming in new[] { false, true })
+            foreach (var incomingScenario in new[] { "incoming", "mixed", "outside", "overlap" })
             {
+                var mixedIncoming = incomingScenario is "mixed" or "overlap";
                 var incomingHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
                 await coordinator.StartPersonalActorAsync(incomingHandle); await SharedSyncTransportTests.DrainAsync(wire);
                 var incomingPrivate = PersonalSyncActorContract.StoragePeer(incomingHandle.ActorId);
@@ -607,6 +608,12 @@ internal static class PersonalSyncActorSourceTests
                     ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = outgoingProposalId,
                         ["kind"] = "attachment", ["id"] = "native-outgoing-file", ["parent_id"] = "note-one", ["clock"] = incomingClock.DeepClone(),
                         ["prior_hash"] = new string('a', 64), ["deleted_ms"] = 2, ["label"] = "Synthetic native outgoing target" }) };
+                if (incomingScenario is "outside" or "overlap")
+                {
+                    nativeOutgoing["proposals"]![0]!["kind"] = incomingScenario == "outside" ? "note" : "task";
+                    nativeOutgoing["proposals"]![0]!["id"] = incomingScenario == "outside" ? "unselected-note" : "task-one";
+                    nativeOutgoing["proposals"]![0]!["parent_id"] = "";
+                }
                 store.RememberPersonalProposalKinds(incomingPrivate, nativeOutgoing, true);
                 await connection.HandlePlainAsync(incomingWire.DeepClone().AsObject());
                 if (mixedIncoming)
@@ -624,6 +631,17 @@ internal static class PersonalSyncActorSourceTests
                     ["proposal_id"] = localProposalId, ["decision"] = "restore", ["expected_clock"] = incomingClock.DeepClone(), ["allow_conflict"] = false }) : new JsonArray(),
                     ["intents"] = new JsonArray(incomingPayload["intents"]!.AsArray().OfType<JsonObject>().Select(value => (JsonNode)new JsonObject {
                         ["kind"] = value["kind"]!.DeepClone(), ["message_id"] = value["pending_message_id"]!.DeepClone(), ["commit_token"] = value["commit_token"]!.DeepClone() }).ToArray()) };
+                if (incomingScenario is "outside" or "overlap")
+                {
+                    var beforeDeniedPlan = nativeSaved; var deniedPlan = false;
+                    try { await coordinator.PreparePersonalActorCommitAsync(incomingHandle, incomingView["revision"]!.GetValue<string>(), new string('e', 64), deletionPlan: incomingPlan); }
+                    catch (Exception error) when (error is InvalidDataException or InvalidOperationException) { deniedPlan = true; }
+                    TestAssert.That(deniedPlan && nativeSaved == beforeDeniedPlan && wire.Length == 0 &&
+                        privateStore.DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Count(value => value.PeerId == incomingPrivate) == (mixedIncoming ? 2 : 1),
+                        "Outside/overlapping target group reached a save claim or consumed native intents.");
+                    await coordinator.CancelPersonalActorAsync(incomingHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                    continue;
+                }
                 var incomingClaim = await coordinator.PreparePersonalActorCommitAsync(incomingHandle, incomingView["revision"]!.GetValue<string>(), new string('e', 64), deletionPlan: incomingPlan);
                 var incomingToken = incomingClaim["claim_token"]!.GetValue<string>();
                 nativeSaved = hostBook.RecordSaved("actual-host-profile", true, new string('e', 64));
