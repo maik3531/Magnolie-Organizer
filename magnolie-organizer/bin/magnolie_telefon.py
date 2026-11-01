@@ -684,22 +684,26 @@ class PhoneStore:
         validate_personal_sync_body("personal_sync.deletion_proposals", body)
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            for proposal in body["proposals"]:
-                key = "personal_proposal_kind:%s:%s:%s" % (peer_id, "out" if outgoing else "in", proposal["proposal_id"])
-                target = {name: copy.deepcopy(proposal[name]) for name in ("proposal_id", "kind", "id", "parent_id", "prior_hash")}
-                value = {"kind": proposal["kind"], "clock": proposal["clock"], "expires_ms": now_ms() + 30 * DAY_MS,
-                         "target": target}
-                previous = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
-                if previous:
-                    saved = strict_json(self._decrypt(previous[0], "personal_proposal_kind", key))
-                    if (any(saved.get(field) != value[field] for field in ("kind", "clock")) or
-                            "target" in saved and saved["target"] != target):
-                        raise ValueError("conflicting personal proposal identity")
-                    value["expires_ms"] = saved.get("expires_ms", value["expires_ms"])
-                elif db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] >= 10000:
-                    raise RuntimeError("queue_full")
-                db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (key,
-                    self._encrypt(canonical(value), "personal_proposal_kind", key)))
+            self._remember_personal_proposal_kinds(db, peer_id, body, outgoing, now_ms())
+
+    def _remember_personal_proposal_kinds(self, db, peer_id, body, outgoing, now):
+        """Caller owns the single proposal-proof/outbox transaction."""
+        for proposal in body["proposals"]:
+            key = "personal_proposal_kind:%s:%s:%s" % (peer_id, "out" if outgoing else "in", proposal["proposal_id"])
+            target = {name: copy.deepcopy(proposal[name]) for name in ("proposal_id", "kind", "id", "parent_id", "prior_hash")}
+            value = {"kind": proposal["kind"], "clock": proposal["clock"], "expires_ms": now + 30 * DAY_MS,
+                     "target": target}
+            previous = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+            if previous:
+                saved = strict_json(self._decrypt(previous[0], "personal_proposal_kind", key))
+                if (any(saved.get(field) != value[field] for field in ("kind", "clock")) or
+                        "target" in saved and saved["target"] != target):
+                    raise ValueError("conflicting personal proposal identity")
+                value["expires_ms"] = saved.get("expires_ms", value["expires_ms"])
+            elif db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] >= 10000:
+                raise RuntimeError("queue_full")
+            db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (key,
+                self._encrypt(canonical(value), "personal_proposal_kind", key)))
 
     def personal_decision_kinds(self, peer_id, body, outgoing):
         proofs = self._personal_decision_proofs(peer_id, body, outgoing)
@@ -924,9 +928,13 @@ class PhoneStore:
         if actor_run_id is not None:
             message = personal_actor_contract.wire_message(message, actor_run_id)
         if kind == "personal_sync.deletion_proposals":
-            self.remember_personal_proposal_kinds(peer_id, body, True)
+            validate_personal_sync_body(kind, body)
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
+            if kind == "personal_sync.deletion_proposals":
+                db.execute("BEGIN IMMEDIATE")
+                self._remember_personal_proposal_kinds(db,
+                    personal_actor_contract.storage_peer(actor_run_id) if actor_run_id is not None else peer_id, body, True, now)
             if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND, shared_sync_contract.KIND}:
                 db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]

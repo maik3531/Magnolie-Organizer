@@ -12,6 +12,48 @@ RUN = "11111111-1111-4111-8111-111111111111"
 REQUEST = {"format": 3, "run_id": RUN, "trigger": "manual", "modules": ["notes", "tasks"]}
 
 
+@pytest.mark.parametrize('fault', ('none', 'outbox', 'second-target', 'legacy'))
+def test_outgoing_proposals_atomically_persist_private_target_proofs_and_wire(tmp_path, fault):
+    service, peer, events = owned_service(tmp_path)
+    store = service.store
+    physical = peer['device_id']; private = actor.storage_peer(RUN)
+    clock = [{'actor_id': physical, 'counter': 2}]
+    ids = ['33333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333334']
+    proposals = [{'proposal_id': identifier, 'kind': 'attachment', 'id': 'synthetic-file-' + str(index),
+        'parent_id': 'selected-parent', 'clock': copy.deepcopy(clock), 'prior_hash': 'a' * 64,
+        'deleted_ms': 2, 'label': 'Synthetic native proposal'} for index, identifier in enumerate(ids)]
+    body = {'format': 1, 'run_id': RUN, 'proposal_batch_id': RUN, 'sequence': 0, 'last': True, 'proposals': proposals}
+    decision = {'format': 1, 'run_id': RUN, 'decision_id': RUN,
+        'decisions': [{'proposal_id': identifier, 'decision': 'restore', 'expected_clock': copy.deepcopy(clock)} for identifier in ids]}
+    if fault in ('outbox', 'second-target'):
+        with sqlite3.connect(store.database_path) as db:
+            trigger = ("BEFORE INSERT ON outbox" if fault == 'outbox' else
+                "BEFORE INSERT ON meta WHEN NEW.key LIKE 'personal_proposal_kind:%33333333-3333-4333-8333-333333333334'")
+            db.execute("CREATE TRIGGER outgoing_atomic_failure " + trigger + " BEGIN SELECT RAISE(ABORT,'synthetic proposal transaction failure'); END")
+        with pytest.raises(sqlite3.DatabaseError):
+            store.queue(physical, 'personal_sync.deletion_proposals', body, 60000, actor_run_id=RUN)
+        assert store.personal_decision_targets(private, decision, False) is None
+        assert store.personal_decision_targets(physical, decision, False) is None
+        with sqlite3.connect(store.database_path) as db:
+            assert db.execute("SELECT COUNT(*) FROM outbox").fetchone()[0] == 0
+            assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] == 0
+            db.execute('DROP TRIGGER outgoing_atomic_failure')
+    run = None if fault == 'legacy' else RUN
+    wire = store.queue(physical, 'personal_sync.deletion_proposals', body, 60000, actor_run_id=run)
+    reopened = phone.PhoneStore(str(tmp_path / 'phone'), 'Owned desktop')
+    expected, wrong = (physical, private) if fault == 'legacy' else (private, physical)
+    targets = reopened.personal_decision_targets(expected, decision, False)
+    assert len(targets) == 2 and reopened.personal_decision_targets(wrong, decision, False) is None
+    assert targets == [{name: copy.deepcopy(proposal[name]) for name in ('proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock')} for proposal in proposals]
+    assert reopened.pending(physical) == [wire]
+    assert wire['kind'] == ('personal_sync.deletion_proposals' if fault == 'legacy' else actor.DATA_KIND)
+    if fault != 'legacy': assert actor.unwrap(wire['body']) == ('personal_sync.deletion_proposals', body)
+    changed = copy.deepcopy(body); changed['proposals'][0]['parent_id'] = 'forged-parent'
+    with pytest.raises(ValueError):
+        reopened.queue(physical, 'personal_sync.deletion_proposals', changed, 60000, actor_run_id=run)
+    assert reopened.pending(physical) == [wire] and not events and service.server is None
+
+
 def test_encrypted_outbox_reopen_keeps_wire_actor_and_semantic_queue_kind(tmp_path):
     service, peer, events = owned_service(tmp_path)
     store = service.store
