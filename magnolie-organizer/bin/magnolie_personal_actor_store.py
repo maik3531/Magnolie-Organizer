@@ -170,6 +170,7 @@ class ActorStore:
         self.monotonic_clock = monotonic_clock or (lambda: time.monotonic_ns() // 1_000_000)
         self.revision_key = secrets.token_bytes(32)
         self.completion_guards = {}
+        self.decision_handoffs = {}
         self.data_retired = set()
         with self._database() as db:
             db.execute("CREATE TABLE IF NOT EXISTS personal_actor_context(actor_id TEXT PRIMARY KEY,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL)")
@@ -193,7 +194,7 @@ class ActorStore:
         fields = {"format", "actor_id", "peer_id", "fingerprint", "source_revision", "owner_epoch", "owner_hash", "storage_peer", "created_ms", "expires_ms", "created_monotonic_ms", "expires_monotonic_ms", "phase"}
         if (not isinstance(value, dict) or set(value) != fields or type(value["format"]) is not int or value["format"] != actor.VERSION or
                 value["actor_id"] != actor_id or value["expires_ms"] != expires or
-                value["storage_peer"] != actor.storage_peer(actor_id) or value["phase"] not in ("registered", "receiving", "completion", "completed", "cancelled", "cancelled_clean")):
+                value["storage_peer"] != actor.storage_peer(actor_id) or value["phase"] not in ("registered", "receiving", "decision_review", "completion", "completed", "cancelled", "cancelled_clean")):
             raise ValueError("Invalid protected actor binding")
         actor.start(value["peer_id"])
         if (any(not isinstance(value[key], str) for key in ("fingerprint", "source_revision", "owner_epoch", "owner_hash")) or
@@ -246,7 +247,7 @@ class ActorStore:
         with self._database() as db:
             db.execute("BEGIN IMMEDIATE")
             rows = [self._decode(row) for row in db.execute("SELECT actor_id,expires_ms,payload FROM personal_actor_context")]
-            active = sum(item["owner_epoch"] == self.epoch and item["phase"] in ("registered", "receiving", "completion") and
+            active = sum(item["owner_epoch"] == self.epoch and item["phase"] in ("registered", "receiving", "decision_review", "completion") and
                 item["expires_ms"] > created and item["expires_monotonic_ms"] > monotonic for item in rows)
             if len(rows) >= MAX_CONTEXTS or active >= MAX_ACTIVE:
                 raise RuntimeError("actor_capacity")
@@ -272,7 +273,7 @@ class ActorStore:
                         continue
                     lost_source = False
                     if self.source_owned(value["actor_id"]):
-                        if value["phase"] in ("completion", "completed"):
+                        if value["phase"] in ("decision_review", "completion", "completed"):
                             guard = self.completion_guards.get(value["actor_id"])
                             try:
                                 state = guard("maintain", None) if guard is not None else False
@@ -289,6 +290,7 @@ class ActorStore:
             for value, discard in retired:
                 self.data_retired.add(value["actor_id"])
                 self.completion_guards.pop(value["actor_id"], None)
+                self.decision_handoffs.pop(value['actor_id'], None)
                 # Existing domain cleanup runs after retirement and outside the registry
                 # transaction. A failed cleanup leaves an inactive, retryable context.
                 if value["phase"] != "cancelled_clean":
@@ -416,8 +418,10 @@ class ActorStore:
         value = self._require(db, handle, active=False, source=False)
         if not self.source_owned(value["actor_id"]):
             raise PermissionError("actor_not_found")
-        if value["phase"] not in ("completion", "completed"):
+        if value["phase"] not in ("decision_review", "completion", "completed"):
             raise PermissionError("actor_completion_inactive")
+        if value['phase'] == 'decision_review' and operation not in ('begin', 'put', 'read', 'handoff'):
+            raise PermissionError('actor_decision_review_metadata_only')
         wall, mono = self.clock(), self.monotonic_clock()
         if (type(wall) is not int or type(mono) is not int or
                 not value["created_ms"] <= wall < value["expires_ms"] or
@@ -439,6 +443,84 @@ class ActorStore:
         if result is not True:
             raise _CompletionSourceLost("actor_completion_source_changed")
         return value
+
+    def begin_decision_review(self, handle, native_guard):
+        """Native-only post-data handoff; receiving data rights never return.
+
+        The guard must bind the confirmed ordinary data receipt, exact expected
+        producer decisions, saved book and independent native completion source.
+        This primitive alone does not prove a save or authorize a decision ACK.
+        """
+        if not callable(native_guard):
+            raise TypeError('A native decision-review validator is required')
+        installed = False
+        try:
+            with self._completion_database(handle) as db:
+                value = self._require(db, handle, active=False, source=False)
+                if value['phase'] == 'decision_review':
+                    if self.completion_guards.get(handle.actor_id) is not native_guard:
+                        raise PermissionError('actor_completion_owner_changed')
+                    self._require_completion(db, handle, 'begin')
+                else:
+                    self._require(db, handle)
+                    self.completion_guards[handle.actor_id] = native_guard
+                    installed = True
+                    value['phase'] = 'decision_review'
+                    self._write(db, value)
+                    self._require_completion(db, handle, 'begin')
+                    try:
+                        self._require(db, handle, active=False, source=True)
+                    except PermissionError as error:
+                        raise _CompletionSourceLost('actor_decision_review_source_changed') from error
+                    self.data_retired.add(handle.actor_id)
+        except BaseException:
+            if installed and self.completion_guards.get(handle.actor_id) is native_guard:
+                self.completion_guards.pop(handle.actor_id, None)
+            raise
+        return self.status(handle)
+
+    def promote_decision_review(self, handle, review_guard, completion_guard):
+        """Atomic native handoff AFTER the separate reviewed decision SaveACK.
+
+        The old guard must accept `handoff` only for its complete decision set
+        and new saved claim. The new guard binds that same claim and both receipt
+        directions. Neither guard can reopen the original data capability.
+        """
+        if not callable(review_guard) or not callable(completion_guard):
+            raise TypeError('Native handoff validators are required')
+        installed = False
+        try:
+            with self._completion_database(handle) as db:
+                value = self._require(db, handle, active=False, source=False)
+                if (value['phase'] in ('completion', 'completed') and
+                        self.decision_handoffs.get(handle.actor_id) == (review_guard, completion_guard) and
+                        self.completion_guards.get(handle.actor_id) is completion_guard):
+                    self._require_completion(db, handle, 'begin')
+                    return self.status(handle)
+                if value['phase'] != 'decision_review' or self.completion_guards.get(handle.actor_id) is not review_guard:
+                    raise PermissionError('actor_decision_review_owner_changed')
+                self._require_completion(db, handle, 'handoff')
+                value['phase'] = 'completion'
+                self._write(db, value)
+                self.completion_guards[handle.actor_id] = completion_guard
+                installed = True
+                self._require_completion(db, handle, 'begin')
+                # Recheck the outgoing owner before relinquishing it. A callback
+                # cannot silently change its source while the new guard runs.
+                try:
+                    retained = review_guard('handoff', None)
+                except (PermissionError, ValueError) as error:
+                    raise _CompletionSourceLost('actor_decision_review_handoff_changed') from error
+                if retained is not True:
+                    raise _CompletionSourceLost('actor_decision_review_handoff_changed')
+                self.decision_handoffs[handle.actor_id] = (review_guard, completion_guard)
+        except BaseException:
+            if installed:
+                self.decision_handoffs.pop(handle.actor_id, None)
+            if installed and self.completion_guards.get(handle.actor_id) is completion_guard:
+                self.completion_guards[handle.actor_id] = review_guard
+            raise
+        return self.status(handle)
 
     def begin_completion(self, handle, native_guard):
         """Close data irrevocably; register a native-only metadata validator.
@@ -544,6 +626,7 @@ class ActorStore:
             value = self._require(db, handle, active=False, source=False)
             self.data_retired.add(handle.actor_id)
             self.completion_guards.pop(handle.actor_id, None)
+            self.decision_handoffs.pop(handle.actor_id, None)
             if value["phase"] != "cancelled_clean":
                 value["phase"] = "cancelled"; self._write(db, value)
         return self.status(handle)
