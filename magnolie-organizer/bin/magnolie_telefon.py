@@ -4367,7 +4367,8 @@ class PhoneService:
                     self.personal_actor_admissions.pop(run, None)
             if self._personal_actor_registry is None:
                 from magnolie_personal_actor_store import ActorStore
-                self._personal_actor_registry = ActorStore(self.store, self.current_actor_source, source_guard=self.lock)
+                self._personal_actor_registry = ActorStore(self.store, self.current_actor_source, source_guard=self.lock,
+                    completion_source=self.current_actor_completion_authority)
             return self._personal_actor_registry
 
     @staticmethod
@@ -4446,6 +4447,7 @@ class PhoneService:
                 current_saved_book=saved_provider) if bodies else []
             admission['outbound'].update(frame['message_id'] for frame in frames)
             admission.setdefault('producer_ids', set()).update(frame['message_id'] for frame in frames)
+            admission['producer_frames'] = copy.deepcopy(frames)
             current()
             if saved_provider() != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
@@ -4911,8 +4913,30 @@ class PhoneService:
             "deletions": {"pending": 0, "deleted": 0, "restored": 0, "conflicts": 0, "blocked": 0,
                 "trash": {"notes": 0, "tasks": 0, "notebooks": 0, "attachments": 0}}}
         queued = self.store.queue(admission["peer"], "personal_sync.report", report, DAY_MS, actor_run_id=handle.actor_id)
+        try:
+            if admission.get('producer_bodies'):
+                from magnolie_personal_actor_report_owner import PostDataReportOwner
+                # Mixed groups need their original-choice/result-scope union;
+                # do not silently reapply the already committed initial choices.
+                if admission['commit_plan']['deletion_review']['intents']:
+                    raise PermissionError('actor_mixed_post_data_review_not_ready')
+                if not callable(registry.completion_source):
+                    raise PermissionError('actor_completion_authority_unavailable')
+                fingerprint = registry.status(handle)['fingerprint']
+                targets = [{key: copy.deepcopy(value[key]) for key in ('proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock')}
+                    for body in admission['producer_bodies'] for value in body['proposals']]
+                waiting = PostDataReportOwner(handle.actor_id, targets,
+                    self.current_content_scope(admission['peer'], admission['key'], admission['scope']), queued, admission['save_receipt'],
+                    current_authority=lambda: registry.completion_source(admission['peer'], fingerprint),
+                    persisted_controls=lambda: registry.read_completion_controls(handle), producer_frames=admission['producer_frames'])
+                registry.begin_decision_review(handle, waiting.validator)
+                admission['report_owner'] = waiting
+            else:
+                registry.require_current(handle)
+        except BaseException:
+            self.store.acknowledge(admission['peer'], queued['message_id'])
+            raise
         admission["completion_report_id"] = queued["message_id"]; admission["outbound"].add(queued["message_id"])
-        registry.require_current(handle)
 
     def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         """Bounded owner-only view of existing private core staging, never GUI adoption."""
@@ -5016,6 +5040,17 @@ class PhoneService:
                         registry.finish_completion(handle)
                         admission["phone_persisted"] = True
                     return True
+                waiting = admission.get('report_owner')
+                if waiting is not None:
+                    # Only metadata accepted by the exact pre-report owner;
+                    # never feed the old data namespace or ordinary GUI stagers.
+                    registry.put_completion_control(handle, payload)
+                    if payload['kind'] == personal_actor_contract.ACK_KIND and body['status'] in ('accepted', 'duplicate'):
+                        self.store.acknowledge(peer['device_id'], body['message_id'])
+                        if body['message_id'] == admission.get('completion_report_id'):
+                            admission['phone_data_persisted'] = True
+                            admission['phone_persisted'] = False
+                    return True  # Decision storage is NOT a successful decision ACK.
                 try:
                     registry.require_current(handle)
                 except PermissionError:
@@ -5145,7 +5180,10 @@ class PhoneService:
                     self.store.stage_personal_domain(storage_peer, semantic)
                     registry.require_current(handle)
                     return  # A deletion intent receives no success ACK before native book commit.
-                registry.require_current(handle)
+                if admission.get('report_owner') is None:
+                    registry.require_current(handle)
+                else:
+                    registry.check_completion(handle, 'read')
                 reply = self._actor_control_message(personal_actor_contract.ACK_KIND,
                     personal_actor_contract.ack(run, payload["message_id"]))
             except (PermissionError, ValueError, TypeError, KeyError, RuntimeError, OSError, sqlite3.Error):
@@ -5229,6 +5267,8 @@ class PhoneService:
                     return False
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)
+                elif admission.get('report_owner') is not None:
+                    registry.check_decision_report_send(handle, message)
                 else:
                     registry.require_current(handle)
                 if message != self.store.outbox_message(peer_id, message["message_id"]) or message["expires_ms"] <= now_ms():
@@ -5236,18 +5276,26 @@ class PhoneService:
                 self.store.mark_attempt(peer_id, message["message_id"])
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)
+                elif admission.get('report_owner') is not None:
+                    registry.check_decision_report_send(handle, message)
                 else:
                     registry.require_current(handle)
                 if producer and saved_provider() != admission.get('producer_book'):
                     return False
             except PermissionError as error:
-                if admission.get("completion") is not None and str(error) == "actor_completion_not_ready":
+                if (admission.get("completion") is not None or admission.get('report_owner') is not None) and str(error) == "actor_completion_not_ready":
                     return False
                 self.cancel_personal_actor(registry, handle, notify=False)
                 return False
             except (ValueError, RuntimeError, KeyError):
                 return False
         channel.send(message)
+        if admission.get('report_owner') is not None and admission.get('completion') is None:
+            with self.lock:
+                if (self.personal_actor_admissions.get(handle.actor_id) is not admission or
+                        self.connections.get(peer_id) is not channel):
+                    raise PermissionError('actor_report_dispatch_outcome_unknown')
+                registry.check_decision_report_send(handle, message)
         return True
 
     def cancel_personal_actor(self, registry, handle, *, notify=True):

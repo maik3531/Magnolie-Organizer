@@ -241,7 +241,8 @@ def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual
         channel.send = original_send
 
 
-def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisions(tmp_path, monkeypatch):
+@pytest.mark.parametrize('handoff_fault', [False, True])
+def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisions(tmp_path, monkeypatch, handoff_fault):
     import uuid
     from test_personal_actor_transport import frame
     with proxy_producer(tmp_path, monkeypatch) as values:
@@ -261,13 +262,55 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
         admission = service.personal_actor_admissions[handle.actor_id]
         reply = service.store.outbox_message(peer['device_id'], admission['reply_ids'][0])
         assert service._send_personal_actor_queued(channel, peer['device_id'], reply)
+        if handoff_fault:
+            registry = admission['registry']; original_begin = registry.begin_decision_review; attempts = [0]
+            def failing_once(*args, **kwargs):
+                attempts[0] += 1
+                if attempts[0] != 1: return original_begin(*args, **kwargs)
+                with sqlite3.connect(service.store.database_path) as db:
+                    db.execute("CREATE TRIGGER report_handoff_fault BEFORE INSERT ON personal_actor_context BEGIN SELECT RAISE(ABORT,'synthetic native report handoff fault'); END")
+                try: return original_begin(*args, **kwargs)
+                finally:
+                    with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER report_handoff_fault')
+            monkeypatch.setattr(registry, 'begin_decision_review', failing_once)
+            service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, reply['message_id'])))
+            assert admission.get('report_owner') is None and not admission.get('completion_report_id')
+            assert not any(wire['kind'] == actor.DATA_KIND and actor.unwrap(wire['body'])[0] == 'personal_sync.report'
+                for wire in service.store.pending(peer['device_id'])), 'Failed native handoff left an orphan report queued'
         service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, reply['message_id'])))
         report = service.store.outbox_message(peer['device_id'], admission['completion_report_id'])
+        assert proxy.personal_actor_status(handle)['phase'] == 'decision_review', 'Original data rights were not closed before report dispatch'
+        with pytest.raises(PermissionError): admission['registry'].require_current(admission['handle'])
+        authority_provider = admission['registry'].completion_source
+        admission['registry'].completion_source = lambda *_: None
+        assert not service._send_personal_actor_queued(channel, peer['device_id'], report)
+        assert proxy.personal_actor_status(handle)['phase'] == 'decision_review', 'Temporary missing authority cancelled the valid metadata owner'
+        admission['registry'].completion_source = authority_provider
         assert service._send_personal_actor_queued(channel, peer['device_id'], report)
         service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, report['message_id'])))
         status = proxy.personal_actor_status(handle)
         assert status['book_persisted'] and status['phone_data_persisted']
         assert not status['phone_persisted'], 'Ordinary data receipt falsely completed outstanding producer decisions'
-        assert status['phase'] == 'receiving'
+        assert status['phase'] == 'decision_review'
+        import magnolie_content_scope as scope
+        registry = admission['registry']
+        fingerprint = registry.status(admission['handle'])['fingerprint']
+        old_source = registry.current_source(peer['device_id'], fingerprint)
+        old_authority = registry.completion_source(peer['device_id'], fingerprint)
+        changed_scope = scope.advance(admission['report_owner'].before, ['note-one', 'restored-note'], ['task-one'])
+        binding = (peer['device_id'], peer['static_public'], id(channel))
+        for part in scope.chunks(changed_scope): service.content_scope_sessions[channel].receive(binding, part)
+        assert registry.current_source(peer['device_id'], fingerprint) != old_source
+        assert registry.completion_source(peer['device_id'], fingerprint) == old_authority
+        before_wire = copy.deepcopy(channel.sent)
+        decision = actor.wire_message(frame('personal_sync.deletion_decision', {'format': 1, 'run_id': handle.actor_id,
+            'decision_id': str(uuid.uuid4()), 'decisions': [{'proposal_id': proposal_id, 'decision': 'restore', 'expected_clock': clock}]}), handle.actor_id)
+        service._payload(peer, channel, decision)
+        assert decision in admission['registry'].read_completion_controls(admission['handle'])
+        packets = proxy.personal_actor_status(handle)['packets']
+        replay = actor.wire_message(frame('personal_sync.batch', batch), handle.actor_id)
+        service._payload(peer, channel, replay)
+        assert proxy.personal_actor_status(handle)['packets'] == packets
+        assert channel.sent == before_wire, 'Late metadata persistence falsely acknowledged deletion or reopened data staging'
         with pytest.raises(background.IPCError): proxy.begin_personal_actor_completion(handle, claim['claim_token'])
         assert not server._phone_actor_book_probes

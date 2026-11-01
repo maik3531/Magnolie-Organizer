@@ -1254,7 +1254,9 @@ class IPCServer:
                     raise IPCError("Native actor owner capacity exceeded")
                 registry = ActorStore(phone.store, lambda peer, fingerprint: phone.current_actor_source(peer, fingerprint,
                     lambda: self.gui_actor_book_source(subscriber, book_source)), epoch=self._phone_actor_epoch, source_guard=phone.lock,
-                    source_owned=lambda actor_id: self._phone_actor_owners.get(actor_id) == key)
+                    source_owned=lambda actor_id: self._phone_actor_owners.get(actor_id) == key,
+                    completion_source=lambda peer, fingerprint: phone.current_actor_completion_authority(peer, fingerprint,
+                        lambda: self.gui_actor_book_source(subscriber, book_source)))
                 self._phone_actor_registries[key] = registry
             return registry
 

@@ -156,7 +156,7 @@ class ActorStore:
     # The native callback must bind the current book/profile scope as well as the
     # exact channel/key, fresh controls, ownership, grants and content scope.
     # A caller-supplied display fingerprint/revision alone is never authority.
-    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None, source_guard=None, source_owned=None):
+    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None, source_guard=None, source_owned=None, completion_source=None):
         if not callable(current_source):
             raise TypeError("A native current-source validator is required")
         self.store = store
@@ -170,6 +170,7 @@ class ActorStore:
         self.monotonic_clock = monotonic_clock or (lambda: time.monotonic_ns() // 1_000_000)
         self.revision_key = secrets.token_bytes(32)
         self.completion_guards = {}
+        self.completion_source = completion_source
         self.decision_handoffs = {}
         self.data_retired = set()
         with self._database() as db:
