@@ -36,6 +36,7 @@ internal sealed partial class TelefonCoordinator
         internal NativeBookSaveState? LateSaveReceipt { get; set; }
         internal PersonalActorDecisionCompletion? LateCompletion { get; set; }
         internal IReadOnlyList<JsonObject> LateOwnAcknowledgments { get; set; } = [];
+        internal Dictionary<string, JsonObject> CompletionDeferredControls { get; } = new(StringComparer.Ordinal);
         internal bool StartDispatched { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
@@ -808,6 +809,37 @@ internal sealed partial class TelefonCoordinator
         admission.CompletionReportId = id; admission.Outbound.Add(id);
     }
 
+    private void PersistPersonalActorPeerAcknowledgment(PersonalSyncActorStore registry, ActorAdmission admission, JsonObject message)
+    {
+        var completion = admission.Completion ?? throw new InvalidOperationException("actor_completion_not_ready");
+        registry.PutCompletionControl(admission.Handle, message);
+        completion.RecordPersisted(message);
+        var body = message["body"]!.AsObject(); var state = body["status"]!.GetValue<string>();
+        if (state is "accepted" or "duplicate") store.CompleteOutbox(admission.PeerId, body["message_id"]!.GetValue<string>());
+        else if (body["error"]!.GetValue<string>() != "temporary_failure")
+        {
+            registry.Cancel(admission.Handle);
+            foreach (var pendingId in admission.Outbound) store.CompleteOutbox(admission.PeerId, pendingId);
+            return;
+        }
+        var summary = completion.Summary();
+        if (summary["saved"]!.GetValue<int>() == summary["expected"]!.GetValue<int>())
+        { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+    }
+
+    private static bool DeferPersonalActorPeerAcknowledgment(ActorAdmission admission, JsonObject message)
+    {
+        if (admission.Completion is not { } completion || completion.Validator("put", message) != true) return false;
+        // This is bounded UNTRUSTED pending metadata, not a protected receipt.
+        // Exact identity/authority/save/scope/TTL checks run again on Advance.
+        var id = message["message_id"]!.GetValue<string>(); var deferred = admission.CompletionDeferredControls;
+        if (deferred.TryGetValue(id, out var previous) && !JsonNode.DeepEquals(previous, message))
+            throw new InvalidDataException("actor_frame_conflict");
+        if (!deferred.ContainsKey(id) && (deferred.Count >= 256 ||
+            deferred.Values.Sum(value => TelefonCrypto.Canonical(value).Length) + TelefonCrypto.Canonical(message).Length > 1024 * 1024)) return false;
+        deferred[id] = message.DeepClone().AsObject(); return true;
+    }
+
     internal async Task ReceivePersonalActorAsync(TelefonConnection connection, TelefonPeer peer, JsonObject message)
     {
         JsonObject? reply = null;
@@ -832,19 +864,8 @@ internal sealed partial class TelefonCoordinator
                     PersonalSyncActorContract.ValidateAck(body);
                     if (completion.ExpectsNativeAcknowledgment(body["message_id"]!.GetValue<string>()))
                         return true; // A peer cannot attest to this endpoint's native send.
-                    registry.PutCompletionControl(admission.Handle, message);
-                    completion.RecordPersisted(message);
-                    var state = body["status"]!.GetValue<string>();
-                    if (state is "accepted" or "duplicate") store.CompleteOutbox(peer.Id, body["message_id"]!.GetValue<string>());
-                    else if (body["error"]!.GetValue<string>() != "temporary_failure")
-                    {
-                        registry.Cancel(admission.Handle);
-                        foreach (var pendingId in admission.Outbound) store.CompleteOutbox(peer.Id, pendingId);
-                        return true;
-                    }
-                    var summary = completion.Summary();
-                    if (summary["saved"]!.GetValue<int>() == summary["expected"]!.GetValue<int>())
-                    { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+                    try { PersistPersonalActorPeerAcknowledgment(registry, admission, message); }
+                    catch (Microsoft.Data.Sqlite.SqliteException) { return DeferPersonalActorPeerAcknowledgment(admission, message); }
                     return true;
                 }
                 if (admission.ReportOwner is not null)
@@ -1144,6 +1165,19 @@ internal sealed partial class TelefonCoordinator
                             continue; // Retain the bound cancellation target until its lease expires.
                     }
                     catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
+                    if (admission.Completion is not null)
+                    {
+                        foreach (var pending in admission.CompletionDeferredControls.Values.ToArray())
+                        {
+                            try
+                            {
+                                PersistPersonalActorPeerAcknowledgment(registry, admission, pending);
+                                admission.CompletionDeferredControls.Remove(pending["message_id"]!.GetValue<string>());
+                            }
+                            catch (Microsoft.Data.Sqlite.SqliteException) { break; } // Retry metadata only; do not resend decisions.
+                        }
+                        if (admission.CompletionDeferredControls.Count != 0) continue;
+                    }
                     if (admission.Completion is null && admission.ReportOwner is null)
                     {
                         registry.RequireCurrent(admission.Handle);

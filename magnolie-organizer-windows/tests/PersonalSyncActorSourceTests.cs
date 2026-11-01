@@ -739,8 +739,9 @@ internal static class PersonalSyncActorSourceTests
             await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
             // Native typed review/save-report/terminal controller with a native
             // writer-state fixture, not the GUI book writer or public activation.
-            foreach (var terminalChoice in new[] { "restore", "delete" })
+            foreach (var terminalScenario in new[] { "restore", "delete", "peer-ack-sql", "peer-ack-outbox" })
             {
+            var terminalChoice = terminalScenario.StartsWith("peer-ack-", StringComparison.Ordinal) ? "restore" : terminalScenario;
             var reviewHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
             await coordinator.StartPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
             var reviewRequest = commitRequest.DeepClone().AsObject(); reviewRequest["run_id"] = reviewHandle.ActorId;
@@ -815,13 +816,57 @@ internal static class PersonalSyncActorSourceTests
             var terminalScope = manifest;
             if (terminalChoice == "delete")
             {
+                var prematureAdmissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                var prematureAdmission = prematureAdmissions[reviewHandle.ActorId]!;
+                var deferPremature = typeof(TelefonCoordinator).GetMethod("DeferPersonalActorPeerAcknowledgment", BindingFlags.NonPublic | BindingFlags.Static)!;
+                TestAssert.That(!(bool)deferPremature.Invoke(null, [prematureAdmission, finalAck])!,
+                    "A database-before-guard fault could defer success against a known premature result scope.");
                 await connection.HandlePlainAsync(finalAck.DeepClone().AsObject());
                 TestAssert.That(!(await coordinator.PersonalActorStatusAsync(reviewHandle))["phone_persisted"]!.GetValue<bool>(), "Positive deletion ACK before fresh resulting membership counted as saved.");
                 terminalScope = PhoneContentScope.Advance(manifest, [], ["task-one"]);
                 foreach (var part in PhoneContentScope.Chunks(terminalScope)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
                 await SharedSyncTransportTests.DrainAsync(wire);
             }
-            await connection.HandlePlainAsync(finalAck);
+            if (terminalScenario.StartsWith("peer-ack-", StringComparison.Ordinal))
+            {
+                var beforePeerAckSequence = nativeSaved!.Sequence;
+                using var db = store.OpenDatabase(); db.Open(); using var fault = db.CreateCommand();
+                fault.CommandText = terminalScenario == "peer-ack-sql"
+                    ? "CREATE TRIGGER peer_ack_receive_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic peer ACK receive ledger fault'); END"
+                    : "CREATE TRIGGER peer_ack_receive_fault BEFORE DELETE ON outbox BEGIN SELECT RAISE(ABORT,'synthetic peer ACK outbox cleanup fault'); END";
+                fault.ExecuteNonQuery();
+                try { await connection.HandlePlainAsync(finalAck); }
+                catch (Microsoft.Data.Sqlite.SqliteException) { } // Baseline fault injection; not successful receipt.
+                if (terminalScenario == "peer-ack-sql")
+                {
+                    for (var duplicateIndex = 0; duplicateIndex < 256; duplicateIndex++)
+                    {
+                        var duplicate = finalAck.DeepClone().AsObject(); duplicate["message_id"] = Guid.NewGuid().ToString("D");
+                        await connection.HandlePlainAsync(duplicate);
+                    }
+                    var ackAdmissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                    var ackAdmission = ackAdmissions[reviewHandle.ActorId]!;
+                    var deferred = (System.Collections.IDictionary)ackAdmission.GetType().GetProperty("CompletionDeferredControls", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)!.GetValue(ackAdmission)!;
+                    var originalAckId = finalAck["message_id"]!.GetValue<string>();
+                    TestAssert.That(deferred.Count == 256 && JsonNode.DeepEquals((JsonObject)deferred[originalAckId]!, finalAck), "Peer ACK metadata SQL queue was not bounded/exact.");
+                    var conflicting = finalAck.DeepClone().AsObject(); conflicting["body"]!["status"] = "duplicate";
+                    await connection.HandlePlainAsync(conflicting);
+                    var foreignAck = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(reviewHandle.ActorId, Guid.NewGuid().ToString("D")));
+                    await connection.HandlePlainAsync(foreignAck);
+                    TestAssert.That(deferred.Count == 256 && JsonNode.DeepEquals((JsonObject)deferred[originalAckId]!, finalAck), "Conflicting/foreign ACK replaced bounded pending receipt evidence.");
+                }
+                await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle); // SQL fault still active: metadata only.
+                TestAssert.That(wire.Length == 0 && nativeSaved!.Sequence == beforePeerAckSequence,
+                    "Persistent peer ACK metadata failure caused old decision resend or repeated a document write.");
+                using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER peer_ack_receive_fault"; drop.ExecuteNonQuery();
+                var failedPeerAck = await coordinator.PersonalActorStatusAsync(reviewHandle);
+                TestAssert.That(!failedPeerAck["phone_persisted"]!.GetValue<bool>() && failedPeerAck["deletion_completion"]!["saved"]!.GetValue<int>() == (terminalScenario == "peer-ack-sql" ? 0 : 1),
+                    "Peer ACK SQL failure falsely completed a protected receipt.");
+                await coordinator.AdvancePersonalActorCompletionAsync(reviewHandle);
+                TestAssert.That(wire.Length == 0 && nativeSaved!.Sequence == beforePeerAckSequence,
+                    "Peer ACK SQL recovery resent decisions or repeated the original document save.");
+            }
+            else await connection.HandlePlainAsync(finalAck);
             var terminalStatus = await coordinator.PersonalActorStatusAsync(reviewHandle);
             TestAssert.That(terminalStatus["phase"]!.GetValue<string>() == "completed" && terminalStatus["phone_persisted"]!.GetValue<bool>() &&
                 terminalStatus["deletion_completion"]!["saved"]!.GetValue<int>() == 1, "Native terminal controller did not finish exact persisted ACK: " + terminalChoice);

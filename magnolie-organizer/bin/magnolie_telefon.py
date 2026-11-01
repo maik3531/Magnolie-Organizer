@@ -4776,8 +4776,7 @@ class PhoneService:
             admission["completion_native_acks"] = {wire["message_id"]:wire for wire in own_acks}
             admission["phone_data_persisted"] = True
             admission["phone_persisted"] = False
-            if defer_native_book:
-                admission["completion_deferred_controls"] = {}
+            admission["completion_deferred_controls"] = {}
             return self.personal_actor_status(registry, handle)
 
     def advance_personal_actor_completion(self, registry, handle):
@@ -4806,6 +4805,9 @@ class PhoneService:
                     deferred = admission.get("completion_deferred_controls", {})
                     if deferred.get(message_id) == wire:
                         deferred.pop(message_id)
+        with self.lock:
+            if admission.get('completion_deferred_controls'):
+                return self.personal_actor_status(registry, handle)  # Metadata retry only, never old decision replay.
         self._send_personal_actor_native_acknowledgments(registry, handle)
         with self.lock:
             frames = [wire for wire in self.store.pending(admission["peer"], self.connection_transports.get(admission["peer"], ""))
@@ -5145,31 +5147,48 @@ class PhoneService:
                         return True
                     try:
                         registry.put_completion_control(handle, payload)
-                    except PermissionError as error:
+                        completion.record_persisted(payload)
+                        if body["status"] in ("accepted", "duplicate"):
+                            self.store.acknowledge(peer["device_id"], body["message_id"])
+                        if completion.validate("finish", None) is True:
+                            registry.finish_completion(handle)
+                            admission["phone_persisted"] = True
+                    except (PermissionError, sqlite3.Error) as error:
                         from magnolie_personal_actor_completion import NativeBookProofPending
                         deferred = admission.get("completion_deferred_controls")
-                        if deferred is None or str(error) != "actor_completion_not_ready":
-                            raise
-                        try:
-                            completion.current_saved_book()
-                        except NativeBookProofPending:
-                            # put_completion_control already validated the exact
-                            # expected ACK before observing the missing GUI proof.
-                            identity = payload["message_id"]
-                            if identity in deferred and deferred[identity] != payload:
-                                raise ValueError("actor_frame_conflict")
-                            if identity not in deferred and (len(deferred) >= 256 or
-                                    sum(len(canonical(value)) for value in deferred.values()) + len(canonical(payload)) > 1024 * 1024):
-                                return
-                            deferred[identity] = copy.deepcopy(payload)
+                        if isinstance(error, sqlite3.Error):
+                            # This exact expected peer ACK may already have been
+                            # durably sent by Notes. Retain only untrusted bounded
+                            # metadata; Advance repeats all native owner/save/
+                            # scope/TTL gates before protected receipt adoption.
+                            proof = completion.validate('put', payload)
+                            if proof is False:
+                                raise PermissionError('actor_completion_source_changed')
+                            if proof is None:
+                                try:
+                                    completion.current_saved_book()
+                                except NativeBookProofPending:
+                                    pass  # Preserve only the existing operation-live GUI-proof deferral.
+                                else:
+                                    raise PermissionError('actor_completion_not_ready')
+                            deferred = admission.setdefault('completion_deferred_controls', {})
+                        else:
+                            if deferred is None or str(error) != "actor_completion_not_ready":
+                                raise
+                            try:
+                                completion.current_saved_book()
+                            except NativeBookProofPending:
+                                pass  # Exact ACK was checked before the pending GUI proof.
+                            else:
+                                raise
+                        identity = payload["message_id"]
+                        if identity in deferred and deferred[identity] != payload:
+                            raise ValueError("actor_frame_conflict")
+                        if identity not in deferred and (len(deferred) >= 256 or
+                                sum(len(canonical(value)) for value in deferred.values()) + len(canonical(payload)) > 1024 * 1024):
                             return
-                        raise
-                    completion.record_persisted(payload)
-                    if body["status"] in ("accepted", "duplicate"):
-                        self.store.acknowledge(peer["device_id"], body["message_id"])
-                    if completion.validate("finish", None) is True:
-                        registry.finish_completion(handle)
-                        admission["phone_persisted"] = True
+                        deferred[identity] = copy.deepcopy(payload)
+                        return
                     return True
                 waiting = admission.get('report_owner')
                 if waiting is not None:
@@ -5387,6 +5406,8 @@ class PhoneService:
                     message.get("message_id") not in admission["outbound"]):
                 return False
             registry, handle = admission["registry"], admission["handle"]
+            if any(wire['body']['message_id'] == message['message_id'] for wire in admission.get('completion_deferred_controls', {}).values()):
+                return False  # An exact peer ACK is awaiting metadata adoption, not another decision send.
             producer = message['message_id'] in admission.get('producer_ids', ())
             saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
             # Daemon has intentionally NO permanent writer callback. Generated

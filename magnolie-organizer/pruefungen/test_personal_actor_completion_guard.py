@@ -228,6 +228,136 @@ def test_receive_peer_ack_cannot_attest_to_or_abort_native_ack_send(tmp_path,mon
     assert not channel.sent and not events
 
 
+@pytest.mark.parametrize('fault', ['insert', 'proof_read', 'outbox'])
+def test_actual_peer_ack_receive_sql_failure_retries_only_bounded_metadata_not_the_original_decision(tmp_path, monkeypatch, fault):
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion, save_receipt=copy.deepcopy(completion.saved_book), phone_data_persisted=True,
+        completion_ids=set(), completion_native_acks={}, completion_deferred_controls={})
+    advance([])
+    sequence = book.save_state('native-completion-profile', True)['sequence']
+    if fault == 'insert':
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("CREATE TRIGGER peer_ack_receive_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic peer ACK receive ledger fault'); END")
+    else:
+        target, name = (completion, 'persisted_controls') if fault == 'proof_read' else (service.store, 'acknowledge')
+        original = getattr(target, name); failed = [False]
+        def fail_once(*args, **kwargs):
+            if not failed[0]:
+                failed[0] = True
+                raise sqlite3.OperationalError('Synthetic peer ACK post-insert metadata failure')
+            return original(*args, **kwargs)
+        monkeypatch.setattr(target, name, fail_once)
+    service._receive_personal_actor(peer, channel, ack)
+    assert completion.summary()['saved'] == (1 if fault == 'outbox' else 0)
+    assert registry.read_completion_controls(handle) == ([] if fault == 'insert' else [ack])
+    assert not admission.get('phone_persisted')
+    if fault == 'insert':
+        with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER peer_ack_receive_fault')
+    # The peer may already have durably completed its own ACK send. Requiring a
+    # replay of the original decision is neither a native send proof nor safe
+    # progress after the peer has closed its data lane.
+    assert admission['completion_deferred_controls'].get(ack['message_id']) == ack
+    state = service.advance_personal_actor_completion(registry, handle)
+    assert state['phase'] == 'completed' and state['phone_persisted']
+    assert state['deletion_completion'] == {'expected': 1, 'received': 1, 'saved': 1, 'rejected': 0}
+    assert not admission['completion_deferred_controls'] and book.save_state('native-completion-profile', True)['sequence'] == sequence
+    assert not channel.sent and not events
+
+
+def test_peer_ack_sql_deferral_keeps_exact_identity_and_bounded_untrusted_metadata(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion, save_receipt=copy.deepcopy(completion.saved_book), phone_data_persisted=True,
+        completion_ids=set(), completion_native_acks={})
+    advance([])
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("CREATE TRIGGER peer_ack_bounded_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic bounded metadata fault'); END")
+    for index in range(257):
+        candidate = copy.deepcopy(ack); candidate['message_id'] = str(uuid.uuid4())
+        service._receive_personal_actor(peer, channel, candidate)
+    deferred = admission['completion_deferred_controls']
+    assert len(deferred) == 256 and sum(len(phone.canonical(value)) for value in deferred.values()) <= 1024 * 1024
+    retained = copy.deepcopy(next(iter(deferred.values())))
+    changed = copy.deepcopy(retained); changed['body']['status'] = 'duplicate'
+    service._receive_personal_actor(peer, channel, changed)
+    assert deferred[retained['message_id']] == retained and len(deferred) == 256
+    foreign = copy.deepcopy(ack); foreign['body']['message_id'] = str(uuid.uuid4())
+    service._receive_personal_actor(peer, channel, foreign)
+    assert len(deferred) == 256 and completion.summary()['saved'] == 0 and registry.read_completion_controls(handle) == []
+    with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER peer_ack_bounded_fault')
+    assert not channel.sent and not events
+
+
+def test_deferred_peer_ack_sql_retry_still_requires_original_native_writer_and_source(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion, save_receipt=copy.deepcopy(completion.saved_book), phone_data_persisted=True,
+        completion_ids=set(), completion_native_acks={})
+    advance([])
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("CREATE TRIGGER peer_ack_source_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic metadata source fault'); END")
+    service._receive_personal_actor(peer, channel, ack)
+    with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER peer_ack_source_fault')
+    assert admission['completion_deferred_controls'][ack['message_id']] == ack
+    book.record_saved('native-completion-profile', True, 'b' * 64)
+    with pytest.raises(PermissionError): service.advance_personal_actor_completion(registry, handle)
+    assert completion.summary()['saved'] == 0 and not admission.get('phone_persisted')
+    assert registry.status(handle)['phase'].startswith('cancelled')
+    assert not channel.sent and not events
+
+
+def test_peer_ack_database_begin_failure_cannot_defer_a_known_premature_result_scope(tmp_path, monkeypatch):
+    from contextlib import contextmanager
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    admission.update(completion=completion, completion_deferred_controls={})
+    assert completion.validate('put', ack) is None  # Known before-scope, not missing GUI writer proof.
+    original_database = registry._database
+    @contextmanager
+    def short_busy_timeout():
+        with original_database() as db:
+            db.execute('PRAGMA busy_timeout=1')
+            yield db
+    monkeypatch.setattr(registry, '_database', short_busy_timeout)
+    # Actual SQLite BEGIN failure occurs before the registry's completion guard.
+    with sqlite3.connect(service.store.database_path) as blocker:
+        blocker.execute('BEGIN IMMEDIATE')
+        service._receive_personal_actor(peer, channel, ack)
+        blocker.rollback()
+    assert admission['completion_deferred_controls'] == {}
+    assert registry.read_completion_controls(handle) == [] and completion.summary()['saved'] == 0
+    assert not channel.sent and not events
+
+
+def test_peer_ack_pending_sql_retry_does_not_attempt_to_resend_the_original_decision(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events, book, completion, ack, advance = fixture(tmp_path, monkeypatch, admitted=True)
+    admission = service.personal_actor_admissions[handle.actor_id]
+    original = copy.deepcopy(next(iter(completion.queued_frames.values())))
+    admission.update(completion=completion, save_receipt=copy.deepcopy(completion.saved_book), phone_data_persisted=True,
+        completion_ids={original['message_id']}, completion_native_acks={})
+    advance([])
+    attempts = []
+    native_send = service._send_personal_actor_queued
+    admission['outbound'].add(original['message_id'])
+    monkeypatch.setattr(service.store, 'pending', lambda *args, **kwargs: [original])  # Native due-list fixture, not a wire-send claim.
+    monkeypatch.setattr(service, '_send_personal_actor_queued', lambda *args, **kwargs: attempts.append(args) or False)
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("CREATE TRIGGER peer_ack_still_blocked BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic persistent receipt fault'); END")
+    try:
+        service._receive_personal_actor(peer, channel, ack)
+        def no_original_outbox_reentry(*args, **kwargs): raise AssertionError('Pending peer ACK re-entered original decision outbox send')
+        monkeypatch.setattr(service.store, 'outbox_message', no_original_outbox_reentry)
+        assert native_send(channel, peer['device_id'], original) is False
+        state = service.advance_personal_actor_completion(registry, handle)
+        assert state['phase'] == 'completion' and not state['phone_persisted']
+        assert admission['completion_deferred_controls'][ack['message_id']] == ack
+        assert not attempts, 'Pending receipt metadata retried an already acknowledged original decision'
+    finally:
+        with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER peer_ack_still_blocked')
+    assert not channel.sent and not events
+
+
 @pytest.mark.parametrize('fault',('none','send','metadata','post_send_book','scope_wait','missing_data_receipt','expired'))
 def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_path,monkeypatch,fault):
     service,peer,channel,registry,handle,events,book,completion,ack,advance = fixture(tmp_path,monkeypatch,own_ack=True,admitted=True)
