@@ -64,17 +64,24 @@ internal static class PersonalActorMixedLateReviewTests
             { TestAssert.Throws<InvalidDataException>(() => Create(), "Mixed pre-report owner admitted unbound fixed evidence: " + scenario); return; }
             var waiting = Create(); var savedBefore = Saved();
             registry.BeginDecisionReview(handle, waiting.Validator);
-            registry.CheckDecisionControlSend(handle, outgoing); registry.CheckDecisionReportSend(handle, report);
+            registry.CheckDecisionControlSend(handle, outgoing);
+            TestAssert.Throws<InvalidOperationException>(() => registry.CheckDecisionReportSend(handle, report), "Report bypassed the original fixed decision send order.");
+            var fixedAck = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, outgoing["message_id"]!.GetValue<string>()));
+            registry.PutCompletionControl(handle, fixedAck);
+            TestAssert.Throws<InvalidOperationException>(() => registry.CheckDecisionReportSend(handle, report), "A peer ACK manufactured the native fixed-decision send marker.");
+            waiting.RecordSuccessfulFixedDecisionSend(outgoing); // Native send-marker fixture, not actual wire acceptance.
+            registry.CheckDecisionReportSend(handle, report);
             TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, report), "Mixed fixed-control capability sent general report data.");
             TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionReportSend(handle, outgoing), "Report capability admitted fixed decisions through a general data lane.");
             var changed = outgoing.DeepClone().AsObject(); changed["body"]!["body"]!["decisions"]![0]!["decision"] = "restore";
             TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, changed), "Mixed owner sent a different original choice.");
+            TestAssert.Throws<InvalidDataException>(() => waiting.RecordSuccessfulFixedDecisionSend(changed), "Native fixed-send marker accepted altered original bytes.");
             changed = outgoing.DeepClone().AsObject(); changed["message_id"] = Guid.NewGuid().ToString("D");
             TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, changed), "Mixed owner sent a different frame identity.");
+            TestAssert.Throws<InvalidDataException>(() => waiting.RecordSuccessfulFixedDecisionSend(changed), "Native fixed-send marker accepted another frame identity.");
             TestAssert.That(Saved() == savedBefore && waiting.Validator("handoff", null) is null, "Fixed metadata send created a save or claimed terminal success.");
             TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Mixed report owner reactivated original data rights.");
-            var fixedAck = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, outgoing["message_id"]!.GetValue<string>()));
-            registry.PutCompletionControl(handle, fixedAck);
+            TestAssert.That(!registry.PutCompletionControl(handle, fixedAck), "Fixed ACK replay was persisted twice.");
             TestAssert.Throws<InvalidOperationException>(() => waiting.BeginReview(() => actual, Saved), "Fixed decision ACK substituted for the ordinary report ACK.");
             registry.PutCompletionControl(handle, Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, report["message_id"]!.GetValue<string>())));
             registry.PutCompletionControl(handle, DecisionFrame(late, "restore"));

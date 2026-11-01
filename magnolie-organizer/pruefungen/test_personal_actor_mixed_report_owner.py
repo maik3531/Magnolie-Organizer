@@ -35,19 +35,26 @@ def test_mixed_pre_report_owner_has_only_exact_initial_control_send_not_general_
     before_saved = read()
     store.begin_decision_review(handle, waiting.validator)
     store.check_decision_control_send(handle, fixed_frame)
+    with pytest.raises(PermissionError, match='actor_completion_not_ready'): store.check_decision_report_send(handle, report)
+    fixed_ack = frame(actor.ACK_KIND, actor.ack(waiting.run_id, fixed_frame['message_id']))
+    store.put_completion_control(handle, fixed_ack)
+    with pytest.raises(PermissionError, match='actor_completion_not_ready'): store.check_decision_report_send(handle, report)
+    # Native successful-send marker fixture only. Actual controller/wire send
+    # order remains an independent mandatory acceptance boundary.
+    waiting.record_successful_fixed_decision_send(fixed_frame)
     store.check_decision_report_send(handle, report)
     with pytest.raises(ValueError): store.check_decision_control_send(handle, report)
     with pytest.raises(ValueError): store.check_decision_report_send(handle, fixed_frame)
     for changed in [dict(copy.deepcopy(fixed_frame), message_id=str(uuid.uuid4())), copy.deepcopy(fixed_frame)]:
         changed['body']['body']['decisions'][0]['decision'] = 'restore'
         with pytest.raises(ValueError): store.check_decision_control_send(handle, changed)
+        with pytest.raises(ValueError): waiting.record_successful_fixed_decision_send(changed)
     assert read() == before_saved
     with pytest.raises(PermissionError): store.require_current(handle)
     assert waiting.validate('handoff', None) is None
     # Report is not gated on decision success: Notes needs that report before it
     # can save/ack the initial decisions. Only exact metadata persistence is allowed.
-    fixed_ack = frame(actor.ACK_KIND, actor.ack(waiting.run_id, fixed_frame['message_id']))
-    store.put_completion_control(handle, fixed_ack)
+    assert not store.put_completion_control(handle, fixed_ack)
     with pytest.raises(PermissionError): waiting.begin_review(current_scope=lambda: state['scope'], current_saved_book=read)
     store.put_completion_control(handle, frame(actor.ACK_KIND, actor.ack(waiting.run_id, report['message_id'])))
     for late in state['controls']: store.put_completion_control(handle, late)

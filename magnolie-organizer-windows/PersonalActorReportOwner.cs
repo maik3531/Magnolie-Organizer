@@ -18,6 +18,7 @@ internal sealed class PersonalActorReportOwner
     private readonly HashSet<string> producerIds = new(StringComparer.Ordinal);
     private readonly JsonArray fixedTargets;
     private readonly Dictionary<string, JsonObject> fixedFrames;
+    private readonly HashSet<string> fixedSent = new(StringComparer.Ordinal);
     private PersonalActorPostDataReview? review;
     internal Func<string, JsonObject?, bool?> Validator { get; }
     internal JsonArray NativeTargets => targets.DeepClone().AsArray();
@@ -96,7 +97,12 @@ internal sealed class PersonalActorReportOwner
         if (operation is not ("begin" or "put" or "read" or "maintain" or "handoff" or "send_report" or "send_fixed_decision")) throw new InvalidDataException("actor_report_owner_metadata_only");
         var current = currentAuthority(); if (current is null) return null; if (current != authority) return false;
         if (operation == "send_report")
-        { if (!JsonNode.DeepEquals(report, wire)) throw new InvalidDataException("actor_ordinary_report_changed"); return true; }
+        {
+            if (!JsonNode.DeepEquals(report, wire)) throw new InvalidDataException("actor_ordinary_report_changed");
+            // Notes can close its data lane immediately after receiving this
+            // report. Enqueue, attempt or peer ACK is not the original send.
+            return fixedSent.SetEquals(fixedFrames.Keys) ? true : null;
+        }
         if (operation == "send_fixed_decision")
         {
             if (wire is null || !fixedFrames.TryGetValue(Text(wire, "message_id"), out var original) || !JsonNode.DeepEquals(original, wire))
@@ -111,6 +117,14 @@ internal sealed class PersonalActorReportOwner
         if (review is not null) return review.Validator(operation, wire);
         return operation == "handoff" ? null : true;
     }
+    // Native post-I/O marker only. Caller must repeat registry/connection gates;
+    // no MCP saved Boolean or peer receipt may manufacture this observation.
+    internal void RecordSuccessfulFixedDecisionSend(JsonObject wire)
+    {
+        if (Validate("send_fixed_decision", wire) != true) throw new InvalidOperationException("actor_fixed_decision_send_not_ready");
+        fixedSent.Add(Text(wire, "message_id"));
+    }
+
     internal PersonalActorPostDataReview BeginReview(Func<JsonObject?> currentScope, Func<NativeBookSaveState?> currentSavedBook)
     {
         if (Validate("read", null) != true) throw new InvalidOperationException("actor_report_owner_not_ready");

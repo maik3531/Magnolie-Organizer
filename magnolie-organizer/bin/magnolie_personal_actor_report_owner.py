@@ -59,6 +59,7 @@ class PostDataReportOwner:
             run_id, self.before, self.targets, native_fixed_targets, fixed_decision_frames)
         if set(self.fixed_frames) & (self.producer_ids | {self.report['message_id']}):
             raise ValueError('actor_fixed_frame_direction_collision')
+        self.fixed_sent = set()
         self.current_authority = current_authority
         self.persisted_controls = persisted_controls
         self.authority = current_authority()
@@ -98,7 +99,10 @@ class PostDataReportOwner:
         if operation == 'send_report':
             if wire != self.report:
                 raise ValueError('actor_ordinary_report_changed')
-            return True
+            # Notes may close its data owner as soon as this report arrives.
+            # All initial decisions must actually have been sent first. Peer
+            # success ACKs cannot be awaited here: Notes needs the report to save.
+            return True if self.fixed_sent == set(self.fixed_frames) else None
         if operation == 'send_fixed_decision':
             if not isinstance(wire, dict) or self.fixed_frames.get(wire.get('message_id')) != wire:
                 raise ValueError('actor_fixed_decision_frame_changed')
@@ -112,6 +116,16 @@ class PostDataReportOwner:
         if self.review is not None:
             return self.review.validator(operation, wire)
         return None if operation == 'handoff' else True
+
+    def record_successful_fixed_decision_send(self, wire):
+        """Native post-I/O marker; caller must repeat registry/connection gates.
+
+        Enqueue, MarkAttempt or an incoming peer ACK is not an actual send. This
+        is deliberately not an IPC action or a caller-supplied saved Boolean.
+        """
+        if self.validate('send_fixed_decision', wire) is not True:
+            raise PermissionError('actor_fixed_decision_send_not_ready')
+        self.fixed_sent.add(wire['message_id'])
 
     def begin_review(self, *, current_scope, current_saved_book):
         """Call under a fresh native GUI writer proof, outside registry SQL.
