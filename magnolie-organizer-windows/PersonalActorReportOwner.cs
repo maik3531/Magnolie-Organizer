@@ -18,6 +18,8 @@ internal sealed class PersonalActorReportOwner
     private readonly HashSet<string> producerIds = new(StringComparer.Ordinal);
     private PersonalActorPostDataReview? review;
     internal Func<string, JsonObject?, bool?> Validator { get; }
+    internal JsonArray NativeTargets => targets.DeepClone().AsArray();
+    internal NativeBookSaveState DataSavedBook => dataSavedBook;
 
     internal PersonalActorReportOwner(string runId, JsonArray nativeTargets, JsonObject beforeScope, JsonObject reportFrame,
         NativeBookSaveState dataSavedBook, Func<string?> currentAuthority, Func<JsonArray> persistedControls,

@@ -224,8 +224,18 @@ internal static class PersonalSyncActorSourceTests
                         var sourceStatus = await coordinator.PersonalActorStatusAsync(producerHandle);
                         TestAssert.That(sourceStatus["phone_data_persisted"]!.GetValue<bool>() && !sourceStatus["phone_persisted"]!.GetValue<bool>(),
                             "Native ordinary report receipt falsely completed pending producer decisions.");
+                        TestAssert.That(!(await coordinator.ReadPersonalActorLateReviewAsync(producerHandle))["review_ready"]!.GetValue<bool>(),
+                            "Incomplete late decisions were exposed as a complete native review.");
                         var sourceDecision = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", decision.DeepClone().AsObject()), producerHandle.ActorId);
                         await connection.HandlePlainAsync(sourceDecision);
+                        var lateFirst = await coordinator.ReadPersonalActorLateReviewAsync(producerHandle, limit: 1);
+                        var lateRest = await coordinator.ReadPersonalActorLateReviewAsync(producerHandle, offset: 1, expectedRevision: lateFirst["revision"]!.GetValue<string>());
+                        var lateRaw = Convert.FromBase64String(lateFirst["data_base64"]!.GetValue<string>()).Concat(Convert.FromBase64String(lateRest["data_base64"]!.GetValue<string>())).ToArray();
+                        var lateData = JsonNode.Parse(lateRaw)!.AsObject();
+                        TestAssert.That(lateFirst["review_ready"]!.GetValue<bool>() && !lateFirst["deletion_book_persisted"]!.GetValue<bool>() &&
+                            !lateFirst["phone_persisted"]!.GetValue<bool>() && lateData["targets"]![0]!["proposal_id"]!.GetValue<string>() == producedProposalId &&
+                            lateData["decisions"]![0]!["decision"]!.GetValue<string>() == "restore",
+                            "Complete closed-owner late review paging changed target identities or falsely confirmed a deletion save.");
                         await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", sourceIncoming), producerHandle.ActorId));
                         TestAssert.That(wire.Length == 0, "Native report owner acknowledged deletion success or reopened old batch staging.");
                         var retainedDecision = await coordinator.WithPersonalActorStoreAsync(registry => registry.ReadCompletionControls(producerHandle)

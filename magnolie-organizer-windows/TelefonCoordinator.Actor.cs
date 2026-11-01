@@ -652,6 +652,39 @@ internal sealed partial class TelefonCoordinator
             return ActorStatus(registry, handle);
         }, cancellation);
 
+    internal Task<JsonObject> ReadPersonalActorLateReviewAsync(PersonalActorHandle handle, int offset = 0, int limit = 65536,
+        string expectedRevision = "", CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (offset < 0 || limit is < 1 or > 65536 || expectedRevision.Length != 0 && !System.Text.RegularExpressions.Regex.IsMatch(expectedRevision, "\\A[a-f0-9]{64}\\z") ||
+            offset != 0 && expectedRevision.Length == 0) throw new InvalidDataException("invalid_actor_late_review_page");
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.ReportOwner is not { } waiting || admission.Completion is not null)
+            throw new InvalidOperationException("actor_late_review_owner_unavailable");
+        var controls = registry.ReadCompletionControls(handle); var targets = waiting.NativeTargets;
+        if (!admission.PhoneDataPersisted) return new JsonObject { ["review_ready"] = false, ["expected_proposals"] = targets.Count };
+        var incoming = controls.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind)
+            .Select(value => PersonalSyncActorContract.Unwrap(value["body"]!.AsObject()).Body).ToArray();
+        try { RequireActorProducerDecisionSet(admission.ProducerBodies, incoming); }
+        catch (InvalidOperationException error) when (error.Message == "actor_producer_decisions_incomplete")
+        { return new JsonObject { ["review_ready"] = false, ["expected_proposals"] = targets.Count }; }
+        JsonObject? CurrentScope() => admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject());
+        var review = waiting.BeginReview(CurrentScope, () => NativeSavedBook()); var view = review.Review();
+        var raw = TelefonCrypto.Canonical(new JsonObject { ["targets"] = targets, ["decisions"] = view["decisions"]!.DeepClone(),
+            ["content_scope"] = view["scope"]!.DeepClone(), ["review_revision"] = view["revision"]!.DeepClone(),
+            ["data_saved_book"] = new JsonObject { ["book_source"] = waiting.DataSavedBook.BookSource, ["sequence"] = waiting.DataSavedBook.Sequence, ["sha256"] = waiting.DataSavedBook.Sha256 } });
+        try
+        {
+            if (raw.Length > 4 * 1024 * 1024) throw new InvalidOperationException("actor_late_review_capacity");
+            var revision = Convert.ToHexString(SHA256.HashData(raw)).ToLowerInvariant();
+            if (expectedRevision.Length != 0 && expectedRevision != revision || offset > raw.Length) throw new InvalidOperationException("actor_late_review_revision_changed");
+            registry.ReadCompletionControls(handle);
+            var count = Math.Min(limit, raw.Length - offset); var next = offset + count;
+            return new JsonObject { ["review_ready"] = true, ["expected_proposals"] = targets.Count, ["revision"] = revision,
+                ["review_revision"] = view["revision"]!.DeepClone(), ["total_bytes"] = raw.Length, ["offset"] = offset,
+                ["next_offset"] = next < raw.Length ? JsonValue.Create(next) : null, ["data_base64"] = Convert.ToBase64String(raw, offset, count),
+                ["deletion_book_persisted"] = view["book_persisted"]!.DeepClone(), ["phone_persisted"] = false };
+        }
+        finally { CryptographicOperations.ZeroMemory(raw); }
+    }, cancellation);
+
     private void QueueActorCompletionReport(PersonalSyncActorStore registry, ActorAdmission admission)
     {
         if (admission.SaveReceipt is null || admission.ReplyCount == 0 || admission.CompletionReportId.Length != 0 ||
