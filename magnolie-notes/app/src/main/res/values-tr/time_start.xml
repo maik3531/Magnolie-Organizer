@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Başlangıçtan beri geçen süre</string>
+    <string name="zeit_startart">Başlatma yöntemi</string>
+    <string name="zeit_start_manuell">Notes içinde elle</string>
+    <string name="zeit_start_wlan">Wi-Fi otomasyonu</string>
+    <string name="zeit_start_computer">Bilgisayardan</string>
+    <string name="zeit_start_unbekannt">Kaydedilmedi</string>
+</resources>

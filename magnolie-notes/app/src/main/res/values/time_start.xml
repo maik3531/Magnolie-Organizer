@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Time since start</string>
+    <string name="zeit_startart">Start method</string>
+    <string name="zeit_start_manuell">Manually in Notes</string>
+    <string name="zeit_start_wlan">Wi-Fi automation</string>
+    <string name="zeit_start_computer">Computer control</string>
+    <string name="zeit_start_unbekannt">Not recorded</string>
+</resources>

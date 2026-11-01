@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">الوقت المنقضي منذ البدء</string>
+    <string name="zeit_startart">طريقة البدء</string>
+    <string name="zeit_start_manuell">يدويًا في Notes</string>
+    <string name="zeit_start_wlan">تشغيل تلقائي عبر Wi-Fi</string>
+    <string name="zeit_start_computer">من الكمبيوتر</string>
+    <string name="zeit_start_unbekannt">غير مسجل</string>
+</resources>

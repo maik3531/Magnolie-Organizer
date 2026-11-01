@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">開始からの経過時間</string>
+    <string name="zeit_startart">開始方法</string>
+    <string name="zeit_start_manuell">Notes で手動開始</string>
+    <string name="zeit_start_wlan">Wi-Fi による自動開始</string>
+    <string name="zeit_start_computer">パソコンから開始</string>
+    <string name="zeit_start_unbekannt">記録なし</string>
+</resources>

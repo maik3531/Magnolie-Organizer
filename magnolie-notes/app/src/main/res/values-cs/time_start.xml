@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Uplynulo od spuštění</string>
+    <string name="zeit_startart">Způsob spuštění</string>
+    <string name="zeit_start_manuell">Ručně v Notes</string>
+    <string name="zeit_start_wlan">Automatika Wi-Fi</string>
+    <string name="zeit_start_computer">Z počítače</string>
+    <string name="zeit_start_unbekannt">Nezaznamenáno</string>
+</resources>

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Bestand
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
+import io.gitlab.maik3531.magnolienotes.telefon.TimeSyncProtokoll
 import kotlinx.serialization.json.*
 
 internal fun gemeinsameSyncAnfangswerte(telefon: TelefonUiZustand, bestand: Bestand): Map<String, JsonElement> =
@@ -23,7 +24,7 @@ internal fun gemeinsameSyncAnfangswerte(telefon: TelefonUiZustand, bestand: Best
         "auto_mode" to JsonPrimitive(if (telefon.personalAutoWifi) "wifi" else "manual"),
         "skip_deletions" to JsonPrimitive(!telefon.personalDeletionsEnabled),
         "custom_enabled" to JsonPrimitive(bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true),
-        "time_enabled" to JsonPrimitive(telefon.peer?.personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true),
+        "time_enabled" to JsonPrimitive(TimeSyncProtokoll.initialEnabled(telefon.peer?.personal_time_policy)),
         "time_mode" to JsonPrimitive("two_way"))
 
 @Composable

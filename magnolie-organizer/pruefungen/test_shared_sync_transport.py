@@ -75,13 +75,32 @@ def test_same_current_choice_is_exchanged_without_changing_existing_grants(tmp_p
     assert channel.sent[-1]["status"] == "accepted"
     assert service.shared_settings_ready(peer["device_id"])
     assert shared.effective(service.store.shared_settings(peer["device_id"], peer["static_public"]))["content_mode"] == "two_way"
-    assert peer == before, "Preference exchange must not silently rewrite legacy grants/policies"
+    assert peer['time_sync']['local']['enabled'] is True
+    phone.time_sync_contract.validate_settings(peer['time_sync']['local'])
+    assert {key: value for key, value in peer.items() if key != 'time_sync'} == before, \
+        "The default time initialization must not rewrite existing grants or other policies"
     sent = len([item for item in channel.sent if item.get("kind") == shared.KIND])
     service._payload(peer, channel, payload)
     assert channel.sent[-1]["status"] == "accepted"
     assert len([item for item in channel.sent if item.get("kind") == shared.KIND]) == sent
     replacement = Channel(); service.connections[peer["device_id"]] = replacement
     assert not service.shared_settings_ready(peer["device_id"]), "Saved state is not fresh connection evidence"
+
+
+def test_saved_time_opt_out_survives_exchange_and_duplicate_delivery(tmp_path, monkeypatch):
+    service, peer, channel, _ = fixture(tmp_path, monkeypatch)
+    actor = service.store.identity['device_id']
+    body = service.store.change_shared_setting(peer['device_id'], peer['static_public'], 'time_enabled', False)
+    policy = phone.time_sync_contract.new_settings(False)
+    service.store.set_time_settings(peer['device_id'], policy)
+    before = copy.deepcopy(peer)
+    remote = shared.merge(shared.create(peer['device_id']), body, peer['device_id'], actor)
+    payload = message(remote)
+    for _ in range(2):
+        service._payload(peer, channel, payload)
+        assert channel.sent[-1]['status'] == 'accepted'
+        assert shared.effective(service.store.shared_settings(peer['device_id'], peer['static_public']))['time_enabled'] is False
+        assert peer == before, 'A saved opt-out must not be reseeded or revise its native epoch'
 
 
 @pytest.mark.parametrize("gate", ["capabilities", "grants", "own", "channel", "key", "unavailable", "unnegotiated"])

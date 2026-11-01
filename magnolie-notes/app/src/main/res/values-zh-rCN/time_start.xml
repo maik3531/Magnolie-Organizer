@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">启动后经过时间</string>
+    <string name="zeit_startart">启动方式</string>
+    <string name="zeit_start_manuell">在 Notes 中手动启动</string>
+    <string name="zeit_start_wlan">Wi-Fi 自动启动</string>
+    <string name="zeit_start_computer">通过电脑启动</string>
+    <string name="zeit_start_unbekannt">未记录</string>
+</resources>

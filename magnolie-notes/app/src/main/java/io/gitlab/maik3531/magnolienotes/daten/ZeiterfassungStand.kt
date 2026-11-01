@@ -74,16 +74,21 @@ data class ZeiterfassungStand(
     }
 
     /** A caller-supplied UUID is also the durable operation identity for retry. */
-    fun start(entry: Zeiteintrag): ZeiterfassungStand {
+    fun start(entry: Zeiteintrag, startKind: String = "manual"): ZeiterfassungStand {
         validate(); entry.validate()
+        require(startKind in ZeitPausenlauf.START_KINDS)
         if (entry.id in removedIds || entries.any { it.id == entry.id }) return this
         check(enabled)
         check(entries.none { !it.deleted && it.endMinute == null })
         require(entry.endMinute == null && entry.pauseMinute == null && entry.pauseMinutes == 0L)
         require(!entry.deleted && entry.clock.isEmpty())
         return store(entry).copy(pauseRuns = pauseRuns + (entry.id to ZeitPausenlauf(
-            fixed = fixedPauses.toList(), endAlarm = endAlarm))).validate()
+            fixed = fixedPauses.toList(), endAlarm = endAlarm, startKind = startKind))).validate()
     }
+
+    /** Rendering an old or imported record must not invent a manual start. */
+    fun startKind(entry: Zeiteintrag): String = pauseRuns[entry.id]?.startKind?.takeIf { it.isNotEmpty() }
+        ?: if (controlReceipts.any { it.entryId == entry.id && it.action == "start" }) "computer" else ""
 
     fun projected(entry: Zeiteintrag, now: Long = Zeiteintrag.currentMinute()): Zeiteintrag =
         pauseRuns[entry.id]?.project(entry, now) ?: entry.pausePlan?.project(entry, now) ?: entry
@@ -157,7 +162,7 @@ data class ZeiterfassungStand(
     fun startFromWifi(observedSsid: String, observedMs: Long, nowMs: Long, activity: String): ZeiterfassungStand {
         validate()
         if (!wifi.canStart(observedSsid, observedMs, nowMs, entries.any { !it.deleted && it.endMinute == null }, enabled)) return this
-        return start(Zeiteintrag(startMinute = nowMs / 60000, modifiedMs = nowMs, type = activity))
+        return start(Zeiteintrag(startMinute = nowMs / 60000, modifiedMs = nowMs, type = activity), startKind = "wifi")
     }
 
     /** Compare the complete edited snapshot to avoid overwriting a newer edit. */
@@ -238,7 +243,7 @@ data class ZeiterfassungStand(
             keepRun -> pauseRuns
             priorRun != null && !entry.deleted && entry.endMinute == null -> pauseRuns + (entry.id to ZeitPausenlauf(
                 baseMinutes = entry.pauseMinutes, endAlarm = priorRun.endAlarm,
-                alarm = priorRun.alarm?.takeIf { it.startedMs / 60000 == entry.pauseMinute }))
+                alarm = priorRun.alarm?.takeIf { it.startedMs / 60000 == entry.pauseMinute }, startKind = priorRun.startKind))
             else -> pauseRuns - entry.id
         }
         return copy(actor = localActor, counter = next,

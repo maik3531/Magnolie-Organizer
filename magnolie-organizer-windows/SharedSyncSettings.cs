@@ -18,7 +18,7 @@ internal static class SharedSyncSettings
     private const long MaximumCounter = 9007199254740991;
     private static readonly JsonObject Defaults = new()
     { ["content_mode"] = "phone_scope", ["auto_mode"] = "manual", ["skip_deletions"] = true,
-      ["custom_enabled"] = false, ["time_enabled"] = false, ["time_mode"] = "phone_import" };
+      ["custom_enabled"] = false, ["time_enabled"] = true, ["time_mode"] = "phone_import" };
 
     internal static bool Supported(JsonObject local, JsonObject remote)
     {

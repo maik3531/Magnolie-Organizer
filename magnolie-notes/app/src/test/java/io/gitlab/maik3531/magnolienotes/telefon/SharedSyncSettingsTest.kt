@@ -5,6 +5,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SharedSyncSettingsTest {
+    @Test fun timeSyncDefaultsOnButSavedOptOutsRemainOff() {
+        assertTrue(SharedSyncSettings.effective(SharedSyncSettings.create(a)).getValue("time_enabled").jsonPrimitive.boolean)
+        val disabled = SharedSyncSettings.create(a, mapOf("time_enabled" to JsonPrimitive(false)))
+        val (one, two) = converge(disabled, SharedSyncSettings.create(b))
+        assertFalse(SharedSyncSettings.effective(one).getValue("time_enabled").jsonPrimitive.boolean)
+        assertEquals(one, SharedSyncSettings.merge(one, two, a, b))
+        assertTrue(TimeSyncProtokoll.initialEnabled(null))
+        assertFalse(TimeSyncProtokoll.initialEnabled(TimeSyncProtokoll.newSettings(false)))
+        assertTrue(TimeSyncProtokoll.initialEnabled(TimeSyncProtokoll.newSettings(true)))
+    }
+
     @Test fun negotiatedFeatureStillRequiresCurrentOwnDeviceAndAllSessionControls() {
         val local = mapOf("personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5, 9)),
             "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6, 7, 9)))

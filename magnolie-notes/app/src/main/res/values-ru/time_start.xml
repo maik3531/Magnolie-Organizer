@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Время с начала</string>
+    <string name="zeit_startart">Способ запуска</string>
+    <string name="zeit_start_manuell">Вручную в Notes</string>
+    <string name="zeit_start_wlan">Автоматически по Wi-Fi</string>
+    <string name="zeit_start_computer">С компьютера</string>
+    <string name="zeit_start_unbekannt">Не записано</string>
+</resources>

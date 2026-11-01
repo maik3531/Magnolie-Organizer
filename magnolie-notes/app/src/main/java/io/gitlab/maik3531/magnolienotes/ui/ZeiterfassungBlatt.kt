@@ -91,11 +91,20 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 beiBearbeiten(entry, false)
             } else Modifier) {
             val zone = TimeZone.getTimeZone(ZoneId.of(entry.zone))
-            fun time(minute: Long) = DateFormat.getTimeFormat(context).apply { timeZone = zone }.format(Date(minute * 60000))
+            fun time(minute: Long) = entry.displayTime(minute, locale, DateFormat.is24HourFormat(context))
             fun date(minute: Long) = DateFormat.getDateFormat(context).apply { timeZone = zone }.format(Date(minute * 60000))
             Wertzeile(stringResource(R.string.zeit_beginn), date(entry.startMinute) + " · " + time(entry.startMinute))
             Wertzeile(stringResource(R.string.zeit_ende), entry.endMinute?.let { date(it) + " · " + time(it) }
                 ?: stringResource(if (stand.isPaused(entry, now)) R.string.zeit_pause_aktiv else R.string.zeit_laufend))
+            if (entry.endMinute == null) {
+                Wertzeile(stringResource(R.string.zeit_laufzeit), Zeiteintrag.duration(entry.grossMinutes(now), locale))
+                Wertzeile(stringResource(R.string.zeit_startart), stringResource(when (stand.startKind(entry)) {
+                    "manual" -> R.string.zeit_start_manuell
+                    "wifi" -> R.string.zeit_start_wlan
+                    "computer" -> R.string.zeit_start_computer
+                    else -> R.string.zeit_start_unbekannt
+                }))
+            }
             Wertzeile(stringResource(R.string.zeit_gesamt), Zeiteintrag.duration(displayed.totalMinutes(now), locale))
             Wertzeile(stringResource(R.string.zeit_pause), java.text.NumberFormat.getIntegerInstance(locale).format(displayed.pausedMinutes(now)))
             if (entry.note.isNotBlank()) Text(entry.note, modifier = Modifier.padding(vertical = 6.dp))
@@ -149,6 +158,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 }
             }
         } else LazyColumn(Modifier.weight(1f)) {
+        if (current != null) item(key = current.id) { karte(current, false) }
         item { Abschnitt(stringResource(R.string.zeit_titel)) {
             BestaetigungsSchieber(stringResource(if (current == null) R.string.zeit_starten else R.string.zeit_beenden), confirm,
                 "primary:${current?.id ?: startId}:${current?.clock}", !speichert && (current != null || stand.enabled)) {
@@ -165,7 +175,6 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 }
             }
         } }
-        if (current != null) item(key = current.id) { karte(current, false) }
         val pauseAlarm = current?.let { stand.pauseRuns[it.id]?.alarm }
         if (current != null && pauseAlarm != null) item {
             Abschnitt(stringResource(R.string.zeit_pause)) {

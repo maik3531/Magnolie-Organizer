@@ -17,6 +17,9 @@ object TimeSyncProtokoll {
     private val recordFields = setOf("id", "startMinute", "endMinute", "pauseMinute", "pauseMinutes",
         "zone", "type", "note", "modifiedMs", "deleted", "clock")
 
+    /** Missing preference uses the new default; existing opt-outs stay off. */
+    fun initialEnabled(policy: JsonObject?): Boolean = policy == null || policy["enabled"] == JsonPrimitive(true)
+
     fun newSettings(enabled: Boolean = false, revision: Long = 1): JsonObject = buildJsonObject {
         put("format", VERSION); put("scope", "time_tracking"); put("enabled", enabled)
         put("revision", revision); put("epoch", java.util.UUID.randomUUID().toString())

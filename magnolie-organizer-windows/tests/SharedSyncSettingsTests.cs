@@ -15,6 +15,10 @@ internal static class SharedSyncSettingsTests
     internal static Task RunAsync()
     {
         var (one, two) = Converge(SharedSyncSettings.Create(A), SharedSyncSettings.Create(B));
+        TestAssert.That(SharedSyncSettings.Effective(one)["time_enabled"]!.GetValue<bool>(), "Time tracking was not included by default.");
+        var disabled = Converge(SharedSyncSettings.Create(A, new JsonObject { ["time_enabled"] = false }), SharedSyncSettings.Create(B));
+        TestAssert.That(!SharedSyncSettings.Effective(disabled.One)["time_enabled"]!.GetValue<bool>() &&
+            JsonNode.DeepEquals(disabled.One, SharedSyncSettings.Merge(disabled.One, disabled.Two, A, B)), "The new default overwrote an existing time-sync opt-out.");
         TestAssert.That(Mode(one) == "phone_scope", "The default is not the Notes content scope.");
         one = SharedSyncSettings.Change(one, A, B, "content_mode", JsonValue.Create("two_way")!);
         (one, two) = Converge(one, two);

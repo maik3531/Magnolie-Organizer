@@ -64,7 +64,7 @@ internal object ZeitSteuerung {
             check(active.isEmpty()) { "timer_already_running" }
             check(state.entries.none { it.id == command.operationId } && command.operationId !in state.removedIds) { "timer_identity_reused" }
             state.start(Zeiteintrag(id = command.operationId, startMinute = nowMs / 60000, zone = nativeZone,
-                type = command.activity, note = command.note, modifiedMs = nowMs))
+                type = command.activity, note = command.note, modifiedMs = nowMs), startKind = "computer")
         } else {
             val entry = active.singleOrNull() ?: error("timer_not_running")
             check(entry.id == command.entryId) { "timer_running_identity_changed" }

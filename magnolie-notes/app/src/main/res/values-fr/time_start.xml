@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Temps écoulé depuis le début</string>
+    <string name="zeit_startart">Mode de démarrage</string>
+    <string name="zeit_start_manuell">Manuellement dans Notes</string>
+    <string name="zeit_start_wlan">Automatisation Wi-Fi</string>
+    <string name="zeit_start_computer">Depuis l’ordinateur</string>
+    <string name="zeit_start_unbekannt">Non enregistré</string>
+</resources>

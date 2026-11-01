@@ -17,7 +17,7 @@ def validate_start(body):
 MAX_COUNTER = 9007199254740991
 ACTOR = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 DEFAULTS = {"content_mode": "phone_scope", "auto_mode": "manual", "skip_deletions": True,
-            "custom_enabled": False, "time_enabled": False, "time_mode": "phone_import"}
+            "custom_enabled": False, "time_enabled": True, "time_mode": "phone_import"}
 ENUMS = {"content_mode": {"phone_import", "phone_scope", "two_way"}, "time_mode": {"phone_import", "two_way"},
          "auto_mode": {"manual", "wifi", "connection"}}
 

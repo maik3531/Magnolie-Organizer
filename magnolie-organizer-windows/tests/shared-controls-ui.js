@@ -52,9 +52,20 @@ for (const web of [path.join(__dirname, '../app/web'), path.join(__dirname, '../
     assert.equal(start.disabled, false, 'An explicit sync click must be able to activate the local side');
     start.click();
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.content_mode, 'phone_scope');
+    assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, true,
+      'A missing time policy must include time synchronization by default');
+    for (const enabled of [false, true]) {
+      w.App.telefonStand({ peers: [{ ...structuredClone(peer), time_sync: { local: { enabled } },
+        shared_sync: { supported: true, initialized: false, ready: false, values: null } }] });
+      start.click();
+      assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, enabled,
+        'An existing native time policy must retain its explicit choice');
+    }
     w.App.telefonStand({ peers: [{ ...structuredClone(peer), shared_sync: { ...changed, values: { ...changed.values, auto_mode: 'wifi' } } }] });
     start.click();
     assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.auto_mode, 'wifi', 'Start must use the current selection rather than the dialog-opening snapshot');
+    assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.time_enabled, false,
+      'Persisted shared opt-outs must override the new default');
     w.App.telefonPairingCode({ attempt_id: 'attempt', code: '123 456', confirmation_required: false });
     let buttons = [...w.document.querySelectorAll('#telefon-pairing-dialog button')].map(button => button.textContent);
     assert.ok(!buttons.includes('Codes match'), 'The initiating desktop displays the code without a second approval');

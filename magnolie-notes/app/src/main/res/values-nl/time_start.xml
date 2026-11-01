@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Verstreken sinds start</string>
+    <string name="zeit_startart">Startmethode</string>
+    <string name="zeit_start_manuell">Handmatig in Notes</string>
+    <string name="zeit_start_wlan">Wifi-automatisering</string>
+    <string name="zeit_start_computer">Via de computer</string>
+    <string name="zeit_start_unbekannt">Niet vastgelegd</string>
+</resources>

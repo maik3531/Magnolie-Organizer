@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Tempo desde o início</string>
+    <string name="zeit_startart">Método de início</string>
+    <string name="zeit_start_manuell">Manualmente no Notes</string>
+    <string name="zeit_start_wlan">Automatização por Wi-Fi</string>
+    <string name="zeit_start_computer">Pelo computador</string>
+    <string name="zeit_start_unbekannt">Não registado</string>
+</resources>

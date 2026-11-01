@@ -12,6 +12,16 @@ C = "33333333-3333-4333-8333-333333333333"
 
 
 class SharedFunctionSettingsTest(unittest.TestCase):
+    def test_time_sync_defaults_on_without_overwriting_an_existing_explicit_opt_out(self):
+        self.assertTrue(shared.effective(shared.create(A))["time_enabled"])
+        existing = shared.create(A, {"time_enabled": False})
+        current = shared.create(B)
+        left, right = self.converge(existing, current)
+        self.assertFalse(shared.effective(left)["time_enabled"])
+        self.assertFalse(shared.effective(right)["time_enabled"])
+        reopened = copy.deepcopy(left)
+        self.assertEqual(reopened, shared.merge(reopened, right, A, B))
+
     def pair(self):
         a, b = shared.create(A), shared.create(B)
         return shared.merge(a, b, A, B), shared.merge(b, a, B, A)

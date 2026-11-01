@@ -1,0 +1,23 @@
+{
+  "keys": ["zeit_laufzeit", "zeit_startart", "zeit_start_manuell", "zeit_start_wlan", "zeit_start_computer", "zeit_start_unbekannt"],
+  "en": ["Time since start", "Start method", "Manually in Notes", "Wi-Fi automation", "Computer control", "Not recorded"],
+  "ar": ["الوقت المنقضي منذ البدء", "طريقة البدء", "يدويًا في Notes", "تشغيل تلقائي عبر Wi-Fi", "من الكمبيوتر", "غير مسجل"],
+  "be": ["Прайшло ад пачатку", "Спосаб запуску", "Уручную ў Notes", "Аўтаматычна праз Wi-Fi", "З камп’ютара", "Не запісана"],
+  "cs": ["Uplynulo od spuštění", "Způsob spuštění", "Ručně v Notes", "Automatika Wi-Fi", "Z počítače", "Nezaznamenáno"],
+  "da": ["Tid siden start", "Startmetode", "Manuelt i Notes", "Wi-Fi-automatik", "Via computeren", "Ikke registreret"],
+  "de": ["Seit Start vergangen", "Startart", "Manuell in Notes", "WLAN-Automatik", "Über den Computer", "Nicht hinterlegt"],
+  "es": ["Tiempo desde el inicio", "Método de inicio", "Manualmente en Notes", "Automatización por wifi", "Desde el ordenador", "No registrado"],
+  "fr": ["Temps écoulé depuis le début", "Mode de démarrage", "Manuellement dans Notes", "Automatisation Wi-Fi", "Depuis l’ordinateur", "Non enregistré"],
+  "hi": ["शुरू होने से बीता समय", "शुरू करने का तरीका", "Notes में मैन्युअल रूप से", "वाई-फ़ाई से स्वचालित", "कंप्यूटर से", "दर्ज नहीं है"],
+  "hsb": ["Čas wot starta", "Wašnje startowanja", "Manuelnje w Notes", "WLAN-awtomatika", "Přez ličak", "Njezaprotokolowane"],
+  "it": ["Tempo dall’avvio", "Metodo di avvio", "Manualmente in Notes", "Automazione Wi-Fi", "Dal computer", "Non registrato"],
+  "ja": ["開始からの経過時間", "開始方法", "Notes で手動開始", "Wi-Fi による自動開始", "パソコンから開始", "記録なし"],
+  "nb": ["Tid siden start", "Startmetode", "Manuelt i Notes", "Wi-Fi-automatikk", "Fra datamaskinen", "Ikke registrert"],
+  "nl": ["Verstreken sinds start", "Startmethode", "Handmatig in Notes", "Wifi-automatisering", "Via de computer", "Niet vastgelegd"],
+  "pl": ["Czas od uruchomienia", "Sposób uruchomienia", "Ręcznie w Notes", "Automatycznie przez Wi-Fi", "Z komputera", "Nie zapisano"],
+  "pt": ["Tempo desde o início", "Método de início", "Manualmente no Notes", "Automatização por Wi-Fi", "Pelo computador", "Não registado"],
+  "ru": ["Время с начала", "Способ запуска", "Вручную в Notes", "Автоматически по Wi-Fi", "С компьютера", "Не записано"],
+  "tr": ["Başlangıçtan beri geçen süre", "Başlatma yöntemi", "Notes içinde elle", "Wi-Fi otomasyonu", "Bilgisayardan", "Kaydedilmedi"],
+  "uk": ["Час від початку", "Спосіб запуску", "Вручну в Notes", "Автоматично через Wi-Fi", "З комп’ютера", "Не записано"],
+  "zh_CN": ["启动后经过时间", "启动方式", "在 Notes 中手动启动", "Wi-Fi 自动启动", "通过电脑启动", "未记录"]
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Tid siden start</string>
+    <string name="zeit_startart">Startmetode</string>
+    <string name="zeit_start_manuell">Manuelt i Notes</string>
+    <string name="zeit_start_wlan">Wi-Fi-automatikk</string>
+    <string name="zeit_start_computer">Fra datamaskinen</string>
+    <string name="zeit_start_unbekannt">Ikke registrert</string>
+</resources>

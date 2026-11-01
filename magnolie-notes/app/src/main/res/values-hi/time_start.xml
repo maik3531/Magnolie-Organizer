@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">शुरू होने से बीता समय</string>
+    <string name="zeit_startart">शुरू करने का तरीका</string>
+    <string name="zeit_start_manuell">Notes में मैन्युअल रूप से</string>
+    <string name="zeit_start_wlan">वाई-फ़ाई से स्वचालित</string>
+    <string name="zeit_start_computer">कंप्यूटर से</string>
+    <string name="zeit_start_unbekannt">दर्ज नहीं है</string>
+</resources>

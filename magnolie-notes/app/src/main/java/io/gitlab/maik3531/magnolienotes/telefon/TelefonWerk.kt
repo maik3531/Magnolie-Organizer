@@ -768,7 +768,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         "auto_mode" to JsonPrimitive(if (storage.personalAutoWifi()) "wifi" else "manual"),
         "skip_deletions" to JsonPrimitive(storage.personalDeletionsConfigured() && !storage.personalDeletionsEnabled()),
         "custom_enabled" to JsonPrimitive(Ablage.hole(context).bestand.value.personalCustom.local?.get("enabled") == JsonPrimitive(true)),
-        "time_enabled" to JsonPrimitive(peer.personal_time_policy?.get("enabled") == JsonPrimitive(true)),
+        "time_enabled" to JsonPrimitive(TimeSyncProtokoll.initialEnabled(peer.personal_time_policy)),
         "time_mode" to JsonPrimitive("two_way"))
 
     private fun applyCommonPreferences() {

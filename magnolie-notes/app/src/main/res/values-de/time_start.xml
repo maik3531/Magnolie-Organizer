@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Seit Start vergangen</string>
+    <string name="zeit_startart">Startart</string>
+    <string name="zeit_start_manuell">Manuell in Notes</string>
+    <string name="zeit_start_wlan">WLAN-Automatik</string>
+    <string name="zeit_start_computer">Über den Computer</string>
+    <string name="zeit_start_unbekannt">Nicht hinterlegt</string>
+</resources>

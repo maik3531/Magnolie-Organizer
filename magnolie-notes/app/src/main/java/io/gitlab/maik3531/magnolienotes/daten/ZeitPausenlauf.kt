@@ -15,10 +15,13 @@ data class ZeitPausenlauf(
     val pendingNotices: Set<Long> = emptySet(),
     val fixedEnds: Map<Long, Long> = emptyMap(),
     val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker(),
-    val baseMinutes: Long = 0
+    val baseMinutes: Long = 0,
+    /** Local provenance of this running interval; never part of TimeSync records. */
+    val startKind: String = ""
 ) {
     fun validate(entry: Zeiteintrag): ZeitPausenlauf {
         require(entry.endMinute == null && !entry.deleted)
+        require(startKind.isEmpty() || startKind in START_KINDS)
         endAlarm.validate()
         require(baseMinutes in 0..(Zeiteintrag.MAX_MINUTE - entry.startMinute))
         require(fixed.size <= 16)
@@ -79,5 +82,9 @@ data class ZeitPausenlauf(
         val fixedEnd = calculate(entry, now).activeFixed.maxOfOrNull { it.second } ?: now
         // Future breaks may move this estimate. Delivery always rechecks actual worked time.
         return fixedEnd + remaining
+    }
+
+    companion object {
+        val START_KINDS = setOf("manual", "wifi", "computer")
     }
 }

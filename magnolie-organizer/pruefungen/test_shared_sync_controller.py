@@ -140,7 +140,9 @@ def test_late_gui_readiness_resumes_initialized_shared_exchange(tmp_path, monkey
             proxy.set_ready(True)
             assert len([item for item in channel.sent if item.get('kind') == shared.KIND]) == 1
             assert service.store.shared_settings(peer['device_id'], peer['static_public']) == body
-            assert peer == before
+            assert peer['time_sync']['local']['enabled'] is True
+            phone.time_sync_contract.validate_settings(peer['time_sync']['local'])
+            assert {key: value for key, value in peer.items() if key != 'time_sync'} == before
         finally:
             proxy.stop(); server.close()
 

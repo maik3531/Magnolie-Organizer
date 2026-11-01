@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_laufzeit">Čas wot starta</string>
+    <string name="zeit_startart">Wašnje startowanja</string>
+    <string name="zeit_start_manuell">Manuelnje w Notes</string>
+    <string name="zeit_start_wlan">WLAN-awtomatika</string>
+    <string name="zeit_start_computer">Přez ličak</string>
+    <string name="zeit_start_unbekannt">Njezaprotokolowane</string>
+</resources>
