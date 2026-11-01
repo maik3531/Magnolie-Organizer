@@ -4575,6 +4575,56 @@ class PhoneService:
                 'proposal_ids': [proposal['proposal_id'] for body in bodies for proposal in body['proposals']],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
 
+    def observe_personal_actor_incoming_targets(self, registry, handle, targets):
+        """Operation-local native observation, NOT incoming/action/data authority.
+
+        Native host callers must hold their book/writer guard, as for producer
+        preparation. No IPC/MCP command exposes this method. Never retain an
+        observer with captured book closures in a run admission: later operations
+        must obtain a fresh native projection. No frames or targets are persisted.
+        """
+        from magnolie_personal_actor_target_evidence import NativeIncomingLiveTargetObservation
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        if not isinstance(targets, list) or not 1 <= len(targets) <= 256:
+            raise ValueError('actor_target_capacity')
+        targets = copy.deepcopy(targets)
+        with self.lock:
+            admission = self._require_personal_actor_admission(registry, handle)
+            fingerprint = registry.status(handle)['fingerprint']
+
+            def current():
+                registry.require_current(handle)
+                if self._require_personal_actor_admission(registry, handle) is not admission:
+                    raise PermissionError('actor_source_changed')
+                peer = self.store.sole_peer(admission['peer'])
+                settings = self.store.shared_settings(admission['peer'], admission['key'])
+                if (peer is None or settings is None or shared_sync_contract.effective(settings)['skip_deletions'] is not False or
+                        peer.get('local_grants', {}).get('grants', {}).get('personal_deletions_sync') is not True or
+                        peer.get('grants', {}).get('grants', {}).get('personal_deletions_sync') is not True):
+                    raise PermissionError('actor_deletions_not_granted')
+                return registry.current_source(admission['peer'], fingerprint)
+
+            current()
+            if not all(callable(value) for value in (self.native_actor_producer_book,
+                    self.native_actor_saved_book, self.native_actor_book_source)):
+                raise PermissionError('actor_native_saved_book_unavailable')
+            # One native capture per guarded operation, not one whole-book
+            # serialization for every freshness check or target. Never cached.
+            observed = self.native_actor_producer_book()
+
+            def snapshot():
+                if (not isinstance(observed, NativeProducerBookSnapshot) or
+                        self.native_actor_saved_book() != observed.saved_book or
+                        self.native_actor_book_source() != observed.book_source):
+                    raise PermissionError('actor_native_saved_book_changed')
+                return observed
+
+            observation = NativeIncomingLiveTargetObservation(admission['peer'], handle.actor_id,
+                current_owner=lambda: current() is not None, current_source=current,
+                current_snapshot=snapshot,
+                current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
+            return observation.observe_many(handle.actor_id, targets)
+
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:

@@ -1,6 +1,7 @@
 """Private off-scope native observations, NOT action/transport/data authority.
 
-Deliberately not connected to a controller/capability. A future caller must bind
+Used only by a private native controller observation path, not a capability.
+A future caller must bind
 incoming evidence, typed choices and separate receipt/scope semantics on both
 peers before any historical target is admitted. No data membership is returned.
 """

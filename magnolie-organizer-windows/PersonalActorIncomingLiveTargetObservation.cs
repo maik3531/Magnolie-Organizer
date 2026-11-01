@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
-// Unconnected private native observation only. NOT incoming admission, typed
+// Private native controller observation only. NOT incoming admission, typed
 // action permission, content selection, packet/ACK/queue/transport authority.
 // Native caller must hold source/writer guards and use operation-live observers.
 internal sealed class PersonalActorIncomingLiveTargetObservation

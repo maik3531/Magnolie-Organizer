@@ -210,6 +210,45 @@ internal sealed partial class TelefonCoordinator
             return result;
         }, cancellation);
 
+    // Native host only, under its book/writer guard. No MCP/IPC route exposes
+    // this observation and no observer/captured snapshot survives the operation.
+    // In particular, observing is NOT incoming admission, action or data rights.
+    internal Task<IReadOnlyList<JsonObject>> ObservePersonalActorIncomingTargetsAsync(PersonalActorHandle handle,
+        IReadOnlyList<JsonObject> targets, CancellationToken cancellation = default)
+    {
+        if (targets.Count is < 1 or > 256) throw new InvalidDataException("actor_target_capacity");
+        var copied = targets.Select(value => value.DeepClone().AsObject()).ToArray();
+        return WithPersonalActorStoreAsync<IReadOnlyList<JsonObject>>(registry => {
+            var admission = RequirePersonalActorAdmission(registry, handle);
+            var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+            string? Current()
+            {
+                registry.RequireCurrent(handle);
+                if (RequirePersonalActorAdmission(registry, handle) != admission) throw new InvalidOperationException("actor_source_changed");
+                var peer = RequireSolePeer(admission.PeerId);
+                var settings = store.SharedSettings(peer.Id, peer.PublicKey);
+                if (settings is null || SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() != false ||
+                    store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true || peer.Grants["personal_deletions_sync"]?.GetValue<bool>() != true)
+                    throw new InvalidOperationException("actor_deletions_not_granted");
+                return CurrentActorSource(peer.Id, fingerprint);
+            }
+            Current();
+            // One capture within the caller-held writer guard. Fresh save/source
+            // witnesses are still checked at every observation boundary.
+            var captured = NativeProducerBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
+            NativeActorBookSnapshot Snapshot()
+            {
+                var value = captured;
+                if (NativeSavedBook() != value.SavedBook || NativeBookSource() != value.SavedBook.BookSource)
+                    throw new InvalidOperationException("actor_native_saved_book_changed");
+                return value;
+            }
+            var observation = new PersonalActorIncomingLiveTargetObservation(admission.PeerId, handle.ActorId,
+                () => Current() is not null, Current, Snapshot, () => admission.Connection.CurrentContentScope(admission.Scope));
+            return observation.ObserveMany(handle.ActorId, copied);
+        }, cancellation);
+    }
+
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
     {
         var admission = await WithPersonalActorStoreAsync(registry => RequirePersonalActorAdmission(registry, handle, requireStartFresh: true), cancellation);
