@@ -123,7 +123,7 @@ def test_native_preparation_fences_writer_source_identity_and_capacity(gate):
         prepare_deletion_proposals(snapshot, manifest, PEER, RUN, current_saved_book=read, current_source=source)
 
 
-@pytest.mark.parametrize('fault', ('none', 'second-frame', 'last-target', 'source-before', 'source-after',
+@pytest.mark.parametrize('fault', ('none', 'second-frame', 'last-target', 'ledger', 'source-before', 'source-after',
     'saved-before', 'saved-after', 'missing-last', 'changed-batch', 'duplicate-target', 'incomplete-first'))
 def test_native_prepared_group_commits_all_frames_and_targets_or_rolls_back(tmp_path, fault):
     service, _, events = owned_service(tmp_path); store = service.store
@@ -134,9 +134,10 @@ def test_native_prepared_group_commits_all_frames_and_targets_or_rolls_back(tmp_
     if fault == 'changed-batch': bodies[-1]['proposal_batch_id'] = PEER
     if fault == 'duplicate-target': bodies[-1]['proposals'][0]['id'] = bodies[0]['proposals'][0]['id']
     if fault == 'incomplete-first': bodies[0]['proposals'].pop()
-    if fault in ('second-frame', 'last-target'):
+    if fault in ('second-frame', 'last-target', 'ledger'):
         with sqlite3.connect(store.database_path) as db:
             trigger = ("BEFORE INSERT ON outbox WHEN (SELECT COUNT(*) FROM outbox)>=1" if fault == 'second-frame' else
+                "BEFORE INSERT ON meta WHEN NEW.key LIKE 'personal_actor_producer:%'" if fault == 'ledger' else
                 "BEFORE INSERT ON meta WHEN NEW.key='personal_proposal_kind:" + private + ":out:" + bodies[-1]['proposals'][0]['proposal_id'] + "'")
             db.execute("CREATE TRIGGER group_atomic_failure " + trigger + " BEGIN SELECT RAISE(ABORT,'synthetic group transaction failure'); END")
     sources = [0]; saved_reads = [0]
@@ -157,6 +158,7 @@ def test_native_prepared_group_commits_all_frames_and_targets_or_rolls_back(tmp_
         with sqlite3.connect(store.database_path) as db:
             assert db.execute('SELECT COUNT(*) FROM outbox').fetchone()[0] == 0
             assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] == 0
+            assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_actor_producer:%'").fetchone()[0] == 0
         assert not events and service.server is None
         return
     wire = commit()
@@ -170,3 +172,44 @@ def test_native_prepared_group_commits_all_frames_and_targets_or_rolls_back(tmp_
         assert len(reopened.personal_decision_targets(private, decision, False)) == len(body['proposals'])
         assert reopened.personal_decision_targets(PEER, decision, False) is None
     assert snapshot.book() == book and read() == snapshot.saved_book and not events and service.server is None
+
+
+@pytest.mark.parametrize('scenario', ('same', 'changed-body', 'new-batch', 'source', 'new-save', 'expired', 'after-ack', 'retired-owner'))
+def test_successful_native_group_replay_keeps_original_frames_and_never_requeues(tmp_path, monkeypatch, scenario):
+    service, _, events = owned_service(tmp_path); store = service.store
+    book, manifest = fixture(); owner, read, snapshot = native(book)
+    bodies = prepare_deletion_proposals(snapshot, manifest, PEER, RUN, current_saved_book=read, current_source=lambda: 'a' * 64)
+    current = ['a' * 64]
+    def commit(target):
+        return target.queue_actor_deletion_proposals(PEER, RUN, bodies, expected_source='a' * 64,
+            saved_book=snapshot.saved_book, current_source=lambda: current[0], current_saved_book=read)
+    original = commit(store)
+    private = actor.storage_peer(RUN)
+    def rows(target):
+        with sqlite3.connect(target.database_path) as db:
+            return (db.execute('SELECT * FROM outbox ORDER BY message_id').fetchall(),
+                db.execute("SELECT key,value FROM meta WHERE key LIKE 'personal_proposal_kind:%' OR key LIKE 'personal_actor_producer:%' ORDER BY key").fetchall())
+    if scenario == 'changed-body': bodies[0]['proposals'][0]['label'] = 'Changed retry content'
+    if scenario == 'new-batch':
+        for body in bodies: body['proposal_batch_id'] = PEER
+    if scenario == 'source': current[0] = 'b' * 64
+    if scenario == 'new-save': owner.record_saved('native-producer-fixture', True, snapshot.saved_sha256)
+    if scenario == 'expired': monkeypatch.setattr(phone, 'now_ms', lambda: original[0]['expires_ms'] + 1)
+    if scenario == 'after-ack':
+        for wire in original: store.acknowledge(PEER, wire['message_id'])
+    if scenario == 'retired-owner':
+        current[0] = None
+        for wire in original: store.acknowledge(PEER, wire['message_id'])
+        store.purge_personal(private)
+        assert rows(store) == ([], [])
+    reopened = phone.PhoneStore(str(tmp_path / 'phone'), 'Owned desktop')
+    before = rows(reopened)  # Reopen may perform its normal expired-outbox cleanup.
+    if scenario not in ('same', 'after-ack'):
+        with pytest.raises(PermissionError): commit(reopened)
+    else:
+        assert commit(reopened) == original
+        assert len(reopened.pending(PEER)) == (0 if scenario == 'after-ack' else 2)
+        returned = commit(reopened); returned[0]['message_id'] = RUN
+        assert commit(reopened) == original
+    assert rows(reopened) == before, 'Successful replay/failed identity check rewrote protected metadata or outbox'
+    assert not events and service.server is None

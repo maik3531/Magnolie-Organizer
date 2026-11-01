@@ -982,11 +982,33 @@ class PhoneStore:
                 'kind': 'personal_sync.deletion_proposals', 'created_ms': now, 'expires_ms': now + DAY_MS, 'body': body}, run_id)
             prepared.append((message, self._encrypt(canonical(message), 'outbox', message['message_id']), body))
         private = personal_actor_contract.storage_peer(run_id)
+        ledger_key = 'personal_actor_producer:%s:%s' % (private, run_id)
+        identity = hashlib.sha256(canonical({'peer_id': peer_id, 'run_id': run_id, 'source': expected_source,
+            'saved_book': witness, 'bodies': bodies})).hexdigest()
         def require_current():
             if current_source() != expected_source or current_saved_book() != witness:
                 raise PermissionError('actor_producer_source_changed')
         with sqlite3.connect(self.database_path) as db:
             db.execute('BEGIN IMMEDIATE'); require_current()
+            previous = db.execute('SELECT value FROM meta WHERE key=?', (ledger_key,)).fetchone()
+            if previous:
+                recorded = strict_json(self._decrypt(previous[0], 'personal_actor_producer', ledger_key))
+                if (not isinstance(recorded, dict) or set(recorded) != {'identity', 'expires_ms', 'frames'} or
+                        recorded['identity'] != identity or type(recorded['expires_ms']) is not int or recorded['expires_ms'] <= now or
+                        not isinstance(recorded['frames'], list) or len(recorded['frames']) != len(bodies)):
+                    raise PermissionError('actor_producer_group_identity_changed')
+                for wire, body in zip(recorded['frames'], bodies):
+                    if (wire.get('kind') != personal_actor_contract.DATA_KIND or
+                            not isinstance(wire.get('message_id'), str) or not personal_sync_contract.UUID4.fullmatch(wire['message_id']) or
+                            wire.get('expires_ms') != recorded['expires_ms'] or
+                            personal_actor_contract.unwrap(wire['body']) != ('personal_sync.deletion_proposals', body)):
+                        raise ValueError('actor_producer_group_frame_changed')
+                if len({wire['message_id'] for wire in recorded['frames']}) != len(recorded['frames']):
+                    raise ValueError('actor_producer_group_frame_changed')
+                require_current()
+                return copy.deepcopy(recorded['frames'])
+            if db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_actor_producer:%'").fetchone()[0] >= 32:
+                raise RuntimeError('queue_full')
             size = db.execute('SELECT COALESCE(SUM(length(payload)),0) FROM outbox').fetchone()[0]
             if size + sum(len(payload) for _, payload, _ in prepared) > 50 * 1024 * 1024:
                 raise RuntimeError('queue_full')
@@ -994,6 +1016,9 @@ class PhoneStore:
                 self._remember_personal_proposal_kinds(db, private, body, True, now)
                 db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
                     (wire['message_id'], peer_id, 'personal_sync.deletion_proposals', now, now + DAY_MS, payload, 0, now, '', 'any'))
+            recorded = {'identity': identity, 'expires_ms': now + DAY_MS, 'frames': [wire for wire, _, _ in prepared]}
+            db.execute('INSERT INTO meta(key,value) VALUES(?,?)', (ledger_key,
+                self._encrypt(canonical(recorded), 'personal_actor_producer', ledger_key)))
             require_current()
         return [copy.deepcopy(wire) for wire, _, _ in prepared]
 
@@ -1196,6 +1221,7 @@ class PhoneStore:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_applied:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_actor_producer:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
 
