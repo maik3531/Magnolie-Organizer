@@ -5,25 +5,28 @@ This is a command inventory, **not a passed-feature count or a native validation
 Static literal calls are compared with the Windows typed contract. Computed command names
 and native-only menu actions need the separate feature matrix; absence here is not support.
 
-Frontend SHA-256: `71a3bfc45045b2d0b2b2c056ef1efb0360420bf78afdd16d6d0a9fc7b6ca38f8`
-Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02b067dd9503d`
+Frontend SHA-256: `58496dbe2d8c9edf8c3e2a0993551b1986faa7e5a553bfd1054186ec54e6b849`
+Windows contract SHA-256: `bc203540fa857cc4686682f192a1b612bface57f61b1e73885bef3453c82212f`
 
 | Command | Shared frontend literal | Windows contract | macOS Beta scope |
 | --- | --- | --- | --- |
 | `ablage_holen` | yes | yes | source: text clipboard; native pasteboard untested |
 | `ablage_kopieren` | yes | yes | source: text clipboard; native pasteboard untested |
 | `adressen_ods` | yes | yes | UNSUPPORTED: negative Beta response |
-| `background_settings_get` | yes | — | UNSUPPORTED: negative Beta response |
-| `background_settings_set` | yes | — | UNSUPPORTED: negative Beta response |
+| `background_settings_get` | yes | yes | UNSUPPORTED: negative Beta response |
+| `background_settings_set` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_bestaetigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_briefkasten_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_briefkasten_speichern` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_briefkasten_status` | yes | yes | UNSUPPORTED: negative Beta response |
+| `baum_dav_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
 | `baum_delegieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_eingang_geleert` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_internet_adresse` | yes | yes | UNSUPPORTED: negative Beta response |
+| `baum_mailbox_schreibpruefen` | — | yes | UNSUPPORTED: negative Beta response |
+| `baum_mcp` | — | yes | UNSUPPORTED: negative Beta response |
 | `baum_paaren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_paarungsdatei_erzeugen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_paarungsdatei_importieren` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -33,6 +36,9 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `baum_stand` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_suchen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_teilen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `baum_weitergabe_annehmen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `baum_weitergabe_erlauben` | yes | yes | UNSUPPORTED: negative Beta response |
+| `baum_weitergeben` | yes | yes | UNSUPPORTED: negative Beta response |
 | `beenden` | yes | yes | source: AppKit quit handshake; native lifecycle untested |
 | `beenden_abgebrochen` | yes | yes | source: cancel pending quit |
 | `beenden_bereit` | yes | yes | source: correlated pending quit only |
@@ -45,10 +51,13 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
 | `drucken` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eds_status` | yes | yes | UNSUPPORTED: negative Beta response |
+| `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
+| `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
 | `entsperren` | yes | yes | partial: v1/v2 Apple crypto source; no macOS crypto run |
 | `erinnerung_einrichten` | yes | yes | LIMITATION RESPONSE ONLY: no native scheduler is configured |
 | `erinnerung_zeigen` | yes | yes | partial: open/unlocked/consented session only; delivery untested |
 | `export` | yes | yes | partial: simple appointment ICS only |
+| `exportieren` | yes | — | UNSUPPORTED: negative Beta response |
 | `feiertage` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_exportieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_importieren` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -58,12 +67,22 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `graph_abmelden` | — | yes | UNSUPPORTED: negative Beta response |
 | `graph_anmelden` | — | yes | UNSUPPORTED: negative Beta response |
 | `graph_client_id_speichern` | — | yes | UNSUPPORTED: negative Beta response |
+| `graph_konto_aendern` | — | yes | UNSUPPORTED: negative Beta response |
+| `graph_konto_stand` | — | yes | UNSUPPORTED: negative Beta response |
+| `graph_mcp_cancel` | yes | yes | UNSUPPORTED: negative Beta response |
+| `graph_mcp_start` | — | yes | UNSUPPORTED: negative Beta response |
+| `graph_mcp_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `handbuch_oeffnen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `import` | yes | yes | UNSUPPORTED: negative Beta response |
 | `import_lokal` | yes | yes | UNSUPPORTED: negative Beta response |
+| `internet_konten_mcp` | — | yes | UNSUPPORTED: negative Beta response |
+| `internet_konten_status` | — | yes | UNSUPPORTED: negative Beta response |
+| `internet_konto_anmelden` | — | yes | UNSUPPORTED: negative Beta response |
+| `internet_konto_verwalten` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_anzahl` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_aufbewahrung` | — | yes | UNSUPPORTED: negative Beta response |
+| `journal_einstellungen_setzen` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_erzeugen` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_intervall` | — | yes | UNSUPPORTED: negative Beta response |
 | `journal_liste` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -72,35 +91,61 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `journal_vorschau` | yes | yes | UNSUPPORTED: negative Beta response |
 | `journal_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `karte` | yes | yes | UNSUPPORTED: negative Beta response |
+| `kde_dateisystem_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_dateisystem_stand` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_empfangsordner_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `kde_entfernen` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_input_einstellungen` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_input_senden` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_input_stand` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_mcp` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_medien_aktion` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_medien_geraete` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_medien_stand` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_paaren` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_paarung_bestaetigen` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_pairing_complete` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kde_pairing_confirm` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kde_pairing_start` | yes | yes | UNSUPPORTED: negative Beta response |
+| `kde_player_datei` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_player_stand` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_player_titel` | — | yes | UNSUPPORTED: negative Beta response |
+| `kde_player_waehlen` | — | yes | UNSUPPORTED: negative Beta response |
 | `kde_receive_decide` | yes | — | UNSUPPORTED: negative Beta response |
 | `kde_receive_settings` | yes | — | UNSUPPORTED: negative Beta response |
 | `kde_receive_ziel_waehlen` | yes | — | UNSUPPORTED: negative Beta response |
 | `kde_reconnect` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kde_sms_senden` | yes | yes | UNSUPPORTED: negative Beta response |
+| `kde_zeichnen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kennwort_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kennwort_setzen` | yes | yes | partial: enable for current profile only; no change/rekey |
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mail` | yes | yes | UNSUPPORTED: negative Beta response |
+| `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `medikament_suchen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mutations_snapshot` | yes | yes | partial: durable exact file checkpoint; no desktop journal index/retention |
 | `notiz_anhang_datei` | yes | yes | partial: selected data-URL attachment Save only; no Open |
+| `notiz_versand` | — | yes | UNSUPPORTED: negative Beta response |
 | `ordner_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `password_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `personal_sync_attachment_index` | yes | yes | UNSUPPORTED: negative Beta response |
-| `personal_sync_einstellungen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_betrieb` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_desktop_features` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_einstellungen` | — | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_gemeinsam_aendern` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_gemeinsam_initialisieren` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_gemeinsam_start` | yes | yes | UNSUPPORTED: negative Beta response |
 | `personal_sync_lauf_senden` | yes | yes | UNSUPPORTED: negative Beta response |
+| `personal_sync_notizrichtung` | yes | yes | UNSUPPORTED: negative Beta response |
 | `personal_sync_senden` | yes | yes | UNSUPPORTED: negative Beta response |
 | `planer_ods` | yes | yes | UNSUPPORTED: negative Beta response |
 | `protokoll_zeigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `rechtschreibung` | yes | yes | UNSUPPORTED: negative Beta response |
-| `regional_einstellungen` | yes | yes | source: validated durable preferences; native locale handling untested |
+| `regional_einstellungen` | — | yes | source: validated durable preferences; native locale handling untested |
+| `regional_einstellungen_status` | — | yes | UNSUPPORTED: negative Beta response |
+| `reminder_privacy_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `sicherung` | yes | yes | partial: encrypted whole JSON, native picker; no Gesamtarchiv |
+| `sicherung_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
 | `sicherung_waehlen` | yes | yes | source: native JSON picker pins selected path/bytes |
 | `sicherung_wiederherstellen` | yes | yes | partial: full JSON replacement + checkpoint + UI preflight; no additive/section restore |
 | `sozial` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -111,13 +156,22 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `telefon_annehmen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_anruf_anzeigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_anruf_audio_einstellung` | yes | — | UNSUPPORTED: negative Beta response |
+| `telefon_anruf_audio_pruefen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_anruf_lautstaerke_wiederherstellen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_auflegen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_bluetooth_einstellungen` | yes | — | UNSUPPORTED: negative Beta response |
 | `telefon_bluetooth_schalten` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_entwickler_diagnose` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_freigabe` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_freigaben` | — | yes | UNSUPPORTED: negative Beta response |
+| `telefon_kontakte` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_kontaktfotos` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_kontaktgruppen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_kontaktgruppentitel` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_kontaktwerte` | yes | yes | UNSUPPORTED: negative Beta response |
+| `telefon_mcp` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_meldung_anzeigen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `telefon_oeffnen` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_paarung_bestaetigen` | — | yes | UNSUPPORTED: negative Beta response |
@@ -132,7 +186,9 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `telefon_verbindung_ein` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_verbindung_stand` | — | yes | UNSUPPORTED: negative Beta response |
 | `telefon_waehlen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `thunderbird_einrichten` | — | yes | UNSUPPORTED: negative Beta response |
 | `tray_einstellungen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `tray_status` | — | yes | UNSUPPORTED: negative Beta response |
 | `tray_zaehler` | yes | yes | UNSUPPORTED: negative Beta response |
 | `update_herunterladen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `update_installieren` | yes | yes | UNSUPPORTED: negative Beta response |
@@ -141,3 +197,9 @@ Windows contract SHA-256: `d3c21b8413d451bc53ddd905f18fceb6b2a8346482cacb8ef0d02
 | `vorschlaege` | yes | yes | UNSUPPORTED: negative Beta response |
 | `wetter` | yes | yes | UNSUPPORTED: negative Beta response |
 | `wort_merken` | yes | yes | UNSUPPORTED: negative Beta response |
+| `zeichenblatt_exportieren` | yes | yes | UNSUPPORTED: negative Beta response |
+| `zeichenblatt_pdf_oeffnen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `zeichenblatt_svg_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
+| `zeichenblatt_svg_speichern` | — | yes | UNSUPPORTED: negative Beta response |
+| `zeit_ods` | yes | yes | UNSUPPORTED: negative Beta response |
+| `zeitzone_erkennen` | — | yes | UNSUPPORTED: negative Beta response |

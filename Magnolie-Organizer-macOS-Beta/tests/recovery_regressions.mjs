@@ -49,12 +49,29 @@ try {
   equal(JSON.parse(messages.filter(m => m.cmd === "speichern").at(-1).text).future.keep, "imported", "post-restore save uses new document");
   // Actual desktop regional form also waits for the profile save before the native command.
   t.baueEinstellungen(); w.document.getElementById("einst-tab-regional").click();
+  const regionalBeforeFailure = clone(t.daten().einstellungen.regional);
+  t.daten().notizen[0].text = "Regional save failure boundary";
+  w.document.getElementById("regional-speichern").click();
+  const rejectedSave = messages.filter(m => m.cmd === "speichern").at(-1);
+  w.MacBeta.receive("gespeichert", { id: rejectedSave.id, ok: false, fehler: "Synthetic disk failure" });
+  equal(messages.some(m => m.cmd === "regional_einstellungen"), false, "failed profile save blocks native regional mutation");
+  equal(w.document.getElementById("regional-speichern").disabled, false, "failed profile save unlocks regional retry");
+  equal(t.daten().einstellungen.regional, regionalBeforeFailure, "failed profile save retains regional choices");
   w.document.getElementById("regional-sprache").value = "ar";
+  w.document.getElementById("regional-formatgebiet").value = "de-DE";
+  w.document.getElementById("regional-stunden").value = "h12";
+  w.document.getElementById("regional-wochenanfang").value = "sunday";
+  w.document.getElementById("regional-temperatur").value = "fahrenheit";
   t.daten().notizen[0].text = "Unsaved regional boundary";
   w.document.getElementById("regional-speichern").click();
   equal(messages.some(m => m.cmd === "regional_einstellungen"), false, "regional write waits for save");
+  equal(w.document.getElementById("regional-speichern").disabled, true, "regional form fenced until native result");
+  w.document.getElementById("regional-speichern").click();
   saveAck();
-  equal(messages.at(-1).regional.language, "ar", "selected regional value reaches native");
+  equal(messages.at(-1).regional, { language: "ar", formatLocale: "de-DE", hourCycle: "h12",
+    firstDayOfWeek: "sunday", weekRule: "iso", temperatureUnit: "fahrenheit", timeZone: "system", homeCountry: "DE" },
+    "current shared form maps all fields to the strict Beta native contract");
+  equal(messages.filter(m => m.cmd === "regional_einstellungen").length, 1, "duplicate click cannot dispatch a second regional write");
   w.MacBeta.receive("regionalErgebnis", { ok: true, regional: messages.at(-1).regional });
   equal(t.daten().einstellungen.regional.language, "ar", "regional callback retains chosen language");
   for (const language of ["en", "de", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr"]) {

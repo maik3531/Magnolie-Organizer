@@ -40,8 +40,10 @@ dependency, active workflow or release artifact is modified by this port.
 | macOS calendars/reminders | Optional EventKit listing of calendar/list names and sources from native menus, read-only; no item import or sync |
 
 "Implemented source" is not a statement of native build or runtime validation.
-Development is paused; the source checkpoint and remaining work are tracked in
-[issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9).
+Current-source integration and the remaining macOS/Android Organizer parity work
+are tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121).
+[Issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) is the historical
+source checkpoint, not a completed native parity acceptance.
 
 ## Important Limits
 

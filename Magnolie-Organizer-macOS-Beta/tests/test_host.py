@@ -96,6 +96,16 @@ class ProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "anchor changed"):
                 projection.project(changed, Path(temp) / "UI")
 
+    def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
+        changed = dict(self.snapshot)
+        key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"
+        old = b"const before = await tools[0].call({}, signal);"
+        self.assertEqual(changed[key].count(old), 1)
+        changed[key] = changed[key].replace(old, b"const before = await differentRegionalSource();")
+        with tempfile.TemporaryDirectory(prefix="macOS-Beta-regional-drift-") as temp:
+            with self.assertRaisesRegex(ValueError, "anchor changed"):
+                projection.project(changed, Path(temp) / "UI")
+
     def test_freeze_and_generated_tamper_detection(self):
         with tempfile.TemporaryDirectory(prefix="macOS-Beta-freeze-test-") as temp:
             freeze, generated = Path(temp) / "freeze.json", Path(temp) / "UI"

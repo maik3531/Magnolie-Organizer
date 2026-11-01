@@ -121,10 +121,33 @@ def project(snapshot, target):
           if (pfad) zeigeSicherungsanlage(pfad);
           else Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''',
                         '''          Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''')
-    text, regional_calls = re.subn(r'Bruecke\.sende\(\{ cmd: "regional_einstellungen", regional: \{[\s\S]*?\} \}\);',
-        lambda match: "nachDauerhaftemSpeichern(() => " + match[0][:-1] + ");", text)
-    if regional_calls != 1:
-        raise ValueError("Canonical regional settings binding changed.")
+    # The current desktop form uses revision-bound native MCP calls. The Beta
+    # has no such native API: bind only this form to its existing validated
+    # whole-document handler, retaining the save-ACK fence, not fake MCP success.
+    text = replace_once(text, '''    const speichern = knopf(_("Save"), "", async () => {
+      if (!Bruecke.vorhanden) return;
+      speichern.disabled = true;
+      try {
+        const signal = new AbortController().signal, tools = mcpRegionaleEinstellungenWerkzeuge();
+        const before = await tools[0].call({}, signal);
+        await mitGeschlossenenEinstellungen(() => tools[1].call({ expected_revision: before.revision,
+          language: sprache.value, format_locale: format.value.trim(), hour_cycle: stunden.value,
+          first_day_of_week: wochenanfang.value, temperature_unit: temperatur.value,
+          time_zone: zone.value.trim(), home_country: isoLand(heimatland.value, "DE") }, signal));
+        zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
+      } catch (_) { zettel(_("The regional settings could not be saved.")); }
+      finally { speichern.disabled = false; }
+    });''', '''    const speichern = knopf(_("Save"), "", () => {
+      if (!Bruecke.vorhanden || speichern.disabled) return;
+      speichern.disabled = true;
+      const regional = { language: sprache.value, formatLocale: format.value.trim(),
+        hourCycle: stunden.value, firstDayOfWeek: wochenanfang.value, weekRule: "iso",
+        temperatureUnit: temperatur.value, timeZone: zone.value.trim(),
+        homeCountry: isoLand(heimatland.value, "DE") };
+      nachDauerhaftemSpeichern(() => {
+        if (!Bruecke.sende({ cmd: "regional_einstellungen", regional })) speichern.disabled = false;
+      }, () => { speichern.disabled = false; });
+    });''')
     text = replace_once(text, '    { id: "ort", name: msgid("Country & holidays") },',
                         '    { id: "regional", name: msgid("Language and regional display") },\n'
                         '    { id: "ort", name: msgid("Country & holidays") },')
