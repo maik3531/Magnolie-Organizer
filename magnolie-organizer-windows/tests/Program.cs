@@ -122,6 +122,7 @@ runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorSto
 runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
 runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);
 runner.Add("Notes actor native book / lifecycle ownership fence", NativeBookOwnerScopeTests.RunAsync);
+runner.Add("Notes actor native producer preparation / scoped tombstones / fresh writer", PersonalActorOutgoingProducerTests.RunAsync);
 runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
