@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -43,12 +44,50 @@ internal sealed partial class TelefonStore
             var wire = PersonalSyncActorContract.WireMessage(semantic, runId);
             return (Wire: wire, Body: body, Payload: Seal("outbox", wire["message_id"]!.GetValue<string>(), TelefonCrypto.Canonical(wire)));
         }).ToArray();
+        var privatePeer = PersonalSyncActorContract.StoragePeer(runId);
+        var ledgerKey = $"personal_actor_producer:{privatePeer}:{runId}";
+        var identity = Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(new JsonObject {
+            ["peer_id"] = peerId, ["run_id"] = runId, ["source"] = expectedSource,
+            ["saved_book"] = new JsonObject { ["book_source"] = savedBook.BookSource, ["sequence"] = savedBook.Sequence, ["sha256"] = savedBook.Sha256 },
+            ["bodies"] = new JsonArray(bodies.Select(body => (JsonNode)body.DeepClone()).ToArray()) }))).ToLowerInvariant();
         void RequireCurrent()
         { if (RestoreFenced || currentSource() != expectedSource || currentSavedBook() != savedBook) throw new InvalidOperationException("actor_producer_source_changed"); }
         lock (gate)
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var db = OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction(); RequireCurrent();
+            using (var previous = db.CreateCommand())
+            {
+                previous.Transaction = transaction; previous.CommandText = "SELECT value FROM meta WHERE key=$key"; previous.Parameters.AddWithValue("$key", ledgerKey);
+                if (previous.ExecuteScalar() is byte[] sealedValue)
+                {
+                    var clear = Open("personal_actor_producer", ledgerKey, sealedValue);
+                    try
+                    {
+                        var recorded = JsonNode.Parse(clear)!.AsObject();
+                        TelefonProtocolContract.ExactObject(recorded, "identity", "expires_ms", "frames");
+                        if (recorded["identity"]!.GetValue<string>() != identity || TelefonProtocolContract.Integer(recorded["expires_ms"]) <= now ||
+                            recorded["frames"] is not JsonArray frames || frames.Count != bodies.Length)
+                            throw new InvalidOperationException("actor_producer_group_identity_changed");
+                        var frameIds = new HashSet<string>(StringComparer.Ordinal);
+                        for (var index = 0; index < frames.Count; index++)
+                        {
+                            var wire = frames[index]!.AsObject(); var id = wire["message_id"]!.GetValue<string>();
+                            if (wire["kind"]!.GetValue<string>() != PersonalSyncActorContract.DataKind || !TelefonProtocolContract.IsUuidV4(id) || !frameIds.Add(id) ||
+                                TelefonProtocolContract.Integer(wire["expires_ms"]) != TelefonProtocolContract.Integer(recorded["expires_ms"]) ||
+                                !JsonNode.DeepEquals(PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject()).Body, bodies[index]))
+                                throw new InvalidDataException("actor_producer_group_frame_changed");
+                        }
+                        RequireCurrent(); return frames.Select(frame => frame!.DeepClone().AsObject()).ToArray();
+                    }
+                    finally { CryptographicOperations.ZeroMemory(clear); }
+                }
+            }
+            using (var count = db.CreateCommand())
+            {
+                count.Transaction = transaction; count.CommandText = "SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_actor_producer:%'";
+                if (Convert.ToInt64(count.ExecuteScalar()) >= 32) throw new InvalidOperationException("queue_full");
+            }
             using (var size = db.CreateCommand())
             {
                 size.Transaction = transaction; size.CommandText = "SELECT COALESCE(SUM(length(payload)),0) FROM outbox";
@@ -57,11 +96,18 @@ internal sealed partial class TelefonStore
             }
             foreach (var item in prepared)
             {
-                RememberPersonalProposalKinds(db, transaction, PersonalSyncActorContract.StoragePeer(runId), item.Body, true, now);
+                RememberPersonalProposalKinds(db, transaction, privatePeer, item.Body, true, now);
                 using var insert = db.CreateCommand(); insert.Transaction = transaction;
                 insert.CommandText = "INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES($id,$peer,'personal_sync.deletion_proposals',$now,$expires,$payload,0,$now,'','any')";
                 insert.Parameters.AddWithValue("$id", item.Wire["message_id"]!.GetValue<string>()); insert.Parameters.AddWithValue("$peer", peerId);
                 insert.Parameters.AddWithValue("$now", now); insert.Parameters.AddWithValue("$expires", now + ttl); insert.Parameters.AddWithValue("$payload", item.Payload); insert.ExecuteNonQuery();
+            }
+            using (var ledger = db.CreateCommand())
+            {
+                var recorded = new JsonObject { ["identity"] = identity, ["expires_ms"] = now + ttl,
+                    ["frames"] = new JsonArray(prepared.Select(item => (JsonNode)item.Wire.DeepClone()).ToArray()) };
+                ledger.Transaction = transaction; ledger.CommandText = "INSERT INTO meta(key,value) VALUES($key,$value)";
+                ledger.Parameters.AddWithValue("$key", ledgerKey); ledger.Parameters.AddWithValue("$value", Seal("personal_actor_producer", ledgerKey, TelefonCrypto.Canonical(recorded))); ledger.ExecuteNonQuery();
             }
             RequireCurrent(); transaction.Commit();
         }

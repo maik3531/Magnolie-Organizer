@@ -98,6 +98,7 @@ internal static class PersonalActorOutgoingProducerTests
             TestAssert.That(denied, "Native preparation crossed writer/source/identity/capacity fence: " + gate);
         }
         AtomicPreparedGroups();
+        SuccessfulGroupReplay();
         return Task.CompletedTask;
     }
 
@@ -106,7 +107,7 @@ internal static class PersonalActorOutgoingProducerTests
         var root = Path.Combine(Path.GetTempPath(), "actor-native-group-" + Guid.NewGuid().ToString("N"));
         try
         {
-            foreach (var fault in new[] { "none", "second-frame", "last-target", "source-before", "source-after", "saved-before", "saved-after", "missing-last", "changed-batch", "duplicate-target", "incomplete-first" })
+            foreach (var fault in new[] { "none", "second-frame", "last-target", "ledger", "source-before", "source-after", "saved-before", "saved-after", "missing-last", "changed-batch", "duplicate-target", "incomplete-first" })
             {
                 var key = Enumerable.Repeat((byte)37, 32).ToArray(); var path = new WindowsPaths(Path.Combine(root, fault));
                 var store = new TelefonStore(path, key); var (book, scope) = Fixture(); var (owner, snapshot) = Capture(book);
@@ -117,10 +118,11 @@ internal static class PersonalActorOutgoingProducerTests
                 if (fault == "changed-batch") bodies[^1]["proposal_batch_id"] = Peer;
                 if (fault == "duplicate-target") bodies[^1]["proposals"]![0]!["id"] = bodies[0]["proposals"]![0]!["id"]!.DeepClone();
                 if (fault == "incomplete-first") bodies[0]["proposals"]!.AsArray().RemoveAt(0);
-                if (fault is "second-frame" or "last-target")
+                if (fault is "second-frame" or "last-target" or "ledger")
                 {
                     using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
                     var trigger = fault == "second-frame" ? "BEFORE INSERT ON outbox WHEN (SELECT COUNT(*) FROM outbox)>=1" :
+                        fault == "ledger" ? "BEFORE INSERT ON meta WHEN NEW.key LIKE 'personal_actor_producer:%'" :
                         "BEFORE INSERT ON meta WHEN NEW.key='personal_proposal_kind:" + privatePeer + ":out:" + bodies[^1]["proposals"]![0]!["proposal_id"]!.GetValue<string>() + "'";
                     sql.CommandText = "CREATE TRIGGER group_atomic_failure " + trigger + " BEGIN SELECT RAISE(ABORT,'synthetic group transaction failure'); END"; sql.ExecuteNonQuery();
                 }
@@ -139,7 +141,7 @@ internal static class PersonalActorOutgoingProducerTests
                     var denied = false;
                     try { Commit(); } catch (Exception error) when (error is InvalidDataException or InvalidOperationException or SqliteException) { denied = true; }
                     using var db = store.OpenDatabase(); db.Open(); using var count = db.CreateCommand();
-                    count.CommandText = "SELECT (SELECT COUNT(*) FROM outbox)+(SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%')";
+                    count.CommandText = "SELECT (SELECT COUNT(*) FROM outbox)+(SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%' OR key LIKE 'personal_actor_producer:%')";
                     TestAssert.That(denied && Convert.ToInt64(count.ExecuteScalar()) == 0, "Native group fault retained partial frames/targets: " + fault);
                     continue;
                 }
@@ -158,6 +160,73 @@ internal static class PersonalActorOutgoingProducerTests
                         reopened.PersonalDecisionTargets(Peer, decision, false) is null, "Native group proof escaped its private run or lost target coverage.");
                 }
                 TestAssert.That(owner.SaveState("native-producer-fixture", true) == snapshot.SavedBook && book.ToJsonString() == snapshot.Text, "Native group commit mutated its source book.");
+            }
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static void SuccessfulGroupReplay()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "actor-native-replay-" + Guid.NewGuid().ToString("N"));
+        static string[] Rows(TelefonStore store)
+        {
+            using var db = store.OpenDatabase(); db.Open(); var result = new List<string>();
+            foreach (var query in new[] { "SELECT message_id,peer_id,kind,created_ms,expires_ms,hex(payload),attempts,next_attempt_ms,last_error,transport_policy FROM outbox ORDER BY message_id",
+                "SELECT key,hex(value) FROM meta WHERE key LIKE 'personal_proposal_kind:%' OR key LIKE 'personal_actor_producer:%' ORDER BY key" })
+            {
+                using var command = db.CreateCommand(); command.CommandText = query; using var reader = command.ExecuteReader();
+                while (reader.Read()) result.Add(string.Join("|", Enumerable.Range(0, reader.FieldCount).Select(index => reader.GetValue(index).ToString())));
+            }
+            return result.ToArray();
+        }
+        try
+        {
+            foreach (var scenario in new[] { "same", "changed-body", "new-batch", "source", "new-save", "expired", "after-ack", "retired-owner" })
+            {
+                var key = Enumerable.Repeat((byte)37, 32).ToArray(); var path = new WindowsPaths(Path.Combine(root, scenario));
+                var store = new TelefonStore(path, key); var (book, scope) = Fixture(); var (owner, snapshot) = Capture(book);
+                var bodies = PersonalActorOutgoingProducer.Prepare(snapshot, scope, Peer, Run,
+                    () => owner.SaveState("native-producer-fixture", true), () => new string('a', 64)).ToArray();
+                string? source = new string('a', 64);
+                IReadOnlyList<JsonObject> Commit(TelefonStore target) => target.QueueActorDeletionProposals(Peer, Run, bodies, new string('a', 64), snapshot.SavedBook,
+                    () => source, () => owner.SaveState("native-producer-fixture", true));
+                var original = Commit(store); var privatePeer = PersonalSyncActorContract.StoragePeer(Run);
+                if (scenario == "changed-body") bodies[0]["proposals"]![0]!["label"] = "Changed retry content";
+                if (scenario == "new-batch") foreach (var body in bodies) body["proposal_batch_id"] = Peer;
+                if (scenario == "source") source = new string('b', 64);
+                if (scenario == "new-save") owner.RecordSaved("native-producer-fixture", true, snapshot.SavedBook.Sha256);
+                if (scenario == "expired")
+                {
+                    var ledgerKey = $"personal_actor_producer:{privatePeer}:{Run}";
+                    using var db = store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+                    read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", ledgerKey);
+                    var clear = store.Open("personal_actor_producer", ledgerKey, (byte[])read.ExecuteScalar()!);
+                    try
+                    {
+                        var record = JsonNode.Parse(clear)!.AsObject(); record["expires_ms"] = 0;
+                        using var write = db.CreateCommand(); write.CommandText = "UPDATE meta SET value=$value WHERE key=$key";
+                        write.Parameters.AddWithValue("$key", ledgerKey); write.Parameters.AddWithValue("$value", store.Seal("personal_actor_producer", ledgerKey, TelefonCrypto.Canonical(record))); write.ExecuteNonQuery();
+                    }
+                    finally { CryptographicOperations.ZeroMemory(clear); }
+                }
+                if (scenario is "after-ack" or "retired-owner") foreach (var wire in original) store.CompleteOutbox(Peer, wire["message_id"]!.GetValue<string>());
+                if (scenario == "retired-owner")
+                {
+                    source = null; new PersonalSyncStore(store).PurgeProtocol(privatePeer);
+                    TestAssert.That(Rows(store).Length == 0, "Private owner cleanup left native producer ledger/proofs.");
+                }
+                var reopened = new TelefonStore(path, key); var before = Rows(reopened);
+                if (scenario is not ("same" or "after-ack"))
+                    TestAssert.Throws<InvalidOperationException>(() => Commit(reopened), "Native replay accepted a changed/expired/retired operation: " + scenario);
+                else
+                {
+                    TestAssert.That(JsonNode.DeepEquals(new JsonArray(Commit(reopened).Select(wire => (JsonNode)wire.DeepClone()).ToArray()),
+                        new JsonArray(original.Select(wire => (JsonNode)wire.DeepClone()).ToArray())), "Success replay changed original native frame identities.");
+                    var returned = Commit(reopened); returned[0]["message_id"] = Run;
+                    TestAssert.That(Commit(reopened)[0]["message_id"]!.GetValue<string>() == original[0]["message_id"]!.GetValue<string>(), "Caller edits changed persisted replay frames.");
+                    TestAssert.That(original.All(wire => (reopened.OutboxMessage(Peer, wire["message_id"]!.GetValue<string>()) is null) == (scenario == "after-ack")), "Success replay requeued acknowledged frames.");
+                }
+                TestAssert.That(Rows(reopened).SequenceEqual(before), "Native success replay or rejected claim rewrote protected rows: " + scenario);
             }
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
