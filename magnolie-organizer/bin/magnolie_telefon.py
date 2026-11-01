@@ -4342,6 +4342,16 @@ class PhoneService:
         if intents:
             manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
             allowed = {"note": set(manifest["members"]["notes"]), "task": set(manifest["members"]["tasks"])}
+            targets, decisions = [], []
+            def add_proof(body, outgoing_decision):
+                proof = self.store.personal_decision_targets(private, body, outgoing_decision)
+                if proof is None:
+                    raise PermissionError("actor_completion_target_proof_missing")
+                for target in proof:
+                    if not (target["parent_id"] in allowed["note"] if target["kind"] == "attachment" else
+                            target["kind"] in allowed and target["id"] in allowed[target["kind"]]):
+                        raise PermissionError("actor_completion_target_outside_scope")
+                targets.extend(copy.deepcopy(proof)); decisions.extend(copy.deepcopy(body["decisions"]))
             for intent in intents:
                 if intent["kind"] == "personal_sync.deletion_proposals":
                     for proposal in intent["body"]["proposals"]:
@@ -4349,9 +4359,12 @@ class PhoneService:
                                 proposal["kind"] in allowed and proposal["id"] in allowed[proposal["kind"]]):
                             raise PermissionError("actor_deletion_outside_scope")
                 else:
-                    kinds = self.store.personal_decision_kinds(private, intent["body"], False)
-                    if not kinds or any(kind not in {"note", "task", "attachment"} for kind in kinds):
-                        raise PermissionError("actor_deletion_proposal_missing")
+                    add_proof(intent["body"], False)
+            for start in range(0, len(review["choices"]), 32):
+                add_proof({"format":1, "run_id":run_id, "decision_id":str(uuid.uuid4()),
+                    "decisions":[{key:copy.deepcopy(value[key]) for key in ("proposal_id", "decision", "expected_clock")}
+                        for value in review["choices"][start:start+32]]}, True)
+            personal_actor_contract.completion_members(run_id, manifest, targets, decisions)
         return review
 
     def prepare_personal_actor_commit(self, registry, handle, view_revision, after_hash, native_saved_book, book_source, deletion_plan=None):
@@ -4504,17 +4517,39 @@ class PhoneService:
             registry.require_current(handle)
             plan = admission["commit_plan"]
             choices = plan["deletion_review"]["choices"]
+            incoming = [value for value in plan["deletion_review"]["intents"] if value["kind"] == "personal_sync.deletion_decision"]
             saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
-            if (not admission.get("save_receipt") or not admission.get("phone_data_persisted") or not choices or
+            if (not admission.get("save_receipt") or not admission.get("phone_data_persisted") or not (choices or incoming) or
                     not callable(saved_provider)):
                 raise PermissionError("actor_completion_not_ready")
             saved = self._actor_saved_book(saved_provider(), plan["book_source"])
             if saved != admission["save_receipt"]:
                 raise PermissionError("actor_saved_completion_changed")
             private = personal_actor_contract.storage_peer(handle.actor_id)
-            frames, targets = [], []
+            frames, queued_frames, targets, own_acks = [], [], [], []
             fingerprint = registry.status(handle)["fingerprint"]
             try:
+                manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
+                allowed = {"note":set(manifest["members"]["notes"]), "task":set(manifest["members"]["tasks"])}
+                for reference in incoming:
+                    original = registry.read(handle, reference["message_id"])
+                    kind, body = personal_actor_contract.unwrap(original["body"])
+                    if kind == content_scope_contract.DATA_KIND:
+                        kind, body = content_scope_contract.unwrap(body, manifest)
+                    if kind != "personal_sync.deletion_decision" or body["run_id"] != handle.actor_id:
+                        raise PermissionError("actor_completion_decision_envelope_changed")
+                    proof = self.store.personal_decision_targets(private, body, False)
+                    if proof is None:
+                        raise PermissionError("actor_completion_target_proof_missing")
+                    for target in proof:
+                        if not (target["parent_id"] in allowed["note"] if target["kind"] == "attachment" else
+                                target["kind"] in allowed and target["id"] in allowed[target["kind"]]):
+                            raise PermissionError("actor_completion_target_outside_scope")
+                    targets.extend(proof)
+                    semantic = dict(copy.deepcopy(original), kind=kind, body=body)
+                    frames.append(personal_actor_contract.wire_message(semantic, handle.actor_id))  # Reference only.
+                    own_acks.append(self._actor_control_message(personal_actor_contract.ACK_KIND,
+                        personal_actor_contract.ack(handle.actor_id, original["message_id"])))
                 for start in range(0, len(choices), 32):
                     body = {"format":1, "run_id":handle.actor_id, "decision_id":str(uuid.uuid4()),
                         "decisions":[{key:copy.deepcopy(value[key]) for key in ("proposal_id", "decision", "expected_clock")}
@@ -4523,7 +4558,8 @@ class PhoneService:
                     if proof is None:
                         raise PermissionError("actor_completion_target_proof_missing")
                     targets.extend(proof)
-                    frames.append(self.store.queue(admission["peer"], "personal_sync.deletion_decision", body, DAY_MS, actor_run_id=handle.actor_id))
+                    queued = self.store.queue(admission["peer"], "personal_sync.deletion_decision", body, DAY_MS, actor_run_id=handle.actor_id)
+                    queued_frames.append(queued); frames.append(queued)
                 def native_scope():
                     session = self.content_scope_sessions.get(admission["channel"])
                     if session is None:
@@ -4533,15 +4569,16 @@ class PhoneService:
                 completion = DecisionAckCompletion(handle.actor_id, targets, frames,
                     current_authority=native_completion_authority or (lambda:self.current_actor_completion_authority(admission["peer"], fingerprint)),
                     current_scope=native_scope, current_saved_book=saved_provider,
-                    persisted_controls=lambda:registry.read_completion_controls(handle))
+                    persisted_controls=lambda:registry.read_completion_controls(handle), native_sent_acknowledgments=own_acks)
                 registry.begin_completion(handle, completion.validator)
             except BaseException:
-                for wire in frames:
+                for wire in queued_frames:
                     self.store.acknowledge(admission["peer"], wire["message_id"])
                 raise
             admission["completion"] = completion
-            admission["completion_ids"] = {wire["message_id"] for wire in frames}
+            admission["completion_ids"] = {wire["message_id"] for wire in queued_frames}
             admission["outbound"].update(admission["completion_ids"])
+            admission["completion_native_acks"] = {wire["message_id"]:wire for wire in own_acks}
             admission["phone_data_persisted"] = True
             admission["phone_persisted"] = False
             if defer_native_book:

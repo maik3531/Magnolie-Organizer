@@ -428,6 +428,83 @@ def test_native_typed_review_binds_choices_tokens_save_observation_and_atomic_co
     assert not events
 
 
+@pytest.mark.parametrize('scenario',('incoming','mixed','outside','overlap'))
+def test_native_incoming_and_mixed_controller_binds_raw_frames_and_early_target_review(tmp_path,monkeypatch,scenario):
+    from magnolie_personal_actor_store import NativeBookOwnerScope
+    book=NativeBookOwnerScope(); book.set_ready(True)
+    provider=lambda:book.current('incoming-native-profile',True)
+    service,peer,channel,registry,handle,events=owned_transport(tmp_path,monkeypatch,
+        deletions=True,skip_deletions=False,book_source=provider)
+    service.start_personal_actor(registry,handle)
+    private=actor.storage_peer(handle.actor_id); mixed=scenario in ('mixed','overlap')
+    request={'format':3,'run_id':handle.actor_id,'trigger':'manual','modules':['notes','tasks']}
+    batch={'format':3,'run_id':handle.actor_id,'batch_id':str(uuid.uuid4()),'sequence':0,'last':True,
+        'reply':False,'records':[],'records_hash':personal.records_hash([])}
+    for kind,body in [('personal_sync.request',request),('personal_sync.batch',batch)]:
+        service._payload(peer,channel,actor.wire_message(frame(kind,body),handle.actor_id))
+    channel.sent.clear()
+    outgoing_id=str(uuid.uuid4()); local_id=str(uuid.uuid4()); clock=[{'actor_id':peer['device_id'],'counter':2}]
+    decision={'format':1,'run_id':handle.actor_id,'decision_id':str(uuid.uuid4()),
+        'decisions':[{'proposal_id':outgoing_id,'decision':'restore','expected_clock':clock}]}
+    incoming=actor.wire_message(frame('personal_sync.deletion_decision',decision),handle.actor_id)
+    service._payload(peer,channel,copy.deepcopy(incoming))
+    assert not channel.sent and not any(owner==private for owner,_ in service.store.ready_personal_domains())
+    outgoing={'proposal_id':outgoing_id,'kind':'attachment','id':'native-outgoing-file','parent_id':'note-one',
+        'clock':clock,'prior_hash':'a'*64,'deleted_ms':2,'label':'Synthetic native outgoing target'}
+    if scenario in ('outside','overlap'):
+        outgoing.update(kind='note' if scenario=='outside' else 'task',id='unselected-note' if scenario=='outside' else 'task-one',parent_id='')
+    proposals={'format':1,'run_id':handle.actor_id,'proposal_batch_id':str(uuid.uuid4()),'sequence':0,'last':True,'proposals':[outgoing]}
+    # Protected native target proof, not a completed desktop producer/GUI path.
+    service.store.remember_personal_proposal_kinds(private,proposals,True)
+    service._payload(peer,channel,copy.deepcopy(incoming))
+    if mixed:
+        local=dict(outgoing,proposal_id=local_id,kind='task',id='task-one',parent_id='')
+        service._payload(peer,channel,actor.wire_message(frame('personal_sync.deletion_proposals',
+            dict(proposals,proposal_batch_id=str(uuid.uuid4()),proposals=[local])),handle.actor_id))
+    assert not channel.sent
+    view=service.read_personal_actor_staging(registry,handle)
+    data=json.loads(base64.b64decode(view['data_base64']))
+    plan={'choices':[{'proposal_id':local_id,'decision':'restore','expected_clock':clock,'allow_conflict':False}] if mixed else [],
+        'intents':[{'kind':value['kind'],'message_id':value['pending_message_id'],'commit_token':value['commit_token']} for value in data['intents']]}
+    before=book.record_saved('incoming-native-profile',True,'a'*64)
+    if scenario in ('outside','overlap'):
+        with pytest.raises((PermissionError,ValueError)):
+            service.prepare_personal_actor_commit(registry,handle,view['revision'],'b'*64,before,provider(),plan)
+        assert book.save_state('incoming-native-profile',True)==before and not channel.sent and not events
+        assert sum(owner==private for owner,_ in service.store.ready_personal_domains())==(2 if mixed else 1)
+        service.cancel_personal_actor(registry,handle,notify=False)
+        return
+    claim=service.prepare_personal_actor_commit(registry,handle,view['revision'],'b'*64,before,provider(),plan)
+    actual=book.record_saved('incoming-native-profile',True,'b'*64)
+    receipt=service.commit_personal_actor(registry,handle,claim['claim_token'],actual,provider())
+    assert receipt['core_committed'] and not any(owner==private for owner,_ in service.store.ready_personal_domains())
+    replies=[dict(batch,batch_id=str(uuid.uuid4()),reply=True)]
+    service.queue_personal_actor_reply(registry,handle,claim['claim_token'],replies,[],actual,provider())
+    reply=next(value for value in service.store.pending(peer['device_id']) if value['kind']==actor.DATA_KIND and actor.unwrap(value['body'])[0]=='personal_sync.batch')
+    assert service._send_message(channel,peer['device_id'],reply)
+    service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,reply['message_id'])))
+    report=next(value for value in service.store.pending(peer['device_id']) if value['kind']==actor.DATA_KIND and actor.unwrap(value['body'])[0]=='personal_sync.report')
+    assert service._send_message(channel,peer['device_id'],report)
+    service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,report['message_id'])))
+    assert not service.personal_actor_status(registry,handle)['phone_persisted']
+    service.native_actor_saved_book=lambda:book.save_state('incoming-native-profile',True)
+    started=service.begin_personal_actor_completion(registry,handle,claim['claim_token'])
+    assert started['phase']=='completion' and started['phone_data_persisted'] and not started['phone_persisted']
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry,handle)
+    channel.sent.clear()
+    status=service.advance_personal_actor_completion(registry,handle)
+    own=[value for value in channel.sent if value['kind']==actor.ACK_KIND and value['body']['message_id']==incoming['message_id']]
+    local=[value for value in channel.sent if value['kind']==actor.DATA_KIND]
+    assert len(own)==1 and len(local)==(1 if mixed else 0)
+    assert all(value['message_id']!=incoming['message_id'] for value in local), 'Incoming reference was resent as data'
+    if mixed:
+        assert not status['phone_persisted'] and status['deletion_completion']['saved']==1
+        service._payload(peer,channel,frame(actor.ACK_KIND,actor.ack(handle.actor_id,local[0]['message_id'])))
+    status=service.personal_actor_status(registry,handle)
+    assert status['phase']=='completed' and status['phone_persisted'] and status['deletion_completion']['saved']==(2 if mixed else 1)
+    assert book.save_state('incoming-native-profile',True)==actual and not events
+
+
 def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
     service.start_personal_actor(registry, handle)
