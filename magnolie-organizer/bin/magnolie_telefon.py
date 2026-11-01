@@ -4691,6 +4691,11 @@ class PhoneService:
                 if completion is not None:
                     if payload.get("kind") != personal_actor_contract.ACK_KIND:
                         return  # This terminal lane cannot stage new content.
+                    personal_actor_contract.validate_ack(body)
+                    if completion.expects_native_acknowledgment(body["message_id"]):
+                        # The peer cannot attest to this endpoint's own send.
+                        # Ignore it without retiring the valid native owner.
+                        return True
                     try:
                         registry.put_completion_control(handle, payload)
                     except PermissionError as error:

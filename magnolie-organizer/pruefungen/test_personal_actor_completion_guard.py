@@ -14,7 +14,7 @@ import magnolie_content_scope as scope
 import magnolie_telefon as phone
 
 
-def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False):
+def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False, admitted=False):
     book = NativeBookOwnerScope(); book.set_ready(True)
     provider = lambda:book.current('native-completion-profile',True)
     service, peer, channel, registry, handle, events = owned_transport(tmp_path,monkeypatch,
@@ -29,6 +29,9 @@ def fixture(tmp_path, monkeypatch, decision='delete', own_ack=False):
         {'proposal_id':proposal['proposal_id'],'decision':decision,'expected_clock':proposal['clock']}]}
     wire = service.store.queue(peer['device_id'],'personal_sync.deletion_decision',body,60000,actor_run_id=handle.actor_id)
     targets = service.store.personal_decision_targets(private,body,True)
+    if admitted:
+        service.start_personal_actor(registry,handle)
+        channel.sent.clear()
     book.record_saved('native-completion-profile',True,'a'*64)
     binding = (peer['device_id'],peer['static_public'],id(channel))
     session = service.content_scope_sessions[channel]
@@ -185,4 +188,24 @@ def test_mixed_own_and_peer_receipts_require_both_exact_directions(tmp_path,monk
     assert completion.summary()=={'expected':2,'received':2,'saved':2,'rejected':0}
     assert registry.finish_completion(handle)['phase']=='completed'
     with pytest.raises(PermissionError): registry.require_current(handle)
+    assert not channel.sent and not events
+
+
+@pytest.mark.parametrize('after_native_send',(False,True))
+def test_receive_peer_ack_cannot_attest_to_or_abort_native_ack_send(tmp_path,monkeypatch,after_native_send):
+    service,peer,channel,registry,handle,events,book,completion,ack,advance = fixture(tmp_path,monkeypatch,own_ack=True,admitted=True)
+    # Inject only the already native-bound completion into the real receive
+    # lane; this is not a claim that its producer/controller is wired yet.
+    service.personal_actor_admissions[handle.actor_id]['completion'] = completion
+    advance([])
+    if after_native_send: completion.record_successful_acknowledgment_send(ack)
+    for status,error in [('accepted','none'),('duplicate','none'),('rejected','temporary_failure')]:
+        peer_claim = frame(actor.ACK_KIND,actor.ack(handle.actor_id,ack['body']['message_id'],status,error))
+        assert service._receive_personal_actor(peer,channel,peer_claim) is True
+        assert completion.summary()['saved']==0 and registry.read_completion_controls(handle)==[]
+        assert registry.status(handle)['phase']=='completion'
+    if not after_native_send: completion.record_successful_acknowledgment_send(ack)
+    assert registry.put_completion_control(handle,ack)
+    completion.record_persisted(ack)
+    assert registry.finish_completion(handle)['phase']=='completed'
     assert not channel.sent and not events
