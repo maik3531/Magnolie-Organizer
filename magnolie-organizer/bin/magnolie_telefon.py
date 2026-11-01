@@ -4629,6 +4629,142 @@ class PhoneService:
                 current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
             return observation.observe_many(handle.actor_id, targets)
 
+    def _personal_actor_target_origin_current(self, registry, handle):
+        """Caller holds service.lock; only native owner/source/consent observations."""
+        admission = self._require_personal_actor_admission(registry, handle)
+        peer = self.store.sole_peer(admission['peer'])
+        settings = self.store.shared_settings(admission['peer'], admission['key'])
+        if (peer is None or settings is None or shared_sync_contract.effective(settings)['skip_deletions'] is not False or
+                peer.get('local_grants', {}).get('grants', {}).get('personal_deletions_sync') is not True or
+                peer.get('grants', {}).get('grants', {}).get('personal_deletions_sync') is not True):
+            raise PermissionError('actor_deletions_not_granted')
+        source = registry.current_source(admission['peer'], registry.status(handle)['fingerprint'])
+        if source is None:
+            raise PermissionError('actor_source_changed')
+        request = self.store._personal_run_record(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id)
+        if (request is None or request['body'].get('trigger') != 'manual' or 'finished_ms' in request or
+                request['expires_ms'] <= registry.clock()):
+            raise PermissionError('actor_target_origin_run_retired')
+        manifest = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
+        return admission, source, manifest
+
+    def _quarantine_personal_actor_incoming_targets(self, registry, handle, wire):
+        """ONLY called by authenticated receive, never by raw registry storage.
+
+        A bounded volatile origin record, NOT ordinary actor/data staging, native
+        review/save permission or success ACK. No GUI/provider callback here.
+        """
+        clear = registry._wire_payload(handle, wire)
+        kind, body = personal_actor_contract.unwrap(wire['body'])
+        if kind != 'personal_sync.deletion_proposals' or any(
+                item['kind'] not in ('note', 'task', 'attachment') for item in body['proposals']):
+            raise PermissionError('actor_target_origin_kind')
+        admission, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+        origin = admission.get('incoming_target_origin')
+        if origin is None:
+            origin = {'source': source, 'scope': copy.deepcopy(manifest),
+                'wall_deadline': registry.clock() + 30000, 'monotonic_deadline': registry.monotonic_clock() + 30000,
+                'frames': {}, 'bytes': 0, 'targets': 0, 'invalid': False}
+            admission['incoming_target_origin'] = origin
+        self._check_personal_actor_target_origin(registry, origin, source, manifest)
+        identity = wire['message_id']
+        previous = origin['frames'].get(identity)
+        if previous is not None:
+            if previous != clear:
+                origin['invalid'] = True
+                raise PermissionError('actor_target_origin_frame_changed')
+            return  # Exact retransmission never extends either deadline.
+        if (len(origin['frames']) >= 256 or origin['bytes'] + len(clear) > 1024 * 1024 or
+                origin['targets'] + len(body['proposals']) > 256):
+            origin['invalid'] = True
+            raise PermissionError('actor_target_origin_capacity')
+        origin['frames'][identity] = clear
+        origin['bytes'] += len(clear); origin['targets'] += len(body['proposals'])
+        _, after_source, after_scope = self._personal_actor_target_origin_current(registry, handle)
+        self._check_personal_actor_target_origin(registry, origin, after_source, after_scope)
+
+    @staticmethod
+    def _check_personal_actor_target_origin(registry, origin, source, manifest):
+        if (origin['invalid'] or origin['source'] != source or origin['scope'] != manifest or
+                registry.clock() >= origin['wall_deadline'] or registry.monotonic_clock() >= origin['monotonic_deadline']):
+            origin['invalid'] = True
+            raise PermissionError('actor_target_origin_changed')
+
+    def read_personal_actor_incoming_target_frames(self, registry, handle):
+        """Private native origin handoff; no IPC/MCP/wire route or action rights.
+
+        Frames come ONLY from this channel's authenticated receive quarantine.
+        Caller-supplied frames and raw ActorStore bytes cannot establish origin.
+        A later native review must still observe current actual saved targets.
+        """
+        with self.lock:
+            admission, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+            origin = admission.get('incoming_target_origin')
+            if origin is None:
+                raise PermissionError('actor_target_origin_missing')
+            self._check_personal_actor_target_origin(registry, origin, source, manifest)
+            frames, sequences, batch, proposals, targets = [], {}, None, set(), set()
+            for clear in origin['frames'].values():
+                wire = json.loads(clear)
+                registry._wire_payload(handle, wire)  # Recheck original frame TTL, never renew it.
+                _, body = personal_actor_contract.unwrap(wire['body'])
+                sequence = body['sequence']
+                if sequence in sequences or batch is not None and batch != body['proposal_batch_id']:
+                    raise PermissionError('actor_target_origin_group')
+                batch = body['proposal_batch_id']; sequences[sequence] = body['last']
+                for item in body['proposals']:
+                    identity = (item['kind'], item['parent_id'], item['id'])
+                    if item['proposal_id'] in proposals or identity in targets:
+                        raise PermissionError('actor_target_origin_group')
+                    proposals.add(item['proposal_id']); targets.add(identity)
+                frames.append((sequence, wire))
+            if (not frames or sorted(sequences) != list(range(len(sequences))) or
+                    any(last != (index == len(sequences) - 1) for index, last in sequences.items())):
+                raise PermissionError('actor_target_origin_incomplete')
+            _, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+            self._check_personal_actor_target_origin(registry, origin, source, manifest)
+            return [wire for _, wire in sorted(frames, key=lambda value: value[0])]
+
+    def review_personal_actor_incoming_targets(self, registry, handle, *, expected_revision=None, choices=None,
+            native_book_source=None, native_saved_book=None, native_producer_book=None):
+        """Operation-local native origin + saved-target review, never a save claim.
+
+        As for the observer, the native caller holds its book/writer guard. No
+        IPC/MCP/wire route invokes this method. The protected frame source is
+        fixed here, not a caller argument or a lookup of raw ActorStore bytes.
+        No callback, book snapshot or review object is retained in admission.
+        """
+        from magnolie_personal_actor_target_review import NativeIncomingTargetChoiceReview
+        if ((choices is None) != (expected_revision is None) or choices is not None and
+                (not isinstance(choices, list) or not isinstance(expected_revision, str) or
+                 re.fullmatch(r'[0-9a-f]{64}', expected_revision) is None)):
+            raise ValueError('actor_target_review_explicit_choices_required')
+        choices = copy.deepcopy(choices)
+        book_provider = native_book_source if native_book_source is not None else self.native_actor_book_source
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
+        if not all(callable(value) for value in (book_provider, saved_provider, producer_provider)):
+            raise PermissionError('actor_native_saved_book_unavailable')
+        with self.lock:
+            admission, _, _ = self._personal_actor_target_origin_current(registry, handle)
+
+            def current():
+                observed, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+                if observed is not admission:
+                    raise PermissionError('actor_source_changed')
+                return source, manifest
+
+            def saved():
+                current()
+                return self._actor_saved_book(saved_provider(), book_provider())
+
+            review = NativeIncomingTargetChoiceReview(handle.actor_id,
+                current_frames=lambda: self.read_personal_actor_incoming_target_frames(registry, handle),
+                current_observations=lambda targets: self.observe_personal_actor_incoming_targets(registry, handle, targets,
+                    native_book_source=book_provider, native_saved_book=saved_provider, native_producer_book=producer_provider),
+                current_authority=lambda: current()[0], current_scope=lambda: current()[1], current_saved_book=saved)
+            return review.review() if choices is None else review.draft_choices(expected_revision, choices)
+
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:
@@ -5495,7 +5631,8 @@ class PhoneService:
                             valid = item["parent_id"] in allowed["note"] if item["kind"] == "attachment" else \
                                 item["kind"] in allowed and item["id"] in allowed[item["kind"]]
                             if not valid:
-                                raise PermissionError("actor_deletion_outside_scope")
+                                self._quarantine_personal_actor_incoming_targets(registry, handle, payload)
+                                return  # Origin only: NO raw/data staging, save or success ACK.
                     else:
                         kinds = self.store.personal_decision_kinds(storage_peer, content, False)
                         if not kinds or any(value not in {"note", "task", "attachment"} for value in kinds):
