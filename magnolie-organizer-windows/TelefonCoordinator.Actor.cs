@@ -30,6 +30,23 @@ internal sealed partial class TelefonCoordinator
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
+    // Native pre-admission read only. Every page requires the same fresh source
+    // pin (peer/key/channel/grants/book/scope); no saved manifest or actor owner
+    // is created by this operation. Not a public MCP tool or transport frame.
+    internal Task<JsonObject> ReadPersonalActorScopeAsync(string id, string fingerprint, string expectedSource,
+        int offset = 0, int limit = 128, CancellationToken cancellation = default) => WithPersonalActorStoreAsync(_ => {
+            if (expectedSource.Length != 64 || CurrentActorSource(id, fingerprint) != expectedSource)
+                throw new InvalidOperationException("actor_source_changed");
+            if (!online.TryGetValue(id, out var connection)) throw new InvalidOperationException("actor_source_changed");
+            var reference = connection.ActorSourceSnapshot()["scope"]!.AsObject();
+            var manifest = connection.CurrentContentScope(reference);
+            var page = PhoneContentScope.ReadPage(manifest, offset, limit);
+            if (CurrentActorSource(id, fingerprint) != expectedSource || !ReferenceEquals(online.GetValueOrDefault(id), connection))
+                throw new InvalidOperationException("actor_source_changed");
+            page["sourceRevision"] = expectedSource;
+            return page;
+        }, cancellation);
+
     internal async Task<JsonObject> ExecuteMcpActorAsync(JsonObject request, CancellationToken cancellation)
     {
         try

@@ -5,11 +5,42 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PhoneContentScopeTests
 {
+    private static void NativePages()
+    {
+        var manifest = PhoneContentScope.Create(["a", "ä", "😀"], ["b", "z"]);
+        var before = manifest.ToJsonString();
+        var collected = new JsonObject { ["notes"] = new JsonArray(), ["tasks"] = new JsonArray() };
+        var offset = 0;
+        do
+        {
+            var page = PhoneContentScope.ReadPage(manifest, offset, 2);
+            TestAssert.That(page["total"]!.GetValue<int>() == 5 && page["notes_total"]!.GetValue<int>() == 3 &&
+                JsonNode.DeepEquals(page["scope"], PhoneContentScope.Reference(manifest)), "Native page lost accepted scope identity/counts.");
+            foreach (var kind in new[] { "notes", "tasks" })
+                foreach (var item in page["members"]![kind]!.AsArray()) collected[kind]!.AsArray().Add(item!.DeepClone());
+            offset = page["next_offset"]?.GetValue<int>() ?? -1;
+        } while (offset >= 0);
+        TestAssert.That(JsonNode.DeepEquals(collected, manifest["members"]) && manifest.ToJsonString() == before, "Native paging skipped/duplicated/mutated members.");
+        foreach (var (start, limit) in new[] { (-1, 1), (6, 1), (0, 0), (0, 129) })
+            TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.ReadPage(manifest, start, limit), "Invalid native page range was accepted.");
+        var empty = PhoneContentScope.ReadPage(PhoneContentScope.Create([], []), 0, 128);
+        TestAssert.That(empty["total"]!.GetValue<int>() == 0 && empty["next_offset"] is null, "Empty scope did not finish paging.");
+        var escaped = PhoneContentScope.Create(Enumerable.Range(0, 50000).Select(index => "id" + index.ToString("D5") + new string('\u0001', 150)), []);
+        var first = PhoneContentScope.ReadPage(escaped, 0, 128);
+        TestAssert.That(first["total"]!.GetValue<int>() == 50000 && first["next_offset"]!.GetValue<int>() is > 0 and < 128 &&
+            TelefonCrypto.Canonical(first).Length <= 32000, "Escaped scope identifiers inflated the native page beyond its byte budget.");
+        var last = PhoneContentScope.ReadPage(escaped, 49999, 128);
+        TestAssert.That(last["members"]!["notes"]!.AsArray().Count == 1 && last["next_offset"] is null, "Maximum-size scope last page was not bounded/terminal.");
+        first["members"]!["notes"]![0] = "Caller changed copy";
+        TestAssert.That(PhoneContentScope.ReadPage(escaped, 0, 1)["members"]!["notes"]![0]!.GetValue<string>() != "Caller changed copy", "Native page retained mutable manifest nodes.");
+    }
+
     private static JsonObject Record(string kind, string id, string text = "", string notebook = "") => new()
     { ["kind"] = kind, ["id"] = id, ["state"] = "live", ["value"] = new JsonObject { ["text"] = text, ["notebook_id"] = notebook } };
 
     internal static Task RunAsync()
     {
+        NativePages();
         var golden = PhoneContentScope.Create(["mobile-note", "\ue000", "😀"], ["mobile-task"], 7, "44444444-4444-4444-8444-444444444444");
         TestAssert.That(golden["scope_hash"]!.GetValue<string>() == "589f36e8c7d673b4e24e3bebc8a020441d9e313a465f2f8f011b9cebb596fdc2",
             "Scope hash or UTF-8 identity ordering disagrees with the Python golden.");

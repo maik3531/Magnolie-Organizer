@@ -73,6 +73,32 @@ internal static class PhoneContentScope
             ["revision"] = revision, ["scope_hash"] = Digest(members), ["members"] = members });
     }
 
+    // Native projection, never target authority. Combined offset visits notes
+    // then tasks in their accepted UTF-8 order. Limit count AND serialized bytes
+    // so control characters/escaped identifiers cannot inflate a reply.
+    internal static JsonObject ReadPage(JsonObject manifest, int offset, int limit)
+    {
+        if (offset < 0 || limit is < 1 or > 128) throw new InvalidDataException("invalid_scope_page");
+        Validate(manifest);
+        var notes = manifest["members"]!["notes"]!.AsArray(); var tasks = manifest["members"]!["tasks"]!.AsArray();
+        var total = notes.Count + tasks.Count;
+        if (offset > total) throw new InvalidDataException("invalid_scope_page");
+        var members = new JsonObject { ["notes"] = new JsonArray(), ["tasks"] = new JsonArray() };
+        var page = new JsonObject { ["scope"] = Reference(manifest), ["offset"] = offset, ["total"] = total,
+            ["notes_total"] = notes.Count, ["tasks_total"] = tasks.Count, ["next_offset"] = null, ["members"] = members };
+        var next = offset;
+        while (next < total && next - offset < limit)
+        {
+            var isNote = next < notes.Count; var target = members[isNote ? "notes" : "tasks"]!.AsArray();
+            target.Add((isNote ? notes[next] : tasks[next - notes.Count])!.DeepClone());
+            // Reserve room for the source pin added by the guarded caller.
+            if (TelefonCrypto.Canonical(page).Length > 32000) { target.RemoveAt(target.Count - 1); break; }
+            next++;
+        }
+        if (next < total) page["next_offset"] = next;
+        return page;
+    }
+
     internal static JsonObject Advance(JsonObject current, IEnumerable<string> notes, IEnumerable<string> tasks)
     {
         Validate(current); var candidate = Create(notes, tasks, Number(current, "revision"));

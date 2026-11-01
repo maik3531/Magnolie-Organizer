@@ -103,6 +103,25 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is string reopened && reopened != hostSource,
                 "Host lock/unlock inherited a previous actor source.");
             var actorSource = coordinator.CurrentActorSource(peer.Id, fingerprint)!;
+            var scopePage = await coordinator.ReadPersonalActorScopeAsync(peer.Id, fingerprint, actorSource, 0, 1);
+            TestAssert.That(scopePage["sourceRevision"]!.GetValue<string>() == actorSource && scopePage["next_offset"]!.GetValue<int>() == 1 &&
+                scopePage["members"]!["notes"]![0]!.GetValue<string>() == "note-one" && scopePage["members"]!["tasks"]!.AsArray().Count == 0,
+                "Native accepted-scope page was not source-pinned/bounded.");
+            var taskPage = await coordinator.ReadPersonalActorScopeAsync(peer.Id, fingerprint, actorSource, 1, 1);
+            TestAssert.That(taskPage["members"]!["tasks"]![0]!.GetValue<string>() == "task-one" && taskPage["next_offset"] is null,
+                "Native scope paging lost the notes/tasks boundary.");
+            var stalePageDenied = false;
+            try { await coordinator.ReadPersonalActorScopeAsync(peer.Id, fingerprint, new string('b', 64)); }
+            catch (InvalidOperationException) { stalePageDenied = true; }
+            TestAssert.That(stalePageDenied, "Unpinned accepted scope was exposed.");
+            var bookReads = 0;
+            coordinator.NativeBookSource = () => { if (++bookReads == 3) hostBook.Invalidate(); return hostBook.Current("actual-host-profile", true); };
+            var racedPageDenied = false;
+            try { await coordinator.ReadPersonalActorScopeAsync(peer.Id, fingerprint, actorSource); }
+            catch (InvalidOperationException) { racedPageDenied = true; }
+            TestAssert.That(racedPageDenied, "Native book change during page read exposed stale accepted membership.");
+            coordinator.NativeBookSource = () => hostBook.Current("actual-host-profile", true);
+            actorSource = coordinator.CurrentActorSource(peer.Id, fingerprint)!;
             var actorHandle = await coordinator.WithPersonalActorStoreAsync(registry => {
                 TestAssert.That(store.NotePolicyGate.CurrentCount == 0 && Monitor.IsEntered(
                     typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
