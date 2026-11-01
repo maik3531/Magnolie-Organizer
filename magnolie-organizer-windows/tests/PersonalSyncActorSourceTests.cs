@@ -121,6 +121,53 @@ internal static class PersonalSyncActorSourceTests
             wire.AssertActorWrite = () => TestAssert.That(store.NotePolicyGate.CurrentCount == 1 && !Monitor.IsEntered(
                 typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
                 "Actor network I/O held native policy/source guards.");
+            foreach (var afterNativeSend in new[] { false, true })
+            {
+                var ownHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+                await coordinator.StartPersonalActorAsync(ownHandle);
+                await SharedSyncTransportTests.DrainAsync(wire);
+                var ownProposal = Guid.NewGuid().ToString("D");
+                var clock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 });
+                var target = new JsonObject { ["proposal_id"] = ownProposal, ["kind"] = "note", ["id"] = "note-one", ["parent_id"] = "",
+                    ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() };
+                var decision = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", new JsonObject {
+                    ["format"] = 1, ["run_id"] = ownHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = ownProposal, ["decision"] = "restore", ["expected_clock"] = clock.DeepClone() }) }), ownHandle.ActorId);
+                var ownAck = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(ownHandle.ActorId, decision["message_id"]!.GetValue<string>()));
+                hostBook.RecordSaved("actual-host-profile", true, new string('a', 64));
+                // Native guard injection exercises the real admitted receive
+                // lane, not a yet-unimplemented incoming-decision controller.
+                var ownCompletion = await coordinator.WithPersonalActorStoreAsync(registry => {
+                    var guard = new PersonalActorDecisionCompletion(ownHandle.ActorId, new JsonArray(target), [decision],
+                        () => coordinator.CurrentActorCompletionAuthority(peer.Id, fingerprint),
+                        () => connection.CurrentContentScope(PhoneContentScope.Reference(manifest)),
+                        () => hostBook.SaveState("actual-host-profile", true), () => registry.ReadCompletionControls(ownHandle),
+                        nativeSentAcknowledgments: [ownAck]);
+                    registry.BeginCompletion(ownHandle, guard.Validator); return guard;
+                });
+                var admissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                var admitted = admissions[ownHandle.ActorId]!;
+                admitted.GetType().GetProperty("Completion", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, ownCompletion);
+                if (afterNativeSend) await coordinator.WithPersonalActorStoreAsync(_ => { ownCompletion.RecordSuccessfulAcknowledgmentSend(ownAck); return true; });
+                var ownEmitted = emitted;
+                foreach (var status in new[] { "accepted", "duplicate", "rejected" })
+                {
+                    await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind,
+                        PersonalSyncActorContract.Ack(ownHandle.ActorId, decision["message_id"]!.GetValue<string>(), status,
+                            status == "rejected" ? "temporary_failure" : "none")));
+                    await coordinator.WithPersonalActorStoreAsync(registry => {
+                        TestAssert.That(ownCompletion.Summary()["saved"]!.GetValue<int>() == 0 && registry.ReadCompletionControls(ownHandle).Count == 0 &&
+                            registry.Status(ownHandle)["phase"]!.GetValue<string>() == "completion", "Peer claim counted or retired this endpoint's native ACK.");
+                        return true;
+                    });
+                    TestAssert.That(wire.Length == 0 && emitted == ownEmitted, "Peer claim emitted wire/GUI side effects.");
+                }
+                await coordinator.WithPersonalActorStoreAsync(registry => {
+                    if (!afterNativeSend) ownCompletion.RecordSuccessfulAcknowledgmentSend(ownAck);
+                    registry.PutCompletionControl(ownHandle, ownAck); ownCompletion.RecordPersisted(ownAck);
+                    registry.FinishCompletion(ownHandle); return true;
+                });
+            }
             var transportHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
             var started = await coordinator.StartPersonalActorAsync(transportHandle);
             var startFrame = (await SharedSyncTransportTests.DrainAsync(wire)).Single();

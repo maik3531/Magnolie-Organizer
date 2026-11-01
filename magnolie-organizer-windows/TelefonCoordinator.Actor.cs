@@ -477,6 +477,9 @@ internal sealed partial class TelefonCoordinator
                 if (admission.Completion is { } completion)
                 {
                     if (kind != PersonalSyncActorContract.AckKind) return false;
+                    PersonalSyncActorContract.ValidateAck(body);
+                    if (completion.ExpectsNativeAcknowledgment(body["message_id"]!.GetValue<string>()))
+                        return true; // A peer cannot attest to this endpoint's native send.
                     registry.PutCompletionControl(admission.Handle, message);
                     completion.RecordPersisted(message);
                     var state = body["status"]!.GetValue<string>();
