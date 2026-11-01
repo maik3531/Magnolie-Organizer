@@ -384,6 +384,7 @@ internal static class PersonalSyncActorSourceTests
                 var admissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
                 var admittedOrder = admissions[orderHandle.ActorId]!; var flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
                 admittedOrder.GetType().GetProperty("ReportOwner", flags)!.SetValue(admittedOrder, waiting);
+                admittedOrder.GetType().GetProperty("SaveReceipt", flags)!.SetValue(admittedOrder, hostBook.SaveState("actual-host-profile", true));
                 admittedOrder.GetType().GetProperty("CompletionReportId", flags)!.SetValue(admittedOrder, reportId);
                 var outbound = (HashSet<string>)admittedOrder.GetType().GetProperty("Outbound", flags)!.GetValue(admittedOrder)!;
                 outbound.Add(reportId); foreach (var value in fixedFrames) outbound.Add(value["message_id"]!.GetValue<string>());
@@ -407,6 +408,46 @@ internal static class PersonalSyncActorSourceTests
                     await coordinator.PumpPersonalActorAsync(connection);
                     var secondSent = await SharedSyncTransportTests.DrainAsync(wire);
                     TestAssert.That(secondSent.Count == 1 && JsonNode.DeepEquals(secondSent[0], orderReportWire), "Mixed report remained deadlocked or resent fixed decisions without waiting for due retry.");
+                    // Both decisions are restores, so the independently checked
+                    // result scope remains the exact original membership.
+                    var lateProposal = lateTarget.DeepClone().AsObject(); lateProposal["deleted_ms"] = 2; lateProposal["label"] = "Synthetic original late proof";
+                    store.RememberPersonalProposalKinds(PersonalSyncActorContract.StoragePeer(orderHandle.ActorId), new JsonObject { ["format"] = 1,
+                        ["run_id"] = orderHandle.ActorId, ["proposal_batch_id"] = orderHandle.ActorId, ["sequence"] = 0, ["last"] = true,
+                        ["proposals"] = new JsonArray(lateProposal) }, true);
+                    var fixedPeerAck = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(orderHandle.ActorId, fixedFrames[0]["message_id"]!.GetValue<string>()));
+                    var earlyFixedAck = sendOrderCase == "report-first";
+                    if (earlyFixedAck) await connection.HandlePlainAsync(fixedPeerAck);
+                    await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(orderHandle.ActorId, reportId)));
+                    var lateDecision = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", new JsonObject {
+                        ["format"] = 1, ["run_id"] = orderHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                        ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = lateTarget["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = lateTarget["clock"]!.DeepClone() }) }), orderHandle.ActorId);
+                    await connection.HandlePlainAsync(lateDecision);
+                    var lateView = await coordinator.ReadPersonalActorLateReviewAsync(orderHandle);
+                    TestAssert.That(lateView["review_ready"]!.GetValue<bool>() && wire.Length == 0, "Mixed metadata owner lost its late review or sent premature deletion success.");
+                    var lateSave = await coordinator.PreparePersonalActorLateSaveAsync(orderHandle, lateView["review_revision"]!.GetValue<string>(), new string('d', 64));
+                    hostBook.RecordSaved("actual-host-profile", true, new string('d', 64));
+                    var unionSequence = hostBook.SaveState("actual-host-profile", true)!.Sequence;
+                    var unionReceipt = await coordinator.ConfirmPersonalActorLateSaveAsync(orderHandle, lateSave["claim_token"]!.GetValue<string>());
+                    var unionStatus = await coordinator.PersonalActorStatusAsync(orderHandle);
+                    TestAssert.That(!unionReceipt["phone_persisted"]!.GetValue<bool>() && unionStatus["deletion_completion"]!["expected"]!.GetValue<int>() == 2 &&
+                        unionStatus["deletion_completion"]!["saved"]!.GetValue<int>() == (earlyFixedAck ? 1 : 0),
+                        "Late confirmation lost the fixed peer-ACK direction or confused it with its own late-ACK send.");
+                    TestAssert.That(JsonNode.DeepEquals(unionReceipt, await coordinator.ConfirmPersonalActorLateSaveAsync(orderHandle, lateSave["claim_token"]!.GetValue<string>())),
+                        "Mixed late-confirm retry changed its original saved identity.");
+                    await coordinator.AdvancePersonalActorCompletionAsync(orderHandle);
+                    var unionOwnAck = await SharedSyncTransportTests.DrainAsync(wire);
+                    TestAssert.That(unionOwnAck.Count == 1 && unionOwnAck[0]["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind &&
+                        unionOwnAck[0]["body"]!["message_id"]!.GetValue<string>() == lateDecision["message_id"]!.GetValue<string>(),
+                        "Mixed completion resent initial decisions or failed to send only its late original ACK.");
+                    if (!earlyFixedAck)
+                    {
+                        TestAssert.That(!(await coordinator.PersonalActorStatusAsync(orderHandle))["phone_persisted"]!.GetValue<bool>(), "Own late ACK substituted for the missing fixed peer receipt.");
+                        await connection.HandlePlainAsync(fixedPeerAck);
+                    }
+                    var completedUnion = await coordinator.PersonalActorStatusAsync(orderHandle);
+                    TestAssert.That(completedUnion["phone_persisted"]!.GetValue<bool>() && completedUnion["deletion_completion"]!["saved"]!.GetValue<int>() == 2 &&
+                        hostBook.SaveState("actual-host-profile", true)!.Sequence == unionSequence && wire.Length == 0,
+                        "Mixed receipt union did not complete both directions without repeating a document save.");
                 }
                 await coordinator.CancelPersonalActorAsync(orderHandle); await SharedSyncTransportTests.DrainAsync(wire);
                 new PersonalSyncStore(store).PurgeProtocol(PersonalSyncActorContract.StoragePeer(orderHandle.ActorId));

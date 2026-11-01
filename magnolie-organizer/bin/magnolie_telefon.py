@@ -5118,18 +5118,39 @@ class PhoneService:
                     native.extend(proof)
                 if sorted(native, key=lambda value: value['proposal_id']) != sorted(waiting.targets, key=lambda value: value['proposal_id']):
                     raise PermissionError('actor_completion_target_proof_changed')
+                fixed_native = []
+                fixed_frames = list(waiting.fixed_frames.values())
+                for wire in fixed_frames:
+                    kind, body = personal_actor_contract.unwrap(wire['body'])
+                    if kind != 'personal_sync.deletion_decision':
+                        raise PermissionError('actor_completion_decision_envelope_changed')
+                    proof = self.store.personal_decision_targets(personal_actor_contract.storage_peer(handle.actor_id), body, True)
+                    if proof is None:
+                        raise PermissionError('actor_completion_target_proof_missing')
+                    fixed_native.extend(proof)
+                if sorted(fixed_native, key=lambda value: value['proposal_id']) != sorted(waiting.fixed_targets, key=lambda value: value['proposal_id']):
+                    raise PermissionError('actor_completion_target_proof_changed')
                 own_acks = [self._actor_control_message(personal_actor_contract.ACK_KIND,
                     personal_actor_contract.ack(handle.actor_id, wire['message_id'])) for wire in frames]
-                completion = DecisionAckCompletion(handle.actor_id, native, frames,
+                completion = DecisionAckCompletion(handle.actor_id, native + fixed_native, frames + fixed_frames,
                     current_authority=waiting.current_authority, current_scope=waiting.review.current_scope, current_saved_book=saved_provider,
                     persisted_controls=lambda: registry.read_completion_controls(handle), native_sent_acknowledgments=own_acks, before_scope=waiting.before)
                 admission['late_completion'] = completion
                 admission['late_own_acks'] = own_acks
             completion = admission['late_completion']
             completion.current_saved_book = saved_provider
+            # Import only the original protected peer receipts, under both the
+            # still-current review owner and independently pinned final scope /
+            # late SaveACK. This is not a new receive or a replay of the choice.
+            # Already protected ACKs retain their original reception evidence;
+            # do not reinsert them with a manufactured fresh header/TTL.
+            for wire in registry.read_completion_controls(handle):
+                if (wire['kind'] == personal_actor_contract.ACK_KIND and
+                        wire['body']['message_id'] in waiting.fixed_frames):
+                    completion.record_persisted(wire)
             registry.promote_decision_review(handle, waiting.validator, completion.validator)
             admission['completion'] = completion
-            admission['completion_ids'] = set()  # Received original decisions are references only.
+            admission['completion_ids'] = set(waiting.fixed_frames)  # Incoming late decisions are references, never requeued.
             admission['completion_native_acks'] = {wire['message_id']: wire for wire in admission['late_own_acks']}
             admission['completion_deferred_controls'] = {}
             admission['phone_persisted'] = False

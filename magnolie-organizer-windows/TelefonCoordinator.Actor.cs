@@ -745,18 +745,40 @@ internal sealed partial class TelefonCoordinator
             if (targets.Count != expected.Count || targets.OfType<JsonObject>().Any(value =>
                 !expected.TryGetValue(value["proposal_id"]!.GetValue<string>(), out var original) || !JsonNode.DeepEquals(value, original)))
                 throw new InvalidOperationException("actor_completion_target_proof_changed");
+            var fixedFrames = waiting.FixedDecisionFrames;
+            var fixedTargets = new JsonArray();
+            foreach (var wire in fixedFrames)
+            {
+                var (kind, body) = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+                if (kind != "personal_sync.deletion_decision") throw new InvalidOperationException("actor_completion_decision_envelope_changed");
+                var proof = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(handle.ActorId), body, true)
+                    ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+                foreach (var target in proof) fixedTargets.Add(target!.DeepClone());
+            }
+            var fixedExpected = waiting.NativeFixedTargets.OfType<JsonObject>().ToDictionary(value => value["proposal_id"]!.GetValue<string>(), StringComparer.Ordinal);
+            if (fixedTargets.Count != fixedExpected.Count || fixedTargets.OfType<JsonObject>().Any(value =>
+                !fixedExpected.TryGetValue(value["proposal_id"]!.GetValue<string>(), out var original) || !JsonNode.DeepEquals(value, original)))
+                throw new InvalidOperationException("actor_completion_target_proof_changed");
+            foreach (var target in fixedTargets) targets.Add(target!.DeepClone());
             var acknowledgments = frames.Select(wire => ActorControl(PersonalSyncActorContract.AckKind,
                 PersonalSyncActorContract.Ack(handle.ActorId, wire["message_id"]!.GetValue<string>()))).ToArray();
             var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
-            admission.LateCompletion = new PersonalActorDecisionCompletion(handle.ActorId, targets, frames,
+            admission.LateCompletion = new PersonalActorDecisionCompletion(handle.ActorId, targets, frames.Concat(fixedFrames).ToArray(),
                 () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint),
                 () => admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject()),
                 () => NativeSavedBook(), () => registry.ReadCompletionControls(handle), nativeSentAcknowledgments: acknowledgments, beforeScope: waiting.OriginalScope);
             admission.LateOwnAcknowledgments = acknowledgments;
         }
+        // Import original protected peer receipts under the old current review
+        // owner AND the independently pinned final scope/separate late SaveACK.
+        // No fresh headers, reinsertion or initial choice mutation is involved.
+        foreach (var wire in registry.ReadCompletionControls(handle).OfType<JsonObject>())
+            if (wire["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && waiting.IsFixedDecisionFrame(wire["body"]!["message_id"]!.GetValue<string>()))
+                admission.LateCompletion.RecordPersisted(wire);
         registry.PromoteDecisionReview(handle, waiting.Validator, admission.LateCompletion.Validator);
         admission.Completion = admission.LateCompletion;
         admission.CompletionIds.Clear(); // Received original decisions are references, never outgoing data.
+        foreach (var wire in waiting.FixedDecisionFrames) admission.CompletionIds.Add(wire["message_id"]!.GetValue<string>());
         foreach (var ack in admission.LateOwnAcknowledgments) admission.NativeAcknowledgments.Add(ack["message_id"]!.GetValue<string>(), ack);
         admission.PhonePersisted = false;
         return Receipt();
