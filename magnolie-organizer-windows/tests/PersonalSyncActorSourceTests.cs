@@ -182,6 +182,9 @@ internal static class PersonalSyncActorSourceTests
                         var denied = false;
                         try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { denied = true; }
                         TestAssert.That(denied, "Native producer retry rebound a new actual writer observation.");
+                        var producerWireBefore = wire.Length;
+                        await coordinator.PumpPersonalActorAsync(connection);
+                        TestAssert.That(wire.Length == producerWireBefore, "Native producer sent staged targets after its actual writer witness changed.");
                     }
                 }
                 await coordinator.CancelPersonalActorAsync(producerHandle);

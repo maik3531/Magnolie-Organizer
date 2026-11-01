@@ -275,6 +275,9 @@ def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_pa
     if scenario == 'changed-writer':
         owner.record_saved('native-producer-fixture', True, first.saved_sha256)
         with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
+        producer_frame = next(frame for frame in frames if frame['kind'] == actor.DATA_KIND)
+        assert not service._send_personal_actor_queued(channel, peer_id, producer_frame)
+        assert channel.sent == wire_before, 'Staged native proposal escaped after its actual writer witness changed'
     service.cancel_personal_actor(registry, handle)
     assert service.store.pending(peer_id) == queued_before, 'Native cancellation lost generated producer frame ownership'
     with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)

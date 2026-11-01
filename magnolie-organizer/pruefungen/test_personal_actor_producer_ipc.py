@@ -119,6 +119,8 @@ def test_native_proxy_uploads_fresh_bounded_book_only_for_the_live_protected_run
             assert len(frames) == len(queued_before) + 1 and chunks[0] >= 2
             assert proxy.produce_personal_actor_proposals(handle) == result
             assert service.store.pending(peer['device_id']) == frames
+            producer_frame = next(frame for frame in frames if frame['kind'] == actor.DATA_KIND)
+            assert not service._send_personal_actor_queued(channel, peer['device_id'], producer_frame), 'Daemon reused an expired operation projection as a background writer proof'
             decision = {'format': 1, 'run_id': handle.actor_id, 'decision_id': RUN, 'decisions': [
                 {'proposal_id': proposal_id, 'decision': 'restore', 'expected_clock': clock}]}
             assert len(service.store.personal_decision_targets(actor.storage_peer(handle.actor_id), decision, False)) == 1

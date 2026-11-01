@@ -4445,6 +4445,7 @@ class PhoneService:
                 expected_source=source, saved_book=snapshot.saved_book, current_source=current,
                 current_saved_book=saved_provider) if bodies else []
             admission['outbound'].update(frame['message_id'] for frame in frames)
+            admission.setdefault('producer_ids', set()).update(frame['message_id'] for frame in frames)
             current()
             if saved_provider() != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
@@ -5160,7 +5161,7 @@ class PhoneService:
         completed[identity] = wire["message_id"]
         admission["registry"].require_current(handle)
 
-    def _send_personal_actor_queued(self, channel, peer_id, message):
+    def _send_personal_actor_queued(self, channel, peer_id, message, *, native_saved_book=None):
         # Ordinary callers can be inside their legacy guard; the next native due
         # pass will claim this frame outside that guard instead of writing there.
         if self.lock._is_owned():
@@ -5173,7 +5174,13 @@ class PhoneService:
                     message.get("message_id") not in admission["outbound"]):
                 return False
             registry, handle = admission["registry"], admission["handle"]
+            producer = message['message_id'] in admission.get('producer_ids', ())
+            saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+            # Daemon has intentionally NO permanent writer callback. Generated
+            # proposal frames wait for an operation-live native dispatch proof.
             try:
+                if producer and (not callable(saved_provider) or saved_provider() != admission.get('producer_book')):
+                    return False
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)
                 else:
@@ -5185,6 +5192,8 @@ class PhoneService:
                     registry.check_completion(handle, "send", message)
                 else:
                     registry.require_current(handle)
+                if producer and saved_provider() != admission.get('producer_book'):
+                    return False
             except PermissionError as error:
                 if admission.get("completion") is not None and str(error) == "actor_completion_not_ready":
                     return False
