@@ -69,6 +69,13 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionLedgerRetryDoesNotRepeatTheBookWrite() = exercise("actor-producer-incoming-ledger-failure")
     @Test fun nativeIncomingDecisionWriterFailureNeverSendsSuccess() = exercise("actor-producer-incoming-writer-failure")
     @Test fun nativeIncomingDecisionSentAckMetadataFailureStillNeedsPersistence() = exercise("actor-producer-incoming-metadata-failure")
+    @Test fun nativeIncomingDecisionDeniedAfterGrantRevocation() = exercise("actor-producer-incoming-deny-grants")
+    @Test fun nativeIncomingDecisionDeniedAfterAnotherBookWrite() = exercise("actor-producer-incoming-deny-book")
+    @Test fun nativeIncomingDecisionDeniedAfterPeerKeyReplacement() = exercise("actor-producer-incoming-deny-key")
+    @Test fun nativeIncomingDecisionDeniedOnOldChannel() = exercise("actor-producer-incoming-deny-channel")
+    @Test fun nativeIncomingDecisionDeniedAfterBookInstanceReplacement() = exercise("actor-producer-incoming-deny-instance")
+    @Test fun nativeIncomingDecisionDeniedAfterRestore() = exercise("actor-producer-incoming-deny-restore")
+    @Test fun nativeIncomingDecisionDeniedAfterCancellation() = exercise("actor-producer-incoming-deny-cancel")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -399,7 +406,8 @@ class ScopedDataRuntimeTest {
                             val draft = documents.entwurf.value
                             val witness = requireNotNull(documents.personalActorSavedBookState())
                             val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
-                            if (mode.endsWith("ledger-failure")) database.execSQL("CREATE TRIGGER incoming_ledger_failure BEFORE UPDATE ON inbox WHEN NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic incoming decision ledger failure'); END")
+                            val denyIncomingAck = mode.startsWith("actor-producer-incoming-deny-")
+                            if (mode.endsWith("ledger-failure") || denyIncomingAck) database.execSQL("CREATE TRIGGER incoming_ledger_failure BEFORE UPDATE ON inbox WHEN NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic incoming decision ledger failure'); END")
                             if (mode.endsWith("metadata-failure")) database.execSQL("CREATE TRIGGER incoming_metadata_failure BEFORE INSERT ON meta WHEN NEW.key GLOB 'personal_actor_completion_wire:*' BEGIN SELECT RAISE(ABORT,'synthetic sent ACK persistence failure'); END")
                             if (mode.endsWith("writer-failure")) failBookWrites.set(true)
                             if (mode.endsWith("send-failure")) failNextFlush.set(true)
@@ -419,6 +427,43 @@ class ScopedDataRuntimeTest {
                             assertEquals(witness.getValue("sequence").jsonPrimitive.long + 1, after.getValue("sequence").jsonPrimitive.long)
                             assertEquals(if (choice == "restore") 33 else 0, documents.notiz("phone-note")!!.anhaenge.size)
                             assertEquals(draft, documents.entwurf.value)
+                            if (denyIncomingAck) {
+                                assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                when (mode.substringAfterLast("deny-")) {
+                                    "grants" -> {
+                                        val bound = requireNotNull(storage.peers().peer)
+                                        storage.savePeer(bound.copy(remote_personal_deletions_sync_granted = false,
+                                            remote_grants_revision = bound.remote_grants_revision + 1))
+                                    }
+                                    "book" -> documents.setzeNotiz(Notiz("other-local-note", "New local edit", "Must not be overwritten"))
+                                    "key" -> {
+                                        val bound = requireNotNull(storage.peers().peer)
+                                        storage.replaceConfirmedPeer(bound, bound.copy(
+                                            static_public = TelefonKrypto.b64(ByteArray(32) { 99 }), state = "paired_unverified"))
+                                    }
+                                    "channel" -> field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                                    "instance" -> {
+                                        val replacement = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                                        assertEquals(documents.bestand.value, replacement.bestand.value)
+                                        assertNotEquals(documents.personalActorSavedBookState()?.get("book_source"), replacement.personalActorSavedBookState()?.get("book_source"))
+                                        field(Ablage::class.java, "einzig").set(null, replacement)
+                                    }
+                                    "restore" -> documents.setzeBaum(documents.baum.value.copy(syncEpoch = "new-incoming-restore-epoch"))
+                                    "cancel" -> work.stopPersonalActor(handle)
+                                    else -> error("Unexpected incoming ACK deny fixture")
+                                }
+                                val retainedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                database.execSQL("DROP TRIGGER incoming_ledger_failure")
+                                runCatching { pump.invoke(work, peer, channel, 0L, false) }
+                                assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                assertNotEquals("completed", work.personalActorJournal.completionState(handle))
+                                assertArrayEquals(retainedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                assertEquals(draft, documents.entwurf.value)
+                                if (mode.endsWith("deny-book")) assertEquals("Must not be overwritten", documents.notiz("other-local-note")?.text)
+                                assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
+                                return@use
+                            }
                             if (mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
                                 assertEquals("completion", work.personalActorJournal.completionState(handle))
                                 @Suppress("UNCHECKED_CAST")
