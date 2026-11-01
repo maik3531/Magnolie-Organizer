@@ -26,7 +26,57 @@ internal static class PersonalActorMixedLateReviewTests
             "only-late", "only-fixed", "unrelated", "pinning" }) Exercise("delete", "delete", fault);
         foreach (var scenario in new[] { "complete", "missing-frame", "missing-target", "duplicate-frame", "foreign-clock", "report-collision", "late-target-collision" })
             ExerciseReportOwner(scenario);
+        foreach (var fixedCount in new[] { 1, 128, 255 }) ExerciseCapacity(fixedCount);
         return Task.CompletedTask;
+    }
+    private static void ExerciseCapacity(int fixedCount)
+    {
+        // Native primitive capacity budget, not UI responsiveness or phone E2E.
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var lateCount = 256 - fixedCount;
+        var late = Enumerable.Range(0, lateCount).Select(index => Target("note", $"capacity-note-{index:D3}")).ToArray();
+        var fixedTargets = Enumerable.Range(0, fixedCount).Select(index => Target("task", $"capacity-task-{index:D3}")).ToArray();
+        IReadOnlyList<JsonObject> Frames(IEnumerable<JsonObject> targets) => targets.OrderBy(value => value["proposal_id"]!.GetValue<string>(), StringComparer.Ordinal).Chunk(32).Select(chunk =>
+            PersonalSyncActorContract.WireMessage(Frame("personal_sync.deletion_decision", new JsonObject { ["format"] = 1, ["run_id"] = Run,
+                ["decision_id"] = Guid.NewGuid().ToString("D"), ["decisions"] = new JsonArray(chunk.Select(value => (JsonNode)new JsonObject {
+                    ["proposal_id"] = value["proposal_id"]!.DeepClone(), ["decision"] = "delete", ["expected_clock"] = value["clock"]!.DeepClone() }).ToArray()) }), Run)).ToArray();
+        var incoming = Frames(late); var outgoing = Frames(fixedTargets);
+        JsonArray Targets(IEnumerable<JsonObject> values) => new(values.Select(value => (JsonNode)value.DeepClone()).ToArray());
+        var before = PhoneContentScope.Create(late.Select(value => value["id"]!.GetValue<string>()), fixedTargets.Select(value => value["id"]!.GetValue<string>()));
+        var actual = PhoneContentScope.Create([], [], revision: 2, epoch: Guid.NewGuid().ToString("D"));
+        var owner = new NativeBookOwnerScope(); owner.SetReady(true); owner.RecordSaved("capacity-native-review", true, new string('a', 64));
+        NativeBookSaveState? Read() => owner.SaveState("capacity-native-review", true);
+        var reportId = Guid.NewGuid().ToString("D"); var reportAck = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, reportId));
+        PersonalActorPostDataReview Create(JsonArray originalFixed) => new(Run, Targets(late), before, reportId, reportAck, () => new string('b', 64), () => actual,
+            Read, () => Targets(incoming), nativeFixedTargets: originalFixed, fixedDecisionFrames: outgoing);
+        var review = Create(Targets(fixedTargets)); var view = review.Review();
+        TestAssert.That(view["decisions"]!.AsArray().Count == lateCount && view["fixed_decisions"]!.AsArray().Count == fixedCount &&
+            view["frame_hashes"]!.AsObject().Count == (lateCount + 31) / 32 && view["fixed_frame_hashes"]!.AsObject().Count == (fixedCount + 31) / 32 &&
+            TelefonCrypto.Canonical(view).Length < 4 * 1024 * 1024, "Maximum native Mixed review lost separate mutation/receipt groups or exceeded bounded paging capacity.");
+        var original = Read(); var claim = review.PrepareSave(view["revision"]!.GetValue<string>(), new string('c', 64));
+        TestAssert.That(JsonNode.DeepEquals(claim, review.PrepareSave(view["revision"]!.GetValue<string>(), new string('c', 64))) && Read() == original,
+            "Capacity review retry wrote a document or changed its original claim.");
+        owner.RecordSaved("capacity-native-review", true, new string('c', 64));
+        var receipt = review.ConfirmSaved(claim["claim_token"]!.GetValue<string>());
+        TestAssert.That(JsonNode.DeepEquals(receipt, review.ConfirmSaved(claim["claim_token"]!.GetValue<string>())), "Capacity confirm retry changed its original receipt.");
+        var own = incoming.Select(value => Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, value["message_id"]!.GetValue<string>()))).ToArray();
+        var persisted = new JsonArray();
+        var completion = new PersonalActorDecisionCompletion(Run, Targets(late.Concat(fixedTargets)), incoming.Concat(outgoing).ToArray(),
+            () => new string('b', 64), () => actual, Read, () => persisted.DeepClone().AsArray(), own, before);
+        foreach (var wire in own) { completion.RecordSuccessfulAcknowledgmentSend(wire); persisted.Add(wire.DeepClone()); completion.RecordPersisted(wire); }
+        TestAssert.That(completion.Summary()["saved"]!.GetValue<int>() == incoming.Count && completion.Validator("finish", null) is null,
+            "Maximum Mixed own ACK sends substituted for missing fixed peer receipts.");
+        foreach (var wire in outgoing)
+        {
+            var ack = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, wire["message_id"]!.GetValue<string>()));
+            persisted.Add(ack.DeepClone()); completion.RecordPersisted(ack);
+        }
+        var expected = incoming.Count + outgoing.Count;
+        TestAssert.That(completion.Summary()["expected"]!.GetValue<int>() == expected && completion.Summary()["saved"]!.GetValue<int>() == expected &&
+            completion.Validator("finish", null) == true && Read()!.Sequence == original!.Sequence + 1, "Maximum native Mixed receipt union failed or repeated a document save.");
+        var tooMany = Targets(fixedTargets); tooMany.Add(Target("task", "capacity-overflow"));
+        TestAssert.Throws<InvalidDataException>(() => Create(tooMany), "Combined257 native targets were admitted.");
+        TestAssert.That(timer.Elapsed < TimeSpan.FromSeconds(10), "Maximum native Mixed primitive exceeded its bounded10s test budget.");
     }
     internal static JsonObject ReportFrame()
     {
