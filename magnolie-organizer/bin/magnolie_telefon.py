@@ -4667,6 +4667,23 @@ class PhoneService:
             return {"reply_queued": True, "message_count": admission["reply_count"], "book_persisted": True,
                 "phone_persisted": False, "delivery_confirmed": False}
 
+    @staticmethod
+    def _require_actor_producer_decision_set(prepared, incoming):
+        expected = {proposal['proposal_id']: proposal['clock'] for body in (prepared or []) for proposal in body['proposals']}
+        if not expected:
+            return  # Preserve non-producer legacy review ownership.
+        received = set()
+        for body in incoming:
+            personal_sync_contract.validate_body('personal_sync.deletion_decision', body)
+            for decision in body['decisions']:
+                identifier = decision['proposal_id']
+                if (identifier not in expected or identifier in received or
+                        decision['expected_clock'] != expected[identifier]):
+                    raise PermissionError('actor_producer_decision_set_changed')
+                received.add(identifier)
+        if received != set(expected):
+            raise PermissionError('actor_producer_decisions_incomplete')
+
     def begin_personal_actor_completion(self, registry, handle, claim_token, *, native_saved_book=None,
                                         native_completion_authority=None, defer_native_book=False):
         """Native controller only: queue reviewed controls after the data SaveACK.
@@ -4697,6 +4714,7 @@ class PhoneService:
                 raise PermissionError("actor_saved_completion_changed")
             private = personal_actor_contract.storage_peer(handle.actor_id)
             frames, queued_frames, targets, own_acks = [], [], [], []
+            incoming_bodies = []
             fingerprint = registry.status(handle)["fingerprint"]
             try:
                 manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
@@ -4708,6 +4726,7 @@ class PhoneService:
                         kind, body = content_scope_contract.unwrap(body, manifest)
                     if kind != "personal_sync.deletion_decision" or body["run_id"] != handle.actor_id:
                         raise PermissionError("actor_completion_decision_envelope_changed")
+                    incoming_bodies.append(body)
                     proof = self.store.personal_decision_targets(private, body, False)
                     if proof is None:
                         raise PermissionError("actor_completion_target_proof_missing")
@@ -4720,6 +4739,7 @@ class PhoneService:
                     frames.append(personal_actor_contract.wire_message(semantic, handle.actor_id))  # Reference only.
                     own_acks.append(self._actor_control_message(personal_actor_contract.ACK_KIND,
                         personal_actor_contract.ack(handle.actor_id, original["message_id"])))
+                self._require_actor_producer_decision_set(admission.get('producer_bodies'), incoming_bodies)
                 for start in range(0, len(choices), 32):
                     body = {"format":1, "run_id":handle.actor_id, "decision_id":str(uuid.uuid4()),
                         "decisions":[{key:copy.deepcopy(value[key]) for key in ("proposal_id", "decision", "expected_clock")}
@@ -5012,7 +5032,8 @@ class PhoneService:
                         self.store.acknowledge(peer["device_id"], body["message_id"])
                         if body["message_id"] == admission.get("completion_report_id"):
                             admission["phone_data_persisted"] = True
-                            admission["phone_persisted"] = not bool(admission.get("commit_plan", {}).get("deletion_review", {}).get("intents"))
+                            admission["phone_persisted"] = (not bool(admission.get("commit_plan", {}).get("deletion_review", {}).get("intents")) and
+                                not bool(admission.get('producer_bodies')))
                     self._queue_actor_completion_report(admission)
                     return  # No ACK of an actor ACK and no ordinary queue/GUI handling.
                 if payload["kind"] != personal_actor_contract.DATA_KIND:

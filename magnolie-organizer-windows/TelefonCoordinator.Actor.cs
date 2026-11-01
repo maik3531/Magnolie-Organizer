@@ -531,6 +531,25 @@ internal sealed partial class TelefonCoordinator
         return await PersonalActorStatusAsync(handle, cancellation);
     }
 
+    internal static void RequireActorProducerDecisionSet(IReadOnlyList<JsonObject>? prepared, IEnumerable<JsonObject> incoming)
+    {
+        var expected = (prepared ?? []).SelectMany(body => body["proposals"]!.AsArray().OfType<JsonObject>())
+            .ToDictionary(value => value["proposal_id"]!.GetValue<string>(), value => value["clock"], StringComparer.Ordinal);
+        if (expected.Count == 0) return; // Preserve non-producer legacy review ownership.
+        var received = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var body in incoming)
+        {
+            PersonalSyncContract.ValidateBody("personal_sync.deletion_decision", body);
+            foreach (var decision in body["decisions"]!.AsArray().OfType<JsonObject>())
+            {
+                var id = decision["proposal_id"]!.GetValue<string>();
+                if (!expected.TryGetValue(id, out var clock) || !received.Add(id) || !JsonNode.DeepEquals(clock, decision["expected_clock"]))
+                    throw new InvalidOperationException("actor_producer_decision_set_changed");
+            }
+        }
+        if (!received.SetEquals(expected.Keys)) throw new InvalidOperationException("actor_producer_decisions_incomplete");
+    }
+
     private void BeginPersonalActorCompletion(PersonalSyncActorStore registry, ActorAdmission admission)
     {
         var handle = admission.Handle;
@@ -545,6 +564,7 @@ internal sealed partial class TelefonCoordinator
         var saved = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
         if (saved != receipt || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("actor_saved_completion_changed");
         var frames = new List<JsonObject>(); var queuedFrames = new List<JsonObject>(); var ownAcks = new List<JsonObject>(); var targets = new JsonArray();
+        var incomingBodies = new List<JsonObject>();
         var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
         try
         {
@@ -558,6 +578,7 @@ internal sealed partial class TelefonCoordinator
                 if (kind == PhoneContentScope.DataKind) (kind, body) = PhoneContentScope.Unwrap(body, manifest);
                 if (kind != "personal_sync.deletion_decision" || body["run_id"]!.GetValue<string>() != handle.ActorId)
                     throw new InvalidOperationException("actor_completion_decision_envelope_changed");
+                incomingBodies.Add(body);
                 var native = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(handle.ActorId), body, false)
                     ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
                 foreach (var target in native.OfType<JsonObject>())
@@ -573,6 +594,7 @@ internal sealed partial class TelefonCoordinator
                 frames.Add(PersonalSyncActorContract.WireMessage(semantic, handle.ActorId)); // Reference only, never queued/sent.
                 ownAcks.Add(ActorControl(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, original["message_id"]!.GetValue<string>())));
             }
+            RequireActorProducerDecisionSet(admission.ProducerBodies, incomingBodies);
             foreach (var chunk in choices.Chunk(32))
             {
                 if (admission.Outbound.Count + frames.Count >= 4096) throw new InvalidOperationException("actor_capacity");
@@ -703,7 +725,8 @@ internal sealed partial class TelefonCoordinator
                             if (acknowledged == admission.CompletionReportId)
                             {
                                 admission.PhoneDataPersisted = true;
-                                admission.PhonePersisted = admission.CommitPlan?.DeletionReview["intents"]?.AsArray().Count == 0;
+                                admission.PhonePersisted = admission.CommitPlan?.DeletionReview["intents"]?.AsArray().Count == 0 &&
+                                    (admission.ProducerBodies is null || admission.ProducerBodies.Count == 0);
                             }
                         }
                     }

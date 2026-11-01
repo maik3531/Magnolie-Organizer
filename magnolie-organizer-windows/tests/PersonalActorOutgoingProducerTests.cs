@@ -49,6 +49,20 @@ internal static class PersonalActorOutgoingProducerTests
         TestAssert.That(proposals.All(p => p["parent_id"]!.GetValue<string>() == "canonical-parent") &&
             proposals.Select(p => p["id"]!.GetValue<string>()).ToHashSet().SetEquals(Enumerable.Range(0, 33).Select(i => "file-" + i.ToString("D3"))), "Native alias/target projection changed identities.");
         TestAssert.That(proposals.Select(p => p["proposal_id"]!.GetValue<string>()).SequenceEqual(proposals.Select(p => p["proposal_id"]!.GetValue<string>()).OrderBy(id => id, StringComparer.Ordinal)), "Native proposal ordering is not canonical.");
+        foreach (var decisionCase in new[] { "complete", "missing", "duplicate", "foreign", "clock" })
+        {
+            var decisions = proposals.Select(value => new JsonObject { ["proposal_id"] = value["proposal_id"]!.DeepClone(),
+                ["decision"] = "restore", ["expected_clock"] = value["clock"]!.DeepClone() }).ToList();
+            if (decisionCase == "missing") decisions.RemoveAt(decisions.Count - 1);
+            if (decisionCase == "duplicate") decisions[^1] = decisions[0].DeepClone().AsObject();
+            if (decisionCase == "foreign") decisions[^1]["proposal_id"] = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+            if (decisionCase == "clock") decisions[^1]["expected_clock"]![0]!["counter"] = 9999;
+            var incoming = decisions.Chunk(32).Select(chunk => new JsonObject { ["format"] = 1, ["run_id"] = Run,
+                ["decision_id"] = Guid.NewGuid().ToString("D"), ["decisions"] = new JsonArray(chunk.Cast<JsonNode>().ToArray()) }).ToArray();
+            if (decisionCase == "complete") TelefonCoordinator.RequireActorProducerDecisionSet(bodies, incoming);
+            else TestAssert.Throws<InvalidOperationException>(() => TelefonCoordinator.RequireActorProducerDecisionSet(bodies, incoming),
+                "Producer completion accepted an incomplete/changed native decision set: " + decisionCase);
+        }
         (book, scope) = Fixture(0);
         book["personalSync"]!["entities"] = new JsonObject { ["note\0historical-note"] = Tombstone("note", "historical-note"),
             ["task\0historical-task"] = Tombstone("task", "historical-task"), ["note\0selected-absent"] = Tombstone("note", "selected-absent"),

@@ -296,3 +296,21 @@ def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_pa
     assert all(service.store.outbox_message(peer_id, frame['message_id']) is None for frame in frames if frame['kind'] == actor.DATA_KIND)
     with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
     assert service.server is None
+
+
+@pytest.mark.parametrize('scenario', ['complete', 'missing', 'duplicate', 'foreign', 'clock'])
+def test_producer_completion_requires_exact_native_proposal_decisions(scenario):
+    book, manifest = fixture(33)
+    prepared = prepare(book, manifest)
+    decisions = [{'proposal_id': item['proposal_id'], 'decision': 'restore', 'expected_clock': copy.deepcopy(item['clock'])}
+        for body in prepared for item in body['proposals']]
+    if scenario == 'missing': decisions.pop()
+    if scenario == 'duplicate': decisions[-1] = copy.deepcopy(decisions[0])
+    if scenario == 'foreign': decisions[-1]['proposal_id'] = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
+    if scenario == 'clock': decisions[-1]['expected_clock'][0]['counter'] += 1
+    incoming = [{'format': 1, 'run_id': RUN, 'decision_id': str(__import__('uuid').uuid4()), 'decisions': decisions[start:start + 32]}
+        for start in range(0, len(decisions), 32)]
+    if scenario == 'complete':
+        phone.PhoneService._require_actor_producer_decision_set(prepared, incoming)
+    else:
+        with pytest.raises(PermissionError): phone.PhoneService._require_actor_producer_decision_set(prepared, incoming)

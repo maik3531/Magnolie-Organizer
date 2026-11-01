@@ -239,3 +239,35 @@ def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual
         assert not server._phone_actor_book_probes and not server._phone_actor_projections
         if scenario not in ('success', 'after-ack', 'expired-start-after-admission'): assert channel.sent == wire_before
         channel.send = original_send
+
+
+def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisions(tmp_path, monkeypatch):
+    import uuid
+    from test_personal_actor_transport import frame
+    with proxy_producer(tmp_path, monkeypatch) as values:
+        server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
+        proxy.produce_personal_actor_proposals(handle)
+        proxy.start_personal_actor(handle)
+        request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
+        batch = {'format': 3, 'run_id': handle.actor_id, 'batch_id': str(uuid.uuid4()), 'sequence': 0, 'last': True,
+            'reply': False, 'records': [], 'records_hash': personal.records_hash([])}
+        for kind, body in [('personal_sync.request', request), ('personal_sync.batch', batch)]:
+            service._payload(peer, channel, actor.wire_message(frame(kind, body), handle.actor_id))
+        view = proxy.read_personal_actor_staging(handle)
+        claim = proxy.prepare_personal_actor_commit(handle, view['revision'], 'b' * 64, read())
+        owner.record_saved('native-producer-fixture', True, 'b' * 64)
+        proxy.commit_personal_actor(handle, claim['claim_token'], read())
+        proxy.queue_personal_actor_reply(handle, claim['claim_token'], [dict(batch, batch_id=str(uuid.uuid4()), reply=True)], [], read())
+        admission = service.personal_actor_admissions[handle.actor_id]
+        reply = service.store.outbox_message(peer['device_id'], admission['reply_ids'][0])
+        assert service._send_personal_actor_queued(channel, peer['device_id'], reply)
+        service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, reply['message_id'])))
+        report = service.store.outbox_message(peer['device_id'], admission['completion_report_id'])
+        assert service._send_personal_actor_queued(channel, peer['device_id'], report)
+        service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, report['message_id'])))
+        status = proxy.personal_actor_status(handle)
+        assert status['book_persisted'] and status['phone_data_persisted']
+        assert not status['phone_persisted'], 'Ordinary data receipt falsely completed outstanding producer decisions'
+        assert status['phase'] == 'receiving'
+        with pytest.raises(background.IPCError): proxy.begin_personal_actor_completion(handle, claim['claim_token'])
+        assert not server._phone_actor_book_probes
