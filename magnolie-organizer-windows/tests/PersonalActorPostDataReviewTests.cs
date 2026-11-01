@@ -171,6 +171,14 @@ internal static class PersonalActorPostDataReviewTests
             TestAssert.That(receipt["book_persisted"]!.GetValue<bool>() && !receipt["phone_persisted"]!.GetValue<bool>() && review.Validator("handoff", null) == true,
                 "Explicit review SaveACK receipt was missing or falsely confirmed both endpoints.");
             TestAssert.That(JsonNode.DeepEquals(receipt, review.ConfirmSaved(token)), "Save confirmation retry changed its native claim.");
+            if (scenario == "note-scope")
+            {
+                TestAssert.Throws<InvalidDataException>(() => new PersonalActorDecisionCompletion(Run, targets, controls.OfType<JsonObject>().ToArray(),
+                    () => authority, () => actualScope, Read, () => new JsonArray()), "Already-resulting scope was mistaken for original pre-deletion authority.");
+                var pinnedCompletion = new PersonalActorDecisionCompletion(Run, targets, controls.OfType<JsonObject>().ToArray(),
+                    () => authority, () => actualScope, Read, () => new JsonArray(), beforeScope: manifest);
+                TestAssert.That(pinnedCompletion.Validator("begin", null) == true, "Native post-data completion lost its exact original scope pin after the separate SaveACK.");
+            }
             if (scenario == "newer-writer")
             {
                 owner.RecordSaved("post-data-review-fixture", true, new string('b', 64));

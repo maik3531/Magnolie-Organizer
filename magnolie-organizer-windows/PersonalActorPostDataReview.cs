@@ -21,6 +21,7 @@ internal sealed class PersonalActorPostDataReview
     private JsonObject? claim, savedScope, savedFrames;
     private NativeBookSaveState? saved;
     internal Func<string, JsonObject?, bool?> Validator { get; }
+    internal NativeBookSaveState? SavedBook => saved;
 
     internal PersonalActorPostDataReview(string runId, JsonArray nativeTargets, JsonObject beforeScope, string reportId,
         JsonObject dataReportAck, Func<string?> currentAuthority, Func<JsonObject?> currentScope,

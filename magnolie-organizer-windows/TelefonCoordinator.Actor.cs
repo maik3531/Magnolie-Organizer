@@ -32,6 +32,10 @@ internal sealed partial class TelefonCoordinator
         internal HashSet<string> ProducerIds { get; } = new(StringComparer.Ordinal);
         internal IReadOnlyList<JsonObject> ProducerFrames { get; set; } = [];
         internal PersonalActorReportOwner? ReportOwner { get; set; }
+        internal string LateClaimToken { get; set; } = "";
+        internal NativeBookSaveState? LateSaveReceipt { get; set; }
+        internal PersonalActorDecisionCompletion? LateCompletion { get; set; }
+        internal IReadOnlyList<JsonObject> LateOwnAcknowledgments { get; set; } = [];
         internal bool StartDispatched { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
@@ -92,6 +96,8 @@ internal sealed partial class TelefonCoordinator
                 "notes_actor_status" => await PersonalActorStatusAsync(handle, cancellation),
                 "notes_actor_late_review" => await ReadPersonalActorLateReviewAsync(handle,
                     request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536, McpText(request, "expectedRevision"), cancellation),
+                "notes_actor_prepare_late_save" => await PreparePersonalActorLateSaveAsync(handle, McpText(request, "reviewRevision", true), McpText(request, "bookSha256", true), cancellation),
+                "notes_actor_confirm_late_save" => await ConfirmPersonalActorLateSaveAsync(handle, McpText(request, "claimToken", true), cancellation),
                 "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
                     request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536,
@@ -108,6 +114,7 @@ internal sealed partial class TelefonCoordinator
             return new() { ["ok"] = true, ["actor"] = result };
         }
         catch (OperationCanceledException) { return new() { ["ok"] = false, ["code"] = "cancelled" }; }
+        catch (Microsoft.Data.Sqlite.SqliteException) { return new() { ["ok"] = false, ["code"] = "native_operation_failed" }; }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException or ArgumentException or FormatException)
         { return new() { ["ok"] = false, ["code"] = "source_changed" }; }
     }
@@ -642,6 +649,7 @@ internal sealed partial class TelefonCoordinator
         if (actorAdmissions.TryGetValue(handle.ActorId, out var admission) && admission.Handle == handle)
         {
             result["book_persisted"] = admission.SaveReceipt is not null; result["reply_queued"] = admission.ReplyCount != 0;
+            result["deletion_book_persisted"] = admission.LateSaveReceipt is not null;
             result["phone_data_persisted"] = admission.PhoneDataPersisted;
             result["phone_persisted"] = admission.PhonePersisted; result["completion_report_queued"] = admission.CompletionReportId.Length != 0;
             if (admission.Completion is not null) result["deletion_completion"] = admission.Completion.Summary();
@@ -655,7 +663,11 @@ internal sealed partial class TelefonCoordinator
         }, cancellation);
 
     internal Task<JsonObject> ReadPersonalActorLateReviewAsync(PersonalActorHandle handle, int offset = 0, int limit = 65536,
-        string expectedRevision = "", CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        string expectedRevision = "", CancellationToken cancellation = default) =>
+        WithPersonalActorStoreAsync(registry => ReadPersonalActorLateReview(registry, handle, offset, limit, expectedRevision), cancellation);
+
+    private JsonObject ReadPersonalActorLateReview(PersonalSyncActorStore registry, PersonalActorHandle handle, int offset, int limit, string expectedRevision)
+    {
         if (offset < 0 || limit is < 1 or > 65536 || expectedRevision.Length != 0 && !System.Text.RegularExpressions.Regex.IsMatch(expectedRevision, "\\A[a-f0-9]{64}\\z") ||
             offset != 0 && expectedRevision.Length == 0) throw new InvalidDataException("invalid_actor_late_review_page");
         if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.ReportOwner is not { } waiting || admission.Completion is not null)
@@ -685,6 +697,64 @@ internal sealed partial class TelefonCoordinator
                 ["deletion_book_persisted"] = view["book_persisted"]!.DeepClone(), ["phone_persisted"] = false };
         }
         finally { CryptographicOperations.ZeroMemory(raw); }
+    }
+
+    internal Task<JsonObject> PreparePersonalActorLateSaveAsync(PersonalActorHandle handle, string expectedRevision, string afterSha256,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        var page = ReadPersonalActorLateReview(registry, handle, 0, 1, "");
+        if (!page["review_ready"]!.GetValue<bool>()) throw new InvalidOperationException("actor_producer_decisions_incomplete");
+        var admission = actorAdmissions[handle.ActorId];
+        var claim = admission.ReportOwner!.ActiveReview!.PrepareSave(expectedRevision, afterSha256);
+        admission.LateClaimToken = claim["claim_token"]!.GetValue<string>();
+        claim["deletion_book_persisted"] = claim["book_persisted"]!.DeepClone(); claim["phone_persisted"] = false;
+        return claim;
+    }, cancellation);
+
+    internal Task<JsonObject> ConfirmPersonalActorLateSaveAsync(PersonalActorHandle handle, string claimToken,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle ||
+            !System.Text.RegularExpressions.Regex.IsMatch(claimToken, "\\A[a-f0-9]{64}\\z") || admission.LateClaimToken.Length != 64 ||
+            !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(claimToken), Convert.FromHexString(admission.LateClaimToken)))
+            throw new InvalidOperationException("actor_review_save_claim_unavailable");
+        if (admission.ReportOwner is not { } waiting || waiting.ActiveReview is null) throw new InvalidOperationException("actor_late_review_owner_unavailable");
+        JsonObject Receipt() => new() { ["deletion_book_persisted"] = true, ["completion_started"] = admission.Completion is not null,
+            ["phone_persisted"] = admission.PhonePersisted, ["book_sha256"] = admission.LateSaveReceipt!.Sha256, ["save_sequence"] = admission.LateSaveReceipt.Sequence };
+        if (admission.Completion is not null) { registry.ReadCompletionControls(handle); return Receipt(); }
+        ReadPersonalActorLateReview(registry, handle, 0, 1, "");
+        waiting.ActiveReview.ConfirmSaved(claimToken);
+        admission.LateSaveReceipt = waiting.ActiveReview.SavedBook ?? throw new InvalidOperationException("actor_review_save_proof_missing");
+        if (admission.LateCompletion is null)
+        {
+            var frames = registry.ReadCompletionControls(handle).OfType<JsonObject>()
+                .Where(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind).ToArray();
+            var targets = new JsonArray();
+            foreach (var wire in frames)
+            {
+                var (kind, body) = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+                if (kind != "personal_sync.deletion_decision") throw new InvalidOperationException("actor_completion_decision_envelope_changed");
+                var proof = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(handle.ActorId), body, false)
+                    ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+                foreach (var target in proof) targets.Add(target!.DeepClone());
+            }
+            var expected = waiting.NativeTargets.OfType<JsonObject>().ToDictionary(value => value["proposal_id"]!.GetValue<string>(), StringComparer.Ordinal);
+            if (targets.Count != expected.Count || targets.OfType<JsonObject>().Any(value =>
+                !expected.TryGetValue(value["proposal_id"]!.GetValue<string>(), out var original) || !JsonNode.DeepEquals(value, original)))
+                throw new InvalidOperationException("actor_completion_target_proof_changed");
+            var acknowledgments = frames.Select(wire => ActorControl(PersonalSyncActorContract.AckKind,
+                PersonalSyncActorContract.Ack(handle.ActorId, wire["message_id"]!.GetValue<string>()))).ToArray();
+            var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+            admission.LateCompletion = new PersonalActorDecisionCompletion(handle.ActorId, targets, frames,
+                () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint),
+                () => admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject()),
+                () => NativeSavedBook(), () => registry.ReadCompletionControls(handle), nativeSentAcknowledgments: acknowledgments, beforeScope: waiting.OriginalScope);
+            admission.LateOwnAcknowledgments = acknowledgments;
+        }
+        registry.PromoteDecisionReview(handle, waiting.Validator, admission.LateCompletion.Validator);
+        admission.Completion = admission.LateCompletion;
+        admission.CompletionIds.Clear(); // Received original decisions are references, never outgoing data.
+        foreach (var ack in admission.LateOwnAcknowledgments) admission.NativeAcknowledgments.Add(ack["message_id"]!.GetValue<string>(), ack);
+        admission.PhonePersisted = false;
+        return Receipt();
     }, cancellation);
 
     private void QueueActorCompletionReport(PersonalSyncActorStore registry, ActorAdmission admission)
@@ -1005,7 +1075,7 @@ internal sealed partial class TelefonCoordinator
                 if (actorAdmissions.GetValueOrDefault(admission.Handle.ActorId) != admission || admission.Connection != connection ||
                     online.GetValueOrDefault(admission.PeerId) != connection || admission.Completion is not { } completion ||
                     admission.SaveReceipt is null || !admission.PhoneDataPersisted || admission.PhonePersisted ||
-                    NativeSavedBook() != admission.SaveReceipt || admission.NativeAckInFlight ||
+                    NativeSavedBook() != (admission.LateSaveReceipt ?? admission.SaveReceipt) || admission.NativeAckInFlight ||
                     admission.NativeAckNextAttempt > Environment.TickCount64 || admission.NativeAcknowledgments.Count == 0) return null;
                 var frames = admission.NativeAcknowledgments.Values.Take(32).ToArray();
                 foreach (var wire in frames)

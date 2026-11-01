@@ -20,6 +20,8 @@ internal sealed class PersonalActorReportOwner
     internal Func<string, JsonObject?, bool?> Validator { get; }
     internal JsonArray NativeTargets => targets.DeepClone().AsArray();
     internal NativeBookSaveState DataSavedBook => dataSavedBook;
+    internal JsonObject OriginalScope => before.DeepClone().AsObject();
+    internal PersonalActorPostDataReview? ActiveReview => review;
 
     internal PersonalActorReportOwner(string runId, JsonArray nativeTargets, JsonObject beforeScope, JsonObject reportFrame,
         NativeBookSaveState dataSavedBook, Func<string?> currentAuthority, Func<JsonArray> persistedControls,

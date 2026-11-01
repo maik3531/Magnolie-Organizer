@@ -23,12 +23,12 @@ internal sealed class PersonalActorDecisionCompletion
 
     internal PersonalActorDecisionCompletion(string runId, JsonArray nativeTargets, IReadOnlyList<JsonObject> queuedDecisions,
         Func<string?> currentAuthority, Func<JsonObject?> currentScope, Func<NativeBookSaveState?> currentSavedBook,
-        Func<JsonArray> persistedControls, IReadOnlyList<JsonObject>? nativeSentAcknowledgments = null)
+        Func<JsonArray> persistedControls, IReadOnlyList<JsonObject>? nativeSentAcknowledgments = null, JsonObject? beforeScope = null)
     {
         PersonalSyncActorContract.Start(runId);
         this.runId = runId; this.currentAuthority = currentAuthority; this.currentScope = currentScope;
         this.currentSavedBook = currentSavedBook; this.persistedControls = persistedControls;
-        before = (currentScope() ?? throw new InvalidOperationException("actor_completion_not_ready")).DeepClone().AsObject();
+        before = (beforeScope ?? currentScope() ?? throw new InvalidOperationException("actor_completion_not_ready")).DeepClone().AsObject();
         PhoneContentScope.Validate(before);
         authority = currentAuthority() ?? throw new InvalidOperationException("actor_completion_not_ready");
         if (!Hex.IsMatch(authority)) throw new InvalidOperationException("actor_completion_not_ready");

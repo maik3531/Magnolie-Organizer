@@ -131,7 +131,7 @@ internal static class PersonalSyncActorSourceTests
                 db.Open(); using var count = db.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM outbox";
                 producerExistingOutbox = Convert.ToInt64(count.ExecuteScalar());
             }
-            foreach (var producerCase in new[] { "success", "sql-retry", "changed-writer", "missing-native-book" })
+            foreach (var producerCase in new[] { "success", "late-handoff-sql", "late-ack-sql", "sql-retry", "changed-writer", "missing-native-book" })
             {
                 var producerClock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
                 var producedProposalId = PersonalSyncContract.DeletionProposalId(peer.Id, "note", "note-one", "", producerClock, new string('a', 64));
@@ -176,7 +176,7 @@ internal static class PersonalSyncActorSourceTests
                         "Actual producer lacked its own run-private target proof or leaked physical-peer rights.");
                     var repeated = await coordinator.ProducePersonalActorProposalsAsync(producerHandle);
                     TestAssert.That(JsonNode.DeepEquals(producedStage, repeated), "Legitimate same-owner producer retry changed its native result.");
-                    if (producerCase == "success")
+                    if (producerCase is "success" or "late-handoff-sql" or "late-ack-sql")
                     {
                         var earlyDenied = false;
                         try { await coordinator.DispatchPersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { earlyDenied = true; }
@@ -244,6 +244,56 @@ internal static class PersonalSyncActorSourceTests
                         var retainedDecision = await coordinator.WithPersonalActorStoreAsync(registry => registry.ReadCompletionControls(producerHandle)
                             .OfType<JsonObject>().Any(value => value["message_id"]!.GetValue<string>() == sourceDecision["message_id"]!.GetValue<string>()));
                         TestAssert.That(retainedDecision, "Native late decision was not retained in the protected metadata namespace.");
+                        var sourceLatePlan = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_prepare_late_save", ["actorId"] = producerHandle.ActorId,
+                            ["ownerToken"] = producerHandle.OwnerToken, ["reviewRevision"] = lateFirst["review_revision"]!.DeepClone(), ["bookSha256"] = new string('d', 64) }, default);
+                        TestAssert.That(sourceLatePlan["ok"]!.GetValue<bool>() && !sourceLatePlan["actor"]!["deletion_book_persisted"]!.GetValue<bool>(), "Native late save claim was not separate from ordinary data save.");
+                        var sourceLateToken = sourceLatePlan["actor"]!["claim_token"]!.GetValue<string>();
+                        var sourceLateConfirm = new JsonObject { ["action"] = "notes_actor_confirm_late_save", ["actorId"] = producerHandle.ActorId,
+                            ["ownerToken"] = producerHandle.OwnerToken, ["claimToken"] = sourceLateToken };
+                        TestAssert.That(!(await coordinator.ExecuteMcpAsync(sourceLateConfirm, default))["ok"]!.GetValue<bool>() && wire.Length == 0,
+                            "Native late save accepted the original data SaveACK or sent premature deletion success.");
+                        hostBook.RecordSaved("actual-host-profile", true, new string('d', 64));
+                        var sourceLateSequence = hostBook.SaveState("actual-host-profile", true)!.Sequence;
+                        if (producerCase == "late-handoff-sql")
+                        {
+                            using var db = store.OpenDatabase(); db.Open(); using var fault = db.CreateCommand();
+                            fault.CommandText = "CREATE TRIGGER source_late_handoff_fault BEFORE INSERT ON personal_actor_context BEGIN SELECT RAISE(ABORT,'synthetic late handoff fault'); END"; fault.ExecuteNonQuery();
+                            var failedLateHandoff = await coordinator.ExecuteMcpAsync(sourceLateConfirm, default);
+                            TestAssert.That(!failedLateHandoff["ok"]!.GetValue<bool>() && failedLateHandoff["code"]!.GetValue<string>() == "native_operation_failed", "Actual late handoff SQL failure was ignored/misreported.");
+                            using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER source_late_handoff_fault"; drop.ExecuteNonQuery();
+                            var partialLateStatus = await coordinator.PersonalActorStatusAsync(producerHandle);
+                            TestAssert.That(partialLateStatus["phase"]!.GetValue<string>() == "decision_review" && partialLateStatus["deletion_book_persisted"]!.GetValue<bool>() &&
+                                !partialLateStatus["phone_persisted"]!.GetValue<bool>(), "Metadata handoff failure lost its actual saved claim or falsely completed.");
+                        }
+                        var sourceLateReceipt = await coordinator.ExecuteMcpAsync(sourceLateConfirm, default);
+                        TestAssert.That(sourceLateReceipt["ok"]!.GetValue<bool>() && sourceLateReceipt["actor"]!["deletion_book_persisted"]!.GetValue<bool>() &&
+                            sourceLateReceipt["actor"]!["completion_started"]!.GetValue<bool>() && !sourceLateReceipt["actor"]!["phone_persisted"]!.GetValue<bool>() && wire.Length == 0,
+                            "Separate native late save did not enter metadata-only completion or falsely claimed peer persistence.");
+                        TestAssert.That(JsonNode.DeepEquals(sourceLateReceipt, await coordinator.ExecuteMcpAsync(sourceLateConfirm, default)), "Successful late confirm retry changed its native saved claim.");
+                        JsonObject? failedLateAck = null;
+                        if (producerCase == "late-ack-sql")
+                        {
+                            using var db = store.OpenDatabase(); db.Open(); using var fault = db.CreateCommand();
+                            fault.CommandText = "CREATE TRIGGER source_late_ack_fault BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic late ACK ledger fault'); END"; fault.ExecuteNonQuery();
+                            var ackFault = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_advance_completion", ["actorId"] = producerHandle.ActorId, ["ownerToken"] = producerHandle.OwnerToken }, default);
+                            TestAssert.That(!ackFault["ok"]!.GetValue<bool>(), "Native late ACK metadata failure was ignored.");
+                            failedLateAck = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+                            using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER source_late_ack_fault"; drop.ExecuteNonQuery();
+                            var ackPendingStatus = await coordinator.PersonalActorStatusAsync(producerHandle);
+                            TestAssert.That(!ackPendingStatus["phone_persisted"]!.GetValue<bool>() && ackPendingStatus["deletion_completion"]!["saved"]!.GetValue<int>() == 0,
+                                "Actual late ACK send without metadata ledger commit was treated as a successful receipt.");
+                            await coordinator.AdvancePersonalActorCompletionAsync(producerHandle);
+                            TestAssert.That(wire.Length == 0, "Late ACK retry bypassed its original backoff.");
+                            var lateAdmissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                            var lateAdmitted = lateAdmissions[producerHandle.ActorId]!;
+                            lateAdmitted.GetType().GetProperty("NativeAckNextAttempt", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(lateAdmitted, 0L); // Controlled due-time fixture.
+                        }
+                        var sourceLateCompleted = await coordinator.AdvancePersonalActorCompletionAsync(producerHandle);
+                        var sourceLateAck = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+                        TestAssert.That(sourceLateCompleted["phase"]!.GetValue<string>() == "completed" && sourceLateCompleted["phone_persisted"]!.GetValue<bool>() &&
+                            sourceLateCompleted["deletion_book_persisted"]!.GetValue<bool>() && sourceLateAck["body"]!["message_id"]!.GetValue<string>() == sourceDecision["message_id"]!.GetValue<string>() &&
+                            hostBook.SaveState("actual-host-profile", true)!.Sequence == sourceLateSequence && (failedLateAck is null || JsonNode.DeepEquals(failedLateAck, sourceLateAck)),
+                            "Native late completion repeated its saved mutation, changed ACK retry identity or lacked the actual send receipt.");
                     }
                     if (producerCase == "changed-writer")
                     {
