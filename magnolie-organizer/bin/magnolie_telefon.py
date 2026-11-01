@@ -4889,6 +4889,63 @@ class PhoneService:
                         deletion_completion=admission["completion"].summary())
             return value
 
+    def read_personal_actor_late_review(self, registry, handle, *, offset=0, limit=65536, expected_revision='', native_saved_book=None):
+        """Bounded private native view; never reopens the original data namespace.
+
+        A daemon caller must supply its operation-live native GUI writer probe.
+        Complete protected decisions are required BEFORE materializing the saved
+        review, so an abandoned partial read cannot stall further reception.
+        """
+        if (type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 65536 or
+                not isinstance(expected_revision, str) or expected_revision and re.fullmatch(r'[a-f0-9]{64}', expected_revision) is None or
+                offset and not expected_revision):
+            raise ValueError('invalid_actor_late_review_page')
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        if not callable(saved_provider):
+            raise PermissionError('actor_native_saved_book_unavailable')
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission['registry'] is not registry or admission['handle'] != handle or
+                    admission.get('report_owner') is None or admission.get('completion') is not None):
+                raise PermissionError('actor_late_review_owner_unavailable')
+            waiting = admission['report_owner']
+            # Replace only a native callback, never install caller book bytes or
+            # retain a daemon witness after an operation-live probe expires.
+            if waiting.review is not None:
+                waiting.review.current_saved_book = saved_provider
+            registry.check_completion(handle, 'read')
+            expected = len(waiting.targets)
+            if not admission.get('phone_data_persisted'):
+                return {'review_ready': False, 'expected_proposals': expected}
+            controls = registry.read_completion_controls(handle)
+            incoming = [personal_actor_contract.unwrap(wire['body'])[1] for wire in controls if wire['kind'] == personal_actor_contract.DATA_KIND]
+            try:
+                self._require_actor_producer_decision_set(admission['producer_bodies'], incoming)
+            except PermissionError as error:
+                if str(error) == 'actor_producer_decisions_incomplete':
+                    return {'review_ready': False, 'expected_proposals': expected}
+                raise
+            def current_scope():
+                session = self.content_scope_sessions.get(admission['channel'])
+                if session is None:
+                    raise PermissionError('actor_completion_scope_unavailable')
+                reference = session.current_reference((admission['peer'], admission['key'], id(admission['channel'])))
+                return self.current_content_scope(admission['peer'], admission['key'], reference)
+            review = waiting.begin_review(current_scope=current_scope, current_saved_book=saved_provider)
+            view = review.review()
+            raw = canonical({'targets': waiting.targets, 'decisions': view['decisions'], 'content_scope': view['scope'],
+                'data_saved_book': waiting.data_saved_book, 'review_revision': view['revision']})
+            if len(raw) > 4 * 1024 * 1024:
+                raise RuntimeError('actor_late_review_capacity')
+            revision = hashlib.sha256(raw).hexdigest()
+            if expected_revision and expected_revision != revision or offset > len(raw):
+                raise PermissionError('actor_late_review_revision_changed')
+            registry.check_completion(handle, 'read')
+            page = raw[offset:offset + limit]; next_offset = offset + len(page)
+            return {'review_ready': True, 'expected_proposals': expected, 'revision': revision, 'review_revision': view['revision'],
+                'total_bytes': len(raw), 'offset': offset, 'next_offset': next_offset if next_offset < len(raw) else None,
+                'data_base64': base64.b64encode(page).decode('ascii'), 'deletion_book_persisted': view['book_persisted'], 'phone_persisted': False}
+
     def _queue_actor_completion_report(self, admission):
         if (not admission.get("reply_queued") or not admission.get("save_receipt") or admission.get("completion_report_id") or
                 any(self.store.outbox_message(admission["peer"], message_id) is not None for message_id in admission["reply_ids"])):
