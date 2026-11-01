@@ -246,6 +246,18 @@ internal sealed class PersonalSyncActorStore
         using var row = command.ExecuteReader(); row.Read(); return (row.GetInt64(0), row.GetInt64(1));
     }
 
+    // Validation only: this never stores a frame or establishes incoming origin.
+    internal byte[] ValidateIncomingTargetWire(PersonalActorHandle handle, JsonObject wire)
+    {
+        RequireCurrent(handle);
+        var clear = WirePayload(handle, wire);
+        if (wire["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
+            PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject()).Kind != "personal_sync.deletion_proposals")
+            throw new InvalidDataException("actor_target_origin_kind");
+        RequireCurrent(handle);
+        return clear;
+    }
+
     internal bool Put(PersonalActorHandle handle, JsonObject wire)
     {
         var clear = WirePayload(handle, wire); var id = Text(wire, "message_id");

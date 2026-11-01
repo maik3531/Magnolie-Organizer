@@ -6,6 +6,16 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonCoordinator
 {
     private sealed record ActorCommitPlan(string Token, string ViewRevision, string AfterHash, string BookSource, long BeforeSequence, JsonObject DeletionReview, JsonObject? FixedReview);
+    // Volatile authenticated-origin quarantine, never normal data/save/ACK authority.
+    private sealed class ActorTargetOrigin(string source, JsonObject scope)
+    {
+        internal readonly string Source = source;
+        internal readonly JsonObject Scope = scope.DeepClone().AsObject();
+        internal long WallDeadline = Now() + 30000, MonotonicDeadline = Environment.TickCount64 + 30000;
+        internal readonly Dictionary<string, byte[]> Frames = new(StringComparer.Ordinal);
+        internal int Bytes, Targets;
+        internal bool Invalid;
+    }
     // Native readiness only, not an IPC/request setting. Default remains closed
     // until both controllers and frontend review/receipt union are accepted.
     internal bool NativeMixedActorReady { get; set; }
@@ -42,6 +52,7 @@ internal sealed partial class TelefonCoordinator
         internal IReadOnlyList<JsonObject> LateOwnAcknowledgments { get; set; } = [];
         internal Dictionary<string, JsonObject> CompletionDeferredControls { get; } = new(StringComparer.Ordinal);
         internal bool StartDispatched { get; set; }
+        internal ActorTargetOrigin? IncomingTargetOrigin { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -218,34 +229,149 @@ internal sealed partial class TelefonCoordinator
     {
         if (targets.Count is < 1 or > 256) throw new InvalidDataException("actor_target_capacity");
         var copied = targets.Select(value => value.DeepClone().AsObject()).ToArray();
-        return WithPersonalActorStoreAsync<IReadOnlyList<JsonObject>>(registry => {
-            var admission = RequirePersonalActorAdmission(registry, handle);
-            var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
-            string? Current()
+        return WithPersonalActorStoreAsync<IReadOnlyList<JsonObject>>(registry => ObservePersonalActorIncomingTargets(registry, handle, copied), cancellation);
+    }
+
+    private IReadOnlyList<JsonObject> ObservePersonalActorIncomingTargets(PersonalSyncActorStore registry,
+        PersonalActorHandle handle, IReadOnlyList<JsonObject> copied)
+    {
+        var admission = RequirePersonalActorAdmission(registry, handle);
+        var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+        string? Current()
+        {
+            registry.RequireCurrent(handle);
+            if (RequirePersonalActorAdmission(registry, handle) != admission) throw new InvalidOperationException("actor_source_changed");
+            var peer = RequireSolePeer(admission.PeerId);
+            var settings = store.SharedSettings(peer.Id, peer.PublicKey);
+            if (settings is null || SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() != false ||
+                store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true || peer.Grants["personal_deletions_sync"]?.GetValue<bool>() != true)
+                throw new InvalidOperationException("actor_deletions_not_granted");
+            return CurrentActorSource(peer.Id, fingerprint);
+        }
+        Current();
+        // One capture within the caller-held writer guard. Fresh save/source
+        // witnesses are still checked at every observation boundary.
+        var captured = NativeProducerBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
+        NativeActorBookSnapshot Snapshot()
+        {
+            var value = captured;
+            if (NativeSavedBook() != value.SavedBook || NativeBookSource() != value.SavedBook.BookSource)
+                throw new InvalidOperationException("actor_native_saved_book_changed");
+            return value;
+        }
+        var observation = new PersonalActorIncomingLiveTargetObservation(admission.PeerId, handle.ActorId,
+            () => Current() is not null, Current, Snapshot, () => admission.Connection.CurrentContentScope(admission.Scope));
+        return observation.ObserveMany(handle.ActorId, copied);
+    }
+
+    private (ActorAdmission Admission, string Source, JsonObject Scope) PersonalActorTargetOriginCurrent(
+        PersonalSyncActorStore registry, PersonalActorHandle handle)
+    {
+        var admission = RequirePersonalActorAdmission(registry, handle);
+        var peer = RequireSolePeer(admission.PeerId); var settings = store.SharedSettings(peer.Id, peer.PublicKey);
+        if (settings is null || SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() != false ||
+            store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true || peer.Grants["personal_deletions_sync"]?.GetValue<bool>() != true)
+            throw new InvalidOperationException("actor_deletions_not_granted");
+        var source = CurrentActorSource(peer.Id, registry.Status(handle)["fingerprint"]!.GetValue<string>())
+            ?? throw new InvalidOperationException("actor_source_changed");
+        if (personalSync.LoadRun(PersonalSyncActorContract.StoragePeer(handle.ActorId), handle.ActorId, Now()) is not { Expired: false } request ||
+            request.Request["trigger"]?.GetValue<string>() != "manual")
+            throw new InvalidOperationException("actor_target_origin_run_retired");
+        return (admission, source, admission.Connection.CurrentContentScope(admission.Scope));
+    }
+
+    private static void CheckPersonalActorTargetOrigin(ActorTargetOrigin origin, string source, JsonObject scope)
+    {
+        if (origin.Invalid || origin.Source != source || !JsonNode.DeepEquals(origin.Scope, scope) ||
+            Now() >= origin.WallDeadline || Environment.TickCount64 >= origin.MonotonicDeadline)
+        {
+            origin.Invalid = true;
+            throw new InvalidOperationException("actor_target_origin_changed");
+        }
+    }
+
+    // Called only from authenticated ReceivePersonalActorAsync, not raw registry.Put.
+    private void QuarantinePersonalActorIncomingTargets(PersonalSyncActorStore registry, PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = registry.ValidateIncomingTargetWire(handle, wire);
+        var (_, body) = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+        if (body["proposals"]!.AsArray().OfType<JsonObject>().Any(item => item["kind"]!.GetValue<string>() is not ("note" or "task" or "attachment")))
+            throw new InvalidDataException("actor_target_origin_kind");
+        var (admission, source, scope) = PersonalActorTargetOriginCurrent(registry, handle);
+        var origin = admission.IncomingTargetOrigin ??= new ActorTargetOrigin(source, scope);
+        CheckPersonalActorTargetOrigin(origin, source, scope);
+        var id = wire["message_id"]!.GetValue<string>();
+        if (origin.Frames.TryGetValue(id, out var old))
+        {
+            if (!old.AsSpan().SequenceEqual(clear)) { origin.Invalid = true; throw new InvalidOperationException("actor_target_origin_frame_changed"); }
+            return; // Exact retransmission never renews either deadline.
+        }
+        var count = body["proposals"]!.AsArray().Count;
+        if (origin.Frames.Count >= 256 || origin.Bytes + clear.Length > 1024 * 1024 || origin.Targets + count > 256)
+        { origin.Invalid = true; throw new InvalidOperationException("actor_target_origin_capacity"); }
+        origin.Frames.Add(id, clear); origin.Bytes += clear.Length; origin.Targets += count;
+        var after = PersonalActorTargetOriginCurrent(registry, handle);
+        CheckPersonalActorTargetOrigin(origin, after.Source, after.Scope);
+    }
+
+    private IReadOnlyList<JsonObject> ReadPersonalActorIncomingTargetFrames(PersonalSyncActorStore registry, PersonalActorHandle handle)
+    {
+        var (admission, source, scope) = PersonalActorTargetOriginCurrent(registry, handle);
+        var origin = admission.IncomingTargetOrigin ?? throw new InvalidOperationException("actor_target_origin_missing");
+        CheckPersonalActorTargetOrigin(origin, source, scope);
+        var sequences = new Dictionary<long, bool>(); var frames = new List<(long Sequence, JsonObject Wire)>();
+        string? batch = null; var proposals = new HashSet<string>(StringComparer.Ordinal);
+        var targets = new HashSet<(string, string, string)>();
+        foreach (var clear in origin.Frames.Values)
+        {
+            var wire = JsonNode.Parse(clear)!.AsObject(); registry.ValidateIncomingTargetWire(handle, wire);
+            var (_, body) = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+            var sequence = TelefonProtocolContract.Integer(body["sequence"]); var currentBatch = body["proposal_batch_id"]!.GetValue<string>();
+            if (sequences.ContainsKey(sequence) || batch is not null && batch != currentBatch)
+                throw new InvalidOperationException("actor_target_origin_group");
+            batch = currentBatch; sequences.Add(sequence, body["last"]!.GetValue<bool>());
+            foreach (var item in body["proposals"]!.AsArray().OfType<JsonObject>())
+                if (!proposals.Add(item["proposal_id"]!.GetValue<string>()) || !targets.Add((item["kind"]!.GetValue<string>(), item["parent_id"]!.GetValue<string>(), item["id"]!.GetValue<string>())))
+                    throw new InvalidOperationException("actor_target_origin_group");
+            frames.Add((sequence, wire));
+        }
+        if (frames.Count == 0 || !sequences.Keys.Order().SequenceEqual(Enumerable.Range(0, sequences.Count).Select(value => (long)value)) ||
+            sequences.Any(pair => pair.Value != (pair.Key == sequences.Count - 1)))
+            throw new InvalidOperationException("actor_target_origin_incomplete");
+        var after = PersonalActorTargetOriginCurrent(registry, handle); CheckPersonalActorTargetOrigin(origin, after.Source, after.Scope);
+        return frames.OrderBy(value => value.Sequence).Select(value => value.Wire).ToArray();
+    }
+
+    // Private native only. No MCP/IPC route, no caller-supplied frame source.
+    internal Task<IReadOnlyList<JsonObject>> ReadPersonalActorIncomingTargetFramesAsync(PersonalActorHandle handle,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => ReadPersonalActorIncomingTargetFrames(registry, handle), cancellation);
+
+    internal Task<JsonObject> ReviewPersonalActorIncomingTargetsAsync(PersonalActorHandle handle,
+        string? expectedRevision = null, IReadOnlyList<JsonObject>? choices = null, CancellationToken cancellation = default)
+    {
+        if ((choices is null) != (expectedRevision is null) || expectedRevision is not null &&
+            (expectedRevision.Length != 64 || expectedRevision.Any(value => value is not (>= 'a' and <= 'f' or >= '0' and <= '9'))))
+            throw new InvalidDataException("actor_target_review_explicit_choices_required");
+        var copied = choices?.Select(value => value.DeepClone().AsObject()).ToArray();
+        return WithPersonalActorStoreAsync(registry => {
+            var admission = PersonalActorTargetOriginCurrent(registry, handle).Admission;
+            (string Source, JsonObject Scope) Current()
             {
-                registry.RequireCurrent(handle);
-                if (RequirePersonalActorAdmission(registry, handle) != admission) throw new InvalidOperationException("actor_source_changed");
-                var peer = RequireSolePeer(admission.PeerId);
-                var settings = store.SharedSettings(peer.Id, peer.PublicKey);
-                if (settings is null || SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() != false ||
-                    store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true || peer.Grants["personal_deletions_sync"]?.GetValue<bool>() != true)
-                    throw new InvalidOperationException("actor_deletions_not_granted");
-                return CurrentActorSource(peer.Id, fingerprint);
+                var current = PersonalActorTargetOriginCurrent(registry, handle);
+                if (!ReferenceEquals(current.Admission, admission)) throw new InvalidOperationException("actor_source_changed");
+                return (current.Source, current.Scope);
             }
-            Current();
-            // One capture within the caller-held writer guard. Fresh save/source
-            // witnesses are still checked at every observation boundary.
-            var captured = NativeProducerBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
-            NativeActorBookSnapshot Snapshot()
+            NativeBookSaveState? Saved()
             {
-                var value = captured;
-                if (NativeSavedBook() != value.SavedBook || NativeBookSource() != value.SavedBook.BookSource)
-                    throw new InvalidOperationException("actor_native_saved_book_changed");
-                return value;
+                Current(); var saved = NativeSavedBook();
+                if (saved is null || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("native_book_not_saved");
+                return saved;
             }
-            var observation = new PersonalActorIncomingLiveTargetObservation(admission.PeerId, handle.ActorId,
-                () => Current() is not null, Current, Snapshot, () => admission.Connection.CurrentContentScope(admission.Scope));
-            return observation.ObserveMany(handle.ActorId, copied);
+            var review = new PersonalActorIncomingTargetChoiceReview(handle.ActorId,
+                () => ReadPersonalActorIncomingTargetFrames(registry, handle),
+                targets => ObservePersonalActorIncomingTargets(registry, handle, targets),
+                () => Current().Source, () => Current().Scope, Saved);
+            return copied is null ? review.Review() : review.DraftChoices(expectedRevision!, copied);
         }, cancellation);
     }
 
@@ -1051,7 +1177,7 @@ internal sealed partial class TelefonCoordinator
                                 "note" => notes.Contains(item["id"]!.GetValue<string>()),
                                 "task" => tasks.Contains(item["id"]!.GetValue<string>()),
                                 "attachment" => notes.Contains(item["parent_id"]!.GetValue<string>()), _ => false };
-                            if (!valid) return false;
+                            if (!valid) { QuarantinePersonalActorIncomingTargets(registry, admission.Handle, message); return false; }
                         }
                     }
                     else
