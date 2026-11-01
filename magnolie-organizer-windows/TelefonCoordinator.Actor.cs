@@ -5,7 +5,10 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonCoordinator
 {
-    private sealed record ActorCommitPlan(string Token, string ViewRevision, string AfterHash, string BookSource, long BeforeSequence, JsonObject DeletionReview);
+    private sealed record ActorCommitPlan(string Token, string ViewRevision, string AfterHash, string BookSource, long BeforeSequence, JsonObject DeletionReview, JsonObject? FixedReview);
+    // Native readiness only, not an IPC/request setting. Default remains closed
+    // until both controllers and frontend review/receipt union are accepted.
+    internal bool NativeMixedActorReady { get; set; }
     private sealed record ActorAdmission(PersonalActorHandle Handle, string PeerId, string PublicKey,
         TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests,
         HashSet<string> AttachmentResults)
@@ -31,6 +34,7 @@ internal sealed partial class TelefonCoordinator
         internal IReadOnlyList<JsonObject>? ProducerBodies { get; set; }
         internal HashSet<string> ProducerIds { get; } = new(StringComparer.Ordinal);
         internal IReadOnlyList<JsonObject> ProducerFrames { get; set; } = [];
+        internal IReadOnlyList<JsonObject> FixedFrames { get; set; } = [];
         internal PersonalActorReportOwner? ReportOwner { get; set; }
         internal string LateClaimToken { get; set; } = "";
         internal NativeBookSaveState? LateSaveReceipt { get; set; }
@@ -396,6 +400,36 @@ internal sealed partial class TelefonCoordinator
         return review;
     }
 
+    private JsonObject? ActorFixedReview(ActorAdmission admission, string runId, JsonObject review)
+    {
+        if (admission.ProducerBodies is not { Count: > 0 } produced || review["intents"]!.AsArray().Count == 0) return null;
+        if (review["intents"]!.AsArray().OfType<JsonObject>().Any(value => value["kind"]!.GetValue<string>() != "personal_sync.deletion_proposals"))
+            throw new InvalidOperationException("actor_mixed_initial_decisions_not_supported");
+        var before = admission.Connection.CurrentContentScope(admission.Scope);
+        var choices = new JsonArray(review["choices"]!.AsArray().OfType<JsonObject>().Select(value => (JsonNode)new JsonObject {
+            ["proposal_id"] = value["proposal_id"]!.DeepClone(), ["decision"] = value["decision"]!.DeepClone(), ["expected_clock"] = value["expected_clock"]!.DeepClone() }).ToArray());
+        var fixedTargets = new JsonArray();
+        foreach (var chunk in choices.Chunk(32))
+        {
+            var body = new JsonObject { ["format"] = 1, ["run_id"] = runId, ["decision_id"] = runId,
+                ["decisions"] = new JsonArray(chunk.Select(value => value!.DeepClone()).ToArray()) };
+            var proof = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(runId), body, true)
+                ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+            foreach (var target in proof) fixedTargets.Add(target!.DeepClone());
+        }
+        PersonalSyncActorContract.CompletionMembers(runId, before, fixedTargets, choices);
+        var union = new JsonArray();
+        foreach (var proposal in produced.SelectMany(value => value["proposals"]!.AsArray().OfType<JsonObject>()))
+            union.Add(new JsonObject(new[] { "proposal_id", "kind", "id", "parent_id", "prior_hash", "clock" }
+                .Select(key => new KeyValuePair<string, JsonNode?>(key, proposal[key]!.DeepClone()))));
+        foreach (var target in fixedTargets) union.Add(target!.DeepClone());
+        // Early identity/count checks do not pretend the late choice is known.
+        var dummy = new JsonArray(union.OfType<JsonObject>().Select(value => (JsonNode)new JsonObject {
+            ["proposal_id"] = value["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = value["clock"]!.DeepClone() }).ToArray());
+        PersonalSyncActorContract.CompletionMembers(runId, before, union, dummy);
+        return new JsonObject { ["before_scope"] = before.DeepClone(), ["targets"] = fixedTargets, ["choices"] = choices };
+    }
+
     internal Task<JsonObject> PreparePersonalActorCommitAsync(PersonalActorHandle handle, string viewRevision, string afterHash,
         CancellationToken cancellation = default, JsonObject? deletionPlan = null) => WithPersonalActorStoreAsync(registry => {
         if (!System.Text.RegularExpressions.Regex.IsMatch(viewRevision, "^[0-9a-f]{64}$") || !System.Text.RegularExpressions.Regex.IsMatch(afterHash, "^[0-9a-f]{64}$"))
@@ -404,8 +438,9 @@ internal sealed partial class TelefonCoordinator
         if (view["batch_ready"]!.GetValue<bool>() != true) throw new InvalidOperationException("actor_staging_incomplete");
         var admission = actorAdmissions[handle.ActorId]; var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
         var deletionReview = ActorDeletionReview(admission, handle.ActorId, deletionPlan);
-        if (admission.ProducerBodies is { Count: > 0 } && deletionReview["intents"]!.AsArray().Count != 0)
+        if (admission.ProducerBodies is { Count: > 0 } && deletionReview["intents"]!.AsArray().Count != 0 && !NativeMixedActorReady)
             throw new InvalidOperationException("actor_mixed_post_data_review_not_ready");
+        var fixedReview = ActorFixedReview(admission, handle.ActorId, deletionReview);
         var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
         admission.IncomingCounts = ActorCounts(batch.Records.OfType<JsonObject>());
         admission.IncomingAttachments = batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
@@ -416,8 +451,8 @@ internal sealed partial class TelefonCoordinator
         var book = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
         if (book.BookSource != NativeBookSource() || book.Sequence <= 0) throw new InvalidOperationException("actor_book_source_changed");
         var plan = admission.CommitPlan;
-        if (plan is null) admission.CommitPlan = plan = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), viewRevision, afterHash, book.BookSource, book.Sequence, deletionReview);
-        else if (plan.ViewRevision != viewRevision || plan.AfterHash != afterHash || plan.BookSource != book.BookSource || !JsonNode.DeepEquals(plan.DeletionReview, deletionReview))
+        if (plan is null) admission.CommitPlan = plan = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), viewRevision, afterHash, book.BookSource, book.Sequence, deletionReview, fixedReview);
+        else if (plan.ViewRevision != viewRevision || plan.AfterHash != afterHash || plan.BookSource != book.BookSource || !JsonNode.DeepEquals(plan.DeletionReview, deletionReview) || !JsonNode.DeepEquals(plan.FixedReview, fixedReview))
             throw new InvalidOperationException("actor_commit_plan_changed");
         registry.RequireCurrent(handle);
         return new JsonObject { ["claim_token"] = plan.Token, ["view_revision"] = plan.ViewRevision, ["after_sha256"] = plan.AfterHash, ["book_persisted"] = false };
@@ -435,6 +470,7 @@ internal sealed partial class TelefonCoordinator
                     throw new InvalidOperationException("actor_save_proof_missing");
                 ReadPersonalActorStaging(registry, handle, 0, 1, plan.ViewRevision, "");
                 var review = ActorDeletionReview(admission, handle.ActorId, plan.DeletionReview);
+                if (!JsonNode.DeepEquals(ActorFixedReview(admission, handle.ActorId, review), plan.FixedReview)) throw new InvalidOperationException("actor_fixed_review_changed");
                 var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
                 var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
                 var intents = review["intents"]!.AsArray().OfType<JsonObject>().Select(value => (value["message_id"]!.GetValue<string>(), value["commit_token"]!.GetValue<string>())).ToArray();
@@ -802,7 +838,18 @@ internal sealed partial class TelefonCoordinator
         var files = batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
             .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).GroupBy(value => value["sha256"]!.GetValue<string>()).Select(group => group.First()).ToArray();
         if (files.Any(value => !personalSync.OutgoingAttachmentComplete(privatePeer, run, true, batch.RecordsHash, value["sha256"]!.GetValue<string>(), Now()))) return;
-        if (admission.Outbound.Count >= 4096) throw new InvalidOperationException("actor_capacity");
+        var fixedReview = admission.CommitPlan?.FixedReview;
+        IReadOnlyList<JsonObject> fixedFrames = [];
+        if (fixedReview is not null)
+        {
+            var fingerprint = registry.Status(admission.Handle)["fingerprint"]!.GetValue<string>();
+            string? Source() { registry.RequireCurrent(admission.Handle); return CurrentActorSource(admission.PeerId, fingerprint); }
+            var source = Source() ?? throw new InvalidOperationException("actor_source_changed");
+            fixedFrames = store.QueueActorFixedDecisions(admission.PeerId, run, fixedReview["choices"]!.AsArray().OfType<JsonObject>().ToArray(),
+                source, admission.SaveReceipt, Source, () => admission.SaveReceipt);
+            admission.FixedFrames = fixedFrames; // Retain original IDs across report/handoff SQL failure, not yet dispatchable.
+        }
+        if (admission.Outbound.Count + fixedFrames.Count >= 4096) throw new InvalidOperationException("actor_capacity");
         var started = TelefonProtocolContract.Integer(admission.Start["created_ms"]);
         var report = new JsonObject { ["format"] = batch.Format, ["run_id"] = run, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = admission.Connection.Transport,
             ["sent"] = ActorCounts(batch.Records.OfType<JsonObject>()), ["received"] = admission.IncomingCounts.DeepClone(), ["conflicts"] = 0,
@@ -817,7 +864,7 @@ internal sealed partial class TelefonCoordinator
         {
             if (admission.ProducerBodies is { Count: > 0 } prepared)
             {
-                if (admission.CommitPlan!.DeletionReview["intents"]!.AsArray().Count != 0)
+                if (admission.CommitPlan!.DeletionReview["intents"]!.AsArray().Count != 0 && fixedReview is null)
                     throw new InvalidOperationException("actor_mixed_post_data_review_not_ready");
                 var fingerprint = registry.Status(admission.Handle)["fingerprint"]!.GetValue<string>();
                 var targets = new JsonArray();
@@ -828,10 +875,12 @@ internal sealed partial class TelefonCoordinator
                     targets.Add(target);
                 }
                 var queued = store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing");
-                var waiting = new PersonalActorReportOwner(run, targets, admission.Connection.CurrentContentScope(admission.Scope), queued, admission.SaveReceipt,
-                    () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), () => registry.ReadCompletionControls(admission.Handle), admission.ProducerFrames);
+                var waiting = new PersonalActorReportOwner(run, targets, fixedReview?["before_scope"]?.AsObject() ?? admission.Connection.CurrentContentScope(admission.Scope), queued, admission.SaveReceipt,
+                    () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), () => registry.ReadCompletionControls(admission.Handle), admission.ProducerFrames,
+                    nativeFixedTargets: fixedReview?["targets"]?.AsArray(), fixedDecisionFrames: fixedFrames);
                 registry.BeginDecisionReview(admission.Handle, waiting.Validator);
                 admission.ReportOwner = waiting;
+                foreach (var wire in fixedFrames) admission.Outbound.Add(wire["message_id"]!.GetValue<string>());
             }
             else registry.RequireCurrent(admission.Handle);
         }
