@@ -37634,6 +37634,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (hasDeletions && (!job.review.deletionPlan || job.review.summary.reviewed_deletion_intents !== job.review.data.intents.length ||
         job.review.deletionPlan.intents.length !== job.review.data.intents.length))
       throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
+    const received = new Set(job.review.data.intents.filter(intent => intent.kind === "personal_sync.deletion_decision")
+      .flatMap(intent => intent.body.decisions.map(value => value.proposal_id)));
+    if ((job.producerIds || []).some(id => !received.has(id)))
+      throw new MagnolieMcp.ToolError("unsupported_feature", "Outgoing Notes decisions require their complete native terminal review before data commit");
     job.phase = "checkpointing";
     Promise.resolve().then(async () => {
       try {
@@ -37794,6 +37798,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     mcpNotesActorGuard(job);
     if (fresh.sourceRevision !== job.source) throw new MagnolieMcp.ToolError("source_changed", "Native Notes source changed during the baseline save");
     job.source = fresh.sourceRevision;
+    job.baselineHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(job.before))), value => value.toString(16).padStart(2, "0")).join("");
+    mcpNotesActorGuard(job);
+  }
+  async function mcpNotesActorDispatch(job) {
+    if (!job.producerIds.length) return;
+    mcpNotesActorGuard(job);
+    const result = (await mcpNotesActorNative(job, "notes_actor_dispatch_proposals")).actor;
+    mcpNotesActorGuard(job);
+    if (!result || !Number.isInteger(result.message_count) || result.message_count < 0 || result.message_count > job.producerMessages ||
+        result.dispatch_started !== (result.message_count > 0) || result.delivery_confirmed !== false)
+      throw new MagnolieMcp.ToolError("invalid_result", "Native Notes proposal dispatch receipt was inconsistent");
   }
   async function mcpNotesActorArbeit(job) {
     try {
@@ -37807,18 +37822,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor handle was incomplete");
       job.handle = { actorId: created.actorId, ownerToken: created.ownerToken, bookSource: created.bookSource };
       mcpNotesActorGuard(job);
+      const produced = (await mcpNotesActorNative(job, "notes_actor_produce")).actor;
+      mcpNotesActorGuard(job);
+      if (produced?.producer_staged !== true || produced.book_sha256 !== job.baselineHash || !Number.isSafeInteger(produced.save_sequence) || produced.save_sequence < 1 ||
+          !Number.isInteger(produced.proposal_count) || produced.proposal_count < 0 || produced.proposal_count > 256 ||
+          produced.message_count !== Math.ceil(produced.proposal_count / 32) || !Array.isArray(produced.proposal_ids) || produced.proposal_ids.length !== produced.proposal_count ||
+          produced.proposal_ids.some((id, index, ids) => !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id) || index > 0 && personalSyncUtf8(ids[index - 1], id) >= 0))
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes producer did not match the actual saved baseline");
+      job.producerIds = produced.proposal_ids.slice(); job.producerMessages = produced.message_count;
       job.dispatched = true;
       await mcpNotesActorNative(job, "notes_actor_start"); mcpNotesActorGuard(job); job.phase = "receiving";
       let data, attachments, viewRevision, lastPackets = -1, progress = Date.now();
       for (;;) {
         mcpNotesActorGuard(job);
+        await mcpNotesActorDispatch(job);
         try {
           const payload = await mcpNotesActorBytes(job);
           if (!payload) throw new MagnolieMcp.ToolError("not_ready", "Notes snapshot is still arriving");
           data = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload.bytes)); viewRevision = payload.revision;
           if (data.request?.run_id !== job.handle.actorId || ![3, 14].includes(data.request.format) || data.request.trigger !== "manual" ||
               !Array.isArray(data.request.modules) || !data.request.modules.length || data.request.modules.some(value => !["notes", "tasks"].includes(value)) ||
-              !Array.isArray(data.batch?.records) || !Array.isArray(data.intents) ||
+              !Array.isArray(data.batch?.records) || !Array.isArray(data.intents) || data.intents.some(intent =>
+                !intent || !["personal_sync.deletion_proposals", "personal_sync.deletion_decision"].includes(intent.kind) ||
+                !intent.body || typeof intent.body !== "object" || Array.isArray(intent.body) ||
+                intent.kind === "personal_sync.deletion_decision" && (!Array.isArray(intent.body.decisions) ||
+                  intent.body.decisions.length < 1 || intent.body.decisions.length > 32 || intent.body.decisions.some(value =>
+                    !value || typeof value.proposal_id !== "string" || !["delete", "restore"].includes(value.decision) || !Array.isArray(value.expected_clock)))) ||
               await personalSyncHash(data.batch.records) !== data.batch.records_hash)
             throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor aggregate was inconsistent");
           if (personalSyncKanonisch(data.content_scope) !== personalSyncKanonisch(acceptedScope))
@@ -37857,7 +37886,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const result = await personalSyncAnwendenAusBestand(book, kopie(data.batch.records), attachments, job.peer, data.request.modules, options, data.request.format);
       const summary = { notes: data.batch.records.filter(record => record.kind === "note").length,
         tasks: data.batch.records.filter(record => record.kind === "task").length, attachments: Object.keys(attachments).length,
-        conflicts: result.conflicts, unapplied_deletion_intents: data.intents.length };
+        conflicts: result.conflicts, unapplied_deletion_intents: data.intents.length, outgoing_proposals: job.producerIds.length };
       const review = await mcpNotesActorBuildReview(job, book, data, viewRevision, summary, options);
       mcpNotesActorGuard(job); job.review = review;
       job.phase = "review";

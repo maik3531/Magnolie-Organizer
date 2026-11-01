@@ -114,6 +114,7 @@ def test_native_proxy_uploads_fresh_bounded_book_only_for_the_live_protected_run
             result = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read, _daten_sperre=proxy.native_actor_producer_guard()), proxy,
                 {'action': 'notes_actor_produce', 'actorId': handle.actor_id, 'ownerToken': handle.owner_token, 'bookSource': handle.book_source})['actor']
             assert result == {'producer_staged': True, 'message_count': 1, 'proposal_count': 1,
+                'proposal_ids': [proposal_id],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
             frames = service.store.pending(peer['device_id'])
             assert len(frames) == len(queued_before) + 1 and chunks[0] >= 2
@@ -178,7 +179,7 @@ def test_partial_native_projection_is_bounded_and_erased_by_actual_lifecycle(tmp
         assert service.native_actor_producer_book is None and service.server is None
 
 
-@pytest.mark.parametrize('scenario', ['success', 'before-start', 'writer-change', 'send-failure', 'after-ack', 'foreign-gui', 'worker-thread'])
+@pytest.mark.parametrize('scenario', ['success', 'before-start', 'writer-change', 'send-failure', 'after-ack', 'foreign-gui', 'worker-thread', 'expired-start-after-admission'])
 def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual_send_outcome(tmp_path, monkeypatch, scenario):
     with proxy_producer(tmp_path, monkeypatch) as values:
         server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
@@ -191,6 +192,9 @@ def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual
             request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
             service._payload(peer, channel, actor.wire_message(phone.PhoneService._actor_control_message('personal_sync.request', request), handle.actor_id))
         wire_before = copy.deepcopy(channel.sent)
+        if scenario == 'expired-start-after-admission':
+            service.personal_actor_admissions[handle.actor_id]['start']['expires_ms'] = 0
+            with pytest.raises(background.IPCError): proxy.start_personal_actor(handle)
         original_send = channel.send
         def send(wire):
             assert not service.lock._is_owned(), 'Producer network I/O held phone/SQLite guards'
@@ -233,5 +237,5 @@ def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual
                 assert service.store.outbox_message(peer['device_id'], frame['message_id']) is None
                 assert proxy.dispatch_personal_actor_proposals(handle)['message_count'] == 0
         assert not server._phone_actor_book_probes and not server._phone_actor_projections
-        if scenario not in ('success', 'after-ack'): assert channel.sent == wire_before
+        if scenario not in ('success', 'after-ack', 'expired-start-after-admission'): assert channel.sent == wire_before
         channel.send = original_send

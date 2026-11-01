@@ -4376,7 +4376,7 @@ class PhoneService:
         return {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": kind,
             "created_ms": now, "expires_ms": now + 60000, "body": body}
 
-    def _require_personal_actor_admission(self, registry, handle):
+    def _require_personal_actor_admission(self, registry, handle, *, require_start_fresh=False):
         """Caller owns service.lock; no GUI waits or transport in this helper."""
         registry.require_current(handle)
         status = registry.status(handle)
@@ -4392,7 +4392,7 @@ class PhoneService:
                 "channel": channel, "scope": reference, "start": message, "outbound": {message["message_id"]}}
             self.personal_actor_admissions[handle.actor_id] = admission
         if (admission["handle"] != handle or admission["registry"] is not registry or admission["channel"] is not channel or
-                admission["key"] != peer["static_public"] or admission["start"]["expires_ms"] <= now_ms()):
+                admission["key"] != peer["static_public"] or require_start_fresh and admission["start"]["expires_ms"] <= now_ms()):
             raise PermissionError("actor_source_changed")
         registry.require_current(handle)
         return admission
@@ -4450,12 +4450,13 @@ class PhoneService:
             if saved_provider() != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
             return {'producer_staged': True, 'message_count': len(frames), 'proposal_count': sum(len(body['proposals']) for body in bodies),
+                'proposal_ids': [proposal['proposal_id'] for body in bodies for proposal in body['proposals']],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
 
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:
-            admission = self._require_personal_actor_admission(registry, handle)
+            admission = self._require_personal_actor_admission(registry, handle, require_start_fresh=True)
             message = copy.deepcopy(admission['start']); channel = admission['channel']
         channel.send(message)
         with self.lock:

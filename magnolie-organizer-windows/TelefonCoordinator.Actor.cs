@@ -122,7 +122,7 @@ internal sealed partial class TelefonCoordinator
             return registry.Create(id, fingerprint, source);
         }, cancellation);
 
-    private ActorAdmission RequirePersonalActorAdmission(PersonalSyncActorStore registry, PersonalActorHandle handle)
+    private ActorAdmission RequirePersonalActorAdmission(PersonalSyncActorStore registry, PersonalActorHandle handle, bool requireStartFresh = false)
     {
             registry.RequireCurrent(handle);
             var status = registry.Status(handle); var id = status["peer_id"]!.GetValue<string>();
@@ -137,7 +137,7 @@ internal sealed partial class TelefonCoordinator
                 actorAdmissions.Add(handle.ActorId, value);
             }
             if (value.Handle != handle || value.PublicKey != Convert.ToBase64String(peer.PublicKey) || !ReferenceEquals(value.Connection, connection) ||
-                TelefonProtocolContract.Integer(value.Start["expires_ms"]) <= Now()) throw new InvalidOperationException("actor_source_changed");
+                 requireStartFresh && TelefonProtocolContract.Integer(value.Start["expires_ms"]) <= Now()) throw new InvalidOperationException("actor_source_changed");
             registry.RequireCurrent(handle);
             return value;
     }
@@ -185,12 +185,14 @@ internal sealed partial class TelefonCoordinator
             if (NativeSavedBook() != snapshot.SavedBook) throw new InvalidOperationException("actor_producer_book_changed");
             return new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
                 ["proposal_count"] = prepared.Sum(body => body["proposals"]!.AsArray().Count),
+                ["proposal_ids"] = new JsonArray(prepared.SelectMany(body => body["proposals"]!.AsArray().OfType<JsonObject>())
+                    .Select(value => (JsonNode)value["proposal_id"]!.DeepClone()).ToArray()),
                 ["book_sha256"] = snapshot.SavedBook.Sha256, ["save_sequence"] = snapshot.SavedBook.Sequence };
         }, cancellation);
 
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
     {
-        var admission = await WithPersonalActorStoreAsync(registry => RequirePersonalActorAdmission(registry, handle), cancellation);
+        var admission = await WithPersonalActorStoreAsync(registry => RequirePersonalActorAdmission(registry, handle, requireStartFresh: true), cancellation);
         // Authority was claimed above; lifecycle cancellation may make an in-flight write's outcome unknown.
         await admission.Connection.SendPlainAsync(admission.Start.DeepClone().AsObject());
         lock (gate)

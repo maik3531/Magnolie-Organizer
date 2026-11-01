@@ -7,7 +7,9 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
 const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value => JSON.parse(JSON.stringify(value));
 const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
-  for (const web of harness.exports.roots) for (const recordFormat of [3, 14]) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
+  let passed = 0;
+  for (const web of harness.exports.roots) for (const recordFormat of [3, 14]) for (const scenario of ["success", "outgoing_pending", "outgoing_bad_dispatch", "producer_bad_hash", "producer_bad_count", "producer_bad_ids", "producer_duplicate_ids", "producer_bad_sequence", "producer_not_staged", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
+    "malformed_intent_null", "malformed_decisions_null", "malformed_decisions_object", "malformed_decision_null",
     "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel",
     "commit_decision_delete", "commit_decision_restore", "commit_decision_receipt_failed", "commit_decision_cancel", "commit_decision_late_draft", "commit_decision_save_failed", "commit_decision_stage_changed", "commit_decision_checkpoint_failed"]) {
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
@@ -39,6 +41,9 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         clock: plain(incoming.clock), prior_hash: incoming.hash, deleted_ms: incoming.modified_ms, label: "Native typed deletion" };
       if (scenario.startsWith("decision_") || typedCommit) projection.intents = [{ kind: "personal_sync.deletion_proposals", pending_message_id: "99999999-9999-4999-8999-999999999999",
         commit_token: "c".repeat(64), body: { format: 1, run_id: actorId, proposal_batch_id: "88888888-8888-4888-8888-888888888887", sequence: 0, last: true, proposals: [typedProposal] } }];
+      if (scenario.startsWith("malformed_")) projection.intents = scenario === "malformed_intent_null" ? [null] : [{
+        kind: "personal_sync.deletion_decision", body: { decisions: scenario === "malformed_decisions_null" ? null :
+          scenario === "malformed_decisions_object" ? {} : [null] } }];
       const raw = Buffer.from(JSON.stringify(projection)), viewRevision = createHash("sha256").update(raw).digest("hex");
       const before = JSON.stringify(b.t.daten()), saves = b.saves().length;
       let held = null, creates = 0, starts = 0, cancels = 0, savedSequence = 0, savedHash = "", plan = null, coreCommits = 0, heldSave = null, holdDecision = false;
@@ -58,6 +63,22 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
           response.scopePage.baseline = { record_format: recordFormat, propagate_deletions: true };
         }
         else if (r.action === "notes_actor_create") response = { actorId: scenario === "capacity" ? "44444444-4444-4444-8444-" + pendingCreates.indexOf(message).toString(16).padStart(12, "0") : actorId, ownerToken, bookSource: "" };
+        else if (r.action === "notes_actor_produce") {
+          assert.ok(savedSequence > 0, "Native producer preceded actual baseline SaveACK");
+          response = { actor: { producer_staged: true, book_sha256: savedHash, save_sequence: savedSequence,
+            message_count: scenario.startsWith("outgoing_") ? 1 : 0, proposal_count: scenario.startsWith("outgoing_") ? 1 : 0,
+            proposal_ids: scenario.startsWith("outgoing_") ? ["88888888-8888-4888-8888-888888888881"] : [] } };
+          if (scenario === "producer_bad_hash") response.actor.book_sha256 = "f".repeat(64);
+          if (scenario === "producer_bad_count") response.actor.message_count = 2;
+          if (scenario === "producer_bad_ids") Object.assign(response.actor, { message_count: 1, proposal_count: 1, proposal_ids: ["not-a-proposal"] });
+          if (scenario === "producer_duplicate_ids") Object.assign(response.actor, { message_count: 1, proposal_count: 2, proposal_ids: Array(2).fill("88888888-8888-4888-8888-888888888881") });
+          if (scenario === "producer_bad_sequence") response.actor.save_sequence = true;
+          if (scenario === "producer_not_staged") response.actor.producer_staged = false;
+        }
+        else if (r.action === "notes_actor_dispatch_proposals") {
+          assert.equal(starts, 1, "Proposal dispatch preceded the native START action");
+          response = { actor: { dispatch_started: true, message_count: 1, delivery_confirmed: scenario === "outgoing_bad_dispatch" } };
+        }
         else if (r.action === "notes_actor_start") response = { actor: { dispatch_started: true, persisted: false } };
         else if (r.action === "notes_actor_cancel") response = { actor: { phase: "cancelled" } };
         else if (r.action === "notes_actor_status") response = { actor: { phase: "receiving", packets: 3,
@@ -178,7 +199,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         state = b.t.mcpNotesActorStatus(owner, id);
         if (["review", "failed", "cancelled"].includes(state.phase)) break;
       }
-      if (scenario === "success" || scenario.startsWith("commit") || scenario.startsWith("decision_")) {
+      if (scenario === "success" || scenario === "outgoing_pending" || scenario.startsWith("commit") || scenario.startsWith("decision_")) {
         assert.equal(state.phase, "review", JSON.stringify(state)); assert.equal(state.summary.attachments, 1); assert.equal(state.summary.conflicts, 0);
         const review = b.t.mcpNotesActorReview(owner, id);
         assert.equal(review.book.notizen.find(note => note.id === "phone-note").text, "Incoming Grüße 🌸");
@@ -187,7 +208,12 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         assert.equal(reply.find(record => record.kind === "note").value.text, "Incoming Grüße 🌸");
         assert.ok(!reply.some(record => record.id === "desktop-only")); assert.equal(review.sources.length, 1);
         assert.ok(!JSON.stringify(state).includes(ownerToken));
-        if (typedCommit) {
+        if (scenario === "outgoing_pending") {
+          assert.equal(state.summary.outgoing_proposals, 1);
+          assert.throws(() => b.t.mcpNotesActorCommit(owner, id, state.review_revision), error => error.code === "unsupported_feature");
+          assert.equal(coreCommits, 0); assert.equal(actorSaves, 0);
+          b.t.mcpNotesActorCancel(owner, id);
+        } else if (typedCommit) {
           const choice = { proposal_id: typedProposal.proposal_id, decision: typedDelete ? "delete" : "restore", expected_clock: plain(typedProposal.clock), allow_conflict: true };
           const decided = await b.t.mcpNotesActorDecide(owner, id, state.review_revision, [choice]);
           b.t.mcpNotesActorCommit(owner, id, decided.review_revision);
@@ -274,12 +300,13 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       for (let n = 0; n < 30 && !cancels; n++) await tick();
       assert.equal(cancels, 1, scenario + ": native context was not retired exactly once");
       if (scenario === "cancel_create") assert.equal(starts, 0, "Cancelled late creation dispatched a snapshot start");
+      if (scenario.startsWith("producer_")) assert.equal(starts, 0, "Unverified native producer receipt dispatched START");
       if (scenario.startsWith("cancel_")) assert.equal(state.native_outcome_unknown, scenario === "cancel_read", "Cancellation falsely promised native recall");
       if (scenario.startsWith("cancel_")) assert.equal(b.w.document.querySelector("#tb-titel").value, "Owned late actor draft");
            if (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions"].includes(scenario)) assert.equal(b.saves().length, saves + 1, "Review wrote beyond its explicit native baseline");
       if (scenario !== "source_changed" && (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions", "commit_checkpoint_failed"].includes(scenario)))
         assert.equal(JSON.stringify(b.t.daten()), before, scenario + ": private review mutated actual data");
-    } finally { b.close(); }
+    } finally { b.close(); passed++; }
   }
-  console.log("NOTES ACTOR REVIEW PASSED: native byte paging/digests, private merge/reply, owner isolation, cancellation/late create/drafts, session close and unchanged book on both frontends");
+  console.log("NOTES ACTOR REVIEW PASSED: " + passed + " cases; native producer/dispatch receipts, scope/byte paging, private merge/reply, owner isolation, cancellation/drafts and terminal fences on both frontends");
 })().then(() => clearTimeout(watchdog), error => { clearTimeout(watchdog); console.error(error); process.exitCode = 1; });
