@@ -2664,6 +2664,10 @@ def receive_frame(sock, maximum):
 class PhoneService:
     """Own listener, pairing state, status cache and phone sessions."""
 
+    # Private native readiness gate, never an IPC/request setting. Remains off
+    # until both controllers and frontend review/receipt union are accepted.
+    _actor_mixed_ready = False
+
     def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
         self.store = PhoneStore(root, display_name)
         self._mcp_worker = threading.local()
@@ -4654,6 +4658,31 @@ class PhoneService:
             personal_actor_contract.completion_members(run_id, manifest, targets, decisions)
         return review
 
+    def _actor_fixed_review(self, admission, run_id, review):
+        """Original typed choices / native target proofs BEFORE ordinary save."""
+        if not admission.get('producer_bodies') or not review['intents']:
+            return None
+        if any(value['kind'] != 'personal_sync.deletion_proposals' for value in review['intents']):
+            raise PermissionError('actor_mixed_initial_decisions_not_supported')
+        before = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
+        choices = [{key: copy.deepcopy(value[key]) for key in ('proposal_id', 'decision', 'expected_clock')} for value in review['choices']]
+        fixed_targets = []
+        for start in range(0, len(choices), 32):
+            body = {'format': 1, 'run_id': run_id, 'decision_id': run_id, 'decisions': choices[start:start + 32]}
+            proof = self.store.personal_decision_targets(personal_actor_contract.storage_peer(run_id), body, True)
+            if proof is None:
+                raise PermissionError('actor_completion_target_proof_missing')
+            fixed_targets.extend(proof)
+        late_targets = [{key: copy.deepcopy(value[key]) for key in ('proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock')}
+            for body in admission['producer_bodies'] for value in body['proposals']]
+        personal_actor_contract.completion_members(run_id, before, fixed_targets, choices)
+        # Structural identity union only. Actual parent directions require the
+        # late decisions; no hypothetical original outgoing frames are created.
+        union = late_targets + fixed_targets
+        dummy = [{'proposal_id': value['proposal_id'], 'decision': 'restore', 'expected_clock': value['clock']} for value in union]
+        personal_actor_contract.completion_members(run_id, before, union, dummy)
+        return {'before_scope': copy.deepcopy(before), 'targets': copy.deepcopy(fixed_targets), 'choices': choices}
+
     def prepare_personal_actor_commit(self, registry, handle, view_revision, after_hash, native_saved_book, book_source, deletion_plan=None):
         if (not isinstance(view_revision, str) or re.fullmatch(r"[0-9a-f]{64}", view_revision) is None or
                 not isinstance(after_hash, str) or re.fullmatch(r"[0-9a-f]{64}", after_hash) is None):
@@ -4665,8 +4694,9 @@ class PhoneService:
             admission = self.personal_actor_admissions[handle.actor_id]
             private = personal_actor_contract.storage_peer(handle.actor_id)
             deletion_review = self._actor_deletion_review(admission, handle.actor_id, deletion_plan)
-            if admission.get('producer_bodies') and deletion_review['intents']:
+            if admission.get('producer_bodies') and deletion_review['intents'] and not self._actor_mixed_ready:
                 raise PermissionError('actor_mixed_post_data_review_not_ready')
+            fixed_review = self._actor_fixed_review(admission, handle.actor_id, deletion_review)
             batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
             hashes = {item["sha256"] for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
             for digest in hashes:
@@ -4677,9 +4707,9 @@ class PhoneService:
                 plan = admission["commit_plan"] = {"token": secrets.token_hex(32), "view_revision": view_revision,
                     "after_sha256": after_hash, "book_source": book_source, "before_sequence": book["sequence"],
                     "received": {name: sum(record["kind"] == kind for record in batch["records"]) for kind, name in (("note", "notes"), ("task", "tasks"), ("notebook", "notebooks"))},
-                    "received_attachments": len(hashes), "deletion_review": deletion_review}
+                    "received_attachments": len(hashes), "deletion_review": deletion_review, "fixed_review": fixed_review}
             elif ((plan["view_revision"], plan["after_sha256"], plan["book_source"]) != (view_revision, after_hash, book_source) or
-                    plan["deletion_review"] != deletion_review):
+                    plan["deletion_review"] != deletion_review or plan.get('fixed_review') != fixed_review):
                 raise PermissionError("actor_commit_plan_changed")
             registry.require_current(handle)
             return {"claim_token": plan["token"], "view_revision": plan["view_revision"], "after_sha256": plan["after_sha256"], "book_persisted": False}
@@ -4700,6 +4730,8 @@ class PhoneService:
                     raise PermissionError("actor_save_proof_missing")
                 self.read_personal_actor_staging(registry, handle, limit=1, expected_revision=plan["view_revision"])
                 review = self._actor_deletion_review(admission, handle.actor_id, plan["deletion_review"])
+                if self._actor_fixed_review(admission, handle.actor_id, review) != plan.get('fixed_review'):
+                    raise PermissionError('actor_fixed_review_changed')
                 private = personal_actor_contract.storage_peer(handle.actor_id)
                 batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
                 owner, messages = self.store.commit_personal_batch(private, batch["message_id"], batch["commit_token"],
@@ -5173,7 +5205,21 @@ class PhoneService:
         aggregate = batch["messages"][-1]["body"]["records_hash"]
         files = {item["sha256"]: item for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
         if any(not self.store.outgoing_attachment_complete(private, handle.actor_id, True, aggregate, digest) for digest in files): return
-        if len(admission["outbound"]) >= 4096:
+        fixed_review = admission['commit_plan'].get('fixed_review')
+        fixed_frames = []
+        if fixed_review is not None:
+            fingerprint = registry.status(handle)['fingerprint']
+            def source():
+                registry.require_current(handle)
+                return registry.current_source(admission['peer'], fingerprint)
+            original_source = source()
+            fixed_frames = self.store.queue_actor_fixed_decisions(admission['peer'], handle.actor_id, fixed_review['choices'],
+                expected_source=original_source, saved_claim=admission['save_receipt'], current_source=source,
+                current_confirmed_claim=lambda: admission['save_receipt'])
+            # Retain exact identities across report/handoff SQL failure. They are
+            # NOT dispatchable through this admission until its owner is bound.
+            admission['fixed_frames'] = copy.deepcopy(fixed_frames)
+        if len(admission["outbound"]) + len(fixed_frames) >= 4096:
             raise RuntimeError("actor_capacity")
         now = now_ms(); started = admission["start"]["created_ms"]
         report = {"format": batch["messages"][-1]["body"]["format"], "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": self.connection_transports[admission["peer"]],
@@ -5190,7 +5236,7 @@ class PhoneService:
                 from magnolie_personal_actor_report_owner import PostDataReportOwner
                 # Mixed groups need their original-choice/result-scope union;
                 # do not silently reapply the already committed initial choices.
-                if admission['commit_plan']['deletion_review']['intents']:
+                if admission['commit_plan']['deletion_review']['intents'] and fixed_review is None:
                     raise PermissionError('actor_mixed_post_data_review_not_ready')
                 if not callable(registry.completion_source):
                     raise PermissionError('actor_completion_authority_unavailable')
@@ -5198,11 +5244,13 @@ class PhoneService:
                 targets = [{key: copy.deepcopy(value[key]) for key in ('proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock')}
                     for body in admission['producer_bodies'] for value in body['proposals']]
                 waiting = PostDataReportOwner(handle.actor_id, targets,
-                    self.current_content_scope(admission['peer'], admission['key'], admission['scope']), queued, admission['save_receipt'],
+                    fixed_review['before_scope'] if fixed_review is not None else self.current_content_scope(admission['peer'], admission['key'], admission['scope']), queued, admission['save_receipt'],
                     current_authority=lambda: registry.completion_source(admission['peer'], fingerprint),
-                    persisted_controls=lambda: registry.read_completion_controls(handle), producer_frames=admission['producer_frames'])
+                    persisted_controls=lambda: registry.read_completion_controls(handle), producer_frames=admission['producer_frames'],
+                    native_fixed_targets=fixed_review['targets'] if fixed_review is not None else None, fixed_decision_frames=fixed_frames)
                 registry.begin_decision_review(handle, waiting.validator)
                 admission['report_owner'] = waiting
+                admission['outbound'].update(wire['message_id'] for wire in fixed_frames)
             else:
                 registry.require_current(handle)
         except BaseException:
