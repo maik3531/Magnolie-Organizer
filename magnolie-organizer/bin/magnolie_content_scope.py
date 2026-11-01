@@ -87,6 +87,36 @@ def advance(current, notes, tasks):
     return create(notes, tasks, current["revision"] + 1)
 
 
+def read_page(manifest, offset=0, limit=128):
+    """Native projection only; caller must pin fresh source before AND after.
+
+    Combined offset visits accepted notes then tasks. Both member count and
+    serialized bytes are bounded, including escaped control characters.
+    """
+    if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 128:
+        raise ValueError('invalid_scope_page')
+    validate(manifest)
+    notes, tasks = manifest['members']['notes'], manifest['members']['tasks']
+    total = len(notes) + len(tasks)
+    if offset > total:
+        raise ValueError('invalid_scope_page')
+    page = {'scope': reference(manifest), 'offset': offset, 'total': total,
+        'notes_total': len(notes), 'tasks_total': len(tasks), 'next_offset': None,
+        'members': {'notes': [], 'tasks': []}}
+    following = offset
+    while following < total and following - offset < limit:
+        is_note = following < len(notes)
+        target = page['members']['notes' if is_note else 'tasks']
+        target.append(notes[following] if is_note else tasks[following - len(notes)])
+        if len(personal.canonical(page)) > 32000:
+            target.pop()
+            break
+        following += 1
+    if following < total:
+        page['next_offset'] = following
+    return page
+
+
 def reference(manifest):
     validate(manifest)
     return {"scope_epoch": manifest["epoch"], "scope_revision": manifest["revision"], "scope_hash": manifest["scope_hash"]}
