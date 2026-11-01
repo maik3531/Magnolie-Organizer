@@ -41,6 +41,14 @@ internal sealed partial class TelefonCoordinator
             var reference = connection.ActorSourceSnapshot()["scope"]!.AsObject();
             var manifest = connection.CurrentContentScope(reference);
             var page = PhoneContentScope.ReadPage(manifest, offset, limit);
+            var peer = RequireSolePeer(id); var local = SharedLocalCapabilities();
+            var format = new[] { 14, 3 }.FirstOrDefault(value => new[] { "personal_notes_sync", "personal_tasks_sync" }.All(name =>
+                SupportsPersonalFormat(peer, name, value) && local[name]?["versions"] is JsonArray versions && versions.Any(item => item?.GetValue<int>() == value)));
+            if (format == 0) throw new InvalidOperationException("actor_record_format_unavailable");
+            var settings = store.SharedSettings(id, peer.PublicKey) ?? throw new InvalidOperationException("actor_source_changed");
+            page["baseline"] = new JsonObject { ["record_format"] = format,
+                ["propagate_deletions"] = SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() == false &&
+                    store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() == true && peer.Grants["personal_deletions_sync"]?.GetValue<bool>() == true };
             if (CurrentActorSource(id, fingerprint) != expectedSource || !ReferenceEquals(online.GetValueOrDefault(id), connection))
                 throw new InvalidOperationException("actor_source_changed");
             page["sourceRevision"] = expectedSource;

@@ -107,6 +107,8 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(scopePage["sourceRevision"]!.GetValue<string>() == actorSource && scopePage["next_offset"]!.GetValue<int>() == 1 &&
                 scopePage["members"]!["notes"]![0]!.GetValue<string>() == "note-one" && scopePage["members"]!["tasks"]!.AsArray().Count == 0,
                 "Native accepted-scope page was not source-pinned/bounded.");
+            TestAssert.That(scopePage["baseline"]!["record_format"]!.GetValue<int>() == 14 &&
+                scopePage["baseline"]!["propagate_deletions"]!.GetValue<bool>(), "Native baseline policy lost negotiated format or current deletion consent.");
             var taskPage = await coordinator.ReadPersonalActorScopeAsync(peer.Id, fingerprint, actorSource, 1, 1);
             TestAssert.That(taskPage["members"]!["tasks"]![0]!.GetValue<string>() == "task-one" && taskPage["next_offset"] is null,
                 "Native scope paging lost the notes/tasks boundary.");

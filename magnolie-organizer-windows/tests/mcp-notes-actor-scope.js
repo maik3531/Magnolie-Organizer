@@ -19,7 +19,9 @@ const watchdog = setTimeout(() => { console.error("Notes scope collection timed 
       let creates = 0, reads = 0, id = null, held = null;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
-        post(text); const message = JSON.parse(text); if (message.cmd !== "telefon_mcp") return;
+        post(text); const message = JSON.parse(text);
+        if (message.cmd === "speichern") { queueMicrotask(() => b.ack()); return; }
+        if (message.cmd !== "telefon_mcp") return;
         const r = message.request;
         queueMicrotask(() => {
           if (r.action === "notes_actor_source") { b.w.App.telefonMcpErgebnis({ requestId: message.requestId, ok: true, sourceRevision: source }); return; }
@@ -31,7 +33,8 @@ const watchdog = setTimeout(() => { console.error("Notes scope collection timed 
           const all = [...members.notes, ...members.tasks], slice = all.slice(r.offset, r.offset + 128), noteCount = Math.min(slice.length, Math.max(0, members.notes.length - r.offset));
           const next = r.offset + slice.length;
           const page = { scope: plain(header), offset: r.offset, total: all.length, notes_total: members.notes.length, tasks_total: members.tasks.length,
-            next_offset: next < all.length ? next : null, members: { notes: slice.slice(0, noteCount), tasks: slice.slice(noteCount) }, sourceRevision: source };
+            next_offset: next < all.length ? next : null, members: { notes: slice.slice(0, noteCount), tasks: slice.slice(noteCount) }, sourceRevision: source,
+            baseline: { record_format: 3, propagate_deletions: false } };
           if (scenario === "source") page.sourceRevision = "c".repeat(64);
           if (scenario === "offset") page.offset++;
           if (scenario === "count") page.total++;
@@ -63,8 +66,10 @@ const watchdog = setTimeout(() => { console.error("Notes scope collection timed 
       }
       assert.equal(state.phase, scenario === "cancel" ? "cancelled" : "failed", scenario + JSON.stringify(state));
       assert.equal(creates, ["pages", "empty"].includes(scenario) ? 1 : 0, scenario + ": native owner created before complete valid scope");
-      assert.equal(b.saves().length, saves, "Scope read caused a book write");
-      if (scenario !== "book_changed") assert.equal(JSON.stringify(b.t.daten()), before);
+      const valid = ["pages", "empty"].includes(scenario);
+      assert.equal(b.saves().length, saves + (valid ? 1 : 0), "Invalid scope caused a baseline write");
+      assert.equal(state.baseline_saved, valid);
+      if (!valid && scenario !== "book_changed") assert.equal(JSON.stringify(b.t.daten()), before);
       if (scenario === "draft") assert.equal(b.w.document.querySelector("#tb-titel").value, "Preserve scope-read draft");
       passed++;
     } finally { b.w.close(); }

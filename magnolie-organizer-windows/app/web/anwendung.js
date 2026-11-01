@@ -37384,6 +37384,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
       summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: job.phoneSaved === true,
       reply_queued: job.replyQueued === true,
+      baseline_saved: job.baselineSaved === true,
       cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
   }
   function mcpNotesActorStatus(owner, id) {
@@ -37510,13 +37511,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       mcpNotesActorGuard(job);
       const page = (await mcpNotesActorNative(job, "notes_actor_scope", { sourceRevision: job.source, offset, limit: 128 })).scopePage;
       mcpNotesActorGuard(job);
-      if (!exact(page, ["scope", "offset", "total", "notes_total", "tasks_total", "next_offset", "members", "sourceRevision"]) ||
+      if (!exact(page, ["scope", "offset", "total", "notes_total", "tasks_total", "next_offset", "members", "sourceRevision", "baseline"]) ||
           page.sourceRevision !== job.source || page.offset !== offset ||
           ![page.total, page.notes_total, page.tasks_total].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 50000) ||
           page.notes_total + page.tasks_total !== page.total || !exact(page.scope, ["scope_epoch", "scope_revision", "scope_hash"]) ||
           !exact(page.members, ["notes", "tasks"]) || !Array.isArray(page.members.notes) || !Array.isArray(page.members.tasks) ||
-          new TextEncoder().encode(JSON.stringify(page)).length > 32768) invalid();
-      const currentHeader = [page.scope, page.total, page.notes_total, page.tasks_total];
+          !exact(page.baseline, ["record_format", "propagate_deletions"]) || ![3, 14].includes(page.baseline.record_format) ||
+          typeof page.baseline.propagate_deletions !== "boolean" || new TextEncoder().encode(JSON.stringify(page)).length > 32768) invalid();
+      const currentHeader = [page.scope, page.total, page.notes_total, page.tasks_total, page.baseline];
       if (header && personalSyncKanonisch(header) !== personalSyncKanonisch(currentHeader)) invalid();
       header ||= currentHeader;
       const count = page.members.notes.length + page.members.tasks.length, next = offset + count;
@@ -37534,12 +37536,41 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       scope_hash: header[0].scope_hash, members };
     try { await personalSyncScopeAusManifest(scope); } catch { invalid(); }
     mcpNotesActorGuard(job);
-    return scope;
+    return { scope, baseline: kopie(header[4]) };
+  }
+  async function mcpNotesActorBaseline(job, accepted) {
+    mcpNotesActorGuard(job); job.phase = "preparing_baseline";
+    const selection = await personalSyncScopeAusManifest(accepted.scope), candidate = kopie(job.book);
+    mcpNotesActorGuard(job);
+    await personalSyncSnapshotAusBestand(candidate, ["notes", "tasks"], accepted.baseline.record_format, job.peer,
+      { selection, independentRemovals: true, propagateSelectedDeletions: accepted.baseline.propagate_deletions,
+        guard: () => mcpNotesActorGuard(job) });
+    mcpNotesActorGuard(job);
+    if ((await mcpNotesActorNative(job, "notes_actor_source")).sourceRevision !== job.source)
+      throw new MagnolieMcp.ToolError("source_changed", "Native Notes source changed before the baseline save");
+    mcpNotesActorGuard(job); job.phase = "saving_baseline";
+    await mcpSchreiben(job.controller.signal, () => {
+      mcpNotesActorGuard(job);
+      const fields = ["notizen", "notizbuecher", "aufgaben", "personalSync"], guarded = kopie(DATEN);
+      for (const field of fields) guarded[field] = candidate[field];
+      const text = JSON.stringify(candidate);
+      if (JSON.stringify(guarded) !== text) throw new MagnolieMcp.ToolError("conflict", "Notes baseline changed unrelated book fields");
+      for (const field of fields) DATEN[field] = candidate[field];
+      job.before = JSON.stringify(DATEN); letzterSpeicherText = null; job.baselineSaving = true;
+      if (job.before !== text) throw new MagnolieMcp.ToolError("conflict", "Book changed while adopting the Notes baseline");
+      return {};
+    }, { pristineOnly: true });
+    job.baselineSaved = true; job.baselineSaving = false; mcpNotesActorGuard(job);
+    const fresh = await mcpNotesActorNative(job, "notes_actor_source");
+    mcpNotesActorGuard(job);
+    if (fresh.sourceRevision !== job.source) throw new MagnolieMcp.ToolError("source_changed", "Native Notes source changed during the baseline save");
+    job.source = fresh.sourceRevision;
   }
   async function mcpNotesActorArbeit(job) {
     try {
       job.phase = "reading_scope";
-      const acceptedScope = await mcpNotesActorScope(job);
+      const accepted = await mcpNotesActorScope(job), acceptedScope = accepted.scope;
+      await mcpNotesActorBaseline(job, accepted);
       mcpNotesActorGuard(job);
       // Retain a late create result for cleanup even when the job was cancelled meanwhile.
       const created = await mcpNotesActorNative(job, "notes_actor_create", { sourceRevision: job.source }, new AbortController().signal);
@@ -37602,7 +37633,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       mcpNotesActorGuard(job); job.review = review;
       job.phase = "review";
     } catch (error) {
-      if (job.dispatched) job.unknown = true;
+      if (job.dispatched || job.baselineSaving && !job.baselineSaved) job.unknown = true;
       if (job.phase !== "cancelled") { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.error = error.code || "native_operation_failed"; }
     } finally {
       if (mcpNotesActorTerminal(job)) { mcpNotesActorStopNative(job); job.review = null; job.book = null; job.before = ""; }

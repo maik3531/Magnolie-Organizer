@@ -5242,6 +5242,19 @@ class PhoneService:
             reference = session.current_reference((peer_id, peer['static_public'], id(channel)))
             manifest = self.current_content_scope(peer_id, peer['static_public'], reference)
             page = content_scope_contract.read_page(manifest, offset, limit)
+            local = desktop_capabilities()['items']
+            record_format = next((value for value in (14, 3) if all(
+                supports_personal_format(peer, name, value) and value in local.get(name, {}).get('versions', [])
+                for name in ('personal_notes_sync', 'personal_tasks_sync'))), None)
+            if record_format is None:
+                raise PermissionError('actor_record_format_unavailable')
+            settings = self.store.shared_settings(peer_id, peer['static_public'])
+            if settings is None:
+                raise PermissionError('actor_source_changed')
+            page['baseline'] = {'record_format': record_format,
+                'propagate_deletions': shared_sync_contract.effective(settings)['skip_deletions'] is False and
+                    peer.get('local_grants', {}).get('grants', {}).get('personal_deletions_sync') is True and
+                    peer.get('grants', {}).get('grants', {}).get('personal_deletions_sync') is True}
             if (self.current_actor_source(peer_id, expected_fingerprint, native_book_source) != expected_source or
                     self.connections.get(peer_id) is not channel):
                 raise PermissionError('actor_source_changed')

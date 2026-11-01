@@ -55,6 +55,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
           response = { scopePage: { scope: { scope_epoch: projection.content_scope.epoch, scope_revision: projection.content_scope.revision,
             scope_hash: projection.content_scope.scope_hash }, offset: 0, total: 1, notes_total: 1, tasks_total: 0,
             next_offset: null, members: plain(members), sourceRevision: "b".repeat(64) } };
+          response.scopePage.baseline = { record_format: recordFormat, propagate_deletions: true };
         }
         else if (r.action === "notes_actor_create") response = { actorId: scenario === "capacity" ? "44444444-4444-4444-8444-" + pendingCreates.indexOf(message).toString(16).padStart(12, "0") : actorId, ownerToken, bookSource: "" };
         else if (r.action === "notes_actor_start") response = { actor: { dispatch_started: true, persisted: false } };
@@ -151,7 +152,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         pendingCreates.forEach(answer);
         for (let n = 0; n < 50 && cancels < 4; n++) await tick();
         assert.equal(cancels, 4); assert.equal(starts, 0);
-        assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves); continue;
+        assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves + 4); continue;
       }
       if (scenario === "draft") { b.t.oeffneTerminBlatt(null, "2026-10-19"); b.input("#tb-titel", "Existing actor draft"); }
       if (["draft", "stale"].includes(scenario)) {
@@ -249,7 +250,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         } else if (scenario === "success") b.t.mcpNotesActorCancel(owner, id);
         else if (["commit_stale", "commit_deletions"].includes(scenario)) {
           assert.throws(() => b.t.mcpNotesActorCommit(owner, id, scenario === "commit_stale" ? "f".repeat(64) : state.review_revision));
-          assert.equal(b.saves().length, saves); b.t.mcpNotesActorCancel(owner, id);
+          assert.equal(b.saves().length, saves + 1); b.t.mcpNotesActorCancel(owner, id);
         } else {
           b.t.mcpNotesActorCommit(owner, id, state.review_revision);
           for (let n = 0; n < 400; n++) {
@@ -275,7 +276,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       if (scenario === "cancel_create") assert.equal(starts, 0, "Cancelled late creation dispatched a snapshot start");
       if (scenario.startsWith("cancel_")) assert.equal(state.native_outcome_unknown, scenario === "cancel_read", "Cancellation falsely promised native recall");
       if (scenario.startsWith("cancel_")) assert.equal(b.w.document.querySelector("#tb-titel").value, "Owned late actor draft");
-      if (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions"].includes(scenario)) assert.equal(b.saves().length, saves, "Review preparation saved the actual book");
+           if (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions"].includes(scenario)) assert.equal(b.saves().length, saves + 1, "Review wrote beyond its explicit native baseline");
       if (scenario !== "source_changed" && (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions", "commit_checkpoint_failed"].includes(scenario)))
         assert.equal(JSON.stringify(b.t.daten()), before, scenario + ": private review mutated actual data");
     } finally { b.close(); }

@@ -11,6 +11,8 @@ from test_personal_actor_transport import gtk_actor_bridge
 from magnolie_personal_actor_store import NativeBookOwnerScope
 import magnolie_hintergrund as background
 from test_hintergrunddienst import FakeBackend
+from test_shared_sync_transport import message
+import magnolie_shared_sync as shared
 
 
 def test_pages_preserve_utf8_order_cross_module_boundary_and_are_detached():
@@ -142,3 +144,31 @@ def test_scope_page_ipc_is_strict_and_bounded(field, value):
         'offset': 0, 'limit': 128}
     arguments[field] = value
     with pytest.raises(background.IPCError): background._request_shape('phone_actor_scope', arguments)
+
+
+@pytest.mark.parametrize('gate', ['allowed', 'skip', 'local-grant', 'remote-grant', 'format3', 'no-format'])
+def test_baseline_policy_is_derived_from_current_native_controls(tmp_path, monkeypatch, gate):
+    service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
+    service.native_actor_book_source = lambda: 'a' * 64
+    peer['local_grants']['grants']['personal_deletions_sync'] = gate != 'local-grant'
+    peer['grants']['grants']['personal_deletions_sync'] = gate != 'remote-grant'
+    service.note_controls[channel]['grants.update'] = copy.deepcopy(peer['grants'])
+    if gate in ('format3', 'no-format'):
+        for name in ('personal_notes_sync', 'personal_tasks_sync'):
+            peer['capabilities']['items'][name]['versions'] = [value for value in peer['capabilities']['items'][name]['versions']
+                if value != 14 and (gate != 'no-format' or value != 3)]
+        service.note_controls[channel]['capabilities.update'] = copy.deepcopy(peer['capabilities'])
+    setting = service.store.change_shared_setting(peer['device_id'], peer['static_public'], 'skip_deletions', gate == 'skip')
+    remote = shared.merge(shared.create(peer['device_id']), setting, peer['device_id'], service.store.identity['device_id'])
+    service._payload(peer, channel, message(remote))
+    # Shared preference application legitimately updates the local deletion
+    # grant. Exercise a subsequent native revocation, not a superseded fixture.
+    if gate == 'local-grant': peer['local_grants']['grants']['personal_deletions_sync'] = False
+    source = service.current_actor_source(peer['device_id'], fingerprint)
+    assert source
+    if gate == 'no-format':
+        with pytest.raises(PermissionError): service.read_personal_actor_scope(peer['device_id'], fingerprint, source)
+    else:
+        policy = service.read_personal_actor_scope(peer['device_id'], fingerprint, source)['baseline']
+        assert policy == {'record_format': 3 if gate == 'format3' else 14,
+            'propagate_deletions': gate in ('allowed', 'format3')}
