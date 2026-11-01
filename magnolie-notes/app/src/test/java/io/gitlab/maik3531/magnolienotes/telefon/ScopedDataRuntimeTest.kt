@@ -82,6 +82,7 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionMixedRejectedWithExtraReview() = exercise("actor-producer-incoming-mixed-reject-review-extra")
     @Test fun nativeIncomingDecisionMixedRejectedWithPartialDecisions() = exercise("actor-producer-incoming-mixed-reject-partial")
     @Test fun nativeIncomingDecisionMixedRejectedWithOverlappingTargets() = exercise("actor-producer-incoming-mixed-reject-overlap")
+    @Test fun nativeIncomingDecisionMixedLedgerRetryRetainsAtomicGroupAndOneDataCommit() = exercise("actor-producer-incoming-mixed-restore-ledger-failure")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -376,7 +377,7 @@ class ScopedDataRuntimeTest {
                             @Suppress("UNCHECKED_CAST")
                             val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)
                             val native = proofs.flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body").jsonObject) }.sortedBy { it.proposalId }
-                            val choice = if (mode.endsWith("restore")) "restore" else "delete"
+                            val choice = if (mode.endsWith("restore") || mode.contains("mixed-restore")) "restore" else "delete"
                             val decisionBodies = native.chunked(32).map { chunk -> buildJsonObject {
                                 put("format", 1); put("run_id", run); put("decision_id", UUID.randomUUID().toString())
                                 put("decisions", JsonArray(chunk.map { proposal -> buildJsonObject {
@@ -473,7 +474,8 @@ class ScopedDataRuntimeTest {
                                 assertEquals(0, work.personalActorJournal.withActive(handle) { 0 })
                                 return@use
                             }
-                            if (mixed) assertEquals("completion", work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
+                            if (mixed) assertEquals(if (mode.endsWith("ledger-failure")) "metadata_pending" else "completion",
+                                work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
                             val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
                             val firstWire = sent().toMutableList()
                             if (mode.endsWith("writer-failure")) {
@@ -491,6 +493,17 @@ class ScopedDataRuntimeTest {
                             assertEquals(draft, documents.entwurf.value)
                             var mixedPeerAck: JsonObject? = null
                             var finalWitness = after
+                            if (mixed && mode.endsWith("ledger-failure")) {
+                                assertEquals(3, queue.actorDeletionIntents(run).size)
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" })
+                                database.execSQL("DROP TRIGGER incoming_ledger_failure")
+                                pump.invoke(work, peer, channel, 0L, false)
+                                firstWire += sent()
+                                assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                                assertEquals(after, documents.personalActorSavedBookState())
+                            }
                             if (mixed) {
                                 if (session.contentScopeMessages.isNotEmpty()) ackScope()
                                 pump.invoke(work, peer, channel, 0L, false)
@@ -557,7 +570,7 @@ class ScopedDataRuntimeTest {
                                 assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
                                 return@use
                             }
-                            if (mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
+                            if (!mixed && mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
                                 assertEquals("completion", work.personalActorJournal.completionState(handle))
                                 @Suppress("UNCHECKED_CAST")
                                 val completion = (field(TelefonWerk::class.java, "personalActorCompletions").get(work) as Map<String, Any>).getValue(run)
