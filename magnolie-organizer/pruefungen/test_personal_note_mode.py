@@ -147,8 +147,13 @@ def v5_service(tmp_path, monkeypatch):
     original = phone.desktop_capabilities
     def capabilities(*args, **kwargs):
         value = original(*args, **kwargs)
+        # Refs #298: this fixture exercises the legacy v5 echo policy, not
+        # modern shared settings or phone-scope controls from the host build.
+        for name in ('personal_notes_sync', 'personal_tasks_sync'):
+            value['items'][name]['versions'] = [version for version in value['items'][name]['versions'] if version <= 5]
         if 5 not in value["items"]["personal_notes_sync"]["versions"]:
             value["items"]["personal_notes_sync"]["versions"].append(5)
+        assert all(version <= 5 for name in ('personal_notes_sync', 'personal_tasks_sync') for version in value['items'][name]['versions'])
         return value
     monkeypatch.setattr(phone, "desktop_capabilities", capabilities)
     service, peer_id = _personal_service(tmp_path, lambda *_: None)
