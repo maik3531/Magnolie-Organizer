@@ -83,6 +83,8 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionMixedRejectedWithPartialDecisions() = exercise("actor-producer-incoming-mixed-reject-partial")
     @Test fun nativeIncomingDecisionMixedRejectedWithOverlappingTargets() = exercise("actor-producer-incoming-mixed-reject-overlap")
     @Test fun nativeIncomingDecisionMixedLedgerRetryRetainsAtomicGroupAndOneDataCommit() = exercise("actor-producer-incoming-mixed-restore-ledger-failure")
+    @Test fun nativeIncomingDecisionMixedSendRetryNeedsActualNativeAckFlush() = exercise("actor-producer-incoming-mixed-restore-send-failure")
+    @Test fun nativeIncomingDecisionMixedMetadataRetryNeedsProtectedAckPersistence() = exercise("actor-producer-incoming-mixed-restore-metadata-failure")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -194,6 +196,7 @@ class ScopedDataRuntimeTest {
             val nativeAckLockChecks = AtomicInteger()
             val wireOutput = object : ByteArrayOutputStream() {
                 override fun flush() {
+                    var nativeAck = false
                     if (checkNativeAckLocks.get()) {
                         // Normal ownership/settings controls use a different
                         // existing send lane. Check the actual encrypted Actor
@@ -208,11 +211,13 @@ class ScopedDataRuntimeTest {
                         val ack = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) }
                             finally { clear.fill(0) }
                         if (ack) {
+                            nativeAck = true
                             check(!Thread.holdsLock(work) && !Thread.holdsLock(Ablage.SCHREIBSPERRE)) { "Native ACK I/O held service/book guards" }
                             nativeAckLockChecks.incrementAndGet()
                         }
                     }
-                    if (failNextFlush.getAndSet(false)) throw java.io.IOException("Synthetic encrypted channel write failure")
+                    if ((!checkNativeAckLocks.get() || nativeAck) && failNextFlush.getAndSet(false))
+                        throw java.io.IOException("Synthetic encrypted channel write failure")
                     super.flush(); wake.get()?.countDown()
                 }
             }
@@ -504,12 +509,35 @@ class ScopedDataRuntimeTest {
                                 assertTrue(queue.actorDeletionIntents(run).isEmpty())
                                 assertEquals(after, documents.personalActorSavedBookState())
                             }
+                            if (mixed && (mode.endsWith("send-failure") || mode.endsWith("metadata-failure"))) {
+                                assertTrue(first.isFailure)
+                                assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                @Suppress("UNCHECKED_CAST")
+                                val completion = (field(TelefonWerk::class.java, "personalActorCompletions").get(work) as Map<String, Any>).getValue(run)
+                                val guard = field(completion.javaClass, "guard").get(completion) as PersonalActorDecisionCompletion
+                                assertEquals(JsonPrimitive(0), guard.summary()["saved"])
+                                val fakePeerAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                    PersonalSyncActor.ack(run, incomingDecision.string("message_id")), 60000)
+                                work.receiveMessage(peer, fakePeerAck, channel, 0L)
+                                assertEquals(JsonPrimitive(0), guard.summary()["saved"])
+                                if (mode.endsWith("metadata-failure")) database.execSQL("DROP TRIGGER incoming_metadata_failure")
+                                pump.invoke(work, peer, channel, 0L, false)
+                                val beforeDue = sent()
+                                assertTrue(beforeDue.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                firstWire += beforeDue
+                                field(completion.javaClass, "nextOwnAckAttempt").setLong(completion, 0)
+                                pump.invoke(work, peer, channel, 0L, false)
+                                firstWire += sent()
+                                assertEquals(JsonPrimitive(2), guard.summary()["saved"])
+                                assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                assertEquals(after, documents.personalActorSavedBookState())
+                            }
                             if (mixed) {
                                 if (session.contentScopeMessages.isNotEmpty()) ackScope()
                                 pump.invoke(work, peer, channel, 0L, false)
                                 firstWire += sent()
                                 val localFrames = firstWire.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
-                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" }
+                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" }.distinctBy { it.string("message_id") }
                                 assertEquals(1, localFrames.size)
                                 val localDecisions = PersonalSyncProtokoll.decodeDeletionDecisions(PersonalSyncActor.unwrap(localFrames.single().getValue("body").jsonObject).second)
                                 assertEquals(setOf(localProposalId), localDecisions.map { it.proposalId }.toSet())
@@ -570,7 +598,7 @@ class ScopedDataRuntimeTest {
                                 assertTrue(runCatching { work.personalActorJournal.withActive(handle) { 0 } }.isFailure)
                                 return@use
                             }
-                            if (!mixed && mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
+                            if (!mixed && (mode.endsWith("ledger-failure") || mode.endsWith("send-failure") || mode.endsWith("metadata-failure"))) {
                                 assertEquals("completion", work.personalActorJournal.completionState(handle))
                                 @Suppress("UNCHECKED_CAST")
                                 val completion = (field(TelefonWerk::class.java, "personalActorCompletions").get(work) as Map<String, Any>).getValue(run)
@@ -588,7 +616,7 @@ class ScopedDataRuntimeTest {
                                 }
                                 field(completion.javaClass, "nextOwnAckAttempt").setLong(completion, 0)
                                 pump.invoke(work, peer, channel, 0L, false)
-                            } else assertTrue(first.isSuccess)
+                            } else if (!mixed || !mode.endsWith("send-failure") && !mode.endsWith("metadata-failure")) assertTrue(first.isSuccess)
                             val allWire = firstWire + sent()
                             val actualAcks = allWire.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) &&
                                 it.getValue("body").jsonObject["message_id"] in incomingIds }.toSet()
