@@ -684,6 +684,30 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    /** Native observation only. Never called by wire admission/public tools and
+     * never retained as action/data/ACK authority after this locked operation. */
+    @Synchronized internal fun observePersonalActorIncomingTargets(handle: PersonalActorHandle,
+        targets: List<JsonObject>): List<JsonObject> = synchronized(Ablage.SCHREIBSPERRE) {
+        require(targets.size in 1..256) { "actor_target_capacity" }
+        require(personalActorHandles[handle.runId] === handle) { "actor_target_owner_changed" }
+        val channel = requireNotNull(personalActorTransports[handle.runId])
+        val publicKey = requireNotNull(personalActorKeys[handle.runId])
+        val generation = pairingGeneration
+        val documents = Ablage.hole(context)
+        val current = {
+            personalActorJournal.withActive(handle) {}
+            val peer = requireNotNull(safePeer())
+            check(peer.device_id == handle.peerId && peer.static_public == publicKey &&
+                peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted &&
+                commonValues(peer)?.get("skip_deletions") == JsonPrimitive(false)) { "actor_deletions_not_granted" }
+            currentActorSource(handle.peerId, publicKey, channel, generation)
+        }
+        val observation = PersonalActorIncomingTargetObservation(handle.peerId, handle.runId,
+            { current() != null }, current, { documents.bestand.value },
+            { documents.personalActorSavedBookState() }, { noteSessions[channel]?.localContentScope })
+        observation.observeMany(handle.runId, targets)
+    }
+
     /** Called only while preparing the actual native scoped snapshot under the
      * book lock. No preview/wire target can become an outgoing native proposal.
      * Removed note/task memberships outside this scope are intentionally denied;
