@@ -24304,8 +24304,9 @@ class Fenster(_FENSTER_BASIS):
                              local_device_name(), self._telefon_ereignis))
                     self._telefon.native_actor_book_source = self._telefon_actor_buchquelle
                     self._telefon.native_actor_saved_book = self._telefon_actor_buchnachweis
-                    if not isinstance(self._telefon, PhoneServiceProxy):
-                        self._telefon.native_actor_producer_book = self._telefon_actor_producer_buch
+                    self._telefon.native_actor_producer_book = self._telefon_actor_producer_buch
+                    if isinstance(self._telefon, PhoneServiceProxy):
+                        self._telefon.native_actor_producer_guard = lambda: self._daten_sperre
                     if not daemon_owner and self._setup_phone_foreground:
                         self._telefon.enabled = True  # Foreground handoff, not saved startup consent.
                         self._setup_phone_foreground = False
@@ -24370,11 +24371,10 @@ class Fenster(_FENSTER_BASIS):
         if action == "notes_actor_start":
             value = source.start_personal_actor(handle) if proxy else source.start_personal_actor(registry, handle)
         elif action == "notes_actor_produce":
-            if proxy:
-                raise PermissionError("Operation-bound native producer book broker is not available")
-            if self._telefon_actor_buchnachweis() is None:
-                raise PermissionError("Native book has no current actual-save observation")
-            value = source.produce_personal_actor_proposals(registry, handle)
+            with self._daten_sperre:
+                if self._telefon_actor_buchnachweis() is None:
+                    raise PermissionError("Native book has no current actual-save observation")
+                value = source.produce_personal_actor_proposals(handle) if proxy else source.produce_personal_actor_proposals(registry, handle)
         elif action == "notes_actor_status":
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":

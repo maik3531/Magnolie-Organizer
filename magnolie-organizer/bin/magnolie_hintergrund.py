@@ -2,6 +2,7 @@
 """Private background-service foundation for Magnolie Organizer."""
 
 import base64
+import secrets
 import binascii
 import gettext
 import fcntl
@@ -801,6 +802,7 @@ def _request_shape(operation, arguments):
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
+        "phone_actor_producer": {"subscriber", "book_source", "request"},
         "phone_actor_registry": {"subscriber", "book_source", "request"},
         "phone_actor_reply": {"subscriber", "book_source", "actor_id", "owner_token", "claim_token", "batches", "sources", "native_saved_book"},
         "phone_actor_start": {"subscriber", "book_source", "actor_id", "owner_token"},
@@ -1023,7 +1025,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_scope", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
+                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_scope", "phone_actor_producer", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -1045,6 +1047,30 @@ def _request_shape(operation, arguments):
             type(arguments.get("offset")) is not int or not 0 <= arguments["offset"] <= 50000 or
             type(arguments.get("limit")) is not int or not 1 <= arguments["limit"] <= 128):
         raise IPCError("invalid native actor scope page")
+    if operation == "phone_actor_producer":
+        request = arguments.get('request')
+        hex64 = lambda value: isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) is not None
+        if (not hex64(arguments.get('book_source')) or not isinstance(request, dict) or
+                request.get('action') not in ('begin', 'chunk', 'commit', 'abort')):
+            raise IPCError('invalid native producer operation')
+        fields = {'action', 'actor_id', 'owner_token'}
+        if request['action'] == 'begin': fields |= {'source_revision', 'native_saved_book', 'content_sha256', 'total_bytes'}
+        else: fields.add('projection_token')
+        if request['action'] == 'chunk': fields |= {'offset', 'data_base64'}
+        if (set(request) != fields or not _status_query_id(request.get('actor_id')) or not hex64(request.get('owner_token')) or
+                request['action'] != 'begin' and not hex64(request.get('projection_token'))):
+            raise IPCError('invalid native producer ownership')
+        if request['action'] == 'begin':
+            book = request['native_saved_book']
+            if (not hex64(request['source_revision']) or not hex64(request['content_sha256']) or
+                    type(request['total_bytes']) is not int or not 2 <= request['total_bytes'] <= 256 * 1024 * 1024 or
+                    not isinstance(book, dict) or set(book) != {'book_source', 'sequence', 'sha256'} or
+                    book['book_source'] != arguments['book_source'] or type(book['sequence']) is not int or book['sequence'] <= 0 or not hex64(book['sha256'])):
+                raise IPCError('invalid native producer writer observation')
+        if request['action'] == 'chunk' and (
+                type(request['offset']) is not int or not 0 <= request['offset'] < 256 * 1024 * 1024 or
+                not isinstance(request['data_base64'], str) or not 1 <= len(request['data_base64']) <= 43692):
+            raise IPCError('invalid native producer chunk')
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
@@ -1149,6 +1175,7 @@ class IPCServer:
         self._phone_actor_owners = {}
         self._phone_actor_handles = {}
         self._phone_actor_book_probes = {}
+        self._phone_actor_projections = {}
         self.backend = backend
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
@@ -1236,6 +1263,75 @@ class IPCServer:
                 raise NativeBookProofPending("Fresh native GUI writer observation required")
             return json.loads(json.dumps(probe[1]))
 
+    def _phone_actor_producer_operation(self, arguments):
+        from magnolie_personal_actor_store import ActorHandle
+        from magnolie_personal_actor_projection import NativeBookProjection
+        phone = self.phone_backend; request = arguments['request']
+        actor_id = request['actor_id']; owner = (arguments['subscriber'], arguments['book_source'])
+        handle = ActorHandle(actor_id, request['owner_token'])
+        with phone.lock:
+            # Reap before allocating; there is only ONE operation-local buffer
+            # globally, not one unbounded book cache per GUI/run/subscriber.
+            self._reap_actor_projections()
+            if self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                raise IPCError('Native producer owner is unavailable')
+            registry = self._phone_actor_registry(*owner); registry.require_current(handle)
+            expires = time.monotonic() + 30
+            def owned():
+                if (self.stopped.is_set() or time.monotonic() >= expires or
+                        self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None):
+                    return False
+                registry.require_current(handle)
+                return True
+            status = registry.status(handle)
+            current_source = lambda: registry.current_source(status['peer_id'], status['fingerprint'])
+            if request['action'] == 'begin':
+                if self._phone_actor_projections:
+                    raise IPCError('Native producer projection capacity exceeded')
+                saved = json.loads(json.dumps(request['native_saved_book']))
+                receiver = NativeBookProjection(saved, request['content_sha256'], request['total_bytes'], request['source_revision'],
+                    current_owner=owned, current_source=current_source,
+                    current_saved_book=lambda: saved if owned() else None)
+                self._phone_actor_projections[actor_id] = {'receiver': receiver, 'owner': owner, 'handle': handle,
+                    'saved': saved, 'expires': expires}
+                return {'projection_token': receiver.token, 'received_bytes': 0}
+            slot = self._phone_actor_projections.get(actor_id)
+            if (slot is None or slot['owner'] != owner or slot['handle'] != handle or
+                    not secrets.compare_digest(request['projection_token'], slot['receiver'].token)):
+                # A foreign handle/token must never abort the legitimate slot.
+                raise IPCError('Native producer projection is unavailable')
+            receiver = slot['receiver']
+            expires = slot['expires']
+            try:
+                if request['action'] == 'abort':
+                    receiver.close(); return {'aborted': True}
+                if request['action'] == 'chunk':
+                    return {'received_bytes': receiver.append(receiver.token, request['offset'], request['data_base64'])}
+                snapshot = receiver.finish(receiver.token)
+                # No callback is installed on the daemon service. The immutable
+                # projection exists only on this stack during the native call.
+                return phone.produce_personal_actor_proposals(registry, handle,
+                    native_book_source=lambda: owner[1] if owned() else None,
+                    native_saved_book=lambda: slot['saved'] if owned() else None,
+                    native_producer_book=lambda: snapshot if owned() else None)
+            finally:
+                if receiver.closed:
+                    receiver.close(); self._phone_actor_projections.pop(actor_id, None)
+
+    def _reap_actor_projections(self):
+        # Caller owns phone.lock. Reaping is also run by ordinary owner lifecycle
+        # maintenance, so abandoned chunks do not retain plaintext indefinitely.
+        for actor_id, slot in list(self._phone_actor_projections.items()):
+            invalid = (slot['expires'] <= time.monotonic() or self.stopped.is_set() or
+                self._phone_actor_owners.get(actor_id) != slot['owner'] or self.gui_actor_book_source(*slot['owner']) is None)
+            if not invalid:
+                try:
+                    slot['receiver']._require(slot['receiver'].token)
+                except (PermissionError, ValueError, IPCError):
+                    invalid = True
+            if invalid:
+                slot['receiver'].close(); self._phone_actor_projections.pop(actor_id, None)
+
     def _phone_actor_completion_operation(self, arguments):
         """Explicit synchronous GUI-owner step, never a cached writer provider.
 
@@ -1282,6 +1378,7 @@ class IPCServer:
         if phone is None:
             return
         with phone.lock:
+            self._reap_actor_projections()
             for registry in list(self._phone_actor_registries.values()):
                 registry.reap()
             for actor_id, owner in list(self._phone_actor_owners.items()):
@@ -1425,6 +1522,9 @@ class IPCServer:
             try:
                 connection, _address = self.listener.accept()
             except socket.timeout:
+                if self._phone_actor_projections:
+                    with self.phone_backend.lock:
+                        self._reap_actor_projections()
                 continue
             except OSError:
                 break
@@ -1647,6 +1747,8 @@ class IPCServer:
             return phone.read_personal_actor_scope(arguments["peer_id"], arguments["fingerprint"], arguments["expected_source"],
                 arguments["offset"], arguments["limit"],
                 native_book_source=lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
+        if operation == 'phone_actor_producer':
+            return self._phone_actor_producer_operation(arguments)
         if operation == "phone_actor_reply":
             from magnolie_personal_actor_store import ActorHandle
             with phone.lock:
@@ -1760,6 +1862,9 @@ class IPCServer:
         self.lifecycle = "stopping"
         self.setup_sessions.close()
         self.stopped.set()
+        if self._phone_actor_projections:
+            with self.phone_backend.lock:
+                self._reap_actor_projections()
         with self._event_condition:
             self._event_condition.notify_all()
         if self.listener is not None:
@@ -2046,6 +2151,8 @@ class PhoneServiceProxy:
         self._state_lock = threading.RLock()
         self.native_actor_book_source = None
         self.native_actor_saved_book = None
+        self.native_actor_producer_book = None
+        self.native_actor_producer_guard = None
         self._actor_book_source_active = False
 
     def _call(self, operation, **arguments):
@@ -2256,6 +2363,58 @@ class PhoneServiceProxy:
     def cancel_personal_actor(self, handle):
         return self._call("actor_cancel", subscriber=self._subscriber, book_source=handle.book_source,
             actor_id=handle.actor_id, owner_token=handle.owner_token)
+
+    def produce_personal_actor_proposals(self, handle):
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        from magnolie_personal_actor_projection import CHUNK_BYTES
+        if threading.current_thread() is not threading.main_thread():
+            raise IPCError('Native producer requires the GUI owner thread')
+        if not callable(self.native_actor_producer_guard):
+            raise IPCError('Native producer book writer guard is unavailable')
+        # Native data/restore lock precedes proxy/service guards. In particular,
+        # no save worker can replace the actual book during the final IPC commit.
+        with self.native_actor_producer_guard(), self._state_lock:
+            if (self._publish_actor_book_source() != handle.book_source or not callable(self.native_actor_saved_book) or
+                    not callable(self.native_actor_producer_book)):
+                raise IPCError('Native producer writer is unavailable')
+            snapshot = self.native_actor_producer_book()
+            if not isinstance(snapshot, NativeProducerBookSnapshot) or snapshot.book_source != handle.book_source:
+                raise IPCError('Native producer saved content is unavailable')
+            def guard():
+                if (self._event_stop.is_set() or self.native_actor_book_source() != handle.book_source or
+                        self.native_actor_saved_book() != snapshot.saved_book):
+                    raise IPCError('Native producer outcome is unknown after owner/writer change')
+            status = self.personal_actor_status(handle)
+            source = self.current_actor_source(status['peer_id'], status['fingerprint'])
+            if source is None:
+                raise IPCError('Native producer source is unavailable')
+            token = None
+            def call(action, **fields):
+                guard()
+                result = self._call('actor_producer', subscriber=self._subscriber, book_source=handle.book_source,
+                    request={'action': action, 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, **fields})
+                guard()
+                return result
+            try:
+                encoded = snapshot.text.encode('utf-8')
+                started = call('begin', source_revision=source, native_saved_book=snapshot.saved_book,
+                    content_sha256=snapshot.content_sha256, total_bytes=len(encoded))
+                token = started.get('projection_token')
+                if not isinstance(token, str) or re.fullmatch(r'[a-f0-9]{64}', token) is None or started.get('received_bytes') != 0:
+                    raise IPCError('Native producer projection was not admitted')
+                for offset in range(0, len(encoded), CHUNK_BYTES):
+                    raw = encoded[offset:offset + CHUNK_BYTES]
+                    page = call('chunk', projection_token=token, offset=offset, data_base64=base64.b64encode(raw).decode('ascii'))
+                    if page.get('received_bytes') != offset + len(raw):
+                        raise IPCError('Native producer projection continuation changed')
+                return call('commit', projection_token=token)
+            finally:
+                if token is not None:
+                    try:
+                        self._call('actor_producer', subscriber=self._subscriber, book_source=handle.book_source,
+                            request={'action': 'abort', 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, 'projection_token': token})
+                    except (IPCError, OSError, ValueError, TypeError):
+                        pass
 
     def _actor_completion_request(self, handle, action, **fields):
         if threading.current_thread() is not threading.main_thread():

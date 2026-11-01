@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import sqlite3
+import threading
 import pytest
 
 import magnolie_content_scope as scope
@@ -260,7 +261,7 @@ def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_pa
         assert service.store.pending(peer_id) == queued_before
         with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER native_owner_fault')
     wire_before = copy.deepcopy(channel.sent)
-    staged = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read), service,
+    staged = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read, _daten_sperre=threading.RLock()), service,
         {'action': 'notes_actor_produce', 'actorId': handle.actor_id, 'ownerToken': handle.owner_token})['actor']
     assert staged == {'producer_staged': True, 'message_count': 1, 'proposal_count': 1,
         'book_sha256': first.saved_sha256, 'save_sequence': first.sequence}

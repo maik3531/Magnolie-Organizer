@@ -4397,7 +4397,7 @@ class PhoneService:
         registry.require_current(handle)
         return admission
 
-    def produce_personal_actor_proposals(self, registry, handle):
+    def produce_personal_actor_proposals(self, registry, handle, *, native_book_source=None, native_saved_book=None, native_producer_book=None):
         """Native owner consumes fresh saved content, never request-supplied targets.
 
         Local GUI adapter only for now: daemon projection needs an operation-live
@@ -4405,6 +4405,9 @@ class PhoneService:
         """
         from magnolie_personal_actor_producer import prepare_deletion_proposals
         from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        book_provider = native_book_source if native_book_source is not None else self.native_actor_book_source
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
         with self.lock:
             admission = self._require_personal_actor_admission(registry, handle)
             status = registry.status(handle)
@@ -4412,14 +4415,12 @@ class PhoneService:
                 registry.require_current(handle)  # Owner token, process epoch, both TTLs.
                 if self._require_personal_actor_admission(registry, handle) is not admission:
                     raise PermissionError('actor_source_changed')
-                return self.current_actor_source(admission['peer'], status['fingerprint'])
+                return registry.current_source(admission['peer'], status['fingerprint'])
             source = current()
-            if (source is None or not callable(self.native_actor_saved_book) or
-                    not callable(self.native_actor_producer_book) or not callable(self.native_actor_book_source)):
+            if (source is None or not callable(saved_provider) or not callable(producer_provider) or not callable(book_provider)):
                 raise PermissionError('actor_native_saved_book_unavailable')
-            snapshot = self.native_actor_producer_book()
-            if (not isinstance(snapshot, NativeProducerBookSnapshot) or self.native_actor_saved_book() != snapshot.saved_book or
-                    self.native_actor_book_source() != snapshot.book_source):
+            snapshot = producer_provider()
+            if (not isinstance(snapshot, NativeProducerBookSnapshot) or saved_provider() != snapshot.saved_book or book_provider() != snapshot.book_source):
                 raise PermissionError('actor_native_saved_book_changed')
             if admission.get('producer_book') is not None and admission['producer_book'] != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
@@ -4433,7 +4434,7 @@ class PhoneService:
                 peer.get('grants', {}).get('grants', {}).get('personal_deletions_sync') is True)
             if 'producer_bodies' not in admission:
                 bodies = prepare_deletion_proposals(snapshot, manifest, admission['peer'], handle.actor_id,
-                    current_saved_book=self.native_actor_saved_book, current_source=current) if allowed else []
+                    current_saved_book=saved_provider, current_source=current) if allowed else []
                 admission['producer_book'] = snapshot.saved_book
                 admission['producer_bodies'] = bodies
             bodies = admission['producer_bodies']
@@ -4442,10 +4443,10 @@ class PhoneService:
             current()
             frames = self.store.queue_actor_deletion_proposals(admission['peer'], handle.actor_id, bodies,
                 expected_source=source, saved_book=snapshot.saved_book, current_source=current,
-                current_saved_book=self.native_actor_saved_book) if bodies else []
+                current_saved_book=saved_provider) if bodies else []
             admission['outbound'].update(frame['message_id'] for frame in frames)
             current()
-            if self.native_actor_saved_book() != snapshot.saved_book:
+            if saved_provider() != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
             return {'producer_staged': True, 'message_count': len(frames), 'proposal_count': sum(len(body['proposals']) for body in bodies),
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
