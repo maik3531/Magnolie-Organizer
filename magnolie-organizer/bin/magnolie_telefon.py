@@ -2495,6 +2495,7 @@ class PhoneService:
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
         self.native_actor_saved_book = None
+        self.native_actor_producer_book = None
         self._personal_actor_registry = None
         self.personal_actor_admissions = {}
         self.status_requests = {}

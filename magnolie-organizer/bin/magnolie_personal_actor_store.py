@@ -5,6 +5,7 @@ here. Existing Personal Sync stagers use the private storage-peer namespace only
 after the caller has authorized the actual source peer.
 """
 import hashlib
+import copy
 import hmac
 import json
 import re
@@ -32,6 +33,57 @@ MAX_TOTAL_BYTES = 100 * 1024 * 1024
 
 class _CompletionSourceLost(PermissionError):
     pass
+
+
+@dataclass(frozen=True)
+class NativeProducerBookSnapshot:
+    """Operation-local native input, never a daemon cache or wire authority.
+
+    Linux's writer retains the parsed native book and its actual save ACK plus
+    a canonical fingerprint recorded at that same store commit. The fingerprint
+    binds the copied content; it must not be confused with the original raw-text
+    save ACK hash (whose whitespace/key order can differ).
+    """
+    book_source: str = field(repr=False)
+    sequence: int = field(repr=False)
+    saved_sha256: str = field(repr=False)
+    content_sha256: str = field(repr=False)
+    text: str = field(repr=False)
+
+    @property
+    def saved_book(self):
+        return {"book_source": self.book_source, "sequence": self.sequence, "sha256": self.saved_sha256}
+
+    def book(self):
+        return json.loads(self.text)
+
+    @classmethod
+    def capture(cls, current_saved_book, current_data, current_saved_fingerprint):
+        if not all(callable(value) for value in (current_saved_book, current_data, current_saved_fingerprint)):
+            raise TypeError("Native producer observations are required")
+        before = copy.deepcopy(current_saved_book())
+        observed = current_saved_fingerprint()
+        if (not isinstance(before, dict) or set(before) != {"book_source", "sequence", "sha256"} or
+                type(before["sequence"]) is not int or before["sequence"] <= 0 or
+                any(not isinstance(before[key], str) or HEX.fullmatch(before[key]) is None for key in ("book_source", "sha256")) or
+                not isinstance(observed, tuple) or len(observed) != 3 or observed[:2] != (before["book_source"], before["sequence"]) or
+                not isinstance(observed[2], str) or HEX.fullmatch(observed[2]) is None):
+            return None
+        data = current_data()
+        if not isinstance(data, dict):
+            return None
+        try:
+            text = json.dumps(copy.deepcopy(data), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            if len(text) > 256 * 1024 * 1024:
+                return None
+            encoded = text.encode("utf-8")
+            if len(encoded) > 256 * 1024 * 1024 or hashlib.sha256(encoded).hexdigest() != observed[2]:
+                return None
+        except (TypeError, ValueError, UnicodeError, RuntimeError):
+            return None
+        if current_saved_book() != before or current_saved_fingerprint() != observed:
+            return None
+        return cls(before["book_source"], before["sequence"], before["sha256"], observed[2], text)
 
 
 class NativeBookOwnerScope:

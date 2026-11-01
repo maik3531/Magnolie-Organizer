@@ -24266,6 +24266,13 @@ class Fenster(_FENSTER_BASIS):
         current = hashlib.sha256(json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         return state if current == observed[2] else None
 
+    def _telefon_actor_producer_buch(self):
+        # Native GUI memory only. No persistent daemon plaintext cache and no
+        # wire/client save claim; later producer use must recheck native gates.
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        return NativeProducerBookSnapshot.capture(self._telefon_actor_buchnachweis,
+            lambda: self._aktuelle_daten, lambda: getattr(self, "_notes_actor_saved_data", None))
+
     def _telefon_dienst_pflegen(self, start_listener=True):
         with self._telefon_sperre:
             if not start_listener and self._telefon is not None:
@@ -24297,6 +24304,8 @@ class Fenster(_FENSTER_BASIS):
                              local_device_name(), self._telefon_ereignis))
                     self._telefon.native_actor_book_source = self._telefon_actor_buchquelle
                     self._telefon.native_actor_saved_book = self._telefon_actor_buchnachweis
+                    if not isinstance(self._telefon, PhoneServiceProxy):
+                        self._telefon.native_actor_producer_book = self._telefon_actor_producer_buch
                     if not daemon_owner and self._setup_phone_foreground:
                         self._telefon.enabled = True  # Foreground handoff, not saved startup consent.
                         self._setup_phone_foreground = False
