@@ -27,6 +27,8 @@ internal sealed partial class TelefonCoordinator
         internal long NativeAckNextAttempt { get; set; }
         internal JsonObject IncomingCounts { get; set; } = new() { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
         internal int IncomingAttachments { get; set; }
+        internal NativeBookSaveState? ProducerBook { get; set; }
+        internal IReadOnlyList<JsonObject>? ProducerBodies { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -81,6 +83,7 @@ internal sealed partial class TelefonCoordinator
             var result = action switch
             {
                 "notes_actor_start" => await StartPersonalActorAsync(handle, cancellation),
+                "notes_actor_produce" => await ProducePersonalActorProposalsAsync(handle, cancellation),
                 "notes_actor_status" => await PersonalActorStatusAsync(handle, cancellation),
                 "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
@@ -116,9 +119,8 @@ internal sealed partial class TelefonCoordinator
             return registry.Create(id, fingerprint, source);
         }, cancellation);
 
-    internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
+    private ActorAdmission RequirePersonalActorAdmission(PersonalSyncActorStore registry, PersonalActorHandle handle)
     {
-        var admission = await WithPersonalActorStoreAsync(registry => {
             registry.RequireCurrent(handle);
             var status = registry.Status(handle); var id = status["peer_id"]!.GetValue<string>();
             var peer = RequireSolePeer(id);
@@ -135,7 +137,54 @@ internal sealed partial class TelefonCoordinator
                 TelefonProtocolContract.Integer(value.Start["expires_ms"]) <= Now()) throw new InvalidOperationException("actor_source_changed");
             registry.RequireCurrent(handle);
             return value;
+    }
+
+    internal Task<JsonObject> ProducePersonalActorProposalsAsync(PersonalActorHandle handle, CancellationToken cancellation = default) =>
+        WithPersonalActorStoreAsync(registry => {
+            var admission = RequirePersonalActorAdmission(registry, handle);
+            var status = registry.Status(handle); var fingerprint = status["fingerprint"]!.GetValue<string>();
+            string? Current()
+            {
+                // Includes protected owner token, native process epoch and both
+                // TTLs. A generic peer source alone cannot authorize a retry.
+                registry.RequireCurrent(handle);
+                if (RequirePersonalActorAdmission(registry, handle) != admission) throw new InvalidOperationException("actor_source_changed");
+                return CurrentActorSource(admission.PeerId, fingerprint);
+            }
+            var source = Current() ?? throw new InvalidOperationException("actor_source_changed");
+            var snapshot = NativeProducerBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
+            if (NativeSavedBook() != snapshot.SavedBook || snapshot.SavedBook.BookSource != NativeBookSource())
+                throw new InvalidOperationException("actor_native_saved_book_changed");
+            if (admission.ProducerBook is not null && admission.ProducerBook != snapshot.SavedBook)
+                throw new InvalidOperationException("actor_producer_book_changed");
+            var manifest = admission.Connection.CurrentContentScope(admission.Scope);
+            var peer = RequireSolePeer(admission.PeerId);
+            var settings = store.SharedSettings(peer.Id, peer.PublicKey) ?? throw new InvalidOperationException("actor_source_changed");
+            var allowed = SharedSyncSettings.Effective(settings)["skip_deletions"]?.GetValue<bool>() == false &&
+                store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() == true && peer.Grants["personal_deletions_sync"]?.GetValue<bool>() == true;
+            if (admission.ProducerBodies is null)
+            {
+                var bodies = allowed ? PersonalActorOutgoingProducer.Prepare(snapshot, manifest, peer.Id, handle.ActorId, NativeSavedBook, Current) : [];
+                // Retain exact prepared batch identity for SQL-failure retries;
+                // no plaintext book cache and no re-preparation with new IDs.
+                admission.ProducerBook = snapshot.SavedBook; admission.ProducerBodies = bodies;
+            }
+            var prepared = admission.ProducerBodies;
+            if (!allowed && prepared.Count != 0) throw new InvalidOperationException("actor_deletions_not_granted");
+            Current();
+            var frames = prepared.Count == 0 ? [] : store.QueueActorDeletionProposals(peer.Id, handle.ActorId, prepared,
+                source, snapshot.SavedBook, Current, NativeSavedBook);
+            foreach (var frame in frames) admission.Outbound.Add(frame["message_id"]!.GetValue<string>());
+            Current();
+            if (NativeSavedBook() != snapshot.SavedBook) throw new InvalidOperationException("actor_producer_book_changed");
+            return new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
+                ["proposal_count"] = prepared.Sum(body => body["proposals"]!.AsArray().Count),
+                ["book_sha256"] = snapshot.SavedBook.Sha256, ["save_sequence"] = snapshot.SavedBook.Sequence };
         }, cancellation);
+
+    internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
+    {
+        var admission = await WithPersonalActorStoreAsync(registry => RequirePersonalActorAdmission(registry, handle), cancellation);
         // Authority was claimed above; lifecycle cancellation may make an in-flight write's outcome unknown.
         await admission.Connection.SendPlainAsync(admission.Start.DeepClone().AsObject());
         return new() { ["actor_id"] = handle.ActorId, ["message_id"] = admission.Start["message_id"]!.DeepClone(),

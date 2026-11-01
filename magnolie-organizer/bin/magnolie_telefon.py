@@ -4376,27 +4376,85 @@ class PhoneService:
         return {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": kind,
             "created_ms": now, "expires_ms": now + 60000, "body": body}
 
+    def _require_personal_actor_admission(self, registry, handle):
+        """Caller owns service.lock; no GUI waits or transport in this helper."""
+        registry.require_current(handle)
+        status = registry.status(handle)
+        peer = self.store.sole_peer(status["peer_id"])
+        channel = self.connections.get(status["peer_id"])
+        if not peer or not channel or fingerprint(unb64(peer["static_public"], 32)) != status["fingerprint"]:
+            raise PermissionError("actor_source_changed")
+        admission = self.personal_actor_admissions.get(handle.actor_id)
+        if admission is None:
+            reference = self.content_scope_sessions[channel].current_reference((peer["device_id"], peer["static_public"], id(channel)))
+            message = self._actor_control_message(personal_actor_contract.START_KIND, personal_actor_contract.start(handle.actor_id))
+            admission = {"registry": registry, "handle": handle, "peer": peer["device_id"], "key": peer["static_public"],
+                "channel": channel, "scope": reference, "start": message, "outbound": {message["message_id"]}}
+            self.personal_actor_admissions[handle.actor_id] = admission
+        if (admission["handle"] != handle or admission["registry"] is not registry or admission["channel"] is not channel or
+                admission["key"] != peer["static_public"] or admission["start"]["expires_ms"] <= now_ms()):
+            raise PermissionError("actor_source_changed")
+        registry.require_current(handle)
+        return admission
+
+    def produce_personal_actor_proposals(self, registry, handle):
+        """Native owner consumes fresh saved content, never request-supplied targets.
+
+        Local GUI adapter only for now: daemon projection needs an operation-live
+        broker, not a new persistent plaintext cache or arbitrary IPC book body.
+        """
+        from magnolie_personal_actor_producer import prepare_deletion_proposals
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        with self.lock:
+            admission = self._require_personal_actor_admission(registry, handle)
+            status = registry.status(handle)
+            def current():
+                registry.require_current(handle)  # Owner token, process epoch, both TTLs.
+                if self._require_personal_actor_admission(registry, handle) is not admission:
+                    raise PermissionError('actor_source_changed')
+                return self.current_actor_source(admission['peer'], status['fingerprint'])
+            source = current()
+            if (source is None or not callable(self.native_actor_saved_book) or
+                    not callable(self.native_actor_producer_book) or not callable(self.native_actor_book_source)):
+                raise PermissionError('actor_native_saved_book_unavailable')
+            snapshot = self.native_actor_producer_book()
+            if (not isinstance(snapshot, NativeProducerBookSnapshot) or self.native_actor_saved_book() != snapshot.saved_book or
+                    self.native_actor_book_source() != snapshot.book_source):
+                raise PermissionError('actor_native_saved_book_changed')
+            if admission.get('producer_book') is not None and admission['producer_book'] != snapshot.saved_book:
+                raise PermissionError('actor_producer_book_changed')
+            manifest = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
+            peer = self.store.sole_peer(admission['peer'])
+            settings = self.store.shared_settings(admission['peer'], admission['key'])
+            if peer is None or settings is None:
+                raise PermissionError('actor_source_changed')
+            allowed = (shared_sync_contract.effective(settings)['skip_deletions'] is False and
+                peer.get('local_grants', {}).get('grants', {}).get('personal_deletions_sync') is True and
+                peer.get('grants', {}).get('grants', {}).get('personal_deletions_sync') is True)
+            if 'producer_bodies' not in admission:
+                bodies = prepare_deletion_proposals(snapshot, manifest, admission['peer'], handle.actor_id,
+                    current_saved_book=self.native_actor_saved_book, current_source=current) if allowed else []
+                admission['producer_book'] = snapshot.saved_book
+                admission['producer_bodies'] = bodies
+            bodies = admission['producer_bodies']
+            if not allowed and bodies:
+                raise PermissionError('actor_deletions_not_granted')
+            current()
+            frames = self.store.queue_actor_deletion_proposals(admission['peer'], handle.actor_id, bodies,
+                expected_source=source, saved_book=snapshot.saved_book, current_source=current,
+                current_saved_book=self.native_actor_saved_book) if bodies else []
+            admission['outbound'].update(frame['message_id'] for frame in frames)
+            current()
+            if self.native_actor_saved_book() != snapshot.saved_book:
+                raise PermissionError('actor_producer_book_changed')
+            return {'producer_staged': True, 'message_count': len(frames), 'proposal_count': sum(len(body['proposals']) for body in bodies),
+                'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
+
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:
-            registry.require_current(handle)
-            status = registry.status(handle)
-            peer = self.store.sole_peer(status["peer_id"])
-            channel = self.connections.get(status["peer_id"])
-            if not peer or not channel or fingerprint(unb64(peer["static_public"], 32)) != status["fingerprint"]:
-                raise PermissionError("actor_source_changed")
-            admission = self.personal_actor_admissions.get(handle.actor_id)
-            if admission is None:
-                reference = self.content_scope_sessions[channel].current_reference((peer["device_id"], peer["static_public"], id(channel)))
-                message = self._actor_control_message(personal_actor_contract.START_KIND, personal_actor_contract.start(handle.actor_id))
-                admission = {"registry": registry, "handle": handle, "peer": peer["device_id"], "key": peer["static_public"],
-                    "channel": channel, "scope": reference, "start": message, "outbound": {message["message_id"]}}
-                self.personal_actor_admissions[handle.actor_id] = admission
-            if (admission["handle"] != handle or admission["registry"] is not registry or admission["channel"] is not channel or
-                    admission["key"] != peer["static_public"] or admission["start"]["expires_ms"] <= now_ms()):
-                raise PermissionError("actor_source_changed")
-            registry.require_current(handle)
-            message = copy.deepcopy(admission["start"])
+            admission = self._require_personal_actor_admission(registry, handle)
+            message = copy.deepcopy(admission['start']); channel = admission['channel']
         channel.send(message)
         return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
             "delivery_confirmed": False, "persisted": False}

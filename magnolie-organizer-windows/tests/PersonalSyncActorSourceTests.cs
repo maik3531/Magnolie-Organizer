@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
+using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -124,6 +125,77 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(racedPageDenied, "Native book change during page read exposed stale accepted membership.");
             coordinator.NativeBookSource = () => hostBook.Current("actual-host-profile", true);
             actorSource = coordinator.CurrentActorSource(peer.Id, fingerprint)!;
+            long producerExistingOutbox;
+            using (var db = store.OpenDatabase())
+            {
+                db.Open(); using var count = db.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM outbox";
+                producerExistingOutbox = Convert.ToInt64(count.ExecuteScalar());
+            }
+            foreach (var producerCase in new[] { "success", "sql-retry", "changed-writer", "missing-native-book" })
+            {
+                var producerClock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
+                var producedProposalId = PersonalSyncContract.DeletionProposalId(peer.Id, "note", "note-one", "", producerClock, new string('a', 64));
+                var nativeBook = new JsonObject { ["notizen"] = new JsonArray(), ["aufgaben"] = new JsonArray(),
+                    ["personalSync"] = new JsonObject { ["actor_id"] = identity.Id, ["peer_device_id"] = peer.Id, ["counter"] = 1,
+                        ["entities"] = new JsonObject { ["note\0note-one"] = new JsonObject { ["state"] = "deleted", ["status"] = "local_pending",
+                            ["peer_device_id"] = peer.Id, ["parent_id"] = "", ["clock"] = producerClock, ["hash"] = "", ["prior_hash"] = new string('a', 64),
+                            ["proposal_id"] = producedProposalId, ["deleted_ms"] = 2, ["label"] = "Synthetic native removed note" } } } };
+                var nativeText = nativeBook.ToJsonString();
+                hostBook.RecordSaved("actual-host-profile", true, BaumSyncSnapshot.Hash(nativeText));
+                coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
+                coordinator.NativeProducerBook = () => producerCase == "missing-native-book" ? null :
+                    NativeActorBookSnapshot.Capture(() => hostBook.SaveState("actual-host-profile", true), () => nativeText);
+                var producerHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+                var producerPrivatePeer = PersonalSyncActorContract.StoragePeer(producerHandle.ActorId);
+                if (producerCase == "sql-retry")
+                {
+                    using var db = store.OpenDatabase(); db.Open(); using var sql = db.CreateCommand();
+                    sql.CommandText = "CREATE TRIGGER producer_admission_failure BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT,'synthetic producer admission fault'); END"; sql.ExecuteNonQuery();
+                    var failed = false;
+                    try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (SqliteException) { failed = true; }
+                    TestAssert.That(failed, "Native owner producer ignored an actual SQL failure.");
+                    using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER producer_admission_failure"; drop.ExecuteNonQuery();
+                }
+                if (producerCase == "missing-native-book")
+                {
+                    var denied = false;
+                    try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { denied = true; }
+                    TestAssert.That(denied, "Native owner producer replaced missing actual saved content with caller targets.");
+                }
+                else
+                {
+                    var producedResponse = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_produce",
+                        ["actorId"] = producerHandle.ActorId, ["ownerToken"] = producerHandle.OwnerToken }, default);
+                    TestAssert.That(producedResponse["ok"]!.GetValue<bool>(), "Private native bridge failed actual saved-book producer admission.");
+                    var producedStage = producedResponse["actor"]!.AsObject();
+                    TestAssert.That(producedStage["producer_staged"]!.GetValue<bool>() && producedStage["proposal_count"]!.GetValue<int>() == 1 && producedStage["message_count"]!.GetValue<int>() == 1,
+                        "Actual native owner did not consume its fresh book through preparation and atomic queueing.");
+                    var decision = new JsonObject { ["format"] = 1, ["run_id"] = producerHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                        ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = producedProposalId, ["decision"] = "restore", ["expected_clock"] = producerClock.DeepClone() }) };
+                    TestAssert.That(store.PersonalDecisionTargets(producerPrivatePeer, decision, false)?.Count == 1 && store.PersonalDecisionTargets(peer.Id, decision, false) is null,
+                        "Actual producer lacked its own run-private target proof or leaked physical-peer rights.");
+                    var repeated = await coordinator.ProducePersonalActorProposalsAsync(producerHandle);
+                    TestAssert.That(JsonNode.DeepEquals(producedStage, repeated), "Legitimate same-owner producer retry changed its native result.");
+                    if (producerCase == "changed-writer")
+                    {
+                        hostBook.RecordSaved("actual-host-profile", true, BaumSyncSnapshot.Hash(nativeText));
+                        var denied = false;
+                        try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { denied = true; }
+                        TestAssert.That(denied, "Native producer retry rebound a new actual writer observation.");
+                    }
+                }
+                await coordinator.CancelPersonalActorAsync(producerHandle);
+                var retired = false;
+                try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { retired = true; }
+                TestAssert.That(retired, "Retired protected native run retained producer/replay rights.");
+                using (var db = store.OpenDatabase())
+                {
+                    db.Open(); using var queued = db.CreateCommand(); queued.CommandText = "SELECT COUNT(*) FROM outbox";
+                    TestAssert.That(Convert.ToInt64(queued.ExecuteScalar()) == producerExistingOutbox, "Native run cancellation left its generated proposal frames queued.");
+                }
+                new PersonalSyncStore(store).PurgeProtocol(producerPrivatePeer);
+            }
+            coordinator.NativeSavedBook = () => null; coordinator.NativeProducerBook = () => null;
             var actorHandle = await coordinator.WithPersonalActorStoreAsync(registry => {
                 TestAssert.That(store.NotePolicyGate.CurrentCount == 0 && Monitor.IsEntered(
                     typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),

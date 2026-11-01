@@ -12,6 +12,12 @@ from magnolie_personal_actor_store import NativeBookOwnerScope, NativeProducerBo
 import magnolie_personal_actor as actor
 import magnolie_telefon as phone
 from test_mcp_phone import owned_service
+from test_personal_actor_source import actor_source_fixture
+from test_shared_sync_transport import message
+import magnolie_shared_sync as shared
+from magnolie_personal_actor_store import ActorHandle
+from test_personal_actor_transport import gtk_actor_bridge
+from types import SimpleNamespace
 
 PEER = '22222222-2222-4222-8222-222222222222'
 RUN = '44444444-4444-4444-8444-444444444444'
@@ -213,3 +219,62 @@ def test_successful_native_group_replay_keeps_original_frames_and_never_requeues
         assert commit(reopened) == original
     assert rows(reopened) == before, 'Successful replay/failed identity check rewrote protected metadata or outbox'
     assert not events and service.server is None
+
+
+@pytest.mark.parametrize('scenario', ['success', 'sql-retry', 'missing-native-book', 'changed-writer', 'foreign-owner', 'wall-ttl', 'monotonic-ttl'])
+def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_path, monkeypatch, scenario):
+    service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
+    peer_id = peer['device_id']
+    peer['grants']['grants']['personal_deletions_sync'] = True
+    service.note_controls[channel]['grants.update'] = copy.deepcopy(peer['grants'])
+    setting = service.store.change_shared_setting(peer_id, peer['static_public'], 'skip_deletions', False)
+    service._payload(peer, channel, message(shared.merge(shared.create(peer_id), setting, peer_id, service.store.identity['device_id'])))
+    clock = [{'actor_id': ACTOR, 'counter': 1}]
+    identifier = personal.deletion_proposal_id(peer_id, 'note', 'note-one', '', clock, 'a' * 64)
+    book = {'notizen': [], 'aufgaben': [], 'personalSync': {'actor_id': ACTOR, 'counter': 1, 'peer_device_id': peer_id,
+        'entities': {'note\0note-one': {'state': 'deleted', 'status': 'local_pending', 'peer_device_id': peer_id,
+            'parent_id': '', 'clock': clock, 'hash': '', 'prior_hash': 'a' * 64, 'proposal_id': identifier, 'deleted_ms': 2, 'label': 'Synthetic removed native note'}}}}
+    owner, read, first = native(book)
+    service.native_actor_book_source = lambda: owner.current('native-producer-fixture', True)
+    service.native_actor_saved_book = read
+    service.native_actor_producer_book = lambda: NativeProducerBookSnapshot.capture(read, lambda: book,
+        lambda: (read()['book_source'], read()['sequence'], first.content_sha256))
+    registry = service.personal_actor_registry()
+    handle = registry.create(peer_id, fingerprint, service.current_actor_source(peer_id, fingerprint))
+    private = actor.storage_peer(handle.actor_id)
+    queued_before = service.store.pending(peer_id)
+    if scenario == 'wall-ttl':
+        expired = registry.status(handle)['expires_ms'] + 1
+        registry.clock = lambda: expired
+    if scenario == 'monotonic-ttl': registry.monotonic_clock = lambda: 10 ** 18
+    if scenario == 'missing-native-book': service.native_actor_producer_book = None
+    if scenario == 'foreign-owner': handle = ActorHandle(handle.actor_id, 'f' * 64)
+    if scenario in ('wall-ttl', 'monotonic-ttl', 'missing-native-book', 'foreign-owner'):
+        with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
+        assert service.store.pending(peer_id) == queued_before
+        return
+    if scenario == 'sql-retry':
+        with sqlite3.connect(service.store.database_path) as db:
+            db.execute("CREATE TRIGGER native_owner_fault BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT,'native owner SQL fault'); END")
+        with pytest.raises(sqlite3.DatabaseError): service.produce_personal_actor_proposals(registry, handle)
+        assert service.store.pending(peer_id) == queued_before
+        with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER native_owner_fault')
+    wire_before = copy.deepcopy(channel.sent)
+    staged = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read), service,
+        {'action': 'notes_actor_produce', 'actorId': handle.actor_id, 'ownerToken': handle.owner_token})['actor']
+    assert staged == {'producer_staged': True, 'message_count': 1, 'proposal_count': 1,
+        'book_sha256': first.saved_sha256, 'save_sequence': first.sequence}
+    frames = service.store.pending(peer_id)
+    assert len(frames) == len(queued_before) + 1 and service.produce_personal_actor_proposals(registry, handle) == staged
+    assert service.store.pending(peer_id) == frames and channel.sent == wire_before
+    decision = {'format': 1, 'run_id': handle.actor_id, 'decision_id': RUN, 'decisions': [
+        {'proposal_id': identifier, 'decision': 'restore', 'expected_clock': clock}]}
+    assert len(service.store.personal_decision_targets(private, decision, False)) == 1
+    assert service.store.personal_decision_targets(peer_id, decision, False) is None
+    if scenario == 'changed-writer':
+        owner.record_saved('native-producer-fixture', True, first.saved_sha256)
+        with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
+    service.cancel_personal_actor(registry, handle)
+    assert service.store.pending(peer_id) == queued_before, 'Native cancellation lost generated producer frame ownership'
+    with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
+    assert service.server is None
