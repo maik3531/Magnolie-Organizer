@@ -576,6 +576,91 @@ internal static class PersonalSyncActorSourceTests
             }
             await coordinator.CancelPersonalActorAsync(reviewHandle); await SharedSyncTransportTests.DrainAsync(wire);
             }
+            // Actual native review/core/data-report/terminal flow. The outgoing
+            // full target proof is seeded through the protected store here;
+            // this does not stand in for the unfinished desktop producer/GUI.
+            foreach (var mixedIncoming in new[] { false, true })
+            {
+                var incomingHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+                await coordinator.StartPersonalActorAsync(incomingHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                var incomingPrivate = PersonalSyncActorContract.StoragePeer(incomingHandle.ActorId);
+                var incomingRequest = commitRequest.DeepClone().AsObject(); incomingRequest["run_id"] = incomingHandle.ActorId;
+                var incomingBatch = commitBatch.DeepClone().AsObject(); incomingBatch["run_id"] = incomingHandle.ActorId; incomingBatch["batch_id"] = Guid.NewGuid().ToString("D");
+                await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", incomingRequest), incomingHandle.ActorId));
+                await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", incomingBatch), incomingHandle.ActorId));
+                await SharedSyncTransportTests.DrainAsync(wire);
+                var outgoingProposalId = Guid.NewGuid().ToString("D"); var localProposalId = Guid.NewGuid().ToString("D");
+                var incomingClock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 });
+                var incomingDecision = new JsonObject { ["format"] = 1, ["run_id"] = incomingHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = outgoingProposalId, ["decision"] = "restore", ["expected_clock"] = incomingClock.DeepClone() }) };
+                var semanticDecision = Message("personal_sync.deletion_decision", incomingDecision);
+                if (mixedIncoming)
+                {
+                    TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.Wrap("personal_sync.deletion_decision", incomingDecision, manifest),
+                        "Terminal decisions unexpectedly acquired a scoped-data wire format.");
+                }
+                var incomingWire = PersonalSyncActorContract.WireMessage(semanticDecision, incomingHandle.ActorId);
+                await connection.HandlePlainAsync(incomingWire.DeepClone().AsObject());
+                TestAssert.That(wire.Length == 0 && !privateStore.DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == incomingPrivate),
+                    "Unknown outgoing proposal acquired an incoming decision intent.");
+                var nativeOutgoing = new JsonObject { ["format"] = 1, ["run_id"] = incomingHandle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"),
+                    ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = outgoingProposalId,
+                        ["kind"] = "attachment", ["id"] = "native-outgoing-file", ["parent_id"] = "note-one", ["clock"] = incomingClock.DeepClone(),
+                        ["prior_hash"] = new string('a', 64), ["deleted_ms"] = 2, ["label"] = "Synthetic native outgoing target" }) };
+                store.RememberPersonalProposalKinds(incomingPrivate, nativeOutgoing, true);
+                await connection.HandlePlainAsync(incomingWire.DeepClone().AsObject());
+                if (mixedIncoming)
+                {
+                    var localProposal = nativeOutgoing.DeepClone().AsObject();
+                    localProposal["proposal_batch_id"] = Guid.NewGuid().ToString("D");
+                    localProposal["proposals"]![0]!["proposal_id"] = localProposalId;
+                    localProposal["proposals"]![0]!["kind"] = "task"; localProposal["proposals"]![0]!["id"] = "task-one"; localProposal["proposals"]![0]!["parent_id"] = "";
+                    await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_proposals", localProposal), incomingHandle.ActorId));
+                }
+                TestAssert.That(wire.Length == 0, "Incoming decisions received success before native commit.");
+                var incomingView = await coordinator.ReadPersonalActorStagingAsync(incomingHandle);
+                var incomingPayload = JsonNode.Parse(Convert.FromBase64String(incomingView["data_base64"]!.GetValue<string>()))!.AsObject();
+                var incomingPlan = new JsonObject { ["choices"] = mixedIncoming ? new JsonArray(new JsonObject {
+                    ["proposal_id"] = localProposalId, ["decision"] = "restore", ["expected_clock"] = incomingClock.DeepClone(), ["allow_conflict"] = false }) : new JsonArray(),
+                    ["intents"] = new JsonArray(incomingPayload["intents"]!.AsArray().OfType<JsonObject>().Select(value => (JsonNode)new JsonObject {
+                        ["kind"] = value["kind"]!.DeepClone(), ["message_id"] = value["pending_message_id"]!.DeepClone(), ["commit_token"] = value["commit_token"]!.DeepClone() }).ToArray()) };
+                var incomingClaim = await coordinator.PreparePersonalActorCommitAsync(incomingHandle, incomingView["revision"]!.GetValue<string>(), new string('e', 64), deletionPlan: incomingPlan);
+                var incomingToken = incomingClaim["claim_token"]!.GetValue<string>();
+                nativeSaved = hostBook.RecordSaved("actual-host-profile", true, new string('e', 64));
+                await coordinator.CommitPersonalActorAsync(incomingHandle, incomingToken);
+                TestAssert.That(!privateStore.DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == incomingPrivate),
+                    "Native incoming/mixed intent group did not commit atomically with the data batch.");
+                var incomingReply = incomingBatch.DeepClone().AsObject(); incomingReply["reply"] = true; incomingReply["batch_id"] = Guid.NewGuid().ToString("D");
+                await coordinator.QueuePersonalActorReplyAsync(incomingHandle, incomingToken, new JsonArray(incomingReply), new JsonArray());
+                await coordinator.PumpPersonalActorAsync(connection);
+                var incomingReplyWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                    value["body"]!["run_id"]!.GetValue<string>() == incomingHandle.ActorId);
+                await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(incomingHandle.ActorId, incomingReplyWire["message_id"]!.GetValue<string>())));
+                await coordinator.PumpPersonalActorAsync(connection);
+                var incomingReport = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                    value["body"]!["run_id"]!.GetValue<string>() == incomingHandle.ActorId);
+                TestAssert.That(PersonalSyncActorContract.Unwrap(incomingReport["body"]!.AsObject()).Kind == "personal_sync.report", "Incoming completion lacked the data report.");
+                await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(incomingHandle.ActorId, incomingReport["message_id"]!.GetValue<string>())));
+                TestAssert.That(!(await coordinator.PersonalActorStatusAsync(incomingHandle))["phone_persisted"]!.GetValue<bool>(), "Data report ACK skipped incoming terminal decisions.");
+                var terminalWitness = nativeSaved;
+                await coordinator.PumpPersonalActorAsync(connection);
+                var terminalWires = (await SharedSyncTransportTests.DrainAsync(wire)).Where(value => value["body"]?["run_id"]?.GetValue<string>() == incomingHandle.ActorId).ToArray();
+                TestAssert.That(terminalWires.Count(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind &&
+                    value["body"]!["message_id"]!.GetValue<string>() == incomingWire["message_id"]!.GetValue<string>()) == 1,
+                    "Native incoming decision did not receive its actual sent ACK.");
+                var terminalDecisions = terminalWires.Where(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind).ToArray();
+                TestAssert.That(terminalDecisions.Length == (mixedIncoming ? 1 : 0), "Incoming reference frame was resent as data or local decision was lost.");
+                if (mixedIncoming)
+                {
+                    TestAssert.That(!(await coordinator.PersonalActorStatusAsync(incomingHandle))["phone_persisted"]!.GetValue<bool>(), "Own ACK substituted for mixed peer receipt.");
+                    await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(incomingHandle.ActorId, terminalDecisions.Single()["message_id"]!.GetValue<string>())));
+                }
+                var incomingStatus = await coordinator.PersonalActorStatusAsync(incomingHandle);
+                TestAssert.That(incomingStatus["phase"]!.GetValue<string>() == "completed" && incomingStatus["phone_persisted"]!.GetValue<bool>() &&
+                    incomingStatus["deletion_completion"]!["saved"]!.GetValue<int>() == (mixedIncoming ? 2 : 1) && nativeSaved == terminalWitness,
+                    "Incoming/mixed native controller lacked both exact receipt directions or repeated the writer observation.");
+                await coordinator.CancelPersonalActorAsync(incomingHandle); await SharedSyncTransportTests.DrainAsync(wire);
+            }
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
             TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",

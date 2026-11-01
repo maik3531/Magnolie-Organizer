@@ -374,16 +374,41 @@ internal sealed partial class TelefonCoordinator
         registry.RequireCurrent(handle);
         var plan = admission.CommitPlan ?? throw new InvalidOperationException("actor_completion_claim_unavailable");
         var choices = plan.DeletionReview["choices"]!.AsArray().OfType<JsonObject>().ToArray();
-        if (admission.SaveReceipt is not { } receipt || !admission.PhoneDataPersisted || choices.Length == 0)
+        var incoming = plan.DeletionReview["intents"]!.AsArray().OfType<JsonObject>()
+            .Where(value => value["kind"]!.GetValue<string>() == "personal_sync.deletion_decision").ToArray();
+        if (admission.SaveReceipt is not { } receipt || !admission.PhoneDataPersisted || choices.Length + incoming.Length == 0)
             throw new InvalidOperationException("actor_completion_not_ready");
-        if (plan.DeletionReview["intents"]!.AsArray().OfType<JsonObject>().Any(value => value["kind"]!.GetValue<string>() != "personal_sync.deletion_proposals"))
-            throw new InvalidOperationException("actor_incoming_decision_controller_required");
         var saved = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
         if (saved != receipt || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("actor_saved_completion_changed");
-        var frames = new List<JsonObject>(); var targets = new JsonArray();
+        var frames = new List<JsonObject>(); var queuedFrames = new List<JsonObject>(); var ownAcks = new List<JsonObject>(); var targets = new JsonArray();
         var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
         try
         {
+            // Read the actual protected received frame while data ownership is
+            // still active; review references alone contain no target authority.
+            var manifest = admission.Connection.CurrentContentScope(admission.Scope);
+            foreach (var reference in incoming)
+            {
+                var original = registry.Read(handle, reference["message_id"]!.GetValue<string>());
+                var (kind, body) = PersonalSyncActorContract.Unwrap(original["body"]!.AsObject());
+                if (kind == PhoneContentScope.DataKind) (kind, body) = PhoneContentScope.Unwrap(body, manifest);
+                if (kind != "personal_sync.deletion_decision" || body["run_id"]!.GetValue<string>() != handle.ActorId)
+                    throw new InvalidOperationException("actor_completion_decision_envelope_changed");
+                var native = store.PersonalDecisionTargets(PersonalSyncActorContract.StoragePeer(handle.ActorId), body, false)
+                    ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
+                foreach (var target in native.OfType<JsonObject>())
+                {
+                    var targetKind = target["kind"]!.GetValue<string>();
+                    var memberKind = targetKind == "task" ? "tasks" : "notes";
+                    var member = target[targetKind == "attachment" ? "parent_id" : "id"]!.GetValue<string>();
+                    if (!manifest["members"]![memberKind]!.AsArray().Any(value => value!.GetValue<string>() == member))
+                        throw new InvalidOperationException("actor_completion_target_outside_scope");
+                    targets.Add(target.DeepClone());
+                }
+                var semantic = original.DeepClone().AsObject(); semantic["kind"] = kind; semantic["body"] = body;
+                frames.Add(PersonalSyncActorContract.WireMessage(semantic, handle.ActorId)); // Reference only, never queued/sent.
+                ownAcks.Add(ActorControl(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, original["message_id"]!.GetValue<string>())));
+            }
             foreach (var chunk in choices.Chunk(32))
             {
                 if (admission.Outbound.Count + frames.Count >= 4096) throw new InvalidOperationException("actor_capacity");
@@ -395,7 +420,8 @@ internal sealed partial class TelefonCoordinator
                     ?? throw new InvalidOperationException("actor_completion_target_proof_missing");
                 foreach (var target in native) targets.Add(target!.DeepClone());
                 var id = store.Enqueue(admission.PeerId, "personal_sync.deletion_decision", body, 86400000, Now(), actorRunId: handle.ActorId);
-                frames.Add(store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing"));
+                var queued = store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing");
+                queuedFrames.Add(queued); frames.Add(queued);
             }
             JsonObject? Scope()
             {
@@ -404,16 +430,17 @@ internal sealed partial class TelefonCoordinator
             }
             var completion = new PersonalActorDecisionCompletion(handle.ActorId, targets, frames,
                 () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), Scope, () => NativeSavedBook(),
-                () => registry.ReadCompletionControls(handle));
+                () => registry.ReadCompletionControls(handle), nativeSentAcknowledgments: ownAcks);
             registry.BeginCompletion(handle, completion.Validator);
             admission.Completion = completion;
-            admission.CompletionIds.UnionWith(frames.Select(value => value["message_id"]!.GetValue<string>()));
+            admission.CompletionIds.UnionWith(queuedFrames.Select(value => value["message_id"]!.GetValue<string>()));
             admission.Outbound.UnionWith(admission.CompletionIds);
+            foreach (var ack in ownAcks) admission.NativeAcknowledgments.Add(ack["message_id"]!.GetValue<string>(), ack);
             admission.PhonePersisted = false;
         }
         catch
         {
-            foreach (var frame in frames) store.CompleteOutbox(admission.PeerId, frame["message_id"]!.GetValue<string>());
+            foreach (var frame in queuedFrames) store.CompleteOutbox(admission.PeerId, frame["message_id"]!.GetValue<string>());
             throw;
         }
     }
@@ -789,7 +816,7 @@ internal sealed partial class TelefonCoordinator
                     {
                         registry.RequireCurrent(admission.Handle);
                         QueueActorCompletionReport(admission);
-                        if (admission.PhoneDataPersisted && admission.CommitPlan?.DeletionReview["choices"] is JsonArray choices && choices.Count != 0)
+                        if (admission.PhoneDataPersisted && admission.CommitPlan?.DeletionReview["intents"] is JsonArray intents && intents.Count != 0)
                             BeginPersonalActorCompletion(registry, admission);
                     }
                     if (online.GetValueOrDefault(admission.PeerId) != connection) continue;
