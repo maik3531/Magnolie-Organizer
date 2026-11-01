@@ -14,7 +14,91 @@ internal static class PersonalSyncActorRegistryTests
         foreach (var scenario in new[] { "reopen", "wrong_owner", "epoch", "revoke", "cancel", "expiry", "conflict", "put_race", "read_race", "lease_tamper", "capacity", "wall_rollback", "cross_context", "ttl",
             "reap_wall", "reap_monotonic", "reap_epoch", "reap_source", "reap_failure", "reap_restore" })
             Exercise(scenario);
+        foreach (var scenario in new[] { "metadata", "handoff", "foreign", "review-lost", "new-owner-lost", "sql", "restart", "wall", "monotonic", "handoff-race" })
+            ExerciseDecisionReview(scenario);
         return Task.CompletedTask;
+    }
+
+    private static void ExerciseDecisionReview(string scenario)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-actor-decision-owner-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new TelefonStore(new WindowsPaths(root), testStorageKey: Enumerable.Repeat((byte)34, 32).ToArray());
+            var source = new string('a', 64); long wall = 1700000000000, mono = 1000000;
+            var registry = new PersonalSyncActorStore(store, (_, _) => source, clock: () => wall, monotonicClock: () => mono);
+            var handle = registry.Create(Peer, Fingerprint, source, Run);
+            var wire = PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Message,
+                ["kind"] = "personal_sync.request", ["created_ms"] = wall, ["expires_ms"] = wall + 60000,
+                ["body"] = new JsonObject { ["format"] = 3, ["run_id"] = Run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") } }, Run);
+            registry.Put(handle, wire);
+            bool? handoff = null; var complete = true;
+            bool? Review(string operation, JsonObject? value) => operation == "handoff" ? handoff : true;
+            bool? Completion(string operation, JsonObject? value)
+            {
+                if (scenario == "handoff-race") handoff = false;
+                return complete;
+            }
+            TestAssert.That(registry.BeginDecisionReview(handle, Review)["phase"]!.GetValue<string>() == "decision_review", "Post-data review phase was not persisted.");
+            if (scenario == "metadata")
+            {
+                source = new string('b', 64);
+                TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Review reopened data authority after result scope change.");
+                TestAssert.Throws<InvalidOperationException>(() => registry.Put(handle, wire), "Review admitted an old request.");
+                TestAssert.Throws<InvalidOperationException>(() => registry.Read(handle, Message), "Review exposed old data bytes.");
+                TestAssert.Throws<InvalidOperationException>(() => registry.BeginCompletion(handle, Completion), "Review bypassed its exact native handoff.");
+                TestAssert.Throws<InvalidOperationException>(() => registry.FinishCompletion(handle), "Review falsely completed without a saved claim.");
+                var ack = wire.DeepClone().AsObject(); ack["kind"] = PersonalSyncActorContract.AckKind;
+                ack["message_id"] = Guid.NewGuid().ToString("D"); ack["body"] = PersonalSyncActorContract.Ack(Run, Message);
+                TestAssert.That(registry.PutCompletionControl(handle, ack) && !registry.PutCompletionControl(handle, ack) &&
+                    registry.ReadCompletionControls(handle).Count == 1, "Review lost bounded protected control metadata/deduplication.");
+                TestAssert.Throws<InvalidOperationException>(() => registry.CheckCompletionSend(handle, ack), "Review authorized a successful wire receipt before SaveACK handoff.");
+                TestAssert.Throws<InvalidDataException>(() => registry.PutCompletionControl(handle, wire), "Review admitted ordinary data as metadata.");
+                registry.Reap();
+                TestAssert.That(registry.Status(handle)["phase"]!.GetValue<string>() == "decision_review", "Review depended on the retired ordinary data source.");
+                return;
+            }
+            if (scenario == "handoff")
+            {
+                TestAssert.Throws<InvalidOperationException>(() => registry.PromoteDecisionReview(handle, Review, Completion), "Review handoff bypassed missing native SaveACK.");
+                handoff = true;
+                TestAssert.That(registry.PromoteDecisionReview(handle, Review, Completion)["phase"]!.GetValue<string>() == "completion", "Review handoff failed.");
+                registry.PromoteDecisionReview(handle, Review, Completion);
+                TestAssert.Throws<InvalidOperationException>(() => registry.PromoteDecisionReview(handle, (_, _) => true, Completion), "Foreign guard replaced an existing handoff.");
+                registry.PromoteDecisionReview(handle, Review, Completion);
+            }
+            else if (scenario == "foreign")
+                TestAssert.Throws<InvalidOperationException>(() => registry.PromoteDecisionReview(new(Run, new string('f', 64)), Review, Completion), "Foreign token handed off a legitimate review.");
+            else if (scenario == "restart")
+            {
+                var reopened = new PersonalSyncActorStore(store, (_, _) => source, clock: () => wall, monotonicClock: () => mono);
+                TestAssert.Throws<InvalidOperationException>(() => reopened.PromoteDecisionReview(handle, Review, Completion), "Process restart inherited a volatile native review guard.");
+            }
+            else
+            {
+                handoff = scenario == "review-lost" ? false : true;
+                if (scenario == "new-owner-lost") complete = false;
+                if (scenario == "wall") wall += 100000000;
+                if (scenario == "monotonic") mono += 100000000;
+                if (scenario == "sql")
+                {
+                    using var db = store.OpenDatabase(); db.Open(); using var fault = db.CreateCommand();
+                    fault.CommandText = "CREATE TRIGGER review_handoff_fault BEFORE INSERT ON personal_actor_context BEGIN SELECT RAISE(ABORT,'synthetic review handoff fault'); END";
+                    fault.ExecuteNonQuery();
+                    TestAssert.Throws<SqliteException>(() => registry.PromoteDecisionReview(handle, Review, Completion), "Actual review handoff SQL failure was ignored.");
+                    using var drop = db.CreateCommand(); drop.CommandText = "DROP TRIGGER review_handoff_fault"; drop.ExecuteNonQuery();
+                    TestAssert.That(registry.Status(handle)["phase"]!.GetValue<string>() == "decision_review", "Failed handoff left a partial phase update.");
+                    registry.PromoteDecisionReview(handle, Review, Completion);
+                }
+                else
+                {
+                    TestAssert.Throws<InvalidOperationException>(() => registry.PromoteDecisionReview(handle, Review, Completion), "Changed native handoff authority was accepted: " + scenario);
+                    TestAssert.That(registry.Status(handle)["phase"]!.GetValue<string>().StartsWith("cancelled", StringComparison.Ordinal), "Lost handoff authority was not retired.");
+                }
+            }
+            TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Review handoff failure/retry reopened original data rights.");
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
 
     private static void Exercise(string scenario)

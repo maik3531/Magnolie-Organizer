@@ -27,6 +27,7 @@ internal sealed class PersonalSyncActorStore
     private readonly byte[] revisionKey = RandomNumberGenerator.GetBytes(32);
     private sealed class CompletionSourceLost(string message) : InvalidOperationException(message) { }
     private readonly Dictionary<string, Func<string, JsonObject?, bool?>> completionGuards = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (Func<string, JsonObject?, bool?> Review, Func<string, JsonObject?, bool?> Completion)> decisionHandoffs = new(StringComparer.Ordinal);
     private readonly HashSet<string> dataRetired = new(StringComparer.Ordinal);
     internal string Epoch { get; }
 
@@ -64,7 +65,7 @@ internal sealed class PersonalSyncActorStore
         var value = JsonNode.Parse(store.Open("personal_actor_context", id, payload))!.AsObject();
         TelefonProtocolContract.ExactObject(value, "format", "actor_id", "peer_id", "fingerprint", "source_revision", "owner_epoch", "owner_hash", "storage_peer", "created_ms", "expires_ms", "created_monotonic_ms", "expires_monotonic_ms", "phase");
         if (Number(value, "format") != PersonalSyncActorContract.Version || Text(value, "actor_id") != id || Number(value, "expires_ms") != expires ||
-            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "completion" or "completed" or "cancelled" or "cancelled_clean") ||
+            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "decision_review" or "completion" or "completed" or "cancelled" or "cancelled_clean") ||
             !TelefonProtocolContract.IsUuidV4(Text(value, "peer_id")) || !Fingerprint.IsMatch(Text(value, "fingerprint")) ||
             new[] { "source_revision", "owner_epoch", "owner_hash" }.Any(key => !Hex.IsMatch(Text(value, key))) ||
             Number(value, "created_ms") < 0 || expires > 253402300799999 || expires - Number(value, "created_ms") is <= 0 or > LifetimeMs ||
@@ -122,7 +123,7 @@ internal sealed class PersonalSyncActorStore
             while (row.Read())
             {
                 var item = Decode(row.GetString(0), row.GetInt64(1), (byte[])row[2]); count++; duplicate |= Text(item, "actor_id") == runId;
-                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") is ("registered" or "receiving" or "completion") && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
+                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") is ("registered" or "receiving" or "decision_review" or "completion") && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
             }
         }
         if (count >= MaximumContexts || active >= MaximumActive) throw new InvalidOperationException("actor_capacity");
@@ -150,7 +151,7 @@ internal sealed class PersonalSyncActorStore
                     Number(value, "expires_monotonic_ms") <= monotonic || Number(value, "created_monotonic_ms") > monotonic;
                 if (!discard && Text(value, "phase") == "cancelled_clean") continue;
                 var phase = Text(value, "phase"); var id = Text(value, "actor_id"); bool lost;
-                if (phase is "completion" or "completed")
+                if (phase is "decision_review" or "completion" or "completed")
                 {
                     try { lost = !completionGuards.TryGetValue(id, out var guard) || guard("maintain", null) == false; }
                     catch (Exception error) when (error is InvalidOperationException or InvalidDataException or ArgumentException) { lost = true; }
@@ -165,6 +166,7 @@ internal sealed class PersonalSyncActorStore
         foreach (var (value, discard) in retired)
         {
             dataRetired.Add(Text(value, "actor_id")); completionGuards.Remove(Text(value, "actor_id"));
+            decisionHandoffs.Remove(Text(value, "actor_id"));
             // Retirement precedes existing domain cleanup. Failure retains an inactive
             // context for retry, never a resumed owner with partially purged staging.
             if (Text(value, "phase") != "cancelled_clean") new PersonalSyncStore(store).PurgeProtocol(Text(value, "storage_peer"));
@@ -306,7 +308,9 @@ internal sealed class PersonalSyncActorStore
     private JsonObject RequireCompletion(SqliteConnection db, SqliteTransaction transaction, PersonalActorHandle handle, string operation, JsonObject? wire = null)
     {
         var value = Require(db, handle, transaction, active: false, source: false);
-        if (Text(value, "phase") is not ("completion" or "completed")) throw new InvalidOperationException("actor_completion_inactive");
+        if (Text(value, "phase") is not ("decision_review" or "completion" or "completed")) throw new InvalidOperationException("actor_completion_inactive");
+        if (Text(value, "phase") == "decision_review" && operation is not ("begin" or "put" or "read" or "handoff"))
+            throw new InvalidOperationException("actor_decision_review_metadata_only");
         var wall = clock(); var mono = monotonicClock();
         if (wall < Number(value, "created_ms") || wall >= Number(value, "expires_ms") ||
             mono < Number(value, "created_monotonic_ms") || mono >= Number(value, "expires_monotonic_ms"))
@@ -319,6 +323,79 @@ internal sealed class PersonalSyncActorStore
         if (result is null) throw new InvalidOperationException("actor_completion_not_ready");
         if (result != true) throw new CompletionSourceLost("actor_completion_source_changed");
         return value;
+    }
+
+    /// <summary>Native-only post-data review. Old data rights never return. The guard must bind the ordinary
+    /// data receipt, expected decisions, saved book and independent completion authority; this is not a SaveACK.</summary>
+    internal JsonObject BeginDecisionReview(PersonalActorHandle handle, Func<string, JsonObject?, bool?> nativeGuard)
+    {
+        ArgumentNullException.ThrowIfNull(nativeGuard); var installed = false;
+        try
+        {
+            CompletionOperation(handle, (db, transaction) => {
+                var value = Require(db, handle, transaction, active: false, source: false);
+                if (Text(value, "phase") == "decision_review")
+                {
+                    if (!completionGuards.TryGetValue(handle.ActorId, out var guard) || !guard.Equals(nativeGuard))
+                        throw new InvalidOperationException("actor_completion_owner_changed");
+                    RequireCompletion(db, transaction, handle, "begin");
+                }
+                else
+                {
+                    Require(db, handle, transaction); completionGuards[handle.ActorId] = nativeGuard; installed = true;
+                    value["phase"] = "decision_review"; Write(db, transaction, value);
+                    RequireCompletion(db, transaction, handle, "begin");
+                    try { Require(db, handle, transaction, active: false, source: true); }
+                    catch (InvalidOperationException) { throw new CompletionSourceLost("actor_decision_review_source_changed"); }
+                    dataRetired.Add(handle.ActorId);
+                }
+                return true;
+            });
+        }
+        catch
+        {
+            if (installed && completionGuards.TryGetValue(handle.ActorId, out var guard) && guard.Equals(nativeGuard)) completionGuards.Remove(handle.ActorId);
+            throw;
+        }
+        return Status(handle);
+    }
+
+    /// <summary>Atomic native handoff after the separate reviewed decision SaveACK. Both guards bind the
+    /// same new saved claim; no callback may reopen the original data capability or perform I/O here.</summary>
+    internal JsonObject PromoteDecisionReview(PersonalActorHandle handle, Func<string, JsonObject?, bool?> reviewGuard,
+        Func<string, JsonObject?, bool?> completionGuard)
+    {
+        ArgumentNullException.ThrowIfNull(reviewGuard); ArgumentNullException.ThrowIfNull(completionGuard); var installed = false;
+        try
+        {
+            CompletionOperation(handle, (db, transaction) => {
+                var value = Require(db, handle, transaction, active: false, source: false);
+                if (Text(value, "phase") is ("completion" or "completed") && decisionHandoffs.TryGetValue(handle.ActorId, out var pair) &&
+                    pair.Review.Equals(reviewGuard) && pair.Completion.Equals(completionGuard) &&
+                    completionGuards.TryGetValue(handle.ActorId, out var current) && current.Equals(completionGuard))
+                { RequireCompletion(db, transaction, handle, "begin"); return true; }
+                if (Text(value, "phase") != "decision_review" || !completionGuards.TryGetValue(handle.ActorId, out var guard) || !guard.Equals(reviewGuard))
+                    throw new InvalidOperationException("actor_decision_review_owner_changed");
+                RequireCompletion(db, transaction, handle, "handoff");
+                value["phase"] = "completion"; Write(db, transaction, value);
+                completionGuards[handle.ActorId] = completionGuard; installed = true;
+                RequireCompletion(db, transaction, handle, "begin");
+                bool? retained;
+                try { retained = reviewGuard("handoff", null); }
+                catch (Exception error) when (error is InvalidOperationException or InvalidDataException)
+                { throw new CompletionSourceLost("actor_decision_review_handoff_changed"); }
+                if (retained != true) throw new CompletionSourceLost("actor_decision_review_handoff_changed");
+                decisionHandoffs[handle.ActorId] = (reviewGuard, completionGuard);
+                return true;
+            });
+        }
+        catch
+        {
+            if (installed) decisionHandoffs.Remove(handle.ActorId);
+            if (installed && completionGuards.TryGetValue(handle.ActorId, out var guard) && guard.Equals(completionGuard)) completionGuards[handle.ActorId] = reviewGuard;
+            throw;
+        }
+        return Status(handle);
     }
 
     /// <summary>Closes data irrevocably; the native callback binds each saved-claim/control/scope operation.
@@ -447,7 +524,7 @@ internal sealed class PersonalSyncActorStore
         using (var db = Open())
         {
             using var transaction = db.BeginTransaction(); var value = Require(db, handle, transaction, active: false, source: false);
-            dataRetired.Add(handle.ActorId); completionGuards.Remove(handle.ActorId);
+            dataRetired.Add(handle.ActorId); completionGuards.Remove(handle.ActorId); decisionHandoffs.Remove(handle.ActorId);
             if (Text(value, "phase") != "cancelled_clean") { value["phase"] = "cancelled"; Write(db, transaction, value); }
             transaction.Commit();
         }
