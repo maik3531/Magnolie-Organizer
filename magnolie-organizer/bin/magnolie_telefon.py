@@ -4575,11 +4575,13 @@ class PhoneService:
                 'proposal_ids': [proposal['proposal_id'] for body in bodies for proposal in body['proposals']],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
 
-    def observe_personal_actor_incoming_targets(self, registry, handle, targets):
+    def observe_personal_actor_incoming_targets(self, registry, handle, targets, *,
+            native_book_source=None, native_saved_book=None, native_producer_book=None):
         """Operation-local native observation, NOT incoming/action/data authority.
 
         Native host callers must hold their book/writer guard, as for producer
-        preparation. No IPC/MCP command exposes this method. Never retain an
+        preparation. Only the operation-local native GUI IPC broker may supply
+        native provider overrides; no MCP or wire admission exposes this method. Never retain an
         observer with captured book closures in a run admission: later operations
         must obtain a fresh native projection. No frames or targets are persisted.
         """
@@ -4588,6 +4590,9 @@ class PhoneService:
         if not isinstance(targets, list) or not 1 <= len(targets) <= 256:
             raise ValueError('actor_target_capacity')
         targets = copy.deepcopy(targets)
+        book_provider = native_book_source if native_book_source is not None else self.native_actor_book_source
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
         with self.lock:
             admission = self._require_personal_actor_admission(registry, handle)
             fingerprint = registry.status(handle)['fingerprint']
@@ -4605,17 +4610,16 @@ class PhoneService:
                 return registry.current_source(admission['peer'], fingerprint)
 
             current()
-            if not all(callable(value) for value in (self.native_actor_producer_book,
-                    self.native_actor_saved_book, self.native_actor_book_source)):
+            if not all(callable(value) for value in (producer_provider, saved_provider, book_provider)):
                 raise PermissionError('actor_native_saved_book_unavailable')
             # One native capture per guarded operation, not one whole-book
             # serialization for every freshness check or target. Never cached.
-            observed = self.native_actor_producer_book()
+            observed = producer_provider()
 
             def snapshot():
                 if (not isinstance(observed, NativeProducerBookSnapshot) or
-                        self.native_actor_saved_book() != observed.saved_book or
-                        self.native_actor_book_source() != observed.book_source):
+                        saved_provider() != observed.saved_book or
+                        book_provider() != observed.book_source):
                     raise PermissionError('actor_native_saved_book_changed')
                 return observed
 
