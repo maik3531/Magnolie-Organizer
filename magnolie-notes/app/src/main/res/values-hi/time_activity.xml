@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">डिफ़ॉल्ट गतिविधि</string>
+    <string name="zeit_art_dienste">स्वचालित शिफ़्ट सुझाव</string>
+    <string name="zeit_art_eigene">अपनी गतिविधि</string>
+    <string name="zeit_art_name">गतिविधि का नाम (वैकल्पिक)</string>
+    <string name="zeit_art_hinweis">केवल नई प्रविष्टियों पर लागू। कोई पूर्वनिर्धारित नाम न रखने के लिए खाली छोड़ें। कंप्यूटर से स्पष्ट दिए गए नाम को प्राथमिकता मिलेगी।</string>
+    <string name="zeit_art_training">प्रशिक्षण सत्र</string>
+    <string name="zeit_art_meeting">बैठक</string>
+</resources>

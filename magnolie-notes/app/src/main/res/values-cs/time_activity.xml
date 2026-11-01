@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Výchozí činnost</string>
+    <string name="zeit_art_dienste">Automatické návrhy směn</string>
+    <string name="zeit_art_eigene">Vlastní činnost</string>
+    <string name="zeit_art_name">Název činnosti (volitelný)</string>
+    <string name="zeit_art_hinweis">Pouze pro nové záznamy. Prázdné pole znamená bez předvolby. Výslovné názvy z počítače mají přednost.</string>
+    <string name="zeit_art_training">Tréninková jednotka</string>
+    <string name="zeit_art_meeting">Schůzka</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Типове заняття</string>
+    <string name="zeit_art_dienste">Автоматичні пропозиції змін</string>
+    <string name="zeit_art_eigene">Власне заняття</string>
+    <string name="zeit_art_name">Назва заняття (необов’язково)</string>
+    <string name="zeit_art_hinweis">Лише для нових записів. Порожнє поле — без заданого значення. Явні назви з комп’ютера мають пріоритет.</string>
+    <string name="zeit_art_training">Тренування</string>
+    <string name="zeit_art_meeting">Зустріч</string>
+</resources>

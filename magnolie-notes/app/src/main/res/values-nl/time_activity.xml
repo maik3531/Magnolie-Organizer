@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Standaardactiviteit</string>
+    <string name="zeit_art_dienste">Automatische dienstsuggesties</string>
+    <string name="zeit_art_eigene">Eigen activiteit</string>
+    <string name="zeit_art_name">Activiteitsnaam (optioneel)</string>
+    <string name="zeit_art_hinweis">Alleen voor nieuwe registraties. Laat leeg zonder standaardwaarde. Expliciete namen van de computer hebben voorrang.</string>
+    <string name="zeit_art_training">Trainingssessie</string>
+    <string name="zeit_art_meeting">Vergadering</string>
+</resources>

@@ -29,6 +29,20 @@ aus einer Übertragung entfernt. Die Desktop-Ausgaben müssen die dokumentierte
 Erweiterung ebenfalls umsetzen. Fehlende Namensbestandteile und Daten ohne
 Jahr wie `--02-29` bleiben unverändert.
 
+### Zeiterfassung: eigene Standardart
+
+Unter **Zeiterfassung → Einstellungen → Standardart** lassen sich automatische
+Dienstvorschläge oder eine eigene Tätigkeit wählen. Für Sport kann die Bezeichnung
+etwa **Trainingseinheit**, für Besprechungen **Meeting** lauten. Die eigene
+Bezeichnung bleibt unabhängig von der Tageszeit gleich. Ein leeres Feld bedeutet
+keine Vorgabe. Änderungen werden mit **Speichern** übernommen.
+
+Die Vorgabe gilt für neue manuelle Einträge, WLAN-Starts und Computerstarts ohne
+ausdrückliche Bezeichnung. Eine vom Computer ausdrücklich angegebene Art hat
+Vorrang. Bereits erfasste Zeiten bleiben unverändert. Die Einstellung wird lokal
+im verschlüsselten Bestand gespeichert. Bestehende Profile behalten zunächst
+ihre bisherigen Dienstvorschläge; neue Profile beginnen ohne Vorgabe.
+
 ### Aktuell prüfen
 
 Mit vorhandenem SDK 35, vollständigem JDK 21 (einschließlich Compiler) und vollständig verfügbaren Abhängigkeiten:

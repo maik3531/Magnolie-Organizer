@@ -23,12 +23,15 @@ data class ZeiterfassungStand(
     val pauseRuns: Map<String, ZeitPausenlauf> = emptyMap(),
     val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker(),
     /** Local native command receipts; never part of TimeSync record projection. */
-    val controlReceipts: List<ZeitSteuerBeleg> = emptyList()
+    val controlReceipts: List<ZeitSteuerBeleg> = emptyList(),
+    /** Local preference only: null keeps legacy shift suggestions; empty means no preset. */
+    val defaultType: String? = null
 ) {
     fun validate(): ZeiterfassungStand {
         require(controlReceipts.size <= 128 && controlReceipts.map { it.operationId }.toSet().size == controlReceipts.size)
         controlReceipts.forEach { it.validate() }
         require(reportName.length <= 240)
+        require(defaultType == null || defaultType.length <= 120)
         calendar.validate()
         wifi.validate()
         endAlarm.validate()
@@ -82,8 +85,16 @@ data class ZeiterfassungStand(
         check(entries.none { !it.deleted && it.endMinute == null })
         require(entry.endMinute == null && entry.pauseMinute == null && entry.pauseMinutes == 0L)
         require(!entry.deleted && entry.clock.isEmpty())
-        return store(entry).copy(pauseRuns = pauseRuns + (entry.id to ZeitPausenlauf(
+        return store(if (entry.type.isEmpty()) entry.copy(type = activityType("")) else entry).copy(pauseRuns = pauseRuns + (entry.id to ZeitPausenlauf(
             fixed = fixedPauses.toList(), endAlarm = endAlarm, startKind = startKind))).validate()
+    }
+
+    fun activityType(shiftSuggestion: String): String = defaultType ?: shiftSuggestion
+
+    /** Compare only this preference, preserving concurrent entries and other settings. */
+    fun changeDefaultType(expected: String?, replacement: String?): ZeiterfassungStand {
+        check(defaultType == expected)
+        return copy(defaultType = replacement).validate()
     }
 
     /** Rendering an old or imported record must not invent a manual start. */
@@ -162,7 +173,7 @@ data class ZeiterfassungStand(
     fun startFromWifi(observedSsid: String, observedMs: Long, nowMs: Long, activity: String): ZeiterfassungStand {
         validate()
         if (!wifi.canStart(observedSsid, observedMs, nowMs, entries.any { !it.deleted && it.endMinute == null }, enabled)) return this
-        return start(Zeiteintrag(startMinute = nowMs / 60000, modifiedMs = nowMs, type = activity), startKind = "wifi")
+        return start(Zeiteintrag(startMinute = nowMs / 60000, modifiedMs = nowMs, type = activityType(activity)), startKind = "wifi")
     }
 
     /** Compare the complete edited snapshot to avoid overwriting a newer edit. */

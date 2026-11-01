@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">النشاط الافتراضي</string>
+    <string name="zeit_art_dienste">اقتراحات المناوبات التلقائية</string>
+    <string name="zeit_art_eigene">نشاط مخصص</string>
+    <string name="zeit_art_name">اسم النشاط (اختياري)</string>
+    <string name="zeit_art_hinweis">للسجلات الجديدة فقط. اتركه فارغًا دون إعداد مسبق. للأسماء المحددة صراحة من الكمبيوتر الأولوية.</string>
+    <string name="zeit_art_training">جلسة تدريب</string>
+    <string name="zeit_art_meeting">اجتماع</string>
+</resources>

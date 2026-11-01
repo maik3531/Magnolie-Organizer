@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Default activity</string>
+    <string name="zeit_art_dienste">Automatic shift suggestions</string>
+    <string name="zeit_art_eigene">Custom activity</string>
+    <string name="zeit_art_name">Activity name (optional)</string>
+    <string name="zeit_art_hinweis">Applies to new entries only. Leave empty for no preset. Explicit activity names from the computer take precedence.</string>
+    <string name="zeit_art_training">Training session</string>
+    <string name="zeit_art_meeting">Meeting</string>
+</resources>

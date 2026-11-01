@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Стандартны занятак</string>
+    <string name="zeit_art_dienste">Аўтаматычныя прапановы змен</string>
+    <string name="zeit_art_eigene">Уласны занятак</string>
+    <string name="zeit_art_name">Назва занятку (неабавязкова)</string>
+    <string name="zeit_art_hinweis">Толькі для новых запісаў. Пустое поле — без зададзенага значэння. Яўныя назвы з камп’ютара маюць прыярытэт.</string>
+    <string name="zeit_art_training">Трэніроўка</string>
+    <string name="zeit_art_meeting">Сустрэча</string>
+</resources>

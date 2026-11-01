@@ -30,6 +30,7 @@ class ZeiterfassungStandardTest {
         val storage = Ablage.fuerTest(context) { key }
         val state = storage.bestand.value.zeiterfassung
         assertTrue(state.enabled)
+        assertEquals("", state.defaultType)
         assertTrue(state.entries.isEmpty()); assertTrue(state.controlReceipts.isEmpty())
         assertFalse(state.wifi.enabled); assertEquals(ZeitFeierabendwecker(), state.endAlarm)
         assertTrue(Ablage.fuerTest(context) { key }.bestand.value.zeiterfassung.enabled)
@@ -48,6 +49,7 @@ class ZeiterfassungStandardTest {
             File(directory, "notizen.json").writeText(legacy)
             val storage = Ablage.fuerTest(context) { key }
             assertFalse(storage.bestand.value.zeiterfassung.enabled)
+            assertNull(storage.bestand.value.zeiterfassung.defaultType)
             assertFalse(Ablage.fuerTest(context) { key }.bestand.value.zeiterfassung.enabled)
         }
     }
@@ -67,5 +69,17 @@ class ZeiterfassungStandardTest {
         file.writeBytes(before)
         assertTrue(runCatching { Ablage.fuerTest(context) { key } }.isFailure)
         assertArrayEquals(before, file.readBytes())
+    }
+
+    @Test fun ownActivityAndTheExplicitAutomaticModeSurviveEncryptedRestart() = fixture { context, _, key ->
+        var storage = Ablage.fuerTest(context) { key }
+        for (activity in listOf("Trainingseinheit", "Meeting", "", null)) {
+            val original = storage.bestand.value.zeiterfassung
+            storage.aendereZeiterfassung { it.changeDefaultType(original.defaultType, activity) }
+            storage = Ablage.fuerTest(context) { key }
+            assertEquals(activity, storage.bestand.value.zeiterfassung.defaultType)
+            assertEquals(original.entries, storage.bestand.value.zeiterfassung.entries)
+            assertEquals(original.controlReceipts, storage.bestand.value.zeiterfassung.controlReceipts)
+        }
     }
 }

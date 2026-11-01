@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Activité par défaut</string>
+    <string name="zeit_art_dienste">Suggestions automatiques de service</string>
+    <string name="zeit_art_eigene">Activité personnalisée</string>
+    <string name="zeit_art_name">Nom de l’activité (facultatif)</string>
+    <string name="zeit_art_hinweis">Uniquement pour les nouvelles entrées. Laisser vide sans valeur prédéfinie. Les noms explicites de l’ordinateur ont priorité.</string>
+    <string name="zeit_art_training">Séance d’entraînement</string>
+    <string name="zeit_art_meeting">Réunion</string>
+</resources>

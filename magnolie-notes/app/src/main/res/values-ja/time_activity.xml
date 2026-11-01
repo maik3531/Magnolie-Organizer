@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">既定の活動</string>
+    <string name="zeit_art_dienste">時間帯に応じた勤務の候補</string>
+    <string name="zeit_art_eigene">独自の活動</string>
+    <string name="zeit_art_name">活動名（任意）</string>
+    <string name="zeit_art_hinweis">新しい記録にのみ適用。既定値なしの場合は空欄にします。コンピューターで明示された名前が優先されます。</string>
+    <string name="zeit_art_training">トレーニング</string>
+    <string name="zeit_art_meeting">会議</string>
+</resources>

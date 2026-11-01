@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Standardart</string>
+    <string name="zeit_art_dienste">Automatische Dienstvorschläge</string>
+    <string name="zeit_art_eigene">Eigene Tätigkeit</string>
+    <string name="zeit_art_name">Bezeichnung (optional)</string>
+    <string name="zeit_art_hinweis">Gilt nur für neue Einträge. Leer lassen für keine Vorgabe. Ausdrückliche Bezeichnungen vom Computer haben Vorrang.</string>
+    <string name="zeit_art_training">Trainingseinheit</string>
+    <string name="zeit_art_meeting">Meeting</string>
+</resources>

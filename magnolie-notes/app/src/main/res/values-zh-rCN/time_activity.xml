@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">默认活动</string>
+    <string name="zeit_art_dienste">自动班次建议</string>
+    <string name="zeit_art_eigene">自定义活动</string>
+    <string name="zeit_art_name">活动名称（可选）</string>
+    <string name="zeit_art_hinweis">仅适用于新记录。留空表示不预设名称。电脑明确指定的名称优先。</string>
+    <string name="zeit_art_training">训练</string>
+    <string name="zeit_art_meeting">会议</string>
+</resources>

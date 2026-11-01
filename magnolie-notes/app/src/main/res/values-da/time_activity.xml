@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Standardaktivitet</string>
+    <string name="zeit_art_dienste">Automatiske vagtforslag</string>
+    <string name="zeit_art_eigene">Egen aktivitet</string>
+    <string name="zeit_art_name">Aktivitetsnavn (valgfrit)</string>
+    <string name="zeit_art_hinweis">Gælder kun nye registreringer. Lad stå tomt uden standardværdi. Udtrykkelige navne fra computeren har forrang.</string>
+    <string name="zeit_art_training">Træningspas</string>
+    <string name="zeit_art_meeting">Møde</string>
+</resources>

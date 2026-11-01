@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Attività predefinita</string>
+    <string name="zeit_art_dienste">Suggerimenti automatici dei turni</string>
+    <string name="zeit_art_eigene">Attività personalizzata</string>
+    <string name="zeit_art_name">Nome attività (facoltativo)</string>
+    <string name="zeit_art_hinweis">Solo per nuove voci. Lasciare vuoto senza valore predefinito. I nomi espliciti dal computer hanno la precedenza.</string>
+    <string name="zeit_art_training">Sessione di allenamento</string>
+    <string name="zeit_art_meeting">Riunione</string>
+</resources>

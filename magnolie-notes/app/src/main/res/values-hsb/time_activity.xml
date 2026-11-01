@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Standardna činitosć</string>
+    <string name="zeit_art_dienste">Awtomatiske namjety słužbow</string>
+    <string name="zeit_art_eigene">Swójska činitosć</string>
+    <string name="zeit_art_name">Mjeno činitosće (opcionalne)</string>
+    <string name="zeit_art_hinweis">Jenož za nowe zapiski. Próżdne polo woznamjenja žanu předpodaću. Wurazne mjena z ličaka maja přednosć.</string>
+    <string name="zeit_art_training">Treningowa jednotka</string>
+    <string name="zeit_art_meeting">Zetkanje</string>
+</resources>

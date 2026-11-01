@@ -280,7 +280,7 @@ class Ablage private constructor(
         wiederherstellung.wiederaufnehmen()
         wiederherstellung.vergesseErfolge("baum-nachricht-")
         // Only a missing data file gets the new UI default; legacy decoding keeps its saved defaults.
-        val notizStand = lesen(notizDatei, Bestand(zeiterfassung = ZeiterfassungStand(enabled = true)))
+        val notizStand = lesen(notizDatei, Bestand(zeiterfassung = ZeiterfassungStand(enabled = true, defaultType = "")))
         val baumStand = lesen(baumDatei, Baumzustand())
         _bestand.value = notizStand.wert.let { gelesen ->
             val sauber = PapierkorbLogik.bereinigen(gelesen).copy(

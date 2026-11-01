@@ -77,12 +77,12 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
     val entries = stand.entries.filterNot { it.deleted }
         .sortedWith(compareBy<Zeiteintrag> { it.endMinute != null }.thenByDescending { it.startMinute })
     val current = entries.firstOrNull { it.endMinute == null }
-    val suggestion = stringResource(when (Zeiteintrag.suggestedType(
+    val suggestion = stand.activityType(stringResource(when (Zeiteintrag.suggestedType(
         Instant.ofEpochSecond(now * 60).atZone(ZoneId.systemDefault()).hour)) {
         "early" -> R.string.zeit_frueh
         "late" -> R.string.zeit_spaet
         else -> R.string.zeit_nacht
-    })
+    }))
     val confirm = stringResource(R.string.zeit_bestaetigen)
     @Composable fun karte(entry: Zeiteintrag, bearbeiten: Boolean) {
         val displayed = stand.projected(entry, now)
@@ -133,6 +133,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
         if (ansicht == "settings") {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 ZeiterfassungsOptionen(stand.enabled, speichert, beiAktiv)
+                ZeitArtOptionen(stand, speichert, speichern)
                 ZeitPausenOptionen(stand, speichert, speichern)
                 ZeitFeierabendOptionen(stand, speichert, speichern)
                 ZeitWlanOptionen(stand, speichert, speichern)

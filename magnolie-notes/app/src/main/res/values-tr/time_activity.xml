@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Varsayılan etkinlik</string>
+    <string name="zeit_art_dienste">Otomatik vardiya önerileri</string>
+    <string name="zeit_art_eigene">Özel etkinlik</string>
+    <string name="zeit_art_name">Etkinlik adı (isteğe bağlı)</string>
+    <string name="zeit_art_hinweis">Yalnızca yeni kayıtlar için. Ön ayar olmaması için boş bırakın. Bilgisayardan açıkça belirtilen adlar önceliklidir.</string>
+    <string name="zeit_art_training">Antrenman</string>
+    <string name="zeit_art_meeting">Toplantı</string>
+</resources>

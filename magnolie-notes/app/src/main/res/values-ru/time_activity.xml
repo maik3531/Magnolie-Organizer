@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Занятие по умолчанию</string>
+    <string name="zeit_art_dienste">Автоматические предложения смен</string>
+    <string name="zeit_art_eigene">Своё занятие</string>
+    <string name="zeit_art_name">Название занятия (необязательно)</string>
+    <string name="zeit_art_hinweis">Только для новых записей. Пустое поле — без предустановки. Явные названия с компьютера имеют приоритет.</string>
+    <string name="zeit_art_training">Тренировка</string>
+    <string name="zeit_art_meeting">Встреча</string>
+</resources>

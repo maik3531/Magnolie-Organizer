@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_art_vorgabe">Domyślna aktywność</string>
+    <string name="zeit_art_dienste">Automatyczne propozycje zmian</string>
+    <string name="zeit_art_eigene">Własna aktywność</string>
+    <string name="zeit_art_name">Nazwa aktywności (opcjonalna)</string>
+    <string name="zeit_art_hinweis">Tylko dla nowych wpisów. Puste pole oznacza brak wartości domyślnej. Jawne nazwy z komputera mają pierwszeństwo.</string>
+    <string name="zeit_art_training">Sesja treningowa</string>
+    <string name="zeit_art_meeting">Spotkanie</string>
+</resources>
