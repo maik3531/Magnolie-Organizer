@@ -121,8 +121,9 @@ internal static class PersonalSyncActorSourceTests
             wire.AssertActorWrite = () => TestAssert.That(store.NotePolicyGate.CurrentCount == 1 && !Monitor.IsEntered(
                 typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
                 "Actor network I/O held native policy/source guards.");
-            foreach (var afterNativeSend in new[] { false, true })
+            foreach (var ownScenario in new[] { "before-send", "after-marker", "metadata-failure", "post-send-book" })
             {
+                var afterNativeSend = ownScenario == "after-marker";
                 var ownHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
                 await coordinator.StartPersonalActorAsync(ownHandle);
                 await SharedSyncTransportTests.DrainAsync(wire);
@@ -168,6 +169,47 @@ internal static class PersonalSyncActorSourceTests
                 admitted.GetType().GetProperty("SaveReceipt", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, savedOwnBook);
                 admitted.GetType().GetProperty("PhoneDataPersisted", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, true);
                 coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
+                if (ownScenario == "metadata-failure")
+                {
+                    using (var db = store.OpenDatabase())
+                    {
+                        db.Open(); using var sql = db.CreateCommand();
+                        sql.CommandText = "CREATE TRIGGER native_ack_metadata_failure BEFORE INSERT ON personal_actor_completion_wire BEGIN SELECT RAISE(ABORT,'synthetic native ACK metadata failure'); END"; sql.ExecuteNonQuery();
+                    }
+                    var failed = false;
+                    try { await coordinator.PumpPersonalActorAsync(connection); }
+                    catch (Microsoft.Data.Sqlite.SqliteException) { failed = true; }
+                    TestAssert.That(failed && ownCompletion.Summary()["saved"]!.GetValue<int>() == 0 && nativeAcks.Count == 1,
+                        "Successful socket write substituted for failed protected ACK persistence.");
+                    TestAssert.That(JsonNode.DeepEquals((await SharedSyncTransportTests.DrainAsync(wire)).Single(), ownAck), "Metadata fault lost the actual sent ACK identity.");
+                    await coordinator.WithPersonalActorStoreAsync(registry => {
+                        TestAssert.That(registry.ReadCompletionControls(ownHandle).Count == 0 && registry.Status(ownHandle)["phase"]!.GetValue<string>() == "completion",
+                            "Failed ACK metadata write finished native completion."); return true;
+                    });
+                    using (var db = store.OpenDatabase())
+                    { db.Open(); using var sql = db.CreateCommand(); sql.CommandText = "DROP TRIGGER native_ack_metadata_failure"; sql.ExecuteNonQuery(); }
+                    await coordinator.PumpPersonalActorAsync(connection);
+                    TestAssert.That(wire.Length == 0, "Immediate native ACK retry bypassed backoff.");
+                    admitted.GetType().GetProperty("NativeAckNextAttempt", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(admitted, 0L);
+                }
+                if (ownScenario == "post-send-book")
+                {
+                    var previousCheck = wire.AssertActorWrite; var changedBook = false; var denied = false;
+                    wire.AssertActorWrite = () => {
+                        previousCheck?.Invoke();
+                        if (!changedBook) { changedBook = true; hostBook.RecordSaved("actual-host-profile", true, new string('b', 64)); }
+                    };
+                    try { await coordinator.PumpPersonalActorAsync(connection); }
+                    catch (InvalidOperationException) { denied = true; }
+                    finally { wire.AssertActorWrite = previousCheck; }
+                    TestAssert.That(denied && JsonNode.DeepEquals((await SharedSyncTransportTests.DrainAsync(wire)).Single(), ownAck) &&
+                        ownCompletion.Summary()["saved"]!.GetValue<int>() == 0 && emitted == ownEmitted,
+                        "Post-send book change was counted as native ACK completion.");
+                    await coordinator.WithPersonalActorStoreAsync(registry => {
+                        TestAssert.That(registry.Status(ownHandle)["phase"]!.GetValue<string>() == "cancelled", "Post-send source change retained an active native owner."); return true;
+                    });
+                    continue;
+                }
                 await coordinator.PumpPersonalActorAsync(connection);
                 var sentOwnAck = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
                 TestAssert.That(JsonNode.DeepEquals(sentOwnAck, ownAck) && nativeAcks.Count == 0 &&
