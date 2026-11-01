@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 import magnolie_content_scope as scope
+from magnolie_personal_actor_producer import prepare_deletion_proposals
 from magnolie_personal_actor_target_evidence import NativeOutgoingTargetEvidence
 from test_personal_actor_producer import fixture, native, tombstone, PEER, RUN
 
@@ -27,6 +28,9 @@ def test_fresh_exact_pending_targets_are_separate_from_content_scope_and_have_no
     assert {(value['kind'], value['id']) for value in targets} == {('note', 'removed-note'), ('task', 'removed-task'), ('attachment', 'file-000')}
     assert state['scope']['members'] == {'notes': [], 'tasks': []}
     assert book == before and read() == saved
+    assert prepare_deletion_proposals(state['snapshot'], state['scope'], PEER, RUN,
+        current_saved_book=read, current_source=lambda: state['source']) == [], 'Evidence widened the ordinary scoped producer'
+    assert all(set(value) == {'proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock'} for value in targets)
     for target in targets: assert proof.require_exact(RUN, target) is True
     targets[0]['prior_hash'] = 'f' * 64
     with pytest.raises(PermissionError): proof.require_exact(RUN, targets[0])
@@ -81,3 +85,12 @@ def test_missing_native_book_or_owner_denies_even_construction():
     with pytest.raises(PermissionError): create()
     state['snapshot'] = native(book)[2]; state['owner'] = False
     with pytest.raises(PermissionError): create()
+
+
+@pytest.mark.parametrize('field,value', [('proposal_id', RUN), ('prior_hash', 'f' * 64), ('hash', 'a' * 64),
+    ('parent_id', 'different'), ('clock', [{'actor_id': PEER, 'counter': 99}]), ('conflict', True)])
+def test_changed_current_tombstone_identity_cannot_be_attested(field, value):
+    create, state, book, owner, read = evidence_fixture()
+    book['personalSync']['entities']['attachment\0canonical-parent\0file-000'][field] = value
+    state['snapshot'] = native(book)[2]
+    with pytest.raises(ValueError): create()

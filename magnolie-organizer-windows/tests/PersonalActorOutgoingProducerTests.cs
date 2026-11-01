@@ -74,6 +74,8 @@ internal static class PersonalActorOutgoingProducerTests
             var target = targets[0]!.AsObject();
             if (scenario == "success")
             {
+                TestAssert.That(PersonalActorOutgoingProducer.Prepare(captured, scope, Peer, Run, () => owner.SaveState("native-producer-fixture", true), () => source).Count == 0,
+                    "Private target evidence widened the ordinary accepted-scope producer.");
                 TestAssert.That(proof.RequireExact(Run, target), "Exact outgoing target proof was refused.");
                 target["prior_hash"] = new string('f', 64);
                 TestAssert.Throws<InvalidOperationException>(() => proof.RequireExact(Run, target), "Changed target hash acquired evidence.");
@@ -88,6 +90,20 @@ internal static class PersonalActorOutgoingProducerTests
             if (scenario == "missing-book") snapshot = null;
             TestAssert.Throws<InvalidOperationException>(() => proof.Targets(), "Changed native observation retained offscope evidence: " + scenario);
             TestAssert.Throws<InvalidOperationException>(() => proof.RequireExact(Run, target), "Changed native observation retained exact target permission: " + scenario);
+        }
+    }
+
+    private static void ChangedTargetEvidence()
+    {
+        foreach (var field in new[] { "proposal_id", "prior_hash", "hash", "parent_id", "clock", "conflict" })
+        {
+            var (book, _) = Fixture(1); var meta = FirstMeta(book);
+            meta[field] = field switch { "conflict" => JsonValue.Create(true),
+                "clock" => new JsonArray(new JsonObject { ["actor_id"] = Peer, ["counter"] = 99 }),
+                "parent_id" => JsonValue.Create("different"), "proposal_id" => JsonValue.Create(Run), _ => JsonValue.Create(new string('f', 64)) };
+            var (owner, snapshot) = Capture(book);
+            TestAssert.Throws<InvalidDataException>(() => new PersonalActorOutgoingTargetEvidence(Peer, Run, () => true, () => new string('b', 64),
+                () => snapshot, () => PhoneContentScope.Create([], [], epoch: Run)), "Changed current native tombstone acquired evidence: " + field);
         }
     }
 
@@ -165,6 +181,7 @@ internal static class PersonalActorOutgoingProducerTests
         AtomicPreparedGroups();
         SuccessfulGroupReplay();
         OutgoingTargetEvidence();
+        ChangedTargetEvidence();
         return Task.CompletedTask;
     }
 
