@@ -5053,9 +5053,13 @@ class PhoneService:
                 return self.current_content_scope(admission['peer'], admission['key'], reference)
             review = waiting.begin_review(current_scope=current_scope, current_saved_book=saved_provider)
             view = review.review()
-            raw = canonical({'targets': waiting.targets, 'decisions': view['decisions'], 'content_scope': view['scope'],
+            projection = {'targets': waiting.targets, 'decisions': view['decisions'], 'content_scope': view['scope'],
                 'decision_message_ids': sorted(view['frame_hashes']),
-                'data_saved_book': waiting.data_saved_book, 'review_revision': view['revision']})
+                'data_saved_book': waiting.data_saved_book, 'review_revision': view['revision']}
+            if waiting.fixed_targets:
+                projection.update(fixed_targets=view['fixed_targets'], fixed_decisions=view['fixed_decisions'],
+                    fixed_decision_message_ids=sorted(view['fixed_frame_hashes']))
+            raw = canonical(projection)
             if len(raw) > 4 * 1024 * 1024:
                 raise RuntimeError('actor_late_review_capacity')
             revision = hashlib.sha256(raw).hexdigest()

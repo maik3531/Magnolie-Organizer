@@ -424,6 +424,11 @@ internal static class PersonalSyncActorSourceTests
                     await connection.HandlePlainAsync(lateDecision);
                     var lateView = await coordinator.ReadPersonalActorLateReviewAsync(orderHandle);
                     TestAssert.That(lateView["review_ready"]!.GetValue<bool>() && wire.Length == 0, "Mixed metadata owner lost its late review or sent premature deletion success.");
+                    var unionView = JsonNode.Parse(Convert.FromBase64String(lateView["data_base64"]!.GetValue<string>()))!.AsObject();
+                    TestAssert.That(unionView["fixed_targets"]!.AsArray().Count == 1 && unionView["fixed_decisions"]![0]!["proposal_id"]!.GetValue<string>() == fixedTarget["proposal_id"]!.GetValue<string>() &&
+                        unionView["fixed_decision_message_ids"]![0]!.GetValue<string>() == fixedFrames[0]["message_id"]!.GetValue<string>() &&
+                        unionView["decisions"]!.AsArray().Count == 1 && unionView["decisions"]![0]!["proposal_id"]!.GetValue<string>() == lateTarget["proposal_id"]!.GetValue<string>(),
+                        "Private late view confused fixed ordinary choices/receipt IDs with new late document mutations.");
                     var lateSave = await coordinator.PreparePersonalActorLateSaveAsync(orderHandle, lateView["review_revision"]!.GetValue<string>(), new string('d', 64));
                     hostBook.RecordSaved("actual-host-profile", true, new string('d', 64));
                     var unionSequence = hostBook.SaveState("actual-host-profile", true)!.Sequence;

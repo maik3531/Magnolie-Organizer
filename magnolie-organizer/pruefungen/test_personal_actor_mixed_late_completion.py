@@ -1,5 +1,7 @@
 """Actual late-confirm union, with injected reviewed owner/writer, not Mixed E2E."""
 import copy
+import base64
+import json
 import sqlite3
 import pytest
 import magnolie_personal_actor as actor
@@ -34,13 +36,20 @@ def test_late_confirm_unions_both_receipt_directions_without_requeue_or_initial_
     state['scope'] = scope.advance(waiting.before, waiting.before['members']['notes'], [])
     review = waiting.begin_review(current_scope=lambda: state['scope'], current_saved_book=read)
     claim = review.prepare_save(review.review()['revision'], 'b' * 64)
-    owner.record_saved('native-producer-fixture', True, 'b' * 64)
-    saved = read()
     channel = object()
     admission = dict(peer=peer['device_id'], key=peer['static_public'], channel=channel, registry=registry, handle=handle,
-        report_owner=waiting, late_claim_token=claim['claim_token'], phone_data_persisted=True, outbound=set())
+        report_owner=waiting, late_claim_token=claim['claim_token'], phone_data_persisted=True, outbound=set(), producer_bodies=[])
     service.connections[peer['device_id']] = channel
     service.personal_actor_admissions[handle.actor_id] = admission
+    projection = service.read_personal_actor_late_review(registry, handle, native_saved_book=read)
+    projected = json.loads(base64.b64decode(projection['data_base64']))
+    assert projected['fixed_targets'] == [fixed_target]
+    assert projected['fixed_decisions'][0]['proposal_id'] == fixed_target['proposal_id']
+    assert projected['fixed_decision_message_ids'] == [fixed_frame['message_id']]
+    assert projected['decisions'] == review.review()['decisions']
+    assert all(value['proposal_id'] != fixed_target['proposal_id'] for value in projected['decisions'])
+    owner.record_saved('native-producer-fixture', True, 'b' * 64)
+    saved = read()
     # Paging/ordinary Mixed preparation is deliberately not part of this probe.
     # The original native review and protected receipts above are actual.
     monkeypatch.setattr(service, 'read_personal_actor_late_review', lambda *args, **kwargs: None)

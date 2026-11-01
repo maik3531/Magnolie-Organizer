@@ -685,10 +685,18 @@ internal sealed partial class TelefonCoordinator
         { return new JsonObject { ["review_ready"] = false, ["expected_proposals"] = targets.Count }; }
         JsonObject? CurrentScope() => admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject());
         var review = waiting.BeginReview(CurrentScope, () => NativeSavedBook()); var view = review.Review();
-        var raw = TelefonCrypto.Canonical(new JsonObject { ["targets"] = targets, ["decisions"] = view["decisions"]!.DeepClone(),
+        var projection = new JsonObject { ["targets"] = targets, ["decisions"] = view["decisions"]!.DeepClone(),
             ["decision_message_ids"] = new JsonArray(view["frame_hashes"]!.AsObject().Select(pair => pair.Key).OrderBy(value => value, StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()),
             ["content_scope"] = view["scope"]!.DeepClone(), ["review_revision"] = view["revision"]!.DeepClone(),
-            ["data_saved_book"] = new JsonObject { ["book_source"] = waiting.DataSavedBook.BookSource, ["sequence"] = waiting.DataSavedBook.Sequence, ["sha256"] = waiting.DataSavedBook.Sha256 } });
+            ["data_saved_book"] = new JsonObject { ["book_source"] = waiting.DataSavedBook.BookSource, ["sequence"] = waiting.DataSavedBook.Sequence, ["sha256"] = waiting.DataSavedBook.Sha256 } };
+        if (waiting.NativeFixedTargets.Count != 0)
+        {
+            projection["fixed_targets"] = view["fixed_targets"]!.DeepClone();
+            projection["fixed_decisions"] = view["fixed_decisions"]!.DeepClone();
+            projection["fixed_decision_message_ids"] = new JsonArray(view["fixed_frame_hashes"]!.AsObject().Select(pair => pair.Key)
+                .OrderBy(value => value, StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)!).ToArray());
+        }
+        var raw = TelefonCrypto.Canonical(projection);
         try
         {
             if (raw.Length > 4 * 1024 * 1024) throw new InvalidOperationException("actor_late_review_capacity");
