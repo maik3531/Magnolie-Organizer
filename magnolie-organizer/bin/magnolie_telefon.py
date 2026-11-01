@@ -4458,8 +4458,30 @@ class PhoneService:
             admission = self._require_personal_actor_admission(registry, handle)
             message = copy.deepcopy(admission['start']); channel = admission['channel']
         channel.send(message)
+        with self.lock:
+            if self.personal_actor_admissions.get(handle.actor_id) is admission and self.connections.get(admission['peer']) is channel:
+                admission['start_dispatched'] = True
         return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
             "delivery_confirmed": False, "persisted": False}
+
+    def dispatch_personal_actor_proposals(self, registry, handle, *, native_saved_book=None):
+        saved = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        with self.lock:
+            admission = self._require_personal_actor_admission(registry, handle)
+            if (not admission.get('start_dispatched') or admission.get('producer_book') is None or
+                    'producer_bodies' not in admission or not callable(saved) or saved() != admission['producer_book']):
+                raise PermissionError('actor_producer_dispatch_not_ready')
+            frames = [wire for wire in self.store.pending(admission['peer'], self.connection_transports.get(admission['peer'], 'wifi'))
+                if wire['message_id'] in admission.get('producer_ids', ()) and self.store.personal_run(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id)]
+        sent = 0
+        for wire in frames:
+            if not self._send_personal_actor_queued(admission['channel'], admission['peer'], wire, native_saved_book=saved):
+                continue
+            with self.lock:
+                if self._require_personal_actor_admission(registry, handle) is not admission or saved() != admission['producer_book']:
+                    raise PermissionError('actor_producer_dispatch_outcome_unknown')
+            sent += 1
+        return {'dispatch_started': bool(sent), 'message_count': sent, 'delivery_confirmed': False}
 
     @staticmethod
     def _actor_saved_book(state, book_source):
@@ -5179,7 +5201,9 @@ class PhoneService:
             # Daemon has intentionally NO permanent writer callback. Generated
             # proposal frames wait for an operation-live native dispatch proof.
             try:
-                if producer and (not callable(saved_provider) or saved_provider() != admission.get('producer_book')):
+                if producer and (not admission.get('start_dispatched') or not callable(saved_provider) or saved_provider() != admission.get('producer_book')):
+                    return False
+                if producer and not self.store.personal_run(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id):
                     return False
                 if admission.get("completion") is not None:
                     registry.check_completion(handle, "send", message)

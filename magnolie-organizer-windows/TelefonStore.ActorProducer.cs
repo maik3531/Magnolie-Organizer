@@ -1,10 +1,53 @@
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
+using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonStore
 {
+    // Bootstrap frames can be atomically staged before the peer's authenticated
+    // request establishes its run policy. Keep them pending, NOT sendable and
+    // NOT purged as an orphan by the ordinary due queue. This grants no rights:
+    // the controller still checks its live protected owner/source/writer.
+    private bool ActorProducerWaitingForRun(SqliteConnection db, SqliteTransaction transaction, JsonObject wire, long now)
+    {
+        if (wire["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind) return false;
+        var run = wire["body"]?["run_id"]?.GetValue<string>();
+        if (run is null) return false;
+        var privatePeer = PersonalSyncActorContract.StoragePeer(run);
+        using (var existing = db.CreateCommand())
+        {
+            existing.Transaction = transaction; existing.CommandText = "SELECT COUNT(*) FROM meta WHERE key=$key";
+            existing.Parameters.AddWithValue("$key", $"personal_run:{privatePeer}:{run}");
+            if (Convert.ToInt64(existing.ExecuteScalar()) != 0) return false; // Expired/corrupt existing policies keep ordinary cleanup.
+        }
+        using (var schema = db.CreateCommand())
+        {
+            schema.Transaction = transaction; schema.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='personal_actor_context'";
+            if (Convert.ToInt64(schema.ExecuteScalar()) == 0) return false;
+        }
+        using (var owner = db.CreateCommand())
+        {
+            owner.Transaction = transaction; owner.CommandText = "SELECT COUNT(*) FROM personal_actor_context WHERE actor_id=$run AND expires_ms>$now";
+            owner.Parameters.AddWithValue("$run", run); owner.Parameters.AddWithValue("$now", now);
+            if (Convert.ToInt64(owner.ExecuteScalar()) != 1) return false;
+        }
+        var key = $"personal_actor_producer:{privatePeer}:{run}";
+        using var read = db.CreateCommand(); read.Transaction = transaction; read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
+        if (read.ExecuteScalar() is not byte[] payload) return false;
+        byte[]? clear = null;
+        try
+        {
+            clear = Open("personal_actor_producer", key, payload);
+            var ledger = JsonNode.Parse(clear)!.AsObject();
+            return TelefonProtocolContract.Integer(ledger["expires_ms"]) > now && ledger["frames"] is JsonArray frames &&
+                frames.Count is >= 1 and <= 8 && frames.Any(frame => JsonNode.DeepEquals(frame, wire));
+        }
+        catch (Exception error) when (error is CryptographicException or System.Text.Json.JsonException or InvalidDataException or InvalidOperationException) { return false; }
+        finally { if (clear is not null) CryptographicOperations.ZeroMemory(clear); }
+    }
+
     // Internal native primitive only. Caller holds source/owner gates; neither
     // a wire target list nor a saved Boolean can substitute for these witnesses.
     internal IReadOnlyList<JsonObject> QueueActorDeletionProposals(string peerId, string runId, IReadOnlyList<JsonObject> input,

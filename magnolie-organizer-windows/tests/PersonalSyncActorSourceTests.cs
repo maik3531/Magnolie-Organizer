@@ -176,8 +176,40 @@ internal static class PersonalSyncActorSourceTests
                         "Actual producer lacked its own run-private target proof or leaked physical-peer rights.");
                     var repeated = await coordinator.ProducePersonalActorProposalsAsync(producerHandle);
                     TestAssert.That(JsonNode.DeepEquals(producedStage, repeated), "Legitimate same-owner producer retry changed its native result.");
+                    if (producerCase == "success")
+                    {
+                        var earlyDenied = false;
+                        try { await coordinator.DispatchPersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { earlyDenied = true; }
+                        TestAssert.That(earlyDenied, "Producer data was dispatched before its actual START write returned.");
+                        await coordinator.StartPersonalActorAsync(producerHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                        TestAssert.That((await coordinator.DispatchPersonalActorProposalsAsync(producerHandle))["message_count"]!.GetValue<int>() == 0,
+                            "Producer data bypassed the peer request/run-policy admission.");
+                        using (var db = store.OpenDatabase())
+                        {
+                            db.Open(); using var count = db.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM outbox";
+                            TestAssert.That(Convert.ToInt64(count.ExecuteScalar()) == producerExistingOutbox + 1,
+                                "Ordinary due cleanup purged a protected producer bootstrap frame before its peer request arrived.");
+                        }
+                        connection.ActorMessageReceived = (source, message) => coordinator.ReceivePersonalActorAsync(source, peer, message);
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", new JsonObject {
+                            ["format"] = 3, ["run_id"] = producerHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }), producerHandle.ActorId));
+                        await SharedSyncTransportTests.DrainAsync(wire);
+                        var sent = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_dispatch_proposals",
+                            ["actorId"] = producerHandle.ActorId, ["ownerToken"] = producerHandle.OwnerToken }, default);
+                        var actualFrames = await SharedSyncTransportTests.DrainAsync(wire);
+                        TestAssert.That(sent["ok"]!.GetValue<bool>() && sent["actor"]!["message_count"]!.GetValue<int>() == 1 &&
+                            !sent["actor"]!["delivery_confirmed"]!.GetValue<bool>() && actualFrames.Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind,
+                            "Private native producer dispatch did not write its actual encrypted frame or falsely claimed delivery.");
+                        TestAssert.That((await coordinator.DispatchPersonalActorProposalsAsync(producerHandle))["message_count"]!.GetValue<int>() == 0 && wire.Length == 0,
+                            "Explicit native dispatch bypassed the original outbox retry backoff.");
+                    }
                     if (producerCase == "changed-writer")
                     {
+                        await coordinator.StartPersonalActorAsync(producerHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                        connection.ActorMessageReceived = (source, message) => coordinator.ReceivePersonalActorAsync(source, peer, message);
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", new JsonObject {
+                            ["format"] = 3, ["run_id"] = producerHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }), producerHandle.ActorId));
+                        await SharedSyncTransportTests.DrainAsync(wire);
                         hostBook.RecordSaved("actual-host-profile", true, BaumSyncSnapshot.Hash(nativeText));
                         var denied = false;
                         try { await coordinator.ProducePersonalActorProposalsAsync(producerHandle); } catch (InvalidOperationException) { denied = true; }

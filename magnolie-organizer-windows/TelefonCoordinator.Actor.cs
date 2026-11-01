@@ -30,6 +30,7 @@ internal sealed partial class TelefonCoordinator
         internal NativeBookSaveState? ProducerBook { get; set; }
         internal IReadOnlyList<JsonObject>? ProducerBodies { get; set; }
         internal HashSet<string> ProducerIds { get; } = new(StringComparer.Ordinal);
+        internal bool StartDispatched { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -85,6 +86,7 @@ internal sealed partial class TelefonCoordinator
             {
                 "notes_actor_start" => await StartPersonalActorAsync(handle, cancellation),
                 "notes_actor_produce" => await ProducePersonalActorProposalsAsync(handle, cancellation),
+                "notes_actor_dispatch_proposals" => await DispatchPersonalActorProposalsAsync(handle, cancellation),
                 "notes_actor_status" => await PersonalActorStatusAsync(handle, cancellation),
                 "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
@@ -191,8 +193,49 @@ internal sealed partial class TelefonCoordinator
         var admission = await WithPersonalActorStoreAsync(registry => RequirePersonalActorAdmission(registry, handle), cancellation);
         // Authority was claimed above; lifecycle cancellation may make an in-flight write's outcome unknown.
         await admission.Connection.SendPlainAsync(admission.Start.DeepClone().AsObject());
+        lock (gate)
+            if (actorAdmissions.GetValueOrDefault(handle.ActorId) == admission && online.GetValueOrDefault(admission.PeerId) == admission.Connection)
+                admission.StartDispatched = true;
         return new() { ["actor_id"] = handle.ActorId, ["message_id"] = admission.Start["message_id"]!.DeepClone(),
-            ["dispatch_started"] = true, ["delivery_confirmed"] = false, ["persisted"] = false };
+             ["dispatch_started"] = true, ["delivery_confirmed"] = false, ["persisted"] = false };
+    }
+
+    internal async Task<JsonObject> DispatchPersonalActorProposalsAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
+    {
+        var admission = await WithPersonalActorStoreAsync(registry => {
+            var value = RequirePersonalActorAdmission(registry, handle);
+            if (!value.StartDispatched || value.ProducerBook is null || value.ProducerBodies is null || NativeSavedBook() != value.ProducerBook)
+                throw new InvalidOperationException("actor_producer_dispatch_not_ready");
+            return value;
+        }, cancellation);
+        var frames = await WithPersonalActorStoreAsync(registry => {
+            registry.RequireCurrent(handle);
+            return store.Due(admission.PeerId, Now(), transport: admission.Connection.Transport)
+                .Where(item => admission.ProducerIds.Contains(item.Id)).Select(item => item.Message).ToArray();
+        }, cancellation);
+        var sent = 0;
+        foreach (var frame in frames)
+        {
+            var claim = await WithPersonalActorStoreAsync(registry => {
+                if (RequirePersonalActorAdmission(registry, handle) != admission || NativeSavedBook() != admission.ProducerBook)
+                    throw new InvalidOperationException("actor_producer_book_changed");
+                var due = store.Due(admission.PeerId, Now(), transport: admission.Connection.Transport)
+                    .SingleOrDefault(item => item.Id == frame["message_id"]!.GetValue<string>());
+                if (due is null || !JsonNode.DeepEquals(due.Message, frame)) return false;
+                store.MarkAttempt(due.Id, due.Attempts, Now()); registry.RequireCurrent(handle);
+                if (NativeSavedBook() != admission.ProducerBook) throw new InvalidOperationException("actor_producer_book_changed");
+                return true;
+            }, cancellation);
+            if (!claim) continue;
+            await admission.Connection.SendPlainAsync(frame.DeepClone().AsObject());
+            await WithPersonalActorStoreAsync(registry => {
+                if (RequirePersonalActorAdmission(registry, handle) != admission || NativeSavedBook() != admission.ProducerBook)
+                    throw new InvalidOperationException("actor_producer_dispatch_outcome_unknown");
+                return true;
+            }, cancellation);
+            sent++;
+        }
+        return new JsonObject { ["dispatch_started"] = sent != 0, ["message_count"] = sent, ["delivery_confirmed"] = false };
     }
 
     internal async Task<JsonObject> CancelPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
@@ -944,7 +987,7 @@ internal sealed partial class TelefonCoordinator
                         if (item.Message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
                             item.Message["body"]?["run_id"]?.GetValue<string>() != admission.Handle.ActorId || !admission.Outbound.Contains(item.Id)) continue;
                         if (admission.Completion is not null && !admission.CompletionIds.Contains(item.Id)) continue;
-                        if (admission.ProducerIds.Contains(item.Id) && NativeSavedBook() != admission.ProducerBook) continue;
+                        if (admission.ProducerIds.Contains(item.Id) && (!admission.StartDispatched || NativeSavedBook() != admission.ProducerBook)) continue;
                         if (admission.Completion is null) registry.RequireCurrent(admission.Handle);
                         else registry.CheckCompletionSend(admission.Handle, item.Message);
                         store.MarkAttempt(item.Id, item.Attempts, Now());

@@ -272,7 +272,19 @@ def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_pa
         {'proposal_id': identifier, 'decision': 'restore', 'expected_clock': clock}]}
     assert len(service.store.personal_decision_targets(private, decision, False)) == 1
     assert service.store.personal_decision_targets(peer_id, decision, False) is None
+    if scenario == 'success':
+        with pytest.raises(PermissionError): service.dispatch_personal_actor_proposals(registry, handle)
+        service.start_personal_actor(registry, handle)
+        assert service.dispatch_personal_actor_proposals(registry, handle)['message_count'] == 0
+        request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
+        service._payload(peer, channel, actor.wire_message(phone.PhoneService._actor_control_message('personal_sync.request', request), handle.actor_id))
+        assert service.dispatch_personal_actor_proposals(registry, handle) == {'dispatch_started': True, 'message_count': 1, 'delivery_confirmed': False}
+        assert service.dispatch_personal_actor_proposals(registry, handle)['message_count'] == 0
     if scenario == 'changed-writer':
+        service.start_personal_actor(registry, handle)
+        request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
+        service._payload(peer, channel, actor.wire_message(phone.PhoneService._actor_control_message('personal_sync.request', request), handle.actor_id))
+        wire_before = copy.deepcopy(channel.sent)
         owner.record_saved('native-producer-fixture', True, first.saved_sha256)
         with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
         producer_frame = next(frame for frame in frames if frame['kind'] == actor.DATA_KIND)
@@ -280,5 +292,6 @@ def test_actual_native_run_owner_consumes_saved_book_into_atomic_producer(tmp_pa
         assert channel.sent == wire_before, 'Staged native proposal escaped after its actual writer witness changed'
     service.cancel_personal_actor(registry, handle)
     assert service.store.pending(peer_id) == queued_before, 'Native cancellation lost generated producer frame ownership'
+    assert all(service.store.outbox_message(peer_id, frame['message_id']) is None for frame in frames if frame['kind'] == actor.DATA_KIND)
     with pytest.raises(PermissionError): service.produce_personal_actor_proposals(registry, handle)
     assert service.server is None

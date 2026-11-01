@@ -22192,7 +22192,15 @@ class Fenster(_FENSTER_BASIS):
             self._kontakt_fotos_laeuft = True
             threading.Thread(target=self._kontakt_fotos_lesen, args=(nachricht,), daemon=True).start()
         elif befehl == "telefon_mcp":
-            threading.Thread(target=lambda: self._telefon_mcp(nachricht), daemon=True).start()
+            action = str((nachricht.get("request") or {}).get("action", ""))
+            if action in ("notes_actor_produce", "notes_actor_dispatch_proposals", "notes_actor_reply",
+                          "notes_actor_begin_completion", "notes_actor_advance_completion"):
+                # These private steps use the native GUI-owner writer lease or
+                # schedule its terminal continuation. Never silently reroute
+                # them to the generic phone-control worker thread.
+                self._telefon_mcp(nachricht)
+            else:
+                threading.Thread(target=lambda: self._telefon_mcp(nachricht), daemon=True).start()
 
         elif befehl == "telefon_stand":
             threading.Thread(target=self._telefon_stand_melden, daemon=True).start()
@@ -24370,11 +24378,14 @@ class Fenster(_FENSTER_BASIS):
             registry = source.personal_actor_registry()
         if action == "notes_actor_start":
             value = source.start_personal_actor(handle) if proxy else source.start_personal_actor(registry, handle)
-        elif action == "notes_actor_produce":
+        elif action in ("notes_actor_produce", "notes_actor_dispatch_proposals"):
             with self._daten_sperre:
                 if self._telefon_actor_buchnachweis() is None:
                     raise PermissionError("Native book has no current actual-save observation")
-                value = source.produce_personal_actor_proposals(handle) if proxy else source.produce_personal_actor_proposals(registry, handle)
+                if action == "notes_actor_produce":
+                    value = source.produce_personal_actor_proposals(handle) if proxy else source.produce_personal_actor_proposals(registry, handle)
+                else:
+                    value = source.dispatch_personal_actor_proposals(handle) if proxy else source.dispatch_personal_actor_proposals(registry, handle)
         elif action == "notes_actor_status":
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":

@@ -119,6 +119,7 @@ def test_native_proxy_uploads_fresh_bounded_book_only_for_the_live_protected_run
             assert len(frames) == len(queued_before) + 1 and chunks[0] >= 2
             assert proxy.produce_personal_actor_proposals(handle) == result
             assert service.store.pending(peer['device_id']) == frames
+            proxy.start_personal_actor(handle)
             producer_frame = next(frame for frame in frames if frame['kind'] == actor.DATA_KIND)
             assert not service._send_personal_actor_queued(channel, peer['device_id'], producer_frame), 'Daemon reused an expired operation projection as a background writer proof'
             decision = {'format': 1, 'run_id': handle.actor_id, 'decision_id': RUN, 'decisions': [
@@ -175,3 +176,62 @@ def test_partial_native_projection_is_bounded_and_erased_by_actual_lifecycle(tmp
             assert closed.wait(3), 'Idle IPC accept watchdog did not erase an abandoned projection'
         assert not server._phone_actor_projections and receiver.closed and receiver.received_bytes == 0
         assert service.native_actor_producer_book is None and service.server is None
+
+
+@pytest.mark.parametrize('scenario', ['success', 'before-start', 'writer-change', 'send-failure', 'after-ack', 'foreign-gui', 'worker-thread'])
+def test_operation_live_native_dispatch_preserves_start_order_backoff_and_actual_send_outcome(tmp_path, monkeypatch, scenario):
+    with proxy_producer(tmp_path, monkeypatch) as values:
+        server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
+        proxy.produce_personal_actor_proposals(handle)
+        frame = next(frame for frame in service.store.pending(peer['device_id']) if frame['kind'] == actor.DATA_KIND)
+        if scenario != 'before-start':
+            import magnolie_telefon as phone
+            proxy.start_personal_actor(handle)
+            assert proxy.dispatch_personal_actor_proposals(handle)['message_count'] == 0
+            request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
+            service._payload(peer, channel, actor.wire_message(phone.PhoneService._actor_control_message('personal_sync.request', request), handle.actor_id))
+        wire_before = copy.deepcopy(channel.sent)
+        original_send = channel.send
+        def send(wire):
+            assert not service.lock._is_owned(), 'Producer network I/O held phone/SQLite guards'
+            guard = proxy.native_actor_producer_guard(); acquired = guard.acquire(timeout=0.02)
+            if acquired: guard.release()
+            assert not acquired, 'GUI writer guard was not held across the native encrypted send claim'
+            if scenario == 'send-failure': raise OSError('Synthetic producer channel failure')
+            original_send(wire)
+        channel.send = send
+        if scenario == 'writer-change': owner.record_saved('native-producer-fixture', True, snapshot.saved_sha256)
+        if scenario == 'worker-thread':
+            errors = []
+            def worker():
+                try: proxy.dispatch_personal_actor_proposals(handle)
+                except background.IPCError as error: errors.append(error)
+            thread = threading.Thread(target=worker); thread.start(); thread.join(3)
+            assert not thread.is_alive() and errors
+        elif scenario == 'foreign-gui':
+            other = background.PhoneServiceProxy(proxy.path)
+            other.native_actor_book_source = proxy.native_actor_book_source; other.native_actor_saved_book = read
+            other.native_actor_producer_guard = proxy.native_actor_producer_guard
+            try:
+                other.start(); other.set_visible(True); other.set_ready(True)
+                with pytest.raises(background.IPCError): other.dispatch_personal_actor_proposals(handle)
+            finally:
+                other.stop()
+                if other._event_thread is not None: other._event_thread.join(timeout=3)
+        elif scenario in ('before-start', 'writer-change', 'send-failure'):
+            with pytest.raises(background.IPCError): proxy.dispatch_personal_actor_proposals(handle)
+        else:
+            result = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read, _daten_sperre=proxy.native_actor_producer_guard()), proxy,
+                {'action': 'notes_actor_dispatch_proposals', 'actorId': handle.actor_id, 'ownerToken': handle.owner_token, 'bookSource': handle.book_source})['actor']
+            assert result == {'dispatch_started': True, 'message_count': 1, 'delivery_confirmed': False}
+            assert channel.sent[-1] == frame
+            assert proxy.dispatch_personal_actor_proposals(handle) == {'dispatch_started': False, 'message_count': 0, 'delivery_confirmed': False}
+            if scenario == 'after-ack':
+                import magnolie_telefon as phone
+                ack = phone.PhoneService._actor_control_message(actor.ACK_KIND, actor.ack(handle.actor_id, frame['message_id']))
+                service._payload(peer, channel, ack)
+                assert service.store.outbox_message(peer['device_id'], frame['message_id']) is None
+                assert proxy.dispatch_personal_actor_proposals(handle)['message_count'] == 0
+        assert not server._phone_actor_book_probes and not server._phone_actor_projections
+        if scenario not in ('success', 'after-ack'): assert channel.sent == wire_before
+        channel.send = original_send

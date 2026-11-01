@@ -822,6 +822,7 @@ internal sealed partial class TelefonStore
                         throw new InvalidDataException("Actor wire/semantic outbox identity mismatch.");
                 }
                 catch (Exception) when (TelefonProtocolContract.PersonalKinds.Contains(item.Kind)) { DeleteOutbox(connection, transaction, peerId, item.Id); continue; }
+                if (item.Kind == "personal_sync.deletion_proposals" && ActorProducerWaitingForRun(connection, transaction, message, now)) continue;
                 if (item.Kind != "personal_sync.settings" && TelefonProtocolContract.PersonalKinds.Contains(item.Kind) &&
                     message["body"]?["run_id"]?.GetValue<string>() is string runId &&
                     (purgedRuns.Contains(runId) || PersonalRunUnavailable(connection, transaction,

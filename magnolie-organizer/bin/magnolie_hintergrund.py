@@ -1051,14 +1051,15 @@ def _request_shape(operation, arguments):
         request = arguments.get('request')
         hex64 = lambda value: isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) is not None
         if (not hex64(arguments.get('book_source')) or not isinstance(request, dict) or
-                request.get('action') not in ('begin', 'chunk', 'commit', 'abort')):
+                request.get('action') not in ('begin', 'chunk', 'commit', 'abort', 'dispatch')):
             raise IPCError('invalid native producer operation')
         fields = {'action', 'actor_id', 'owner_token'}
         if request['action'] == 'begin': fields |= {'source_revision', 'native_saved_book', 'content_sha256', 'total_bytes'}
+        elif request['action'] == 'dispatch': fields.add('native_saved_book')
         else: fields.add('projection_token')
         if request['action'] == 'chunk': fields |= {'offset', 'data_base64'}
         if (set(request) != fields or not _status_query_id(request.get('actor_id')) or not hex64(request.get('owner_token')) or
-                request['action'] != 'begin' and not hex64(request.get('projection_token'))):
+                request['action'] not in ('begin', 'dispatch') and not hex64(request.get('projection_token'))):
             raise IPCError('invalid native producer ownership')
         if request['action'] == 'begin':
             book = request['native_saved_book']
@@ -1067,6 +1068,11 @@ def _request_shape(operation, arguments):
                     not isinstance(book, dict) or set(book) != {'book_source', 'sequence', 'sha256'} or
                     book['book_source'] != arguments['book_source'] or type(book['sequence']) is not int or book['sequence'] <= 0 or not hex64(book['sha256'])):
                 raise IPCError('invalid native producer writer observation')
+        if request['action'] == 'dispatch':
+            book = request['native_saved_book']
+            if (not isinstance(book, dict) or set(book) != {'book_source', 'sequence', 'sha256'} or
+                    book['book_source'] != arguments['book_source'] or type(book['sequence']) is not int or book['sequence'] <= 0 or not hex64(book['sha256'])):
+                raise IPCError('invalid native producer dispatch writer')
         if request['action'] == 'chunk' and (
                 type(request['offset']) is not int or not 0 <= request['offset'] < 256 * 1024 * 1024 or
                 not isinstance(request['data_base64'], str) or not 1 <= len(request['data_base64']) <= 43692):
@@ -1267,6 +1273,8 @@ class IPCServer:
         from magnolie_personal_actor_store import ActorHandle
         from magnolie_personal_actor_projection import NativeBookProjection
         phone = self.phone_backend; request = arguments['request']
+        if request['action'] == 'dispatch':
+            return self._phone_actor_producer_dispatch(arguments)
         actor_id = request['actor_id']; owner = (arguments['subscriber'], arguments['book_source'])
         handle = ActorHandle(actor_id, request['owner_token'])
         with phone.lock:
@@ -1317,6 +1325,29 @@ class IPCServer:
             finally:
                 if receiver.closed:
                     receiver.close(); self._phone_actor_projections.pop(actor_id, None)
+
+    def _phone_actor_producer_dispatch(self, arguments):
+        from magnolie_personal_actor_store import ActorHandle
+        phone = self.phone_backend; request = arguments['request']
+        actor_id = request['actor_id']; owner = (arguments['subscriber'], arguments['book_source']); token = object()
+        with phone.lock:
+            if self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                raise IPCError('Native producer owner is unavailable')
+            if actor_id in self._phone_actor_book_probes or actor_id in self._phone_actor_projections:
+                raise IPCError('Native producer writer observation is already in use')
+            registry = self._phone_actor_registry(*owner); handle = ActorHandle(actor_id, request['owner_token'])
+            registry.require_current(handle)
+            self._phone_actor_book_probes[actor_id] = (owner, json.loads(json.dumps(request['native_saved_book'])), time.monotonic() + 1, token)
+        try:
+            # GUI caller holds the actual writer lock throughout this RPC; no
+            # phone/SQLite guard is held across encrypted channel I/O.
+            return phone.dispatch_personal_actor_proposals(registry, handle,
+                native_saved_book=lambda: self._live_actor_saved_book(actor_id, *owner))
+        finally:
+            with phone.lock:
+                probe = self._phone_actor_book_probes.get(actor_id)
+                if probe is not None and probe[3] is token:
+                    self._phone_actor_book_probes.pop(actor_id, None)
 
     def _reap_actor_projections(self):
         # Caller owns phone.lock. Reaping is also run by ordinary owner lifecycle
@@ -2415,6 +2446,19 @@ class PhoneServiceProxy:
                             request={'action': 'abort', 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, 'projection_token': token})
                     except (IPCError, OSError, ValueError, TypeError):
                         pass
+
+    def dispatch_personal_actor_proposals(self, handle):
+        if threading.current_thread() is not threading.main_thread() or not callable(self.native_actor_producer_guard):
+            raise IPCError('Native producer dispatch requires the GUI writer owner')
+        with self.native_actor_producer_guard(), self._state_lock:
+            if self._publish_actor_book_source() != handle.book_source or not callable(self.native_actor_saved_book):
+                raise IPCError('Native producer writer is unavailable')
+            saved = self.native_actor_saved_book()
+            result = self._call('actor_producer', subscriber=self._subscriber, book_source=handle.book_source,
+                request={'action': 'dispatch', 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, 'native_saved_book': saved})
+            if self.native_actor_book_source() != handle.book_source or self.native_actor_saved_book() != saved:
+                raise IPCError('Native producer dispatch outcome is unknown after writer change')
+            return result
 
     def _actor_completion_request(self, handle, action, **fields):
         if threading.current_thread() is not threading.main_thread():
