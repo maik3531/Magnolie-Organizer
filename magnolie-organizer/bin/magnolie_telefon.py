@@ -1022,6 +1022,104 @@ class PhoneStore:
             require_current()
         return [copy.deepcopy(wire) for wire, _, _ in prepared]
 
+    def queue_actor_fixed_decisions(self, peer_id, run_id, choices, *, expected_source, saved_claim,
+                                    current_source, current_confirmed_claim):
+        """Native original ordinary-saved choices, atomically prepared as a group.
+
+        The caller must hold the native actor owner/source guard. current_source
+        must include its owner/epoch/TTLs and exact accepted scope; the confirmed
+        claim callback is the original actual ordinary SaveACK, not book bytes
+        or a caller saved Boolean. No send authority is created here. Each
+        target is read again from the protected incoming-proposal namespace.
+        """
+        personal_actor_contract.start(run_id)
+        from magnolie_personal_actor_completion import DecisionAckCompletion
+        witness = DecisionAckCompletion._checked_saved_book(saved_claim)
+        if (not isinstance(peer_id, str) or not personal_sync_contract.UUID4.fullmatch(peer_id) or
+                not isinstance(expected_source, str) or re.fullmatch(r'[a-f0-9]{64}', expected_source) is None or
+                not callable(current_source) or not callable(current_confirmed_claim) or
+                not isinstance(choices, list) or not 1 <= len(choices) <= 256):
+            raise ValueError('invalid_native_fixed_decision_binding')
+        choices = copy.deepcopy(choices)
+        identifiers = [value.get('proposal_id') if isinstance(value, dict) else None for value in choices]
+        if (any(not isinstance(value, str) for value in identifiers) or identifiers != sorted(set(identifiers), key=lambda value: value.encode('utf-8'))):
+            raise ValueError('ambiguous_native_fixed_decisions')
+        for start in range(0, len(choices), 32):
+            validate_personal_sync_body('personal_sync.deletion_decision', {'format': 1, 'run_id': run_id,
+                'decision_id': run_id, 'decisions': choices[start:start + 32]})
+        private = personal_actor_contract.storage_peer(run_id)
+        ledger_key = 'personal_actor_fixed:%s:%s' % (private, run_id)
+        now = now_ms()
+        def require_current():
+            if current_source() != expected_source or current_confirmed_claim() != witness:
+                raise PermissionError('actor_fixed_decision_source_changed')
+        with sqlite3.connect(self.database_path) as db:
+            db.execute('BEGIN IMMEDIATE'); require_current()
+            targets, identities = [], set()
+            for choice in choices:
+                key = 'personal_proposal_kind:%s:in:%s' % (private, choice['proposal_id'])
+                row = db.execute('SELECT value FROM meta WHERE key=?', (key,)).fetchone()
+                proof = strict_json(self._decrypt(row[0], 'personal_proposal_kind', key)) if row else None
+                if (not isinstance(proof, dict) or proof.get('expires_ms', 0) <= now or
+                        proof.get('clock') != choice['expected_clock'] or not isinstance(proof.get('target'), dict)):
+                    raise PermissionError('actor_fixed_decision_target_proof_missing')
+                target = dict(copy.deepcopy(proof['target']), clock=copy.deepcopy(proof['clock']))
+                if (set(target) != {'proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock'} or
+                        target['proposal_id'] != choice['proposal_id'] or target['kind'] != proof.get('kind') or
+                        target['kind'] not in {'note', 'task', 'attachment'}):
+                    raise PermissionError('actor_fixed_decision_target_proof_changed')
+                validate_personal_sync_body('personal_sync.deletion_proposals', {'format': 1, 'run_id': run_id,
+                    'proposal_batch_id': run_id, 'sequence': 0, 'last': True, 'proposals': [dict(target, deleted_ms=0, label='')]})
+                identity = (target['kind'], target['parent_id'], target['id'])
+                if identity in identities:
+                    raise ValueError('ambiguous_native_fixed_targets')
+                identities.add(identity); targets.append(target)
+            identity = hashlib.sha256(canonical({'peer_id': peer_id, 'run_id': run_id, 'source': expected_source,
+                'saved_claim': witness, 'choices': choices, 'targets': targets})).hexdigest()
+            previous = db.execute('SELECT value FROM meta WHERE key=?', (ledger_key,)).fetchone()
+            if previous:
+                recorded = strict_json(self._decrypt(previous[0], 'personal_actor_fixed', ledger_key))
+                if (not isinstance(recorded, dict) or set(recorded) != {'identity', 'expires_ms', 'frames'} or recorded['identity'] != identity or
+                        type(recorded['expires_ms']) is not int or recorded['expires_ms'] <= now or not isinstance(recorded['frames'], list) or
+                        len(recorded['frames']) != (len(choices) + 31) // 32):
+                    raise PermissionError('actor_fixed_decision_group_identity_changed')
+                received, frame_ids = [], set()
+                for index, wire in enumerate(recorded['frames']):
+                    if (not isinstance(wire, dict) or set(wire) != {'type', 'v', 'message_id', 'kind', 'created_ms', 'expires_ms', 'body'} or
+                            wire.get('type') != 'message' or type(wire.get('v')) is not int or wire['v'] != 1 or
+                            type(wire.get('created_ms')) is not int or wire['created_ms'] != recorded['expires_ms'] - DAY_MS or
+                            wire.get('kind') != personal_actor_contract.DATA_KIND or
+                            not isinstance(wire.get('message_id'), str) or not personal_sync_contract.UUID4.fullmatch(wire['message_id']) or
+                            wire['message_id'] in frame_ids or wire.get('expires_ms') != recorded['expires_ms']):
+                        raise ValueError('actor_fixed_decision_group_frame_changed')
+                    kind, body = personal_actor_contract.unwrap(wire['body'])
+                    if (kind != 'personal_sync.deletion_decision' or body['run_id'] != run_id or
+                            body['decisions'] != choices[index * 32:(index + 1) * 32]):
+                        raise ValueError('actor_fixed_decision_group_frame_changed')
+                    frame_ids.add(wire['message_id']); received.extend(body['decisions'])
+                if received != choices:
+                    raise ValueError('actor_fixed_decision_group_frame_changed')
+                require_current()
+                return copy.deepcopy(recorded['frames'])  # Never requeue an already acknowledged original.
+            if db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_actor_fixed:%'").fetchone()[0] >= 32:
+                raise RuntimeError('queue_full')
+            prepared = []
+            for start in range(0, len(choices), 32):
+                body = {'format': 1, 'run_id': run_id, 'decision_id': str(uuid.uuid4()), 'decisions': choices[start:start + 32]}
+                wire = personal_actor_contract.wire_message({'type': 'message', 'v': 1, 'message_id': str(uuid.uuid4()),
+                    'kind': 'personal_sync.deletion_decision', 'created_ms': now, 'expires_ms': now + DAY_MS, 'body': body}, run_id)
+                prepared.append((wire, self._encrypt(canonical(wire), 'outbox', wire['message_id'])))
+            size = db.execute('SELECT COALESCE(SUM(length(payload)),0) FROM outbox').fetchone()[0]
+            if size + sum(len(payload) for _, payload in prepared) > 50 * 1024 * 1024:
+                raise RuntimeError('queue_full')
+            for wire, payload in prepared:
+                db.execute('INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                    (wire['message_id'], peer_id, 'personal_sync.deletion_decision', now, now + DAY_MS, payload, 0, now, '', 'any'))
+            recorded = {'identity': identity, 'expires_ms': now + DAY_MS, 'frames': [wire for wire, _ in prepared]}
+            db.execute('INSERT INTO meta(key,value) VALUES(?,?)', (ledger_key, self._encrypt(canonical(recorded), 'personal_actor_fixed', ledger_key)))
+            require_current()
+        return copy.deepcopy(recorded['frames'])
+
     def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None):
         """Atomically encrypt-stage every source before record messages enter outbox."""
         if transport_policy not in {"any", "wifi_only"} or not messages:
@@ -1206,6 +1304,21 @@ class PhoneStore:
                   "personal_sync.deletion_decision")
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
+            # A private actor's complete fixed group may have been prepared
+            # before its metadata-owner handoff. Remove only byte-identical
+            # actor frames proved by that exact sealed private ledger.
+            fixed_rows = db.execute('SELECT key,value FROM meta WHERE key LIKE ?', ('personal_actor_fixed:%s:%%' % peer_id,)).fetchall()
+            for key, sealed in fixed_rows:
+                recorded = strict_json(self._decrypt(sealed, 'personal_actor_fixed', key))
+                for wire in recorded['frames']:
+                    kind, body = personal_actor_contract.unwrap(wire['body'])
+                    if kind != 'personal_sync.deletion_decision' or personal_actor_contract.storage_peer(body['run_id']) != peer_id:
+                        raise ValueError('actor_fixed_decision_cleanup_namespace_changed')
+                    row = db.execute('SELECT kind,payload FROM outbox WHERE message_id=?', (wire['message_id'],)).fetchone()
+                    if row is not None:
+                        if row[0] != kind or self._decrypt(row[1], 'outbox', wire['message_id']) != canonical(wire):
+                            raise ValueError('actor_fixed_decision_cleanup_frame_changed')
+                        db.execute('DELETE FROM outbox WHERE message_id=? AND kind=?', (wire['message_id'], kind))
             db.execute("DELETE FROM dedupe WHERE peer_id=? AND message_id IN (SELECT message_id FROM inbox "
                         "WHERE peer_id=? AND kind IN (%s))" % ",".join("?" for _ in kinds), (peer_id, peer_id, *kinds))
             for table in ("outbox", "inbox"):
@@ -1222,6 +1335,7 @@ class PhoneStore:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_actor_producer:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_actor_fixed:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
 
