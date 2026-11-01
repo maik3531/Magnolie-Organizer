@@ -11,9 +11,11 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
 (async () => {
   let passed = 0;
   for (const web of harness.exports.roots) for (const format of [3, 14]) for (const choice of ["delete", "restore"])
-    for (const fault of ["none", "no-original", "descriptor", "clock", "missing-parent", "confirm-retry", "blob", "target-clock", "parent-restore", "parent-reversed", "parent-stale-trash", "parent-no-source", "parent-omitted-child"]) {
+    for (const fault of ["none", "no-original", "descriptor", "clock", "missing-parent", "confirm-retry", "blob", "target-clock", "parent-restore", "parent-reversed", "parent-stale-trash", "parent-no-source", "parent-omitted-child", "parent-fixed-delete"]) {
       if (process.env.MAGNOLIE_ATTACHMENT_CASE && fault !== process.env.MAGNOLIE_ATTACHMENT_CASE) continue;
       const parentRestore = fault.startsWith("parent-");
+      const mixedParent = fault === "parent-fixed-delete";
+      if (mixedParent && choice !== "delete") continue;
       active = [web, format, choice, fault].join(" / ");
       const removedBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]), keepBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 2]);
       const url = value => "data:image/png;base64," + value.toString("base64");
@@ -36,7 +38,7 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         if (parentRestore) {
           data.personalSync.entities["note\0" + original.id].acknowledged_by_peer = true;
           b.t.inDenPapierkorb("note", parent, "Original parent restore");
-          if (["parent-stale-trash", "parent-omitted-child"].includes(fault)) data.papierkorb.find(value => value.art === "note" && value.eintrag.id === "parent-note").eintrag.anhaenge.push({ id: "removed-image", name: "removed.png", art: "image", daten: url(removedBytes) });
+          if (["parent-stale-trash", "parent-omitted-child", "parent-fixed-delete"].includes(fault)) data.papierkorb.find(value => value.art === "note" && value.eintrag.id === "parent-note").eintrag.anhaenge.push({ id: "removed-image", name: "removed.png", art: "image", daten: url(removedBytes) });
           if (fault === "parent-stale-trash") {
             historicalPiece = plain(data.papierkorb.find(value => value.art === "note" && value.eintrag.id === "parent-note"));
             historicalPiece.id = "historical-trash-piece"; historicalPiece.name = "Unrelated older trash snapshot";
@@ -48,7 +50,9 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         const meta = plain(data.personalSync.entities[key]); assert.ok(meta.proposal_id); assert.equal(meta.prior_hash, await b.t.personalSyncHash(descriptor));
         const parentMeta = parentRestore ? plain(data.personalSync.entities["note\0" + original.id]) : null;
         if (parentMeta) assert.ok(parentMeta.proposal_id);
-        const proposalIds = fault === "parent-omitted-child" ? [parentMeta.proposal_id] : [meta.proposal_id, ...(parentMeta ? [parentMeta.proposal_id] : [])].sort();
+        const proposalIds = fault === "parent-omitted-child" || mixedParent ? [parentMeta.proposal_id] : [meta.proposal_id, ...(parentMeta ? [parentMeta.proposal_id] : [])].sort();
+        const fixedId = "99999999-9999-4999-8999-999999999991", fixedFrameId = "99999999-9999-4999-8999-999999999992";
+        const fixedTarget = { proposal_id: fixedId, kind: "attachment", id: descriptor.attachment_id, parent_id: original.id, prior_hash: meta.prior_hash, clock: meta.clock };
         if (fault === "missing-parent") data.notizen = data.notizen.filter(value => value.id !== "parent-note");
         const source = plain(original);
         if (fault === "descriptor") { source.value.attachments.find(value => value.name === "removed.png").name = "CHANGED.png"; source.hash = await b.t.personalSyncHash(source.value); }
@@ -57,6 +61,8 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         const scope = { format: 10, epoch: "55555555-5555-4555-8555-555555555555", revision: 1, members, scope_hash: await b.t.personalSyncHash(members) };
         const projection = { request: { format, run_id: actor, trigger: "manual", modules: ["notes"] }, content_scope: scope, intents: [],
           batch: { records, records_hash: await b.t.personalSyncHash(records), commit_token: "77777777-7777-4777-8777-777777777777" } };
+        if (mixedParent) projection.intents.push({ kind: "personal_sync.deletion_proposals", pending_message_id: fixedFrameId, commit_token: "f".repeat(64),
+          body: { format: 1, run_id: actor, proposal_batch_id: actor, sequence: 0, last: true, proposals: [{ ...fixedTarget, deleted_ms: 2, label: "Initial typed child delete" }] } });
         const raw = Buffer.from(JSON.stringify(projection)), revision = hash(raw), frame = "88888888-8888-4888-8888-888888888888";
         let sequence = 0, savedHash = "", ordinary, claim, lateRaw, lateHash, prepares = 0, confirms = 0, checkpoints = 0, core = 0, ready = false;
         const post = b.w.webkit.messageHandlers.regression.postMessage;
@@ -72,6 +78,7 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
                 total: 1, notes_total: 1, tasks_total: 0, next_offset: null, members, sourceRevision: "b".repeat(64), baseline: { record_format: format, propagate_deletions: true } } }; break;
               case "notes_actor_create": response = { actorId: actor, ownerToken: "d".repeat(64), bookSource: "" }; break;
               case "notes_actor_produce": response = { actor: { producer_staged: true, late_decision_phase: 1, proposal_count: proposalIds.length, message_count: 1,
+                ...(mixedParent ? { mixed_decision_phase: 1 } : {}),
                 proposal_ids: proposalIds, book_sha256: savedHash, save_sequence: sequence } }; break;
               case "notes_actor_dispatch_proposals": response = { actor: { dispatch_started: true, message_count: 1, delivery_confirmed: false } }; break;
               case "notes_actor_start": case "notes_actor_cancel": response = { actor: {} }; break;
@@ -96,7 +103,7 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
                     const changed = JSON.parse(lateRaw);
                     changed.targets.unshift({ proposal_id: parentMeta.proposal_id, kind: "note", id: original.id, parent_id: "", prior_hash: parentMeta.prior_hash, clock: parentMeta.clock });
                     changed.decisions.unshift({ proposal_id: parentMeta.proposal_id, decision: "restore", expected_clock: parentMeta.clock });
-                    if (fault === "parent-omitted-child") { changed.targets.pop(); changed.decisions.pop(); }
+                    if (fault === "parent-omitted-child" || mixedParent) { changed.targets.pop(); changed.decisions.pop(); }
                     if (fault === "parent-reversed") { changed.targets.reverse(); changed.decisions.reverse(); }
                     lateRaw = Buffer.from(JSON.stringify(changed));
                   }
@@ -130,6 +137,13 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         const initial = await wait(["review", "failed"]);
         if (fault === "blob") { assert.equal(initial.phase, "failed"); assert.equal(initial.error_code, "invalid_result"); assert.equal(sequence, 1); assert.equal(core, 0); assert.equal(prepares, 0); passed++; continue; }
         assert.equal(initial.phase, "review", active + ": " + JSON.stringify(initial));
+        if (mixedParent) {
+          await assert.rejects(() => b.t.mcpNotesActorDecide(owner, start.operation_id, initial.review_revision,
+            [{ proposal_id: fixedId, decision: "delete", expected_clock: plain(meta.clock), allow_conflict: true }]), error => error.code === "conflict");
+          assert.equal(sequence, 1); assert.equal(core, 0); assert.equal(prepares, 0);
+          assert.ok(!data.notizen.some(value => value.id === "parent-note"), "Ordinary typed child deletion revived a missing parent");
+          passed++; continue;
+        }
         b.t.mcpNotesActorCommit(owner, start.operation_id, status().review_revision);
         const late = await wait(["late_review", "failed"]), rejected = ["target-clock", "parent-omitted-child"].includes(fault) || choice === "restore" && ["no-original", "descriptor", "missing-parent", "parent-no-source"].includes(fault);
         if (rejected) {
