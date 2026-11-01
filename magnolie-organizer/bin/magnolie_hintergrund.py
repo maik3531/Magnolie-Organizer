@@ -1080,7 +1080,7 @@ def _request_shape(operation, arguments):
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
-                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel", "begin_completion", "advance_completion")):
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel", "begin_completion", "advance_completion", "late_review")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
             fields = {"action", "peer_id", "fingerprint"} | ({"expected_source"} if "expected_source" in request else set())
@@ -1092,6 +1092,7 @@ def _request_shape(operation, arguments):
         else:
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
+            if request['action'] == 'late_review': fields |= {'offset', 'limit', 'expected_revision', 'native_saved_book'}
             if request["action"] == "staging" and "attachment_sha256" in request: fields.add("attachment_sha256")
             if request["action"] == "prepare_commit": fields |= {"view_revision", "after_sha256", "native_saved_book"}
             if request["action"] == "prepare_commit" and "deletion_plan" in request:
@@ -1107,7 +1108,7 @@ def _request_shape(operation, arguments):
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
                 raise IPCError("invalid native actor ownership")
-            if request["action"] == "staging" and (type(request["offset"]) is not int or request["offset"] < 0 or
+            if request["action"] in ("staging", "late_review") and (type(request["offset"]) is not int or request["offset"] < 0 or
                     type(request["limit"]) is not int or not 1 <= request["limit"] <= 65536 or
                     not isinstance(request["expected_revision"], str) or
                     request["expected_revision"] != "" and re.fullmatch(r"[0-9a-f]{64}", request["expected_revision"]) is None or
@@ -1117,10 +1118,10 @@ def _request_shape(operation, arguments):
                     not isinstance(request["attachment_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", request["attachment_sha256"]) is None or
                     request["expected_revision"] == ""):
                 raise IPCError("invalid native actor attachment read")
-            if request["action"] in ("prepare_commit", "commit", "begin_completion", "advance_completion"):
+            if request["action"] in ("prepare_commit", "commit", "begin_completion", "advance_completion", "late_review"):
                 book = request["native_saved_book"]
                 hashes = (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (
-                    () if request["action"] == "advance_completion" else (request["claim_token"],))
+                    () if request["action"] in ("advance_completion", "late_review") else (request["claim_token"],))
                 if (any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None for value in hashes) or
                         not isinstance(book, dict) or set(book) != {"book_source", "sequence", "sha256"} or
                         book["book_source"] != arguments["book_source"] or type(book["sequence"]) is not int or book["sequence"] <= 0 or
@@ -1392,6 +1393,9 @@ class IPCServer:
             peer_id = admission["peer"]
             self._phone_actor_book_probes[actor_id] = (owner, json.loads(json.dumps(request["native_saved_book"])), time.monotonic() + 1, token)
         try:
+            if request['action'] == 'late_review':
+                return phone.read_personal_actor_late_review(registry, handle, offset=request['offset'], limit=request['limit'],
+                    expected_revision=request['expected_revision'], native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source))
             if request["action"] == "begin_completion":
                 phone.begin_personal_actor_completion(registry, handle, request["claim_token"],
                     native_saved_book=lambda: self._live_actor_saved_book(actor_id, subscriber, book_source),
@@ -1803,7 +1807,7 @@ class IPCServer:
         if operation == "phone_actor_registry":
             from magnolie_personal_actor_store import ActorHandle
             request = arguments["request"]
-            if request["action"] in ("begin_completion", "advance_completion"):
+            if request["action"] in ("begin_completion", "advance_completion", "late_review"):
                 return self._phone_actor_completion_operation(arguments)
             with phone.lock:
                 if request["action"] == "create":
@@ -2473,6 +2477,12 @@ class PhoneServiceProxy:
             if self.native_actor_saved_book() != observed:
                 raise IPCError("Native actor completion outcome is unknown after book change")
             return result
+
+    def read_personal_actor_late_review(self, handle, *, offset=0, limit=65536, expected_revision=''):
+        if not callable(self.native_actor_producer_guard):
+            raise IPCError('Native late review requires the GUI writer guard')
+        with self.native_actor_producer_guard():
+            return self._actor_completion_request(handle, 'late_review', offset=offset, limit=limit, expected_revision=expected_revision)
 
     def begin_personal_actor_completion(self, handle, claim_token):
         return self._actor_completion_request(handle, "begin_completion", claim_token=claim_token)

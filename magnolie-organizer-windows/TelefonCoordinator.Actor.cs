@@ -90,6 +90,8 @@ internal sealed partial class TelefonCoordinator
                 "notes_actor_produce" => await ProducePersonalActorProposalsAsync(handle, cancellation),
                 "notes_actor_dispatch_proposals" => await DispatchPersonalActorProposalsAsync(handle, cancellation),
                 "notes_actor_status" => await PersonalActorStatusAsync(handle, cancellation),
+                "notes_actor_late_review" => await ReadPersonalActorLateReviewAsync(handle,
+                    request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536, McpText(request, "expectedRevision"), cancellation),
                 "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
                     request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536,

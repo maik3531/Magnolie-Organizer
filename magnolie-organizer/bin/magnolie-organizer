@@ -22194,7 +22194,7 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "telefon_mcp":
             action = str((nachricht.get("request") or {}).get("action", ""))
             if action in ("notes_actor_produce", "notes_actor_dispatch_proposals", "notes_actor_reply",
-                          "notes_actor_begin_completion", "notes_actor_advance_completion"):
+                          "notes_actor_begin_completion", "notes_actor_advance_completion", "notes_actor_late_review"):
                 # These private steps use the native GUI-owner writer lease or
                 # schedule its terminal continuation. Never silently reroute
                 # them to the generic phone-control worker thread.
@@ -24390,6 +24390,12 @@ class Fenster(_FENSTER_BASIS):
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":
             value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
+        elif action == 'notes_actor_late_review':
+            with self._daten_sperre:
+                if self._telefon_actor_buchnachweis() is None:
+                    raise PermissionError('Native late review has no actual-save observation')
+                fields = {'offset': request.get('offset', 0), 'limit': request.get('limit', 65536), 'expected_revision': request.get('expectedRevision', '')}
+                value = source.read_personal_actor_late_review(handle, **fields) if proxy else source.read_personal_actor_late_review(registry, handle, **fields)
         elif action == "notes_actor_begin_completion":
             # Only the native writer callback is authority. A request cannot
             # supply a saved-book assertion or reuse an earlier GUI snapshot.

@@ -228,7 +228,10 @@ internal static class PersonalSyncActorSourceTests
                             "Incomplete late decisions were exposed as a complete native review.");
                         var sourceDecision = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", decision.DeepClone().AsObject()), producerHandle.ActorId);
                         await connection.HandlePlainAsync(sourceDecision);
-                        var lateFirst = await coordinator.ReadPersonalActorLateReviewAsync(producerHandle, limit: 1);
+                        var lateResponse = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_late_review", ["actorId"] = producerHandle.ActorId,
+                            ["ownerToken"] = producerHandle.OwnerToken, ["limit"] = 1 }, default);
+                        TestAssert.That(lateResponse["ok"]!.GetValue<bool>(), "Private native bridge rejected closed-owner late review.");
+                        var lateFirst = lateResponse["actor"]!.AsObject();
                         var lateRest = await coordinator.ReadPersonalActorLateReviewAsync(producerHandle, offset: 1, expectedRevision: lateFirst["revision"]!.GetValue<string>());
                         var lateRaw = Convert.FromBase64String(lateFirst["data_base64"]!.GetValue<string>()).Concat(Convert.FromBase64String(lateRest["data_base64"]!.GetValue<string>())).ToArray();
                         var lateData = JsonNode.Parse(lateRaw)!.AsObject();

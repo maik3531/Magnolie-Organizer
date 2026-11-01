@@ -14,7 +14,7 @@ import magnolie_hintergrund as background
 import magnolie_personal_actor as actor
 import magnolie_personal_sync as personal
 import magnolie_shared_sync as shared
-from magnolie_personal_actor_store import NativeProducerBookSnapshot, ActorHandle
+from magnolie_personal_actor_store import NativeProducerBookSnapshot
 from test_personal_actor_producer import native, ACTOR, RUN
 from test_personal_actor_source import actor_source_fixture
 from test_personal_actor_transport import gtk_actor_bridge
@@ -294,23 +294,41 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
         assert not status['phone_persisted'], 'Ordinary data receipt falsely completed outstanding producer decisions'
         assert status['phase'] == 'decision_review'
         native_registry, native_handle = admission['registry'], admission['handle']
-        assert service.read_personal_actor_late_review(native_registry, native_handle, native_saved_book=read) == {
+        native_bridge = gtk_actor_bridge()
+        native_host = SimpleNamespace(_daten_sperre=proxy.native_actor_producer_guard(), _telefon_actor_buchnachweis=read)
+        original_call = proxy._call
+        def guarded_call(operation, **fields):
+            if operation == 'actor_registry' and fields.get('request', {}).get('action') == 'late_review':
+                assert proxy.native_actor_producer_guard()._is_owned(), 'Late review IPC lost the actual GUI writer lock'
+            return original_call(operation, **fields)
+        monkeypatch.setattr(proxy, '_call', guarded_call)
+        def late_read(**fields):
+            return native_bridge(native_host, proxy, {'action': 'notes_actor_late_review', 'actorId': handle.actor_id,
+                'ownerToken': handle.owner_token, 'bookSource': handle.book_source, **fields})['actor']
+        assert late_read() == {
             'review_ready': False, 'expected_proposals': 1}
         assert admission['report_owner'].review is None, 'Partial late read installed an expired writer callback before complete reception'
         before_wire = copy.deepcopy(channel.sent)
         decision = actor.wire_message(frame('personal_sync.deletion_decision', {'format': 1, 'run_id': handle.actor_id,
             'decision_id': str(uuid.uuid4()), 'decisions': [{'proposal_id': proposal_id, 'decision': 'restore', 'expected_clock': clock}]}), handle.actor_id)
         service._payload(peer, channel, decision)
-        first_page = service.read_personal_actor_late_review(native_registry, native_handle, limit=1, native_saved_book=read)
+        assert decision in native_registry.read_completion_controls(native_handle)
+        first_page = late_read(limit=1)
         assert first_page['review_ready'] and not first_page['deletion_book_persisted'] and not first_page['phone_persisted']
-        rest = service.read_personal_actor_late_review(native_registry, native_handle, offset=1, expected_revision=first_page['revision'], native_saved_book=read)
+        rest = late_read(offset=1, expectedRevision=first_page['revision'])
         late = json.loads(base64.b64decode(first_page['data_base64']) + base64.b64decode(rest['data_base64']))
         assert late['targets'][0]['proposal_id'] == proposal_id and late['decisions'][0]['decision'] == 'restore'
         assert late['data_saved_book'] == read() and late['review_revision'] == first_page['review_revision']
-        with pytest.raises(PermissionError):
-            service.read_personal_actor_late_review(native_registry, native_handle, offset=1, expected_revision='f' * 64, native_saved_book=read)
-        with pytest.raises(PermissionError):
-            service.read_personal_actor_late_review(native_registry, ActorHandle(native_handle.actor_id, 'f' * 64), native_saved_book=read)
+        with pytest.raises(background.IPCError): late_read(offset=1, expectedRevision='f' * 64)
+        with pytest.raises(background.IPCError): late_read(ownerToken='f' * 64)
+        with pytest.raises(PermissionError): native_registry.read_completion_controls(native_handle)
+        assert not server._phone_actor_book_probes, 'Late review retained an operation writer proof after its GUI RPC'
+        worker_errors = []
+        def late_worker():
+            try: proxy.read_personal_actor_late_review(handle)
+            except background.IPCError as error: worker_errors.append(error)
+        worker = threading.Thread(target=late_worker); worker.start(); worker.join(3)
+        assert not worker.is_alive() and worker_errors and not server._phone_actor_book_probes
         import magnolie_content_scope as scope
         registry = admission['registry']
         fingerprint = registry.status(admission['handle'])['fingerprint']
@@ -322,7 +340,6 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
         assert registry.current_source(peer['device_id'], fingerprint) != old_source
         assert registry.completion_source(peer['device_id'], fingerprint) == old_authority
         service._payload(peer, channel, decision)
-        assert decision in admission['registry'].read_completion_controls(admission['handle'])
         packets = proxy.personal_actor_status(handle)['packets']
         replay = actor.wire_message(frame('personal_sync.batch', batch), handle.actor_id)
         service._payload(peer, channel, replay)
@@ -337,3 +354,13 @@ def test_late_review_native_page_arguments_are_strict_before_any_owner_or_book_a
     import magnolie_telefon as phone
     with pytest.raises(ValueError):
         phone.PhoneService.read_personal_actor_late_review(None, None, None, **{field: value})
+
+
+@pytest.mark.parametrize('field,value', [('offset', True), ('offset', -1), ('offset', 1), ('limit', 0), ('limit', 65537),
+    ('expected_revision', 'caller-claim'), ('targets', []), ('native_saved_book', {'book_source': 'c' * 64, 'sequence': True, 'sha256': 'd' * 64})])
+def test_late_review_ipc_requires_exact_bounded_native_fields(field, value):
+    request = {'action': 'late_review', 'actor_id': RUN, 'owner_token': 'a' * 64, 'offset': 0, 'limit': 65536, 'expected_revision': '',
+        'native_saved_book': {'book_source': 'c' * 64, 'sequence': 1, 'sha256': 'd' * 64}}
+    request[field] = value
+    with pytest.raises(background.IPCError):
+        background._request_shape('phone_actor_registry', {'subscriber': 'b' * 32, 'book_source': 'c' * 64, 'request': request})
