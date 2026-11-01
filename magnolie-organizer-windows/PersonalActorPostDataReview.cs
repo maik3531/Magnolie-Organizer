@@ -11,6 +11,8 @@ internal sealed class PersonalActorPostDataReview
     private static readonly Regex Hex = new("\\A[0-9a-f]{64}\\z", RegexOptions.CultureInvariant);
     private readonly string runId, authority;
     private readonly JsonArray targets;
+    private readonly JsonArray fixedTargets, fixedDecisions = [];
+    private readonly Dictionary<string, JsonObject> fixedFrames = new(StringComparer.Ordinal);
     private readonly JsonObject before, reportAck;
     private readonly NativeBookSaveState beforeSaved;
     private readonly Func<string?> currentAuthority;
@@ -25,7 +27,8 @@ internal sealed class PersonalActorPostDataReview
 
     internal PersonalActorPostDataReview(string runId, JsonArray nativeTargets, JsonObject beforeScope, string reportId,
         JsonObject dataReportAck, Func<string?> currentAuthority, Func<JsonObject?> currentScope,
-        Func<NativeBookSaveState?> currentSavedBook, Func<JsonArray> persistedControls)
+        Func<NativeBookSaveState?> currentSavedBook, Func<JsonArray> persistedControls,
+        JsonArray? nativeFixedTargets = null, IReadOnlyList<JsonObject>? fixedDecisionFrames = null)
     {
         PersonalSyncActorContract.Start(runId); PersonalSyncActorContract.Start(reportId);
         this.runId = runId; targets = nativeTargets.DeepClone().AsArray(); before = beforeScope.DeepClone().AsObject();
@@ -39,6 +42,24 @@ internal sealed class PersonalActorPostDataReview
             dummy.Add(new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = target["clock"]!.DeepClone() });
         }
         PersonalSyncActorContract.CompletionMembers(runId, before, targets, dummy);
+        // Native fixed choices were already adopted by the ordinary SaveACK.
+        // Bind their original targets/frames for scope and receipt union, but
+        // never include them in the list of late document mutations.
+        fixedTargets = nativeFixedTargets?.DeepClone().AsArray() ?? [];
+        if (targets.Count + fixedTargets.Count > 256 || fixedDecisionFrames?.Count > 256)
+            throw new InvalidDataException("invalid_actor_fixed_review_targets");
+        foreach (var wire in fixedDecisionFrames ?? [])
+        {
+            if (Text(wire, "kind") != PersonalSyncActorContract.DataKind || !TelefonProtocolContract.IsUuidV4(Text(wire, "message_id")))
+                throw new InvalidDataException("invalid_actor_fixed_review_frame");
+            var semantic = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+            if (semantic.Kind != "personal_sync.deletion_decision" || Text(semantic.Body, "run_id") != runId ||
+                !fixedFrames.TryAdd(Text(wire, "message_id"), wire.DeepClone().AsObject()))
+                throw new InvalidDataException("invalid_actor_fixed_review_frame");
+            foreach (var decision in semantic.Body["decisions"]!.AsArray()) fixedDecisions.Add(decision!.DeepClone());
+        }
+        PersonalSyncActorContract.CompletionMembers(runId, before, fixedTargets, fixedDecisions);
+        PersonalSyncActorContract.CompletionMembers(runId, before, Union(targets, fixedTargets), Union(dummy, fixedDecisions));
         reportAck = dataReportAck.DeepClone().AsObject();
         if (Text(reportAck, "kind") != PersonalSyncActorContract.AckKind) throw new InvalidOperationException("actor_data_report_ack_required");
         var body = reportAck["body"]!.AsObject(); PersonalSyncActorContract.ValidateAck(body);
@@ -50,6 +71,7 @@ internal sealed class PersonalActorPostDataReview
     }
 
     private static string Text(JsonObject value, string key) => value[key]?.GetValue<string>() ?? "";
+    private static JsonArray Union(JsonArray first, JsonArray second) => new(first.Concat(second).Select(value => value!.DeepClone()).ToArray());
     private static string Hash(JsonNode value) => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(value))).ToLowerInvariant();
     private static NativeBookSaveState CheckedSaved(NativeBookSaveState? value) =>
         value is not null && value.Sequence > 0 && Hex.IsMatch(value.BookSource) && Hex.IsMatch(value.Sha256)
@@ -102,6 +124,7 @@ internal sealed class PersonalActorPostDataReview
         foreach (var wire in frames.OfType<JsonObject>())
         {
             var body = Decision(wire); var id = Text(wire, "message_id");
+            if (fixedFrames.ContainsKey(id)) throw new InvalidDataException("actor_review_frame_direction_collision");
             if (wires.TryGetValue(id, out var previous))
             { if (!JsonNode.DeepEquals(previous, wire)) throw new InvalidDataException("actor_review_frame_changed"); continue; }
             wires.Add(id, wire.DeepClone().AsObject());
@@ -111,12 +134,21 @@ internal sealed class PersonalActorPostDataReview
         if (!expected.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(decisions.Keys)) throw new InvalidOperationException("actor_producer_decisions_incomplete");
         var actual = currentScope() ?? throw new InvalidOperationException("actor_decision_review_not_ready");
         var choices = new JsonArray(decisions.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (JsonNode)pair.Value).ToArray());
-        PersonalSyncActorContract.RequireCompletionScope(runId, before, targets, choices, actual);
+        PersonalSyncActorContract.RequireCompletionScope(runId, before, Union(targets, fixedTargets), Union(choices, fixedDecisions), actual);
         var hashes = new JsonObject(); foreach (var pair in wires.OrderBy(pair => pair.Key, StringComparer.Ordinal)) hashes[pair.Key] = Hash(pair.Value);
         var binding = new JsonObject { ["run_id"] = runId, ["targets"] = targets.DeepClone(), ["decisions"] = choices.DeepClone(), ["scope"] = actual.DeepClone(),
             ["report_ack"] = reportAck.DeepClone(), ["saved_before"] = new JsonObject { ["book_source"] = beforeSaved.BookSource, ["sequence"] = beforeSaved.Sequence, ["sha256"] = beforeSaved.Sha256 }, ["frames"] = hashes.DeepClone() };
+        var fixedHashes = new JsonObject();
+        if (fixedTargets.Count > 0)
+        {
+            foreach (var pair in fixedFrames.OrderBy(pair => pair.Key, StringComparer.Ordinal)) fixedHashes[pair.Key] = Hash(pair.Value);
+            binding["fixed_targets"] = fixedTargets.DeepClone(); binding["fixed_decisions"] = fixedDecisions.DeepClone(); binding["fixed_frames"] = fixedHashes.DeepClone();
+        }
         if (Authority() != true || requireSaved && Validate("read", null) != true) throw new InvalidOperationException("actor_decision_review_not_ready");
-        return new JsonObject { ["revision"] = Hash(binding), ["decisions"] = choices, ["scope"] = actual.DeepClone(), ["frame_hashes"] = hashes, ["book_persisted"] = saved is not null };
+        var result = new JsonObject { ["revision"] = Hash(binding), ["decisions"] = choices, ["scope"] = actual.DeepClone(), ["frame_hashes"] = hashes, ["book_persisted"] = saved is not null };
+        if (fixedTargets.Count > 0)
+        { result["fixed_targets"] = fixedTargets.DeepClone(); result["fixed_decisions"] = fixedDecisions.DeepClone(); result["fixed_frame_hashes"] = fixedHashes; }
+        return result;
     }
 
     internal JsonObject PrepareSave(string expectedRevision, string afterSha256)
