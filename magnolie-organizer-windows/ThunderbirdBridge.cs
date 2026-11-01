@@ -125,8 +125,9 @@ internal static class ThunderbirdBridge
             var href = NextcloudMailbox.ValidateServer(value["url"]!.GetValue<string>());
             if (!uid.StartsWith("thunderbird-" + kind + ":", StringComparison.Ordinal) ||
                 kind is not ("calendar" or "addressbook") || !ids.Add(uid)) throw new InvalidDataException();
+            var readOnly = value["readOnly"]?.GetValue<bool>() == true;
             result.Add(new NextcloudDavSource(uid, value["name"]!.GetValue<string>(), kind, href,
-                value["tasks"]?.GetValue<bool>() == true));
+                !readOnly && value["tasks"]?.GetValue<bool>() == true, readOnly));
         }
         if (result.Count != values.Count) throw new InvalidDataException();
         return result;
@@ -137,7 +138,7 @@ internal static class ThunderbirdBridge
         var context = new NextcloudMailboxContext(new NextcloudMailboxSettings(true, false,
             source.Href.GetLeftPart(UriPartial.Authority), "Thunderbird") { AccountType = "generic-dav" }, null);
         return new NextcloudDavClient(context, new HttpClient(new ThunderbirdHttpHandler(source, testPipeName))
-            { Timeout = TimeSpan.FromSeconds(90) }, journal, transactionId);
+            { Timeout = TimeSpan.FromSeconds(90) }, journal, transactionId) { ReadOnly = source.ReadOnly };
     }
 
     internal static string InstallHost(bool managed = false, string? executable = null)
@@ -199,6 +200,8 @@ internal static class ThunderbirdBridge
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (source.ReadOnly && request.Method.Method is "PUT" or "DELETE")
+                throw new InvalidOperationException("The selected calendar is read-only.");
             var headers = new JsonObject();
             foreach (var name in new[] { "Depth", "If-Match", "If-None-Match" })
                 if (request.Headers.TryGetValues(name, out var values)) headers[name] = values.Single();

@@ -93,9 +93,17 @@ async function main() {
   await assert.rejects(api.request(deletion), /missing-source/);
   calendarFixture.disabled = false;
   calendarFixture.readOnly = true;
-  await assert.rejects(api.request(deletion), /missing-source/);
+  const readOnlySource = (await api.request({ version: 1, id, op: "sources" })).sources.find(item => item.uid === calendarSource.uid);
+  assert.ok(readOnlySource, "An existing read-only provider calendar disappeared from the source list");
+  assert.equal(readOnlySource.readOnly, true);
+  assert.equal(readOnlySource.tasks, false, "Read-only calendar was offered to the writable task pipeline");
+  assert.equal((await api.request(calendarRequest)).body, "synthetic provider response");
+  const readonlyCalls = requests.length;
+  await assert.rejects(api.request(deletion), /read-only/);
+  await assert.rejects(api.request({ ...deletion, method: "PUT", body: "BEGIN:VCALENDAR\r\nEND:VCALENDAR" }), /read-only/);
+  assert.equal(requests.length, readonlyCalls, "A read-only calendar mutation reached the provider");
   calendarFixture.readOnly = false;
-  assert.equal(requests.length, calendarCalls);
+  assert.equal(requests.length, calendarCalls + 1);
   calendarStatus = 412;
   assert.equal((await api.request(deletion)).status, 412, "revision conflict must reach the organizer unchanged");
   calendarStatus = 503;
@@ -116,8 +124,12 @@ async function main() {
     googleCalendar.name, "A hostname lookalike was labelled as Google");
   googleCalendar.uri = { spec: labelledGoogle.url };
   googleCalendar.readOnly = true;
-  assert.ok(!(await api.request({ version: 1, id, op: "sources" })).sources.some(item => item.uid.endsWith(":google-primary")),
-    "Provider labelling accidentally enabled writes to a read-only calendar");
+  const readOnlyGoogle = (await api.request({ version: 1, id, op: "sources" })).sources.find(item => item.uid.endsWith(":google-primary"));
+  assert.equal(readOnlyGoogle?.readOnly, true, "Provider labelling lost the calendar's native read-only state");
+  const beforeReadOnlyGoogleWrite = requests.length;
+  await assert.rejects(api.request({ version: 1, id, op: "http", source: readOnlyGoogle.uid,
+    method: "PUT", url: readOnlyGoogle.url + "item.ics", body: "x", headers: { "If-None-Match": "*" } }), /read-only/);
+  assert.equal(requests.length, beforeReadOnlyGoogleWrite);
   const originalBookUrl = book._serverURL;
   book._serverURL = "https://www.googleapis.com/carddav/v1/principals/google@example.invalid/lists/default/";
   const directory = modules["MailServices.sys.mjs"].MailServices.ab.directories[0];

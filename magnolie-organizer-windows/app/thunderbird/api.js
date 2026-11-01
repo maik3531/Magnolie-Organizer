@@ -122,13 +122,14 @@ function sources() {
       url: book._serverURL, tasks: false, book });
   }
   for (const calendar of cal.manager.getCalendars()) {
-    if (calendar.type !== "caldav" || calendar.readOnly || calendar.getProperty("disabled")) continue;
+    if (calendar.type !== "caldav" || calendar.getProperty("disabled")) continue;
     const object = calendar.wrappedJSObject;
     const provider = object?.mUncachedCalendar?.wrappedJSObject || object;
     if (!provider?.session || !calendar.uri?.spec.startsWith("https://")) continue;
     result.push({ uid: `thunderbird-calendar:${owner}:${calendar.id}`, kind: "calendar",
       name: sourceDisplayName(calendar.name, calendar.uri.spec, calendar.getProperty("username"), "calendar"),
-      url: calendar.uri.spec, tasks: calendar.getProperty("capabilities.tasks.supported") !== false,
+      url: calendar.uri.spec, tasks: !calendar.readOnly && calendar.getProperty("capabilities.tasks.supported") !== false,
+      ...(calendar.readOnly ? { readOnly: true } : {}),
       calendar: provider });
   }
   return result;
@@ -343,6 +344,7 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
         headers[key] = value;
       }
       if (message.method === "DELETE" || message.method === "PUT") {
+        if (source.readOnly) throw new Error("read-only");
         if (url.replace(/\/$/, "") === source.url.replace(/\/$/, "")) throw new Error("collection-write");
         if (!headers["If-Match"] && !(message.method === "PUT" && headers["If-None-Match"] === "*")) throw new Error("unconditional-write");
       }

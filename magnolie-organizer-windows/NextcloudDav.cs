@@ -12,7 +12,7 @@ namespace MagnolieOrganizer.Windows;
 internal static class NextcloudDavSelection
 {
     internal static string DefaultTaskCalendar(IReadOnlyList<NextcloudDavSource> calendars) =>
-        calendars.FirstOrDefault(calendar => calendar.SupportsVTodo)?.Uid ?? "";
+        calendars.FirstOrDefault(calendar => calendar.SupportsVTodo && !calendar.ReadOnly)?.Uid ?? "";
 
     internal static bool IsCalendar(string value) => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal) ||
         value.StartsWith("generic-dav-calendar:", StringComparison.Ordinal) || value.StartsWith("thunderbird-calendar:", StringComparison.Ordinal);
@@ -63,7 +63,7 @@ internal static class NextcloudDavSelection
     }
 }
 
-internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href, bool SupportsVTodo = true);
+internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href, bool SupportsVTodo = true, bool ReadOnly = false);
 internal sealed record NextcloudDavSources(IReadOnlyList<NextcloudDavSource> Calendars,
     IReadOnlyList<NextcloudDavSource> AddressBooks, string Error = "");
 internal sealed record NextcloudDavObject(Uri Href, string ETag, string Text);
@@ -86,6 +86,7 @@ internal sealed class NextcloudDavClient : IDisposable
     private readonly string transactionId;
     private Uri? lastPropFindUri;
     internal Func<Task>? BeforeMutation { get; set; }
+    internal bool ReadOnly { get; init; }
 
     internal NextcloudDavClient(NextcloudMailboxSettingsStore settingsStore, HttpClient? http = null,
         NextcloudSyncJournal? journal = null, string transactionId = "")
@@ -169,6 +170,7 @@ internal sealed class NextcloudDavClient : IDisposable
     internal async Task<NextcloudDavObject> CreateAsync(NextcloudDavSource source, string uid, string extension,
         string mediaType, string text, CancellationToken cancellationToken)
     {
+        if (ReadOnly || source.ReadOnly) throw new InvalidOperationException("The selected calendar is read-only.");
         var name = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(uid))).ToLowerInvariant() + extension;
         var href = ResolveCollectionChild(source.Href, name);
         if (journal is not null) text = journal.PrepareCreate(transactionId, href, mediaType, text);
@@ -182,6 +184,7 @@ internal sealed class NextcloudDavClient : IDisposable
 
     internal async Task DeleteAsync(Uri href, string etag, CancellationToken cancellationToken)
     {
+        if (ReadOnly) throw new InvalidOperationException("The selected calendar is read-only.");
         if (string.IsNullOrWhiteSpace(etag)) throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt gelöscht.");
         var context = Context();
         EnsureAllowed(context, href);
@@ -309,6 +312,7 @@ internal sealed class NextcloudDavClient : IDisposable
     private async Task<NextcloudDavObject> PutAsync(Uri href, string? etag, string text, string mediaType,
         CancellationToken cancellationToken)
     {
+        if (ReadOnly) throw new InvalidOperationException("The selected calendar is read-only.");
         if (etag is not null && string.IsNullOrWhiteSpace(etag))
             throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt überschrieben.");
         if (Encoding.UTF8.GetByteCount(text) > MaximumObjectBytes) throw new InvalidDataException("Ein DAV-Objekt ist zu groß.");
@@ -546,7 +550,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
         var uids = new HashSet<string>(StringComparer.Ordinal);
         var snapshot = await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false);
         var mergedBirthdays = new HashSet<string>(StringComparer.Ordinal);
-        if (!additiveOnly && cleanupArchive is not null)
+        if (!source.ReadOnly && !additiveOnly && cleanupArchive is not null)
         {
             if (snapshot.Select(item => ExchangeCodec.ParseIcs(item.Text))
                 .Any(parsed => parsed.FehlerhafteTermine > 0 || parsed.FehlerhafteAufgaben > 0))
@@ -579,16 +583,29 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                      .GroupBy(item => ContactFields.Text(item, "uid")))
             if (aliases.Select(item => (ContactFields.Text(item, "kontaktId"), SyncBaseline.Hash(item, Fields))).Distinct().Count() > 1)
                 throw new InvalidDataException("Merged birthday aliases contain different local changes.");
-        if (!additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
+        if (!source.ReadOnly && !additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
         {
             var mapping = ContactFields.Source(tombstone, source.Uid);
             if (mapping?["id"]?.GetValue<string>() is string id && remote.TryGetValue(id, out var other))
                 SyncBaseline.RequireDeletionRevision(mapping, other.Object.ETag);
         }
         var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var conflicts = 0;
+        if (source.ReadOnly) foreach (var tombstone in dead.OfType<JsonObject>())
+        {
+            // A local hide/delete must never mutate a subscribed feed or cause
+            // the same item to reappear immediately during the next read.
+            if (ContactFields.Source(tombstone, source.Uid) is not JsonObject mapping) continue;
+            var id = ContactFields.Text(mapping, "id");
+            if (!remote.Remove(id))
+            {
+                var uid = ContactFields.Text(tombstone, "uid");
+                var match = remote.FirstOrDefault(pair => uid.Length != 0 && ContactFields.Text(pair.Value.Data, "uid") == uid);
+                if (!string.IsNullOrEmpty(match.Key)) remote.Remove(match.Key);
+            }
+        }
         await MergeArray(localAppointments, false).ConfigureAwait(false);
         await MergeArray(localAnniversaries, true).ConfigureAwait(false);
-        foreach (var tombstone in additiveOnly ? [] : dead.OfType<JsonObject>().ToArray())
+        foreach (var tombstone in additiveOnly || source.ReadOnly ? [] : dead.OfType<JsonObject>().ToArray())
         {
             var mapping = ContactFields.Source(tombstone, source.Uid); var id = mapping?["id"]?.GetValue<string>() ?? "";
             if (id.Length == 0) continue;
@@ -616,7 +633,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
         {
             var other = remote[key];
             var value = other.Data.DeepClone().AsObject(); value["id"] = Guid.NewGuid().ToString("N"); value["geaendert"] = Math.Max(value["geaendert"]?.GetValue<long>() ?? 0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-            if (!additiveOnly && birthdayRepairs.Contains(key))
+            if (!source.ReadOnly && !additiveOnly && birthdayRepairs.Contains(key))
             {
                 var changed = await WriteAsync(value, true, other.Object, cancellationToken).ConfigureAwait(false);
                 foreach (var sibling in remote.Keys.ToArray())
@@ -637,6 +654,41 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarB
                 cancellationToken.ThrowIfCancellationRequested();
                 var uid = ContactFields.Text(value, "uid"); if (uid.Length == 0) { uid = $"mag-{Guid.NewGuid():N}@magnolie-organizer"; value["uid"] = uid; }
                 var mapping = ContactFields.Source(value, source.Uid); var id = mapping?["id"]?.GetValue<string>() ?? "";
+                if (source.ReadOnly)
+                {
+                    if (!remote.ContainsKey(id))
+                    {
+                        var match = remote.FirstOrDefault(pair => pair.Value.Anniversary == anniversary && ContactFields.Text(pair.Value.Data, "uid") == uid);
+                        if (!string.IsNullOrEmpty(match.Key)) id = match.Key;
+                    }
+                    if (remote.Remove(id, out var read))
+                    {
+                        var changed = SyncBaseline.Hash(value, Fields) != SyncBaseline.Hash(read.Data, Fields);
+                        if (changed && SyncBaseline.Dirty(value, mapping, Fields, read.Data))
+                        {
+                            // Preserve a deliberate local edit as a local-only
+                            // shadow in this feed, never export it to a different
+                            // account/default calendar on a subsequent run.
+                            var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
+                            clone["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
+                            clone.Remove("syncQuellen"); clone.Remove("icsSerienUid");
+                            clone["sync"] = false; clone["syncKalenderUid"] = source.Uid; values.Add(clone); conflicts++;
+                        }
+                        if (changed) { CopyCalendar(value, read.Data); updated++; }
+                        SetSource(value, source.Uid, id, read.Object.ETag, read.Data);
+                    }
+                    else if (!additiveOnly && mapping is not null && !SyncBaseline.Dirty(value, mapping, Fields))
+                    {
+                        var bindings = value["syncQuellen"] as JsonObject;
+                        if (bindings is not null && bindings.Count > 1)
+                        {
+                            bindings.Remove(source.Uid);
+                            value["syncKalenderUid"] = bindings.FirstOrDefault(pair => NextcloudDavSelection.IsCalendar(pair.Key)).Key ?? source.Uid;
+                        }
+                        else { values.Remove(value); deleted++; }
+                    }
+                    continue;
+                }
                 if (anniversary && mergedBirthdays.Contains(uid))
                 {
                     if (processedBirthdays.TryGetValue(uid, out var processed))

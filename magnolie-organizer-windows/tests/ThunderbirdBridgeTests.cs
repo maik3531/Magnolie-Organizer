@@ -11,6 +11,7 @@ internal static class ThunderbirdBridgeTests
     internal static async Task RunAsync()
     {
         await SynchronousStandardInputAsync();
+        var readOnlyCalendar = await ReadOnlySourceAsync();
         using var frame = new MemoryStream();
         await ThunderbirdBridge.WriteFrameAsync(frame, Encoding.UTF8.GetBytes("{\"ok\":true}"), 1024, default);
         frame.Position = 0;
@@ -26,6 +27,14 @@ internal static class ThunderbirdBridgeTests
         try
         {
             var journal = new NextcloudSyncJournal(Path.Combine(directory, "journal"), new Protector());
+            using (var readOnlyClient = ThunderbirdBridge.CreateClient(readOnlyCalendar, journal, new string('c', 64), "must-not-connect-" + Guid.NewGuid().ToString("N")))
+            {
+                var snapshots = 0;
+                readOnlyClient.BeforeMutation = () => { snapshots++; return Task.CompletedTask; };
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => readOnlyClient.UpdateAsync(new Uri(readOnlyCalendar.Href, "event.ics"), "\"v1\"", "text/calendar", "x", default), "Bound read-only calendar accepted native PUT.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => readOnlyClient.DeleteAsync(new Uri(readOnlyCalendar.Href, "event.ics"), "\"v1\"", default), "Bound read-only calendar accepted native DELETE.");
+                TestAssert.That(snapshots == 0, "Read-only mutation reached the native snapshot callback.");
+            }
             var context = new NextcloudMailboxContext(new NextcloudMailboxSettings(true, false, "https://dav.example", "Thunderbird") { AccountType = "generic-dav" }, null);
             using var http = new HttpClient(new RelocatingHandler());
             using var client = new NextcloudDavClient(context, http, journal, new string('b', 64));
@@ -39,6 +48,27 @@ internal static class ThunderbirdBridgeTests
             TestAssert.That(local["uid"]?.GetValue<string>() == "local-uid", "The local contact identity was replaced by a provider UID.");
         }
         finally { Directory.Delete(directory, true); }
+    }
+    private static async Task<NextcloudDavSource> ReadOnlySourceAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var name = "magnolie-readonly-source-" + Guid.NewGuid().ToString("N");
+        using var server = new System.IO.Pipes.NamedPipeServerStream(name, System.IO.Pipes.PipeDirection.InOut, 1,
+            System.IO.Pipes.PipeTransmissionMode.Byte, System.IO.Pipes.PipeOptions.Asynchronous | System.IO.Pipes.PipeOptions.CurrentUserOnly);
+        var response = Task.Run(async () => {
+            await server.WaitForConnectionAsync(timeout.Token);
+            var request = JsonNode.Parse(await ThunderbirdBridge.ReadFrameAsync(server, 1024 * 1024, timeout.Token))!.AsObject();
+            TestAssert.That(request["op"]!.GetValue<string>() == "sources", "Calendar discovery used a mutating provider operation.");
+            var reply = new JsonObject { ["id"] = request["id"]!.DeepClone(), ["version"] = 1, ["ok"] = true,
+                ["sources"] = new JsonArray(new JsonObject { ["uid"] = "thunderbird-calendar:profile:holidays", ["kind"] = "calendar",
+                    ["name"] = "Holidays", ["url"] = "https://dav.example/holidays/", ["tasks"] = true, ["readOnly"] = true }) };
+            await ThunderbirdBridge.WriteFrameAsync(server, Encoding.UTF8.GetBytes(reply.ToJsonString()), 1024 * 1024, timeout.Token);
+        });
+        var sources = await ThunderbirdBridge.SourcesAsync(timeout.Token, testPipeName: name);
+        await response;
+        TestAssert.That(sources.Count == 1 && sources[0].ReadOnly && !sources[0].SupportsVTodo,
+            "Native source projection lost read-only state or enabled writable task synchronization.");
+        return sources[0];
     }
     private static async Task SynchronousStandardInputAsync()
     {

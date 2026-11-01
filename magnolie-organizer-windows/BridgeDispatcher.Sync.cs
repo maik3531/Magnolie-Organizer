@@ -174,7 +174,7 @@ internal sealed partial class BridgeDispatcher
             requestId,
             verfuegbar = true, buchOk = nextcloudError.Length == 0, windows = true,
             kalender = dav.Calendars.Concat(thunderbirdSources.Where(source => source.Kind == "calendar"))
-                .Select(source => new { uid = source.Uid, name = source.Name, art = ThunderbirdBridge.IsSource(source.Uid) ? "thunderbird" : accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, eingerichtet = true }).ToArray(),
+                .Select(source => new { uid = source.Uid, name = source.Name, art = ThunderbirdBridge.IsSource(source.Uid) ? "thunderbird" : accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, readOnly = source.ReadOnly, eingerichtet = true }).ToArray(),
             adressbuecher = addressBooks.ToArray(),
             graph = new { eingerichtet = clientId.Length > 0, angemeldet = signedIn },
             thunderbird = new { verbunden = thunderbirdConnected },
@@ -711,8 +711,9 @@ internal sealed partial class BridgeDispatcher
                 }
                 var selected = calendarIds.Select(id => davCalendars.Concat(thunderbirdSources).SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
-                foreach (var calendar in selected.Where(item => item.SupportsVTodo)) taskCalendars.Add(calendar.Uid);
+                foreach (var calendar in selected.Where(item => item.SupportsVTodo && !item.ReadOnly)) taskCalendars.Add(calendar.Uid);
                 var defaultTaskCalendar = NextcloudDavSelection.DefaultTaskCalendar(selected);
+                var defaultEventCalendar = selected.FirstOrDefault(item => !item.ReadOnly)?.Uid ?? "";
                 foreach (var calendar in selected)
                 {
                     var calendarClient = davClient;
@@ -728,7 +729,7 @@ internal sealed partial class BridgeDispatcher
                     var firstCalendarRun = nextcloudCalendars[calendar.Uid]?["initialisiert"]?.GetValue<bool>() != true || calendarCursor <= 0;
                     var taskCursor = Cursor(taskCursors, calendar.Uid);
                     var firstTaskRun = nextcloudCalendars[calendar.Uid]?["aufgabenInitialisiert"]?.GetValue<bool>() != true || taskCursor <= 0;
-                    var isDefaultCalendar = calendar.Uid == selected[0].Uid;
+                    var isDefaultCalendar = calendar.Uid == defaultEventCalendar;
                     var (calendarTerms, remainingTerms) = NextcloudDavSelection.SplitCalendarItems(
                         terms as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
                     var (calendarAnniversaries, remainingAnniversaries) = NextcloudDavSelection.SplitCalendarItems(
@@ -751,7 +752,7 @@ internal sealed partial class BridgeDispatcher
                     foreach (var item in calendarResult.Tombstones) remainingTombstones.Add(item?.DeepClone());
                     terms = remainingTerms; anniversaries = remainingAnniversaries; termTombstones = remainingTombstones;
                     NextcloudTaskResult taskResult;
-                    if (calendar.SupportsVTodo)
+                    if (calendar.SupportsVTodo && !calendar.ReadOnly)
                     {
                         taskResult = await new NextcloudTaskSync(calendarClient!).SyncAsync(calendar,
                             calendarTasks, calendarTaskTombstones, taskCursor,

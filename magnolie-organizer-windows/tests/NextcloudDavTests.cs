@@ -49,6 +49,63 @@ internal static class NextcloudDavTests
             "An already mapped source reintroducing 1604 was not repaired or created conflict copies.");
     }
 
+    private static async Task TestReadOnlyCalendar(NextcloudMailboxSettingsStore settings)
+    {
+        var calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:halloween\r\nDTSTART;VALUE=DATE:20261031\r\nSUMMARY:Halloween\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:all-saints\r\nDTSTART;VALUE=DATE:20261101\r\nSUMMARY:Allerheiligen\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:feed-birthday\r\nDTSTART;VALUE=DATE:16040403\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Read-only birthday\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var etag = "\"r1\""; var reads = 0;
+        using var http = new HttpClient(new Handler(request =>
+        {
+            TestAssert.That(request.Method.Method == "REPORT", "Read-only calendar attempted a provider mutation or repair.");
+            reads++;
+            return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/calendars/test/holidays.ics</d:href><d:propstat><d:prop><d:getetag>" +
+                System.Security.SecurityElement.Escape(etag) + "</d:getetag><c:calendar-data>" + System.Security.SecurityElement.Escape(calendar) +
+                "</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("thunderbird-calendar:profile:holidays", "Holidays", "calendar",
+            new Uri("https://cloud.example/nc/calendars/test/"), false, ReadOnly: true);
+        TestAssert.That(NextcloudDavSelection.DefaultTaskCalendar([source]) == "", "Read-only feed became a default task target.");
+        var engine = new NextcloudCalendarSync(client);
+        var first = await engine.SyncAsync(source, [], [], [], 0, false, default);
+        TestAssert.That(first.Termine.Count == 2 && first.Jahrestage.Count == 1 && first.Exported == 0 && first.Imported == 3,
+            "Read-only holidays/birthday were omitted or exported on first import.");
+        var personal = new JsonObject { ["id"] = "personal", ["uid"] = "personal", ["titel"] = "Keep local", ["datum"] = "2026-11-02", ["sync"] = false };
+        var terms = first.Termine.DeepClone().AsArray(); terms.Add(personal.DeepClone());
+        var repeated = await engine.SyncAsync(source, terms, first.Jahrestage, first.Tombstones, 1, false, default);
+        TestAssert.That(repeated.Termine.Count == 3 && repeated.Imported == 0 && repeated.Exported == 0 && repeated.Conflicts == 0,
+            "Repeated read-only import duplicated a feed event or uploaded a personal item.");
+        calendar = calendar.Replace("SUMMARY:Halloween", "SUMMARY:Halloween updated", StringComparison.Ordinal); etag = "\"r2\"";
+        var changed = await engine.SyncAsync(source, repeated.Termine, repeated.Jahrestage, repeated.Tombstones, 2, false, default);
+        TestAssert.That(changed.Termine.OfType<JsonObject>().Single(value => ContactFields.Text(value, "uid") == "halloween")["titel"]!.GetValue<string>() == "Halloween updated" && changed.Conflicts == 0,
+            "Read-only provider change was hidden by the local import timestamp.");
+        var localEdit = changed.Termine.DeepClone().AsArray();
+        localEdit.OfType<JsonObject>().Single(value => ContactFields.Text(value, "uid") == "all-saints")["titel"] = "Deliberate local wording";
+        var preserved = await engine.SyncAsync(source, localEdit, changed.Jahrestage, changed.Tombstones, 3, false, default);
+        TestAssert.That(preserved.Conflicts == 1 && preserved.Termine.OfType<JsonObject>().Count(value => ContactFields.Text(value, "titel") == "Deliberate local wording") == 1 &&
+            preserved.Termine.OfType<JsonObject>().Single(value => ContactFields.Text(value, "uid") == "all-saints")["titel"]!.GetValue<string>() == "Allerheiligen",
+            "Read-only import discarded a deliberate local edit or lost the actual feed event.");
+        var shadow = preserved.Termine.OfType<JsonObject>().Single(value => ContactFields.Text(value, "titel") == "Deliberate local wording");
+        TestAssert.That(shadow["sync"]!.GetValue<bool>() == false && ContactFields.Source(shadow, source.Uid) is null &&
+            ContactFields.Text(shadow, "syncKalenderUid") == source.Uid, "A read-only local edit was rebound to another account/default calendar.");
+        var again = await engine.SyncAsync(source, preserved.Termine, preserved.Jahrestage, preserved.Tombstones, 4, false, default);
+        TestAssert.That(again.Conflicts == 0 && again.Termine.Count == preserved.Termine.Count, "A retained local-only shadow duplicated on replay.");
+        var hidden = again.Termine.OfType<JsonObject>().Single(value => ContactFields.Text(value, "uid") == "halloween").DeepClone().AsObject();
+        var visible = new JsonArray(again.Termine.OfType<JsonObject>().Where(value => ContactFields.Text(value, "uid") != "halloween").Select(value => (JsonNode)value.DeepClone()).ToArray());
+        var hideResult = await engine.SyncAsync(source, visible, again.Jahrestage, new JsonArray(hidden), 5, false, default);
+        TestAssert.That(hideResult.Tombstones.Count == 1 && hideResult.Termine.OfType<JsonObject>().All(value => ContactFields.Text(value, "uid") != "halloween"),
+            "A local hide wrote to the read-only provider or immediately resurrected its event.");
+        calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"; etag = "\"r3\"";
+        var removed = await engine.SyncAsync(source, hideResult.Termine, hideResult.Jahrestage, hideResult.Tombstones, 6, false, default);
+        TestAssert.That(removed.Termine.Count == 2 && removed.Jahrestage.Count == 0 && removed.Exported == 0 && removed.Tombstones.Count == 1 &&
+            removed.Termine.OfType<JsonObject>().Any(value => ContactFields.Text(value, "titel") == "Deliberate local wording") && reads == 7,
+            "Read-only remote removal discarded personal/local edits or attempted writeback.");
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => client.CreateAsync(source, "new", ".ics", "text/calendar", calendar, default),
+            "Read-only source accepted a direct native create.");
+    }
+
     internal static async Task RunAsync()
     {
         foreach (var (fields, display, first, last) in new[] {
@@ -170,6 +227,7 @@ internal static class NextcloudDavTests
 
             await TestHostileServers(settings);
             await TestBirthdayRepair(settings);
+            await TestReadOnlyCalendar(settings);
             await TestGenericBaikalDiscovery(root);
             await TestGenericConfiguredBaseDiscovery(root);
             await TestSingleServiceDiscovery(root);
