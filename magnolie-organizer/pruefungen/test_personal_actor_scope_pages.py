@@ -1,10 +1,16 @@
 """Native accepted-scope paging; no GUI, wire endpoint or producer admission."""
 import copy
 import sqlite3
+import tempfile
+from pathlib import Path
 import pytest
 import magnolie_content_scope as scope
 import magnolie_personal_sync as personal
 from test_personal_actor_source import actor_source_fixture
+from test_personal_actor_transport import gtk_actor_bridge
+from magnolie_personal_actor_store import NativeBookOwnerScope
+import magnolie_hintergrund as background
+from test_hintergrunddienst import FakeBackend
 
 
 def test_pages_preserve_utf8_order_cross_module_boundary_and_are_detached():
@@ -56,6 +62,10 @@ def test_native_service_pages_have_no_data_queue_wire_or_gui_side_effects(tmp_pa
     assert first['next_offset'] == 1 and last['next_offset'] is None
     assert last['members'] == {'notes': [], 'tasks': ['task-one']}
     assert rows() == before and peer == before_peer and channel.sent == wire and events == []
+    bridge = gtk_actor_bridge()
+    result = bridge(None, service, {'action': 'notes_actor_scope', 'peerId': peer['device_id'], 'fingerprint': fingerprint,
+        'sourceRevision': source, 'offset': 1, 'limit': 1})
+    assert result == {'ok': True, 'scopePage': last}
 
 
 @pytest.mark.parametrize('gate', ['stale-pin', 'book', 'grant', 'channel', 'scope', 'during-read'])
@@ -76,3 +86,59 @@ def test_native_pages_reject_changed_authority_before_or_after_read(tmp_path, mo
             return page
         monkeypatch.setattr(scope, 'read_page', changed)
     with pytest.raises(PermissionError): service.read_personal_actor_scope(peer['device_id'], fingerprint, source)
+
+
+@pytest.mark.parametrize('gate', ['success', 'foreign-gui', 'lock', 'during-ipc'])
+def test_real_private_ipc_scope_pages_remain_bound_to_the_exact_gui_lease(tmp_path, monkeypatch, gate):
+    service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
+    owner = NativeBookOwnerScope(); owner.set_ready(True)
+    provider = lambda: owner.current('native-page-profile', True)
+    with tempfile.TemporaryDirectory(prefix='actor-scope-ipc-') as root:
+        path = str(Path(root) / 'bridge.sock')
+        server = background.IPCServer(FakeBackend(), path, phone_backend=service).start()
+        service.personal_sync_available = server.gui_personal_ready
+        proxy = background.PhoneServiceProxy(path); other = background.PhoneServiceProxy(path)
+        proxy.native_actor_book_source = provider; other.native_actor_book_source = provider
+        try:
+            proxy.start(); proxy.set_visible(True); proxy.set_ready(True)
+            source = proxy.current_actor_source(peer['device_id'], fingerprint)
+            assert source
+            wire = copy.deepcopy(channel.sent)
+            if gate == 'foreign-gui':
+                other.start(); other.set_visible(True); other.set_ready(True)
+                assert other.current_actor_source(peer['device_id'], fingerprint) != source
+                with pytest.raises(background.IPCError): other.read_personal_actor_scope(peer['device_id'], fingerprint, source)
+            elif gate == 'lock':
+                owner.set_ready(False)
+                with pytest.raises(background.IPCError): proxy.read_personal_actor_scope(peer['device_id'], fingerprint, source)
+            elif gate == 'during-ipc':
+                original = proxy._call
+                def changed(operation, **kwargs):
+                    result = original(operation, **kwargs)
+                    if operation == 'actor_scope': owner.invalidate()
+                    return result
+                monkeypatch.setattr(proxy, '_call', changed)
+                with pytest.raises(background.IPCError): proxy.read_personal_actor_scope(peer['device_id'], fingerprint, source)
+            else:
+                response = gtk_actor_bridge()(None, proxy, {'action': 'notes_actor_scope', 'peerId': peer['device_id'],
+                    'fingerprint': fingerprint, 'sourceRevision': source, 'offset': 0, 'limit': 1})
+                assert response['ok'] and response['scopePage']['members'] == {'notes': ['note-one'], 'tasks': []}
+                assert response['scopePage']['sourceRevision'] == source
+                assert not server._phone_actor_owners, 'Pre-admission scope read created an Actor owner'
+            assert channel.sent == wire and service.server is None
+            assert service.native_actor_producer_book is None, 'Scope paging introduced a daemon plaintext provider/cache'
+        finally:
+            for item in (proxy, other):
+                item.stop()
+                if item._event_thread is not None: item._event_thread.join(timeout=3)
+            server.close()
+
+
+@pytest.mark.parametrize('field,value', [('offset', True), ('offset', -1), ('offset', 50001), ('limit', True),
+    ('limit', 0), ('limit', 129), ('expected_source', 'client-name'), ('subscriber', 'not-owner')])
+def test_scope_page_ipc_is_strict_and_bounded(field, value):
+    arguments = {'subscriber': 'a' * 32, 'peer_id': '11111111-1111-4111-8111-111111111111',
+        'fingerprint': 'AAAA-BBBB-CCCC-DDDD', 'book_source': 'b' * 64, 'expected_source': 'c' * 64,
+        'offset': 0, 'limit': 128}
+    arguments[field] = value
+    with pytest.raises(background.IPCError): background._request_shape('phone_actor_scope', arguments)

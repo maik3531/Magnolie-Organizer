@@ -5224,7 +5224,7 @@ class PhoneService:
             except (PermissionError, ValueError, TypeError):
                 return None
 
-    def read_personal_actor_scope(self, peer_id, expected_fingerprint, expected_source, offset=0, limit=128):
+    def read_personal_actor_scope(self, peer_id, expected_fingerprint, expected_source, offset=0, limit=128, *, native_book_source=None):
         """Native pre-admission read; no owner, cache, wire/public MCP endpoint.
 
         Caller holds its native book guard. Every page requires the same live
@@ -5232,7 +5232,7 @@ class PhoneService:
         """
         with self.lock:
             if (not isinstance(expected_source, str) or re.fullmatch(r'[a-f0-9]{64}', expected_source) is None or
-                    self.current_actor_source(peer_id, expected_fingerprint) != expected_source):
+                    self.current_actor_source(peer_id, expected_fingerprint, native_book_source) != expected_source):
                 raise PermissionError('actor_source_changed')
             peer = self.store.sole_peer(peer_id)
             channel = self.connections.get(peer_id)
@@ -5242,7 +5242,7 @@ class PhoneService:
             reference = session.current_reference((peer_id, peer['static_public'], id(channel)))
             manifest = self.current_content_scope(peer_id, peer['static_public'], reference)
             page = content_scope_contract.read_page(manifest, offset, limit)
-            if (self.current_actor_source(peer_id, expected_fingerprint) != expected_source or
+            if (self.current_actor_source(peer_id, expected_fingerprint, native_book_source) != expected_source or
                     self.connections.get(peer_id) is not channel):
                 raise PermissionError('actor_source_changed')
             page['sourceRevision'] = expected_source

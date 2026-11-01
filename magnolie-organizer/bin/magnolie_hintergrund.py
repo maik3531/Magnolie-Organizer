@@ -800,6 +800,7 @@ def _request_shape(operation, arguments):
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
+        "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
         "phone_actor_registry": {"subscriber", "book_source", "request"},
         "phone_actor_reply": {"subscriber", "book_source", "actor_id", "owner_token", "claim_token", "batches", "sources", "native_saved_book"},
         "phone_actor_start": {"subscriber", "book_source", "actor_id", "owner_token"},
@@ -1022,7 +1023,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
+                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_scope", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -1034,11 +1035,16 @@ def _request_shape(operation, arguments):
     if operation == "gui_actor_book_source" and arguments.get("source") is not None and (
             not isinstance(arguments["source"], str) or re.fullmatch(r"[0-9a-f]{64}", arguments["source"]) is None):
         raise IPCError("invalid native book source")
-    if operation == "phone_actor_source" and (not _status_query_id(arguments.get("peer_id")) or
+    if operation in ("phone_actor_source", "phone_actor_scope") and (not _status_query_id(arguments.get("peer_id")) or
             not isinstance(arguments.get("fingerprint"), str) or
             re.fullmatch(r"[0-9A-Fa-f]{4}(?:-[0-9A-Fa-f]{4}){3}", arguments["fingerprint"]) is None or
             not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None):
         raise IPCError("invalid native actor source selection")
+    if operation == "phone_actor_scope" and (
+            not isinstance(arguments.get("expected_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["expected_source"]) is None or
+            type(arguments.get("offset")) is not int or not 0 <= arguments["offset"] <= 50000 or
+            type(arguments.get("limit")) is not int or not 1 <= arguments["limit"] <= 128):
+        raise IPCError("invalid native actor scope page")
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
@@ -1637,6 +1643,10 @@ class IPCServer:
         if operation == "phone_actor_source":
             return phone.current_actor_source(arguments["peer_id"], arguments["fingerprint"],
                 lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
+        if operation == "phone_actor_scope":
+            return phone.read_personal_actor_scope(arguments["peer_id"], arguments["fingerprint"], arguments["expected_source"],
+                arguments["offset"], arguments["limit"],
+                native_book_source=lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
         if operation == "phone_actor_reply":
             from magnolie_personal_actor_store import ActorHandle
             with phone.lock:
@@ -2145,6 +2155,17 @@ class PhoneServiceProxy:
                 return result if self.native_actor_book_source() == book else None
             except (IPCError, OSError, ValueError, TypeError):
                 return None
+
+    def read_personal_actor_scope(self, peer_id, fingerprint, expected_source, offset=0, limit=128):
+        with self._state_lock:
+            if self.current_actor_source(peer_id, fingerprint) != expected_source:
+                raise IPCError("Native actor source changed")
+            book = self.native_actor_book_source()
+            page = self._call("actor_scope", peer_id=peer_id, fingerprint=fingerprint, expected_source=expected_source,
+                offset=offset, limit=limit, subscriber=self._subscriber, book_source=book)
+            if self.native_actor_book_source() != book:
+                raise IPCError("Native actor book owner changed")
+            return page
 
     def create_personal_actor(self, peer_id, fingerprint, expected_source=""):
         """Private native IPC only; the owner token must never enter public MCP results."""

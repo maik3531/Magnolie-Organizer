@@ -52,6 +52,13 @@ internal sealed partial class TelefonCoordinator
         try
         {
             var action = McpText(request, "action", true);
+            if (action == "notes_actor_scope")
+            {
+                var page = await ReadPersonalActorScopeAsync(McpText(request, "peerId", true), McpText(request, "fingerprint", true),
+                    McpText(request, "sourceRevision", true), request["offset"]?.GetValue<int>() ?? 0,
+                    request["limit"]?.GetValue<int>() ?? 128, cancellation);
+                return new() { ["ok"] = true, ["scopePage"] = page };
+            }
             if (action is "notes_actor_source" or "notes_actor_create")
             {
                 var id = McpText(request, "peerId", true); var fingerprint = McpText(request, "fingerprint", true);

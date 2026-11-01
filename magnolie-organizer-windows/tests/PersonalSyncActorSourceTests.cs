@@ -309,6 +309,14 @@ internal static class PersonalSyncActorSourceTests
                 ["fingerprint"] = fingerprint }, default);
             TestAssert.That(bridgeSource["ok"]!.GetValue<bool>() && bridgeSource["sourceRevision"]!.GetValue<string>() == coordinator.CurrentActorSource(peer.Id, fingerprint),
                 "Private bridge source was not derived from the actual native owner.");
+            var bridgeScope = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_scope", ["peerId"] = peer.Id,
+                ["fingerprint"] = fingerprint, ["sourceRevision"] = bridgeSource["sourceRevision"]!.DeepClone(), ["offset"] = 0, ["limit"] = 1 }, default);
+            TestAssert.That(bridgeScope["ok"]!.GetValue<bool>() && bridgeScope["scopePage"]!["members"]!["notes"]!.AsArray().Count == 1 &&
+                bridgeScope["scopePage"]!["sourceRevision"]!.GetValue<string>() == bridgeSource["sourceRevision"]!.GetValue<string>(),
+                "Private bridge widened or unpinned the accepted scope page.");
+            var staleBridgeScope = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_scope", ["peerId"] = peer.Id,
+                ["fingerprint"] = fingerprint, ["sourceRevision"] = new string('f', 64) }, default);
+            TestAssert.That(!staleBridgeScope["ok"]!.GetValue<bool>() && staleBridgeScope["scopePage"] is null, "Private bridge exposed stale scope members.");
             var staleBridgeCreate = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_create", ["peerId"] = peer.Id,
                 ["fingerprint"] = fingerprint, ["sourceRevision"] = new string('f', 64) }, default);
             TestAssert.That(!staleBridgeCreate["ok"]!.GetValue<bool>(), "Private actor bridge created a context from a client source revision.");

@@ -24337,6 +24337,10 @@ class Fenster(_FENSTER_BASIS):
         from magnolie_personal_actor_store import ActorHandle
         action = request.get("action")
         proxy = isinstance(source, PhoneServiceProxy)
+        if action == "notes_actor_scope":
+            page = source.read_personal_actor_scope(request.get("peerId"), request.get("fingerprint"),
+                request.get("sourceRevision"), request.get("offset", 0), request.get("limit", 128))
+            return {"ok": True, "scopePage": page}
         if action in ("notes_actor_source", "notes_actor_create"):
             peer_id, fingerprint = request.get("peerId"), request.get("fingerprint")
             revision = source.current_actor_source(peer_id, fingerprint)
