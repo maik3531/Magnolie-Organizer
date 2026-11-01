@@ -133,6 +133,8 @@ internal static class PersonalSyncActorSourceTests
             }
             foreach (var producerCase in new[] { "success", "late-handoff-sql", "late-ack-sql", "mixed-blocked", "mixed-native-early", "mixed-native-late", "mixed-native-handoff", "mixed-native-overlap", "sql-retry", "changed-writer", "missing-native-book" })
             {
+                TestAssert.That(!coordinator.NativeMixedActorReady, "Native Mixed readiness unexpectedly enabled by default or retained by another run.");
+                if (producerCase.StartsWith("mixed-native-", StringComparison.Ordinal)) coordinator.NativeMixedActorReady = true; // Test-only, before the private capability receipt.
                 var producerClock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
                 var producedProposalId = PersonalSyncContract.DeletionProposalId(peer.Id, "note", "note-one", "", producerClock, new string('a', 64));
                 var nativeBook = new JsonObject { ["notizen"] = new JsonArray(), ["aufgaben"] = new JsonArray(),
@@ -168,6 +170,8 @@ internal static class PersonalSyncActorSourceTests
                         ["actorId"] = producerHandle.ActorId, ["ownerToken"] = producerHandle.OwnerToken }, default);
                     TestAssert.That(producedResponse["ok"]!.GetValue<bool>(), "Private native bridge failed actual saved-book producer admission.");
                     var producedStage = producedResponse["actor"]!.AsObject();
+                    TestAssert.That(producedStage.ContainsKey("mixed_decision_phase") == producerCase.StartsWith("mixed-native-", StringComparison.Ordinal),
+                        "Private producer receipt announced Mixed before native readiness or omitted it from an explicitly ready native test.");
                     TestAssert.That(producedStage["producer_staged"]!.GetValue<bool>() && producedStage["late_decision_phase"]!.GetValue<int>() == 1 && producedStage["proposal_count"]!.GetValue<int>() == 1 && producedStage["message_count"]!.GetValue<int>() == 1,
                         "Actual native owner did not consume its fresh book through preparation and atomic queueing.");
                     var decision = new JsonObject { ["format"] = 1, ["run_id"] = producerHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
@@ -178,9 +182,8 @@ internal static class PersonalSyncActorSourceTests
                     TestAssert.That(JsonNode.DeepEquals(producedStage, repeated), "Legitimate same-owner producer retry changed its native result.");
                     if (producerCase.StartsWith("mixed-", StringComparison.Ordinal))
                     {
-                        TestAssert.That(!coordinator.NativeMixedActorReady, "Native Mixed readiness unexpectedly enabled by default or retained by another run.");
                         var normalMixed = producerCase != "mixed-blocked";
-                        coordinator.NativeMixedActorReady = normalMixed; // Test-only readiness, no IPC field.
+                        TestAssert.That(coordinator.NativeMixedActorReady == normalMixed, "Mixed private capability no longer matched its native readiness gate.");
                         await coordinator.StartPersonalActorAsync(producerHandle); await SharedSyncTransportTests.DrainAsync(wire);
                         connection.ActorMessageReceived = (source, message) => coordinator.ReceivePersonalActorAsync(source, peer, message);
                         await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", new JsonObject {

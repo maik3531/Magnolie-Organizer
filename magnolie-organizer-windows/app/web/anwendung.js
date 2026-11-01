@@ -37399,12 +37399,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!mcpNotesActorTerminal(job)) { job.phase = "cancelled"; job.controller.abort(); }
     return mcpNotesActorAntwort(job);
   }
+  function mcpNotesActorFixedReview(job) {
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Mixed initial choices lacked their original typed native proof"); };
+    const proposals = new Map(), plan = job.review.deletionPlan;
+    if (!plan || job.review.data.intents.some(value => value.kind !== "personal_sync.deletion_proposals")) invalid();
+    for (const intent of job.review.data.intents) for (const proposal of intent.body.proposals) {
+      if (intent.body.run_id !== job.handle.actorId) invalid();
+      const old = proposals.get(proposal.proposal_id);
+      if (old && personalSyncKanonisch(old) !== personalSyncKanonisch(proposal)) invalid();
+      proposals.set(proposal.proposal_id, proposal);
+    }
+    if (!proposals.size || proposals.size + job.producerIds.length > 256 || plan.choices.length !== proposals.size) invalid();
+    const choices = new Map();
+    for (const choice of plan.choices) {
+      const target = proposals.get(choice.proposal_id);
+      if (!target || choices.has(choice.proposal_id) || job.producerIds.includes(choice.proposal_id) || !["delete", "restore"].includes(choice.decision) ||
+          personalSyncKanonisch(choice.expected_clock) !== personalSyncKanonisch(target.clock)) invalid();
+      choices.set(choice.proposal_id, { proposal_id: choice.proposal_id, decision: choice.decision, expected_clock: kopie(choice.expected_clock) });
+    }
+    const identities = new Set(Object.entries(DATEN.personalSync?.entities || {}).filter(([, value]) => job.producerIds.includes(value.proposal_id)).map(([key]) => key));
+    const targets = [...proposals.values()].sort((a, b) => personalSyncUtf8(a.proposal_id, b.proposal_id)).map(value => {
+      const target = Object.fromEntries(["proposal_id", "kind", "id", "parent_id", "prior_hash", "clock"].map(key => [key, kopie(value[key])]));
+      const key = target.kind === "attachment" ? "attachment\u0000" + target.parent_id + "\u0000" + target.id : target.kind + "\u0000" + target.id;
+      if (identities.has(key)) invalid(); identities.add(key); return target;
+    });
+    return { targets, decisions: targets.map(value => choices.get(value.proposal_id)) };
+  }
   function mcpNotesActorCommit(owner, id, expectedRevision) {
     const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job);
     if (["late_review", "late_metadata_pending"].includes(job.phase)) return mcpNotesActorCommitLate(job, expectedRevision);
     if (job.phase !== "review" || job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current Notes actor review before committing");
     const hasDeletions = job.review.summary.unapplied_deletion_intents > 0;
-    if (job.lateMode && hasDeletions) throw new MagnolieMcp.ToolError("unsupported_feature", "Mixed producer reviews require a complete native scope and receipt union");
+    if (job.lateMode && hasDeletions && !job.mixedMode) throw new MagnolieMcp.ToolError("unsupported_feature", "Mixed producer reviews require a complete native scope and receipt union");
     if (hasDeletions && (!job.review.deletionPlan || job.review.summary.reviewed_deletion_intents !== job.review.data.intents.length ||
         job.review.deletionPlan.intents.length !== job.review.data.intents.length))
       throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
@@ -37412,6 +37438,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       .flatMap(intent => intent.body.decisions.map(value => value.proposal_id)));
     if (!job.lateMode && (job.producerIds || []).some(id => !received.has(id)))
       throw new MagnolieMcp.ToolError("unsupported_feature", "Outgoing Notes decisions require their complete native terminal review before data commit");
+    if (job.lateMode && hasDeletions) job.fixedReview = mcpNotesActorFixedReview(job);
     job.phase = "checkpointing";
     Promise.resolve().then(async () => {
       try {
@@ -37467,7 +37494,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               if (await mcpNotesActorLateReview(job)) break;
             }
           }
-          if (hasDeletions && state?.phone_data_persisted === true) {
+          if (!job.lateMode && hasDeletions && state?.phone_data_persisted === true) {
             if (!["completion", "completed"].includes(state.phase)) {
               state = (await mcpNotesActorNative(job, "notes_actor_begin_completion", { claimToken: plan.claim_token })).actor; mcpNotesActorGuard(job);
             }
@@ -37543,13 +37570,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           !["delete", "restore"].includes(decision.decision) || personalSyncKanonisch(decision.expected_clock) !== personalSyncKanonisch(targets.get(decision.proposal_id).clock)) invalid();
       decisions.set(decision.proposal_id, decision.decision);
     }
+    const allTargets = data.targets.slice(), allDecisions = new Map(decisions);
+    let fixedFrames = 0;
+    if (job.fixedReview) {
+      if (!Array.isArray(data.fixed_targets) || !Array.isArray(data.fixed_decisions) ||
+          personalSyncKanonisch(data.fixed_targets) !== personalSyncKanonisch(job.fixedReview.targets) ||
+          personalSyncKanonisch(data.fixed_decisions) !== personalSyncKanonisch(job.fixedReview.decisions) ||
+          !Array.isArray(data.fixed_decision_message_ids) || data.fixed_decision_message_ids.length !== Math.ceil(job.fixedReview.targets.length / 32) ||
+          data.fixed_decision_message_ids.some((id, index, ids) => !uuid(id) || data.decision_message_ids.includes(id) || index > 0 && personalSyncUtf8(ids[index - 1], id) >= 0)) invalid();
+      fixedFrames = data.fixed_decision_message_ids.length;
+      for (const target of job.fixedReview.targets) {
+        const key = target.kind === "attachment" ? "attachment\u0000" + target.parent_id + "\u0000" + target.id : target.kind + "\u0000" + target.id;
+        if (targets.has(target.proposal_id) || identities.has(key)) invalid();
+        identities.add(key); allTargets.push(target);
+      }
+      for (const decision of job.fixedReview.decisions) allDecisions.set(decision.proposal_id, decision.decision);
+    } else if (data.fixed_targets != null || data.fixed_decisions != null || data.fixed_decision_message_ids != null) invalid();
     const before = job.review.data.content_scope, selection = await personalSyncScopeAusManifest(before);
     await personalSyncScopeAusManifest(data.content_scope);
     const members = { notes: new Set(before.members.notes), tasks: new Set(before.members.tasks) };
-    const restored = new Set(data.targets.filter(target => target.kind === "note" && decisions.get(target.proposal_id) === "restore").map(target => target.id));
-    const deleted = new Set(data.targets.filter(target => target.kind === "note" && decisions.get(target.proposal_id) === "delete").map(target => target.id));
-    for (const target of data.targets) {
-      const choice = decisions.get(target.proposal_id);
+    const restored = new Set(allTargets.filter(target => target.kind === "note" && allDecisions.get(target.proposal_id) === "restore").map(target => target.id));
+    const deleted = new Set(allTargets.filter(target => target.kind === "note" && allDecisions.get(target.proposal_id) === "delete").map(target => target.id));
+    for (const target of allTargets) {
+      const choice = allDecisions.get(target.proposal_id);
       if (target.kind === "attachment") {
         if (!selection.notes.has(target.parent_id) && !restored.has(target.parent_id) || choice === "restore" && deleted.has(target.parent_id)) invalid();
       } else {
@@ -37565,7 +37608,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     mcpNotesActorGuard(job);
     const book = kopie(DATEN), applied = personalSyncEingehendeEntscheidungenAusBestand(book, data.decisions, selection);
     if (applied !== "applied") throw new MagnolieMcp.ToolError(applied, "Late decision candidate could not be adopted safely");
-    const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length };
+    const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length + fixedFrames };
     const reviewRevision = await personalSyncHash([revision, await personalSyncHash(JSON.stringify(book)), summary]);
     mcpNotesActorGuard(job);
     job.review = { book, data, nativeRevision, revision: reviewRevision, summary }; job.phase = "late_review";
@@ -37612,7 +37655,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         let progress = Date.now(), saved = -1;
         for (;;) {
           const state = (await mcpNotesActorNative(job, "notes_actor_advance_completion")).actor; mcpNotesActorGuard(job);
-          const completion = state?.deletion_completion, expected = job.review.data.decision_message_ids.length;
+          const completion = state?.deletion_completion, expected = job.review.summary.decision_frames;
           if (state?.book_persisted !== true || state.deletion_book_persisted !== true || state.phone_data_persisted !== true ||
               state.reply_queued !== true || state.completion_report_queued !== true || !["completion", "completed"].includes(state.phase) ||
               completion?.expected !== expected || !Number.isInteger(completion.saved) || completion.saved < 0 || completion.saved > expected ||
@@ -37758,6 +37801,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         throw new MagnolieMcp.ToolError("invalid_result", "Native Notes producer did not match the actual saved baseline");
       job.producerIds = produced.proposal_ids.slice(); job.producerMessages = produced.message_count;
       job.lateMode = produced.late_decision_phase === 1 && job.producerIds.length > 0;
+      job.mixedMode = job.lateMode && produced.mixed_decision_phase === 1;
       job.baselineSequence = produced.save_sequence;
       job.dispatched = true;
       await mcpNotesActorNative(job, "notes_actor_start"); mcpNotesActorGuard(job); job.phase = "receiving";

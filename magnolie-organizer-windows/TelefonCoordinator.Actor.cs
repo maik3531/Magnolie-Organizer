@@ -200,12 +200,14 @@ internal sealed partial class TelefonCoordinator
             admission.ProducerFrames = frames.Select(value => value.DeepClone().AsObject()).ToArray();
             Current();
             if (NativeSavedBook() != snapshot.SavedBook) throw new InvalidOperationException("actor_producer_book_changed");
-            return new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
+            var result = new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
                 ["late_decision_phase"] = 1,
                 ["proposal_count"] = prepared.Sum(body => body["proposals"]!.AsArray().Count),
                 ["proposal_ids"] = new JsonArray(prepared.SelectMany(body => body["proposals"]!.AsArray().OfType<JsonObject>())
                     .Select(value => (JsonNode)value["proposal_id"]!.DeepClone()).ToArray()),
                 ["book_sha256"] = snapshot.SavedBook.Sha256, ["save_sequence"] = snapshot.SavedBook.Sequence };
+            if (NativeMixedActorReady) result["mixed_decision_phase"] = 1;
+            return result;
         }, cancellation);
 
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)

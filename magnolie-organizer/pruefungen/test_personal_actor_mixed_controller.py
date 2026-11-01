@@ -21,7 +21,8 @@ def test_native_mixed_prepare_save_report_order_late_union_and_metadata_retry(tm
         server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
         assert not service._actor_mixed_ready  # Not an IPC argument/capability.
         monkeypatch.setattr(service, '_actor_mixed_ready', True)
-        proxy.produce_personal_actor_proposals(handle); proxy.start_personal_actor(handle)
+        assert proxy.produce_personal_actor_proposals(handle)['mixed_decision_phase'] == 1
+        proxy.start_personal_actor(handle)
         remote_id = str(uuid.uuid4()); remote_clock = [{'actor_id': peer['device_id'], 'counter': 2}]
         request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
         batch = {'format': 3, 'run_id': handle.actor_id, 'batch_id': str(uuid.uuid4()), 'sequence': 0, 'last': True,

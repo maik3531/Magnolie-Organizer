@@ -448,7 +448,8 @@ def test_unimplemented_mixed_producer_review_is_rejected_before_any_ordinary_dat
     from test_personal_actor_transport import frame
     with proxy_producer(tmp_path, monkeypatch) as values:
         server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
-        assert proxy.produce_personal_actor_proposals(handle)['late_decision_phase'] == 1
+        capability = proxy.produce_personal_actor_proposals(handle)
+        assert capability['late_decision_phase'] == 1 and 'mixed_decision_phase' not in capability
         proxy.start_personal_actor(handle)
         remote_id = str(uuid.uuid4()); remote_clock = [{'actor_id': peer['device_id'], 'counter': 2}]
         request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}

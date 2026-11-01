@@ -4571,6 +4571,7 @@ class PhoneService:
                 raise PermissionError('actor_producer_book_changed')
             return {'producer_staged': True, 'message_count': len(frames), 'proposal_count': sum(len(body['proposals']) for body in bodies),
                 'late_decision_phase': 1,
+                **({'mixed_decision_phase': 1} if self._actor_mixed_ready else {}),
                 'proposal_ids': [proposal['proposal_id'] for body in bodies for proposal in body['proposals']],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
 
