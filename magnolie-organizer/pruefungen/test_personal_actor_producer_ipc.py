@@ -115,6 +115,7 @@ def test_native_proxy_uploads_fresh_bounded_book_only_for_the_live_protected_run
             result = gtk_actor_bridge()(SimpleNamespace(_telefon_actor_buchnachweis=read, _daten_sperre=proxy.native_actor_producer_guard()), proxy,
                 {'action': 'notes_actor_produce', 'actorId': handle.actor_id, 'ownerToken': handle.owner_token, 'bookSource': handle.book_source})['actor']
             assert result == {'producer_staged': True, 'message_count': 1, 'proposal_count': 1,
+                'late_decision_phase': 1,
                 'proposal_ids': [proposal_id],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
             frames = service.store.pending(peer['device_id'])
@@ -320,6 +321,7 @@ def test_actual_data_report_ack_does_not_complete_pending_native_producer_decisi
         late = json.loads(base64.b64decode(first_page['data_base64']) + base64.b64decode(rest['data_base64']))
         assert late['targets'][0]['proposal_id'] == proposal_id and late['decisions'][0]['decision'] == 'restore'
         assert late['data_saved_book'] == read() and late['review_revision'] == first_page['review_revision']
+        assert late['decision_message_ids'] == [decision['message_id']]
         with pytest.raises(background.IPCError): late_read(offset=1, expectedRevision='f' * 64)
         with pytest.raises(background.IPCError): late_read(ownerToken='f' * 64)
         with pytest.raises(PermissionError): native_registry.read_completion_controls(native_handle)
@@ -439,3 +441,29 @@ def test_separate_late_save_ipc_rejects_caller_targets_or_unbound_claims(action,
     request[field] = value
     with pytest.raises(background.IPCError):
         background._request_shape('phone_actor_registry', {'subscriber': 'b' * 32, 'book_source': 'c' * 64, 'request': request})
+
+
+def test_unimplemented_mixed_producer_review_is_rejected_before_any_ordinary_data_save_claim(tmp_path, monkeypatch):
+    import uuid
+    from test_personal_actor_transport import frame
+    with proxy_producer(tmp_path, monkeypatch) as values:
+        server, proxy, handle, service, peer, channel, owner, read, snapshot, proposal_id, clock = values
+        assert proxy.produce_personal_actor_proposals(handle)['late_decision_phase'] == 1
+        proxy.start_personal_actor(handle)
+        remote_id = str(uuid.uuid4()); remote_clock = [{'actor_id': peer['device_id'], 'counter': 2}]
+        request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
+        batch = {'format': 3, 'run_id': handle.actor_id, 'batch_id': str(uuid.uuid4()), 'sequence': 0, 'last': True, 'reply': False,
+            'records': [], 'records_hash': personal.records_hash([])}
+        proposals = {'format': 1, 'run_id': handle.actor_id, 'proposal_batch_id': str(uuid.uuid4()), 'sequence': 0, 'last': True,
+            'proposals': [{'proposal_id': remote_id, 'kind': 'task', 'id': 'task-one', 'parent_id': '', 'clock': remote_clock,
+                'prior_hash': 'f' * 64, 'deleted_ms': 2, 'label': 'Synthetic mixed target'}]}
+        for kind, body in [('personal_sync.request', request), ('personal_sync.batch', batch), ('personal_sync.deletion_proposals', proposals)]:
+            service._payload(peer, channel, actor.wire_message(frame(kind, body), handle.actor_id))
+        view = proxy.read_personal_actor_staging(handle)
+        intent = json.loads(base64.b64decode(view['data_base64']))['intents'][0]
+        plan = {'choices': [{'proposal_id': remote_id, 'decision': 'delete', 'expected_clock': remote_clock, 'allow_conflict': True}],
+            'intents': [{'kind': intent['kind'], 'message_id': intent['pending_message_id'], 'commit_token': intent['commit_token']}]}
+        before = read()
+        with pytest.raises(background.IPCError, match='actor_mixed_post_data_review_not_ready'):
+            proxy.prepare_personal_actor_commit(handle, view['revision'], 'b' * 64, read(), plan)
+        assert read() == before and not service.personal_actor_admissions[handle.actor_id].get('commit_plan')

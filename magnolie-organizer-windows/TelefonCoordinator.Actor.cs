@@ -196,6 +196,7 @@ internal sealed partial class TelefonCoordinator
             Current();
             if (NativeSavedBook() != snapshot.SavedBook) throw new InvalidOperationException("actor_producer_book_changed");
             return new JsonObject { ["producer_staged"] = true, ["message_count"] = frames.Count,
+                ["late_decision_phase"] = 1,
                 ["proposal_count"] = prepared.Sum(body => body["proposals"]!.AsArray().Count),
                 ["proposal_ids"] = new JsonArray(prepared.SelectMany(body => body["proposals"]!.AsArray().OfType<JsonObject>())
                     .Select(value => (JsonNode)value["proposal_id"]!.DeepClone()).ToArray()),
@@ -402,6 +403,8 @@ internal sealed partial class TelefonCoordinator
         if (view["batch_ready"]!.GetValue<bool>() != true) throw new InvalidOperationException("actor_staging_incomplete");
         var admission = actorAdmissions[handle.ActorId]; var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
         var deletionReview = ActorDeletionReview(admission, handle.ActorId, deletionPlan);
+        if (admission.ProducerBodies is { Count: > 0 } && deletionReview["intents"]!.AsArray().Count != 0)
+            throw new InvalidOperationException("actor_mixed_post_data_review_not_ready");
         var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
         admission.IncomingCounts = ActorCounts(batch.Records.OfType<JsonObject>());
         admission.IncomingAttachments = batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
@@ -682,6 +685,7 @@ internal sealed partial class TelefonCoordinator
         JsonObject? CurrentScope() => admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject());
         var review = waiting.BeginReview(CurrentScope, () => NativeSavedBook()); var view = review.Review();
         var raw = TelefonCrypto.Canonical(new JsonObject { ["targets"] = targets, ["decisions"] = view["decisions"]!.DeepClone(),
+            ["decision_message_ids"] = new JsonArray(view["frame_hashes"]!.AsObject().Select(pair => pair.Key).OrderBy(value => value, StringComparer.Ordinal).Select(value => (JsonNode)JsonValue.Create(value)!).ToArray()),
             ["content_scope"] = view["scope"]!.DeepClone(), ["review_revision"] = view["revision"]!.DeepClone(),
             ["data_saved_book"] = new JsonObject { ["book_source"] = waiting.DataSavedBook.BookSource, ["sequence"] = waiting.DataSavedBook.Sequence, ["sha256"] = waiting.DataSavedBook.Sha256 } });
         try

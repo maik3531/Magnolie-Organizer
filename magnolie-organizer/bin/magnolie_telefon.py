@@ -4452,6 +4452,7 @@ class PhoneService:
             if saved_provider() != snapshot.saved_book:
                 raise PermissionError('actor_producer_book_changed')
             return {'producer_staged': True, 'message_count': len(frames), 'proposal_count': sum(len(body['proposals']) for body in bodies),
+                'late_decision_phase': 1,
                 'proposal_ids': [proposal['proposal_id'] for body in bodies for proposal in body['proposals']],
                 'book_sha256': snapshot.saved_sha256, 'save_sequence': snapshot.sequence}
 
@@ -4550,6 +4551,8 @@ class PhoneService:
             admission = self.personal_actor_admissions[handle.actor_id]
             private = personal_actor_contract.storage_peer(handle.actor_id)
             deletion_review = self._actor_deletion_review(admission, handle.actor_id, deletion_plan)
+            if admission.get('producer_bodies') and deletion_review['intents']:
+                raise PermissionError('actor_mixed_post_data_review_not_ready')
             batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
             hashes = {item["sha256"] for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
             for digest in hashes:
@@ -4935,6 +4938,7 @@ class PhoneService:
             review = waiting.begin_review(current_scope=current_scope, current_saved_book=saved_provider)
             view = review.review()
             raw = canonical({'targets': waiting.targets, 'decisions': view['decisions'], 'content_scope': view['scope'],
+                'decision_message_ids': sorted(view['frame_hashes']),
                 'data_saved_book': waiting.data_saved_book, 'review_revision': view['revision']})
             if len(raw) > 4 * 1024 * 1024:
                 raise RuntimeError('actor_late_review_capacity')

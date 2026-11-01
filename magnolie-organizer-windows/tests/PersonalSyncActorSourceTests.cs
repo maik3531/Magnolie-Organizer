@@ -131,7 +131,7 @@ internal static class PersonalSyncActorSourceTests
                 db.Open(); using var count = db.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM outbox";
                 producerExistingOutbox = Convert.ToInt64(count.ExecuteScalar());
             }
-            foreach (var producerCase in new[] { "success", "late-handoff-sql", "late-ack-sql", "sql-retry", "changed-writer", "missing-native-book" })
+            foreach (var producerCase in new[] { "success", "late-handoff-sql", "late-ack-sql", "mixed-blocked", "sql-retry", "changed-writer", "missing-native-book" })
             {
                 var producerClock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
                 var producedProposalId = PersonalSyncContract.DeletionProposalId(peer.Id, "note", "note-one", "", producerClock, new string('a', 64));
@@ -168,7 +168,7 @@ internal static class PersonalSyncActorSourceTests
                         ["actorId"] = producerHandle.ActorId, ["ownerToken"] = producerHandle.OwnerToken }, default);
                     TestAssert.That(producedResponse["ok"]!.GetValue<bool>(), "Private native bridge failed actual saved-book producer admission.");
                     var producedStage = producedResponse["actor"]!.AsObject();
-                    TestAssert.That(producedStage["producer_staged"]!.GetValue<bool>() && producedStage["proposal_count"]!.GetValue<int>() == 1 && producedStage["message_count"]!.GetValue<int>() == 1,
+                    TestAssert.That(producedStage["producer_staged"]!.GetValue<bool>() && producedStage["late_decision_phase"]!.GetValue<int>() == 1 && producedStage["proposal_count"]!.GetValue<int>() == 1 && producedStage["message_count"]!.GetValue<int>() == 1,
                         "Actual native owner did not consume its fresh book through preparation and atomic queueing.");
                     var decision = new JsonObject { ["format"] = 1, ["run_id"] = producerHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
                         ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = producedProposalId, ["decision"] = "restore", ["expected_clock"] = producerClock.DeepClone() }) };
@@ -176,6 +176,30 @@ internal static class PersonalSyncActorSourceTests
                         "Actual producer lacked its own run-private target proof or leaked physical-peer rights.");
                     var repeated = await coordinator.ProducePersonalActorProposalsAsync(producerHandle);
                     TestAssert.That(JsonNode.DeepEquals(producedStage, repeated), "Legitimate same-owner producer retry changed its native result.");
+                    if (producerCase == "mixed-blocked")
+                    {
+                        await coordinator.StartPersonalActorAsync(producerHandle); await SharedSyncTransportTests.DrainAsync(wire);
+                        connection.ActorMessageReceived = (source, message) => coordinator.ReceivePersonalActorAsync(source, peer, message);
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", new JsonObject {
+                            ["format"] = 3, ["run_id"] = producerHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }), producerHandle.ActorId));
+                        var mixedBatch = new JsonObject { ["format"] = 3, ["run_id"] = producerHandle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0,
+                            ["last"] = true, ["reply"] = false, ["records"] = new JsonArray(), ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()) };
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", mixedBatch), producerHandle.ActorId));
+                        var mixedId = Guid.NewGuid().ToString("D"); var mixedClock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 });
+                        var mixedProposal = new JsonObject { ["format"] = 1, ["run_id"] = producerHandle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0,
+                            ["last"] = true, ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = mixedId, ["kind"] = "task", ["id"] = "task-one", ["parent_id"] = "",
+                                ["clock"] = mixedClock.DeepClone(), ["prior_hash"] = new string('f', 64), ["deleted_ms"] = 2, ["label"] = "Synthetic mixed target" }) };
+                        await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_proposals", mixedProposal), producerHandle.ActorId));
+                        await SharedSyncTransportTests.DrainAsync(wire);
+                        var mixedView = await coordinator.ReadPersonalActorStagingAsync(producerHandle);
+                        var mixedIntent = JsonNode.Parse(Convert.FromBase64String(mixedView["data_base64"]!.GetValue<string>()))!["intents"]![0]!.AsObject();
+                        var mixedPlan = new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["proposal_id"] = mixedId, ["decision"] = "delete", ["expected_clock"] = mixedClock.DeepClone(), ["allow_conflict"] = true }),
+                            ["intents"] = new JsonArray(new JsonObject { ["kind"] = mixedIntent["kind"]!.DeepClone(), ["message_id"] = mixedIntent["pending_message_id"]!.DeepClone(), ["commit_token"] = mixedIntent["commit_token"]!.DeepClone() }) };
+                        var mixedBefore = hostBook.SaveState("actual-host-profile", true); var mixedDenied = false;
+                        try { await coordinator.PreparePersonalActorCommitAsync(producerHandle, mixedView["revision"]!.GetValue<string>(), new string('b', 64), deletionPlan: mixedPlan); }
+                        catch (InvalidOperationException error) when (error.Message == "actor_mixed_post_data_review_not_ready") { mixedDenied = true; }
+                        TestAssert.That(mixedDenied && hostBook.SaveState("actual-host-profile", true) == mixedBefore, "Unsupported mixed producer review created a data-save claim.");
+                    }
                     if (producerCase is "success" or "late-handoff-sql" or "late-ack-sql")
                     {
                         var earlyDenied = false;
@@ -239,6 +263,7 @@ internal static class PersonalSyncActorSourceTests
                             !lateFirst["phone_persisted"]!.GetValue<bool>() && lateData["targets"]![0]!["proposal_id"]!.GetValue<string>() == producedProposalId &&
                             lateData["decisions"]![0]!["decision"]!.GetValue<string>() == "restore",
                             "Complete closed-owner late review paging changed target identities or falsely confirmed a deletion save.");
+                        TestAssert.That(lateData["decision_message_ids"]![0]!.GetValue<string>() == sourceDecision["message_id"]!.GetValue<string>(), "Late review lost its exact protected decision-frame identity.");
                         await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", sourceIncoming), producerHandle.ActorId));
                         TestAssert.That(wire.Length == 0, "Native report owner acknowledged deletion success or reopened old batch staging.");
                         var retainedDecision = await coordinator.WithPersonalActorStoreAsync(registry => registry.ReadCompletionControls(producerHandle)
