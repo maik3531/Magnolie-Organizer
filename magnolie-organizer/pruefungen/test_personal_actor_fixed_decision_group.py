@@ -130,7 +130,7 @@ def test_private_group_cleanup_removes_only_exact_own_frames_not_another_run_or_
     other_frames = service.store.queue_actor_fixed_decisions(peer['device_id'], other_run, choices, expected_source='c' * 64,
         saved_claim=read(), current_source=lambda: state['source'], current_confirmed_claim=read)
     unrelated = service.store.queue(peer['device_id'], 'personal_sync.request', {'format': 3, 'run_id': str(uuid.uuid4()),
-        'trigger': 'manual', 'modules': ['tasks']}, phone.DAY_MS)
+        'trigger': 'manual', 'modules': ['tasks']}, 60000)
     service.store.purge_personal(private)
     assert all(service.store.outbox_message(peer['device_id'], wire['message_id']) is None for wire in frames)
     assert all(service.store.outbox_message(peer['device_id'], wire['message_id']) == wire for wire in other_frames)

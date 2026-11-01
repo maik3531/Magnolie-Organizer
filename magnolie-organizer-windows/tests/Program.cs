@@ -120,6 +120,7 @@ runner.Add("Notes actor atomic batch and deletion-intent core commit", PersonalA
 runner.Add("Notes actor completion metadata / closed data / native guards", PersonalActorCompletionTests.RunAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
+runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
 runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorStoreTests.RunAsync);
 runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
 runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);

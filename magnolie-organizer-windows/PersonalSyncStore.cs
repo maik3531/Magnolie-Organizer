@@ -425,6 +425,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     internal void PurgeProtocol(string peerId)
     {
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+        store.PurgeActorFixedControls(connection, transaction, peerId);
         foreach (var table in new[] { "personal_batch", "personal_domain", "personal_attachment_chunk", "personal_attachment_transfer" }) { using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = $"DELETE FROM {table} WHERE peer_id=$peer"; command.Parameters.AddWithValue("$peer", peerId); command.ExecuteNonQuery(); }
         using (var dedupe = connection.CreateCommand()) { dedupe.Transaction = transaction; dedupe.CommandText = "DELETE FROM dedupe WHERE peer_id=$peer AND message_id IN (SELECT message_id FROM inbox WHERE peer_id=$peer AND kind LIKE 'personal_sync.%')"; dedupe.Parameters.AddWithValue("$peer", peerId); dedupe.ExecuteNonQuery(); }
         foreach (var table in new[] { "outbox", "inbox" }) { using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = $"DELETE FROM {table} WHERE peer_id=$peer AND kind LIKE 'personal_sync.%'"; command.Parameters.AddWithValue("$peer", peerId); command.ExecuteNonQuery(); }
