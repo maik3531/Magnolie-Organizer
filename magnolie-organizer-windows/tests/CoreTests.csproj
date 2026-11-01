@@ -28,6 +28,7 @@
     <Compile Include="..\NativeBookOwnerScope.cs" Link="NativeBookOwnerScope.cs" />
     <Compile Include="..\PersonalActorOutgoingProducer.cs" Link="PersonalActorOutgoingProducer.cs" />
     <Compile Include="..\PersonalActorOutgoingTargetEvidence.cs" Link="PersonalActorOutgoingTargetEvidence.cs" />
+    <Compile Include="..\PersonalActorIncomingLiveTargetObservation.cs" Link="PersonalActorIncomingLiveTargetObservation.cs" />
     <Compile Include="..\TelefonStore.ActorProducer.cs" Link="TelefonStore.ActorProducer.cs" />
     <Compile Include="..\TelefonStore.ActorFixedDecisions.cs" Link="TelefonStore.ActorFixedDecisions.cs" />
     <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />

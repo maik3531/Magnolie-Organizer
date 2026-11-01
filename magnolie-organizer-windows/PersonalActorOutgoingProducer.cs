@@ -30,8 +30,8 @@ internal static class PersonalActorOutgoingProducer
         }
         return value;
     }
-    private static string NoteWireId(string value, JsonObject state) => NoteId(Text(state["note_ids"]?.AsObject() ?? new JsonObject(), value, value), state);
-    private static string AttachmentId(string parent, string value, JsonObject state)
+    internal static string NoteWireId(string value, JsonObject state) => NoteId(Text(state["note_ids"]?.AsObject() ?? new JsonObject(), value, value), state);
+    internal static string AttachmentId(string parent, string value, JsonObject state)
     {
         var aliases = state["attachment_aliases"]?.AsObject() ?? new JsonObject(); var seen = new HashSet<string>(StringComparer.Ordinal);
         if (!Identifier(value)) throw new InvalidDataException("invalid_native_attachment_identity");

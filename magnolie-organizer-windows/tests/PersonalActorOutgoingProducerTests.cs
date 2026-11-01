@@ -107,6 +107,91 @@ internal static class PersonalActorOutgoingProducerTests
         }
     }
 
+    private static void IncomingLiveObservations()
+    {
+        foreach (var kind in new[] { "note", "task", "attachment" })
+        foreach (var scenario in new[] { "success", "old-ack", "other-peer", "missing-live", "duplicate-live", "unowned", "stale-meta", "owner", "source", "scope", "book", "run", "target-change", "content-target", "changed-content-matching-meta" })
+        {
+            var (book, _) = Fixture(0);
+            book["notizen"]![0]!["text"] = "PRIVATE CONTENT MUST NOT BE RETURNED";
+            book["notizen"]![0]!["anhaenge"] = new JsonArray(new JsonObject { ["id"] = "file-000", ["daten"] = "PRIVATE BLOB" });
+            book["aufgaben"] = new JsonArray(new JsonObject { ["id"] = "selected-task", ["titel"] = "PRIVATE TASK" });
+            var id = kind == "note" ? "canonical-parent" : kind == "task" ? "selected-task" : "file-000";
+            var parent = kind == "attachment" ? "canonical-parent" : "";
+            var key = kind + "\0" + (kind == "attachment" ? parent + "\0" : "") + id;
+            var clock = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 });
+            var meta = new JsonObject { ["state"] = "live", ["peer_device_id"] = Peer, ["hash"] = new string('a', 64), ["clock"] = clock.DeepClone(), ["parent_id"] = parent };
+            book["personalSync"]!["entities"]![key] = meta;
+            if (scenario == "old-ack") book["personalSync"]!["entities"]![key] = new JsonObject { ["acknowledged_by_peer"] = true };
+            if (scenario == "other-peer") meta["peer_device_id"] = Guid.NewGuid().ToString("D");
+            if (scenario == "stale-meta") meta["state"] = "deleted";
+            if (scenario == "unowned") { if (kind == "task") book["aufgaben"]![0]!["delegiertAn"] = "someone-else"; else book["notizen"]![0]!["baumQuelle"] = "unowned"; }
+            if (scenario == "missing-live") { if (kind == "task") book["aufgaben"] = new JsonArray(); else if (kind == "note") book["notizen"] = new JsonArray(); else book["notizen"]![0]!["anhaenge"] = new JsonArray(); }
+            if (scenario == "duplicate-live")
+            {
+                var values = kind == "task" ? book["aufgaben"]!.AsArray() : kind == "note" ? book["notizen"]!.AsArray() : book["notizen"]![0]!["anhaenge"]!.AsArray();
+                values.Add(values[0]!.DeepClone());
+            }
+            if (scenario == "changed-content-matching-meta")
+            {
+                if (kind == "note") book["notizen"]![0]!["text"] = "CURRENT CHANGED PRIVATE NOTE";
+                else if (kind == "task") book["aufgaben"]![0]!["titel"] = "CURRENT CHANGED PRIVATE TASK";
+                else book["notizen"]![0]!["anhaenge"]![0]!["daten"] = "CURRENT CHANGED PRIVATE BLOB";
+            }
+            var (owner, captured) = Capture(book); NativeActorBookSnapshot? snapshot = captured;
+            var before = book.ToJsonString(); var beforeSaved = owner.SaveState("native-producer-fixture", true);
+            var allowed = true; string? source = new string('b', 64);
+            var scope = scenario == "content-target" ? PhoneContentScope.Create(kind == "task" ? [] : ["canonical-parent"], kind == "task" ? ["selected-task"] : []) : PhoneContentScope.Create([], []);
+            PersonalActorIncomingLiveTargetObservation Create() => new(Peer, Run, () => allowed, () => source, () => snapshot, () => scope);
+            var proof = Create();
+            var target = new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["id"] = id, ["parent_id"] = parent,
+                ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() };
+            if (scenario is "old-ack" or "other-peer" or "missing-live" or "duplicate-live" or "unowned" or "stale-meta" or "content-target")
+            { TestAssert.Throws<InvalidOperationException>(() => proof.Observe(Run, target), "Invalid live native target was observed: " + kind + "/" + scenario); continue; }
+            var result = proof.Observe(Run, target);
+            TestAssert.That(result["requires_conflict_choice"]!.GetValue<bool>() && result["metadata_matches"]!.GetValue<bool>() && !result.ToJsonString().Contains("PRIVATE", StringComparison.Ordinal) &&
+                owner.SaveState("native-producer-fixture", true) == beforeSaved && book.ToJsonString() == before,
+                "Incoming local identity observation exported content, mislabeled identity or changed its book.");
+            if (scenario is "success" or "changed-content-matching-meta")
+            {
+                result["target"]!["prior_hash"] = new string('f', 64);
+                TestAssert.That(JsonNode.DeepEquals(proof.Observe(Run, target)["target"], target), "Returned observation changed pinned target proof.");
+                var conflicting = target.DeepClone().AsObject(); conflicting["proposal_id"] = Guid.NewGuid().ToString("D"); conflicting["prior_hash"] = new string('f', 64);
+                TestAssert.Throws<InvalidOperationException>(() => proof.Observe(Run, conflicting), "Second proposal replaced the observed entity identity.");
+                var mismatch = Create().Observe(Run, conflicting);
+                TestAssert.That(mismatch["requires_conflict_choice"]!.GetValue<bool>() && !mismatch["metadata_matches"]!.GetValue<bool>(), "Different remote value was falsely observed as equal to current local metadata.");
+                continue;
+            }
+            var expectedRun = Run;
+            if (scenario == "owner") allowed = false;
+            if (scenario == "source") source = new string('c', 64);
+            if (scenario == "scope") scope = PhoneContentScope.Create(["different"], []);
+            if (scenario == "book") { book["notizen"]![0]!["text"] = "CHANGED"; snapshot = Capture(book).Snapshot; }
+            if (scenario == "run") expectedRun = Guid.NewGuid().ToString("D");
+            if (scenario == "target-change") target["clock"]![0]!["counter"] = 9;
+            TestAssert.Throws<InvalidOperationException>(() => proof.Observe(expectedRun, target), "Changed native boundary retained incoming observation: " + kind + "/" + scenario);
+        }
+    }
+
+    private static void IncomingObservationCapacity()
+    {
+        var (book, _) = Fixture(0); var entities = book["personalSync"]!["entities"]!.AsObject(); var tasks = book["aufgaben"]!.AsArray();
+        var targets = new List<JsonObject>();
+        for (var index = 0; index < 257; index++)
+        {
+            var id = $"capacity-task-{index:D3}"; var clock = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 });
+            tasks.Add(new JsonObject { ["id"] = id, ["titel"] = "PRIVATE CAPACITY CONTENT" });
+            entities["task\0" + id] = new JsonObject { ["state"] = "live", ["peer_device_id"] = Peer, ["hash"] = new string('a', 64), ["clock"] = clock.DeepClone(), ["parent_id"] = "" };
+            targets.Add(new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = "task", ["id"] = id, ["parent_id"] = "", ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() });
+        }
+        var (owner, snapshot) = Capture(book); var scope = PhoneContentScope.Create([], []); var before = book.ToJsonString();
+        var proof = new PersonalActorIncomingLiveTargetObservation(Peer, Run, () => true, () => new string('b', 64), () => snapshot, () => scope);
+        foreach (var target in targets.Take(256)) TestAssert.That(proof.Observe(Run, target)["requires_conflict_choice"]!.GetValue<bool>(), "Maximum observation bypassed its explicit conflict-choice boundary.");
+        TestAssert.Throws<InvalidDataException>(() => proof.Observe(Run, targets[256]), "More than256 independent target observations were cached.");
+        TestAssert.That(book.ToJsonString() == before && scope["members"]!["notes"]!.AsArray().Count == 0 && scope["members"]!["tasks"]!.AsArray().Count == 0,
+            "Observation capacity changed book data or content membership.");
+    }
+
     internal static Task RunAsync()
     {
         var (book, scope) = Fixture(); var bodies = Prepare(book, scope); var proposals = Proposals(bodies);
@@ -182,6 +267,8 @@ internal static class PersonalActorOutgoingProducerTests
         SuccessfulGroupReplay();
         OutgoingTargetEvidence();
         ChangedTargetEvidence();
+        IncomingLiveObservations();
+        IncomingObservationCapacity();
         return Task.CompletedTask;
     }
 
