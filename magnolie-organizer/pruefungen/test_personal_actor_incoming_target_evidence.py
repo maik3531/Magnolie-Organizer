@@ -6,6 +6,7 @@ import uuid
 import pytest
 import magnolie_content_scope as scope
 from magnolie_personal_actor_target_evidence import NativeIncomingLiveTargetObservation
+from magnolie_personal_actor_store import NativeProducerBookSnapshot
 from test_personal_actor_producer import native, PEER, RUN, ACTOR
 
 
@@ -110,4 +111,60 @@ def test_incoming_native_observation_cache_is_bounded_at_256_without_data_scope_
     before = copy.deepcopy(book); proof = create()
     for target in targets[:256]: assert proof.observe(RUN, target)['requires_conflict_choice']
     with pytest.raises(ValueError, match='actor_target_capacity'): proof.observe(RUN, targets[256])
+    assert len(proof.observe_many(RUN, targets[:256])) == 256
+    with pytest.raises(ValueError, match='actor_target_capacity'): proof.observe_many(RUN, targets)
     assert book == before and state['scope']['members'] == {'notes': [], 'tasks': []}
+
+
+def group_fixture():
+    create, state, book, first, key, read = live_fixture('note')
+    targets = [first]
+    for kind, identifier, parent in [('task', 'own-task', ''), ('attachment', 'own-file', 'own-note')]:
+        meta = copy.deepcopy(book['personalSync']['entities'][key]); meta['parent_id'] = parent
+        book['personalSync']['entities'][kind + '\0' + (parent + '\0' if parent else '') + identifier] = meta
+        targets.append(dict(first, kind=kind, id=identifier, parent_id=parent, proposal_id=str(uuid.uuid4())))
+    state['snapshot'] = native(book)[2]
+    return create, state, book, targets
+
+
+def test_incoming_group_is_bounded_atomic_and_parses_the_native_book_only_once(monkeypatch):
+    create, state, book, targets = group_fixture(); proof = create()
+    parses = []; parse = NativeProducerBookSnapshot.book
+    def counted(snapshot):
+        parses.append(1)
+        return parse(snapshot)
+    monkeypatch.setattr(NativeProducerBookSnapshot, 'book', counted)
+    result = proof.observe_many(RUN, targets)
+    assert len(parses) == 1 and [value['target'] for value in result] == targets
+    assert all(value['requires_conflict_choice'] for value in result)
+    assert 'PRIVATE' not in json.dumps(result)
+    assert state['scope']['members'] == {'notes': [], 'tasks': []}
+
+
+@pytest.mark.parametrize('fault', ['missing-last', 'duplicate-proposal', 'duplicate-identity', 'source-after-parse'])
+def test_failed_incoming_group_keeps_prior_proofs_but_retains_no_provisional_target(fault, monkeypatch):
+    create, state, book, targets = group_fixture()
+    if fault == 'missing-last':
+        book['aufgaben'] = []; state['snapshot'] = native(book)[2]
+    proof = create(); proof.observe(RUN, targets[2])
+    group = copy.deepcopy(targets[:2])
+    if fault == 'duplicate-proposal': group[1] = copy.deepcopy(group[0])
+    elif fault == 'duplicate-identity': group[1] = dict(group[0], proposal_id=str(uuid.uuid4()))
+    elif fault == 'source-after-parse':
+        parse = NativeProducerBookSnapshot.book
+        def changed(snapshot):
+            result = parse(snapshot); state['source'] = 'c' * 64; return result
+        monkeypatch.setattr(NativeProducerBookSnapshot, 'book', changed)
+    with pytest.raises((PermissionError, ValueError)): proof.observe_many(RUN, group)
+    if fault == 'source-after-parse':
+        monkeypatch.setattr(NativeProducerBookSnapshot, 'book', parse); state['source'] = 'b' * 64
+    # The previous child observation remains pinned; the provisional first note
+    # did not consume its entity identity after any group failure.
+    with pytest.raises(PermissionError): proof.observe(RUN, dict(targets[2], proposal_id=str(uuid.uuid4())))
+    assert proof.observe(RUN, dict(targets[0], proposal_id=str(uuid.uuid4())))['requires_conflict_choice']
+
+
+@pytest.mark.parametrize('targets', [[], [None] * 257, None])
+def test_invalid_incoming_group_capacity_is_rejected_before_any_proof(targets):
+    create, state, book, _, key, read = live_fixture('note')
+    with pytest.raises(ValueError): create().observe_many(RUN, targets)

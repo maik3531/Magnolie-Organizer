@@ -48,9 +48,37 @@ internal sealed class PersonalActorIncomingLiveTargetObservation
     }
     private void CheckCurrent() { CheckSource(); Snapshot(); CheckSource(); }
 
-    internal JsonObject Observe(string expectedRunId, JsonObject target)
+    internal JsonObject Observe(string expectedRunId, JsonObject target) => ObserveMany(expectedRunId, [target])[0];
+
+    internal IReadOnlyList<JsonObject> ObserveMany(string expectedRunId, IReadOnlyList<JsonObject> targets)
     {
         CheckCurrent();
+        if (expectedRunId != runId) throw new InvalidOperationException("actor_target_proof_changed");
+        if (targets.Count is < 1 or > 256) throw new InvalidDataException("actor_target_capacity");
+        var book = JsonNode.Parse(Snapshot().Text)!.AsObject();
+        var previous = observed.ToArray(); var previousIdentities = identities.ToArray();
+        var result = new List<JsonObject>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            foreach (var target in targets)
+            {
+                var value = ObserveTarget(expectedRunId, target, book);
+                if (!seen.Add(Text(value["target"]!.AsObject(), "proposal_id"))) throw new InvalidDataException("actor_target_duplicate_group");
+                result.Add(value);
+            }
+            CheckCurrent();
+        }
+        catch
+        {
+            observed.Clear(); foreach (var entry in previous) observed.Add(entry.Key, entry.Value);
+            identities.Clear(); foreach (var entry in previousIdentities) identities.Add(entry.Key, entry.Value);
+            throw;
+        }
+        return result;
+    }
+
+    private JsonObject ObserveTarget(string expectedRunId, JsonObject target, JsonObject book)
+    {
         if (expectedRunId != runId || target.Count != 6 || !new HashSet<string>(target.Select(value => value.Key), StringComparer.Ordinal)
             .SetEquals(["proposal_id", "kind", "id", "parent_id", "prior_hash", "clock"])) throw new InvalidOperationException("actor_target_proof_changed");
         var proposal = target.DeepClone().AsObject(); proposal["deleted_ms"] = 0; proposal["label"] = "";
@@ -64,7 +92,7 @@ internal sealed class PersonalActorIncomingLiveTargetObservation
         if (observed.TryGetValue(proposalId, out var old) && !JsonNode.DeepEquals(old["target"], target) ||
             identities.TryGetValue(identity, out var prior) && prior != proposalId) throw new InvalidOperationException("actor_target_proof_changed");
         if (old is null && observed.Count >= 256) throw new InvalidDataException("actor_target_capacity");
-        var snapshot = Snapshot(); var book = JsonNode.Parse(snapshot.Text)!.AsObject(); var state = book["personalSync"]?.AsObject() ?? new JsonObject();
+        var state = book["personalSync"]?.AsObject() ?? new JsonObject();
         var key = kind + "\0" + (kind == "attachment" ? parent + "\0" : "") + id;
         var meta = state["entities"]?[key] as JsonObject;
         if (Text(state, "peer_device_id") != peerId || meta is null || Text(meta, "peer_device_id") != peerId || Text(meta, "state") != "live" ||
@@ -91,7 +119,7 @@ internal sealed class PersonalActorIncomingLiveTargetObservation
             ["native_saved_book"] = new JsonObject { ["book_source"] = saved.BookSource, ["sequence"] = saved.Sequence, ["sha256"] = saved.Sha256 },
             ["metadata_matches"] = Text(meta, "hash") == Text(target, "prior_hash") && JsonNode.DeepEquals(clock, target["clock"]),
             ["requires_conflict_choice"] = true };
-        CheckCurrent(); observed[proposalId] = result; identities[identity] = proposalId;
+        observed[proposalId] = result; identities[identity] = proposalId;
         return result.DeepClone().AsObject();
     }
 }

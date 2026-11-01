@@ -113,7 +113,31 @@ class NativeIncomingLiveTargetObservation(_NativeTargetBinding):
         self._identities = {}
 
     def observe(self, run_id, target):
+        return self.observe_many(run_id, [target])[0]
+
+    def observe_many(self, run_id, targets):
         self._check_current()
+        if run_id != self._run_id:
+            raise PermissionError('actor_target_proof_changed')
+        if not isinstance(targets, list) or not 1 <= len(targets) <= 256:
+            raise ValueError('actor_target_capacity')
+        book = self._checked_snapshot().book()
+        previous, identities = self._observed.copy(), self._identities.copy()
+        result, seen = [], set()
+        try:
+            for target in targets:
+                observation = self._observe_target(run_id, target, book)
+                proposal_id = observation['target']['proposal_id']
+                if proposal_id in seen:
+                    raise ValueError('actor_target_duplicate_group')
+                seen.add(proposal_id); result.append(observation)
+            self._check_current()
+        except Exception:
+            self._observed, self._identities = previous, identities
+            raise
+        return result
+
+    def _observe_target(self, run_id, target, book):
         if run_id != self._run_id or not isinstance(target, dict) or set(target) != {'proposal_id', 'kind', 'id', 'parent_id', 'prior_hash', 'clock'}:
             raise PermissionError('actor_target_proof_changed')
         personal.validate_body('personal_sync.deletion_proposals', {'format': 1, 'run_id': run_id,
@@ -129,7 +153,7 @@ class NativeIncomingLiveTargetObservation(_NativeTargetBinding):
             raise PermissionError('actor_target_proof_changed')
         if old is None and len(self._observed) >= 256:
             raise ValueError('actor_target_capacity')
-        snapshot = self._checked_snapshot(); book = snapshot.book(); state = book.get('personalSync', {})
+        state = book.get('personalSync', {})
         key = kind + '\0' + (parent + '\0' if kind == 'attachment' else '') + identifier
         meta = state.get('entities', {}).get(key)
         if state.get('peer_device_id') != self._peer_id or not isinstance(meta, dict) or meta.get('peer_device_id') != self._peer_id or meta.get('state') != 'live':
@@ -149,10 +173,9 @@ class NativeIncomingLiveTargetObservation(_NativeTargetBinding):
         if not own:
             raise PermissionError('actor_target_live_native_proof_missing')
         observed = {'target': copy.deepcopy(target), 'local_state': 'live', 'local_hash': meta['hash'],
-            'local_clock': copy.deepcopy(local_clock), 'native_saved_book': copy.deepcopy(snapshot.saved_book),
+            'local_clock': copy.deepcopy(local_clock), 'native_saved_book': copy.deepcopy(self._book_binding[0]),
             'metadata_matches': meta['hash'] == target['prior_hash'] and local_clock == target['clock'],
             'requires_conflict_choice': True}
-        self._check_current()
         self._observed[target['proposal_id']] = observed
         self._identities[identity] = target['proposal_id']
         return copy.deepcopy(observed)

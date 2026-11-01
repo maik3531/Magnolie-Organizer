@@ -188,8 +188,57 @@ internal static class PersonalActorOutgoingProducerTests
         var proof = new PersonalActorIncomingLiveTargetObservation(Peer, Run, () => true, () => new string('b', 64), () => snapshot, () => scope);
         foreach (var target in targets.Take(256)) TestAssert.That(proof.Observe(Run, target)["requires_conflict_choice"]!.GetValue<bool>(), "Maximum observation bypassed its explicit conflict-choice boundary.");
         TestAssert.Throws<InvalidDataException>(() => proof.Observe(Run, targets[256]), "More than256 independent target observations were cached.");
+        TestAssert.That(proof.ObserveMany(Run, targets.Take(256).ToArray()).Count == 256, "Maximum bounded observation group lost existing exact targets.");
+        TestAssert.Throws<InvalidDataException>(() => proof.ObserveMany(Run, targets), "257-target group bypassed the input capacity boundary.");
+        TestAssert.Throws<InvalidDataException>(() => proof.ObserveMany(Run, []), "Empty target group was admitted.");
         TestAssert.That(book.ToJsonString() == before && scope["members"]!["notes"]!.AsArray().Count == 0 && scope["members"]!["tasks"]!.AsArray().Count == 0,
             "Observation capacity changed book data or content membership.");
+    }
+
+    private static void IncomingObservationGroups()
+    {
+        foreach (var scenario in new[] { "complete", "missing-last", "duplicate-proposal", "duplicate-identity", "source-after-group" })
+        {
+            var (book, _) = Fixture(0);
+            book["notizen"]![0]!["anhaenge"] = new JsonArray(new JsonObject { ["id"] = "file-000", ["daten"] = "PRIVATE BLOB" });
+            book["aufgaben"] = new JsonArray(new JsonObject { ["id"] = "selected-task", ["titel"] = "PRIVATE TASK" });
+            var targets = new List<JsonObject>();
+            foreach (var kind in new[] { "note", "task", "attachment" })
+            {
+                var id = kind == "note" ? "canonical-parent" : kind == "task" ? "selected-task" : "file-000"; var parent = kind == "attachment" ? "canonical-parent" : "";
+                var clock = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 });
+                book["personalSync"]!["entities"]![kind + "\0" + (parent.Length != 0 ? parent + "\0" : "") + id] = new JsonObject {
+                    ["state"] = "live", ["peer_device_id"] = Peer, ["hash"] = new string('a', 64), ["clock"] = clock.DeepClone(), ["parent_id"] = parent };
+                targets.Add(new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["id"] = id, ["parent_id"] = parent,
+                    ["clock"] = clock.DeepClone(), ["prior_hash"] = new string('a', 64) });
+            }
+            if (scenario == "missing-last") book["aufgaben"] = new JsonArray();
+            var (owner, snapshot) = Capture(book); var scope = PhoneContentScope.Create([], []); var sourceCalls = 0; var flipAt = 0;
+            string Source() { sourceCalls++; return new string(flipAt > 0 && sourceCalls >= flipAt ? 'c' : 'b', 64); }
+            var proof = new PersonalActorIncomingLiveTargetObservation(Peer, Run, () => true, Source, () => snapshot, () => scope);
+            proof.Observe(Run, targets[2]); // Prior independent observation must survive group failure.
+            var group = targets.Take(2).Select(value => value.DeepClone().AsObject()).ToArray();
+            if (scenario == "duplicate-proposal") group[1] = group[0].DeepClone().AsObject();
+            if (scenario == "duplicate-identity") { group[1] = group[0].DeepClone().AsObject(); group[1]["proposal_id"] = Guid.NewGuid().ToString("D"); }
+            if (scenario == "source-after-group") flipAt = sourceCalls + 3; // Two pre-check calls, then post-group fresh check.
+            if (scenario == "complete")
+            {
+                var observed = proof.ObserveMany(Run, group);
+                TestAssert.That(observed.Count == 2 && observed.All(value => value["requires_conflict_choice"]!.GetValue<bool>()) &&
+                    observed.All(value => !value.ToJsonString().Contains("PRIVATE", StringComparison.Ordinal)), "Bounded incoming group exported content or bypassed typed conflict choice.");
+                continue;
+            }
+            var denied = false;
+            try { proof.ObserveMany(Run, group); }
+            catch (Exception error) when (error is InvalidDataException or InvalidOperationException) { denied = true; }
+            TestAssert.That(denied, "Incoming group admitted partial/duplicate/changed-authority observations: " + scenario);
+            if (scenario == "source-after-group") TestAssert.That(sourceCalls == flipAt, "Source fault did not target the final group check.");
+            flipAt = 0;
+            var changedChild = targets[2].DeepClone().AsObject(); changedChild["proposal_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.Throws<InvalidOperationException>(() => proof.Observe(Run, changedChild), "Failed group discarded a previous pinned identity.");
+            var freshNote = targets[0].DeepClone().AsObject(); freshNote["proposal_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.That(proof.Observe(Run, freshNote)["requires_conflict_choice"]!.GetValue<bool>(), "Failed group retained a provisional first-note identity.");
+        }
     }
 
     internal static Task RunAsync()
@@ -269,6 +318,7 @@ internal static class PersonalActorOutgoingProducerTests
         ChangedTargetEvidence();
         IncomingLiveObservations();
         IncomingObservationCapacity();
+        IncomingObservationGroups();
         return Task.CompletedTask;
     }
 
