@@ -11,8 +11,14 @@ internal static class PersonalSyncActorSourceTests
     {
         internal Action? AssertActorWrite;
         internal int GuardChecks;
+        internal bool FailNextWrite, WasDisposed;
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellation = default)
-        { if (AssertActorWrite is not null) { AssertActorWrite(); GuardChecks++; } return base.WriteAsync(buffer, cancellation); }
+        {
+            if (AssertActorWrite is not null) { AssertActorWrite(); GuardChecks++; }
+            if (FailNextWrite) { FailNextWrite = false; throw new IOException("Synthetic native encrypted ACK channel failure"); }
+            return base.WriteAsync(buffer, cancellation);
+        }
+        protected override void Dispose(bool disposing) { WasDisposed = true; base.Dispose(disposing); }
     }
     private static JsonObject Message(string kind, JsonObject body)
     {
@@ -740,6 +746,81 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(reowned is not null, "Paired source failed after a legacy ownership control.");
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
             TestAssert.That(Read() == reowned, "Unchanged ownership replay rotated actor authority.");
+            // A real SendPlainAsync I/O fault disposes its stream. Use an
+            // independent authenticated connection and never pretend it can
+            // recover on that disposed channel or rebind its old actor owner.
+            using (var failedWire = new ActorWireStream())
+            using (var failedConnection = new TelefonConnection(peer, failedWire, new byte[16], new byte[72], store, Receive, CancellationToken.None, "wifi")
+                { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject() })
+            {
+                async Task Prime(TelefonConnection fresh, ActorWireStream output)
+                {
+                    online[peer.Id] = fresh;
+                    var previousPeer = store.LoadPeers().Single(value => value.Id == peer.Id);
+                    var freshCapabilities = capabilities.DeepClone().AsObject(); freshCapabilities["revision"] = previousPeer.CapabilityRevision + 1;
+                    // New identities with an already consumed revision are not
+                    // fresh controls. Advance revisions for these new frames.
+                    await fresh.HandlePlainAsync(Message("capabilities.update", freshCapabilities));
+                    await fresh.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = previousPeer.GrantRevision + 1, ["grants"] = grants.DeepClone() }));
+                    await fresh.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
+                    await fresh.HandlePlainAsync(Message(SharedSyncSettings.Kind, SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), renewed, peer.Id, identity.Id)));
+                    await fresh.SendSharedSettingsAsync();
+                    foreach (var part in PhoneContentScope.Chunks(changed)) await fresh.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
+                    await SharedSyncTransportTests.DrainAsync(output);
+                    var currentPeer = store.LoadPeers().Single(value => value.Id == peer.Id);
+                    TestAssert.That(fresh.SharedSettingsReady, "Separate fault connection did not finish fresh shared controls.");
+                    TestAssert.That(fresh.ActorSourceSnapshot() is not null,
+                        $"Separate fault connection lacked source evidence (caps={currentPeer.CapabilityRevision},grants={currentPeer.GrantRevision}).");
+                }
+                await Prime(failedConnection, failedWire);
+                hostBook.RecordSaved("actual-host-profile", true, new string('c', 64));
+                coordinator.NativeSavedBook = () => hostBook.SaveState("actual-host-profile", true);
+                var failedHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+                await coordinator.StartPersonalActorAsync(failedHandle); await SharedSyncTransportTests.DrainAsync(failedWire);
+                var failureClock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 3 });
+                var failureProposal = Guid.NewGuid().ToString("D");
+                var reference = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", new JsonObject {
+                    ["format"] = 1, ["run_id"] = failedHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = failureProposal, ["decision"] = "restore", ["expected_clock"] = failureClock.DeepClone() }) }), failedHandle.ActorId);
+                var failureAck = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(failedHandle.ActorId, reference["message_id"]!.GetValue<string>()));
+                var failureGuard = await coordinator.WithPersonalActorStoreAsync(registry => {
+                    var guard = new PersonalActorDecisionCompletion(failedHandle.ActorId, new JsonArray(new JsonObject {
+                        ["proposal_id"] = failureProposal, ["kind"] = "task", ["id"] = "task-one", ["parent_id"] = "",
+                        ["prior_hash"] = new string('a', 64), ["clock"] = failureClock.DeepClone() }), [reference],
+                        () => coordinator.CurrentActorCompletionAuthority(peer.Id, fingerprint),
+                        () => failedConnection.CurrentContentScope(PhoneContentScope.Reference(changed)), () => hostBook.SaveState("actual-host-profile", true),
+                        () => registry.ReadCompletionControls(failedHandle), nativeSentAcknowledgments: [failureAck]);
+                    registry.BeginCompletion(failedHandle, guard.Validator); return guard;
+                });
+                var failureAdmissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                var failureAdmission = failureAdmissions[failedHandle.ActorId]!;
+                void SetFailure(string name, object value) => failureAdmission.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(failureAdmission, value);
+                SetFailure("Completion", failureGuard); SetFailure("SaveReceipt", hostBook.SaveState("actual-host-profile", true)!); SetFailure("PhoneDataPersisted", true);
+                var failureAcks = (Dictionary<string, JsonObject>)failureAdmission.GetType().GetProperty("NativeAcknowledgments", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(failureAdmission)!;
+                failureAcks.Add(failureAck["message_id"]!.GetValue<string>(), failureAck);
+                var failureWitness = hostBook.SaveState("actual-host-profile", true); var failureEvents = emitted;
+                failedWire.AssertActorWrite = () => TestAssert.That(store.NotePolicyGate.CurrentCount == 1 && !Monitor.IsEntered(
+                    typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!), "Faulting ACK send held native guards.");
+                failedWire.FailNextWrite = true;
+                var ioFailed = false;
+                try { await coordinator.PumpPersonalActorAsync(failedConnection); } catch (IOException) { ioFailed = true; }
+                TestAssert.That(ioFailed && failedWire.WasDisposed && failureAcks.Count == 1 && failureGuard.Summary()["saved"]!.GetValue<int>() == 0 &&
+                    hostBook.SaveState("actual-host-profile", true) == failureWitness && emitted == failureEvents, "Failed actual ACK write counted success, mutated data, or retained a usable stream.");
+                await coordinator.WithPersonalActorStoreAsync(registry => {
+                    TestAssert.That(registry.ReadCompletionControls(failedHandle).Count == 0 && registry.Status(failedHandle)["phase"]!.GetValue<string>() == "completion", "I/O failure persisted a successful own ACK."); return true;
+                });
+                using var replacementWire = new ActorWireStream();
+                using var replacement = new TelefonConnection(peer, replacementWire, new byte[16], new byte[72], store, Receive, CancellationToken.None, "wifi")
+                    { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject() };
+                await Prime(replacement, replacementWire);
+                SetFailure("NativeAckNextAttempt", 0L);
+                await coordinator.PumpPersonalActorAsync(replacement);
+                TestAssert.That(replacementWire.Length == 0 && failureAcks.Count == 1 && failureGuard.Summary()["saved"]!.GetValue<int>() == 0,
+                    "Replacement channel inherited the old native ACK claim.");
+                await coordinator.WithPersonalActorStoreAsync(registry => {
+                    TestAssert.Throws<InvalidOperationException>(() => registry.ReadCompletionControls(failedHandle), "Replacement connection retained the old completion source."); return true;
+                });
+            }
             online.Clear(); TestAssert.That(Read() is null && CompletionAuthority() is null, "A disconnected native source stayed authorized.");
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
