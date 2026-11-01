@@ -37376,6 +37376,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return value;
   }
   function mcpNotesActorStopNative(job) {
+    job.restoreAttachmentData = null;
     if (!job.handle || job.nativeStopped) return;
     job.nativeStopped = true;
     mcpNotesActorNative(job, "notes_actor_cancel", {}, new AbortController().signal).catch(() => { job.unknown = true; });
@@ -37391,12 +37392,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpNotesActorStatus(owner, id) {
     const job = mcpNotesActorJob(owner, id);
     if (!mcpNotesActorTerminal(job)) try { mcpNotesActorGuard(job); }
-    catch (error) { job.error = error.code || "source_changed"; job.phase = "failed"; job.controller.abort(); }
+    catch (error) { job.error = error.code || "source_changed"; job.phase = "failed"; job.restoreAttachmentData = null; job.controller.abort(); }
     return mcpNotesActorAntwort(job);
   }
   function mcpNotesActorCancel(owner, id) {
     const job = mcpNotesActorJob(owner, id);
-    if (!mcpNotesActorTerminal(job)) { job.phase = "cancelled"; job.controller.abort(); }
+    if (!mcpNotesActorTerminal(job)) { job.phase = "cancelled"; job.restoreAttachmentData = null; job.controller.abort(); }
     return mcpNotesActorAntwort(job);
   }
   function mcpNotesActorFixedReview(job) {
@@ -37520,10 +37521,44 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
       } catch (error) {
         job.unknown = true; job.error = error.code || "native_operation_failed";
+        job.restoreAttachmentData = null;
         job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort();
       }
     });
     return mcpNotesActorAntwort(job);
+  }
+  async function mcpNotesActorOriginalRestores(job, book, targets, decisions, selection) {
+    let materialized = null, count = 0;
+    for (const decision of decisions) {
+      if (decision.decision !== "restore") continue;
+      const target = targets.find(value => value.proposal_id === decision.proposal_id);
+      if (!["note", "task"].includes(target.kind)) continue; // No unproved attachment/notebook fallback.
+      if (!(target.kind === "note" ? selection.notes : selection.tasks).has(target.id))
+        throw new MagnolieMcp.ToolError("not_granted", "Original restore target is outside the accepted scope");
+      const localId = target.kind === "note" ? personalSyncNotizLokalId(target.id, "note", book) : target.id;
+      if (book.papierkorb.some(value => value.art === target.kind && value.eintrag?.id === localId)) continue;
+      const records = job.review.data.batch.records.filter(value => value.kind === target.kind && value.id === target.id);
+      if (records.length !== 1) continue; // Existing shared handler remains restore_unavailable.
+      const record = records[0], list = target.kind === "note" ? "notizen" : "aufgaben";
+      if (book[list].some(value => value.id === localId) || record.hash !== target.prior_hash || await personalSyncHash(record.value) !== record.hash ||
+          !Array.isArray(record.clock) || !["equal", "dominated"].includes(personalSyncVergleiche(record.clock, target.clock)))
+        throw new MagnolieMcp.ToolError("conflict", "Original accepted content no longer matches the native restore target");
+      mcpNotesActorGuard(job);
+      materialized ||= kopie(book);
+      // Decode ONLY this exact original accepted record in an isolated copy;
+      // no old native data capability, GUI cache or fresh peer content is read.
+      personalSyncSetze(kopie(record), target.id, true, job.restoreAttachmentData || {}, materialized);
+      const value = materialized[list].find(value => value.id === localId);
+      if (!value || target.kind === "note" && !book.notizbuecher.some(notebook => notebook.id === value.notizbuchId) ||
+          target.kind === "task" && value.elternUid && !book.aufgaben.some(parent => parent.uid === value.elternUid))
+        throw new MagnolieMcp.ToolError("restore_unavailable", "Original restore relationships are not available in this book");
+      // Ephemeral candidate-only piece: shared restore performs the usual clock,
+      // provenance and graph updates and removes it before any document save.
+      book.papierkorb.push({ id: uid(), art: target.kind, name: value.titel || "", geloescht: Date.now(),
+        parent_id: "", notiz_zuordnungen: {}, eintrag: kopie(value) });
+      count++;
+    }
+    return count;
   }
   async function mcpNotesActorLateReview(job) {
     const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Native late decision review was inconsistent"); };
@@ -37606,11 +37641,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (personalSyncKanonisch(before) !== personalSyncKanonisch(data.content_scope)) invalid();
     } else if (data.content_scope.revision <= before.revision || data.content_scope.epoch === before.epoch) invalid();
     mcpNotesActorGuard(job);
-    const book = kopie(DATEN), applied = personalSyncEingehendeEntscheidungenAusBestand(book, data.decisions, selection);
+    const book = kopie(DATEN), originalRestores = await mcpNotesActorOriginalRestores(job, book, data.targets, data.decisions, selection);
+    mcpNotesActorGuard(job);
+    const applied = personalSyncEingehendeEntscheidungenAusBestand(book, data.decisions, selection);
     if (applied !== "applied") throw new MagnolieMcp.ToolError(applied, "Late decision candidate could not be adopted safely");
-    const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length + fixedFrames };
+    const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length + fixedFrames,
+      ...(originalRestores ? { original_restore_sources: originalRestores } : {}) };
     const reviewRevision = await personalSyncHash([revision, await personalSyncHash(JSON.stringify(book)), summary]);
     mcpNotesActorGuard(job);
+    job.restoreAttachmentData = null;
     job.review = { book, data, nativeRevision, revision: reviewRevision, summary }; job.phase = "late_review";
     return true;
   }
@@ -37853,6 +37892,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
       }
       mcpNotesActorGuard(job); job.phase = "preparing";
+      job.restoreAttachmentData = Object.freeze(attachments);
       const selection = await personalSyncScopeAusManifest(data.content_scope), book = kopie(job.book);
       mcpNotesActorGuard(job);
       const options = { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) };
