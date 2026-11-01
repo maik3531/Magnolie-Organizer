@@ -37681,10 +37681,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (personalSyncKanonisch(before) !== personalSyncKanonisch(data.content_scope)) invalid();
     } else if (data.content_scope.revision <= before.revision || data.content_scope.epoch === before.epoch) invalid();
     mcpNotesActorGuard(job);
-    const book = kopie(DATEN), originalRestores = await mcpNotesActorOriginalRestores(job, book, data.targets, data.decisions, selection);
-    mcpNotesActorGuard(job);
-    const applied = personalSyncEingehendeEntscheidungenAusBestand(book, data.decisions, selection);
-    if (applied !== "applied") throw new MagnolieMcp.ToolError(applied, "Late decision candidate could not be adopted safely");
+    const book = kopie(DATEN);
+    let originalRestores = 0;
+    // The complete target/clock/scope union above is checked against the live
+    // original book before touching this private candidate. Restore parents
+    // first; a later child failure discards the entire candidate, never a save.
+    const parents = data.decisions.filter(value => targets.get(value.proposal_id).kind !== "attachment");
+    const children = data.decisions.filter(value => targets.get(value.proposal_id).kind === "attachment");
+    for (const group of [parents, children]) {
+      originalRestores += await mcpNotesActorOriginalRestores(job, book, data.targets, group, selection);
+      mcpNotesActorGuard(job);
+      if (group === parents) for (const decision of parents) {
+        const target = targets.get(decision.proposal_id);
+        if (target.kind !== "note" || decision.decision !== "restore") continue;
+        const localId = personalSyncNotizLokalId(target.id, "note", book);
+        const piece = book.papierkorb.slice().reverse().find(value => value.art === "note" && value.eintrag?.id === localId);
+        if (piece) {
+          piece.eintrag.anhaenge = (piece.eintrag.anhaenge || []).filter(value => {
+            const id = personalSyncAnhangId(target.id, value.id, book);
+            const meta = book.personalSync.entities["attachment\u0000" + target.id + "\u0000" + id];
+            if (meta?.state !== "deleted" || meta.status !== "local_pending") return true;
+            if (!children.some(child => child.proposal_id === meta.proposal_id))
+              throw new MagnolieMcp.ToolError("restore_unavailable", "Parent restore requires its pending child decision");
+            return false; // Only its explicit child phase may restore it.
+          });
+        }
+      }
+      const applied = personalSyncEingehendeEntscheidungenAusBestand(book, group, selection);
+      if (applied !== "applied") throw new MagnolieMcp.ToolError(applied, "Late decision candidate could not be adopted safely");
+    }
     const summary = { outgoing_proposals: targets.size, reviewed_deletion_intents: data.decisions.length, decision_frames: data.decision_message_ids.length + fixedFrames,
       ...(originalRestores ? { original_restore_sources: originalRestores } : {}) };
     const reviewRevision = await personalSyncHash([revision, await personalSyncHash(JSON.stringify(book)), summary]);

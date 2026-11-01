@@ -11,7 +11,9 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
 (async () => {
   let passed = 0;
   for (const web of harness.exports.roots) for (const format of [3, 14]) for (const choice of ["delete", "restore"])
-    for (const fault of ["none", "no-original", "descriptor", "clock", "missing-parent", "confirm-retry", "blob", "target-clock"]) {
+    for (const fault of ["none", "no-original", "descriptor", "clock", "missing-parent", "confirm-retry", "blob", "target-clock", "parent-restore", "parent-reversed", "parent-stale-trash", "parent-no-source", "parent-omitted-child"]) {
+      if (process.env.MAGNOLIE_ATTACHMENT_CASE && fault !== process.env.MAGNOLIE_ATTACHMENT_CASE) continue;
+      const parentRestore = fault.startsWith("parent-");
       active = [web, format, choice, fault].join(" / ");
       const removedBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]), keepBytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 2]);
       const url = value => "data:image/png;base64," + value.toString("base64");
@@ -26,15 +28,32 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         const original = plain((await b.t.personalSyncSnapshot(["notes"], format, peer, { selection, independentRemovals: true })).find(value => value.kind === "note"));
         const descriptor = original.value.attachments.find(value => value.name === "removed.png"), key = "attachment\0" + original.id + "\0" + descriptor.attachment_id;
         data.personalSync.entities[key].acknowledged_by_peer = true;
+        if (parentRestore) data.personalSync.entities["note\0" + original.id].acknowledged_by_peer = true;
         const parent = data.notizen.find(value => value.id === "parent-note");
         parent.anhaenge = parent.anhaenge.filter(value => value.id !== "removed-image"); parent.text = "Local newer text must survive";
+        let historicalPiece = null;
         await b.t.personalSyncSnapshot(["notes"], format, peer, { selection, independentRemovals: true, propagateSelectedDeletions: true });
+        if (parentRestore) {
+          data.personalSync.entities["note\0" + original.id].acknowledged_by_peer = true;
+          b.t.inDenPapierkorb("note", parent, "Original parent restore");
+          if (["parent-stale-trash", "parent-omitted-child"].includes(fault)) data.papierkorb.find(value => value.art === "note" && value.eintrag.id === "parent-note").eintrag.anhaenge.push({ id: "removed-image", name: "removed.png", art: "image", daten: url(removedBytes) });
+          if (fault === "parent-stale-trash") {
+            historicalPiece = plain(data.papierkorb.find(value => value.art === "note" && value.eintrag.id === "parent-note"));
+            historicalPiece.id = "historical-trash-piece"; historicalPiece.name = "Unrelated older trash snapshot";
+            data.papierkorb.unshift(plain(historicalPiece));
+          }
+          data.notizen = data.notizen.filter(value => value.id !== "parent-note");
+          await b.t.personalSyncSnapshot(["notes"], format, peer, { selection, independentRemovals: true, propagateSelectedDeletions: true });
+        }
         const meta = plain(data.personalSync.entities[key]); assert.ok(meta.proposal_id); assert.equal(meta.prior_hash, await b.t.personalSyncHash(descriptor));
+        const parentMeta = parentRestore ? plain(data.personalSync.entities["note\0" + original.id]) : null;
+        if (parentMeta) assert.ok(parentMeta.proposal_id);
+        const proposalIds = fault === "parent-omitted-child" ? [parentMeta.proposal_id] : [meta.proposal_id, ...(parentMeta ? [parentMeta.proposal_id] : [])].sort();
         if (fault === "missing-parent") data.notizen = data.notizen.filter(value => value.id !== "parent-note");
         const source = plain(original);
         if (fault === "descriptor") { source.value.attachments.find(value => value.name === "removed.png").name = "CHANGED.png"; source.hash = await b.t.personalSyncHash(source.value); }
         if (fault === "clock") source.clock.push({ actor_id: peer, counter: 99 });
-        const records = fault === "no-original" ? [] : [source], members = { notes: [original.id], tasks: [] };
+        const records = ["no-original", "parent-no-source"].includes(fault) ? [] : [source], members = { notes: [original.id], tasks: [] };
         const scope = { format: 10, epoch: "55555555-5555-4555-8555-555555555555", revision: 1, members, scope_hash: await b.t.personalSyncHash(members) };
         const projection = { request: { format, run_id: actor, trigger: "manual", modules: ["notes"] }, content_scope: scope, intents: [],
           batch: { records, records_hash: await b.t.personalSyncHash(records), commit_token: "77777777-7777-4777-8777-777777777777" } };
@@ -52,8 +71,8 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
               case "notes_actor_scope": response = { scopePage: { scope: { scope_epoch: scope.epoch, scope_revision: 1, scope_hash: scope.scope_hash }, offset: 0,
                 total: 1, notes_total: 1, tasks_total: 0, next_offset: null, members, sourceRevision: "b".repeat(64), baseline: { record_format: format, propagate_deletions: true } } }; break;
               case "notes_actor_create": response = { actorId: actor, ownerToken: "d".repeat(64), bookSource: "" }; break;
-              case "notes_actor_produce": response = { actor: { producer_staged: true, late_decision_phase: 1, proposal_count: 1, message_count: 1,
-                proposal_ids: [meta.proposal_id], book_sha256: savedHash, save_sequence: sequence } }; break;
+              case "notes_actor_produce": response = { actor: { producer_staged: true, late_decision_phase: 1, proposal_count: proposalIds.length, message_count: 1,
+                proposal_ids: proposalIds, book_sha256: savedHash, save_sequence: sequence } }; break;
               case "notes_actor_dispatch_proposals": response = { actor: { dispatch_started: true, message_count: 1, delivery_confirmed: false } }; break;
               case "notes_actor_start": case "notes_actor_cancel": response = { actor: {} }; break;
               case "notes_actor_read": {
@@ -67,16 +86,24 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
               case "notes_actor_reply": response = { actor: { reply_queued: true, message_count: r.batches.length, book_persisted: true, phone_persisted: false, delivery_confirmed: false } }; break;
               case "notes_actor_status": response = { actor: { phase: "decision_review", packets: 4, phone_data_persisted: true, phone_persisted: false, book_persisted: true, reply_queued: true, completion_report_queued: true } }; break;
               case "notes_actor_late_review": {
-                if (!ready) { ready = true; response = { actor: { review_ready: false, expected_proposals: 1 } }; break; }
+                if (!ready) { ready = true; response = { actor: { review_ready: false, expected_proposals: proposalIds.length } }; break; }
                 if (!lateRaw) {
                   lateRaw = Buffer.from(JSON.stringify({ targets: [{ proposal_id: meta.proposal_id, kind: "attachment", id: descriptor.attachment_id, parent_id: original.id,
                     prior_hash: meta.prior_hash, clock: meta.clock }], decisions: [{ proposal_id: meta.proposal_id, decision: choice, expected_clock: meta.clock }],
                     decision_message_ids: [frame], content_scope: scope, data_saved_book: { book_source: "c".repeat(64), sha256: ordinary.hash, sequence: ordinary.sequence }, review_revision: "9".repeat(64) }));
                   if (fault === "target-clock") { const changed = JSON.parse(lateRaw); changed.decisions[0].expected_clock[0].counter++; lateRaw = Buffer.from(JSON.stringify(changed)); }
+                  if (parentMeta) {
+                    const changed = JSON.parse(lateRaw);
+                    changed.targets.unshift({ proposal_id: parentMeta.proposal_id, kind: "note", id: original.id, parent_id: "", prior_hash: parentMeta.prior_hash, clock: parentMeta.clock });
+                    changed.decisions.unshift({ proposal_id: parentMeta.proposal_id, decision: "restore", expected_clock: parentMeta.clock });
+                    if (fault === "parent-omitted-child") { changed.targets.pop(); changed.decisions.pop(); }
+                    if (fault === "parent-reversed") { changed.targets.reverse(); changed.decisions.reverse(); }
+                    lateRaw = Buffer.from(JSON.stringify(changed));
+                  }
                   lateHash = hash(lateRaw);
                 }
                 const end = Math.min(lateRaw.length, r.offset + 113);
-                response = { actor: { review_ready: true, expected_proposals: 1, revision: lateHash, review_revision: "9".repeat(64), total_bytes: lateRaw.length, offset: r.offset,
+                response = { actor: { review_ready: true, expected_proposals: proposalIds.length, revision: lateHash, review_revision: "9".repeat(64), total_bytes: lateRaw.length, offset: r.offset,
                   next_offset: end < lateRaw.length ? end : null, data_base64: lateRaw.subarray(r.offset, end).toString("base64"), deletion_book_persisted: false, phone_persisted: false } }; break;
               }
               case "notes_actor_prepare_late_save": prepares++; claim = { claim_token: "8".repeat(64), revision: r.reviewRevision, after_sha256: r.bookSha256,
@@ -104,8 +131,12 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         if (fault === "blob") { assert.equal(initial.phase, "failed"); assert.equal(initial.error_code, "invalid_result"); assert.equal(sequence, 1); assert.equal(core, 0); assert.equal(prepares, 0); passed++; continue; }
         assert.equal(initial.phase, "review", active + ": " + JSON.stringify(initial));
         b.t.mcpNotesActorCommit(owner, start.operation_id, status().review_revision);
-        const late = await wait(["late_review", "failed"]), rejected = fault === "target-clock" || choice === "restore" && ["no-original", "descriptor", "missing-parent"].includes(fault);
-        if (rejected) { assert.equal(late.phase, "failed", active); assert.equal(sequence, 2); assert.equal(prepares, 0); passed++; continue; }
+        const late = await wait(["late_review", "failed"]), rejected = ["target-clock", "parent-omitted-child"].includes(fault) || choice === "restore" && ["no-original", "descriptor", "missing-parent", "parent-no-source"].includes(fault);
+        if (rejected) {
+          assert.equal(late.phase, "failed", active); assert.equal(sequence, 2); assert.equal(prepares, 0);
+          if (parentRestore) assert.ok(!data.notizen.some(value => value.id === "parent-note"), "Child failure leaked the partially restored parent candidate into the active book");
+          passed++; continue;
+        }
         assert.equal(late.phase, "late_review", active + ": " + JSON.stringify(late));
         assert.equal(data.notizen.find(value => value.id === "parent-note")?.anhaenge.some(value => value.id === "removed-image") || false, false,
           "Ordinary data phase resurrected pending attachment before the late review: " + active);
@@ -116,7 +147,7 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
         if (fault === "confirm-retry") { assert.equal(done.phase, "late_metadata_pending"); b.t.mcpNotesActorCommit(owner, start.operation_id, done.review_revision); done = await wait(["completed", "failed"]); }
         assert.equal(done.phase, "completed", active + ": " + JSON.stringify(done)); assert.equal(sequence, 3); assert.equal(core, 1); assert.equal(prepares, 1); assert.equal(checkpoints, 2);
         const current = data.notizen.find(value => value.id === "parent-note");
-        assert.equal(parentFields(current), beforeLateParent, "Attachment restore replayed original parent fields instead of restoring only the exact child");
+        if (!parentMeta) assert.equal(parentFields(current), beforeLateParent, "Attachment restore replayed original parent fields instead of restoring only the exact child");
         if (current) {
           if (fault !== "clock") assert.equal(current.text, "Local newer text must survive");
           assert.equal(current.anhaenge.find(value => value.id === "keep-image").daten, url(keepBytes));
@@ -124,6 +155,7 @@ const watchdog = setTimeout(() => { console.error("Original attachment probe tim
           if (choice === "restore") assert.equal(current.anhaenge.find(value => value.id === "removed-image").daten, url(removedBytes));
         }
         assert.equal(data.notizen.find(value => value.id === "private-note").text, "Never change"); passed++;
+        if (historicalPiece) assert.deepEqual(plain(data.papierkorb.find(value => value.id === historicalPiece.id)), historicalPiece, "Coordination changed an older unrelated trash snapshot");
       } finally { b.close(); }
     }
   console.log("Original attachment actor: " + passed + " cases passed");
