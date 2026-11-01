@@ -372,9 +372,10 @@ object PersonalSync {
                 else -> false } } ?: return reconciled to "restore_unavailable"
             next = PapierkorbLogik.wiederherstellen(next, trash.id) ?: return reconciled to "restore_unavailable"
         }
+        // Trash restore may have issued fresh live metadata and a new causal clock.
         val resolved = if (decision == "delete") PersonalSyncEntity(clock = proposal.clock, state = "deleted", peer_device_id = proposal.source_device,
             prior_hash = proposal.prior_hash, deleted_ms = proposal.deleted_ms, label = proposal.label, parent_id = proposal.parent_id,
-            proposal_id = proposal.proposal_id, status = "resolved") else meta
+            proposal_id = proposal.proposal_id, status = "resolved") else next.personalSync.entities[key]
         next = next.copy(personalSync = next.personalSync.copy(
             entities = if (resolved == null) next.personalSync.entities else next.personalSync.entities + (key to resolved),
             pending_proposals = next.personalSync.pending_proposals.filterNot { it.proposal_id == proposalId },
