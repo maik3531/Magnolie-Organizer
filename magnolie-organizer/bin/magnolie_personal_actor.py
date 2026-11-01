@@ -158,8 +158,7 @@ def validate_data(value):
     return value
 
 
-def completion_members(run_id, before, native_targets, decisions):
-    """Exact terminal delta only; native target/source/save authority are caller gates."""
+def _checked_completion_targets(run_id, before, native_targets, decisions):
     start(run_id)
     scope.validate(before)
     if (not isinstance(native_targets, list) or not isinstance(decisions, list) or
@@ -188,6 +187,12 @@ def completion_members(run_id, before, native_targets, decisions):
         choices[identity] = decision["decision"]
     if set(targets) != set(choices):
         raise ValueError("actor_completion_decision_missing")
+    return targets, choices
+
+
+def completion_members(run_id, before, native_targets, decisions):
+    """Exact terminal delta only; native target/source/save authority are caller gates."""
+    targets, choices = _checked_completion_targets(run_id, before, native_targets, decisions)
     members = {name:set(values) for name, values in before["members"].items()}
     restored_notes = {value["id"] for key,value in targets.items() if value["kind"] == "note" and choices[key] == "restore"}
     deleted_notes = {value["id"] for key,value in targets.items() if value["kind"] == "note" and choices[key] == "delete"}
@@ -209,9 +214,48 @@ def completion_members(run_id, before, native_targets, decisions):
     return scope.create(members["notes"], members["tasks"], epoch=run_id)["members"]
 
 
+def historical_completion_members(run_id, before, native_targets, decisions, native_historical_targets):
+    """Separate result math, NOT native origin/save/restore authority.
+
+    Only a future native saved-claim handoff may supply the historical subset;
+    no wire/controller route obtains that right from this pure calculation.
+    Historical actions never add object, parent, notebook or blob data rights.
+    Native saved-result/parent-source checks remain independent caller gates.
+    """
+    targets, choices = _checked_completion_targets(run_id, before, native_targets, decisions)
+    if not isinstance(native_historical_targets, list) or len(native_historical_targets) > 256:
+        raise ValueError('invalid_actor_historical_targets')
+    historical = set()
+    for target in native_historical_targets:
+        if (not isinstance(target, dict) or not isinstance(target.get('proposal_id'), str) or
+                target['proposal_id'] not in targets or targets[target['proposal_id']] != target or target['proposal_id'] in historical):
+            raise ValueError('actor_historical_target_proof_changed')
+        member = target['parent_id'] if target['kind'] == 'attachment' else target['id']
+        if member in before['members']['tasks' if target['kind'] == 'task' else 'notes']:
+            raise ValueError('actor_historical_target_is_data_member')
+        historical.add(target['proposal_id'])
+    deleted_parents = {target['id'] for identity, target in targets.items()
+        if target['kind'] == 'note' and choices[identity] == 'delete'}
+    if any(target['kind'] == 'attachment' and choices[identity] == 'restore' and target['parent_id'] in deleted_parents
+            for identity, target in targets.items()):
+        raise ValueError('actor_completion_parent_unavailable')
+    return completion_members(run_id, before,
+        [target for identity, target in targets.items() if identity not in historical],
+        [decision for decision in decisions if decision['proposal_id'] not in historical])
+
+
 def require_completion_scope(run_id, before, native_targets, decisions, actual_after):
     """Compare against fresh native membership, never a claimed wire revision."""
     members = completion_members(run_id, before, native_targets, decisions)
+    return _require_result_scope(before, members, actual_after)
+
+
+def require_historical_completion_scope(run_id, before, native_targets, decisions, native_historical_targets, actual_after):
+    members = historical_completion_members(run_id, before, native_targets, decisions, native_historical_targets)
+    return _require_result_scope(before, members, actual_after)
+
+
+def _require_result_scope(before, members, actual_after):
     scope.validate(actual_after)
     if actual_after["members"] != members:
         raise ValueError("actor_completion_scope_changed")

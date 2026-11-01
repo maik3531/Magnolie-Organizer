@@ -11,6 +11,7 @@ internal sealed class PersonalActorDecisionCompletion
     private readonly string runId, authority;
     private readonly JsonObject before;
     private readonly JsonArray targets, decisions;
+    private readonly JsonArray? historicalTargets;
     private readonly NativeBookSaveState savedBook;
     private readonly Func<string?> currentAuthority;
     private readonly Func<JsonObject?> currentScope;
@@ -23,7 +24,8 @@ internal sealed class PersonalActorDecisionCompletion
 
     internal PersonalActorDecisionCompletion(string runId, JsonArray nativeTargets, IReadOnlyList<JsonObject> queuedDecisions,
         Func<string?> currentAuthority, Func<JsonObject?> currentScope, Func<NativeBookSaveState?> currentSavedBook,
-        Func<JsonArray> persistedControls, IReadOnlyList<JsonObject>? nativeSentAcknowledgments = null, JsonObject? beforeScope = null)
+        Func<JsonArray> persistedControls, IReadOnlyList<JsonObject>? nativeSentAcknowledgments = null, JsonObject? beforeScope = null,
+        JsonArray? nativeHistoricalTargets = null)
     {
         PersonalSyncActorContract.Start(runId);
         this.runId = runId; this.currentAuthority = currentAuthority; this.currentScope = currentScope;
@@ -45,7 +47,9 @@ internal sealed class PersonalActorDecisionCompletion
                 throw new InvalidDataException("invalid_actor_completion_controls");
             foreach (var decision in body["decisions"]!.AsArray()) decisions.Add(decision!.DeepClone());
         }
-        PersonalSyncActorContract.CompletionMembers(runId, before, targets, decisions);
+        historicalTargets = nativeHistoricalTargets?.DeepClone().AsArray();
+        if (historicalTargets is null) PersonalSyncActorContract.CompletionMembers(runId, before, targets, decisions);
+        else PersonalSyncActorContract.HistoricalCompletionMembers(runId, before, targets, decisions, historicalTargets);
         if (nativeSentAcknowledgments?.Count > 256) throw new InvalidDataException("invalid_actor_completion_controls");
         foreach (var queued in nativeSentAcknowledgments ?? [])
         {
@@ -102,7 +106,12 @@ internal sealed class PersonalActorDecisionCompletion
         try { PhoneContentScope.Validate(actual); } catch (InvalidDataException) { return false; }
         var atBefore = JsonNode.DeepEquals(PhoneContentScope.Reference(actual), PhoneContentScope.Reference(before));
         var atAfter = false;
-        try { PersonalSyncActorContract.RequireCompletionScope(runId, before, targets, decisions, actual); atAfter = true; }
+        try
+        {
+            if (historicalTargets is null) PersonalSyncActorContract.RequireCompletionScope(runId, before, targets, decisions, actual);
+            else PersonalSyncActorContract.RequireHistoricalCompletionScope(runId, before, targets, decisions, historicalTargets, actual);
+            atAfter = true;
+        }
         catch (InvalidDataException) { }
         if (!atBefore && !atAfter) return false;
         if (body is not null && Success(body) && !atAfter) return null;

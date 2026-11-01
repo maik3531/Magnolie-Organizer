@@ -19,12 +19,14 @@ internal class PersonalActorDecisionCompletion(
     nativeAuthority: String? = null,
     // Exact locally generated ACKs for incoming native decisions. They must
     // actually be sent before their encrypted journal controls can count.
-    nativeSentAcknowledgments: List<JsonObject> = emptyList()
+    nativeSentAcknowledgments: List<JsonObject> = emptyList(),
+    nativeHistoricalTargets: JsonArray? = null
 ) {
     private val before = snapshot(requireNotNull(nativeBeforeScope ?: currentScope())).also(PhoneContentScope::validate)
     private val authority = requireNotNull(nativeAuthority ?: currentAuthority()).also { require(HEX.matches(it)) }
     private val savedBook = checkedSavedBook(currentSavedBook())
     private val targets = Json.parseToJsonElement(nativeTargets.toString()).jsonArray
+    private val historicalTargets = nativeHistoricalTargets?.let { Json.parseToJsonElement(it.toString()).jsonArray }
     private val controls = linkedMapOf<String, JsonObject>()
     private val frames = linkedMapOf<String, JsonObject>()
     private val received = linkedMapOf<String, JsonObject>()
@@ -51,7 +53,8 @@ internal class PersonalActorDecisionCompletion(
             all.addAll(body.getValue("decisions").jsonArray)
         }
         decisions = JsonArray(all)
-        PersonalSyncActor.completionMembers(runId, before, targets, decisions)
+        if (historicalTargets == null) PersonalSyncActor.completionMembers(runId, before, targets, decisions)
+        else PersonalSyncActor.historicalCompletionMembers(runId, before, targets, decisions, historicalTargets)
         require(nativeSentAcknowledgments.size <= 256)
         for (queued in nativeSentAcknowledgments) {
             val wire = snapshot(queued)
@@ -93,7 +96,10 @@ internal class PersonalActorDecisionCompletion(
         val actual = currentScope() ?: return null
         if (runCatching { PhoneContentScope.validate(actual) }.isFailure) return false
         val atBefore = PhoneContentScope.reference(actual) == PhoneContentScope.reference(before)
-        val atAfter = runCatching { PersonalSyncActor.requireCompletionScope(runId, before, targets, decisions, actual) }.isSuccess
+        val atAfter = runCatching {
+            if (historicalTargets == null) PersonalSyncActor.requireCompletionScope(runId, before, targets, decisions, actual)
+            else PersonalSyncActor.requireHistoricalCompletionScope(runId, before, targets, decisions, historicalTargets, actual)
+        }.isSuccess
         if (!atBefore && !atAfter) return false
         if (body?.string("status") in SUCCESS && !atAfter) return null
         if (operation == "put" && body != null && body.string("message_id") in ownAcknowledgments &&

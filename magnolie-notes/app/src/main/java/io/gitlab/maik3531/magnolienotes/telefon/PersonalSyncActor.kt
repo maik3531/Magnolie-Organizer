@@ -76,7 +76,7 @@ internal object PersonalSyncActor {
     }
 
     /** Exact terminal delta only; native target/source/save authority are caller gates. */
-    fun completionMembers(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray): JsonObject {
+    private fun checkedCompletionTargets(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray): Pair<Map<String, JsonObject>, Map<String, String>> {
         start(runId); PhoneContentScope.validate(before)
         require(nativeTargets.size == decisions.size && decisions.size <= 256) { "invalid_actor_completion_targets" }
         val targets = linkedMapOf<String, JsonObject>(); val choices = linkedMapOf<String, String>()
@@ -104,6 +104,11 @@ internal object PersonalSyncActor {
             choices[id] = decision.string("decision")
         }
         require(choices.keys == targets.keys) { "actor_completion_decision_missing" }
+        return targets to choices
+    }
+
+    fun completionMembers(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray): JsonObject {
+        val (targets, choices) = checkedCompletionTargets(runId, before, nativeTargets, decisions)
         val members = before.getValue("members").jsonObject
         val notes = members.getValue("notes").jsonArray.map { it.jsonPrimitive.content }.toMutableSet()
         val tasks = members.getValue("tasks").jsonArray.map { it.jsonPrimitive.content }.toMutableSet()
@@ -122,9 +127,41 @@ internal object PersonalSyncActor {
         return PhoneContentScope.create(notes, tasks, epoch = runId).getValue("members").jsonObject
     }
 
+    /** Separate metadata result math, NOT origin/save/restore authority. No native
+     * controller/wire route supplies this subset before saved-claim integration. */
+    fun historicalCompletionMembers(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray,
+        nativeHistoricalTargets: JsonArray): JsonObject {
+        val (targets, choices) = checkedCompletionTargets(runId, before, nativeTargets, decisions)
+        require(nativeHistoricalTargets.size <= 256) { "invalid_actor_historical_targets" }
+        val historical = mutableSetOf<String>()
+        for (raw in nativeHistoricalTargets) {
+            val target = raw.jsonObject; val id = target.string("proposal_id")
+            require(targets[id] == target && historical.add(id)) { "actor_historical_target_proof_changed" }
+            val member = if (target.string("kind") == "attachment") target.string("parent_id") else target.string("id")
+            require(JsonPrimitive(member) !in before.getValue("members").jsonObject.getValue(if (target.string("kind") == "task") "tasks" else "notes").jsonArray) {
+                "actor_historical_target_is_data_member"
+            }
+        }
+        val deletedParents = targets.filter { (id, target) -> target.string("kind") == "note" && choices[id] == "delete" }
+            .values.map { it.string("id") }.toSet()
+        require(targets.none { (id, target) -> target.string("kind") == "attachment" && choices[id] == "restore" && target.string("parent_id") in deletedParents }) {
+            "actor_completion_parent_unavailable"
+        }
+        return completionMembers(runId, before, JsonArray(targets.filterKeys { it !in historical }.values.toList()),
+            JsonArray(decisions.filter { it.jsonObject.string("proposal_id") !in historical }))
+    }
+
+    fun requireHistoricalCompletionScope(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray,
+        nativeHistoricalTargets: JsonArray, actualAfter: JsonObject): JsonObject =
+        requireResultScope(before, historicalCompletionMembers(runId, before, nativeTargets, decisions, nativeHistoricalTargets), actualAfter)
+
     /** Actual membership must come from fresh native evidence, never a wire claim. */
     fun requireCompletionScope(runId: String, before: JsonObject, nativeTargets: JsonArray, decisions: JsonArray, actualAfter: JsonObject): JsonObject {
-        val members = completionMembers(runId, before, nativeTargets, decisions); PhoneContentScope.validate(actualAfter)
+        return requireResultScope(before, completionMembers(runId, before, nativeTargets, decisions), actualAfter)
+    }
+
+    private fun requireResultScope(before: JsonObject, members: JsonObject, actualAfter: JsonObject): JsonObject {
+        PhoneContentScope.validate(actualAfter)
         require(members == actualAfter["members"]) { "actor_completion_scope_changed" }
         if (members == before["members"]) {
             require(PhoneContentScope.reference(actualAfter) == PhoneContentScope.reference(before)) { "actor_completion_scope_generation_changed" }

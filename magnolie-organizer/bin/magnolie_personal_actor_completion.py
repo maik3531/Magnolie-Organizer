@@ -20,7 +20,7 @@ class NativeBookProofPending(RuntimeError):
 
 class DecisionAckCompletion:
     def __init__(self, run_id, native_targets, queued_decisions, *, current_authority, current_scope, current_saved_book, persisted_controls,
-                  native_sent_acknowledgments=None, before_scope=None):
+                  native_sent_acknowledgments=None, before_scope=None, native_historical_targets=None):
         actor.start(run_id)
         if not all(callable(value) for value in (current_authority, current_scope, current_saved_book, persisted_controls)):
             raise TypeError("Native completion observations are required")
@@ -52,7 +52,11 @@ class DecisionAckCompletion:
             decisions.extend(body["decisions"])
         self.targets = copy.deepcopy(native_targets)
         self.decisions = copy.deepcopy(decisions)
-        self.members = actor.completion_members(run_id, self.before, self.targets, self.decisions)
+        self.historical_targets = copy.deepcopy(native_historical_targets)
+        if self.historical_targets is None:
+            self.members = actor.completion_members(run_id, self.before, self.targets, self.decisions)
+        else:
+            self.members = actor.historical_completion_members(run_id, self.before, self.targets, self.decisions, self.historical_targets)
         self.received = {}
         self.own_acknowledgments = {}
         self.successfully_sent = set()
@@ -127,7 +131,10 @@ class DecisionAckCompletion:
             return False
         at_before = scope.reference(actual) == scope.reference(self.before)
         try:
-            actor.require_completion_scope(self.run_id, self.before, self.targets, self.decisions, actual)
+            if self.historical_targets is None:
+                actor.require_completion_scope(self.run_id, self.before, self.targets, self.decisions, actual)
+            else:
+                actor.require_historical_completion_scope(self.run_id, self.before, self.targets, self.decisions, self.historical_targets, actual)
             at_after = True
         except ValueError:
             at_after = False

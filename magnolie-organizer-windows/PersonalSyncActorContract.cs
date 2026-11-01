@@ -138,7 +138,8 @@ internal static class PersonalSyncActorContract
 
     // Exact terminal delta only. The caller must obtain targets and actual
     // membership from native authority, and separately prove its saved claim.
-    internal static JsonObject CompletionMembers(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions)
+    private static (Dictionary<string, JsonObject> Targets, Dictionary<string, string> Choices) CheckedCompletionTargets(
+        string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions)
     {
         _ = Start(runId); PhoneContentScope.Validate(before);
         if (nativeTargets.Count != decisions.Count || decisions.Count > 256) throw new InvalidDataException("invalid_actor_completion_targets");
@@ -166,6 +167,12 @@ internal static class PersonalSyncActorContract
                 !choices.TryAdd(id, Text(decision, "decision"))) throw new InvalidDataException("actor_completion_decision_changed");
         }
         if (choices.Count != targets.Count) throw new InvalidDataException("actor_completion_decision_missing");
+        return (targets, choices);
+    }
+
+    internal static JsonObject CompletionMembers(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions)
+    {
+        var (targets, choices) = CheckedCompletionTargets(runId, before, nativeTargets, decisions);
         var notes = before["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
         var tasks = before["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
         var allowedParents = new HashSet<string>(notes, StringComparer.Ordinal); var deletedNotes = new HashSet<string>(StringComparer.Ordinal);
@@ -189,9 +196,42 @@ internal static class PersonalSyncActorContract
         return PhoneContentScope.Create(notes, tasks, epoch: runId)["members"]!.DeepClone().AsObject();
     }
 
-    internal static JsonObject RequireCompletionScope(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions, JsonObject actualAfter)
+    // Separate metadata result math, NOT incoming/native-save/restore authority.
+    // No controller or wire route supplies historical targets until native saved-claim integration.
+    internal static JsonObject HistoricalCompletionMembers(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions, JsonArray nativeHistoricalTargets)
     {
-        var members = CompletionMembers(runId, before, nativeTargets, decisions); PhoneContentScope.Validate(actualAfter);
+        var (targets, choices) = CheckedCompletionTargets(runId, before, nativeTargets, decisions);
+        if (nativeHistoricalTargets.Count > 256) throw new InvalidDataException("invalid_actor_historical_targets");
+        var historical = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in nativeHistoricalTargets)
+        {
+            var target = raw as JsonObject ?? throw new InvalidDataException("actor_historical_target_proof_changed");
+            var id = Text(target, "proposal_id");
+            if (!targets.TryGetValue(id, out var original) || !JsonNode.DeepEquals(original, target) || !historical.Add(id))
+                throw new InvalidDataException("actor_historical_target_proof_changed");
+            var member = Text(target, "kind") == "attachment" ? Text(target, "parent_id") : Text(target, "id");
+            if (before["members"]![Text(target, "kind") == "task" ? "tasks" : "notes"]!.AsArray().Any(value => value!.GetValue<string>() == member))
+                throw new InvalidDataException("actor_historical_target_is_data_member");
+        }
+        var deletedParents = targets.Where(pair => Text(pair.Value, "kind") == "note" && choices[pair.Key] == "delete")
+            .Select(pair => Text(pair.Value, "id")).ToHashSet(StringComparer.Ordinal);
+        if (targets.Any(pair => Text(pair.Value, "kind") == "attachment" && choices[pair.Key] == "restore" && deletedParents.Contains(Text(pair.Value, "parent_id"))))
+            throw new InvalidDataException("actor_completion_parent_unavailable");
+        return CompletionMembers(runId, before,
+            new JsonArray(targets.Where(pair => !historical.Contains(pair.Key)).Select(pair => (JsonNode)pair.Value.DeepClone()).ToArray()),
+            new JsonArray(decisions.OfType<JsonObject>().Where(value => !historical.Contains(Text(value, "proposal_id"))).Select(value => (JsonNode)value.DeepClone()).ToArray()));
+    }
+
+    internal static JsonObject RequireHistoricalCompletionScope(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions,
+        JsonArray nativeHistoricalTargets, JsonObject actualAfter) => RequireResultScope(before,
+            HistoricalCompletionMembers(runId, before, nativeTargets, decisions, nativeHistoricalTargets), actualAfter);
+
+    internal static JsonObject RequireCompletionScope(string runId, JsonObject before, JsonArray nativeTargets, JsonArray decisions, JsonObject actualAfter)
+        => RequireResultScope(before, CompletionMembers(runId, before, nativeTargets, decisions), actualAfter);
+
+    private static JsonObject RequireResultScope(JsonObject before, JsonObject members, JsonObject actualAfter)
+    {
+        PhoneContentScope.Validate(actualAfter);
         if (!JsonNode.DeepEquals(members, actualAfter["members"])) throw new InvalidDataException("actor_completion_scope_changed");
         if (JsonNode.DeepEquals(members, before["members"]))
         {
