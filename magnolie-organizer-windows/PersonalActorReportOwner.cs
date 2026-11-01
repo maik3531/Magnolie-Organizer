@@ -16,6 +16,8 @@ internal sealed class PersonalActorReportOwner
     private readonly Func<JsonArray> persistedControls;
     private readonly Dictionary<string, JsonObject> expected = new(StringComparer.Ordinal);
     private readonly HashSet<string> producerIds = new(StringComparer.Ordinal);
+    private readonly JsonArray fixedTargets;
+    private readonly Dictionary<string, JsonObject> fixedFrames;
     private PersonalActorPostDataReview? review;
     internal Func<string, JsonObject?, bool?> Validator { get; }
     internal JsonArray NativeTargets => targets.DeepClone().AsArray();
@@ -25,7 +27,7 @@ internal sealed class PersonalActorReportOwner
 
     internal PersonalActorReportOwner(string runId, JsonArray nativeTargets, JsonObject beforeScope, JsonObject reportFrame,
         NativeBookSaveState dataSavedBook, Func<string?> currentAuthority, Func<JsonArray> persistedControls,
-        IReadOnlyList<JsonObject>? producerFrames = null)
+        IReadOnlyList<JsonObject>? producerFrames = null, JsonArray? nativeFixedTargets = null, IReadOnlyList<JsonObject>? fixedDecisionFrames = null)
     {
         PersonalSyncActorContract.Start(runId); this.runId = runId;
         this.currentAuthority = currentAuthority; this.persistedControls = persistedControls;
@@ -64,6 +66,9 @@ internal sealed class PersonalActorReportOwner
             }
         }
         if (producerFrames is not null && !witnessed.SetEquals(expected.Keys)) throw new InvalidDataException("actor_producer_frames_incomplete");
+        var fixedEvidence = PersonalActorPostDataReview.CheckedFixedEvidence(runId, before, targets, nativeFixedTargets, fixedDecisionFrames);
+        fixedTargets = fixedEvidence.Targets; fixedFrames = fixedEvidence.Frames;
+        if (fixedFrames.ContainsKey(Text(report, "message_id")) || producerIds.Overlaps(fixedFrames.Keys)) throw new InvalidDataException("actor_fixed_frame_direction_collision");
         authority = currentAuthority() ?? throw new InvalidOperationException("actor_report_owner_not_ready");
         if (!Hex.IsMatch(authority)) throw new InvalidOperationException("actor_report_owner_not_ready");
         Validator = Validate;
@@ -75,8 +80,8 @@ internal sealed class PersonalActorReportOwner
         {
             var body = wire["body"]!.AsObject(); PersonalSyncActorContract.ValidateAck(body);
             var id = Text(body, "message_id");
-            if (Text(body, "run_id") != runId || id != Text(report, "message_id") && !producerIds.Contains(id)) throw new InvalidDataException("unexpected_actor_report_control");
-            return id == Text(report, "message_id") ? "report_ack" : "producer_ack";
+            if (Text(body, "run_id") != runId || id != Text(report, "message_id") && !producerIds.Contains(id) && !fixedFrames.ContainsKey(id)) throw new InvalidDataException("unexpected_actor_report_control");
+            return id == Text(report, "message_id") ? "report_ack" : fixedFrames.ContainsKey(id) ? "fixed_decision_ack" : "producer_ack";
         }
         if (Text(wire, "kind") != PersonalSyncActorContract.DataKind) throw new InvalidDataException("unexpected_actor_report_control");
         var semantic = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
@@ -88,14 +93,20 @@ internal sealed class PersonalActorReportOwner
     }
     private bool? Validate(string operation, JsonObject? wire)
     {
-        if (operation is not ("begin" or "put" or "read" or "maintain" or "handoff" or "send_report")) throw new InvalidDataException("actor_report_owner_metadata_only");
+        if (operation is not ("begin" or "put" or "read" or "maintain" or "handoff" or "send_report" or "send_fixed_decision")) throw new InvalidDataException("actor_report_owner_metadata_only");
         var current = currentAuthority(); if (current is null) return null; if (current != authority) return false;
         if (operation == "send_report")
         { if (!JsonNode.DeepEquals(report, wire)) throw new InvalidDataException("actor_ordinary_report_changed"); return true; }
+        if (operation == "send_fixed_decision")
+        {
+            if (wire is null || !fixedFrames.TryGetValue(Text(wire, "message_id"), out var original) || !JsonNode.DeepEquals(original, wire))
+                throw new InvalidDataException("actor_fixed_decision_frame_changed");
+            return true; // Original ordinary-saved choice only, never a general send.
+        }
         if (wire is not null)
         {
             if (operation != "put") throw new InvalidDataException("unexpected_actor_report_control");
-            if (Control(wire) is "report_ack" or "producer_ack") return true;
+            if (Control(wire) is "report_ack" or "producer_ack" or "fixed_decision_ack") return true;
         }
         if (review is not null) return review.Validator(operation, wire);
         return operation == "handoff" ? null : true;
@@ -110,7 +121,8 @@ internal sealed class PersonalActorReportOwner
         if (review is not null) return review;
         if (currentSavedBook() != dataSavedBook) throw new InvalidOperationException("actor_ordinary_saved_book_changed");
         var created = new PersonalActorPostDataReview(runId, targets, before, Text(report, "message_id"), ack, currentAuthority, currentScope, currentSavedBook,
-            () => new JsonArray(persistedControls().OfType<JsonObject>().Where(wire => Control(wire) == "decision").Select(wire => (JsonNode)wire.DeepClone()).ToArray()));
+            () => new JsonArray(persistedControls().OfType<JsonObject>().Where(wire => Control(wire) == "decision").Select(wire => (JsonNode)wire.DeepClone()).ToArray()),
+            nativeFixedTargets: fixedTargets, fixedDecisionFrames: fixedFrames.Values.ToArray());
         if (currentAuthority() != authority) throw new InvalidOperationException("actor_report_owner_changed");
         if (currentSavedBook() != dataSavedBook) throw new InvalidOperationException("actor_ordinary_saved_book_changed");
         review = created; return created;

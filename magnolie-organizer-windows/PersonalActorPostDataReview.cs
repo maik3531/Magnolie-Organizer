@@ -11,8 +11,8 @@ internal sealed class PersonalActorPostDataReview
     private static readonly Regex Hex = new("\\A[0-9a-f]{64}\\z", RegexOptions.CultureInvariant);
     private readonly string runId, authority;
     private readonly JsonArray targets;
-    private readonly JsonArray fixedTargets, fixedDecisions = [];
-    private readonly Dictionary<string, JsonObject> fixedFrames = new(StringComparer.Ordinal);
+    private readonly JsonArray fixedTargets, fixedDecisions;
+    private readonly Dictionary<string, JsonObject> fixedFrames;
     private readonly JsonObject before, reportAck;
     private readonly NativeBookSaveState beforeSaved;
     private readonly Func<string?> currentAuthority;
@@ -45,25 +45,7 @@ internal sealed class PersonalActorPostDataReview
         // Native fixed choices were already adopted by the ordinary SaveACK.
         // Bind their original targets/frames for scope and receipt union, but
         // never include them in the list of late document mutations.
-        fixedTargets = nativeFixedTargets?.DeepClone().AsArray() ?? [];
-        if (targets.Count + fixedTargets.Count > 256 || fixedDecisionFrames?.Count > 256)
-            throw new InvalidDataException("invalid_actor_fixed_review_targets");
-        foreach (var wire in fixedDecisionFrames ?? [])
-        {
-            if (Text(wire, "kind") != PersonalSyncActorContract.DataKind || !TelefonProtocolContract.IsUuidV4(Text(wire, "message_id")))
-                throw new InvalidDataException("invalid_actor_fixed_review_frame");
-            var semantic = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
-            if (semantic.Kind != "personal_sync.deletion_decision" || Text(semantic.Body, "run_id") != runId ||
-                !fixedFrames.TryAdd(Text(wire, "message_id"), wire.DeepClone().AsObject()))
-                throw new InvalidDataException("invalid_actor_fixed_review_frame");
-            foreach (var decision in semantic.Body["decisions"]!.AsArray()) fixedDecisions.Add(decision!.DeepClone());
-        }
-        PersonalSyncActorContract.CompletionMembers(runId, before, fixedTargets, fixedDecisions);
-        // Early union checks must not reject deleting an attachment alongside
-        // its fixed deleted parent by pretending the late choice was restore.
-        var fixedDummy = new JsonArray(fixedTargets.OfType<JsonObject>().Select(target => (JsonNode)new JsonObject {
-            ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = target["clock"]!.DeepClone() }).ToArray());
-        PersonalSyncActorContract.CompletionMembers(runId, before, Union(targets, fixedTargets), Union(dummy, fixedDummy));
+        (fixedTargets, fixedFrames, fixedDecisions) = CheckedFixedEvidence(runId, before, targets, nativeFixedTargets, fixedDecisionFrames);
         reportAck = dataReportAck.DeepClone().AsObject();
         if (Text(reportAck, "kind") != PersonalSyncActorContract.AckKind) throw new InvalidOperationException("actor_data_report_ack_required");
         var body = reportAck["body"]!.AsObject(); PersonalSyncActorContract.ValidateAck(body);
@@ -72,6 +54,32 @@ internal sealed class PersonalActorPostDataReview
         authority = currentAuthority() ?? throw new InvalidOperationException("actor_decision_review_not_ready");
         if (!Hex.IsMatch(authority)) throw new InvalidOperationException("actor_decision_review_not_ready");
         beforeSaved = CheckedSaved(currentSavedBook()); Validator = Validate;
+    }
+
+    internal static (JsonArray Targets, Dictionary<string, JsonObject> Frames, JsonArray Decisions) CheckedFixedEvidence(
+        string runId, JsonObject beforeScope, JsonArray lateTargets, JsonArray? nativeFixedTargets, IReadOnlyList<JsonObject>? fixedDecisionFrames)
+    {
+        // Native target/frame evidence only. Never synthesize a report ACK just
+        // to reuse a constructor before the ordinary report has been received.
+        var targets = nativeFixedTargets?.DeepClone().AsArray() ?? [];
+        if (lateTargets.Count + targets.Count > 256 || fixedDecisionFrames?.Count > 256)
+            throw new InvalidDataException("invalid_actor_fixed_review_targets");
+        var frames = new Dictionary<string, JsonObject>(StringComparer.Ordinal); var decisions = new JsonArray();
+        foreach (var wire in fixedDecisionFrames ?? [])
+        {
+            if (Text(wire, "kind") != PersonalSyncActorContract.DataKind || !TelefonProtocolContract.IsUuidV4(Text(wire, "message_id")))
+                throw new InvalidDataException("invalid_actor_fixed_review_frame");
+            var semantic = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+            if (semantic.Kind != "personal_sync.deletion_decision" || Text(semantic.Body, "run_id") != runId || !frames.TryAdd(Text(wire, "message_id"), wire.DeepClone().AsObject()))
+                throw new InvalidDataException("invalid_actor_fixed_review_frame");
+            foreach (var decision in semantic.Body["decisions"]!.AsArray()) decisions.Add(decision!.DeepClone());
+        }
+        PersonalSyncActorContract.CompletionMembers(runId, beforeScope, targets, decisions);
+        var union = Union(lateTargets, targets);
+        var dummy = new JsonArray(union.OfType<JsonObject>().Select(target => (JsonNode)new JsonObject {
+            ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore", ["expected_clock"] = target["clock"]!.DeepClone() }).ToArray());
+        PersonalSyncActorContract.CompletionMembers(runId, beforeScope, union, dummy);
+        return (targets, frames, decisions);
     }
 
     private static string Text(JsonObject value, string key) => value[key]?.GetValue<string>() ?? "";

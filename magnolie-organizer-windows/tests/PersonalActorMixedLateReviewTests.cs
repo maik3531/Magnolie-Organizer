@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
@@ -6,8 +7,12 @@ namespace MagnolieOrganizer.Windows.Tests;
 internal static class PersonalActorMixedLateReviewTests
 {
     private const string Run = "44444444-4444-4444-8444-444444444444", Actor = "11111111-1111-4111-8111-111111111111";
-    private static JsonObject Frame(string kind, JsonObject body) => new() { ["type"] = "message", ["v"] = 1, ["kind"] = kind,
-        ["message_id"] = Guid.NewGuid().ToString("D"), ["created_ms"] = 1, ["expires_ms"] = 86400001, ["body"] = body };
+    private static JsonObject Frame(string kind, JsonObject body)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return new() { ["type"] = "message", ["v"] = 1, ["kind"] = kind, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["created_ms"] = now, ["expires_ms"] = now + (kind == PersonalSyncActorContract.AckKind ? 60000 : 86400000), ["body"] = body };
+    }
     private static JsonObject Target(string kind, string id) => new() { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["id"] = id,
         ["parent_id"] = "", ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 }), ["prior_hash"] = new string('a', 64) };
     private static JsonObject DecisionFrame(JsonObject target, string choice) => PersonalSyncActorContract.WireMessage(Frame("personal_sync.deletion_decision", new JsonObject {
@@ -19,7 +24,69 @@ internal static class PersonalActorMixedLateReviewTests
         foreach (var late in new[] { "delete", "restore" }) Exercise(late, "delete", "parent-direction");
         foreach (var fault in new[] { "missing-frame", "missing-target", "foreign-frame", "clock", "duplicate-frame", "duplicate-proposal", "duplicate-entity", "wrong-run", "direction-collision",
             "only-late", "only-fixed", "unrelated", "pinning" }) Exercise("delete", "delete", fault);
+        foreach (var scenario in new[] { "complete", "missing-frame", "missing-target", "duplicate-frame", "foreign-clock", "report-collision", "late-target-collision" })
+            ExerciseReportOwner(scenario);
         return Task.CompletedTask;
+    }
+    private static JsonObject ReportFrame()
+    {
+        var zero = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
+        return PersonalSyncActorContract.WireMessage(Frame("personal_sync.report", new JsonObject { ["format"] = 3, ["run_id"] = Run, ["state"] = "complete",
+            ["trigger"] = "manual", ["transport"] = "wifi", ["sent"] = zero.DeepClone(), ["received"] = zero.DeepClone(), ["conflicts"] = 0,
+            ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = 1, ["finished_ms"] = 2, ["error"] = "none",
+            ["attachments"] = new JsonObject { ["declared"] = 0, ["requested"] = 0, ["sent"] = 0, ["received"] = 0, ["reused"] = 0, ["preserved"] = 0, ["failed"] = 0, ["bytes"] = 0 },
+            ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
+                ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } }), Run);
+    }
+    private static void ExerciseReportOwner(string scenario)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-mixed-report-owner-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var late = Target("note", "canonical-parent"); var initial = Target("task", "selected-task");
+            var outgoing = DecisionFrame(initial, "delete"); var targets = new JsonArray(initial.DeepClone()); var frames = new List<JsonObject> { outgoing.DeepClone().AsObject() };
+            var report = ReportFrame(); var before = PhoneContentScope.Create(["canonical-parent"], ["selected-task"]);
+            var actual = PhoneContentScope.Create(["canonical-parent"], [], revision: 2, epoch: Guid.NewGuid().ToString("D"));
+            var owner = new NativeBookOwnerScope(); owner.SetReady(true); owner.RecordSaved("mixed-report-owner", true, new string('a', 64));
+            NativeBookSaveState? Saved() => owner.SaveState("mixed-report-owner", true);
+            var store = new TelefonStore(new WindowsPaths(root), testStorageKey: Enumerable.Repeat((byte)37, 32).ToArray());
+            var registry = new PersonalSyncActorStore(store, (_, _) => new string('a', 64));
+            var handle = registry.Create(Actor, "ABCD-1234-5678-90EF", new string('a', 64), Run);
+            if (scenario == "missing-frame") frames.Clear();
+            if (scenario == "missing-target") targets.Clear();
+            if (scenario == "duplicate-frame") frames.Add(frames[0].DeepClone().AsObject());
+            if (scenario == "foreign-clock") frames[0]["body"]!["body"]!["decisions"]![0]!["expected_clock"]![0]!["counter"] = 9;
+            if (scenario == "report-collision") frames[0]["message_id"] = report["message_id"]!.DeepClone();
+            if (scenario == "late-target-collision") targets[0]!["proposal_id"] = late["proposal_id"]!.DeepClone();
+            PersonalActorReportOwner Create() => new(Run, new JsonArray(late.DeepClone()), before, report, Saved()!, () => new string('b', 64),
+                () => registry.ReadCompletionControls(handle), nativeFixedTargets: targets, fixedDecisionFrames: frames);
+            if (scenario != "complete")
+            { TestAssert.Throws<InvalidDataException>(() => Create(), "Mixed pre-report owner admitted unbound fixed evidence: " + scenario); return; }
+            var waiting = Create(); var savedBefore = Saved();
+            registry.BeginDecisionReview(handle, waiting.Validator);
+            registry.CheckDecisionControlSend(handle, outgoing); registry.CheckDecisionReportSend(handle, report);
+            TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, report), "Mixed fixed-control capability sent general report data.");
+            TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionReportSend(handle, outgoing), "Report capability admitted fixed decisions through a general data lane.");
+            var changed = outgoing.DeepClone().AsObject(); changed["body"]!["body"]!["decisions"]![0]!["decision"] = "restore";
+            TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, changed), "Mixed owner sent a different original choice.");
+            changed = outgoing.DeepClone().AsObject(); changed["message_id"] = Guid.NewGuid().ToString("D");
+            TestAssert.Throws<InvalidDataException>(() => registry.CheckDecisionControlSend(handle, changed), "Mixed owner sent a different frame identity.");
+            TestAssert.That(Saved() == savedBefore && waiting.Validator("handoff", null) is null, "Fixed metadata send created a save or claimed terminal success.");
+            TestAssert.Throws<InvalidOperationException>(() => registry.RequireCurrent(handle), "Mixed report owner reactivated original data rights.");
+            var fixedAck = Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, outgoing["message_id"]!.GetValue<string>()));
+            registry.PutCompletionControl(handle, fixedAck);
+            TestAssert.Throws<InvalidOperationException>(() => waiting.BeginReview(() => actual, Saved), "Fixed decision ACK substituted for the ordinary report ACK.");
+            registry.PutCompletionControl(handle, Frame(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(Run, report["message_id"]!.GetValue<string>())));
+            registry.PutCompletionControl(handle, DecisionFrame(late, "restore"));
+            var review = waiting.BeginReview(() => actual, Saved); var view = review.Review();
+            TestAssert.That(view["decisions"]!.AsArray().Count == 1 && view["fixed_decisions"]!.AsArray().Count == 1,
+                "Mixed pre-report owner repeated fixed ordinary decisions as late mutations.");
+            var claim = review.PrepareSave(view["revision"]!.GetValue<string>(), new string('c', 64));
+            owner.RecordSaved("mixed-report-owner", true, new string('c', 64)); review.ConfirmSaved(claim["claim_token"]!.GetValue<string>());
+            TestAssert.That(waiting.Validator("handoff", null) == true && registry.ReadCompletionControls(handle).OfType<JsonObject>().Any(value => JsonNode.DeepEquals(value, fixedAck)),
+                "Mixed saved handoff lost the original fixed ACK direction or its separate SaveACK.");
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
     private static void Exercise(string late, string initial, string scenario)
     {

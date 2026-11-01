@@ -309,7 +309,7 @@ internal sealed class PersonalSyncActorStore
     {
         var value = Require(db, handle, transaction, active: false, source: false);
         if (Text(value, "phase") is not ("decision_review" or "completion" or "completed")) throw new InvalidOperationException("actor_completion_inactive");
-        if (Text(value, "phase") == "decision_review" && operation is not ("begin" or "put" or "read" or "handoff" or "send_report"))
+        if (Text(value, "phase") == "decision_review" && operation is not ("begin" or "put" or "read" or "handoff" or "send_report" or "send_fixed_decision"))
             throw new InvalidOperationException("actor_decision_review_metadata_only");
         var wall = clock(); var mono = monotonicClock();
         if (wall < Number(value, "created_ms") || wall >= Number(value, "expires_ms") ||
@@ -334,6 +334,20 @@ internal sealed class PersonalSyncActorStore
             if (Text(value, "phase") != "decision_review") throw new InvalidOperationException("actor_decision_review_inactive");
             RequireCompletion(db, transaction, handle, "send_report", wire);
             RequireCompletion(db, transaction, handle, "send_report", wire);
+            if (!TelefonCrypto.Canonical(wire).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
+            return true;
+        });
+    }
+
+    internal void CheckDecisionControlSend(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire, completion: true);
+        if (Text(wire, "kind") != PersonalSyncActorContract.DataKind) throw new InvalidDataException("actor_fixed_decision_frame_required");
+        CompletionOperation(handle, (db, transaction) => {
+            var value = Require(db, handle, transaction, active: false, source: false);
+            if (Text(value, "phase") != "decision_review") throw new InvalidOperationException("actor_decision_review_inactive");
+            RequireCompletion(db, transaction, handle, "send_fixed_decision", wire);
+            RequireCompletion(db, transaction, handle, "send_fixed_decision", wire);
             if (!TelefonCrypto.Canonical(wire).AsSpan().SequenceEqual(clear)) throw new InvalidDataException("actor_completion_callback_mutated_packet");
             return true;
         });
