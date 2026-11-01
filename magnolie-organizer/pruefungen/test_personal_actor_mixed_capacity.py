@@ -1,6 +1,7 @@
 """Maximum native review/receipt union; no GUI responsiveness or phone claim."""
 import copy
 import json
+import os
 import time
 import uuid
 
@@ -13,7 +14,12 @@ from test_personal_actor_post_data_review import review_fixture
 from test_personal_actor_transport import frame
 
 
-@pytest.mark.parametrize('fixed_count', [1, 128, 255])
+# Explicit bounded deep probe; excludes the already accepted representative
+# partitions instead of repeating unchanged inputs during an interior sweep.
+FIXED_COUNTS = [value for value in range(2, 255) if value != 128] if os.environ.get('MAGNOLIE_ACTOR_CAPACITY_MATRIX') == 'interior' else [1, 128, 255]
+
+
+@pytest.mark.parametrize('fixed_count', FIXED_COUNTS)
 def test_maximum_mixed_union_keeps_separate_mutations_and_exact_both_direction_receipts(fixed_count):
     late_count = 256 - fixed_count
     original, state, owner, read, snapshot, report_id, report_ack = review_fixture(late_count)
