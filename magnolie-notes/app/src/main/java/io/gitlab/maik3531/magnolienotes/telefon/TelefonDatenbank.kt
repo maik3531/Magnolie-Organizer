@@ -1117,13 +1117,29 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     /** One transaction owns the binding, all batches/attachments and the exact request receipt. */
     internal fun queueScopedRequest(binding: SharedSettingsBinding, shared: SharedSyncStorage,
         message: JsonObject, reference: JsonObject, batches: List<JsonObject>,
-        attachments: List<Triple<String, String, ByteArray>>, now: Long = System.currentTimeMillis(), actorRun: Boolean = false): Boolean {
+        attachments: List<Triple<String, String, ByteArray>>, now: Long = System.currentTimeMillis(), actorRun: Boolean = false,
+        nativeActorProposals: List<JsonObject> = emptyList()): Boolean {
         TelefonNachrichten.validate(message)
         require(message.string("kind") == "personal_sync.request")
         val request = message.getValue("body") as JsonObject
         PersonalSyncProtokoll.validate("personal_sync.request", request)
         require(request.long("format") in setOf(3L, 14L) && batches.isNotEmpty())
         val runId = request.string("run_id")
+        require(nativeActorProposals.isEmpty() || actorRun) { "actor_proposal_context_required" }
+        require(nativeActorProposals.size <= 8 && nativeActorProposals.map { it.string("message_id") }.distinct().size == nativeActorProposals.size)
+        var proposalBatch: String? = null
+        val proposalIds = mutableSetOf<String>()
+        nativeActorProposals.forEachIndexed { index, proposal ->
+            TelefonNachrichten.validate(proposal)
+            require(proposal.string("kind") == "personal_sync.deletion_proposals" &&
+                proposal.long("expires_ms") <= message.long("expires_ms")) { "actor_proposal_envelope_changed" }
+            val body = proposal.getValue("body").jsonObject
+            val decoded = PersonalSyncProtokoll.decodeDeletionProposals(body)
+            if (proposalBatch == null) proposalBatch = body.string("proposal_batch_id")
+            require(body.string("run_id") == runId && body.string("proposal_batch_id") == proposalBatch &&
+                body.long("sequence") == index.toLong() && body["last"] == JsonPrimitive(index == nativeActorProposals.lastIndex) &&
+                decoded.isNotEmpty() && decoded.size <= 32 && decoded.all { proposalIds.add(it.proposalId) }) { "actor_proposal_batch_changed" }
+        }
         val recordsHash = batches.first().string("records_hash")
         batches.forEachIndexed { index, batch ->
             PersonalSyncProtokoll.validate("personal_sync.batch", batch)
@@ -1146,6 +1162,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             queueFormat2DirectionIn(this, binding.peerActor, runId, false, recordsHash, null, batches,
                 attachments, policy, message.long("expires_ms"))
             writableInsert(binding.peerActor, message, this, policy)
+            for (proposal in nativeActorProposals) {
+                // Outbox and exact native target evidence share this SQLite
+                // transaction. A failed later insert exposes neither half.
+                writableInsert(binding.peerActor, proposal, this, policy, actorRunId = runId)
+                stageActorDeletionIntent(runId, proposal, outgoing = true)
+            }
             true
         }
     }

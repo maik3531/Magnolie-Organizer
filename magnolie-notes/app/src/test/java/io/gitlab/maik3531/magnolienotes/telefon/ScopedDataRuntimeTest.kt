@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.Notiz
 import io.gitlab.maik3531.magnolienotes.daten.Aufgabe
+import io.gitlab.maik3531.magnolienotes.daten.Anhang
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSyncClock
 import kotlinx.serialization.json.*
@@ -58,6 +59,10 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorTerminalWriterFailureNeverConsumesIntentsOrSendsDecision() = exercise("actor-commit-terminal-write-failure")
     @Test fun nativeActorTerminalAutoPolicyRunsThroughActualTransportPump() = exercise("actor-commit-terminal-auto")
     @Test fun nativeActorTerminalAutoWaitsForSuccessfulDataAckWrite() = exercise("actor-commit-terminal-auto-ack-failure")
+    @Test fun nativeActorProducesCompleteScopedDeletionBatchesFromTheActualBook() = exercise("actor-producer")
+    @Test fun nativeActorProducerRequiresDeletionGrants() = exercise("actor-producer-no-grants")
+    @Test fun nativeActorProducerHonorsAgreedSkipDeletions() = exercise("actor-producer-skip")
+    @Test fun nativeActorProducerRollsBackOutboxAndTargetProofTogether() = exercise("actor-producer-sql-failure")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -88,8 +93,9 @@ class ScopedDataRuntimeTest {
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
         val actorTerminal = mode.startsWith("actor-commit-terminal")
+        val actorProducer = mode.startsWith("actor-producer")
         val actorAckFailure = mode in setOf("actor-commit-ack-failure", "actor-commit-terminal-auto-ack-failure")
-        val nativeActor = actorDeletion || actorCommit || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
+        val nativeActor = actorDeletion || actorCommit || actorProducer || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -129,10 +135,24 @@ class ScopedDataRuntimeTest {
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
             val peerId = "22222222-2222-4222-8222-222222222222"
+            if (actorProducer) {
+                val fixture = TelefonKanonisch.json.parseToJsonElement(requireNotNull(javaClass.getResource("/personal-sync-contract.json")).readText()).jsonObject
+                val dataUrl = fixture.getValue("format2").jsonObject.getValue("data_url").jsonPrimitive.content
+                documents.setzeNotiz(requireNotNull(documents.notiz("phone-note")).copy(anhaenge = (0..32).map {
+                    Anhang("native-file-$it", "Synthetic $it.png", "image", dataUrl) }))
+                documents.setzeNotiz(Notiz("removed-note", "Outside current membership"))
+                documents.personalSyncSnapshot(setOf("notes"), 3)
+                documents.personalSyncAcknowledge(peerId)
+                for (index in 0..32) documents.loescheAnhang("phone-note", "native-file-$index")
+                documents.loescheNotiz("removed-note")
+                documents.personalSyncSnapshot(setOf("notes"), 3)
+                assertEquals(33, PersonalSync.proposals(documents.bestand.value, peerId).count { it.kind == "attachment" })
+            }
+            val deletionGrant = actorDeletion || actorTerminal || actorProducer && mode != "actor-producer-no-grants" || mode in setOf("delete", "skip-delete")
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
-                personal_deletions_sync_granted = actorDeletion || actorTerminal || mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = actorDeletion || actorTerminal || mode in setOf("delete", "skip-delete"),
+                personal_deletions_sync_granted = deletionGrant, remote_personal_deletions_sync_granted = deletionGrant,
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
                 remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList(),
                 remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList())
@@ -163,7 +183,7 @@ class ScopedDataRuntimeTest {
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
-            if (actorTerminal || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
+            if (actorTerminal || actorProducer && mode != "actor-producer-skip" || mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -256,7 +276,7 @@ class ScopedDataRuntimeTest {
                     assertEquals(if (mode == "send-route") 3 else 2, documents.notizen().size); assertEquals(2, documents.bestand.value.aufgaben.size)
                     return@use
                 }
-                if (mode == "actor-transport" || actorDeletion || actorCommit) {
+                if (mode == "actor-transport" || actorDeletion || actorCommit || actorProducer) {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     TelefonWerk::class.java.getDeclaredMethod("refreshSharedPreferenceState").apply { isAccessible = true }.invoke(work)
@@ -268,7 +288,18 @@ class ScopedDataRuntimeTest {
                     assertEquals("accepted", accepted.getValue("body").jsonObject.string("status"))
                     work.receiveMessage(peer, start, channel, 0L)
                     assertEquals("duplicate", sent().single().getValue("body").jsonObject.string("status"))
+                    if (mode == "actor-producer-sql-failure") {
+                        val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                        database.execSQL("CREATE TRIGGER actor_producer_failure BEFORE INSERT ON inbox WHEN NEW.state='actor_staged' BEGIN SELECT RAISE(ABORT,'synthetic native proposal target failure'); END")
+                    }
                     pump.invoke(work, peer, channel, 0L, false)
+                    if (mode == "actor-producer-sql-failure") {
+                        assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                        assertTrue(queue.actorDeletionIntents(run, true).isEmpty())
+                        assertNull(queue.personalRun(peerId, run))
+                        assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).none { it.payload["body"]?.jsonObject?.get("run_id") == JsonPrimitive(run) })
+                        return@use
+                    }
                     val request = sent().single { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
                     assertEquals("personal_sync.request", PersonalSyncActor.unwrap(request.getValue("body").jsonObject).first)
                     assertFalse(queue.scopedRequestAccepted(peerId, run))
@@ -277,6 +308,33 @@ class ScopedDataRuntimeTest {
                     assertTrue(sent().isEmpty()); assertTrue(queue.scopedRequestAccepted(peerId, run))
                     pump.invoke(work, peer, channel, 0L, false)
                     val batches = sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                    if (actorProducer) {
+                        val dispatched = batches.toMutableList()
+                        repeat(3) {
+                            pump.invoke(work, peer, channel, 0L, false)
+                            dispatched.addAll(sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                        }
+                        val proposals = dispatched.map { PersonalSyncActor.unwrap(it.getValue("body").jsonObject) }
+                            .filter { it.first == "personal_sync.deletion_proposals" }.map { it.second }.sortedBy { it.long("sequence") }
+                        val proofs = queue.actorDeletionIntents(run, true)
+                        if (mode in setOf("actor-producer-no-grants", "actor-producer-skip")) {
+                            assertTrue(proposals.isEmpty()); assertTrue(proofs.isEmpty())
+                        } else {
+                            assertEquals(listOf(0L, 1L), proposals.map { it.long("sequence") })
+                            assertEquals(listOf(JsonPrimitive(false), JsonPrimitive(true)), proposals.map { it["last"] })
+                            assertEquals(1, proposals.map { it.string("proposal_batch_id") }.distinct().size)
+                            val decoded = proposals.flatMap(PersonalSyncProtokoll::decodeDeletionProposals)
+                            assertEquals(33, decoded.size); assertEquals(33, decoded.map { it.proposalId }.distinct().size)
+                            assertTrue(decoded.all { it.kind == "attachment" && it.parentId == "phone-note" })
+                            val native = PersonalSync.proposals(documents.bestand.value, peerId).associateBy { it.proposal_id }
+                            assertTrue(decoded.all { native[it.proposalId]?.clock == it.clock && native[it.proposalId]?.prior_hash == it.priorHash })
+                            assertEquals(proposals.toSet(), proofs.map { it.getValue("body").jsonObject }.toSet())
+                            assertEquals(proofs.map { it.string("message_id") }.toSet(), dispatched.filter {
+                                PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_proposals" }.map { it.string("message_id") }.toSet())
+                        }
+                        assertNull(documents.notiz("removed-note")); assertTrue(documents.notiz("phone-note")!!.anhaenge.isEmpty())
+                        return@use
+                    }
                     val batch = batches.single { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
                     val records = PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(batch.getValue("body").jsonObject).second)
                     assertEquals(setOf("phone-note"), records.filter { it.kind == "note" }.map { it.id }.toSet())

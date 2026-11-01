@@ -624,8 +624,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }.map { (it as JsonObject).string("sha256") }.toSet()
                 val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
                     Triple(hash, (value.descriptor["mime"] as JsonPrimitive).content, value.bytes) }
+                val nativeProposals = if (intent.actorRun) nativeActorDeletionProposals(peer, requestMessage, selection) else emptyList()
                 val enqueue = { queue.queueScopedRequest(sharedBinding(peer), sharedPreferences, requestMessage,
-                    PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun) }
+                    PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun, nativeActorProposals = nativeProposals) }
                 val queued = if (intent.actorRun) personalActorJournal.withActive(checkNotNull(personalActorHandles[runId])) { enqueue() }
                     else enqueue()
                 if (queued) {
@@ -639,6 +640,39 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 try { personalActorJournal.withActive(handle) {}; prepareSnapshot() }
                 catch (error: Exception) { stopPersonalActor(handle); return }
             } else prepareSnapshot()
+        }
+    }
+
+    /** Called only while preparing the actual native scoped snapshot under the
+     * book lock. No preview/wire target can become an outgoing native proposal.
+     * Removed note/task memberships outside this scope are intentionally denied;
+     * this does not widen a data owner to historical scope membership. */
+    private fun nativeActorDeletionProposals(peer: TelefonPeer, request: JsonObject,
+        selection: PersonalContentSelection): List<JsonObject> {
+        if (!peer.personal_deletions_sync_granted || !peer.remote_personal_deletions_sync_granted ||
+            commonValues(peer)?.get("skip_deletions") != JsonPrimitive(false)) return emptyList()
+        val documents = Ablage.hole(context)
+        requireNotNull(documents.personalActorSavedBookState()) { "native_book_not_saved" }
+        val proposals = PersonalSync.proposals(documents.bestand.value, peer.device_id).filter { when (it.kind) {
+            "note" -> it.id in selection.notes
+            "task" -> it.id in selection.tasks
+            "attachment" -> it.parent_id in selection.notes
+            else -> false
+        } }
+        require(proposals.size <= 256) { "actor_capacity" }
+        val chunks = proposals.chunked(32)
+        val batch = UUID.randomUUID().toString()
+        return chunks.mapIndexed { index, chunk ->
+            TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                put("format", 1); put("run_id", request.getValue("body").jsonObject.string("run_id"))
+                put("proposal_batch_id", batch); put("sequence", index); put("last", index == chunks.lastIndex)
+                put("proposals", JsonArray(chunk.map { proposal -> buildJsonObject {
+                    put("proposal_id", proposal.proposal_id); put("kind", proposal.kind); put("id", proposal.id); put("parent_id", proposal.parent_id)
+                    put("clock", JsonArray(proposal.clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                    put("prior_hash", proposal.prior_hash); put("deleted_ms", proposal.deleted_ms)
+                    put("label", proposal.label.replace(Regex("[\\x00-\\x1f\\x7f]"), " ").take(120))
+                } }))
+            }, request.long("expires_ms") - request.long("created_ms"), request.long("created_ms"))
         }
     }
 
