@@ -166,8 +166,9 @@ def test_normal_content_targets_are_not_promoted_to_the_private_historical_origi
 
 
 @pytest.mark.parametrize('kind', ['note', 'task', 'attachment'])
-def test_native_review_joins_actual_received_origin_with_fresh_saved_target_observation(tmp_path, monkeypatch, kind):
-    service, peer, channel, manifest, book, target, owner, read, snapshot, registry, handle = observation_runtime(tmp_path, monkeypatch, kind)
+@pytest.mark.parametrize('pending', [False, True])
+def test_native_review_joins_actual_received_origin_with_fresh_saved_target_observation(tmp_path, monkeypatch, kind, pending):
+    service, peer, channel, manifest, book, target, owner, read, snapshot, registry, handle = observation_runtime(tmp_path, monkeypatch, kind, pending=pending)
     service.start_personal_actor(registry, handle)
     request = {'format': 3, 'run_id': handle.actor_id, 'trigger': 'manual', 'modules': ['notes', 'tasks']}
     service._payload(peer, channel, actor.wire_message(frame('personal_sync.request', request), handle.actor_id))
@@ -180,6 +181,7 @@ def test_native_review_joins_actual_received_origin_with_fresh_saved_target_obse
     service.native_actor_producer_book = lambda: (captures.append(True), snapshot)[1]
     view = service.review_personal_actor_incoming_targets(registry, handle)
     assert view['targets'] == [target] and view['action_authorized'] is False
+    assert view['observations'][0]['local_state'] == ('deleted' if pending else 'live')
     choice = {'proposal_id': target['proposal_id'], 'decision': 'delete', 'expected_clock': target['clock'], 'confirm_conflict': True}
     draft = service.review_personal_actor_incoming_targets(registry, handle,
         expected_revision=view['revision'], choices=[choice])

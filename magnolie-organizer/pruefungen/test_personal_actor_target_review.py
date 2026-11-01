@@ -138,7 +138,7 @@ def test_explicit_parent_child_choices_cannot_restore_a_child_under_a_deleted_pa
         assert review.draft_choices(view['revision'], choices)['action_authorized'] is False
 
 
-@pytest.mark.parametrize('case', VECTORS['cases'], ids=lambda case: case['kind'])
+@pytest.mark.parametrize('case', VECTORS['cases'] + VECTORS['pending_cases'], ids=lambda case: case.get('local_state', 'live') + '-' + case['kind'])
 @pytest.mark.parametrize('decision', ['delete', 'restore'])
 def test_shared_private_choice_draft_revision_vectors(case, decision):
     value = VECTORS['fixture']; run = value['run_id']; kind = case['kind']
@@ -151,7 +151,7 @@ def test_shared_private_choice_draft_revision_vectors(case, decision):
         'created_ms': value['created_ms'], 'expires_ms': value['expires_ms'], 'body': body}, run)
     before = scope.create([], [], epoch=run)
     def observe(targets):
-        return [{'target': copy.deepcopy(targets[0]), 'local_state': 'live', 'local_hash': value['prior_hash'], 'local_clock': clock,
+        return [{'target': copy.deepcopy(targets[0]), 'local_state': case.get('local_state', 'live'), 'local_hash': value['prior_hash'], 'local_clock': clock,
             'native_saved_book': value['saved_book'], 'metadata_matches': True, 'requires_conflict_choice': True}]
     review = NativeIncomingTargetChoiceReview(run, current_frames=lambda: [frame], current_observations=observe,
         current_authority=lambda: value['source'], current_scope=lambda: before, current_saved_book=lambda: value['saved_book'])

@@ -95,29 +95,42 @@ internal sealed class PersonalActorIncomingLiveTargetObservation
         var state = book["personalSync"]?.AsObject() ?? new JsonObject();
         var key = kind + "\0" + (kind == "attachment" ? parent + "\0" : "") + id;
         var meta = state["entities"]?[key] as JsonObject;
-        if (Text(state, "peer_device_id") != peerId || meta is null || Text(meta, "peer_device_id") != peerId || Text(meta, "state") != "live" ||
-            Text(meta, "parent_id") != parent || meta["conflict"]?.GetValue<bool>() == true || !Hex(Text(meta, "hash"))) throw new InvalidOperationException("actor_target_live_native_proof_missing");
+        if (Text(state, "peer_device_id") != peerId || meta is null || Text(meta, "peer_device_id") != peerId)
+            throw new InvalidOperationException("actor_target_live_native_proof_missing");
+        var pending = Text(meta, "state") == "deleted" && Text(meta, "status") == "local_pending";
+        var localHash = Text(meta, pending ? "prior_hash" : "hash");
+        if (Text(meta, "state") != "live" && !pending || Text(meta, "parent_id") != parent || meta["conflict"]?.GetValue<bool>() == true || !Hex(localHash))
+            throw new InvalidOperationException("actor_target_live_native_proof_missing");
         var clock = PersonalSyncContract.NormalizeClock(meta["clock"]!);
+        if (pending)
+        {
+            var local = new JsonObject { ["proposal_id"] = meta["proposal_id"]?.DeepClone(), ["kind"] = kind, ["id"] = id, ["parent_id"] = parent,
+                ["clock"] = clock.DeepClone(), ["prior_hash"] = localHash, ["deleted_ms"] = meta["deleted_ms"]?.DeepClone(), ["label"] = Text(meta, "label") };
+            PersonalSyncContract.ValidateBody("personal_sync.deletion_proposals", new JsonObject { ["format"] = 1, ["run_id"] = runId,
+                ["proposal_batch_id"] = runId, ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray(local) });
+            if (Text(meta, "hash").Length != 0 || Text(meta, "proposal_id") != PersonalSyncContract.DeletionProposalId(peerId, kind, id, parent, clock, localHash))
+                throw new InvalidOperationException("actor_target_pending_native_proof_missing");
+        }
         bool own;
         if (kind == "task")
         {
             var live = (book["aufgaben"]?.AsArray() ?? []).OfType<JsonObject>().Where(value => Text(value, "id") == id).ToArray();
-            own = live.Length == 1 && !new[] { "vonZweig", "fremdId", "delegiertAn", "herkunft" }.Any(field =>
+            own = pending ? live.Length == 0 : live.Length == 1 && !new[] { "vonZweig", "fremdId", "delegiertAn", "herkunft" }.Any(field =>
                 live[0][field] is { } node && (node is not JsonValue value || (value.TryGetValue<bool>(out var flag) ? flag : value.TryGetValue<string>(out var text) ? text.Length != 0 : true)));
         }
         else
         {
             var live = (book["notizen"]?.AsArray() ?? []).OfType<JsonObject>().Where(value => PersonalActorOutgoingProducer.NoteWireId(Text(value, "id"), state) == (kind == "attachment" ? parent : id)).ToArray();
-            own = live.Length == 1 && (Text(live[0], "baumQuelle").Length == 0 || live[0]["persoenlichVerknuepft"]?.GetValue<bool>() == true);
-            if (own && kind == "attachment") own = (live[0]["anhaenge"]?.AsArray() ?? []).OfType<JsonObject>().Count(value => PersonalActorOutgoingProducer.AttachmentId(parent, Text(value, "id"), state) == id) == 1;
+            own = kind == "note" && pending ? live.Length == 0 : live.Length == 1 && (Text(live[0], "baumQuelle").Length == 0 || live[0]["persoenlichVerknuepft"]?.GetValue<bool>() == true);
+            if (own && kind == "attachment") own = (live[0]["anhaenge"]?.AsArray() ?? []).OfType<JsonObject>().Count(value => PersonalActorOutgoingProducer.AttachmentId(parent, Text(value, "id"), state) == id) == (pending ? 0 : 1);
         }
         if (!own) throw new InvalidOperationException("actor_target_live_native_proof_missing");
         // The local metadata hash/clock are observations, NOT claims that this
         // hash was recomputed from current content. The actual saved book is
         // independently pinned; future typed conflict/save gates remain needed.
-        var result = new JsonObject { ["target"] = target.DeepClone(), ["local_state"] = "live", ["local_hash"] = Text(meta, "hash"), ["local_clock"] = clock.DeepClone(),
+        var result = new JsonObject { ["target"] = target.DeepClone(), ["local_state"] = pending ? "deleted" : "live", ["local_hash"] = localHash, ["local_clock"] = clock.DeepClone(),
             ["native_saved_book"] = new JsonObject { ["book_source"] = saved.BookSource, ["sequence"] = saved.Sequence, ["sha256"] = saved.Sha256 },
-            ["metadata_matches"] = Text(meta, "hash") == Text(target, "prior_hash") && JsonNode.DeepEquals(clock, target["clock"]),
+            ["metadata_matches"] = localHash == Text(target, "prior_hash") && JsonNode.DeepEquals(clock, target["clock"]),
             ["requires_conflict_choice"] = true };
         observed[proposalId] = result; identities[identity] = proposalId;
         return result.DeepClone().AsObject();

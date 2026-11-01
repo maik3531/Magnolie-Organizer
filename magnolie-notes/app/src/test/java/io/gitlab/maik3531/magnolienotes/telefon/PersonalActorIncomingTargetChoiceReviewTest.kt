@@ -63,6 +63,19 @@ class PersonalActorIncomingTargetChoiceReviewTest {
         }
     }
 
+    @Test fun pendingTargetReviewAndBothExplicitChoicesMatchTheSharedPrivateVectorsWithoutGrantingRestoreRights() {
+        for (raw in vectors.getValue("pending_cases").jsonArray) for (decision in listOf("delete", "restore")) {
+            val vector = raw.jsonObject; val f = Fixture(vector.string("kind")); val before = f.scope
+            f.alterObservation = { JsonObject(it + ("local_state" to JsonPrimitive("deleted"))) }
+            val review = f.create(); val view = review.review()
+            assertEquals(vector.string("review_revision"), view.string("revision"))
+            val draft = review.draftChoices(view.string("revision"), listOf(f.choice(decision)))
+            assertEquals(vector.string(decision + "_choice_revision"), draft.string("choice_revision"))
+            assertEquals(JsonPrimitive(false), view["action_authorized"]); assertEquals(JsonPrimitive(false), draft["action_authorized"])
+            assertEquals(before, draft["content_scope"]); assertEquals(before, f.scope)
+        }
+    }
+
     @Test fun matchingMetadataNeverPermitsImplicitOrChangedConflictChoices() {
         for (fault in listOf("missing-confirm", "false", "numeric-true", "string-true", "clock", "foreign", "unknown", "missing", "extra", "revision")) {
             val f = Fixture("note"); val review = f.create(); val view = review.review()

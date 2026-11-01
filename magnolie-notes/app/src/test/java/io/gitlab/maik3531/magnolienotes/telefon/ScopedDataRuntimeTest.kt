@@ -53,6 +53,7 @@ class ScopedDataRuntimeTest {
     @Test fun rawActorJournalCannotSupplyAuthenticatedHistoricalOrigin() = exercise("actor-deletions-origin-raw")
     @Test fun conflictingHistoricalFrameRetiresItsPrivateOrigin() = exercise("actor-deletions-origin-conflict")
     @Test fun historicalOriginCannotSurviveNativeGrantRevocation() = exercise("actor-deletions-origin-grants")
+    @Test fun actualPendingNoteOriginAndExplicitRestoreDraftPreserveTheEncryptedBookAndClosedDataScope() = exercise("actor-producer-origin-pending")
     @Test fun nativeActorCompleteReportCheckpointsAndPersistsPrivateReplyExactlyOnce() = exercise("actor-commit")
     @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
     @Test fun nativeActorCompleteReportNeverRecordsFailedNetworkAckAsReceipt() = exercise("actor-commit-ack-failure")
@@ -390,6 +391,42 @@ class ScopedDataRuntimeTest {
                                 PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_proposals" }.map { it.string("message_id") }.toSet())
                         }
                         assertNull(documents.notiz("removed-note")); assertTrue(documents.notiz("phone-note")!!.anhaenge.isEmpty())
+                        if (mode == "actor-producer-origin-pending") {
+                            @Suppress("UNCHECKED_CAST")
+                            val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)
+                            val meta = documents.bestand.value.personalSync.entities.getValue("note\u0000removed-note")
+                            assertEquals("deleted", meta.state); assertEquals("local_pending", meta.status)
+                            val target = buildJsonObject {
+                                put("proposal_id", UUID.randomUUID().toString()); put("kind", "note"); put("id", "removed-note"); put("parent_id", "")
+                                put("clock", JsonArray(meta.clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                                put("prior_hash", meta.prior_hash)
+                            }
+                            val original = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                                put("format", 1); put("run_id", run); put("proposal_batch_id", UUID.randomUUID().toString()); put("sequence", 0); put("last", true)
+                                put("proposals", JsonArray(listOf(JsonObject(target + mapOf("deleted_ms" to JsonPrimitive(2), "label" to JsonPrimitive("Synthetic pending target"))))))
+                            }, 60000), run)
+                            val retained = documents.bestand.value; val saved = documents.personalActorSavedBookState()
+                            val bytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                            work.receiveMessage(peer, original, channel, 0L); assertTrue(sent().isEmpty())
+                            assertEquals(listOf(original), work.readPersonalActorIncomingTargetFrames(handle))
+                            val view = work.reviewPersonalActorIncomingTargets(handle)
+                            assertEquals(JsonPrimitive(false), view["action_authorized"])
+                            assertEquals(JsonPrimitive("deleted"), view.getValue("observations").jsonArray.single().jsonObject["local_state"])
+                            val choices = listOf(buildJsonObject {
+                                put("proposal_id", target.getValue("proposal_id")); put("decision", "restore")
+                                put("expected_clock", target.getValue("clock")); put("confirm_conflict", true)
+                            })
+                            val draft = work.reviewPersonalActorIncomingTargets(handle, view.string("revision"), choices)
+                            assertEquals(JsonPrimitive(false), draft["action_authorized"])
+                            assertEquals(JsonPrimitive(true), draft["conflicts_explicitly_confirmed"])
+                            assertSame(retained, documents.bestand.value); assertEquals(saved, documents.personalActorSavedBookState())
+                            assertArrayEquals(bytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                            assertTrue(queue.actorDeletionIntents(run).isEmpty()); assertNull(documents.notiz("removed-note")); assertTrue(sent().isEmpty())
+                            documents.setzeNotiz(requireNotNull(documents.notiz("phone-note")).copy(text = "Synthetic later native save"))
+                            assertTrue(runCatching { work.reviewPersonalActorIncomingTargets(handle, view.string("revision"), choices) }.isFailure)
+                            work.stopPersonalActor(handle)
+                            return@use
+                        }
                         if (mode.startsWith("actor-producer-incoming-")) {
                             @Suppress("UNCHECKED_CAST")
                             val handle = (field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>).getValue(run)

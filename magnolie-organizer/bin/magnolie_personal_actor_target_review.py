@@ -97,7 +97,7 @@ class NativeIncomingTargetChoiceReview:
             target = observation['target']
             if (not isinstance(target, dict) or not isinstance(target.get('proposal_id'), str) or
                     expected.get(target.get('proposal_id')) != target or target['proposal_id'] in checked or
-                    observation['local_state'] != 'live' or observation['requires_conflict_choice'] is not True or
+                    observation['local_state'] not in ('live', 'deleted') or observation['requires_conflict_choice'] is not True or
                     not isinstance(observation['local_hash'], str) or HEX.fullmatch(observation['local_hash']) is None or
                     type(observation['metadata_matches']) is not bool or observation['native_saved_book'] != self.saved):
                 raise ValueError('invalid_actor_target_review_observation')

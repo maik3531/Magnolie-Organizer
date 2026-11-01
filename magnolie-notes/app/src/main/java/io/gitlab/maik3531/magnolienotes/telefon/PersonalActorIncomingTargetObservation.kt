@@ -4,7 +4,7 @@ import io.gitlab.maik3531.magnolienotes.daten.Bestand
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import kotlinx.serialization.json.*
 
-/** Private native LIVE observation only, never admission, typed action, data,
+/** Private native LIVE/current-pending observation only, never admission, typed action, data,
  * queue or ACK authority. All callbacks run under the native service/book locks.
  * The saved-book callback must be the actual writer witness, not wire JSON. */
 internal class PersonalActorIncomingTargetObservation(
@@ -92,18 +92,36 @@ internal class PersonalActorIncomingTargetObservation(
         val state = book.personalSync
         val key = kind + "\u0000" + (if (kind == "attachment") parent + "\u0000" else "") + id
         val meta = requireNotNull(state.entities[key]) { "actor_target_live_native_proof_missing" }
-        check(state.peer_device_id == peerId && meta.peer_device_id == peerId && meta.state == "live" &&
-            meta.parent_id == parent && !meta.conflict && HEX.matches(meta.hash)) { "actor_target_live_native_proof_missing" }
+        check(state.peer_device_id == peerId && meta.peer_device_id == peerId) { "actor_target_live_native_proof_missing" }
+        val pending = meta.state == "deleted" && meta.status == "local_pending"
+        val localHash = if (pending) meta.prior_hash else meta.hash
+        check((meta.state == "live" || pending) && meta.parent_id == parent && !meta.conflict && HEX.matches(localHash)) {
+            "actor_target_live_native_proof_missing"
+        }
         val clock = JsonArray(meta.clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } })
         validateTarget(JsonObject(target + ("clock" to clock)))
+        if (pending) {
+            val local = buildJsonObject {
+                put("proposal_id", meta.proposal_id); put("kind", kind); put("id", id); put("parent_id", parent)
+                put("clock", clock); put("prior_hash", localHash); put("deleted_ms", meta.deleted_ms); put("label", meta.label)
+            }
+            PersonalSyncProtokoll.validate("personal_sync.deletion_proposals", buildJsonObject {
+                put("format", 1); put("run_id", runId); put("proposal_batch_id", runId); put("sequence", 0); put("last", true)
+                put("proposals", JsonArray(listOf(local)))
+            })
+            check(meta.hash.isEmpty() && meta.proposal_id == PersonalSync.proposalId(peerId, kind, id, parent, meta.clock, localHash)) {
+                "actor_target_pending_native_proof_missing"
+            }
+        }
         val notes = book.notizen.filter { PersonalSync.noteWireId(state, it.id) == (if (kind == "attachment") parent else id) }
-        val own = if (kind == "task") book.aufgaben.filter { it.id == id }.let { it.size == 1 && PersonalSync.ownTask(it.single()) }
+        val own = if (kind == "task") book.aufgaben.filter { it.id == id }.let { if (pending) it.isEmpty() else it.size == 1 && PersonalSync.ownTask(it.single()) }
+            else if (kind == "note" && pending) notes.isEmpty()
             else notes.size == 1 && PersonalSync.ownNote(notes.single()) && (kind != "attachment" ||
-                notes.single().anhaenge.count { PersonalSync.attachmentId(state, parent, it.id) == id } == 1)
+                notes.single().anhaenge.count { PersonalSync.attachmentId(state, parent, it.id) == id } == if (pending) 0 else 1)
         check(own) { "actor_target_live_native_proof_missing" }
         val result = buildJsonObject {
-            put("target", target); put("local_state", "live"); put("local_hash", meta.hash); put("local_clock", clock)
-            put("native_saved_book", saved); put("metadata_matches", meta.hash == target.string("prior_hash") && clock == target["clock"])
+            put("target", target); put("local_state", if (pending) "deleted" else "live"); put("local_hash", localHash); put("local_clock", clock)
+            put("native_saved_book", saved); put("metadata_matches", localHash == target.string("prior_hash") && clock == target["clock"])
             // Metadata equality is not a recomputed current content hash.
             put("requires_conflict_choice", true)
         }

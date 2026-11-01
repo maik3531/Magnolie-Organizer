@@ -110,7 +110,7 @@ internal sealed class PersonalActorIncomingTargetChoiceReview
                 throw new InvalidDataException("invalid_actor_target_review_observation");
             var target = observation["target"]!.AsObject(); var id = Text(target, "proposal_id");
             if (!expected.TryGetValue(id, out var original) || !JsonNode.DeepEquals(target, original) || checkedValues.ContainsKey(id) ||
-                Text(observation, "local_state") != "live" || !Boolean(observation["requires_conflict_choice"], true) || !Hex(Text(observation, "local_hash")) ||
+                Text(observation, "local_state") is not ("live" or "deleted") || !Boolean(observation["requires_conflict_choice"], true) || !Hex(Text(observation, "local_hash")) ||
                 !JsonNode.DeepEquals(observation["native_saved_book"], Saved(saved))) throw new InvalidDataException("invalid_actor_target_review_observation");
             var clock = PersonalSyncContract.NormalizeClock(observation["local_clock"]);
             var matches = Text(observation, "local_hash") == Text(target, "prior_hash") && JsonNode.DeepEquals(clock, target["clock"]);

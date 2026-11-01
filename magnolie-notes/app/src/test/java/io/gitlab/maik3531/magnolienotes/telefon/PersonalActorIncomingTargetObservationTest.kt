@@ -29,6 +29,15 @@ class PersonalActorIncomingTargetObservationTest {
             put("prior_hash", "a".repeat(64)); put("clock", JsonArray(listOf(buildJsonObject { put("actor_id", actor); put("counter", 1) })))
         }
         fun create() = PersonalActorIncomingTargetObservation(peer, run, { owner }, { source }, { book }, { saved }, { scope })
+        fun pending(): Fixture {
+            val meta = book.personalSync.entities.getValue(key).copy(state = "deleted", status = "local_pending", hash = "",
+                prior_hash = "a".repeat(64), deleted_ms = 2, label = "Synthetic native pending",
+                proposal_id = PersonalSync.proposalId(peer, kind, id, parent, clock, "a".repeat(64)))
+            book = book.copy(personalSync = book.personalSync.copy(entities = mapOf(key to meta)))
+            book = when (kind) { "note" -> book.copy(notizen = emptyList()); "task" -> book.copy(aufgaben = emptyList())
+                else -> book.copy(notizen = book.notizen.map { it.copy(anhaenge = emptyList()) }) }
+            return this
+        }
     }
 
     @Test fun exactOwnLiveTargetsReturnMetadataOnlyAndAlwaysRequireConflictChoice() {
@@ -49,6 +58,41 @@ class PersonalActorIncomingTargetObservationTest {
         val result = f.create().observeMany(run, listOf(f.target)).single()
         assertEquals(JsonPrimitive(true), result["metadata_matches"])
         assertEquals(JsonPrimitive(true), result["requires_conflict_choice"])
+    }
+
+    @Test fun exactCurrentPendingRemovalsAreMetadataOnlyAndStillRequireExplicitConflictChoice() {
+        for (kind in listOf("note", "task", "attachment")) {
+            val f = Fixture(kind).pending(); val before = f.book; val scope = f.scope; val saved = f.saved
+            val observed = f.create().observeMany(run, listOf(f.target)).single()
+            assertEquals(JsonPrimitive("deleted"), observed["local_state"])
+            assertEquals(JsonPrimitive("a".repeat(64)), observed["local_hash"])
+            assertEquals(JsonPrimitive(true), observed["metadata_matches"])
+            assertEquals(JsonPrimitive(true), observed["requires_conflict_choice"])
+            assertFalse(observed.toString().contains("PRIVATE")); assertFalse("restore_available" in observed)
+            assertSame(before, f.book); assertEquals(scope, f.scope); assertEquals(saved, f.saved)
+        }
+    }
+
+    @Test fun oldAcknowledgmentsAndUnprovedDeletedMetadataNeverBecomePendingTargetEvidence() {
+        for (kind in listOf("note", "task", "attachment")) for (fault in listOf("resolved", "old-ack", "peer", "conflict", "proposal", "hash", "present")) {
+            val f = Fixture(kind).pending(); val meta = f.book.personalSync.entities.getValue(f.key)
+            val changed = when (fault) { "resolved" -> meta.copy(status = "resolved")
+                "old-ack" -> PersonalSyncEntity(acknowledged_by_peer = true)
+                "peer" -> meta.copy(peer_device_id = run); "conflict" -> meta.copy(conflict = true)
+                "proposal" -> meta.copy(proposal_id = UUID.randomUUID().toString()); "hash" -> meta.copy(hash = "a".repeat(64)); else -> meta }
+            f.book = f.book.copy(personalSync = f.book.personalSync.copy(entities = mapOf(f.key to changed)))
+            if (fault == "present") f.book = when (kind) { "note" -> f.book.copy(notizen = listOf(Notiz(f.id)))
+                "task" -> f.book.copy(aufgaben = listOf(Aufgabe(f.id)))
+                else -> f.book.copy(notizen = f.book.notizen.map { it.copy(anhaenge = listOf(Anhang(f.id, "x", "image", "x"))) }) }
+            assertTrue("$kind/$fault", runCatching { f.create().observeMany(run, listOf(f.target)) }.isFailure)
+        }
+        for (fault in listOf("missing", "foreign", "duplicate")) {
+            val f = Fixture("attachment").pending()
+            f.book = when (fault) { "missing" -> f.book.copy(notizen = emptyList())
+                "foreign" -> f.book.copy(notizen = f.book.notizen.map { it.copy(baumQuelle = "foreign") })
+                else -> f.book.copy(notizen = f.book.notizen + f.book.notizen) }
+            assertTrue(fault, runCatching { f.create().observeMany(run, listOf(f.target)) }.isFailure)
+        }
     }
 
     @Test fun oldAckOrMissingDuplicateAndUnownedLiveObjectsNeverBecomeObservations() {

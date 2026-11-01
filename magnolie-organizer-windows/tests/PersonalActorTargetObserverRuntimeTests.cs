@@ -20,7 +20,11 @@ internal static class PersonalActorTargetObserverRuntimeTests
             "skip-deletions", "channel", "missing-snapshot", "saved-mismatch", "source-mismatch", "save-during-capture", "invalid-group", "empty-group", "over-capacity",
             "origin-note", "origin-task", "origin-attachment", "origin-raw-only", "origin-foreign-key", "origin-conflict", "origin-partial",
             "origin-local-grant", "origin-remote-grant", "origin-expired", "origin-cancelled", "origin-capacity", "origin-channel", "origin-source",
-            "origin-wall", "origin-mono", "origin-request-missing" })
+            "origin-wall", "origin-mono", "origin-request-missing", "origin-pending-note", "origin-pending-task", "origin-pending-attachment",
+            "pending-attachment-missing-parent", "pending-attachment-foreign-parent", "pending-attachment-duplicate-parent" }.Concat(
+                from kind in new[] { "note", "task", "attachment" }
+                from fault in new[] { "resolved", "old-ack", "foreign-peer", "conflict", "forged-proposal", "nonempty-hash", "present-object" }
+                select $"pending-{kind}-{fault}"))
         {
             var root = Path.Combine(Path.GetTempPath(), "actor-target-observer-" + Guid.NewGuid().ToString("N"));
             try
@@ -57,7 +61,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 await connection.HandlePlainAsync(Message(SharedSyncSettings.Kind, SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), settings, peer.Id, identity.Id)));
                 var scope = PhoneContentScope.Create(["selected-note"], ["selected-task"]);
                 foreach (var chunk in PhoneContentScope.Chunks(scope)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, chunk));
-                var kind = scenario is "task" or "origin-task" ? "task" : scenario is "attachment" or "origin-attachment" ? "attachment" : "note";
+                var kind = scenario.Split('-').Contains("task") ? "task" : scenario.Split('-').Contains("attachment") ? "attachment" : "note";
                 var id = kind == "task" ? "outside-task" : kind == "attachment" ? "outside-file" : "outside-note";
                 var parent = kind == "attachment" ? "outside-note" : "";
                 var clock = new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 });
@@ -69,6 +73,31 @@ internal static class PersonalActorTargetObserverRuntimeTests
                             ["parent_id"] = parent, ["hash"] = new string('a', 64), ["clock"] = clock.DeepClone() } } } };
                 var target = new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["id"] = id,
                     ["parent_id"] = parent, ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() };
+                if (scenario.StartsWith("pending-", StringComparison.Ordinal) || scenario.StartsWith("origin-pending-", StringComparison.Ordinal))
+                {
+                    var meta = book["personalSync"]!["entities"]!.AsObject().Single().Value!.AsObject();
+                    meta["state"] = "deleted"; meta["status"] = "local_pending"; meta["hash"] = ""; meta["prior_hash"] = new string('a', 64);
+                    meta["deleted_ms"] = 2; meta["label"] = "Synthetic native pending";
+                    meta["proposal_id"] = PersonalSyncContract.DeletionProposalId(peer.Id, kind, id, parent, clock, new string('a', 64));
+                    if (kind == "note") book["notizen"]!.AsArray().Clear();
+                    else if (kind == "task") book["aufgaben"]!.AsArray().Clear();
+                    else book["notizen"]![0]!["anhaenge"]!.AsArray().Clear();
+                    if (scenario.EndsWith("-resolved", StringComparison.Ordinal)) meta["status"] = "resolved";
+                    if (scenario.EndsWith("-old-ack", StringComparison.Ordinal)) { meta.Clear(); meta["acknowledged_by_peer"] = true; }
+                    if (scenario.EndsWith("-foreign-peer", StringComparison.Ordinal)) meta["peer_device_id"] = Guid.NewGuid().ToString("D");
+                    if (scenario.EndsWith("-conflict", StringComparison.Ordinal)) meta["conflict"] = true;
+                    if (scenario.EndsWith("-forged-proposal", StringComparison.Ordinal)) meta["proposal_id"] = Guid.NewGuid().ToString("D");
+                    if (scenario.EndsWith("-nonempty-hash", StringComparison.Ordinal)) meta["hash"] = new string('a', 64);
+                    if (scenario.EndsWith("-present-object", StringComparison.Ordinal))
+                    {
+                        if (kind == "note") book["notizen"]!.AsArray().Add(new JsonObject { ["id"] = id });
+                        else if (kind == "task") book["aufgaben"]!.AsArray().Add(new JsonObject { ["id"] = id });
+                        else book["notizen"]![0]!["anhaenge"]!.AsArray().Add(new JsonObject { ["id"] = id });
+                    }
+                    if (scenario.EndsWith("-missing-parent", StringComparison.Ordinal)) book["notizen"]!.AsArray().Clear();
+                    if (scenario.EndsWith("-foreign-parent", StringComparison.Ordinal)) book["notizen"]![0]!["baumQuelle"] = "foreign-owner";
+                    if (scenario.EndsWith("-duplicate-parent", StringComparison.Ordinal)) book["notizen"]!.AsArray().Add(book["notizen"]![0]!.DeepClone());
+                }
                 var owner = new NativeBookOwnerScope(); owner.SetReady(true); var text = book.ToJsonString();
                 owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(text));
                 coordinator.NativeBookSource = () => owner.Current("target-observer", true);
@@ -218,10 +247,12 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 delete.Parameters.AddWithValue("$key", $"personal_run:{PersonalSyncActorContract.StoragePeer(handle.ActorId)}:{handle.ActorId}"); delete.ExecuteNonQuery();
             }
         }
-        if (scenario is "origin-note" or "origin-task" or "origin-attachment")
+        var positive = scenario is "origin-note" or "origin-task" or "origin-attachment" or "origin-pending-note" or "origin-pending-task" or "origin-pending-attachment";
+        if (positive)
         {
             var view = await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle);
             TestAssert.That(view["action_authorized"]!.GetValue<bool>() == false && JsonNode.DeepEquals(view["targets"]![0], target), "Origin review lost target/no-action boundary.");
+            TestAssert.That(view["observations"]![0]!["local_state"]!.GetValue<string>() == (scenario.Contains("pending", StringComparison.Ordinal) ? "deleted" : "live"), "Native review lost local pending/live classification.");
             var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "delete", ["expected_clock"] = target["clock"]!.DeepClone(), ["confirm_conflict"] = true };
             var draft = await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle, view["revision"]!.GetValue<string>(), [choice]);
             TestAssert.That(!draft["action_authorized"]!.GetValue<bool>() && draft["conflicts_explicitly_confirmed"]!.GetValue<bool>() && captures() == 2,
@@ -231,12 +262,12 @@ internal static class PersonalActorTargetObserverRuntimeTests
         }
         else if (scenario != "origin-partial")
             await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ReadPersonalActorIncomingTargetFramesAsync(handle), "Invalid origin remained readable: " + scenario);
-        if (scenario is "origin-note" or "origin-task" or "origin-attachment" or "origin-conflict" or "origin-partial" or "origin-capacity" or "origin-expired" or "origin-foreign-key")
+        if (positive || scenario is "origin-conflict" or "origin-partial" or "origin-capacity" or "origin-expired" or "origin-foreign-key")
             TestAssert.That(JsonNode.DeepEquals(await coordinator.PersonalActorStatusAsync(handle), beforeStatus), "Origin mutated raw registry/data status.");
         TestAssert.That(transport.Length == beforeWire && emitted() == beforeEmitted && Rows() == beforeRows, "Origin changed wire, callbacks or outgoing queue: " + scenario);
-        if (scenario is not ("origin-note" or "origin-task" or "origin-attachment" or "origin-cancelled" or "origin-channel" or "origin-source" or "origin-local-grant" or "origin-remote-grant"))
+        if (!positive && scenario is not ("origin-cancelled" or "origin-channel" or "origin-source" or "origin-local-grant" or "origin-remote-grant"))
             TestAssert.That(owner.SaveState("target-observer", true) == beforeSaved, "Origin mutated native saved book.");
-        if (scenario is "origin-note" or "origin-task" or "origin-attachment")
+        if (positive)
             TestAssert.That(JsonNode.DeepEquals(connection.CurrentContentScope(PhoneContentScope.Reference(scope)), scope), "Origin widened data scope.");
     }
 }

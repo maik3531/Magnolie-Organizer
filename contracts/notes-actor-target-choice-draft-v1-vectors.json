@@ -37,5 +37,28 @@
       "delete_choice_revision": "913f552ae245a0f7a523b581df4418c19b2bccc31a86a175c8ed3025d2f59a7c",
       "restore_choice_revision": "8ee7106c3dc26cd93cf4c2dcb573d297047aa11f948ec09a0fe1821801efa62a"
     }
+  ],
+  "pending_cases": [
+    {
+      "kind": "note",
+      "local_state": "deleted",
+      "review_revision": "dbdcf7c2b6132bfd224385433b3a434ecb845a797f8fb537ad086ed42f273866",
+      "delete_choice_revision": "754b58d401562804ec9809eaab2381070769dd08180424e3fc2a9df0e7ae79a3",
+      "restore_choice_revision": "09b2572e9e9b03b516238116e2e2a309d80e23f45f79ca494340a6a652a36a08"
+    },
+    {
+      "kind": "task",
+      "local_state": "deleted",
+      "review_revision": "91e3a67b98c7904ac8fb617bcd11da435daeffc7eb07585e0bb78b8d4bec1a15",
+      "delete_choice_revision": "80b16afe99581c49aa9ccaf55e7e07d80644645ae0178e7a8713ac9b024ca957",
+      "restore_choice_revision": "78e752b1590c0211aeb4ce233c3228ea9e235e01ca1a75c38964b1111cfd88c6"
+    },
+    {
+      "kind": "attachment",
+      "local_state": "deleted",
+      "review_revision": "80d51a72b2d71b256033a8affc8a6c1a2dfd6bd52e9a3224db8949aee1711432",
+      "delete_choice_revision": "7188cb368c3bb97df85d648561936884812fe2f495aae7404e93b040aff93ec7",
+      "restore_choice_revision": "b4de223033d4e299c33c24817998eeb3cb544340f9495a1e319df6fe95e5cc50"
+    }
   ]
 }

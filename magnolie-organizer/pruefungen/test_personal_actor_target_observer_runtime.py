@@ -6,6 +6,7 @@ import pytest
 import magnolie_content_scope as scope
 import magnolie_personal_actor as actor
 import magnolie_shared_sync as shared
+import magnolie_personal_sync as personal
 from magnolie_personal_actor_store import ActorHandle
 from test_personal_actor_source import actor_source_fixture
 from test_personal_actor_producer import native
@@ -13,7 +14,7 @@ from test_personal_actor_incoming_target_evidence import live_fixture
 from test_shared_sync_transport import message
 
 
-def observation_runtime(tmp_path, monkeypatch, kind):
+def observation_runtime(tmp_path, monkeypatch, kind, pending=False):
     service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
     for side in ('local_grants', 'grants'):
         peer[side]['grants']['personal_deletions_sync'] = True
@@ -24,6 +25,13 @@ def observation_runtime(tmp_path, monkeypatch, kind):
     _, _, book, target, key, _ = live_fixture(kind)
     book['personalSync']['peer_device_id'] = peer['device_id']
     book['personalSync']['entities'][key]['peer_device_id'] = peer['device_id']
+    if pending:
+        meta = book['personalSync']['entities'][key]
+        meta.update(state='deleted', status='local_pending', hash='', prior_hash=target['prior_hash'], deleted_ms=2, label='Synthetic native pending')
+        meta['proposal_id'] = personal.deletion_proposal_id(peer['device_id'], kind, target['id'], target['parent_id'], meta['clock'], target['prior_hash'])
+        if kind == 'note': book['notizen'] = []
+        elif kind == 'task': book['aufgaben'] = []
+        else: book['notizen'][0]['anhaenge'] = []
     owner, read, snapshot = native(book)
     service.native_actor_book_source = lambda: owner.current('native-producer-fixture', True)
     service.native_actor_saved_book = read

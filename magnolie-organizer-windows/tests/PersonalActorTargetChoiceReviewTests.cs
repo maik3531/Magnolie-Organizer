@@ -12,11 +12,11 @@ internal static class PersonalActorTargetChoiceReviewTests
     }
     internal static Task RunAsync()
     {
-        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root("contracts/notes-actor-target-choice-draft-v1-vectors.json"),
-            "contracts", "notes-actor-target-choice-draft-v1-vectors.json")))!["cases"]!.AsArray();
+        var catalog = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root("contracts/notes-actor-target-choice-draft-v1-vectors.json"),
+            "contracts", "notes-actor-target-choice-draft-v1-vectors.json")))!;
         foreach (var kind in new[] { "note", "task", "attachment" })
         foreach (var scenario in new[] { "delete", "restore", "missing-confirm", "false", "numeric-true", "string-true", "clock", "foreign", "unknown", "missing", "extra",
-            "source", "scope", "save", "frame", "frame-race", "optimistic", "metadata", "content", "revision", "input-mutation" })
+            "source", "scope", "save", "frame", "frame-race", "optimistic", "metadata", "content", "revision", "input-mutation", "pending-delete", "pending-restore" })
         {
             var parent = kind == "attachment" ? "own-note" : ""; var id = kind == "task" ? "own-task" : kind == "attachment" ? "own-file" : "own-note";
             var clock = new JsonArray(new JsonObject { ["actor_id"] = Actor, ["counter"] = 1 });
@@ -33,7 +33,7 @@ internal static class PersonalActorTargetChoiceReviewTests
             {
                 observations++;
                 if (scenario == "input-mutation") targets[0]["id"] = "changed-native-input";
-                var value = new JsonObject { ["target"] = targets.Single().DeepClone(), ["local_state"] = "live", ["local_hash"] = new string('a', 64),
+                var value = new JsonObject { ["target"] = targets.Single().DeepClone(), ["local_state"] = scenario.StartsWith("pending-", StringComparison.Ordinal) ? "deleted" : "live", ["local_hash"] = new string('a', 64),
                     ["local_clock"] = clock.DeepClone(), ["native_saved_book"] = new JsonObject { ["book_source"] = saved.BookSource, ["sequence"] = saved.Sequence, ["sha256"] = saved.Sha256 },
                     ["metadata_matches"] = true, ["requires_conflict_choice"] = true };
                 if (scenario == "optimistic") value["requires_conflict_choice"] = false;
@@ -46,7 +46,7 @@ internal static class PersonalActorTargetChoiceReviewTests
             if (scenario is "optimistic" or "metadata" or "content" or "frame-race" or "input-mutation")
             { Rejected(() => review.Review(), "Unsafe observation/frame-race became a review: " + scenario); continue; }
             var view = review.Review();
-            var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = scenario == "restore" ? "restore" : "delete",
+            var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = scenario.EndsWith("restore", StringComparison.Ordinal) ? "restore" : "delete",
                 ["expected_clock"] = clock.DeepClone(), ["confirm_conflict"] = true };
             switch (scenario)
             {
@@ -64,12 +64,13 @@ internal static class PersonalActorTargetChoiceReviewTests
                 case "frame": frame["body"]!["body"]!["proposals"]![0]!["label"] = "Changed protected bytes"; break;
             }
             var revision = view["revision"]!.GetValue<string>();
-            if (scenario is not ("delete" or "restore"))
+            if (scenario is not ("delete" or "restore" or "pending-delete" or "pending-restore"))
             { Rejected(() => review.DraftChoices(scenario == "revision" ? new string('f', 64) : revision, scenario == "missing" ? [] : [choice]), "Implicit/stale choice became a draft: " + scenario); continue; }
             var draft = review.DraftChoices(revision, [choice]); var repeat = review.DraftChoices(revision, [choice]);
-            var vector = vectors.OfType<JsonObject>().Single(value => value["kind"]!.GetValue<string>() == kind);
+            var vector = catalog[scenario.StartsWith("pending-", StringComparison.Ordinal) ? "pending_cases" : "cases"]!.AsArray().OfType<JsonObject>()
+                .Single(value => value["kind"]!.GetValue<string>() == kind);
             TestAssert.That(revision == vector["review_revision"]!.GetValue<string>() &&
-                draft["choice_revision"]!.GetValue<string>() == vector[scenario + "_choice_revision"]!.GetValue<string>(),
+                draft["choice_revision"]!.GetValue<string>() == vector[choice["decision"]!.GetValue<string>() + "_choice_revision"]!.GetValue<string>(),
                 "Private native choice-draft revision disagreed with the shared canonical vectors.");
             TestAssert.That(JsonNode.DeepEquals(draft, repeat) && draft["action_authorized"]!.GetValue<bool>() == false &&
                 view["action_authorized"]!.GetValue<bool>() == false && draft["conflicts_explicitly_confirmed"]!.GetValue<bool>() &&

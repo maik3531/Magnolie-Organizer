@@ -84,7 +84,7 @@ internal class PersonalActorIncomingTargetChoiceReview(
         for (observation in observations) {
             require(observation.keys == setOf("target", "local_state", "local_hash", "local_clock", "native_saved_book", "metadata_matches", "requires_conflict_choice"))
             val target = observation.getValue("target").jsonObject; val id = target.string("proposal_id")
-            require(expected[id] == target && id !in checked && observation["local_state"] == JsonPrimitive("live") &&
+            require(expected[id] == target && id !in checked && observation["local_state"] in setOf(JsonPrimitive("live"), JsonPrimitive("deleted")) &&
                 observation["requires_conflict_choice"] == JsonPrimitive(true) && HEX.matches(observation.string("local_hash")) &&
                 observation["native_saved_book"] == saved) { "invalid_actor_target_review_observation" }
             // Validate the local clock with the same strict proposal schema.

@@ -101,7 +101,7 @@ class NativeOutgoingTargetEvidence(_NativeTargetBinding):
 
 
 class NativeIncomingLiveTargetObservation(_NativeTargetBinding):
-    """Observe a current own live target, NOT permission to act on a proposal.
+    """Observe a current own live target or exact native pending removal.
 
     Local metadata hash/clock are explicitly not asserted to be a recomputed
     content hash. The exact actual saved book is independently pinned. A future
@@ -157,25 +157,38 @@ class NativeIncomingLiveTargetObservation(_NativeTargetBinding):
         state = book.get('personalSync', {})
         key = kind + '\0' + (parent + '\0' if kind == 'attachment' else '') + identifier
         meta = state.get('entities', {}).get(key)
-        if state.get('peer_device_id') != self._peer_id or not isinstance(meta, dict) or meta.get('peer_device_id') != self._peer_id or meta.get('state') != 'live':
+        if state.get('peer_device_id') != self._peer_id or not isinstance(meta, dict) or meta.get('peer_device_id') != self._peer_id:
             raise PermissionError('actor_target_live_native_proof_missing')
-        if meta.get('parent_id', '') != parent or meta.get('conflict') is True or not isinstance(meta.get('hash'), str) or len(meta['hash']) != 64 or any(c not in '0123456789abcdef' for c in meta['hash']):
+        pending = meta.get('state') == 'deleted' and meta.get('status') == 'local_pending'
+        local_hash = meta.get('prior_hash') if pending else meta.get('hash')
+        if (meta.get('state') != 'live' and not pending or meta.get('parent_id', '') != parent or meta.get('conflict') is True or
+                not isinstance(local_hash, str) or len(local_hash) != 64 or any(c not in '0123456789abcdef' for c in local_hash)):
             raise PermissionError('actor_target_live_native_proof_missing')
         local_clock = personal.normalize_clock(meta.get('clock'))
+        if pending:
+            local = {'proposal_id': meta.get('proposal_id'), 'kind': kind, 'id': identifier, 'parent_id': parent,
+                'clock': local_clock, 'prior_hash': local_hash, 'deleted_ms': meta.get('deleted_ms'), 'label': meta.get('label', '')}
+            personal.validate_body('personal_sync.deletion_proposals', {'format': 1, 'run_id': run_id,
+                'proposal_batch_id': run_id, 'sequence': 0, 'last': True, 'proposals': [local]})
+            if (meta.get('hash', '') != '' or local['proposal_id'] != personal.deletion_proposal_id(
+                    self._peer_id, kind, identifier, parent, local_clock, local_hash)):
+                raise PermissionError('actor_target_pending_native_proof_missing')
         notes = [value for value in book.get('notizen', []) if _note_wire_id(value['id'], state) == (parent if kind == 'attachment' else identifier)]
         if kind == 'task':
             live = [value for value in book.get('aufgaben', []) if value.get('id') == identifier]
-            own = len(live) == 1 and all(live[0].get(field) is None or live[0].get(field) is False or
+            own = not live if pending else len(live) == 1 and all(live[0].get(field) is None or live[0].get(field) is False or
                 isinstance(live[0].get(field), str) and live[0][field] == '' for field in ('vonZweig', 'fremdId', 'delegiertAn', 'herkunft'))
+        elif kind == 'note' and pending:
+            own = not notes
         else:
             own = len(notes) == 1 and (not notes[0].get('baumQuelle') or notes[0].get('persoenlichVerknuepft') is True)
             if own and kind == 'attachment':
-                own = sum(_attachment_id(parent, value['id'], state) == identifier for value in notes[0].get('anhaenge', [])) == 1
+                own = sum(_attachment_id(parent, value['id'], state) == identifier for value in notes[0].get('anhaenge', [])) == (0 if pending else 1)
         if not own:
             raise PermissionError('actor_target_live_native_proof_missing')
-        observed = {'target': copy.deepcopy(target), 'local_state': 'live', 'local_hash': meta['hash'],
+        observed = {'target': copy.deepcopy(target), 'local_state': 'deleted' if pending else 'live', 'local_hash': local_hash,
             'local_clock': copy.deepcopy(local_clock), 'native_saved_book': copy.deepcopy(self._book_binding[0]),
-            'metadata_matches': meta['hash'] == target['prior_hash'] and local_clock == target['clock'],
+            'metadata_matches': local_hash == target['prior_hash'] and local_clock == target['clock'],
             'requires_conflict_choice': True}
         self._observed[target['proposal_id']] = observed
         self._identities[identity] = target['proposal_id']
