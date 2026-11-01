@@ -85,6 +85,13 @@ class ScopedDataRuntimeTest {
     @Test fun nativeIncomingDecisionMixedLedgerRetryRetainsAtomicGroupAndOneDataCommit() = exercise("actor-producer-incoming-mixed-restore-ledger-failure")
     @Test fun nativeIncomingDecisionMixedSendRetryNeedsActualNativeAckFlush() = exercise("actor-producer-incoming-mixed-restore-send-failure")
     @Test fun nativeIncomingDecisionMixedMetadataRetryNeedsProtectedAckPersistence() = exercise("actor-producer-incoming-mixed-restore-metadata-failure")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterGrantRevocation() = exercise("actor-producer-incoming-mixed-restore-deny-grants")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterAnotherBookWrite() = exercise("actor-producer-incoming-mixed-restore-deny-book")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterPeerKeyReplacement() = exercise("actor-producer-incoming-mixed-restore-deny-key")
+    @Test fun nativeIncomingDecisionMixedDeniedOnOldChannel() = exercise("actor-producer-incoming-mixed-restore-deny-channel")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterBookInstanceReplacement() = exercise("actor-producer-incoming-mixed-restore-deny-instance")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterRestore() = exercise("actor-producer-incoming-mixed-restore-deny-restore")
+    @Test fun nativeIncomingDecisionMixedDeniedAfterCancellation() = exercise("actor-producer-incoming-mixed-restore-deny-cancel")
     @Test fun nativeActorTerminalCannotFinishAfterGrantRevocation() = exercise("actor-commit-terminal-deny-grants")
     @Test fun nativeActorTerminalCannotFinishAfterAnotherBookWrite() = exercise("actor-commit-terminal-deny-book")
     @Test fun nativeActorTerminalCannotFinishWithAReplacedPeerKey() = exercise("actor-commit-terminal-deny-key")
@@ -452,7 +459,7 @@ class ScopedDataRuntimeTest {
                             val draft = documents.entwurf.value
                             val witness = requireNotNull(documents.personalActorSavedBookState())
                             val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
-                            val denyIncomingAck = mode.startsWith("actor-producer-incoming-deny-")
+                            val denyIncomingAck = mode.startsWith("actor-producer-incoming-deny-") || mode.startsWith("actor-producer-incoming-mixed-restore-deny-")
                             if (mode.endsWith("ledger-failure") || denyIncomingAck) database.execSQL("CREATE TRIGGER incoming_ledger_failure BEFORE UPDATE ON inbox WHEN NEW.state='actor_processed' BEGIN SELECT RAISE(ABORT,'synthetic incoming decision ledger failure'); END")
                             if (mode.endsWith("metadata-failure")) database.execSQL("CREATE TRIGGER incoming_metadata_failure BEFORE INSERT ON meta WHEN NEW.key GLOB 'personal_actor_completion_wire:*' BEGIN SELECT RAISE(ABORT,'synthetic sent ACK persistence failure'); END")
                             if (mode.endsWith("writer-failure")) failBookWrites.set(true)
@@ -479,7 +486,7 @@ class ScopedDataRuntimeTest {
                                 assertEquals(0, work.personalActorJournal.withActive(handle) { 0 })
                                 return@use
                             }
-                            if (mixed) assertEquals(if (mode.endsWith("ledger-failure")) "metadata_pending" else "completion",
+                            if (mixed) assertEquals(if (mode.endsWith("ledger-failure") || denyIncomingAck) "metadata_pending" else "completion",
                                 work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
                             val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
                             val firstWire = sent().toMutableList()
@@ -498,6 +505,12 @@ class ScopedDataRuntimeTest {
                             assertEquals(draft, documents.entwurf.value)
                             var mixedPeerAck: JsonObject? = null
                             var finalWitness = after
+                            if (mixed && choice == "delete") {
+                                assertTrue(session.contentScopeMessages.isNotEmpty())
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" })
+                            }
                             if (mixed && mode.endsWith("ledger-failure")) {
                                 assertEquals(3, queue.actorDeletionIntents(run).size)
                                 assertTrue(firstWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
@@ -532,7 +545,7 @@ class ScopedDataRuntimeTest {
                                 assertEquals("completion", work.personalActorJournal.completionState(handle))
                                 assertEquals(after, documents.personalActorSavedBookState())
                             }
-                            if (mixed) {
+                            if (mixed && !denyIncomingAck) {
                                 if (session.contentScopeMessages.isNotEmpty()) ackScope()
                                 pump.invoke(work, peer, channel, 0L, false)
                                 firstWire += sent()
@@ -590,7 +603,10 @@ class ScopedDataRuntimeTest {
                                 val retainedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
                                 database.execSQL("DROP TRIGGER incoming_ledger_failure")
                                 runCatching { pump.invoke(work, peer, channel, 0L, false) }
-                                assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                val deniedWire = sent()
+                                assertTrue(deniedWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) && it.getValue("body").jsonObject["message_id"] in incomingIds })
+                                if (mixed) assertTrue(deniedWire.none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.deletion_decision" })
                                 assertNotEquals("completed", work.personalActorJournal.completionState(handle))
                                 assertArrayEquals(retainedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
                                 assertEquals(draft, documents.entwurf.value)
