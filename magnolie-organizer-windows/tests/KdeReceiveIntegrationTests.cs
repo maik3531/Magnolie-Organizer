@@ -189,6 +189,7 @@ internal static class KdeReceiveIntegrationTests
             await using (var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false))
             {
                 var proposals = new ConcurrentQueue<KdeFileReceiveProposal>(); backend.FileProposed += proposals.Enqueue;
+                var progress = new ConcurrentQueue<KdeFileReceiveProgress>(); backend.FileReceiveProgress += progress.Enqueue;
                 backend.ConfigureFileReceive(true, PhoneId, "", () => true);
                 var phone = await KdeConnectTests.ConnectIncomingPhoneAsync(backend, PhoneId, certificate, share: true);
                 using var client = phone.Client; using var stream = phone.Stream;
@@ -197,6 +198,8 @@ internal static class KdeReceiveIntegrationTests
                 await SendAsync(stream, certificate, desktopPin, "incomplete.txt", [1], 2, 2, deadline.Token);
                 backend.ConfigureFileReceive(false, "", "");
                 await WaitAsync(() => backend.FileReceiveStatus()["pending_count"]!.GetValue<int>() == 0, deadline.Token);
+                TestAssert.That(!progress.Any(value => value.State == "failed") && progress.Any(value => value.State == "rejected"),
+                    "Intentional receive disable was misreported as a failed transfer.");
                 TestAssert.That(proposals.IsEmpty && !backend.FileReceiveStatus()["file_enabled"]!.GetValue<bool>() &&
                     Directory.GetFiles(Directory.EnumerateDirectories(paths.KdeConnect, "incoming-*").Single(), "*.part").Length == 0,
                     "Disabling an incomplete receive leaked a grant, proposal, quota or staging file.");

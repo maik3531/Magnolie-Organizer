@@ -303,7 +303,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           langzeitRegeln: [], kurzzeitInsulin: "", kurzzeitModus: "fixed",
           kurzzeitFestEinheiten: 0, kurzzeitRegeln: [], hinweis: "" } },
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
-          adressbuchUid: "", beimStart: false, kontaktNeuereBevorzugen: false },
+          adressbuchUid: "", beimStart: false, kontaktNeuereBevorzugen: false,
+          kdeEmpfang: { dateien: false, geraetId: "", ordner: "", ordnerBeiAnnahme: true,
+            zwischenablage: false, zwischenablageAutomatisch: false } },
         ort: { land: "", landName: "", region: "", regionName: "",
           alleRegionen: false, feiertage: true, ferien: true, abgerufen: 0, jahre: [] },
         allgemein: { drucken: true, hilfsrahmen: false, kalenderAuswahl: false,
@@ -8634,6 +8636,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.sync.beimStart = !!sy.beimStart;
     d.einstellungen.sync.erfolgsmeldungen = sy.erfolgsmeldungen === true;
     d.einstellungen.sync.kontaktNeuereBevorzugen = sy.kontaktNeuereBevorzugen === true;
+    const kdeEmpfang = sy.kdeEmpfang && typeof sy.kdeEmpfang === "object" ? sy.kdeEmpfang : {};
+    d.einstellungen.sync.kdeEmpfang = {
+      dateien: kdeEmpfang.dateien === true,
+      geraetId: S(kdeEmpfang.geraetId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160),
+      // Preserve cross-platform preferences; Windows never uses this path as a destination.
+      ordner: S(kdeEmpfang.ordner).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 4096),
+      ordnerBeiAnnahme: kdeEmpfang.ordnerBeiAnnahme === true,
+      zwischenablage: kdeEmpfang.zwischenablage === true,
+      zwischenablageAutomatisch: kdeEmpfang.zwischenablageAutomatisch === true
+    };
     d.einstellungen.sync.timeDirections = Object.fromEntries(Object.entries(sy.timeDirections || {})
       .filter(([id, direction]) => /^[A-Za-z0-9._-]{1,200}$/.test(id) && !["__proto__", "constructor", "prototype"].includes(id) && ["two_way", "phone_import"].includes(direction)));
     const or = (e.ort && typeof e.ort === "object") ? e.ort : {};
@@ -25004,13 +25016,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       coffeeHint: _("Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you."),
       target: Bruecke.vorhanden ? "_self" : "_blank", register: registriereModal, unregister: beendeModal });
   }
-  function frage(text, jaText, neinText, hinweis) {
+  function frage(text, jaText, neinText, hinweis, dateiliste = false) {
     if (dialogAufloeser) dialogAntwort(false);
     return new Promise((aufloesen) => {
       dialogAufloeser = aufloesen;
       $("#dialog-text").textContent = text;
       $("#dialog-hinweis").textContent = hinweis || "";
       $("#dialog-hinweis").classList.toggle("verborgen", !hinweis);
+      $("#dialog-hinweis").classList.toggle("kde-dateiliste", dateiliste);
       $("#dialog-ja").textContent = jaText || _("Delete");
       $("#dialog-nein").textContent = neinText || _("Cancel");
       $("#dialog-schleier").classList.remove("verborgen");
@@ -25025,6 +25038,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     beendeModal($("#dialog-schleier"));
     $("#dialog-schleier").classList.add("verborgen");
     if (dialogAufloeser) { const f = dialogAufloeser; dialogAufloeser = null; f(wert); }
+    queueMicrotask(frageKdeEmpfang);
   }
 
   function aktualisiereContributorWasserzeichen() {
@@ -28770,8 +28784,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
     const erweitert = el("details", "einst-gruppe kde-erweiterte-funktionen");
+    const empfang = DATEN.einstellungen.sync.kdeEmpfang;
+    const empfangOption = el("div", "kde-empfang-option");
+    const empfangAn = document.createElement("input"); empfangAn.type = "checkbox";
+    empfangAn.checked = empfang.dateien;
+    empfangAn.disabled = !empfang.dateien && (!kde.paired || !kde.device_id);
+    const empfangLabel = el("label", "hak");
+    empfangLabel.append(empfangAn, document.createTextNode(" " + _("Incoming KDE Connect files (always confirm)")));
+    empfangAn.addEventListener("change", () => {
+      empfang.dateien = empfangAn.checked;
+      empfang.geraetId = empfang.dateien ? kde.device_id : "";
+      planeSpeichern();
+      Bruecke.sende({ cmd: "kde_receive_settings", files: empfang.dateien, deviceId: empfang.geraetId });
+    });
+    empfangOption.append(empfangLabel, el("p", "einst-hinweis", _("Choose the save location for each accepted file")));
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
+    erweitert.append(empfangOption);
     baueKdeEingabe(erweitert);
     baueKdeSpieler(erweitert);
     kdeBlock.append(erweitert);
@@ -33310,9 +33339,63 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* Schnittstelle für das Python-Programm                                  */
   /* ---------------------------------------------------------------------- */
 
+  const kdeEmpfangAngebote = [];
+  let kdeEmpfangAktiv = null;
+  function frageKdeEmpfang() {
+    if (gesperrt || dialogAufloeser || kdeEmpfangAktiv || !kdeEmpfangAngebote.length) return;
+    const angebot = kdeEmpfangAngebote.shift();
+    kdeEmpfangAktiv = { id: angebot.id, beendet: false, dialog: null };
+    Bruecke.sende({ cmd: "kde_receive_angebot", id: angebot.id });
+  }
+  function verwerfeKdeEmpfangDialoge() {
+    kdeEmpfangAngebote.length = 0;
+    if (kdeEmpfangAktiv) App.kdeEmpfangBeendet({ id: kdeEmpfangAktiv.id });
+  }
+
   const App = {
+    kdeEmpfangAngebot(nutzlast) {
+      if (!nutzlast || !/^[0-9a-f]{32}$/.test(String(nutzlast.id || ""))) return;
+      if (kdeEmpfangAktiv?.id === nutzlast.id || kdeEmpfangAngebote.some(x => x.id === nutzlast.id)) return;
+      kdeEmpfangAngebote.push({ id: nutzlast.id }); frageKdeEmpfang();
+    },
+    kdeEmpfangGeprueft(nutzlast) {
+      const aktiv = kdeEmpfangAktiv;
+      if (!aktiv || nutzlast?.id !== aktiv.id || aktiv.beendet || aktiv.dialog) return;
+      if (!nutzlast.live || !Array.isArray(nutzlast.files) || !nutzlast.files.length) {
+        kdeEmpfangAktiv = null; frageKdeEmpfang(); return;
+      }
+      if (gesperrt || dialogAufloeser) {
+        kdeEmpfangAngebote.unshift({ id: aktiv.id }); kdeEmpfangAktiv = null; return;
+      }
+      const vorschau = nutzlast.files.map(datei => String(datei.name || _("Unknown file")) +
+        " · " + geraeteGroesse(datei.size)).join("\n");
+      const antwort = frage(_("Receive files"), _("Accept"), _("Reject"), vorschau, true);
+      aktiv.dialog = dialogAufloeser;
+      antwort.then(ja => {
+        if (aktiv.beendet) return;
+        Bruecke.sende({ cmd: ja ? "kde_receive_ziel_waehlen" : "kde_receive_decide", id: aktiv.id, accept: !!ja });
+      }).finally(() => { if (kdeEmpfangAktiv === aktiv) kdeEmpfangAktiv = null; frageKdeEmpfang(); });
+    },
+    kdeEmpfangBeendet(nutzlast) {
+      const id = String(nutzlast?.id || "");
+      for (let i = kdeEmpfangAngebote.length - 1; i >= 0; i--)
+        if (kdeEmpfangAngebote[i].id === id) kdeEmpfangAngebote.splice(i, 1);
+      const aktiv = kdeEmpfangAktiv;
+      if (aktiv?.id !== id) return;
+      aktiv.beendet = true;
+      if (aktiv.dialog && dialogAufloeser === aktiv.dialog) dialogAntwort(false);
+      else { kdeEmpfangAktiv = null; frageKdeEmpfang(); }
+    },
+    kdeEmpfangFehler(nutzlast) { zettel(nutzlast?.fehler || _("KDE Connect reception failed.")); },
+    kdeEmpfangErgebnis(nutzlast) {
+      if (nutzlast?.ok) App.kdeEmpfangBeendet(nutzlast);
+    },
+    kdeDateiEmpfangen(nutzlast) {
+      zettel(uebersetzt("File saved: %(name)s", { name: nutzlast?.name || _("Unknown file") }));
+    },
     backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     init(nutzlast) {
+      verwerfeKdeEmpfangDialoge();
       kontaktFotoDialogSchliessen?.();
       syncKontaktDialogSchliessen?.();
       kontaktDateiPruefungSchliessen?.();

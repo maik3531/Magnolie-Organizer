@@ -1382,6 +1382,9 @@ msgstr ""
 "Kaynakları şimdi seçin. İçe aktarma önizlemeleri, kurulum yardımcısını "
 "tamamlayana kadar bekletilir."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Kabul edilen her dosya için kaydetme konumunu seç"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2469,6 +2472,9 @@ msgstr "Alan"
 msgid "File"
 msgstr "Dosya"
 
+msgid "File saved: %(name)s"
+msgstr "Dosya kaydedildi: %(name)s"
+
 msgid "Fill selection"
 msgstr "Seçimi doldur"
 
@@ -2905,6 +2911,9 @@ msgstr "Atık toplamalarını dahil et"
 msgid "Incoming"
 msgstr "Gelen"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
+
 msgid "Incoming call"
 msgstr "Gelen arama"
 
@@ -3014,6 +3023,9 @@ msgstr "KDE Connect telefon eşleştirildi."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect bağlantı noktası %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "KDE Connect ile alım başarısız oldu."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4728,6 +4740,9 @@ msgstr "Hazır."
 
 msgid "Reason"
 msgstr "Neden"
+
+msgid "Receive files"
+msgstr "Dosyaları al"
 
 msgid "Recently modified"
 msgstr "Yakın zamanda değiştirilenler"
@@ -6909,6 +6924,9 @@ msgstr "Bilinmeyen arayan"
 
 msgid "Unknown error"
 msgstr "Bilinmeyen hata"
+
+msgid "Unknown file"
+msgstr "Bilinmeyen dosya"
 
 msgid "Unknown phone"
 msgstr "Bilinmeyen telefon"

@@ -1404,6 +1404,9 @@ msgstr ""
 "Nyní vyberte zdroje. Náhledy importu zůstanou připravené, dokud průvodce "
 "nedokončíte."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Pro každý přijatý soubor vybrat umístění"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2493,6 +2496,9 @@ msgstr "Pole"
 msgid "File"
 msgstr "Soubor"
 
+msgid "File saved: %(name)s"
+msgstr "Soubor uložen: %(name)s"
+
 msgid "Fill selection"
 msgstr "Vyplnit výběr"
 
@@ -2926,6 +2932,9 @@ msgstr "Zahrnout svoz odpadu"
 msgid "Incoming"
 msgstr "Přicházející"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Příchozí soubory KDE Connect (vždy potvrdit)"
+
 msgid "Incoming call"
 msgstr "Příchozí hovor"
 
@@ -3035,6 +3044,9 @@ msgstr "Telefon KDE Connect spárován."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Příjem KDE Connect selhal."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4751,6 +4763,9 @@ msgstr "Připraveno."
 
 msgid "Reason"
 msgstr "Důvod"
+
+msgid "Receive files"
+msgstr "Přijímat soubory"
 
 msgid "Recently modified"
 msgstr "Nedávno změněné"
@@ -6928,6 +6943,9 @@ msgstr "Neznámý volající"
 
 msgid "Unknown error"
 msgstr "Neznámá chyba"
+
+msgid "Unknown file"
+msgstr "Neznámý soubor"
 
 msgid "Unknown phone"
 msgstr "Neznámý koncový bod."

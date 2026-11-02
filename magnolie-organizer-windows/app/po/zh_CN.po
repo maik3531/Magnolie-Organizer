@@ -1311,6 +1311,9 @@ msgid ""
 "Choose sources now. Import previews are kept until you finish the assistant."
 msgstr "请现在选择数据来源。导入预览会暂时保留，直到您完成设置向导。"
 
+msgid "Choose the save location for each accepted file"
+msgstr "为每个接受的文件选择保存位置"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2361,6 +2364,9 @@ msgstr "字段"
 msgid "File"
 msgstr "文件"
 
+msgid "File saved: %(name)s"
+msgstr "文件已保存：%(name)s"
+
 msgid "Fill selection"
 msgstr "填充选区"
 
@@ -2783,6 +2789,9 @@ msgstr "包含垃圾收集"
 msgid "Incoming"
 msgstr "传入"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "传入的 KDE Connect 文件（始终确认）"
+
 msgid "Incoming call"
 msgstr "来电"
 
@@ -2887,6 +2896,9 @@ msgstr "KDE Connect 手机已配对。"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect 端口 %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "KDE Connect 接收失败。"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4541,6 +4553,9 @@ msgstr "就绪。"
 
 msgid "Reason"
 msgstr "原因"
+
+msgid "Receive files"
+msgstr "接收文件"
 
 msgid "Recently modified"
 msgstr "最近修改"
@@ -6630,6 +6645,9 @@ msgstr "未知来电者"
 
 msgid "Unknown error"
 msgstr "未知错误"
+
+msgid "Unknown file"
+msgstr "未知文件"
 
 msgid "Unknown phone"
 msgstr "未知端点。"

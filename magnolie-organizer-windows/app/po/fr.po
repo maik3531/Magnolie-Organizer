@@ -1406,6 +1406,9 @@ msgstr ""
 "Choisissez les sources maintenant. Les aperçus d’importation sont gardés en "
 "attente jusqu’à la fin de l’assistant."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Choisir l’emplacement d’enregistrement pour chaque fichier accepté"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2522,6 +2525,9 @@ msgstr "Champ"
 msgid "File"
 msgstr "Fichier"
 
+msgid "File saved: %(name)s"
+msgstr "Fichier enregistré : %(name)s"
+
 msgid "Fill selection"
 msgstr "Remplir la sélection"
 
@@ -2967,6 +2973,9 @@ msgstr "Inclure les collectes de déchets"
 msgid "Incoming"
 msgstr "Entrant"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Fichiers KDE Connect entrants (toujours confirmer)"
+
 msgid "Incoming call"
 msgstr "Appel entrant"
 
@@ -3080,6 +3089,9 @@ msgstr "Téléphone KDE Connect couplé."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Échec de la réception KDE Connect."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4835,6 +4847,9 @@ msgstr "Prêt."
 
 msgid "Reason"
 msgstr "Motif"
+
+msgid "Receive files"
+msgstr "Recevoir des fichiers"
 
 msgid "Recently modified"
 msgstr "Modifiés récemment"
@@ -7081,6 +7096,9 @@ msgstr "Appelant inconnu"
 
 msgid "Unknown error"
 msgstr "Erreur inconnue"
+
+msgid "Unknown file"
+msgstr "Fichier inconnu"
 
 msgid "Unknown phone"
 msgstr "Téléphone inconnu"

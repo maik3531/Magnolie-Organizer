@@ -45,12 +45,12 @@ A job which initially announces a single file and later adds files after that
 file has already been offered is not covered by a previous confirmation.
 General resumable transfers need a separately negotiated immutable manifest,
 file identities, offsets and final integrity receipts. This receiver does not
-claim that general resume protocol, Windows parity, an Android SAF photo-folder
+claim that general resume protocol, accepted Windows delivery, an Android SAF photo-folder
 selection or completed physical-device acceptance. Those remain in #246.
 
 This source change is not an installed test package or a public release.
 
-## Windows source groundwork
+## Windows receiver source and acceptance boundaries
 
 `KdeShareProtocol` now reads strictly bounded standard file payload envelopes
 and metadata-only growth updates. Extra envelope fields remain forbidden for
@@ -64,11 +64,10 @@ and a complete sealed list before review or handoff. Returning a preview does
 not expose staging paths or widen the internal list. Cleanup touches only
 staging files adopted by that object, not files handed to an accepted offer.
 
-These objects do not start a listener, construct a personal store, advertise a
-receive capability, ask a user for consent or publish destination files. Backend,
-bridge and native destination publication still have to be connected and tested
-before Windows receiving can be described as available. In particular, the
-source-only tests are not evidence of a Windows GUI or physical phone transfer.
+The manifest objects themselves do not start a listener or authorize receiving.
+They are connected through the backend and bridge described below, not through
+peer-supplied authority callbacks. Source-host tests are not evidence of a
+Windows GUI or physical phone transfer.
 
 The Windows payload transport separately checks a private IP, permitted KDE
 port, pinned certificate and peer identity using mutual TLS. It writes only to
@@ -99,9 +98,25 @@ Unknown files in an owned cache directory are preserved and reported rather
 than recursively removed. Disabling file reception does not replace the device
 identity or terminate the ordinary control connection.
 
-Capabilities remain disabled by default. A native receiver configuration may
-advertise them only with explicit opt-in and a live permission predicate. The
-Windows GUI/bridge configuration and confirmation/chooser still have to be
-connected before this is an available user-facing Windows feature. Genuine
-control-and-payload loopback TLS tests cover the native backend, not a physical
-phone or Windows desktop acceptance.
+Capabilities remain disabled by default. The Windows settings panel now exposes
+file-only opt-in for a selected paired device. The bridge captures a native book
+owner token and requires ready/unlocked/not-restoring state; ordinary saves do
+not change that owner or revoke an unchanged receive configuration. Lock,
+restore or owner changes invalidate the captured permission.
+
+Each queued offer is checked again by its native ID before displaying the full
+file list. Acceptance invokes exactly one native folder chooser; a partial
+retry uses the already bound destination without asking again. The frontend
+cannot supply a target path. Cross-platform saved folder/clipboard preferences
+are preserved but are not applied as Windows destinations or clipboard support.
+Copying runs outside the bridge command lane, participates in restore fencing,
+and rechecks the native owner before starting. Expired/rejected dialogs cannot
+be resurrected by late validation responses. Intentional disabling/rejection
+is not reported as a transfer failure.
+
+Genuine control-and-payload loopback TLS tests cover the backend. A bounded host
+compiles the actual receive bridge partial, substituting only the native modal,
+scheduler and service boundaries; DOM tests use the actual Windows frontend.
+These checks and a Windows-targeted compilation do not replace the outstanding
+installed Windows GUI and physical-phone acceptance. No new installer is
+delivered or approved by these source changes.

@@ -1357,6 +1357,9 @@ msgstr ""
 "अभी डेटा के स्रोत चुनें। आयात की झलकियाँ तब तक अस्थायी रूप से रखी जाएँगी, जब तक आप "
 "तैयारी सहायक के सभी चरण पूरे नहीं कर लेते।"
 
+msgid "Choose the save location for each accepted file"
+msgstr "स्वीकार की गई हर फ़ाइल के लिए सहेजने का स्थान चुनें"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2422,6 +2425,9 @@ msgstr "फ़ील्ड"
 msgid "File"
 msgstr "फ़ाइल"
 
+msgid "File saved: %(name)s"
+msgstr "फ़ाइल सहेजी गई: %(name)s"
+
 msgid "Fill selection"
 msgstr "चयन भरें"
 
@@ -2851,6 +2857,9 @@ msgstr "कचरा संग्रह शामिल करें"
 msgid "Incoming"
 msgstr "आने वाली"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "KDE Connect से आने वाली फ़ाइलें (हमेशा पुष्टि करें)"
+
 msgid "Incoming call"
 msgstr "इनकमिंग कॉल"
 
@@ -2957,6 +2966,9 @@ msgstr "KDE Connect फ़ोन युग्मित हुआ।"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect पोर्ट %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "KDE Connect से प्राप्ति विफल रही।"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4653,6 +4665,9 @@ msgstr "तैयार।"
 
 msgid "Reason"
 msgstr "कारण"
+
+msgid "Receive files"
+msgstr "फ़ाइलें प्राप्त करें"
 
 msgid "Recently modified"
 msgstr "हाल में बदले गए"
@@ -6794,6 +6809,9 @@ msgstr "अज्ञात कॉलर"
 
 msgid "Unknown error"
 msgstr "अज्ञात त्रुटि"
+
+msgid "Unknown file"
+msgstr "अज्ञात फ़ाइल"
 
 msgid "Unknown phone"
 msgstr "अज्ञात एंडपॉइंट।"

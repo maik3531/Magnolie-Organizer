@@ -1487,6 +1487,9 @@ msgstr ""
 "اختر المصادر الآن. تبقى معاينات الاستيراد محفوظة مؤقتًا إلى أن تنهي خطوات "
 "مساعد الإعداد."
 
+msgid "Choose the save location for each accepted file"
+msgstr "اختيار موقع الحفظ لكل ملف مقبول"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2562,6 +2565,9 @@ msgstr "حقل"
 msgid "File"
 msgstr "ملف"
 
+msgid "File saved: %(name)s"
+msgstr "تم حفظ الملف: %(name)s"
+
 msgid "Fill selection"
 msgstr "تعبئة التحديد"
 
@@ -2992,6 +2998,9 @@ msgstr "تضمين جمع النفايات"
 msgid "Incoming"
 msgstr "وارد"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
+
 msgid "Incoming call"
 msgstr "مكالمة واردة"
 
@@ -3100,6 +3109,9 @@ msgstr "تم إقران الهاتف KDE Connect."
 
 msgid "KDE Connect port %(port)s"
 msgstr "منفذ KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "فشل الاستقبال عبر KDE Connect."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4829,6 +4841,9 @@ msgstr "جاهز."
 
 msgid "Reason"
 msgstr "السبب"
+
+msgid "Receive files"
+msgstr "استقبال الملفات"
 
 msgid "Recently modified"
 msgstr "المعدّلة مؤخرًا"
@@ -6988,6 +7003,9 @@ msgstr "متصل مجهول"
 
 msgid "Unknown error"
 msgstr "خطأ غير معروف"
+
+msgid "Unknown file"
+msgstr "ملف غير معروف"
 
 msgid "Unknown phone"
 msgstr "نقطة نهاية غير معروفة."

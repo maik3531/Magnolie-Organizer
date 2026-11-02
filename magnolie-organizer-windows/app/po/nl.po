@@ -1390,6 +1390,9 @@ msgstr ""
 "Kies nu de bronnen. De importvoorbeelden blijven bewaard totdat u de "
 "assistent afrondt."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Kies de opslaglocatie voor elk geaccepteerd bestand"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2499,6 +2502,9 @@ msgstr "Veld"
 msgid "File"
 msgstr "Bestand"
 
+msgid "File saved: %(name)s"
+msgstr "Bestand opgeslagen: %(name)s"
+
 msgid "Fill selection"
 msgstr "Selectie vullen"
 
@@ -2937,6 +2943,9 @@ msgstr "Afvalinzamelingen opnemen"
 msgid "Incoming"
 msgstr "Inkomend"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
+
 msgid "Incoming call"
 msgstr "Inkomende oproep"
 
@@ -3047,6 +3056,9 @@ msgstr "KDE Connect-telefoon gekoppeld."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect-poort %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Ontvangst via KDE Connect mislukt."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4776,6 +4788,9 @@ msgstr "Gereed."
 
 msgid "Reason"
 msgstr "Reden"
+
+msgid "Receive files"
+msgstr "Bestanden ontvangen"
 
 msgid "Recently modified"
 msgstr "Onlangs gewijzigd"
@@ -6993,6 +7008,9 @@ msgstr "Onbekende beller"
 
 msgid "Unknown error"
 msgstr "Onbekende fout"
+
+msgid "Unknown file"
+msgstr "Onbekend bestand"
 
 msgid "Unknown phone"
 msgstr "Onbekende telefoon"

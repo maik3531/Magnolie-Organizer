@@ -1444,6 +1444,9 @@ msgstr ""
 "Wubjerće nětko žórła. Daty z přehlada importa so přihotuja a hač do "
 "skónčenja asistenta wobchowaja."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Składowanske městno za kóždu přiwzatu dataju wubrać"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2546,6 +2549,9 @@ msgstr "Polo"
 msgid "File"
 msgstr "Dataja"
 
+msgid "File saved: %(name)s"
+msgstr "Dataja składowana: %(name)s"
+
 msgid "Fill selection"
 msgstr "Wuběr wupjelnić"
 
@@ -2982,6 +2988,9 @@ msgstr "Wotwozy wotpadkow zapřijeć"
 msgid "Incoming"
 msgstr "Eingehend"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Dochadźace dataje KDE Connect (přeco wobkrućić)"
+
 msgid "Incoming call"
 msgstr "Dochadźace zawołanje"
 
@@ -3092,6 +3101,9 @@ msgstr "Telefon KDE Connect je skoplowany."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Přijimanje KDE Connect je so njeporadźiło."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4829,6 +4841,9 @@ msgstr "Hotowo."
 
 msgid "Reason"
 msgstr "Přičina"
+
+msgid "Receive files"
+msgstr "Dataje přijimać"
 
 msgid "Recently modified"
 msgstr "Njedawno změnjene"
@@ -7017,6 +7032,9 @@ msgstr "Njeznaty zawołar"
 
 msgid "Unknown error"
 msgstr "Njeznaty zmylk"
+
+msgid "Unknown file"
+msgstr "Njeznata dataja"
 
 msgid "Unknown phone"
 msgstr "Njeznaty kónčny dypk."

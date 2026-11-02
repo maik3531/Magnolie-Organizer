@@ -1420,6 +1420,9 @@ msgstr ""
 "Wybierz teraz źródła. Podglądy importu zostaną zachowane do zakończenia "
 "kreatora."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Wybieraj miejsce zapisu dla każdego zaakceptowanego pliku"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2513,6 +2516,9 @@ msgstr "Pole"
 msgid "File"
 msgstr "Plik"
 
+msgid "File saved: %(name)s"
+msgstr "Plik zapisany: %(name)s"
+
 msgid "Fill selection"
 msgstr "Wypełnij zaznaczenie"
 
@@ -2948,6 +2954,9 @@ msgstr "Uwzględnij odbiór odpadów"
 msgid "Incoming"
 msgstr "Przybywający"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Przychodzące pliki KDE Connect (zawsze potwierdzaj)"
+
 msgid "Incoming call"
 msgstr "Połączenie przychodzące"
 
@@ -3058,6 +3067,9 @@ msgstr "Telefon KDE Connect został sparowany."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Odbiór przez KDE Connect nie powiódł się."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4786,6 +4798,9 @@ msgstr "Gotowe."
 
 msgid "Reason"
 msgstr "Powód"
+
+msgid "Receive files"
+msgstr "Odbieraj pliki"
 
 msgid "Recently modified"
 msgstr "Ostatnio zmienione"
@@ -6981,6 +6996,9 @@ msgstr "Nieznany rozmówca"
 
 msgid "Unknown error"
 msgstr "Nieznany błąd"
+
+msgid "Unknown file"
+msgstr "Nieznany plik"
 
 msgid "Unknown phone"
 msgstr "Nieznany punkt końcowy."

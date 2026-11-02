@@ -55,6 +55,8 @@ internal sealed partial class BridgeDispatcher
                 {
                     created.StatusChanged += HandleKdeStatusChanged; created.SmsReceived += HandleKdeSmsReceived;
                     created.PairingChanged += HandleKdePairingChanged; created.DigitizerReceived += HandleKdeDigitizer;
+                    created.FileProposed += HandleKdeFileProposed; created.FileReceiveProgress += HandleKdeFileReceiveProgress;
+                    created.FileSaved += HandleKdeFileSaved;
                     created.ConfigureInput(permitted: () => !disposed && !form.IsDisposed && !form.Disposing && currentPlainTextAvailable);
                     kdeInstance = created; return created;
                 }
@@ -123,6 +125,7 @@ internal sealed partial class BridgeDispatcher
         catch (Exception error) { if (!disposed) await ReportErrorAsync("baum_stand", error.Message); }
         try { _ = kdeConnectSms; }
         catch (Exception error) { if (!disposed) await ReportErrorAsync("telefon_stand", error.Message); }
+        ApplySavedReceiveConfiguration();
         try { await telefon.ResumeAsync().ConfigureAwait(false); await telefon.ReportStatusAsync().ConfigureAwait(false); await telefon.ReplayPersonalSyncAsync().ConfigureAwait(false); }
         catch (Exception error) { if (!disposed) await ReportErrorAsync("telefon_stand", error.Message); }
     }

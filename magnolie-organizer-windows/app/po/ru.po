@@ -1420,6 +1420,9 @@ msgstr ""
 "Выберите источники сейчас. Данные из предварительного просмотра пока лишь "
 "подготовлены к импорту; импорт выполнится при завершении мастера."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Выбирать место сохранения для каждого принятого файла"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2510,6 +2513,9 @@ msgstr "Поле"
 msgid "File"
 msgstr "Файл"
 
+msgid "File saved: %(name)s"
+msgstr "Файл сохранён: %(name)s"
+
 msgid "Fill selection"
 msgstr "Залить выделение"
 
@@ -2946,6 +2952,9 @@ msgstr "Включить вывоз отходов"
 msgid "Incoming"
 msgstr "Входящий"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Входящие файлы KDE Connect (всегда запрашивать подтверждение)"
+
 msgid "Incoming call"
 msgstr "Входящий звонок"
 
@@ -3054,6 +3063,9 @@ msgstr "Телефон KDE Connect сопряжен."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Порт KDE Connect %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Не удалось принять данные через KDE Connect."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4781,6 +4793,9 @@ msgstr "Готово."
 
 msgid "Reason"
 msgstr "Причина"
+
+msgid "Receive files"
+msgstr "Получать файлы"
 
 msgid "Recently modified"
 msgstr "Недавно изменённые"
@@ -6974,6 +6989,9 @@ msgstr "Неизвестный абонент"
 
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
+
+msgid "Unknown file"
+msgstr "Неизвестный файл"
 
 msgid "Unknown phone"
 msgstr "Неизвестная конечная точка."

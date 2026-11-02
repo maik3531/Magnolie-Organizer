@@ -1347,6 +1347,9 @@ msgstr ""
 "ここでデータの取り込み元を選んでください。取り込みのプレビューは、設定ガイド"
 "を完了するまで一時的に保持されます。"
 
+msgid "Choose the save location for each accepted file"
+msgstr "受け入れるファイルごとに保存先を選択"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2437,6 +2440,9 @@ msgstr "項目"
 msgid "File"
 msgstr "ファイル"
 
+msgid "File saved: %(name)s"
+msgstr "ファイルを保存しました：%(name)s"
+
 msgid "Fill selection"
 msgstr "選択範囲を塗りつぶす"
 
@@ -2870,6 +2876,9 @@ msgstr "ごみ収集を含める"
 msgid "Incoming"
 msgstr "着信"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "受信する KDE Connect ファイル（常に確認）"
+
 msgid "Incoming call"
 msgstr "着信"
 
@@ -2981,6 +2990,9 @@ msgstr "KDE Connect 電話機がペアリングされました。"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connectポート %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "KDE Connect の受信に失敗しました。"
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4681,6 +4693,9 @@ msgstr "準備完了。"
 
 msgid "Reason"
 msgstr "理由"
+
+msgid "Receive files"
+msgstr "ファイルを受信"
 
 msgid "Recently modified"
 msgstr "最近更新"
@@ -6844,6 +6859,9 @@ msgstr "不明な発信者"
 
 msgid "Unknown error"
 msgstr "不明なエラー"
+
+msgid "Unknown file"
+msgstr "不明なファイル"
 
 msgid "Unknown phone"
 msgstr "不明なエンドポイント。"

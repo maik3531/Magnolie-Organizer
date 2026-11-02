@@ -1414,6 +1414,9 @@ msgstr ""
 "Выберыце крыніцы зараз. Даныя з папярэдняга прагляду пакуль толькі "
 "падрыхтаваныя да імпарту; імпарт адбудзецца пры завяршэнні памочніка."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Выбіраць месца захавання для кожнага прынятага файла"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2501,6 +2504,9 @@ msgstr "Поле"
 msgid "File"
 msgstr "Файл"
 
+msgid "File saved: %(name)s"
+msgstr "Файл захаваны: %(name)s"
+
 msgid "Fill selection"
 msgstr "Запоўніць вылучэнне"
 
@@ -2936,6 +2942,9 @@ msgstr "Уключыць вываз адходаў"
 msgid "Incoming"
 msgstr "Паступае"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
+
 msgid "Incoming call"
 msgstr "Уваходны званок"
 
@@ -3044,6 +3053,9 @@ msgstr "Тэлефон KDE Connect спалучаны."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect порт %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Не ўдалося атрымаць даныя праз KDE Connect."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4771,6 +4783,9 @@ msgstr "Гатова."
 
 msgid "Reason"
 msgstr "Прычына"
+
+msgid "Receive files"
+msgstr "Атрымліваць файлы"
 
 msgid "Recently modified"
 msgstr "Нядаўна змененыя"
@@ -6953,6 +6968,9 @@ msgstr "Невядомы абанент"
 
 msgid "Unknown error"
 msgstr "Невядомая памылка"
+
+msgid "Unknown file"
+msgstr "Невядомы файл"
 
 msgid "Unknown phone"
 msgstr "Невядомая канцавая кропка."

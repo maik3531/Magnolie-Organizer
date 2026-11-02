@@ -1383,6 +1383,9 @@ msgstr ""
 "Vælg kilder nu. Forhåndsvisningerne af importen gemmes, indtil du afslutter "
 "guiden."
 
+msgid "Choose the save location for each accepted file"
+msgstr "Vælg lagringssted for hver accepteret fil"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2473,6 +2476,9 @@ msgstr "Felt"
 msgid "File"
 msgstr "Fil"
 
+msgid "File saved: %(name)s"
+msgstr "Fil gemt: %(name)s"
+
 msgid "Fill selection"
 msgstr "Udfyld markeringen"
 
@@ -2906,6 +2912,9 @@ msgstr "Medtag affaldsafhentninger"
 msgid "Incoming"
 msgstr "Indkommende"
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Indgående KDE Connect-filer (bekræft altid)"
+
 msgid "Incoming call"
 msgstr "Indgående opkald"
 
@@ -3014,6 +3023,9 @@ msgstr "KDE Connect telefon parret."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect port %(port)s"
+
+msgid "KDE Connect reception failed."
+msgstr "Modtagelse via KDE Connect mislykkedes."
 
 msgid ""
 "KDE Connect transmits pen position, pressure, contact and pen/eraser "
@@ -4732,6 +4744,9 @@ msgstr "Klar."
 
 msgid "Reason"
 msgstr "Årsag"
+
+msgid "Receive files"
+msgstr "Modtag filer"
 
 msgid "Recently modified"
 msgstr "Senest ændret"
@@ -6917,6 +6932,9 @@ msgstr "Ukendt opkalder"
 
 msgid "Unknown error"
 msgstr "Ukendt fejl"
+
+msgid "Unknown file"
+msgstr "Ukendt fil"
 
 msgid "Unknown phone"
 msgstr "Ukendt telefon"

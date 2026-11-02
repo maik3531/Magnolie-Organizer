@@ -44,6 +44,20 @@ internal sealed class KdeConnectSms : IDisposable
     internal JsonObject InputStatus() => native.InputStatus();
     internal void ConfigureInput(bool? enabled = null, string? deviceId = null, Func<bool>? permitted = null) =>
         native.ConfigureInput(enabled, deviceId, permitted);
+    internal JsonObject ConfigureFileReceive(bool enabled, string deviceId, string directory, Func<bool>? permitted = null) =>
+        !enabled && !backend.IsValueCreated ? new JsonObject { ["file_enabled"] = false, ["pending_count"] = 0 } :
+        native.ConfigureFileReceive(enabled, deviceId, directory, permitted);
+    internal KdeFileReceiveProposal? CurrentFileReceiveProposal(string id) =>
+        backend.IsValueCreated ? backend.Value.CurrentFileReceiveProposal(id) : null;
+    internal Task<JsonObject> AcceptFileReceiveAsync(string id, string directory, CancellationToken cancellation) =>
+        native.AcceptFileReceiveAsync(id, directory, cancellation);
+    internal Task RejectFileReceiveAsync(string id) => native.RejectFileReceiveAsync(id);
+    internal event Action<KdeFileReceiveProposal>? FileProposed
+    { add => native.FileProposed += value; remove { if (backend.IsValueCreated) backend.Value.FileProposed -= value; } }
+    internal event Action<KdeFileReceiveProgress>? FileReceiveProgress
+    { add => native.FileReceiveProgress += value; remove { if (backend.IsValueCreated) backend.Value.FileReceiveProgress -= value; } }
+    internal event Action<KdeSavedIncomingFile>? FileSaved
+    { add => native.FileSaved += value; remove { if (backend.IsValueCreated) backend.Value.FileSaved -= value; } }
     internal Task InputSendAsync(string deviceId, string token, JsonObject body, CancellationToken cancellationToken) =>
         native.InputSendAsync(deviceId, token, body, cancellationToken);
     internal Task MediaCommandAsync(string deviceId, string token, string player, string action, long? value, CancellationToken cancellationToken) =>

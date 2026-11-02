@@ -29,6 +29,7 @@ internal sealed partial class KdeConnectDirectBackend
         internal long Received;
         internal volatile bool Valid = true;
         internal string Phase = "collecting";
+        internal string StopReason = "";
         internal int CleanupStarted;
         internal int ActiveDownload;
         internal bool Accepting;
@@ -107,7 +108,7 @@ internal sealed partial class KdeConnectDirectBackend
             Volatile.Write(ref receivePreferences, new(enabled, enabled ? deviceId : "", enabled ? directory : "",
                 checked(receivePreferences.Epoch + 1), permitted ?? (() => false)));
             previous = receiveContexts.Values.Where(context => context.Valid).ToList();
-            foreach (var context in previous) context.Valid = false;
+            foreach (var context in previous) { context.Valid = false; context.StopReason = "rejected"; }
             if (enabled && receiveWorker is null)
             { receiveWorker = ReceiveFilesLoopAsync(lifetime.Token); Track(receiveWorker); }
         }
@@ -303,6 +304,17 @@ internal sealed partial class KdeConnectDirectBackend
     private KdeFileReceiveProposal ReceiveProposal(ReceiveContext context) => new(context.Id, context.Source.DeviceId,
         context.Offer!.Proposal(), context.Reserved, context.Deadline, context.Offer.Saved.Count != 0);
 
+    internal KdeFileReceiveProposal? CurrentFileReceiveProposal(string id)
+    {
+        lock (activeGate)
+        {
+            if (!receiveContexts.TryGetValue(id, out var context) || !context.Valid || context.Accepting ||
+                context.Phase != "offered" || context.Deadline <= DateTimeOffset.UtcNow || CurrentReceiveSource(context) is null) return null;
+            try { return ReceiveProposal(context); }
+            catch (Exception error) when (error is InvalidOperationException or OperationCanceledException) { return null; }
+        }
+    }
+
     internal Task<JsonObject> AcceptFileReceiveAsync(string id, string directory, CancellationToken cancellation = default)
     {
         ReceiveContext context;
@@ -328,7 +340,11 @@ internal sealed partial class KdeConnectDirectBackend
             }
             catch (Exception error) when (error is IOException or InvalidDataException or InvalidOperationException or
                 OperationCanceledException or UnauthorizedAccessException)
-            { SafeInvoke(FileReceiveProgress, new KdeFileReceiveProgress(id, context.Source.DeviceId, "failed", context.Received, context.Reserved)); }
+            {
+                bool report;
+                lock (activeGate) report = context.Valid || context.StopReason is "" or "failed";
+                if (report) SafeInvoke(FileReceiveProgress, new KdeFileReceiveProgress(id, context.Source.DeviceId, "failed", context.Received, context.Reserved));
+            }
             var saved = context.Offer!.Saved;
             foreach (var file in saved)
             {
@@ -370,7 +386,11 @@ internal sealed partial class KdeConnectDirectBackend
 
     private async Task DropReceiveContextAsync(ReceiveContext context, string reason)
     {
-        lock (activeGate) { context.Valid = false; context.Phase = "cleanup"; }
+        lock (activeGate)
+        {
+            context.Valid = false; context.Phase = "cleanup";
+            if (context.StopReason.Length == 0) context.StopReason = reason;
+        }
         if (Interlocked.CompareExchange(ref context.CleanupStarted, 1, 0) != 0) return;
         context.Cancellation.Cancel();
         try
@@ -387,7 +407,7 @@ internal sealed partial class KdeConnectDirectBackend
             if (context.Offer is not null) await context.Offer.DisposeAsync().ConfigureAwait(false);
             lock (activeGate) receiveContexts.Remove(context.Id);
             context.Cancellation.Dispose();
-            SafeInvoke(FileReceiveProgress, new KdeFileReceiveProgress(context.Id, context.Source.DeviceId, reason, context.Received, context.Reserved));
+            SafeInvoke(FileReceiveProgress, new KdeFileReceiveProgress(context.Id, context.Source.DeviceId, context.StopReason, context.Received, context.Reserved));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

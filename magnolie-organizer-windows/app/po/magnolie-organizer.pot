@@ -1300,6 +1300,9 @@ msgid ""
 "Choose sources now. Import previews are kept until you finish the assistant."
 msgstr ""
 
+msgid "Choose the save location for each accepted file"
+msgstr ""
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2337,6 +2340,9 @@ msgstr ""
 msgid "File"
 msgstr ""
 
+msgid "File saved: %(name)s"
+msgstr ""
+
 msgid "Fill selection"
 msgstr ""
 
@@ -2740,6 +2746,9 @@ msgstr ""
 msgid "Incoming"
 msgstr ""
 
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr ""
+
 msgid "Incoming call"
 msgstr ""
 
@@ -2839,6 +2848,9 @@ msgid "KDE Connect phone paired."
 msgstr ""
 
 msgid "KDE Connect port %(port)s"
+msgstr ""
+
+msgid "KDE Connect reception failed."
 msgstr ""
 
 msgid ""
@@ -4461,6 +4473,9 @@ msgid "Ready."
 msgstr ""
 
 msgid "Reason"
+msgstr ""
+
+msgid "Receive files"
 msgstr ""
 
 msgid "Recently modified"
@@ -6483,6 +6498,9 @@ msgid "Unknown caller"
 msgstr ""
 
 msgid "Unknown error"
+msgstr ""
+
+msgid "Unknown file"
 msgstr ""
 
 msgid "Unknown phone"
