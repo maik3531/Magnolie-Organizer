@@ -17,6 +17,7 @@ if (args.FirstOrDefault() == "--contact-conflicts-readonly" && args.Length == 2)
 if (args.FirstOrDefault() == "--profile-backup-native" && args.Length == 2)
     return await AtomicStoreTests.NativeProfileBackupAsync(args[1]);
 if (args.Length == 1 && args[0] == "--peer-content-readonly") return PeerContentReadOnlyProbe.Run();
+if (args.Length == 1 && args[0] == "--peer-change-readonly") return PeerContentReadOnlyProbe.ObserveChanges();
 if (args.FirstOrDefault() == "--notes-state-readonly" && args.Length == 2)
     return await NotesStateReadOnlyProbe.RunAsync(args[1]);
 if (args.FirstOrDefault() == "--notes-batch-copy-readonly" && args.Length == 3)
