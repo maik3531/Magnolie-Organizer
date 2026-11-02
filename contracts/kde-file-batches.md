@@ -85,5 +85,23 @@ and permission changes; IPC cannot provide that callback or invent a staging
 list. Saved members are recorded at the actual move, before later cleanup or
 acknowledgement can fail. Retrying a partial operation retains the same target
 directory and does not republish completed members. Cleanup never removes saved
-destination files. This publisher is still not wired to a Windows receive UI or
-advertised capability.
+destination files. An IPC caller cannot directly supply a publisher, staging
+list or native authority callback.
+
+The native Windows backend now connects these parts behind an explicit
+selected-paired-device opt-in. Its bounded worker stages the actual pinned-TLS
+payloads, produces one complete offer, and accepts/rejects only native offer
+IDs. Configuration, connection, source and deadline changes revoke the lease;
+in-flight operations retain their reservation until cleanup has finished.
+Partial retries keep the originally selected destination and saved events are
+deduplicated. The existing discovery/expiry loop and tracked shutdown are used.
+Unknown files in an owned cache directory are preserved and reported rather
+than recursively removed. Disabling file reception does not replace the device
+identity or terminate the ordinary control connection.
+
+Capabilities remain disabled by default. A native receiver configuration may
+advertise them only with explicit opt-in and a live permission predicate. The
+Windows GUI/bridge configuration and confirmation/chooser still have to be
+connected before this is an available user-facing Windows feature. Genuine
+control-and-payload loopback TLS tests cover the native backend, not a physical
+phone or Windows desktop acceptance.

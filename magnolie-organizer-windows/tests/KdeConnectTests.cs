@@ -853,7 +853,7 @@ internal static class KdeConnectTests
         }
     }
 
-    private static async Task<KdeConnectStatus> WaitForDeviceAsync(KdeConnectDirectBackend backend, string deviceId)
+    internal static async Task<KdeConnectStatus> WaitForDeviceAsync(KdeConnectDirectBackend backend, string deviceId)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (true)
@@ -877,7 +877,8 @@ internal static class KdeConnectTests
     }
 
     internal static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
-        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false, bool systemVolume = false)
+        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false, bool systemVolume = false,
+        bool share = false, Action<KdeConnectPacket>? desktopIdentity = null)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -889,7 +890,8 @@ internal static class KdeConnectTests
             ServerCertificate = certificate, ClientCertificateRequired = true,
             EnabledSslProtocols = SslProtocols.Tls12,
             CertificateRevocationCheckMode = X509RevocationMode.NoCheck });
-        _ = await KdeConnectProtocol.ReadAsync(tls, CancellationToken.None);
+        var greeting = await KdeConnectProtocol.ReadAsync(tls, CancellationToken.None);
+        desktopIdentity?.Invoke(greeting);
         var phoneIdentity = PhoneIdentity(phoneId, KdeConnectProtocol.FirstPort);
         if (contacts)
         {
@@ -913,6 +915,11 @@ internal static class KdeConnectTests
         {
             phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeSystemVolume.Packet);
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeSystemVolume.Request);
+        }
+        if (share)
+        {
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeShareProtocol.Request);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeShareProtocol.Update);
         }
         await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity", phoneIdentity));
         return (client, tls);

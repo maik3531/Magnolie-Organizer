@@ -110,7 +110,7 @@ internal sealed class KdeIncomingFileBatch : IDisposable
         }
     }
 
-    internal bool Stage(Guid memberId, string path)
+    internal bool Stage(Guid memberId, string path, string? expectedSha256 = null)
     {
         lock (gate)
         {
@@ -134,8 +134,9 @@ internal sealed class KdeIncomingFileBatch : IDisposable
             }
             if (read != member.Size) throw new InvalidDataException("incoming_staged_size_changed");
             Require();
-            member.Staged = new(member.Id, member.Name, member.Size, path,
-                Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant());
+            var sha256 = Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant();
+            if (expectedSha256 is not null && sha256 != expectedSha256) throw new InvalidDataException("incoming_transport_witness_changed");
+            member.Staged = new(member.Id, member.Name, member.Size, path, sha256);
             sealedList = members.Count == count && members.All(value => value.Staged is not null);
             return sealedList;
         }

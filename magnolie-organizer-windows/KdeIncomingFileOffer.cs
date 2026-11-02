@@ -38,6 +38,7 @@ internal sealed class KdeIncomingFileOffer : IAsyncDisposable
     }
 
     internal long ReservedBytes { get; }
+    internal string BoundDestination { get { lock (state) return destination; } }
     internal int RemainingCount { get { lock (state) return remaining.Count; } }
     internal IReadOnlyList<KdeSavedIncomingFile> Saved { get { lock (state) return saved.ToArray(); } }
 

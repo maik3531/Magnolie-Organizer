@@ -92,6 +92,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         bool activeDiscovery = true, IKdeFilesystemBrowser? filesystem = null, KdeSystemVolume? systemVolume = null)
     {
         this.activeDiscovery = activeDiscovery;
+        receiveRoot = Path.Combine(paths.KdeConnect, "incoming-" + receiveRootToken);
         logPath = Path.Combine(paths.Logs, "telefon.log");
         debugLogPath = Path.Combine(paths.Logs, "kde-connect-debug.log");
         store = new KdeConnectIdentityStore(paths, protector);
@@ -802,7 +803,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                 {
                     if (activeDiscovery && active.IsEmpty && staged.IsEmpty) BroadcastIdentity();
                     if (activeDiscovery) ReconnectKnown();
-                    ExpireCandidates(); CleanupPending();
+                    ExpireCandidates(); CleanupPending(); CleanupFileReceives(now);
                     var delay = ReconnectSeconds[Math.Min(backoffIndex, ReconnectSeconds.Length - 1)];
                     backoffIndex = Math.Min(backoffIndex + 1, ReconnectSeconds.Length - 1);
                     nextReconnect = now.AddSeconds(delay);
@@ -1194,6 +1195,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                 var packet = await KdeConnectProtocol.ReadAsync(connection.Stream, cancellationToken,
                     active.TryGetValue(connection.Identity.DeviceId, out var current) && ReferenceEquals(current, connection)).ConfigureAwait(false);
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
+                else if (packet.Type is KdeShareProtocol.Request or KdeShareProtocol.Update) HandleFileReceivePacket(connection, packet);
                 else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
                 else if (packet.Type == KdeSftpDescription.Packet) HandleFilesystemPacket(connection, packet);
@@ -1221,6 +1223,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         finally
         {
             EndDigitizerConnection(connection);
+            RevokeFileReceives(connection);
             lock (inputGate)
             {
                 if (ReferenceEquals(inputOwner, connection))
@@ -1708,8 +1711,13 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         }
         if (localMedia is not null) await localMedia.DisposeAsync().ConfigureAwait(false);
         if (systemVolume is not null) await systemVolume.DisposeAsync().ConfigureAwait(false);
+        Exception? receiveCleanupFailure = null;
+        try { await DisposeFileReceivesAsync().ConfigureAwait(false); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { receiveCleanupFailure = error; DebugLog("stop", "receive_cleanup_pending type=" + error.GetType().Name); }
         systemVolumeUpdates.Dispose();
         candidateSignal.Dispose(); mediaPayloads.Dispose(); lifetime.Dispose(); local.Certificate.Dispose();
+        if (receiveCleanupFailure is not null) throw new IOException("incoming_cleanup_pending", receiveCleanupFailure);
     }
 
     private sealed class Connection(TcpClient client, SslStream stream, X509Certificate2 certificate,
