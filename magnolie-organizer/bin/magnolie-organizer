@@ -12120,7 +12120,8 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
                                           balken_stile[eintrag["farbe"]],
                                           _ods_xml_text(eintrag["text"])))
                 else:
-                    abschnitte.append('<text:p text:style-name="calendarYearEntry">%s</text:p>' %
+                    abschnitte.append('<text:p text:style-name="calendarYearEntry">'
+                                      '<text:span text:style-name="calendarYearEntryText">%s</text:span></text:p>' %
                                       _ods_xml_text(eintrag["text"]))
             if inhalt["mehr"]:
                 abschnitte.append('<text:p text:style-name="calendarMore">+%d</text:p>' %
@@ -12254,6 +12255,8 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
         '<style:text-properties fo:font-weight="600" fo:font-size="5.5pt"/></style:style>'
         '<style:style style:name="calendarYearEntry" style:family="paragraph">'
         '<style:paragraph-properties fo:margin="0cm" fo:line-height="102%"/>'
+        '<style:text-properties fo:font-size="3.6pt" fo:font-weight="normal"/></style:style>'
+        '<style:style style:name="calendarYearEntryText" style:family="text">'
         '<style:text-properties fo:font-size="3.6pt" fo:font-weight="normal"/></style:style>'
         '<style:style style:name="calendarMore" style:family="paragraph">'
         '<style:paragraph-properties fo:margin-top="0.07cm" fo:margin-bottom="0cm" '
