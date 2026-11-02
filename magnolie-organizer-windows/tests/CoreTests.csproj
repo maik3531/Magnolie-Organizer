@@ -49,6 +49,7 @@
     <Compile Include="..\DeviceFileAcceptanceEnvelope.cs" Link="DeviceFileAcceptanceEnvelope.cs" />
     <Compile Include="..\DeviceFileChunkEnvelope.cs" Link="DeviceFileChunkEnvelope.cs" />
     <Compile Include="..\DeviceFileSavedEnvelope.cs" Link="DeviceFileSavedEnvelope.cs" />
+    <Compile Include="..\PhotoDestinationPaths.cs" Link="PhotoDestinationPaths.cs" />
     <Compile Remove="callstate\**\*.cs" />
     <Compile Remove="notification-uninstall\**\*.cs" />
     <Compile Remove="kde-media-native\**\*.cs" />

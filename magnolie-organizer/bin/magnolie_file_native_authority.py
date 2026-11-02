@@ -82,6 +82,7 @@ class NativeFilePeerSnapshot:
     identity_sha256: str
     pairing_epoch: str
     metadata_supported: bool
+    display_name: str = ''
 
     def control_peer(self,owner,*,ready,handlers_ready):
         if type(ready) is not bool or type(handlers_ready) is not bool:
@@ -105,4 +106,4 @@ def read_native_file_peer(protection,peer_id,static_public):
     if epoch is None:return None
     status=peer['capabilities'].get('items',{}).get('device_status',{})
     return NativeFilePeerSnapshot(peer_id,static_public,sha256(unb64(static_public,32)).hexdigest(),epoch,
-                                  status.get('available') is True and DISCOVERY_VERSION in status.get('versions',[]))
+                                  status.get('available') is True and DISCOVERY_VERSION in status.get('versions',[]),peer['display_name'])

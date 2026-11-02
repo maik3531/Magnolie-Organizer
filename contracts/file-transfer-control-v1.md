@@ -841,6 +841,35 @@ full personal-sync/control-handshake or desktop file-controller acceptance. The
 desktop source/receiver dispatcher/preferences/activation UI remains unconnected,
 with discovery 21 still absent.
 
+### Explicit native photo-destination choice (UI/persistence join pending)
+
+The Linux native folder controller is inert on construction. Only an exact
+process-local owner-bound, monotonic-60-second, one-shot action can choose/create
+the default subfolder. It rechecks the native paired authority and action deadline
+around actual folder work; expired/rolled-back/closed/foreign/serialized actions
+cannot revive or create a folder. Closing this folder UI owner revokes its actions,
+not the shared file-authority owner or a running synchronization.
+
+Default Pictures comes from `GLib.get_user_special_dir(DIRECTORY_PICTURES)`, never
+a guessed localized path or HOME fallback. The bound native peer's display name
+is NFC-normalized and reduced to one bounded safe component before adding
+`-Fotos`. Root/ancestor witnesses, native owner/mode checks, directory-relative
+creation and no-follow checks prevent adopting a linked/replaced default folder.
+Existing files/folders are never cleared or overwritten. A custom choice captures
+an explicitly selected native existing directory; no wire action can select paths.
+Choice tokens/witnesses remain metadata, not receive consent or write authority.
+The Windows path projection uses `Environment.SpecialFolder.MyPictures` and the
+same bounded safe-name policy; it creates no folder itself.
+
+Seventeen focused Linux cases pass, including inert construction, native GLib API
+selection (stubbed native provider), no folder after expired/slow/closed/revoked
+actions, wire/foreign action rejection, custom choice, preserved PC edits and
+symlink rejection. The Windows path-projection source-host group passes. These
+are not real native folder-dialog/installed GUI/Windows-profile acceptance. Actual
+protected photo preferences, desktop activation/controller integration and the
+Organizer advanced-controls caller remain open. No background synchronization,
+consent defaults, deletion propagation or discovery advertisement is introduced.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
