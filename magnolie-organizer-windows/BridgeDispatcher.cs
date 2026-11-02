@@ -872,7 +872,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         await form.SendAsync("App.contributorGeprueft", new { ok = valid });
     }
 
-    private async Task SaveAsync(JsonElement message)
+    private async Task SaveAsync(JsonElement message, NativeHistoricalWriterInvocation? historical = null)
     {
         var locked = false;
         var id = Integer(message, "id");
@@ -919,19 +919,25 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var epoch = previousData?["syncEpoch"]?.GetValue<string>() ?? "";
             if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
                 throw new JsonException(T("The save request is invalid."));
-            if (!coveredBySync && !coveredByTree && changed)
-                CreateSnapshot(SnapshotReason.PreChange);
-
-            if (encryption.Session is not null)
+            if (historical is not null && (contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
+                throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
+            void NativeWrite(string payload)
             {
-                var envelope = encryption.EncryptData(text);
-                store.WriteRecoverableJson(paths.Data, envelope);
-                currentEnvelope = envelope;
+                if (!coveredBySync && !coveredByTree && changed)
+                    CreateSnapshot(SnapshotReason.PreChange);
+                if (encryption.Session is not null)
+                {
+                    var envelope = encryption.EncryptData(payload);
+                    store.WriteRecoverableJson(paths.Data, envelope);
+                    currentEnvelope = envelope;
+                }
+                else store.WriteRecoverableJson(paths.Data, payload);
+                currentPlainText = payload;
+                currentPlainTextAvailable = true;
+                actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(payload));
             }
-            else store.WriteRecoverableJson(paths.Data, text);
-            currentPlainText = text;
-            currentPlainTextAvailable = true;
-            actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(text));
+            if (historical is null) NativeWrite(text);
+            else await historical.WriteAsync(text, NativeWrite, backgroundLifetime.Token);
             baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);

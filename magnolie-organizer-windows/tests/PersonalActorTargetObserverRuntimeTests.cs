@@ -185,6 +185,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
             atomic.WriteRecoverableJson(path, encryption.Enable(beforeText, password));
             var beforeBytes = File.ReadAllBytes(path); var saved = owner.SaveState("target-observer", true); var writes = 0;
             var wireBefore = transport.Length;
+            var invocation = new NativeHistoricalWriterInvocation(coordinator, handle, token);
             Action<string> writer = text => {
                 writes++;
                 if (scenario.EndsWith("-failure", StringComparison.Ordinal)) throw new IOException("Synthetic pre-write failure");
@@ -195,10 +196,10 @@ internal static class PersonalActorTargetObserverRuntimeTests
             };
             if (scenario.EndsWith("-after-write", StringComparison.Ordinal))
             {
-                await TestAssert.ThrowsAsync<IOException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Uncertain post-write outcome minted persistence.");
+                await TestAssert.ThrowsAsync<IOException>(() => invocation.WriteAsync(candidateText, writer), "Uncertain post-write outcome minted persistence.");
                 var actualBytes = File.ReadAllBytes(path);
                 TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(path), password) == candidateText, "Uncertain writer rolled back the actual saved content.");
-                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Uncertain write was replayed.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => invocation.WriteAsync(candidateText, writer), "Uncertain write was replayed.");
                 await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Missing native SaveACK became a receipt after I/O failure.");
                 var status = await coordinator.PersonalActorStatusAsync(handle);
                 TestAssert.That(writes == 1 && status["phase"]!.GetValue<string>() == "cancelled" && !status["historical_book_persisted"]!.GetValue<bool>() &&
@@ -207,16 +208,16 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 return;
             }
             if (scenario.EndsWith("-failure", StringComparison.Ordinal))
-                await TestAssert.ThrowsAsync<IOException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Writer failure was promoted to persistence.");
+                await TestAssert.ThrowsAsync<IOException>(() => invocation.WriteAsync(candidateText, writer), "Writer failure was promoted to persistence.");
             else if (scenario.EndsWith("-payload", StringComparison.Ordinal))
-                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText + " ", writer), "Changed payload reached the encrypted writer.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => invocation.WriteAsync(candidateText + " ", writer), "Changed payload reached the encrypted writer.");
             else
             {
-                var awaitingConfirm = await coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer);
+                var awaitingConfirm = await invocation.WriteAsync(candidateText, writer);
                 TestAssert.That(!awaitingConfirm["historical_book_persisted"]!.GetValue<bool>(), "Writer invocation manufactured a confirmed receipt.");
                 TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(path), password) == candidateText && EncryptionService.IsEncrypted(File.ReadAllText(path)), "Actual encrypted file lost the exact prepared candidate.");
                 TestAssert.That(owner.SaveState("target-observer", true)?.Sequence == saved!.Sequence + 1, "Actual writer did not record exactly one save.");
-                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Actual encrypted writer was replayed.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => invocation.WriteAsync(candidateText, writer), "Actual encrypted writer was replayed.");
                 var bytes = File.ReadAllBytes(path);
                 var confirmed = await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
                 await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
