@@ -921,8 +921,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 throw new JsonException(T("The save request is invalid."));
             if (historical is not null && (contactPlan is not null || treeProof is not null || coveredBySync || coveredByTree))
                 throw new InvalidOperationException("actor_historical_mixed_save_not_ready");
+            var historicalWriteStarted = false;
             void NativeWrite(string payload)
             {
+                historicalWriteStarted = historical is not null;
                 if (!coveredBySync && !coveredByTree && changed)
                     CreateSnapshot(SnapshotReason.PreChange);
                 if (encryption.Session is not null)
@@ -937,7 +939,18 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(payload));
             }
             if (historical is null) NativeWrite(text);
-            else await historical.WriteAsync(text, NativeWrite, backgroundLifetime.Token);
+            else
+            {
+                try { await historical.WriteAsync(text, NativeWrite, backgroundLifetime.Token); }
+                catch
+                {
+                    // Rename may have succeeded before backup/fsync failed.
+                    // Do not let a subsequent ordinary autosave overwrite that
+                    // unknown actual file with the stale in-memory before book.
+                    if (historicalWriteStarted) currentPlainTextAvailable = false;
+                    throw;
+                }
+            }
             baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);
