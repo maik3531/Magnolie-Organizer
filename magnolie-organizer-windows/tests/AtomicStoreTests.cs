@@ -11,6 +11,7 @@ internal static class AtomicStoreTests
         try
         {
             var store = new AtomicStore();
+            VerifyProfileBackup(root);
             var path = Path.Combine(root, "data.json");
             store.Write(path, "alt");
             await Task.WhenAll(Enumerable.Range(0, 12).Select(index => Task.Run(() =>
@@ -72,5 +73,42 @@ internal static class AtomicStoreTests
         {
             try { Directory.Delete(root, true); } catch (Exception) { }
         }
+    }
+
+    private static void VerifyProfileBackup(string root)
+    {
+        var store = new AtomicStore();
+        var profile = new WindowsPaths(Path.Combine(root, "profile"));
+        TestAssert.That(profile.Backups == Path.Combine(profile.Root, "Sicherungen"),
+            "An explicit test profile still sends backups to the personal Documents directory.");
+        TestAssert.That(new WindowsPaths().Backups == Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Magnolie Organizer", "Sicherungen"),
+            "The normal personal backup directory was changed.");
+        profile.EnsureDirectories();
+        store.WriteRecoverableJson(profile.Data, "{\"synthetic-profile-backup\":true}");
+        var backup = store.Backup(profile.Data, profile.Backups);
+        TestAssert.That(Path.GetRelativePath(profile.Root, backup).StartsWith("Sicherungen" + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+            File.ReadAllText(backup) == "{\"synthetic-profile-backup\":true}",
+            "A real synthetic backup escaped its explicit profile or lost its contents.");
+    }
+
+    internal static async Task<int> NativeProfileBackupAsync(string receipt)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var relative = Path.GetRelativePath(Path.GetTempPath(), Path.GetFullPath(receipt));
+        if (Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw new ArgumentException("Private temporary receipt required.");
+        if (File.Exists(receipt)) throw new IOException("Receipt already exists.");
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-profile-backup-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            VerifyProfileBackup(root);
+            using var output = new FileStream(receipt, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            await System.Text.Json.JsonSerializer.SerializeAsync(output, new { passed = true, backupStayedInProfile = true,
+                defaultPersonalPathUnchanged = true, actualSyntheticReadback = true });
+            Console.WriteLine("WINDOWS-ISOLATED-PROFILE-BACKUP-OK");
+            return 0;
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
     }
 }

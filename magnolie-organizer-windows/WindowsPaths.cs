@@ -40,9 +40,10 @@ internal sealed class WindowsPaths
             : Path.Combine(Root, "mo-snapshots");
         RecoveryJournal = Path.Combine(recoveryRoot, "wiederherstellungsstaende");
         RecoverySettings = Path.Combine(recoveryRoot, "einstellungen.json");
-        Backups = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Magnolie Organizer", "Sicherungen");
+        Backups = root is null
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "Magnolie Organizer", "Sicherungen")
+            : Path.Combine(Root, "Sicherungen");
     }
 
     internal string Root { get; }
