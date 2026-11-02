@@ -8,6 +8,17 @@ import java.util.Locale
  * pairing path assigns it. Ordinary peer loading/copying never creates one.
  */
 internal object NativeFilePairingAuthority {
+    /** Public identity already proven by the actual native handshake. This
+     * projection performs no identity/store/key lookup or creation.
+     */
+    fun fromAuthenticatedIdentity(identity: TelefonIdentitaet): NativeFileControlIdentity {
+        require(identity.storage_version == 1 && identity.role == "phone")
+        val key = TelefonKrypto.b64(identity.static_public, 32)
+        val digest = MessageDigest.getInstance("SHA-256").digest(key)
+            .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        return NativeFileControlIdentity(identity.device_id, digest)
+    }
+
     fun epochForConfirmedTranscript(transcript: String): String {
         // The native pairing transcript is already authenticated and contains
         // fresh handshake material. Do not accept an arbitrary peer label here.

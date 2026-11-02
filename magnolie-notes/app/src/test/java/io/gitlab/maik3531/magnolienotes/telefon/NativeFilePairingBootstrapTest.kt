@@ -143,4 +143,26 @@ class NativeFilePairingBootstrapTest {
             assertEquals(legacy, storage.peers().peer)
         }
     }
+
+    @Test fun nativeFileIdentityLookupUsesOnlyTheExactAuthenticatedChannelCacheWithoutCreatingIdentity() {
+        withNativeTransport { work, channel, generation ->
+            val peer = storage.fileAuthorityPeers().peer!!
+            val identity = field(TelefonAblage::class.java, "identityFile").get(storage) as java.io.File
+            val held = java.io.File(identity.parentFile, identity.name + ".file-test-held")
+            java.nio.file.Files.move(identity.toPath(), held.toPath())
+            try {
+                assertNull(work.currentNativeFileIdentity(peer.device_id, peer.static_public, channel, generation))
+                assertFalse(identity.exists())
+                @Suppress("UNCHECKED_CAST")
+                val cache = field(TelefonWerk::class.java, "fileChannelIdentities").get(work) as MutableMap<TelefonSecureChannel, NativeFileControlIdentity>
+                val captured = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+                cache[channel] = captured
+                assertSame(captured, work.currentNativeFileIdentity(peer.device_id, peer.static_public, channel, generation))
+                assertNull(work.currentNativeFileIdentity(peer.device_id, peer.static_public, channel, generation + 1))
+                field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                assertNull(work.currentNativeFileIdentity(peer.device_id, peer.static_public, channel, generation))
+                assertFalse(identity.exists())
+            } finally { java.nio.file.Files.move(held.toPath(), identity.toPath()) }
+        }
+    }
 }

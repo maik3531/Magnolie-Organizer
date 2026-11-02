@@ -132,6 +132,7 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+    private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -629,6 +630,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
         channel: TelefonSecureChannel, generation: Long, handlersReady: Boolean): NativeFileControlPeer? {
         val peer = currentNativeFileTransportPeer(peerId, publicKey, channel, generation) ?: return null
         return NativeFilePairingAuthority.controlPeer(peer, channel, true, handlersReady)
+    }
+
+    @Synchronized internal fun currentNativeFileIdentity(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long): NativeFileControlIdentity? {
+        val peer = currentNativeFileTransportPeer(peerId, publicKey, channel, generation) ?: return null
+        if (peer.state != "paired" || !peer.own_device || !peer.remote_own_device) return null
+        return fileChannelIdentities[channel]
     }
 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
@@ -2233,7 +2241,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     controls.addAll(sendDue(peer, channel, generation, true))
                 } } finally { controlDeadline.disarm() }
                 peer = sessionEstablished(peer, generation, transport, wifiHost, bluetoothAddress, bluetoothInbound)
-                peerEffect(peer, generation) { activeChannel = channel; refreshSharedPreferenceState() }
+                peerEffect(peer, generation) {
+                    activeChannel = channel
+                    runCatching { NativeFilePairingAuthority.fromAuthenticatedIdentity(identity) }.getOrNull()?.let {
+                        fileChannelIdentities[channel] = it
+                    } // Unavailable file projection never creates/reloads identity or changes other modules.
+                    refreshSharedPreferenceState()
+                }
                 peerEffect(peer, generation) { current ->
                     queue.readyPersonalBatches().filter { it.first == current.device_id }.forEach {
                         completePersonalBatch(current, it.second, noteSession)
@@ -2289,6 +2303,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 } finally {
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
+                        fileChannelIdentities.remove(channel)
                         noteSessions.remove(channel)
                         contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()

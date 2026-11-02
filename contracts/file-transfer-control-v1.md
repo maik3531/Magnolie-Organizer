@@ -303,6 +303,15 @@ on read, raw other-peer/settings preservation, reentrant native changes, staging
 evidence and the actual synthetic channel guards. This does not establish native
 Android Keystore, power-loss or physical phone acceptance.
 
+The local file identity is projected from the public phone identity already
+authenticated by the transport and captured at actual active-channel binding.
+The exact current channel/generation lookup uses this cache and read-only native
+peer authority; it never reloads or creates an identity/private key. Authentication
+loop cleanup removes the channel entry. Both new focused cases pass, including
+lookup while the synthetic identity file is temporarily absent and stale-channel/
+generation rejection. These are source/synthetic-channel checks, not physical
+authentication acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

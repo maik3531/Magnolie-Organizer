@@ -58,4 +58,18 @@ class NativeFilePairingAuthorityTest {
         assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(remote_device_status_available = false), owner, true, true))
         assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(file_pairing_epoch = ""), owner, true, true))
     }
+
+    @Test fun authenticatedLocalIdentityProjectionDoesNotNeedAStoreOrPrivateKeyAndRejectsOtherRoles() {
+        val value = TelefonIdentitaet(device_id = "sender_fixture_01", display_name = "Fixture phone",
+            static_public = TelefonKrypto.b64(ByteArray(32) { 7 }), wrapped_private = "No private key is read here")
+        val projected = NativeFilePairingAuthority.fromAuthenticatedIdentity(value)
+        assertEquals(value.device_id, projected.deviceId)
+        assertEquals(java.security.MessageDigest.getInstance("SHA-256").digest(ByteArray(32) { 7 })
+            .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }, projected.identitySha256)
+        assertThrows(IllegalArgumentException::class.java) { NativeFilePairingAuthority.fromAuthenticatedIdentity(value.copy(role = "desktop")) }
+        assertThrows(IllegalArgumentException::class.java) { NativeFilePairingAuthority.fromAuthenticatedIdentity(value.copy(storage_version = 2)) }
+        assertThrows(TelefonProtokollFehler::class.java) {
+            NativeFilePairingAuthority.fromAuthenticatedIdentity(value.copy(static_public = TelefonKrypto.b64(ByteArray(31))))
+        }
+    }
 }
