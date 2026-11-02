@@ -250,11 +250,33 @@ commits before cleanup; quota is released only after actual root absence,
 directory sync, row deletion and database readback. Failed/no-op cleanup or lost
 post-commit acknowledgements retain the real job/head and quota for native retry.
 Unrelated SQLite metadata is not discarded. Reopening index metadata alone is
-not a successful frozen-byte restore: authenticated job-to-snapshot restart,
-partial-crash repair, active sender coordination and application UI/handlers
-still need their concrete integration.
+not a successful frozen-byte restore. Partial-crash repair, active sender
+coordination and application UI/handlers still need their concrete integration.
+
+The native index can reconstruct a sealed private snapshot using authenticated
+original directory/file identities, ciphertext witnesses and exact member names.
+It revalidates the current semantic source permission context, owner plan,
+protected manifest and **all actual private file hashes**. A newly ready native
+lifecycle owner may obtain a fresh matching lease; stored object pointers never
+grant authority. The indexed reader fences every manifest/chunk operation with
+the actual current sealed database head/version and source lease before and
+after IO. Retired heads block old reader objects even if cleanup failed. Unknown,
+corrupt or newly out-of-scope state is preserved, not adopted as a new baseline.
+This is reconstructed native storage, not yet an integrated restart/phone-service
+acceptance or proof of an end-to-end transfer.
 
 ## User-required photo sync policy (open integration criteria)
+
+All additional configuration belongs **only in Organizer → KDE Connect →
+Advanced functions**, grouped in expandable sections. Detailed photo options
+should appear only when photo synchronization is enabled. There are no additional
+photo setting panels or switches in Notes or KDE Connect on the phone. Native
+phone policy/controllers remain internal and are driven through authenticated
+own-computer control. Android's genuinely required media-access or mutation
+confirmation dialogs remain necessary; they cannot be accepted remotely or
+pretended to be granted. The desktop must display pending/unsupported permissions
+and actual support status. Placement under KDE Connect does not turn a KDE
+device ID/name into a Magnolie identity or grant.
 
 The requested default desktop destination is the native **Pictures** folder
 with a safely generated `<phone-name>-Fotos` child, with an optional different
@@ -264,8 +286,13 @@ destination retry rules still apply.
 
 Source selection must distinguish camera images from optional additional image
 sources (for example received WhatsApp images, screenshots or downloads) through
-explicitly selected accessible folders/albums, not guesses from JPEG/EXIF or an
-automatic crawl of app directories. Recursion scope must be visible, including
+simple enabled source categories and accessible gallery-album discovery. After
+explicit activation, known messenger albums should be detected automatically
+where Android permits, without requiring users to know technical folder paths.
+Manual folder selection is a fallback for OS access limits or ambiguous albums.
+This does not mean JPEG/EXIF guesses, unrequested activation or an unrestricted
+filesystem crawl. Limited Android photo selection or lost album visibility is
+not a complete inventory and must never prove deletion. Recursion scope must be visible, including
 whether sent-image subfolders are included. Multiple sources need independent
 source identities/epochs and collision-safe persistent destination mappings.
 Changing source selection is not a file deletion; excluded sources must not

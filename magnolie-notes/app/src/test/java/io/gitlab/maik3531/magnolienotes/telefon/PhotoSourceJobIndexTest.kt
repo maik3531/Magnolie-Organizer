@@ -207,4 +207,90 @@ class PhotoSourceJobIndexTest {
             }
         }
     }
+
+    @Test fun recreatedNativeOwnerRestoresActualFrozenBytesFromProtectedIndexWithoutOpeningLivePhotosAgain() {
+        Fixture().use { f ->
+            val inventory = f.inventory()
+            val job: PhotoSourceJob
+            val originalSnapshot: ProtectedPhotoSourceSnapshot
+            f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                originalSnapshot = f.freeze(index, reserved, inventory)
+                job = index.publishSnapshot(reserved, originalSnapshot, f.native.scope, inventory.lease)
+            }
+            val opens = f.native.provider.opened
+            f.original.writeText("new live photo contents")
+            f.native.receiver = f.native.receiver.copy(owner = Any())
+            assertThrows(PhotoFolderScopeError::class.java) { originalSnapshot.manifest }
+            val lease = requireNotNull(f.native.scope.lease())
+            f.open().use { index ->
+                val restored = index.restore(job, "sender_fixture_01", f.native.scope, lease)
+                val member = restored.manifest.files.single()
+                assertArrayEquals("hello".toByteArray(), restored.readChunk(member.id, 0))
+                assertEquals(opens, f.native.provider.opened)
+                assertEquals("new live photo contents", f.original.readText())
+                restored.retireAndDiscard()
+                assertTrue(index.jobs().isEmpty()); assertFalse(index.rootFile(job).exists())
+            }
+        }
+    }
+
+    @Test fun corruptedOrUnfamiliarRestartStateNeverBecomesANewValidBaselineOrLosesTheStoredHead() {
+        for (change in listOf("cipher", "unknown", "epoch")) Fixture().use { f ->
+            val inventory = f.inventory(); val job: PhotoSourceJob
+            f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                val snapshot = f.freeze(index, reserved, inventory)
+                job = index.publishSnapshot(reserved, snapshot, f.native.scope, inventory.lease)
+            }
+            val root = File(f.directory, "photo-source-" + job.id)
+            when (change) {
+                "cipher" -> root.listFiles()!!.single { it.name.matches(Regex("[0-9a-f]{32}-0\\.enc")) }.let {
+                    val changed = it.readBytes().also { bytes -> bytes[bytes.lastIndex] = (bytes.last().toInt() xor 1).toByte() }
+                    it.writeBytes(changed)
+                }
+                "unknown" -> File(root, "unfamiliar-work").writeText("keep")
+                "epoch" -> f.native.receiver = f.native.receiver.copy(permissionEpoch = "a".repeat(64))
+            }
+            val before = root.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            f.open().use { index ->
+                assertThrows(PhotoFolderScopeError::class.java) { index.restore(job, "sender_fixture_01", f.native.scope, requireNotNull(f.native.scope.lease())) }
+                assertEquals(job, index.jobs().single())
+                assertEquals(before, root.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            }
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun actualRetirementInvalidatesAlreadyRestoredReadersEvenWhenCleanupFailsOrDoesNothing() {
+        Fixture().use { f ->
+            f.open().use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                val snapshot = f.freeze(index, reserved, inventory)
+                val job = index.publishSnapshot(reserved, snapshot, f.native.scope, inventory.lease)
+                val reader = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val member = reader.manifest.files.single()
+                assertArrayEquals("hello".toByteArray(), reader.readChunk(member.id, 0))
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireAndClean(job) { } }
+                assertEquals("photo_jobs_sealed_head_changed", assertThrows(PhotoFolderScopeError::class.java) { reader.readChunk(member.id, 0) }.code)
+                val retired = index.jobs().single(); assertEquals(5L, retired.plainBytes)
+                index.retireAndClean(retired) { snapshot.discard() }
+                assertTrue(index.jobs().isEmpty())
+            }
+        }
+    }
+
+    @Test fun knownJobRootsCannotHideUnfamiliarOrOverBudgetContentsDuringNewReservations() {
+        for (large in listOf(false, true)) Fixture().use { f ->
+            f.open().use { index ->
+                val job = index.reserve(f.inventory(), f.native.scope)
+                val file = File(index.rootFile(job), if (large) "c".repeat(32) + "-0.enc" else "unfamiliar-fixture")
+                java.io.RandomAccessFile(file, "rw").use { it.setLength(if (large) job.cipherBudget + 1 else 1) }
+                Files.setPosixFilePermissions(file.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+                assertEquals(if (large) "photo_jobs_root_budget_exceeded" else "photo_jobs_unfamiliar_root_entry",
+                    assertThrows(PhotoFolderScopeError::class.java) { index.reserve(f.inventory(), f.native.scope) }.code)
+                assertEquals(1, index.jobs().size); assertTrue(file.exists())
+            }
+        }
+    }
 }

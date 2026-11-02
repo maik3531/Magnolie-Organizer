@@ -32,7 +32,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     private val scope: PhotoFolderScope, val lease: PhotoFolderLease, private val cancellation: CancellationSignal,
     private val owner: String, private val rootKey: Any, private val boundary: (String) -> Unit
 ) {
-    private data class Witness(val key: Any, val digest: String)
+    private data class Witness(val key: String, val digest: String)
     private val owned = linkedMapOf<String, Witness>()
     private var sealedManifest: DeviceFileManifest? = null
     private var retired = false
@@ -76,7 +76,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
                 val bytes = ByteBuffer.wrap(cipher)
                 while (bytes.hasRemaining()) { fresh(); channel.write(bytes) }
                 channel.force(true)
-                owned[name] = Witness(fileKey, hash(cipher))
+                owned[name] = Witness(fileKey.toString(), hash(cipher))
             } catch (error: Exception) {
                 // Only a fully durable ciphertext is adopted. Unknown partial
                 // bytes block cleanup instead of being guessed/deleted.
@@ -102,7 +102,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         }
         val after = attributes(file)
         if (initial.fileKey() != after.fileKey() || initial.lastModifiedTime() != after.lastModifiedTime() || initial.size() != result.size.toLong() ||
-            owned[name] != Witness(initial.fileKey() ?: fail("photo_snapshot_file_identity_unavailable"), hash(result)))
+            owned[name] != Witness(initial.fileKey()?.toString() ?: fail("photo_snapshot_file_identity_unavailable"), hash(result)))
             fail("photo_snapshot_original_witness_changed")
         return result
     }
@@ -131,6 +131,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     /** Native protected job-index metadata, never an IPC/storage receipt. */
     @Synchronized internal fun nativeRecord(): JsonObject {
         val sealed = manifest
+        exactEntries()
         var bytes = 0L
         val files = owned.map { (name, witness) ->
             val actual = cipher(name, MAX_METADATA)
@@ -148,15 +149,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     @Synchronized fun discard() {
         retired = true
         directory()
-        val names = linkedSetOf<String>()
-        Files.newDirectoryStream(root.toPath()).use { stream ->
-            for (entry in stream) {
-                val name = entry.fileName.toString()
-                if (name !in owned || names.size >= owned.size) fail("photo_snapshot_unfamiliar_entries_preserved")
-                names.add(name)
-            }
-        }
-        if (names != owned.keys) fail("photo_snapshot_unfamiliar_entries_preserved")
+        exactEntries()
         // Preflight ALL originals before deleting anything, owner marker last.
         owned.keys.forEach { cipher(it, MAX_METADATA) }
         owned.keys.sortedBy { it == "owner.enc" }.forEach {
@@ -168,6 +161,17 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         Files.delete(root.toPath())
         synchronisiereOrdner(root.parentFile)
     }
+    private fun exactEntries() {
+        val names = linkedSetOf<String>()
+        Files.newDirectoryStream(root.toPath()).use { stream ->
+            for (entry in stream) {
+                val name = entry.fileName.toString()
+                if (name !in owned || names.size >= owned.size) fail("photo_snapshot_unfamiliar_entries_preserved")
+                names.add(name)
+            }
+        }
+        if (names != owned.keys) fail("photo_snapshot_unfamiliar_entries_preserved")
+    }
 
     companion object {
         private const val MAX_METADATA = 262144
@@ -177,6 +181,69 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         private fun id() = UUID.randomUUID().toString().replace("-", "")
         private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
         private fun frame(value: JsonObject) = ByteArrayOutputStream().also { TelefonRahmen.schreiben(it, value, MAX_METADATA - 4) }.toByteArray()
+
+        /** The record must come from the existing-key-authenticated native index,
+         * never a peer or an arbitrary disk JSON. Re-read all original witnesses.
+         */
+        internal fun restore(root: File, record: JsonObject, senderId: String, scope: PhotoFolderScope, lease: PhotoFolderLease,
+            protection: DeviceTransferProtection, cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot {
+            fun text(value: JsonObject, field: String): String = (value[field] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                ?: fail("photo_snapshot_invalid_record")
+            if (record.keys != setOf("format", "owner", "source_domain", "root_key", "cipher_bytes", "manifest", "files") ||
+                record["format"] != JsonPrimitive(1)) fail("photo_snapshot_invalid_record")
+            val manifest = DeviceFileManifest.parse(record["manifest"] as? JsonObject ?: fail("photo_snapshot_invalid_record"))
+            val owner = text(record, "owner")
+            if (!Regex("[0-9a-f]{32}").matches(owner) || owner != manifest.sourceId || manifest.senderId != senderId ||
+                manifest.receiverId != lease.preference.receiverId) fail("photo_snapshot_native_identity_changed")
+            val actual = attributes(root)
+            if (!actual.isDirectory || actual.fileKey()?.toString() != text(record, "root_key")) fail("photo_snapshot_directory_changed")
+            val snapshot = ProtectedPhotoSourceSnapshot(root, protection, scope, lease, cancellation, owner,
+                actual.fileKey() ?: fail("photo_snapshot_directory_changed"), {})
+            if (snapshot.sourceDomain != text(record, "source_domain")) fail("photo_snapshot_source_context_changed")
+            snapshot.fresh()
+            val names = mutableSetOf("owner.enc", "manifest.enc")
+            manifest.files.forEach { member ->
+                if (member.size == 0L) names.add("empty-${member.id}.enc")
+                else repeat(((member.size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()) {
+                    names.add("${member.id}-$it.enc")
+                }
+            }
+            val proofs = record["files"] as? JsonArray ?: fail("photo_snapshot_invalid_record")
+            if (proofs.size != names.size) fail("photo_snapshot_invalid_record")
+            proofs.forEach { entry ->
+                val value = entry as? JsonObject ?: fail("photo_snapshot_invalid_record")
+                if (value.keys != setOf("name", "key", "sha256")) fail("photo_snapshot_invalid_record")
+                val name = text(value, "name"); val key = text(value, "key"); val digest = text(value, "sha256")
+                if (name !in names || key.length !in 1..512 || !Regex("[0-9a-f]{64}").matches(digest) ||
+                    snapshot.owned.put(name, Witness(key, digest)) != null) fail("photo_snapshot_invalid_record")
+            }
+            snapshot.exactEntries()
+            var cipherBytes = 0L
+            snapshot.owned.keys.forEach { cipherBytes += snapshot.cipher(it, MAX_METADATA).size }
+            val rawBytes = record["cipher_bytes"] as? JsonPrimitive ?: fail("photo_snapshot_invalid_record")
+            if (rawBytes.isString || !Regex("0|[1-9][0-9]*").matches(rawBytes.content) || rawBytes.content.toLongOrNull() != cipherBytes)
+                fail("photo_snapshot_invalid_record")
+            fun metadata(name: String): JsonObject = ByteArrayInputStream(snapshot.read(name, MAX_METADATA)).use { input ->
+                TelefonRahmen.lesen(input, MAX_METADATA - 4).also { if (input.read() != -1) fail("photo_snapshot_manifest_trailing_data") }
+            }
+            val ownerRecord = metadata("owner.enc")
+            if (ownerRecord.keys != setOf("format", "plan") || ownerRecord["format"] != JsonPrimitive(1)) fail("photo_snapshot_invalid_record")
+            val plan = DeviceFileManifest.parse(ownerRecord["plan"] as? JsonObject ?: fail("photo_snapshot_invalid_record"))
+            if (plan.transferId != manifest.transferId || plan.sourceId != manifest.sourceId || plan.senderId != manifest.senderId ||
+                plan.receiverId != manifest.receiverId || plan.totalBytes != manifest.totalBytes || plan.files.size != manifest.files.size ||
+                !plan.files.zip(manifest.files).all { (a, b) -> a.id == b.id && a.path == b.path && a.size == b.size && a.sha256 == "0".repeat(64) })
+                fail("photo_snapshot_plan_changed")
+            if (DeviceFileManifest.parse(metadata("manifest.enc")).fingerprint != manifest.fingerprint) fail("photo_snapshot_manifest_readback_changed")
+            manifest.files.forEach { member ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val chunks = ((member.size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()
+                repeat(chunks) { snapshot.readMemberChunk(member, it).also { bytes -> digest.update(bytes); bytes.fill(0) } }
+                if (member.size == 0L && !snapshot.read("empty-${member.id}.enc", 1).contentEquals(byteArrayOf(1))) fail("photo_snapshot_empty_marker_missing")
+                if (hex(digest.digest()) != member.sha256) fail("photo_snapshot_final_digest_changed")
+            }
+            snapshot.fresh(); snapshot.sealedManifest = manifest
+            return snapshot
+        }
 
         /** Native call only; senderId comes from the existing authenticated local identity.
          * On failure the caller retains the exact allocated directory for guarded recovery;

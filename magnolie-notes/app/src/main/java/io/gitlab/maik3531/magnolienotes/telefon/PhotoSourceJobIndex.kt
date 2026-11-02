@@ -2,6 +2,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
+import android.os.CancellationSignal
 import io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -22,6 +23,14 @@ import java.util.UUID
 internal data class PhotoSourceJob internal constructor(val id: String, val version: String,
     val sourceContext: String, val plainBytes: Long, val cipherBudget: Long,
     val rootKey: String?, val phase: String, val snapshot: JsonObject?)
+
+internal class IndexedPhotoSource internal constructor(private val index: PhotoSourceJobIndex,
+    val job: PhotoSourceJob, private val scope: PhotoFolderScope, private val lease: PhotoFolderLease,
+    private val snapshot: ProtectedPhotoSourceSnapshot) {
+    val manifest: DeviceFileManifest get() = index.withSealedHead(job, scope, lease) { snapshot.manifest }
+    fun readChunk(fileId: String, chunk: Int): ByteArray = index.withSealedHead(job, scope, lease) { snapshot.readChunk(fileId, chunk) }
+    fun retireAndDiscard() = index.retireAndClean(job) { snapshot.discard() }
+}
 
 /** Dedicated source-job DB only. Never opens/migrates the personal phone DB.
  * Retired/uncertain jobs retain both quota and their actual persisted metadata.
@@ -108,6 +117,28 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
 
     fun jobs(): List<PhotoSourceJob> = gated { readAll() }
 
+    fun restore(expected: PhotoSourceJob, senderId: String, scope: PhotoFolderScope, lease: PhotoFolderLease,
+        cancellation: CancellationSignal = CancellationSignal()): IndexedPhotoSource = withSealedHead(expected, scope, lease) {
+        val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+        val snapshot = ProtectedPhotoSourceSnapshot.restore(rootFile(actual), actual.snapshot ?: fail("photo_jobs_snapshot_missing"),
+            senderId, scope, lease, protection, cancellation)
+        IndexedPhotoSource(this, actual, scope, lease, snapshot)
+    }
+
+    internal fun <T> withSealedHead(expected: PhotoSourceJob, scope: PhotoFolderScope, lease: PhotoFolderLease, action: () -> T): T = gated {
+        fun check() {
+            verifyHeader()
+            val current = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+            if (current.version != expected.version || data(current) != data(expected) || current.phase != "sealed")
+                fail("photo_jobs_sealed_head_changed")
+            if (!scope.isCurrent(lease) || current.sourceContext != context(lease)) fail("photo_jobs_source_revoked")
+            if (attributes(rootFile(current)).fileKey()?.toString() != current.rootKey) fail("photo_jobs_root_changed")
+        }
+        check()
+        val result = action()
+        try { check(); result } catch (error: Exception) { if (result is ByteArray) result.fill(0); throw error }
+    }
+
     fun rootFile(job: PhotoSourceJob): File {
         if (!ID.matches(job.id)) fail("photo_jobs_invalid_id")
         return File(directory, "photo-source-" + job.id)
@@ -135,7 +166,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
      */
     fun retireAndClean(expected: PhotoSourceJob, cleanup: () -> Unit) = gated {
         val observed = readOne(expected.id) ?: fail("photo_jobs_missing_job")
-        if (observed.version != expected.version) fail("photo_jobs_cas_conflict")
+        if (observed.version != expected.version || data(observed) != data(expected)) fail("photo_jobs_cas_conflict")
         val retired = if (observed.phase == "retired") observed else update(observed, observed.copy(phase = "retired")) { }
         val child = rootFile(retired)
         if (Files.exists(child.toPath(), NOFOLLOW_LINKS)) {
@@ -157,7 +188,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         val cipher = protect(wanted)
         transaction {
             val current = readOne(expected.id) ?: fail("photo_jobs_missing_job")
-            if (current.version != expected.version) fail("photo_jobs_cas_conflict")
+            if (current.version != expected.version || data(current) != data(expected)) fail("photo_jobs_cas_conflict")
             permitted()
             if (db.update("source_jobs", ContentValues().apply { put("sealed", cipher) }, "job_id=?", arrayOf(expected.id)) != 1)
                 fail("photo_jobs_update_failed")
@@ -236,6 +267,23 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
                     val actual = attributes(entry.toFile())
                     if (!actual.isDirectory || job.rootKey == null || actual.fileKey()?.toString() != job.rootKey)
                         fail("photo_jobs_unknown_root_preserved")
+                    var count = 0L; var bytes = 0L
+                    val maximum = (job.plainBytes + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES + DeviceFileManifest.MAX_FILES + 2
+                    Files.newDirectoryStream(entry).use { children ->
+                        for (child in children) {
+                            if (++count > maximum) fail("photo_jobs_root_budget_exceeded")
+                            val childName = child.fileName.toString()
+                            if (childName !in setOf("owner.enc", "manifest.enc") &&
+                                !Regex("empty-[0-9a-f]{32}\\.enc|[0-9a-f]{32}-(0|[1-9][0-9]{0,3})\\.enc").matches(childName))
+                                fail("photo_jobs_unfamiliar_root_entry")
+                            if (job.snapshot != null && (job.snapshot["files"] as? kotlinx.serialization.json.JsonArray)?.none {
+                                    (it as? JsonObject)?.get("name") == JsonPrimitive(childName) } != false)
+                                fail("photo_jobs_unfamiliar_root_entry")
+                            regular(child.toFile())
+                            bytes += attributes(child.toFile()).size()
+                            if (bytes > job.cipherBudget) fail("photo_jobs_root_budget_exceeded")
+                        }
+                    }
                 }
             }
         }
