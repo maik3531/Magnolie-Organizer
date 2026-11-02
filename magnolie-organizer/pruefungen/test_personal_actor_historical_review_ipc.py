@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import uuid
+from types import SimpleNamespace
 
 import pytest
 import magnolie_hintergrund as background
@@ -12,7 +13,7 @@ from magnolie_personal_actor_store import NativeProducerBookSnapshot
 from test_personal_actor_producer_ipc import proxy_producer
 from test_personal_actor_restore_candidate import gui_candidates
 from test_personal_actor_historical_prepare import durable_queue
-from test_personal_actor_transport import frame
+from test_personal_actor_transport import frame, gtk_actor_bridge
 
 
 def test_native_review_group_capacity_does_not_relax_wire_packets_or_accept_caller_origin():
@@ -77,17 +78,21 @@ def test_historical_review_ipc_keeps_auth_origin_native_writer_and_projection_pu
                         owner.record_saved('native-producer-fixture', True, snapshot.saved_sha256)
                 return result
             monkeypatch.setattr(proxy, '_call', call)
+            native_bridge = gtk_actor_bridge()
+            native_owner = SimpleNamespace(_daten_sperre=proxy.native_actor_producer_guard(), _telefon_actor_buchnachweis=read)
+            def bridge(action, **fields):
+                return native_bridge(native_owner, proxy, {'action': action, 'actorId': handle.actor_id, 'ownerToken': handle.owner_token, 'bookSource': handle.book_source, **fields})['actor']
             if fault in ('no-origin', 'writer-drift'):
-                with pytest.raises(background.IPCError): proxy.review_personal_actor_incoming_targets(handle)
+                with pytest.raises(background.IPCError): bridge('notes_actor_historical_review')
             else:
-                view = proxy.review_personal_actor_incoming_targets(handle)
+                view = bridge('notes_actor_historical_review')
                 assert view['action_authorized'] is False and view['targets'] == [target]
                 choices = [{'proposal_id': target['proposal_id'], 'decision': 'restore', 'expected_clock': copy.deepcopy(target['clock']), 'confirm_conflict': True}]
                 if fault == 'choice-clock': choices[0]['expected_clock'][0]['counter'] += 1
                 if fault in ('missing', 'changed', 'choice-clock'):
-                    with pytest.raises(background.IPCError): proxy.review_personal_actor_historical_restore(handle, view['revision'], choices)
+                    with pytest.raises(background.IPCError): bridge('notes_actor_historical_source_review', reviewRevision=view['revision'], choices=choices)
                 else:
-                    reviewed = proxy.review_personal_actor_historical_restore(handle, view['revision'], choices)
+                    reviewed = bridge('notes_actor_historical_source_review', reviewRevision=view['revision'], choices=choices)
                     assert reviewed['action_authorized'] is False and len(reviewed['restore_source_revision']) == 64
                     assert reviewed['local_restore_sources'][0]['target'] == target
                     assert 'Protected synthetic source' not in json.dumps(reviewed) and 'data:' not in json.dumps(reviewed)

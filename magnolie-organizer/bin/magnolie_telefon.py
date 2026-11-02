@@ -4773,6 +4773,9 @@ class PhoneService:
         invokes this; a separate native save claim must still close data before
         its actual writer acknowledgement and exact terminal receipt handoff.
         """
+        if (not isinstance(expected_revision, str) or re.fullmatch(r'[a-f0-9]{64}', expected_revision) is None or
+                not isinstance(choices, list) or not 1 <= len(choices) <= 256):
+            raise ValueError('actor_historical_explicit_restore_required')
         from magnolie_personal_actor_restore_source import NativeHistoricalRestoreSourceObservation
         book_provider = native_book_source if native_book_source is not None else self.native_actor_book_source
         saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book

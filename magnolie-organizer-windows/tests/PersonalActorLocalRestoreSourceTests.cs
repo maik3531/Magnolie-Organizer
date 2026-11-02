@@ -20,6 +20,13 @@ internal static class PersonalActorLocalRestoreSourceTests
             await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), fault);
     }
 
+    internal static async Task HistoricalScriptReviewAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync();
+        foreach (var raw in fixtures)
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), "script-none");
+    }
+
     internal static async Task HistoricalPrepareAsync()
     {
         var fixtures = await LoadGuiFixturesAsync(candidates: true);

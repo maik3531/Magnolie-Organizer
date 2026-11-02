@@ -10,6 +10,7 @@ import pytest
 @pytest.mark.parametrize('action,on_owner', [('notes_actor_produce', True), ('notes_actor_dispatch_proposals', True),
     ('notes_actor_reply', True), ('notes_actor_begin_completion', True), ('notes_actor_advance_completion', True), ('notes_actor_late_review', True),
     ('notes_actor_prepare_late_save', True), ('notes_actor_confirm_late_save', True),
+    ('notes_actor_historical_review', True), ('notes_actor_historical_source_review', True),
     ('notes_actor_source', False), ('notes_actor_scope', False), ('notes_actor_status', False), ('read', False)])
 def test_private_writer_actions_reach_the_native_gui_owner_not_the_generic_worker(action, on_owner):
     source = Path(__file__).resolve().parents[1] / 'bin/magnolie-organizer'

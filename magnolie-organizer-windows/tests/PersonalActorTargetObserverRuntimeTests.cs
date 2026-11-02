@@ -394,7 +394,10 @@ internal static class PersonalActorTargetObserverRuntimeTests
         if (scenario.StartsWith("origin-local-source-", StringComparison.Ordinal))
         {
             await coordinator.ReceivePersonalActorAsync(connection, peer, message);
-            var view = await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle);
+            var script = scenario.Contains("-script-", StringComparison.Ordinal);
+            JsonObject Request(string action) => new() { ["action"] = action, ["actorId"] = handle.ActorId, ["ownerToken"] = handle.OwnerToken };
+            var view = script ? (await coordinator.ExecuteMcpAsync(Request("notes_actor_historical_review"), CancellationToken.None))["actor"]!.AsObject()
+                : await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle);
             var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore",
                 ["expected_clock"] = target["clock"]!.DeepClone(), ["confirm_conflict"] = true };
             if (scenario.Contains("-prepare-", StringComparison.Ordinal))
@@ -478,7 +481,16 @@ internal static class PersonalActorTargetObserverRuntimeTests
             }
             if (scenario.EndsWith("-none", StringComparison.Ordinal))
             {
-                var result = await coordinator.ReviewPersonalActorHistoricalRestoreAsync(handle, view["revision"]!.GetValue<string>(), [choice]);
+                JsonObject result;
+                if (script)
+                {
+                    var requestReview = Request("notes_actor_historical_source_review");
+                    requestReview["reviewRevision"] = view["revision"]!.DeepClone(); requestReview["choices"] = new JsonArray(choice.DeepClone());
+                    result = (await coordinator.ExecuteMcpAsync(requestReview, CancellationToken.None))["actor"]!.AsObject();
+                    TestAssert.That((await coordinator.ExecuteMcpAsync(Request("notes_actor_historical_save"), CancellationToken.None))["ok"]?.GetValue<bool>() == false,
+                        "Metadata script route exposed an unreviewed historical save action.");
+                }
+                else result = await coordinator.ReviewPersonalActorHistoricalRestoreAsync(handle, view["revision"]!.GetValue<string>(), [choice]);
                 TestAssert.That(!result["action_authorized"]!.GetValue<bool>() && result["restore_source_revision"]!.GetValue<string>().Length == 64 &&
                     JsonNode.DeepEquals(result["local_restore_sources"]![0]!["target"], target), "Historical source review lost original identity or no-action boundary.");
                 TestAssert.That(!result.ToJsonString().Contains("Protected synthetic source", StringComparison.Ordinal) && !result.ToJsonString().Contains("data:", StringComparison.Ordinal), "Historical source review leaked source bytes.");

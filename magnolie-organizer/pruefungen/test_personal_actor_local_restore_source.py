@@ -15,6 +15,9 @@ from test_personal_actor_target_observer_runtime import observation_runtime
 from test_personal_actor_transport import frame
 import magnolie_personal_actor as actor
 import uuid
+import threading
+from types import SimpleNamespace
+from test_personal_actor_transport import gtk_actor_bridge
 
 
 @pytest.fixture(scope='module')
@@ -83,7 +86,7 @@ def test_local_restore_sources_are_exact_and_stale_or_remote_substitutes_never_b
         assert value['book'] == before
 
 
-@pytest.mark.parametrize('fault', ['none', 'missing', 'changed', 'duplicate'])
+@pytest.mark.parametrize('fault', ['none', 'missing', 'changed', 'duplicate', 'implicit'])
 def test_actual_authenticated_native_restore_review_binds_choices_to_local_sources_without_queue_save_or_ack(tmp_path, monkeypatch, gui_sources, fault):
     for index, raw in enumerate(gui_sources):
         fixture = copy.deepcopy(raw)
@@ -99,19 +102,24 @@ def test_actual_authenticated_native_restore_review_binds_choices_to_local_sourc
             'proposals': [dict(target, deleted_ms=2, label='Synthetic historical target')]}
         wire = actor.wire_message(frame('personal_sync.deletion_proposals', body), handle.actor_id)
         service._payload(peer, channel, wire); channel.sent.clear()
-        view = service.review_personal_actor_incoming_targets(registry, handle)
+        native_bridge = gtk_actor_bridge()
+        native_owner = SimpleNamespace(_daten_sperre=threading.RLock(), _telefon_actor_buchnachweis=read)
+        def bridge(action, **fields):
+            return native_bridge(native_owner, service, {'action': action, 'actorId': handle.actor_id, 'ownerToken': handle.owner_token, **fields})['actor']
+        view = bridge('notes_actor_historical_review')
         choices = [{'proposal_id': target['proposal_id'], 'decision': 'restore', 'expected_clock': target['clock'], 'confirm_conflict': True}]
         def durable_queue():
             with sqlite3.connect(service.store.database_path) as db:
                 return db.execute('SELECT message_id,kind,payload FROM outbox WHERE peer_id=? ORDER BY message_id', (peer['device_id'],)).fetchall()
         before = registry.status(handle); saved = read(); retained = copy.deepcopy(book); queue = durable_queue()
         if fault == 'none':
-            result = service.review_personal_actor_historical_restore(registry, handle, view['revision'], choices)
+            result = bridge('notes_actor_historical_source_review', reviewRevision=view['revision'], choices=choices)
             assert result['action_authorized'] is False and len(result['restore_source_revision']) == 64
             assert result['local_restore_sources'][0]['target'] == target
             assert 'Protected synthetic source' not in json.dumps(result) and 'data:' not in json.dumps(result)
+            with pytest.raises(ValueError): bridge('notes_actor_historical_save')
         else:
             with pytest.raises((PermissionError, ValueError)):
-                service.review_personal_actor_historical_restore(registry, handle, view['revision'], choices)
+                bridge('notes_actor_historical_source_review', reviewRevision=view['revision'], choices=None if fault == 'implicit' else choices)
         assert registry.status(handle) == before and read() == saved and book == retained
         assert durable_queue() == queue and not channel.sent

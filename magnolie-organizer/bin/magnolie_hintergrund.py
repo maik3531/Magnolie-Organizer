@@ -2495,6 +2495,9 @@ class PhoneServiceProxy:
         return result
 
     def review_personal_actor_historical_restore(self, handle, expected_revision, choices):
+        if (not isinstance(expected_revision, str) or re.fullmatch(r'[a-f0-9]{64}', expected_revision) is None or
+                not isinstance(choices, list) or not 1 <= len(choices) <= 256):
+            raise IPCError('Historical source review requires explicit choices and revision')
         result = self._project_personal_actor_book(handle, historical_review={'revision': expected_revision, 'choices': copy.deepcopy(choices)})
         if (not isinstance(result, dict) or set(result) != {'review_revision', 'decisions', 'conflicts_explicitly_confirmed', 'content_scope',
                 'action_authorized', 'choice_revision', 'local_restore_sources', 'restore_source_revision'} or result['action_authorized'] is not False):

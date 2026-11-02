@@ -22195,7 +22195,8 @@ class Fenster(_FENSTER_BASIS):
             action = str((nachricht.get("request") or {}).get("action", ""))
             if action in ("notes_actor_produce", "notes_actor_dispatch_proposals", "notes_actor_reply",
                           "notes_actor_begin_completion", "notes_actor_advance_completion", "notes_actor_late_review",
-                          "notes_actor_prepare_late_save", "notes_actor_confirm_late_save"):
+                          "notes_actor_prepare_late_save", "notes_actor_confirm_late_save",
+                          "notes_actor_historical_review", "notes_actor_historical_source_review"):
                 # These private steps use the native GUI-owner writer lease or
                 # schedule its terminal continuation. Never silently reroute
                 # them to the generic phone-control worker thread.
@@ -24420,6 +24421,17 @@ class Fenster(_FENSTER_BASIS):
             value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":
             value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
+        elif action in ('notes_actor_historical_review', 'notes_actor_historical_source_review'):
+            # Read-only metadata. Source content stays in the one operation-local
+            # native projection; this does not issue a save/data/receipt claim.
+            with self._daten_sperre:
+                if self._telefon_actor_buchnachweis() is None:
+                    raise PermissionError('Native historical review has no actual-save observation')
+                if action == 'notes_actor_historical_review':
+                    value = source.review_personal_actor_incoming_targets(handle) if proxy else source.review_personal_actor_incoming_targets(registry, handle)
+                else:
+                    values = (request.get('reviewRevision'), request.get('choices'))
+                    value = source.review_personal_actor_historical_restore(handle, *values) if proxy else source.review_personal_actor_historical_restore(registry, handle, *values)
         elif action in ('notes_actor_late_review', 'notes_actor_prepare_late_save', 'notes_actor_confirm_late_save'):
             with self._daten_sperre:
                 if self._telefon_actor_buchnachweis() is None:

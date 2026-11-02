@@ -131,6 +131,7 @@ runner.Add("Actual Windows SaveAsync / ordinary encryption / epoch and id fence"
 runner.Add("Historical restore preserves unrelated fractional drawing / wire remains integer", PersonalActorRestoreCandidateTests.FractionalDrawingAsync);
 runner.Add("Actual historical SaveAsync with fractional drawing / private data preserved", PersonalActorLocalRestoreSourceTests.HistoricalBridgeDrawingSaveAsync);
 runner.Add("Actual historical SaveAsync preserves independently saved user edits", PersonalActorLocalRestoreSourceTests.HistoricalBridgeIndependentSaveAsync);
+runner.Add("Historical metadata-only script review / no save route", PersonalActorLocalRestoreSourceTests.HistoricalScriptReviewAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
