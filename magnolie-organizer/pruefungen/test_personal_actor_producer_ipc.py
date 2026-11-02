@@ -14,6 +14,7 @@ import magnolie_hintergrund as background
 import magnolie_personal_actor as actor
 import magnolie_personal_sync as personal
 import magnolie_shared_sync as shared
+import magnolie_content_scope as content_scope
 from magnolie_personal_actor_store import NativeProducerBookSnapshot
 from test_personal_actor_producer import native, ACTOR, RUN
 from test_personal_actor_source import actor_source_fixture
@@ -23,13 +24,18 @@ from test_hintergrunddienst import FakeBackend
 
 
 @contextmanager
-def proxy_producer(tmp_path, monkeypatch):
+def proxy_producer(tmp_path, monkeypatch, *, scope_members=None):
     service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
     peer_id = peer['device_id']; clock = [{'actor_id': ACTOR, 'counter': 1}]
     peer['grants']['grants']['personal_deletions_sync'] = True
     service.note_controls[channel]['grants.update'] = copy.deepcopy(peer['grants'])
     setting = service.store.change_shared_setting(peer_id, peer['static_public'], 'skip_deletions', False)
     service._payload(peer, channel, message(shared.merge(shared.create(peer_id), setting, peer_id, service.store.identity['device_id'])))
+    if scope_members is not None:
+        selected = content_scope.create(scope_members['notes'], scope_members['tasks'])
+        binding = (peer_id, peer['static_public'], id(channel)); session = content_scope.ScopeSession(binding)
+        for part in content_scope.chunks(selected): session.receive(binding, part)
+        service.content_scope_sessions[channel] = session
     proposal_id = personal.deletion_proposal_id(peer_id, 'attachment', 'removed-file', 'note-one', clock, 'a' * 64)
     book = {'notizen': [{'id': 'note-one', 'text': 'PRIVATE SYNTHETIC Grüße 🌸' * 2000, 'anhaenge': []}], 'aufgaben': [],
         'personalSync': {'actor_id': ACTOR, 'counter': 1, 'peer_device_id': peer_id,

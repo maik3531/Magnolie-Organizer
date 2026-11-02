@@ -4822,7 +4822,7 @@ class PhoneService:
 
     def prepare_personal_actor_historical_restore_save(self, registry, handle, expected_revision, choices, candidate_text, *,
             native_book_source=None, native_saved_book=None, native_producer_book=None,
-            native_book_witness=None, native_completion_saved_book=None):
+            native_book_witness=None, native_completion_saved_book=None, native_completion_authority=None):
         """Private GUI-writer preparation only; no public/native RPC route yet.
 
         The native exact delta validator, not a caller-selected hash, establishes
@@ -4839,6 +4839,8 @@ class PhoneService:
             raise TypeError('Native current content witness provider required')
         if native_completion_saved_book is not None and not callable(native_completion_saved_book):
             raise TypeError('Native live terminal saved-book provider required')
+        if native_completion_authority is not None and not callable(native_completion_authority):
+            raise TypeError('Native live terminal authority provider required')
         def local_witness(operation, token):
             actual = self.native_actor_producer_book() if callable(self.native_actor_producer_book) else None
             saved = self.native_actor_saved_book() if callable(self.native_actor_saved_book) else None
@@ -4868,14 +4870,16 @@ class PhoneService:
                 current_snapshot=producer_provider,
                 current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
             fingerprint = registry.status(handle)['fingerprint']
+            authority_provider = native_completion_authority if native_completion_authority is not None else (
+                lambda: self.current_actor_completion_authority(admission['peer'], fingerprint, book_provider))
             origin = admission['incoming_target_origin']
             original = {wire['message_id']: personal_sync_contract.projection_hash(wire)
                 for wire in self.read_personal_actor_incoming_target_frames(registry, handle)}
             plan = {'token': secrets.token_hex(32), 'proof': proof, 'review_revision': expected_revision,
                 'choice_revision': reviewed['choice_revision'], 'restore_source_revision': reviewed['restore_source_revision'],
                 'targets': copy.deepcopy(targets), 'choices': copy.deepcopy(choices), 'original_hashes': original,
-                'completion_authority': self.current_actor_completion_authority(admission['peer'], fingerprint, book_provider)}
-            if plan['completion_authority'] is None:
+                'completion_authority': authority_provider()}
+            if not isinstance(plan['completion_authority'], str) or re.fullmatch(r'[a-f0-9]{64}', plan['completion_authority']) is None:
                 raise PermissionError('actor_historical_completion_source_unavailable')
 
             def native_guard(operation, wire):
@@ -4914,7 +4918,7 @@ class PhoneService:
                     return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence + 1 and
                         actual.saved_sha256 == proof.after_sha256 and actual.content_sha256 == proof.after_content_sha256 and
                         plan['confirming_saved_book'] == actual.saved_book and
-                        self.current_actor_completion_authority(admission['peer'], fingerprint, book_provider) == plan['completion_authority'])
+                        authority_provider() == plan['completion_authority'])
                 return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence and
                     actual.saved_sha256 == proof.before_sha256 and actual.content_sha256 == proof.before_content_sha256)
 
@@ -4923,7 +4927,7 @@ class PhoneService:
             # projection. The terminal provider must likewise observe the live
             # native broker, not an operation's frozen saved-book dictionary.
             plan['completion_saved_provider'] = terminal_saved_provider
-            plan['book_source_provider'] = book_provider
+            plan['completion_authority_provider'] = authority_provider
             admission['historical_save_claim'] = plan
             try:
                 registry.begin_completion(handle, native_guard)
@@ -5021,7 +5025,7 @@ class PhoneService:
                     body = {'format': 1, 'run_id': handle.actor_id, 'decision_id': str(uuid.uuid4()), 'decisions': decisions[offset:offset + 32]}
                     queued.append(self.store.queue(admission['peer'], 'personal_sync.deletion_decision', body, DAY_MS, actor_run_id=handle.actor_id))
                 terminal = DecisionAckCompletion(handle.actor_id, plan['targets'], queued,
-                    current_authority=lambda: self.current_actor_completion_authority(admission['peer'], fingerprint, plan['book_source_provider']),
+                    current_authority=plan['completion_authority_provider'],
                     current_scope=native_scope, current_saved_book=plan['completion_saved_provider'],
                     persisted_controls=lambda: registry.read_completion_controls(handle), before_scope=manifest, native_historical_targets=plan['targets'])
                 if terminal.authority != plan['completion_authority']:

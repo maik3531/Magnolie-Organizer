@@ -806,6 +806,7 @@ def _request_shape(operation, arguments):
         "phone_actor_producer": {"subscriber", "book_source", "request"},
         "phone_actor_observer": {"subscriber", "book_source", "request"},
         "phone_actor_historical_review": {"subscriber", "book_source", "request"},
+        "phone_actor_historical_prepare": {"subscriber", "book_source", "request"},
         "phone_actor_registry": {"subscriber", "book_source", "request"},
         "phone_actor_reply": {"subscriber", "book_source", "actor_id", "owner_token", "claim_token", "batches", "sources", "native_saved_book"},
         "phone_actor_start": {"subscriber", "book_source", "actor_id", "owner_token"},
@@ -1028,7 +1029,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_scope", "phone_actor_producer", "phone_actor_observer", "phone_actor_historical_review", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
+                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_scope", "phone_actor_producer", "phone_actor_observer", "phone_actor_historical_review", "phone_actor_historical_prepare", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "phone_actor_reply", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -1050,10 +1051,11 @@ def _request_shape(operation, arguments):
             type(arguments.get("offset")) is not int or not 0 <= arguments["offset"] <= 50000 or
             type(arguments.get("limit")) is not int or not 1 <= arguments["limit"] <= 128):
         raise IPCError("invalid native actor scope page")
-    if operation in ("phone_actor_producer", "phone_actor_observer", "phone_actor_historical_review"):
+    if operation in ("phone_actor_producer", "phone_actor_observer", "phone_actor_historical_review", "phone_actor_historical_prepare"):
         request = arguments.get('request')
         observation = operation == 'phone_actor_observer'
         historical = operation == 'phone_actor_historical_review'
+        historical_prepare = operation == 'phone_actor_historical_prepare'
         hex64 = lambda value: isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) is not None
         if (not hex64(arguments.get('book_source')) or not isinstance(request, dict) or
                 request.get('action') not in ('begin', 'chunk', 'commit', 'abort', 'dispatch')):
@@ -1066,17 +1068,21 @@ def _request_shape(operation, arguments):
         if observation:
             if request['action'] == 'dispatch': raise IPCError('Target observation cannot dispatch producer frames')
             if request['action'] == 'begin': fields.add('targets')
-        if historical:
+        if historical or historical_prepare:
             if request['action'] == 'dispatch': raise IPCError('Historical review cannot dispatch frames')
             if request['action'] == 'begin': fields |= {'review_revision', 'choices'}
+        if historical_prepare:
+            if request['action'] == 'begin': fields |= {'candidate_sha256', 'candidate_bytes'}
+            if request['action'] == 'chunk': fields.add('channel')
         if (set(request) != fields or not _status_query_id(request.get('actor_id')) or not hex64(request.get('owner_token')) or
                 request['action'] not in ('begin', 'dispatch') and not hex64(request.get('projection_token'))):
             raise IPCError('invalid native producer ownership')
         if request['action'] == 'begin':
-            if historical:
+            if historical or historical_prepare:
                 revision, choices = request['review_revision'], request['choices']
                 if ((revision is None) != (choices is None) or revision is not None and not hex64(revision) or
-                        choices is not None and (not isinstance(choices, list) or not 1 <= len(choices) <= 256)):
+                        choices is not None and (not isinstance(choices, list) or not 1 <= len(choices) <= 256) or
+                        historical_prepare and choices is None):
                     raise IPCError('invalid historical review choices')
                 if choices is not None:
                     from magnolie_personal_sync import validate_body
@@ -1091,6 +1097,9 @@ def _request_shape(operation, arguments):
                                 'decisions': [{key: choice[key] for key in ('proposal_id', 'decision', 'expected_clock')}]})
                     except (ValueError, TypeError, KeyError) as error:
                         raise IPCError('invalid historical review choices') from error
+            if historical_prepare and (not hex64(request['candidate_sha256']) or type(request['candidate_bytes']) is not int or
+                    not 2 <= request['candidate_bytes'] <= 256 * 1024 * 1024):
+                raise IPCError('invalid historical candidate projection capacity')
             book = request['native_saved_book']
             if (not hex64(request['source_revision']) or not hex64(request['content_sha256']) or
                     type(request['total_bytes']) is not int or not 2 <= request['total_bytes'] <= 256 * 1024 * 1024 or
@@ -1120,6 +1129,8 @@ def _request_shape(operation, arguments):
                 type(request['offset']) is not int or not 0 <= request['offset'] < 256 * 1024 * 1024 or
                 not isinstance(request['data_base64'], str) or not 1 <= len(request['data_base64']) <= 43692):
             raise IPCError('invalid native producer chunk')
+        if historical_prepare and request['action'] == 'chunk' and request['channel'] not in ('book', 'candidate'):
+            raise IPCError('invalid historical projection channel')
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
@@ -1227,6 +1238,7 @@ class IPCServer:
         self._phone_actor_owners = {}
         self._phone_actor_handles = {}
         self._phone_actor_book_probes = {}
+        self._phone_actor_historical_probes = {}  # Only live metadata, never a book snapshot/provider cache.
         self._phone_actor_projections = {}
         self.backend = backend
         self.lifecycle = "ready"
@@ -1316,6 +1328,89 @@ class IPCServer:
             if probe is None or probe[0] != owner or probe[2] <= time.monotonic():
                 raise NativeBookProofPending("Fresh native GUI writer observation required")
             return json.loads(json.dumps(probe[1]))
+
+    def _live_actor_historical_witness(self, actor_id, subscriber, book_source, operation, claim_token):
+        with self.phone_backend.lock:
+            owner = (subscriber, book_source)
+            if self.stopped.is_set() or self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                return None
+            probe = self._phone_actor_historical_probes.get(actor_id)
+            if probe is None or probe['owner'] != owner or probe['expires'] <= time.monotonic():
+                return None
+            if probe['purpose'] != 'prepare' or operation not in ('begin', 'save'):
+                return None
+            if not isinstance(claim_token, str) or re.fullmatch(r'[a-f0-9]{64}', claim_token) is None:
+                return None
+            # Only the native controller can produce this first claim token,
+            # synchronously inside this exact protected Prepare operation.
+            if probe['claim_token'] is None: probe['claim_token'] = claim_token
+            if not secrets.compare_digest(probe['claim_token'], claim_token):
+                return None
+            return probe['witness']
+
+    def _phone_actor_historical_prepare_operation(self, arguments):
+        from magnolie_personal_actor_store import ActorHandle, NativeSavedBookContentWitness
+        from magnolie_personal_actor_projection import NativeHistoricalPrepareProjection
+        phone = self.phone_backend; request = arguments['request']
+        actor_id = request['actor_id']; owner = (arguments['subscriber'], arguments['book_source'])
+        handle = ActorHandle(actor_id, request['owner_token'])
+        with phone.lock:
+            self._reap_actor_projections()
+            if self._phone_actor_owners.get(actor_id) != owner or self.gui_actor_book_source(*owner) is None:
+                raise IPCError('Native historical writer owner is unavailable')
+            registry = self._phone_actor_registry(*owner); registry.require_current(handle)
+            if request['action'] == 'begin':
+                if self._phone_actor_projections or actor_id in self._phone_actor_book_probes or actor_id in self._phone_actor_historical_probes:
+                    raise IPCError('Native historical writer projection is already in use')
+                expires = time.monotonic() + 30
+                saved = copy.deepcopy(request['native_saved_book'])
+                def owned():
+                    if (self.stopped.is_set() or time.monotonic() >= expires or self._phone_actor_owners.get(actor_id) != owner or
+                            self.gui_actor_book_source(*owner) is None):
+                        return False
+                    registry.require_current(handle)
+                    return True
+                status = registry.status(handle)
+                receiver = NativeHistoricalPrepareProjection(saved, request['content_sha256'], request['total_bytes'],
+                    request['candidate_sha256'], request['candidate_bytes'], request['source_revision'], current_owner=owned,
+                    current_source=lambda: registry.current_source(status['peer_id'], status['fingerprint']), current_saved_book=lambda: saved if owned() else None)
+                self._phone_actor_projections[actor_id] = {'receiver': receiver, 'owner': owner, 'handle': handle, 'saved': saved,
+                    'expires': expires, 'purpose': 'historical_prepare', 'review_revision': request['review_revision'], 'choices': copy.deepcopy(request['choices'])}
+                return {'projection_token': receiver.token, 'received_bytes': receiver.received_bytes}
+            slot = self._phone_actor_projections.get(actor_id)
+            if (slot is None or slot['owner'] != owner or slot['handle'] != handle or slot['purpose'] != 'historical_prepare' or
+                    not secrets.compare_digest(request['projection_token'], slot['receiver'].token)):
+                raise IPCError('Native historical writer projection is unavailable')
+            receiver = slot['receiver']
+            try:
+                if request['action'] == 'abort': receiver.close(); return {'aborted': True}
+                if request['action'] == 'chunk':
+                    return {'received_bytes': receiver.append(receiver.token, request['channel'], request['offset'], request['data_base64'])}
+                snapshot, candidate = receiver.finish(receiver.token)
+                status = registry.status(handle)
+                if actor_id in self._phone_actor_historical_probes or actor_id in self._phone_actor_book_probes:
+                    raise IPCError('Native historical proof is already in use')
+                token = object()
+                probe = {'owner': owner, 'handle': handle, 'purpose': 'prepare', 'claim_token': None,
+                    'witness': NativeSavedBookContentWitness.from_snapshot(snapshot), 'expires': slot['expires'], 'operation_token': token}
+                self._phone_actor_historical_probes[actor_id] = probe
+                try:
+                    result = phone.prepare_personal_actor_historical_restore_save(registry, handle, slot['review_revision'], slot['choices'], candidate,
+                        native_book_source=lambda: owner[1] if self.gui_actor_book_source(*owner) is not None else None,
+                        native_saved_book=lambda: slot['saved'], native_producer_book=lambda: snapshot,
+                        native_book_witness=lambda operation, claim: self._live_actor_historical_witness(actor_id, *owner, operation, claim),
+                        native_completion_saved_book=lambda: self._live_actor_saved_book(actor_id, *owner),
+                        native_completion_authority=lambda: phone.current_actor_completion_authority(status['peer_id'], status['fingerprint'], lambda: self.gui_actor_book_source(*owner)))
+                    if probe['claim_token'] != result['claim_token']:
+                        registry.cancel(handle)
+                        raise IPCError('Native historical writer claim changed')
+                    return result
+                finally:
+                    if self._phone_actor_historical_probes.get(actor_id, {}).get('operation_token') is token:
+                        self._phone_actor_historical_probes.pop(actor_id, None)
+            finally:
+                if receiver.closed:
+                    receiver.close(); self._phone_actor_projections.pop(actor_id, None)
 
     def _phone_actor_producer_operation(self, arguments, *, observation=False, historical_review=False):
         from magnolie_personal_actor_store import ActorHandle
@@ -1861,6 +1956,8 @@ class IPCServer:
             return self._phone_actor_producer_operation(arguments, observation=True)
         if operation == 'phone_actor_historical_review':
             return self._phone_actor_producer_operation(arguments, historical_review=True)
+        if operation == 'phone_actor_historical_prepare':
+            return self._phone_actor_historical_prepare_operation(arguments)
         if operation == "phone_actor_reply":
             from magnolie_personal_actor_store import ActorHandle
             with phone.lock:
@@ -2013,7 +2110,7 @@ def ipc_request(operation, arguments=None, path=None, timeout=6):
                 raise IPCError("IPC server has a different user")
         _write_message(connection, {"op": operation, "args": arguments or {}},
             MAX_PHONE_MESSAGE if operation in LARGE_IPC_OPERATIONS else
-            MAX_PHONE_ARGUMENTS if operation in ("phone_actor_observer", "phone_actor_historical_review") else
+            MAX_PHONE_ARGUMENTS if operation in ("phone_actor_observer", "phone_actor_historical_review", "phone_actor_historical_prepare") else
             MAX_TIME_CONTROL_IPC if operation == "phone_mcp_action" and (arguments or {}).get("request", {}).get("action") in TIME_CONTROL_ACTIONS else MAX_IPC_MESSAGE)
         response = _read_message(connection, MAX_PHONE_MESSAGE if operation.startswith("phone_")
                                  else MAX_CONTACT_MESSAGE if operation in ("contact_uids", "contact_vcards")
@@ -2487,6 +2584,71 @@ class PhoneServiceProxy:
         if not isinstance(result, dict) or set(result) != {'observations'} or not isinstance(result['observations'], list) or len(result['observations']) != len(targets):
             raise IPCError('Invalid native target observation response')
         return result['observations']
+
+    def prepare_personal_actor_historical_restore_save(self, handle, expected_revision, choices, candidate_text):
+        """Native-only Prepare under the actual GUI document guard.
+
+        Upload checksums never substitute for the daemon's independent exact
+        delta validation. This only closes data and returns a private writer
+        plan: no writer invocation or successful SaveACK is created here.
+        """
+        from magnolie_personal_actor_store import NativeProducerBookSnapshot
+        from magnolie_personal_actor_projection import CHUNK_BYTES, MAX_BYTES
+        if (threading.current_thread() is not threading.main_thread() or not callable(self.native_actor_producer_guard) or
+                not isinstance(expected_revision, str) or re.fullmatch(r'[a-f0-9]{64}', expected_revision) is None or
+                not isinstance(choices, list) or not 1 <= len(choices) <= 256 or not isinstance(candidate_text, str) or len(candidate_text) > MAX_BYTES):
+            raise IPCError('Native historical preparation requires explicit GUI-owner input')
+        candidate = candidate_text.encode('utf-8')
+        if not 2 <= len(candidate) <= MAX_BYTES:
+            raise IPCError('Native historical candidate is too large')
+        copied = copy.deepcopy(choices)
+        with self.native_actor_producer_guard(), self._state_lock:
+            if (self._publish_actor_book_source() != handle.book_source or not callable(self.native_actor_saved_book) or
+                    not callable(self.native_actor_producer_book)):
+                raise IPCError('Native historical writer is unavailable')
+            snapshot = self.native_actor_producer_book()
+            if not isinstance(snapshot, NativeProducerBookSnapshot) or snapshot.book_source != handle.book_source:
+                raise IPCError('Native historical saved content is unavailable')
+            def guard():
+                if (self._event_stop.is_set() or self.native_actor_book_source() != handle.book_source or self.native_actor_saved_book() != snapshot.saved_book):
+                    raise IPCError('Native historical prepare outcome is unknown after writer change')
+            status = self.personal_actor_status(handle)
+            source = self.current_actor_source(status['peer_id'], status['fingerprint'])
+            if source is None: raise IPCError('Native historical source is unavailable')
+            token = None; digest = hashlib.sha256(candidate).hexdigest()
+            def call(action, **fields):
+                guard()
+                result = self._call('actor_historical_prepare', subscriber=self._subscriber, book_source=handle.book_source,
+                    request={'action': action, 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, **fields})
+                guard()
+                return result
+            try:
+                before = snapshot.text.encode('utf-8')
+                started = call('begin', source_revision=source, native_saved_book=snapshot.saved_book, content_sha256=snapshot.content_sha256,
+                    total_bytes=len(before), candidate_sha256=digest, candidate_bytes=len(candidate), review_revision=expected_revision, choices=copied)
+                token = started.get('projection_token')
+                if not isinstance(token, str) or re.fullmatch(r'[a-f0-9]{64}', token) is None or started.get('received_bytes') != {'book': 0, 'candidate': 0}:
+                    raise IPCError('Native historical projection was not admitted')
+                for channel, payload in (('book', before), ('candidate', candidate)):
+                    for offset in range(0, len(payload), CHUNK_BYTES):
+                        raw = payload[offset:offset + CHUNK_BYTES]
+                        page = call('chunk', projection_token=token, channel=channel, offset=offset, data_base64=base64.b64encode(raw).decode('ascii'))
+                        if page.get('received_bytes') != offset + len(raw):
+                            raise IPCError('Native historical projection continuation changed')
+                result = call('commit', projection_token=token)
+                if (not isinstance(result, dict) or set(result) != {'claim_token', 'after_sha256', 'before_sequence', 'book_source', 'data_closed', 'book_persisted', 'phone_persisted'} or
+                        not isinstance(result['claim_token'], str) or re.fullmatch(r'[a-f0-9]{64}', result['claim_token']) is None or
+                        result['after_sha256'] != digest or result['before_sequence'] != snapshot.sequence or result['book_source'] != snapshot.book_source or
+                        result['data_closed'] is not True or result['book_persisted'] is not False or result['phone_persisted'] is not False):
+                    raise IPCError('Invalid native historical writer plan')
+                return result
+            finally:
+                if token is not None:
+                    try:
+                        self._call('actor_historical_prepare', subscriber=self._subscriber, book_source=handle.book_source,
+                            request={'action': 'abort', 'actor_id': handle.actor_id, 'owner_token': handle.owner_token, 'projection_token': token})
+                    except (IPCError, OSError, ValueError, TypeError):
+                        pass
 
     def review_personal_actor_incoming_targets(self, handle):
         result = self._project_personal_actor_book(handle, historical_review={'revision': None, 'choices': None})
