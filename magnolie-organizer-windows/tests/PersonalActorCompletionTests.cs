@@ -71,6 +71,42 @@ internal static class PersonalActorCompletionTests
     {
         using (var f = new Fixture())
         {
+            var body = new JsonObject { ["format"] = 1, ["run_id"] = f.Handle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0, ["last"] = true,
+                ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = "note", ["id"] = "outside", ["parent_id"] = "",
+                    ["prior_hash"] = new string('a', 64), ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = f.Peer, ["counter"] = 1 }), ["deleted_ms"] = 1, ["label"] = "Synthetic" }) };
+            var frame = PersonalSyncActorContract.WireMessage(f.Message("personal_sync.deletion_proposals", body), f.Handle.ActorId);
+            var before = f.Registry.Status(f.Handle);
+            f.Registry.ValidateHistoricalTargetEnvelope(f.Handle, frame);
+            TestAssert.Throws<InvalidDataException>(() => f.Registry.ValidateHistoricalTargetEnvelope(f.Handle, f.Data), "A request was accepted as a historical target envelope.");
+            frame["created_ms"] = f.Now - 60000; frame["expires_ms"] = f.Now - 1;
+            TestAssert.Throws<InvalidDataException>(() => f.Registry.ValidateHistoricalTargetEnvelope(f.Handle, frame), "Historical envelope validator renewed an expired original frame.");
+            TestAssert.That(JsonNode.DeepEquals(before, f.Registry.Status(f.Handle)), "Pure envelope validation created native admission metadata.");
+        }
+        foreach (var last in new[] { false, true })
+        {
+            using var f = new Fixture(); var scope = PhoneContentScope.Create([], []);
+            f.Registry.RequireHistoricalDataIdle(f.Handle, scope);
+            var body = new JsonObject { ["format"] = 3, ["run_id"] = f.Handle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                ["reply"] = false, ["sequence"] = 0, ["last"] = last, ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()), ["records"] = new JsonArray() };
+            f.Registry.Put(f.Handle, PersonalSyncActorContract.WireMessage(f.Message("personal_sync.batch", body), f.Handle.ActorId));
+            var before = f.Registry.Status(f.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.RequireHistoricalDataIdle(f.Handle, scope), "Historical lane skipped ordinary partial/ready data.");
+            f.Registry.RequireCurrent(f.Handle);
+            TestAssert.That(JsonNode.DeepEquals(before, f.Registry.Status(f.Handle)), "Idle-data denial mutated registry metadata.");
+        }
+        foreach (var foreign in new[] { false, true })
+        {
+            using var f = new Fixture(); var scope = PhoneContentScope.Create([], []);
+            var request = PersonalSyncActorContract.Unwrap(f.Data["body"]!.AsObject()).Body;
+            var wrapped = PersonalSyncActorContract.Wrap(f.Handle.ActorId, PhoneContentScope.DataKind,
+                PhoneContentScope.Wrap("personal_sync.request", request, foreign ? PhoneContentScope.Create(["foreign"], []) : scope));
+            f.Registry.Put(f.Handle, f.Message(PersonalSyncActorContract.DataKind, wrapped));
+            if (foreign) TestAssert.Throws<InvalidDataException>(() => f.Registry.RequireHistoricalDataIdle(f.Handle, scope), "Idle check accepted a foreign scoped request reference.");
+            else f.Registry.RequireHistoricalDataIdle(f.Handle, scope);
+            f.Registry.RequireCurrent(f.Handle);
+        }
+        using (var f = new Fixture())
+        {
             TestAssert.Throws<InvalidOperationException>(() => f.Registry.CheckHistoricalSave(f.Handle), "Active data owner acquired historical write gate.");
             f.Registry.RequireCurrent(f.Handle);
             f.Registry.BeginCompletion(f.Handle, f.Guard);

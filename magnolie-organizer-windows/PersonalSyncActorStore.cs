@@ -317,6 +317,50 @@ internal sealed class PersonalSyncActorStore
         }
     }
 
+    // Pure envelope validation only, NOT native ownership or incoming origin.
+    // The native historical writer guard must separately bind its live owner.
+    internal void ValidateHistoricalTargetEnvelope(PersonalActorHandle handle, JsonObject wire)
+    {
+        var clear = WirePayload(handle, wire);
+        try
+        {
+            if (wire["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
+                PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject()).Kind != "personal_sync.deletion_proposals")
+                throw new InvalidDataException("actor_target_origin_kind");
+        }
+        finally { CryptographicOperations.ZeroMemory(clear); }
+    }
+
+    // A pure historical lane cannot skip partial or ready ordinary data groups.
+    // Protected raw bytes may deny this lane, never grant origin/data rights.
+    internal void RequireHistoricalDataIdle(PersonalActorHandle handle, JsonObject manifest)
+    {
+        PhoneContentScope.Validate(manifest);
+        using var db = Open(); Require(db, handle);
+        using var query = db.CreateCommand(); query.CommandText = "SELECT message_id,payload FROM personal_actor_wire WHERE actor_id=$actor";
+        query.Parameters.AddWithValue("$actor", handle.ActorId);
+        using (var rows = query.ExecuteReader()) while (rows.Read())
+        {
+            var clear = store.Open("personal_actor_wire", handle.ActorId + ":" + rows.GetString(0), (byte[])rows[1]);
+            try
+            {
+                var wire = JsonNode.Parse(clear)!.AsObject(); var checkedWire = WirePayload(handle, wire, fresh: false);
+                CryptographicOperations.ZeroMemory(checkedWire);
+                var outer = Text(wire, "kind");
+                if (outer == PersonalSyncActorContract.DataKind)
+                {
+                    var (kind, body) = PersonalSyncActorContract.Unwrap(wire["body"]!.AsObject());
+                    if (kind == PhoneContentScope.DataKind) (kind, _) = PhoneContentScope.Unwrap(body, manifest);
+                    if (kind != "personal_sync.request") throw new InvalidOperationException("actor_historical_mixed_data_not_ready");
+                }
+                else if (outer is not (PersonalSyncActorContract.StartKind or PersonalSyncActorContract.AckKind))
+                    throw new InvalidOperationException("actor_historical_mixed_data_not_ready");
+            }
+            finally { CryptographicOperations.ZeroMemory(clear); }
+        }
+        Require(db, handle);
+    }
+
     // Native writer gate only, NOT source/restore/save authority. The native
     // controller must bind exact local sources and saved-book/choice witnesses
     // under its retained book/source guard. No document I/O in this transaction.
