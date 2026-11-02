@@ -227,8 +227,19 @@ reliable volume namespace and selected-only visibility additionally bind a
 runtime nonce: old runtime proofs cannot authorize restored source jobs. A source
 lease never proves file deletion. Its permission-access epoch still requires a
 real native permission controller; no remote packet supplies that authority.
-Concrete gallery-item readers, desktop policy control, native OS permission
-launchers and full inventory/receipt integration remain outstanding.
+`AndroidGalleryPhotoSource` now inventories only the selected native image album
+using bounded keyset pages (32 rows, at most 128 images/400 MiB, 30-second scan
+deadline). Every returned member must match its bucket, label and modern relative
+path; pending/trashed rows, unsafe/colliding names, malformed metadata, excess
+pages and order violations fail without a partial result. The opaque native
+member witness includes row ID and insertion timestamp, not a content digest.
+Actual cancellable READ-only PFD access rechecks membership/metadata around open
+and scope around every read. It feeds the same encrypted, double-read/readback
+snapshot and durable source-job index; cached restore does not reopen originals.
+Synthetic provider tests cover API28/29/35, including actual framework permissions
+and PFDs, not physical phone/gallery acceptance. No adapter writes/deletes images,
+requests permissions or starts a worker. Desktop policy control, native OS
+permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
