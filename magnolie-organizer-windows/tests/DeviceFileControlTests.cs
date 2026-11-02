@@ -39,6 +39,19 @@ internal static class DeviceFileControlTests
     }
     internal static Task RunAsync()
     {
+        var (epochFirst, epochSecond) = Pair();
+        epochFirst.Peer = epochFirst.Peer with { PairingEpoch = new string('c', 64) };
+        epochFirst.Session.Dispose(); epochFirst.Session = epochFirst.NewSession();
+        Handshake(epochFirst, epochSecond);
+        TestAssert.That(epochFirst.Session.Binding(new string('f', 64), true) is not null, "Native paired file scope missing after exact handshake.");
+        var epochPacket = epochSecond.Session.Packet(); epochSecond.Session.MarkSent(epochPacket);
+        TestAssert.Throws<InvalidDataException>(() => epochFirst.Session.ObserveRemote(epochPacket,
+            epochFirst.Peer with { PairingEpoch = new string('d', 64) }), "Foreign native pairing scope accepted.");
+        epochFirst.Peer = epochFirst.Peer with { PairingEpoch = new string('d', 64) };
+        TestAssert.That(epochFirst.Session.Binding(new string('f', 64), true) is null, "Native re-pair preserved old file authority.");
+        epochFirst.Peer = epochFirst.Peer with { PairingEpoch = new string('c', 64) };
+        TestAssert.That(epochFirst.Session.Binding(new string('f', 64), true) is null, "Old native pairing was revived.");
+        epochFirst.Session.Dispose(); epochSecond.Session.Dispose();
         // Actual peer codecs, without constructing TelefonStore/keys/personal DB.
         var writePeer = typeof(TelefonStore).GetMethod("WritePeer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
         var readPeer = typeof(TelefonStore).GetMethod("ReadPeer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;

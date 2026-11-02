@@ -120,6 +120,32 @@ class ExistingFileTransferProtection:
     def unseal(self, blob, domain):
         return self._crypt(blob, domain, decrypt=True)
 
+    def read_native_peers_blob(self):
+        """Fixed existing native peer metadata only; never identity.key/DB I/O.
+        This intentionally does not invoke PhoneStore or its migrating loader.
+        The different native AAD is fixed here, not selectable by a wire caller.
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        with self._gate:
+            raw=self._read_key()
+            fd=os.open('peers.json',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=self._root_fd)
+            with os.fdopen(fd,'rb') as source:
+                before=os.fstat(source.fileno())
+                if (not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_mode&0o077
+                        or before.st_nlink!=1 or not 29<=before.st_size<=self.MAX_PLAIN_BYTES+28):
+                    raise TransferError('file_authority_unsafe_native_peers')
+                blob=source.read(self.MAX_PLAIN_BYTES+29)
+                after=os.fstat(source.fileno())
+                named=os.stat('peers.json',dir_fd=self._root_fd,follow_symlinks=False)
+                if len(blob)!=before.st_size or self._signature(before)!=self._signature(after) or self._signature(named)!=self._signature(after):
+                    raise TransferError('file_authority_native_peers_changed')
+            result=AESGCM(raw).decrypt(blob[:12],blob[12:],b'magnolie-phone-storage-v1\0peersall')
+            if self._read_key()!=raw:raise TransferError('transfer_protection_existing_key_changed')
+            if self._signature(os.stat('peers.json',dir_fd=self._root_fd,follow_symlinks=False))!=self._signature(after):
+                raise TransferError('file_authority_native_peers_changed')
+            self._directories()
+            return result
+
     def close(self):
         with self._gate:
             if not self._closed:

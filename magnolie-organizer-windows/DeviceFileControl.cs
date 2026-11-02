@@ -126,10 +126,10 @@ internal sealed class NativeLocalFileGrant
 }
 
 internal sealed record NativeFileControlPeer(string PeerId, string IdentitySha256, object Owner,
-    bool Ready, bool Paired, bool OwnDevice, bool RemoteOwnDevice, bool ControlSupported)
+    bool Ready, bool Paired, bool OwnDevice, bool RemoteOwnDevice, bool ControlSupported, string? PairingEpoch = null)
 {
     internal bool Allowed => Owner is not null && DeviceFileControl.Identity(PeerId) && DeviceFileControl.Hash(IdentitySha256) &&
-        Ready && Paired && OwnDevice && RemoteOwnDevice && ControlSupported;
+        Ready && Paired && OwnDevice && RemoteOwnDevice && ControlSupported && (PairingEpoch is null || DeviceFileControl.Hash(PairingEpoch));
 }
 
 internal sealed class NativeFileControlSession : IDisposable
@@ -157,7 +157,7 @@ internal sealed class NativeFileControlSession : IDisposable
     private (NativeFileControlPeer Peer, NativeLocalFileGrant Local)? Scope()
     {
         var nextPeer = currentPeer(); var nextLocal = currentLocal();
-        if (nextPeer is not null && (!ReferenceEquals(nextPeer.Owner, peer.Owner) || nextPeer.PeerId != peer.PeerId || nextPeer.IdentitySha256 != peer.IdentitySha256) ||
+        if (nextPeer is not null && (!ReferenceEquals(nextPeer.Owner, peer.Owner) || nextPeer.PeerId != peer.PeerId || nextPeer.IdentitySha256 != peer.IdentitySha256 || nextPeer.PairingEpoch != peer.PairingEpoch) ||
             nextLocal is not null && !ReferenceEquals(nextLocal.Owner, local.Owner)) faulted = true;
         if (faulted || nextPeer?.Allowed != true || nextLocal is null) return null;
         if (nextLocal.Grants.Revision < local.Grants.Revision || nextLocal.Grants.Revision == local.Grants.Revision && !nextLocal.Grants.SamePermission(local.Grants))
@@ -194,7 +194,7 @@ internal sealed class NativeFileControlSession : IDisposable
     {
         lock (gate)
         {
-            if (Scope() is null || !boundPeer.Allowed || !ReferenceEquals(boundPeer.Owner, peer.Owner) || boundPeer.PeerId != peer.PeerId || boundPeer.IdentitySha256 != peer.IdentitySha256)
+            if (Scope() is null || !boundPeer.Allowed || !ReferenceEquals(boundPeer.Owner, peer.Owner) || boundPeer.PeerId != peer.PeerId || boundPeer.IdentitySha256 != peer.IdentitySha256 || boundPeer.PairingEpoch != peer.PairingEpoch)
                 throw DeviceFileControl.Error("file_control_native_scope_changed");
             if (remote is not null)
             {

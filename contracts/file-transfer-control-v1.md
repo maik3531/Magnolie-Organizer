@@ -785,6 +785,34 @@ coordinator/activation/Pictures preferences/advanced UI, complete recovery/photo
 baselines and native quota completion remain outstanding. No package, automatic
 run or discovery 21 advertisement is enabled.
 
+### Read-only desktop native authority preparation
+
+Linux can read the fixed existing native `peers.json` storage object through the
+already-existing-key protection adapter, using its fixed native storage AAD.
+It never constructs `PhoneStore`, calls its migrating/defaulting peer loader,
+loads `identity.key`, opens the personal queue DB or accepts a path/object domain
+from a request. Regular-file/owner/mode/no-link/bounded-size and before/after
+descriptor/name/crypto checks reject changes while reading. Missing/corrupt data
+is preserved and fails closed; no key, identity or peer defaults are generated.
+
+The pure authenticated-public-identity projection needs the native desktop role.
+It is not authentication by itself: only the future actual channel/generation
+cache may supply it as a controller identity. Native peer snapshots require one
+exact pinned ID/key and an existing complete own-device pairing epoch. Legacy,
+pending, ambiguous or non-own records grant nothing. Discovery metadata remains
+separate from handler readiness and file consent. This helper is not yet the
+actual desktop transport/activation controller.
+
+Python and Windows native control-peer scopes can carry the persistent pairing
+epoch independently of wire grants. A changed epoch or a differently bound native
+peer invalidates the session; restoring old fields does not revive it. The field
+is not serialized and does not change existing control/permission golden bytes.
+Forty-three affected Python cases pass (17 native authority and 26 control cases),
+including actual native AEAD readback, no store/key creation, blocked legacy
+normalization, peer change during decryption and same-key re-pair isolation. The
+Windows control source-host group passes. No installed Windows/native GUI, physical
+phone or completed desktop transport acceptance is implied.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

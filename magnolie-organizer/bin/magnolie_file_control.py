@@ -117,12 +117,14 @@ class NativeFilePeer:
     own_device: bool
     remote_own_device: bool
     control_supported: bool
+    pairing_epoch: str | None = None
 
     def __post_init__(self):
         if (type(self.peer_id) is not str or re.fullmatch(r"[A-Za-z0-9_-]{16,160}", self.peer_id) is None
                 or not _hex(self.identity_sha256) or self.owner is None
                 or any(type(value) is not bool for value in (self.ready, self.paired, self.own_device,
-                    self.remote_own_device, self.control_supported))):
+                    self.remote_own_device, self.control_supported))
+                or self.pairing_epoch is not None and not _hex(self.pairing_epoch)):
             raise TransferError("file_control_native_peer_required")
 
     @property
@@ -152,11 +154,11 @@ class NativeFileControlSession:
     def _scope(self):
         peer, local = self._current_peer(), self._current_local()
         if (type(peer) is NativeFilePeer and (peer.owner is not self._peer.owner or peer.peer_id != self._peer.peer_id
-                or peer.identity_sha256 != self._peer.identity_sha256)
+                or peer.identity_sha256 != self._peer.identity_sha256 or peer.pairing_epoch != self._peer.pairing_epoch)
                 or type(local) is NativeLocalFileGrant and local.owner is not self._local.owner):
             self._faulted = True
         if (self._faulted or type(peer) is not NativeFilePeer or not peer.allowed or peer.owner is not self._peer.owner
-                or peer.peer_id != self._peer.peer_id or peer.identity_sha256 != self._peer.identity_sha256
+                or peer.peer_id != self._peer.peer_id or peer.identity_sha256 != self._peer.identity_sha256 or peer.pairing_epoch != self._peer.pairing_epoch
                 or type(local) is not NativeLocalFileGrant or local.owner is not self._local.owner):
             return None
         if (local.grants.revision < self._local.grants.revision
@@ -203,7 +205,8 @@ class NativeFileControlSession:
         with self._gate:
             scope = self._scope()
             if (scope is None or type(bound_peer) is not NativeFilePeer or not bound_peer.allowed or bound_peer.owner is not self._peer.owner
-                    or bound_peer.peer_id != self._peer.peer_id or bound_peer.identity_sha256 != self._peer.identity_sha256):
+                    or bound_peer.peer_id != self._peer.peer_id or bound_peer.identity_sha256 != self._peer.identity_sha256
+                    or bound_peer.pairing_epoch != self._peer.pairing_epoch):
                 raise TransferError("file_control_native_scope_changed")
             if type(packet) is not FileControlPacket:
                 raise TransferError("file_control_invalid_packet")

@@ -50,6 +50,19 @@ def handshake(first, second):
         send(second, first)
 
 
+def test_native_pairing_change_cannot_preserve_or_revive_an_existing_file_session():
+    first,second=pair()
+    first.peer=replace(first.peer,pairing_epoch='c'*64);first.session=first.new_session()
+    handshake(first,second)
+    assert first.session.binding('f'*64,sender_is_local=True) is not None
+    packet=second.session.packet();second.session.mark_sent(packet)
+    with pytest.raises(TransferError):first.session.observe_remote(packet,replace(first.peer,pairing_epoch='d'*64))
+    first.peer=replace(first.peer,pairing_epoch='d'*64)
+    assert first.session.binding('f'*64,sender_is_local=True) is None
+    first.peer=replace(first.peer,pairing_epoch='c'*64)
+    assert first.session.binding('f'*64,sender_is_local=True) is None
+
+
 def test_no_binding_before_fresh_bidirectional_echo_and_actual_native_send_completion():
     first, second = pair()
     assert first.session.binding("c" * 64, sender_is_local=True) is None
