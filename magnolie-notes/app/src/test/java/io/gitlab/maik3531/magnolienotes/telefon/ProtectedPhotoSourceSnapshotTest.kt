@@ -12,6 +12,8 @@ import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
 import java.security.MessageDigest
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
@@ -44,6 +46,14 @@ class ProtectedPhotoSourceSnapshotTest {
         Fixture(data).use { f ->
             val snapshot = f.freeze()
             val member = snapshot.manifest.files.single()
+            val legacy = f.native.lease
+            val legacyContext = JsonObject(mapOf("tree" to JsonPrimitive(legacy.preference.treeUri),
+                "source_version" to JsonPrimitive(legacy.version), "source_epoch" to JsonPrimitive(legacy.preference.epoch),
+                "receiver" to JsonPrimitive(legacy.preference.receiverId), "receiver_identity" to JsonPrimitive(legacy.preference.receiverIdentitySha256),
+                "read_grant" to JsonPrimitive(legacy.readGrantToken), "permission_epoch" to JsonPrimitive(legacy.receiver.permissionEpoch)))
+            val expectedDomain = MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(legacyContext))
+                .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
+            assertEquals(JsonPrimitive(expectedDomain), snapshot.nativeRecord()["source_domain"])
             val expected = MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it.toInt() and 255) }
             assertEquals(expected, member.sha256); assertEquals(data.size.toLong(), member.size)
             assertEquals(2, f.native.provider.opened) // Both bounded source observations used actual read-only PFDs.
@@ -141,8 +151,8 @@ class ProtectedPhotoSourceSnapshotTest {
     @Test fun stalledStreamsCannotAcquireACompleteSnapshot() {
         Fixture("hello".toByteArray()).use { f ->
             val source = object : PhotoSourceAccess {
-                override fun verifyMetadata(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) { }
-                override fun openRead(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) = object : InputStream() {
+                override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) { }
+                override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) = object : InputStream() {
                     override fun read() = 0
                     override fun read(buffer: ByteArray, offset: Int, length: Int) = 0
                 }

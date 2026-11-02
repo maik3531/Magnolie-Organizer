@@ -13,9 +13,10 @@ import java.util.Collections
 internal data class PhotoInventoryEntry(val documentUri: String, val documentId: String,
     val relativePath: String, val advertisedBytes: Long, val advertisedModifiedMs: Long?)
 
-internal class PhotoFolderInventory internal constructor(val lease: PhotoFolderLease, entries: List<PhotoInventoryEntry>) {
+internal class PhotoSourceInventory internal constructor(val lease: NativePhotoSourceLease, entries: List<PhotoInventoryEntry>) {
     val entries: List<PhotoInventoryEntry> = Collections.unmodifiableList(entries.toList())
 }
+internal typealias PhotoFolderInventory = PhotoSourceInventory
 
 /** Bounded read-only enumeration of precisely the native selected tree.
  * No file contents are opened, no provider writes/deletes or permission changes,

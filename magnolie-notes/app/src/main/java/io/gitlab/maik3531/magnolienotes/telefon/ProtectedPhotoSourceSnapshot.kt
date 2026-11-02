@@ -29,7 +29,7 @@ internal class PhotoSnapshotBuildFailure(val pending: ProtectedPhotoSourceSnapsh
  */
 internal class ProtectedPhotoSourceSnapshot private constructor(
     private val root: File, private val protection: DeviceTransferProtection,
-    private val scope: PhotoFolderScope, val lease: PhotoFolderLease, private val cancellation: CancellationSignal,
+    private val scope: NativePhotoSourceAuthority, val lease: NativePhotoSourceLease, private val cancellation: CancellationSignal,
     private val owner: String, private val rootKey: Any, private val boundary: (String) -> Unit
 ) {
     private data class Witness(val key: String, val digest: String)
@@ -37,9 +37,9 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     private var sealedManifest: DeviceFileManifest? = null
     private var retired = false
     private val sourceDomain = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
-        "tree" to JsonPrimitive(lease.preference.treeUri), "source_version" to JsonPrimitive(lease.version),
-        "source_epoch" to JsonPrimitive(lease.preference.epoch), "receiver" to JsonPrimitive(lease.preference.receiverId),
-        "receiver_identity" to JsonPrimitive(lease.preference.receiverIdentitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken),
+        "tree" to JsonPrimitive(lease.sourceKey), "source_version" to JsonPrimitive(lease.version),
+        "source_epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
+        "receiver_identity" to JsonPrimitive(lease.receiver.identitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken),
         "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch)))))
     private val domain = "photo-source-snapshot-v1/$owner/$sourceDomain/"
     val manifest: DeviceFileManifest get() = synchronized(this) {
@@ -185,7 +185,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         /** The record must come from the existing-key-authenticated native index,
          * never a peer or an arbitrary disk JSON. Re-read all original witnesses.
          */
-        internal fun restore(root: File, record: JsonObject, senderId: String, scope: PhotoFolderScope, lease: PhotoFolderLease,
+        internal fun restore(root: File, record: JsonObject, senderId: String, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
             protection: DeviceTransferProtection, cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot {
             fun text(value: JsonObject, field: String): String = (value[field] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 ?: fail("photo_snapshot_invalid_record")
@@ -194,7 +194,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             val manifest = DeviceFileManifest.parse(record["manifest"] as? JsonObject ?: fail("photo_snapshot_invalid_record"))
             val owner = text(record, "owner")
             if (!Regex("[0-9a-f]{32}").matches(owner) || owner != manifest.sourceId || manifest.senderId != senderId ||
-                manifest.receiverId != lease.preference.receiverId) fail("photo_snapshot_native_identity_changed")
+                manifest.receiverId != lease.receiver.peerId) fail("photo_snapshot_native_identity_changed")
             val actual = attributes(root)
             if (!actual.isDirectory || actual.fileKey()?.toString() != text(record, "root_key")) fail("photo_snapshot_directory_changed")
             val snapshot = ProtectedPhotoSourceSnapshot(root, protection, scope, lease, cancellation, owner,
@@ -249,7 +249,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
          * On failure the caller retains the exact allocated directory for guarded recovery;
          * it must not report a completed source or reuse partial chunks as proofs.
          */
-        fun freeze(root: File, inventory: PhotoFolderInventory, senderId: String, scope: PhotoFolderScope,
+        fun freeze(root: File, inventory: PhotoSourceInventory, senderId: String, scope: NativePhotoSourceAuthority,
             source: PhotoSourceAccess, protection: DeviceTransferProtection,
             cancellation: CancellationSignal = CancellationSignal(), boundary: (String) -> Unit = {}): ProtectedPhotoSourceSnapshot {
             require(root.isAbsolute && root.canonicalFile == root)
@@ -262,7 +262,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             val planned = inventory.entries.map { entry -> DeviceManifestFile(id(), entry.relativePath, entry.advertisedBytes, "0".repeat(64)) }
             fun manifest(files: List<DeviceManifestFile>): DeviceFileManifest = DeviceFileManifest.parse(JsonObject(mapOf(
                 "format" to JsonPrimitive(1), "transfer_id" to JsonPrimitive(transferId), "source_id" to JsonPrimitive(sourceId),
-                "sender_id" to JsonPrimitive(senderId), "receiver_id" to JsonPrimitive(inventory.lease.preference.receiverId),
+                "sender_id" to JsonPrimitive(senderId), "receiver_id" to JsonPrimitive(inventory.lease.receiver.peerId),
                 "chunk_bytes" to JsonPrimitive(DeviceFileManifest.CHUNK_BYTES), "total_bytes" to JsonPrimitive(files.sumOf { it.size }),
                 "files" to JsonArray(files.map { JsonObject(mapOf("id" to JsonPrimitive(it.id), "path" to JsonPrimitive(it.path),
                     "size" to JsonPrimitive(it.size), "sha256" to JsonPrimitive(it.sha256))) }))))

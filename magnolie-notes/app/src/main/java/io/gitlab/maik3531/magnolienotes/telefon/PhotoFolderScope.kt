@@ -49,15 +49,33 @@ internal interface ReadOnlyPhotoTrees {
 internal class PhotoFolderPickerTicket internal constructor(internal val receiver: NativePhotoReceiver,
     internal val expected: PhotoPreferenceSnapshot)
 
+/** Native source proofs, never deserialized permission grants. Gallery albums
+ * and SAF trees have different access models; neither is disguised as the other.
+ */
+internal interface NativePhotoSourceLease {
+    val sourceKey: String
+    val sourceEpoch: String
+    val version: String
+    val receiver: NativePhotoReceiver
+    val readGrantToken: String
+}
+
+internal interface NativePhotoSourceAuthority {
+    fun isCurrent(lease: NativePhotoSourceLease): Boolean
+}
+
 internal class PhotoFolderLease internal constructor(val preference: PhotoFolderPreference,
-    internal val version: String, internal val receiver: NativePhotoReceiver, internal val readGrantToken: String)
+    override val version: String, override val receiver: NativePhotoReceiver, override val readGrantToken: String) : NativePhotoSourceLease {
+    override val sourceKey: String get() = preference.treeUri
+    override val sourceEpoch: String get() = preference.epoch
+}
 
 /** Explicit source consent only; no scanner, worker, capability advertisement or automatic send. */
 internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoReceiver?,
     private val trees: ReadOnlyPhotoTrees, private val store: PhotoFolderPreferenceStore,
     private val newEpoch: () -> String = {
         ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-    }) {
+    }) : NativePhotoSourceAuthority {
     private var picker: PhotoFolderPickerTicket? = null
     private var uncertain = false
 
@@ -143,7 +161,8 @@ internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoRe
         }.getOrNull()
     }
 
-    @Synchronized fun isCurrent(lease: PhotoFolderLease): Boolean {
+    @Synchronized override fun isCurrent(lease: NativePhotoSourceLease): Boolean {
+        if (lease !is PhotoFolderLease) return false
         val live = this.lease() ?: return false
         return live.preference == lease.preference && live.version == lease.version && live.readGrantToken == lease.readGrantToken &&
             sameAuthority(lease.receiver, live.receiver)

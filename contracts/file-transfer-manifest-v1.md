@@ -225,6 +225,13 @@ permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
+The protected snapshot/index pipeline consumes typed native source leases and
+authorities. SAF leases remain actual canonical tree/grant observations; gallery
+albums must use their own native source/access observations, never synthetic
+tree URIs. The generic boundary retains the exact legacy SAF cryptographic
+context, checked against its original fields, and does not grant a gallery
+source access through the SAF reader.
+
 `AndroidPhotoSourceReader` rechecks exact document identity/name/image metadata,
 size/mtime and descendant status, then opens only a cancellable READ-only PFD.
 Every source read is bracketed by native lease/cancellation checks. It does not

@@ -25,7 +25,7 @@ internal data class PhotoSourceJob internal constructor(val id: String, val vers
     val rootKey: String?, val phase: String, val snapshot: JsonObject?)
 
 internal class IndexedPhotoSource internal constructor(private val index: PhotoSourceJobIndex,
-    val job: PhotoSourceJob, private val scope: PhotoFolderScope, private val lease: PhotoFolderLease,
+    val job: PhotoSourceJob, private val scope: NativePhotoSourceAuthority, private val lease: NativePhotoSourceLease,
     private val snapshot: ProtectedPhotoSourceSnapshot) {
     val manifest: DeviceFileManifest get() = index.withSealedHead(job, scope, lease) { snapshot.manifest }
     fun readChunk(fileId: String, chunk: Int): ByteArray = index.withSealedHead(job, scope, lease) { snapshot.readChunk(fileId, chunk) }
@@ -77,7 +77,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     }
 
     /** Durable encrypted reservation/readback BEFORE creating any source root. */
-    fun reserve(inventory: PhotoFolderInventory, scope: PhotoFolderScope): PhotoSourceJob = gated {
+    fun reserve(inventory: PhotoSourceInventory, scope: NativePhotoSourceAuthority): PhotoSourceJob = gated {
         val lease = inventory.lease
         fun allowed() { if (!scope.isCurrent(lease)) fail("photo_jobs_source_revoked") }
         allowed()
@@ -117,7 +117,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
 
     fun jobs(): List<PhotoSourceJob> = gated { readAll() }
 
-    fun restore(expected: PhotoSourceJob, senderId: String, scope: PhotoFolderScope, lease: PhotoFolderLease,
+    fun restore(expected: PhotoSourceJob, senderId: String, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
         cancellation: CancellationSignal = CancellationSignal()): IndexedPhotoSource = withSealedHead(expected, scope, lease) {
         val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
         val snapshot = ProtectedPhotoSourceSnapshot.restore(rootFile(actual), actual.snapshot ?: fail("photo_jobs_snapshot_missing"),
@@ -125,7 +125,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         IndexedPhotoSource(this, actual, scope, lease, snapshot)
     }
 
-    internal fun <T> withSealedHead(expected: PhotoSourceJob, scope: PhotoFolderScope, lease: PhotoFolderLease, action: () -> T): T = gated {
+    internal fun <T> withSealedHead(expected: PhotoSourceJob, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease, action: () -> T): T = gated {
         fun check() {
             verifyHeader()
             val current = readOne(expected.id) ?: fail("photo_jobs_missing_job")
@@ -145,8 +145,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     }
 
     /** Only an actual verified snapshot object may be passed, never an IPC payload. */
-    internal fun publishSnapshot(expected: PhotoSourceJob, snapshot: ProtectedPhotoSourceSnapshot, scope: PhotoFolderScope,
-        lease: PhotoFolderLease): PhotoSourceJob = gated {
+    internal fun publishSnapshot(expected: PhotoSourceJob, snapshot: ProtectedPhotoSourceSnapshot, scope: NativePhotoSourceAuthority,
+        lease: NativePhotoSourceLease): PhotoSourceJob = gated {
         fun allowed() {
             if (!scope.isCurrent(lease) || expected.sourceContext != context(lease)) fail("photo_jobs_source_revoked")
         }
@@ -323,10 +323,10 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         private val PRIVATE_DIRECTORY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
         private fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-        private fun context(lease: PhotoFolderLease) = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
-            "tree" to JsonPrimitive(lease.preference.treeUri), "version" to JsonPrimitive(lease.version),
-            "epoch" to JsonPrimitive(lease.preference.epoch), "receiver" to JsonPrimitive(lease.preference.receiverId),
-            "identity" to JsonPrimitive(lease.preference.receiverIdentitySha256), "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch),
+        private fun context(lease: NativePhotoSourceLease) = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
+            "tree" to JsonPrimitive(lease.sourceKey), "version" to JsonPrimitive(lease.version),
+            "epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
+            "identity" to JsonPrimitive(lease.receiver.identitySha256), "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch),
             "read_grant" to JsonPrimitive(lease.readGrantToken)))))
         private fun data(value: PhotoSourceJob) = JsonObject(mapOf("format" to JsonPrimitive(1), "source_context" to JsonPrimitive(value.sourceContext),
             "plain_bytes" to JsonPrimitive(value.plainBytes), "cipher_budget" to JsonPrimitive(value.cipherBudget),

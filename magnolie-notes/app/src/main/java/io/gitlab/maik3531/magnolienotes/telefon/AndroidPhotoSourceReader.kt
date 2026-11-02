@@ -10,19 +10,20 @@ import java.io.FilterInputStream
 import java.io.InputStream
 
 internal interface PhotoSourceAccess {
-    fun verifyMetadata(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal)
-    fun openRead(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream
+    fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal)
+    fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream
 }
 
 /** Actual READ-only cancellable PFD boundary. Never opens a gallery/default source. */
 internal class AndroidPhotoSourceReader(context: Context, private val scope: PhotoFolderScope) : PhotoSourceAccess {
     private val resolver = context.applicationContext.contentResolver
-    private fun fresh(lease: PhotoFolderLease, cancellation: CancellationSignal) {
+    private fun fresh(lease: NativePhotoSourceLease, cancellation: CancellationSignal) {
         cancellation.throwIfCanceled()
         if (!scope.isCurrent(lease)) throw PhotoFolderScopeError("photo_snapshot_source_revoked")
     }
-    private fun document(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): Uri {
+    private fun document(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): Uri {
         fresh(lease, cancellation)
+        if (lease !is PhotoFolderLease) throw PhotoFolderScopeError("photo_snapshot_wrong_source_kind")
         val tree = Uri.parse(lease.preference.treeUri)
         val document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.documentId)
         if (document.toString() != entry.documentUri || !DeviceFileManifest.portablePath(entry.relativePath) ||
@@ -31,7 +32,7 @@ internal class AndroidPhotoSourceReader(context: Context, private val scope: Pho
         fresh(lease, cancellation)
         return document
     }
-    override fun verifyMetadata(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) {
+    override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) {
         val document = document(lease, entry, cancellation)
         resolver.query(document, PROJECTION, android.os.Bundle(), cancellation)?.use { cursor ->
             fresh(lease, cancellation)
@@ -58,7 +59,7 @@ internal class AndroidPhotoSourceReader(context: Context, private val scope: Pho
         } ?: throw PhotoFolderScopeError("photo_snapshot_document_missing")
         fresh(lease, cancellation)
     }
-    override fun openRead(lease: PhotoFolderLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream {
+    override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream {
         val uri = document(lease, entry, cancellation)
         val descriptor = resolver.openFileDescriptor(uri, "r", cancellation)
             ?: throw PhotoFolderScopeError("photo_snapshot_document_missing")
