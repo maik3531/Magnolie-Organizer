@@ -8,6 +8,7 @@ internal static class ContactGroupSyncContractTests
 {
     internal static async Task RunAsync()
     {
+        ContactConflictReadOnlyProbe.VerifyPrivacy();
         JsonObject Message(JsonArray groups) => new()
         {
             ["art"] = "kontakt_sync", ["fassung"] = 4, ["freigabeId"] = "fixture:contact", ["version"] = 2,
