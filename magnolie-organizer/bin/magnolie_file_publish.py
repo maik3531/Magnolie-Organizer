@@ -19,6 +19,7 @@ import unicodedata
 
 from magnolie_file_transfer import (CHUNK_BYTES, FileManifest, ManifestFile, NativeTransferBinding,
     ResumeLedger, TransferError)
+from magnolie_publication_journal import ProtectedPublicationJournal, PublicationWitness
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,8 @@ class NativeFilePublisher:
     PREFIX = ".magnolie-publication-"
     MAX_DIRECTORY_ENTRIES = 10_000
 
-    def __init__(self, destination, manifest, binding, current_binding, publication_gate, *, owner, targets=None, boundary=lambda _: None):
+    def __init__(self, destination, manifest, binding, current_binding, publication_gate, *, owner, targets=None,
+            boundary=lambda _: None, journal=None):
         if sys.platform != "linux" or not hasattr(os, "O_NOFOLLOW") or not os.path.isdir("/proc/self/fd"):
             raise TransferError("native_descriptor_publication_platform_required")
         if type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding:
@@ -63,6 +65,11 @@ class NativeFilePublisher:
             tuple(ManifestFile(file.id, values[file.id], file.size, file.sha256) for file in manifest.files), manifest.total_bytes)
         if any(part.startswith(self.PREFIX) for path in values.values() for part in path.split("/")):
             raise TransferError("native_publication_reserved_mapping")
+        if journal is not None:
+            if type(journal) is not ProtectedPublicationJournal:
+                raise TransferError("native_publication_journal_required")
+            journal.require_new_operation(manifest, binding, values, owner)
+        self._journal = journal
         self._manifest, self._binding = manifest, binding
         self._targets = MappingProxyType(values)
         self._current, self._publication_gate, self._boundary = current_binding, publication_gate, boundary
@@ -318,6 +325,9 @@ class NativeFilePublisher:
                     raise TransferError("native_publication_original_changed")
                 self._boundary("before-publication")
                 self._chain(relative, fds)
+                witness = PublicationWitness(file_id, key[0], key[1], tuple(self._key(os.fstat(fd)) for fd in fds))
+                if self._journal is not None:
+                    self._journal.append("prepared", witness)
                 def link():
                     self._chain(relative, fds); self._check_alias(fds[-1], name)
                     if (self._signature(os.fstat(source_fd)) != signature or
@@ -333,9 +343,14 @@ class NativeFilePublisher:
                     self._uncertain.add(file_id)
                     os.fsync(fds[-1])
                 self._mutate(link)
+                if self._journal is not None:
+                    self._journal.append("linked", witness)
                 self._boundary("published")
                 self._data(fds[-1], name, key, file, links={2})
                 self._chain(relative, fds)
+                if self._journal is not None:
+                    self._journal.append("verified", witness)
+                    self._chain(relative, fds)
                 evidence = NativePublishedFile(file_id, self.manifest.fingerprint, relative, file.sha256, file.size, key[0], key[1], False)
                 self._published[file_id] = evidence
                 self._uncertain.remove(file_id)

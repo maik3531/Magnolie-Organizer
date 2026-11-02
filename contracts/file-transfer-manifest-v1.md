@@ -462,14 +462,51 @@ never removes a destination photo. Closing only releases descriptors.
 
 The returned `NativePublishedFile` is **physical readback evidence only**:
 `is_saved_receipt=false` and `grants_write_authority=false`. The current
-implementation deliberately has no durable publication journal, protected PC
-job/receipt index, restart adoption/repair, shared photo baseline or transfer ACK
-integration. Those are required before actual transport/UI use. Tests cover
+implementation still has no protected PC job/receipt index, restart
+adoption/repair, shared photo baseline or transfer ACK integration. Those are
+required before actual transport/UI use. Its optional protected publication
+journal is described below. Tests cover
 Unicode/nested/empty/multichunk saves, duplicate calls, immutable mapping,
 existing/concurrently created targets, aliases/symlinks, permission gates,
 revocation, path swaps, post-link fsync/readback failures and conservative
 partial-cache cleanup. They do not constitute physical phone or end-to-end sync
 acceptance; no handler, capability or automatic background work is enabled.
+
+### Protected publication journal and restart inspection
+
+`ProtectedPublicationJournal` records immutable, individually fsynced and
+AEAD-read-back `prepared` → `linked` → `verified` phases. It uses native existing
+protection callbacks only and creates no replacement key or personal settings.
+An authenticated owner header binds the entire target mapping, manifest,
+peer/permission/destination binding and reserved native owner. Protected records
+bind their original directory/file identities; each phase binds the previous
+ciphertext SHA and the same original source inode and target-parent chain.
+There is no replace/update/delete API. Unknown entries, changed identities,
+corrupt ciphertext, phase gaps and incomplete writes are held, not reset.
+An uncertain append fences further writes in that instance.
+
+The publisher can attach an exact, fresh native journal before starting. It
+durably records `prepared` before the no-replace link, `linked` after the actual
+link/destination-directory fsync and `verified` after destination byte readback.
+All journal encryption, filesystem I/O and readback remain outside the native
+publication permission gate. Journal failures before linking prevent publication;
+failures after linking retain the existing uncertain-publication barrier.
+
+Restart inspection is **read-only**, needs no live source or destination access
+and grants no resumed operation. In particular, a missing `linked`/`verified`
+record never proves that no link happened; restart cannot simply adopt a cache,
+rewrite a record or repeat publication. The journal by itself provides no
+external monotonic-head/rollback protection or current destination observation.
+Even `verified` evidence remains **not a saved receipt**, common baseline or
+transport ACK. The protected PC job/receipt index, native destination recovery
+and exact operation ownership must still be integrated before actual handlers.
+
+The combined 63 real-filesystem tests cover 28 journal/integration cases and
+the 35 publication cases. They include separate-process inspection with an
+ephemeral fixture key, scope/key/mapping mismatches, copied/linked/tampered
+records, original-root changes, failed seal/write/fsync/readback, actual
+publisher ordering and journal faults on both sides of the real link. This is
+not power-loss, physical-phone or native end-to-end acceptance.
 
 ## Three-way photo comparison proposals (not execution authority)
 
