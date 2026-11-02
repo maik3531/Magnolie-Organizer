@@ -122,6 +122,111 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
 
     fun jobs(): List<PhotoSourceJob> = gated { readAll() }
 
+    /** Dedicated encrypted gallery policy rows in this private source DB, never
+     * personal sync settings. Absence is off; corrupt/missing keys never reset.
+     */
+    fun galleryPolicy(): GalleryPhotoPolicySnapshot = gated { readGalleryPolicy() }
+
+    fun compareAndSetGalleryPolicy(expected: GalleryPhotoPolicySnapshot, next: GalleryPhotoPolicy,
+        permitted: () -> Boolean): GalleryPhotoPolicySnapshot = gated {
+        verifyHeader()
+        if (expected.repairPending || meta(GALLERY_FENCE) != null) fail("gallery_policy_repair_pending")
+        if (readGalleryPolicy() != expected) fail("gallery_policy_cas_conflict")
+        if (!permitted()) fail("gallery_policy_revoked")
+        val wanted = protection.seal(frame(next.wire()), "photo-source-jobs-v1/" + GALLERY_POLICY)
+        val fence = protection.seal(frame(JsonObject(mapOf("format" to JsonPrimitive(1),
+            "before" to JsonPrimitive(expected.version), "wanted" to JsonPrimitive(hash(wanted))))), "photo-source-jobs-v1/" + GALLERY_FENCE)
+        transaction {
+            if (readGalleryPolicy() != expected || meta(GALLERY_FENCE) != null) fail("gallery_policy_cas_conflict")
+            if (!permitted()) fail("gallery_policy_revoked")
+            putMeta(GALLERY_FENCE, fence)
+        }
+        if (meta(GALLERY_FENCE)?.contentEquals(fence) != true) fail("gallery_policy_fence_readback_failed")
+        boundary("gallery-policy-fenced")
+        transaction {
+            if (galleryVersion(meta(GALLERY_POLICY)) != expected.version || meta(GALLERY_FENCE)?.contentEquals(fence) != true)
+                fail("gallery_policy_cas_conflict")
+            if (!permitted()) fail("gallery_policy_revoked")
+            putMeta(GALLERY_POLICY, wanted)
+            if (!permitted()) fail("gallery_policy_revoked")
+        }
+        boundary("gallery-policy-published")
+        val saved = readGalleryPolicy()
+        if (saved.version != hash(wanted) || saved.policy != next || !saved.repairPending || !permitted())
+            fail("gallery_policy_commit_readback_failed")
+        clearGalleryFence(fence, saved.version, permitted)
+        readGalleryPolicy().also {
+            if (it.repairPending || it.version != saved.version || it.policy != next) fail("gallery_policy_commit_readback_failed")
+        }
+    }
+
+    fun inspectGalleryPolicyRepair(): GalleryPhotoPolicyRepair = gated { inspectGalleryRepair() }
+
+    fun acknowledgeGalleryPolicyRepair(expected: GalleryPhotoPolicyRepair, permitted: () -> Boolean) = gated {
+        if (inspectGalleryRepair() != expected || !permitted()) fail("gallery_policy_repair_observation_changed")
+        val fence = meta(GALLERY_FENCE) ?: fail("gallery_policy_fence_missing")
+        boundary("gallery-policy-repair-acknowledgement")
+        if (inspectGalleryRepair() != expected || !permitted()) fail("gallery_policy_repair_observation_changed")
+        clearGalleryFence(fence, expected.state.version, permitted)
+    }
+
+    private fun inspectGalleryRepair(): GalleryPhotoPolicyRepair {
+        val fence = meta(GALLERY_FENCE) ?: fail("gallery_policy_fence_missing")
+        val (before, wanted) = galleryFence(fence)
+        val state = readGalleryPolicy()
+        if (state.version != before && state.version != wanted) fail("gallery_policy_unknown_concurrent_state")
+        return GalleryPhotoPolicyRepair(hash(fence), state, state.version == wanted)
+    }
+
+    private fun clearGalleryFence(fence: ByteArray, stateVersion: String, permitted: () -> Boolean) {
+        // Re-establish the SAME original repair fence on uncertain clear/ACK.
+        // Never overwrite a different repair head or roll back policy bytes.
+        try {
+            transaction {
+                if (meta(GALLERY_FENCE)?.contentEquals(fence) != true || galleryVersion(meta(GALLERY_POLICY)) != stateVersion || !permitted())
+                    fail("gallery_policy_repair_observation_changed")
+                if (db.delete("source_meta", "name=?", arrayOf(GALLERY_FENCE)) != 1) fail("gallery_policy_fence_clear_failed")
+                if (!permitted()) fail("gallery_policy_revoked")
+            }
+            boundary("gallery-policy-fence-cleared")
+            if (meta(GALLERY_FENCE) != null || galleryVersion(meta(GALLERY_POLICY)) != stateVersion || !permitted())
+                fail("gallery_policy_commit_readback_failed")
+        } catch (error: Exception) {
+            try { transaction { if (meta(GALLERY_FENCE) == null) putMeta(GALLERY_FENCE, fence) } }
+            catch (repairError: Exception) { error.addSuppressed(repairError) }
+            throw error
+        }
+    }
+
+    private fun readGalleryPolicy(): GalleryPhotoPolicySnapshot {
+        verifyHeader()
+        val state = meta(GALLERY_POLICY)
+        val policy = state?.let { GalleryPhotoPolicy.parse(parse(protection.open(it, "photo-source-jobs-v1/" + GALLERY_POLICY))) }
+        val fence = meta(GALLERY_FENCE)
+        fence?.let(::galleryFence)
+        return GalleryPhotoPolicySnapshot(galleryVersion(state), policy, fence != null)
+    }
+
+    private fun galleryFence(cipher: ByteArray): Pair<String, String> {
+        val value = parse(protection.open(cipher, "photo-source-jobs-v1/" + GALLERY_FENCE))
+        if (value.keys != setOf("format", "before", "wanted") || value["format"] != JsonPrimitive(1)) fail("gallery_policy_invalid_fence")
+        fun version(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString && SHA.matches(it.content) }?.content
+            ?: fail("gallery_policy_invalid_fence")
+        return version("before") to version("wanted")
+    }
+
+    private fun meta(name: String): ByteArray? = db.query("source_meta", arrayOf("sealed"), "name=?", arrayOf(name), null, null, null).use {
+        if (!it.moveToFirst()) null else it.getBlob(0).also { bytes ->
+            if (bytes.size !in 29..8192) fail("gallery_policy_invalid_cipher_bounds")
+        }
+    }
+    private fun putMeta(name: String, bytes: ByteArray) {
+        if (bytes.size !in 29..8192) fail("gallery_policy_invalid_cipher_bounds")
+        val values = ContentValues().apply { put("name", name); put("sealed", bytes) }
+        if (db.update("source_meta", values, "name=?", arrayOf(name)) == 0) db.insertOrThrow("source_meta", null, values)
+    }
+    private fun galleryVersion(cipher: ByteArray?) = cipher?.let(::hash) ?: hash("magnolie-gallery-policy-v1/absent".toByteArray(Charsets.US_ASCII))
+
     fun restore(expected: PhotoSourceJob, senderId: String, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
         cancellation: CancellationSignal = CancellationSignal()): IndexedPhotoSource = withSealedHead(expected, scope, lease) {
         val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
@@ -336,6 +441,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         private val ID = Regex("[0-9a-f]{32}")
         private val SHA = Regex("[0-9a-f]{64}")
         private const val HEADER = "magnolie-private-photo-source-jobs-v1"
+        private const val GALLERY_POLICY = "gallery-policy-v1"
+        private const val GALLERY_FENCE = "gallery-policy-v1-repair"
         private val PRIVATE_FILE = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
         private val PRIVATE_DIRECTORY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)

@@ -169,6 +169,21 @@ it still needs to be connected to the protected Android staging/source policy.
 
 ## Android photo-source consent groundwork
 
+Dedicated gallery policy persists in encrypted, bounded rows of the private
+source-job database, separate from personal/book settings and Android permissions.
+It binds immutable native receiver identity, local policy epoch, enabled categories
+and explicit enable state; neither stored enablement nor a desktop command proves
+OS READ/WRITE access. Native ciphertext CAS prevents simultaneous source edits
+from overwriting each other. An encrypted before/wanted-version repair fence is
+durable before publication, with actual SQL/readback/native-permission checks;
+uncertain clear acknowledgements re-establish that same fence, not a policy reset.
+Explicit repair can keep only the actually observed authenticated before/wanted
+state. Unknown concurrent policy/fence states remain preserved and blocked.
+The native controller also remains fenced after uncertainty until recreated;
+disabling never revokes app-wide Android rights. Eight policy/provider-store
+cases and 18 affected source-index cases passed. This is not yet an active remote
+settings handler, lifecycle/system-dialog adapter or automatic scan.
+
 `PhotoFolderScope` captures a native picker ticket before an explicit system
 tree selection. The result cannot migrate to another peer, key, native lifecycle
 owner or transfer-permission epoch. Selecting a source creates an off preference;
