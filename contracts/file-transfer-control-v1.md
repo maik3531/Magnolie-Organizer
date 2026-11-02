@@ -241,6 +241,44 @@ genuine AndroidX Activity lifecycle routing; MainActivity production sources
 compile. This is not installed MainActivity/phone acceptance. Explicit permission
 action/notification-tap and actual command dispatcher connections remain open.
 
+### Bound foreground permission actions and user-tap intents
+
+Permission-UI actions use a bounded process-local opaque token, exact native
+foreground owner and a snapshot of policy/kinds, receiver owner/ID/key,
+permission epoch and pairing generation. They expire monotonically after 60
+seconds; repeated requests do not extend the deadline. Native uncertainty,
+source/owner change or expiry invalidates the old action. A successful native
+launcher call consumes it once; foreground/host/dialog-pending errors may retain
+it only until its original deadline. This action permits a UI request, **not**
+media READ, file sending, source selection or a saved receipt.
+
+The explicit MainActivity intent carries only that opaque token in a strictly
+bounded canonical URI. PendingIntent identity differs per token and uses
+IMMUTABLE + ONE_SHOT, never UPDATE_CURRENT to turn an old source's tap into a new
+one. MainActivity accepts only a currently registered native action, does not
+restore tickets from saved Bundles, keeps the existing draft-save path and
+dispatches only after RESUMED. Invalid file-action intents do not fall through to
+editor/custom/QR navigation. No background Activity or full-screen intent is
+started. Optional private notification posting reports unavailable notification
+permission rather than claiming a delivered dialog or prompting for POST rights.
+
+The first 13 action/intent/runtime cases pass (6 pure native-scope cases, 3 actual
+Android intent/PendingIntent cases and 4 protected runtime cases). Real OS
+permission readback still belongs to the existing permission launcher/controller;
+the intent's token or callback booleans do not grant access. The command dispatcher
+that creates these actions from actual Organizer requests remains unregistered,
+and no synchronization worker/discovery advertisement/package is activated.
+
+The subsequent targeted notification/launcher roundtrip also passes all five
+cases (four intent cases after the bounded-URI change and one new protected
+runtime integration case), giving 15 distinct cases across retained evidence.
+It verifies permitted private notification posting without starting an Activity,
+denial of an unregistered action at the guarded native API, actual encrypted
+handshake→protected policy→AndroidX permission request→OS readback, one-shot
+consumption and invalidation of an old intent on source-policy change. This is
+Robolectric/synthetic native integration, **not** a physical notification tap,
+installed MainActivity, Android system-dialog or phone end-to-end acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

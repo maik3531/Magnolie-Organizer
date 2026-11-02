@@ -68,6 +68,17 @@ class NativeGalleryFileRuntimeTest {
                         }
                         assertFalse(runtime.sendControls(now))
                         assertEquals(pairing, runtime.currentRequest()!!.receiver.pairingEpoch)
+                        val owner = runtime.attachForeground { }
+                        val action = NativeGalleryForeground.permissionAction(owner)
+                        assertTrue(NativeGalleryForeground.acceptsPermissionAction(action.token))
+                        assertThrows(PhotoFolderScopeError::class.java) {
+                            NativeGalleryForeground.permissionAction(NativeGalleryForegroundOwner(runtime))
+                        }
+                        assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) {
+                            NativeGalleryForeground.performPermissionAction(action.token) }.code)
+                        assertTrue(NativeGalleryForeground.acceptsPermissionAction(action.token))
+                        runtime.close()
+                        assertFalse(NativeGalleryForeground.acceptsPermissionAction(action.token))
                     }
                 }
                 link.channel.close()
@@ -136,6 +147,7 @@ class NativeGalleryFileRuntimeTest {
             assertTrue(NativeGalleryForeground.isCurrent(owner))
             assertFalse(NativeGalleryForeground.isCurrent(NativeGalleryForegroundOwner(runtime)))
             assertSame(owner, runtime.attachForeground { })
+            assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryForeground.permissionAction(owner) }
             assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) { runtime.requestReadPermission() }.code)
             NativeGalleryForeground.registerHost(firstHost)
             firstActivity.start().resume()
@@ -156,6 +168,59 @@ class NativeGalleryFileRuntimeTest {
             NativeGalleryForeground.unregisterHost(firstHost); NativeGalleryForeground.unregisterHost(secondHost)
             firstActivity.pause().stop().destroy(); secondActivity.pause().stop().destroy()
             link.channel.close(); otherLink.channel.close(); root.deleteRecursively(); otherRoot.deleteRecursively()
+        }
+    }
+
+    @Test fun boundForegroundActionReachesActualAndroidLauncherOnceAndOldSourceIntentCannotRevive() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-tap-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val app = org.robolectric.RuntimeEnvironment.getApplication()
+        org.robolectric.Shadows.shadowOf(app).denyPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        val activity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).create()
+        val host = GalleryPhotoPermissionHost(activity.get())
+        NativeGalleryForeground.registerHost(host); activity.start().resume()
+        val link = Link()
+        val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel, true, true, true, true, true, "1".repeat(64))
+        val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, "1".repeat(64))
+        val state = NativeLocalFileGrant(DeviceFileGrantState(7, "b".repeat(64), false, true), Any(), true)
+        val desktop = NativeFileControlSession(remote, { pcPeer }, { state })
+        val runtime = NativeGalleryFileRuntime(app, root, identity, protection, link.channel, { peer }, { true })
+        try {
+            fun toDesktop() {
+                assertTrue(runtime.sendControls(now))
+                desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), pcPeer)
+            }
+            fun fromDesktop() {
+                val packet = desktop.packet(); desktop.markSent(packet)
+                runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+            }
+            val results = mutableListOf<Result<GalleryReadCoverage>>()
+            val owner = runtime.attachForeground { results += it }
+            toDesktop(); fromDesktop(); toDesktop()
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            toDesktop(); fromDesktop()
+            val action = NativeGalleryForeground.permissionAction(owner)
+            assertNull(org.robolectric.Shadows.shadowOf(activity.get()).lastRequestedPermission)
+            NativeGalleryForeground.performPermissionAction(action.token)
+            val pending = org.robolectric.Shadows.shadowOf(activity.get()).lastRequestedPermission!!
+            assertFalse(NativeGalleryForeground.acceptsPermissionAction(action.token))
+            assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryForeground.performPermissionAction(action.token) }
+            org.robolectric.Shadows.shadowOf(app).grantPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            @Suppress("DEPRECATION")
+            activity.get().onRequestPermissionsResult(pending.requestCode, pending.requestedPermissions,
+                IntArray(pending.requestedPermissions.size) { android.content.pm.PackageManager.PERMISSION_GRANTED })
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(GalleryReadCoverage.FULL_IMAGES, results.single().getOrThrow())
+            val oldAction = NativeGalleryForeground.permissionAction(owner)
+            val oldIntent = GalleryPhotoPermissionIntent.create(app, oldAction)
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.SCREENSHOTS))
+            assertFalse(NativeGalleryForeground.acceptsPermissionAction(GalleryPhotoPermissionIntent.token(oldIntent)!!))
+            toDesktop(); fromDesktop()
+            assertFalse(NativeGalleryForeground.acceptsPermissionAction(oldAction.token))
+            assertEquals(1, results.size)
+        } finally {
+            runtime.close(); desktop.close(); NativeGalleryForeground.unregisterHost(host)
+            activity.pause().stop().destroy(); link.channel.close(); root.deleteRecursively()
         }
     }
 }

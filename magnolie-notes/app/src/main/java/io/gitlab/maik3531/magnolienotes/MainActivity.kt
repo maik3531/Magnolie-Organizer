@@ -122,6 +122,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 
 class MainActivity : ComponentActivity() {
     private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
+    private var pendingGalleryPermissionAction: String? = null
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
     internal val gewuenschtesCustom = mutableStateOf<Intent?>(null)
@@ -138,6 +139,7 @@ class MainActivity : ComponentActivity() {
         galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
+        acceptGalleryPermissionIntent(intent)
         // Ein gemeinsamer Insets-Vertrag auf älteren Geräten und ab Android 15:
         // helle Systemknöpfe auf Leder, ohne die Sichtbarkeit der Leisten zu ändern.
         enableEdgeToEdge(
@@ -162,11 +164,23 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         galleryPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }
         galleryPermissionHost = null
+        pendingGalleryPermissionAction = null
         super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
+        if (pendingGalleryPermissionAction != null) window.decorView.post {
+            if (!isFinishing && !isDestroyed && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                val token = pendingGalleryPermissionAction
+                if (token != null) {
+                    val result = runCatching { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.performPermissionAction(token) }
+                    val retry = (result.exceptionOrNull() as? io.gitlab.maik3531.magnolienotes.telefon.PhotoFolderScopeError)?.code in
+                        io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryPermissionActions.RETRYABLE
+                    if (!retry && pendingGalleryPermissionAction == token) pendingGalleryPermissionAction = null
+                }
+            }
+        }
         if ((application as MagnolieApp).startZustand.value == StartZustand.Bereit) {
             runCatching { TelefonWerk.get(this).runtimePermissionsChanged() }
             runCatching { io.gitlab.maik3531.magnolienotes.zeit.ZeitDienst.refresh(this, Ablage.hole(this).bestand.value.zeiterfassung) }
@@ -180,7 +194,20 @@ class MainActivity : ComponentActivity() {
         empfangeAbsicht(absicht)
     }
 
+    private fun acceptGalleryPermissionIntent(absicht: Intent?): Boolean {
+        if (absicht?.action != io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionIntent.ACTION) return false
+        val token = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionIntent.token(absicht)
+        if (token != null && io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.acceptsPermissionAction(token)) {
+            pendingGalleryPermissionAction = token
+        }
+        // No source/grant/ticket is restored from an Intent or saved Bundle.
+        // Unknown actions cannot fall through to editor/custom/QR navigation.
+        absicht.data = null
+        return true
+    }
+
     private fun empfangeAbsicht(absicht: Intent?) {
+        if (acceptGalleryPermissionIntent(absicht)) return
         val custom = CustomNavigation.anfrage(this, absicht)
         if (custom != null) {
             gewuenschtesCustom.value = custom
