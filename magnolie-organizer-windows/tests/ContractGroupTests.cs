@@ -493,13 +493,19 @@ internal static class ContractGroupTests
         var yearRows = Enumerable.Range(1, 31).Select(day => (IReadOnlyList<string>)Enumerable.Range(1, 12)
             .Select(month => day <= DateTime.DaysInMonth(2026, month) ? $"{day} " + new DateTime(2026, month, day)
                 .ToString("ddd", System.Globalization.CultureInfo.InvariantCulture) : "").ToArray()).ToArray();
+        yearRows[2] = yearRows[2].Select((value, month) => month == 9 ? value + "\nTag der Deutschen Einheit" : value).ToArray();
+        yearRows[24] = yearRows[24].Select((value, month) => month == 11 ? value + "\n1. Weihnachtstag" : value).ToArray();
+        var yearColors = yearRows.Select(row => (IReadOnlyList<IReadOnlyList<string>>)row.Select(value =>
+            (IReadOnlyList<string>)value.Split('\n').Select((_, index) => index == 0 ? "#17140f" : "#b01820").ToArray()).ToArray()).ToArray();
         var yearBytes = DocumentExportService.CreateSpreadsheet(new[] {
-            new DocumentSheet("Year planner 2026", yearColumns, yearRows, Layout: "year") });
+            new DocumentSheet("Year planner 2026", yearColumns, yearRows, Layout: "year", TextColors: yearColors) });
         using (var yearArchive = new ZipArchive(new MemoryStream(yearBytes)))
         {
             using var yearContent = yearArchive.GetEntry("content.xml")!.Open();
             var yearXml = XDocument.Load(yearContent);
             XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+            XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+            XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
             string Height(string name) => yearXml.Descendants(style + "style").Single(element =>
                 (string?)element.Attribute(style + "name") == name).Element(style + "table-row-properties")!
                 .Attribute(style + "row-height")!.Value;
@@ -507,6 +513,16 @@ internal static class ContractGroupTests
                 "Year day rows must match the month-heading height.");
             TestAssert.That(yearXml.Descendants(table + "table-row").Skip(1).First()
                 .Attribute(table + "style-name")!.Value == "roYearHeading", "Year heading uses the wrong row style.");
+            var entries = yearXml.Descendants(text + "span").Where(element => ((string?)element.Attribute(text + "style-name"))?.StartsWith("txYearEntry", StringComparison.Ordinal) == true).ToArray();
+            TestAssert.That(entries.Any(element => element.Value == "Tag der Deutschen Einheit") &&
+                entries.Any(element => element.Value == "1. Weihnachtstag"), "Annual holiday labels need real inline text styles in Calc.");
+            TestAssert.That(entries.All(element => !element.Elements(text + "span").Any() &&
+                yearXml.Descendants(style + "style").Single(node => (string?)node.Attribute(style + "name") ==
+                    (string?)element.Attribute(text + "style-name")).Element(style + "text-properties") is { } properties &&
+                (string?)properties.Attribute(fo + "font-size") == "3.6pt" && (string?)properties.Attribute(fo + "color") == "#b01820"),
+                "Actual colored holiday spans must combine font size and color without Calc-incompatible nesting.");
+            TestAssert.That(yearXml.Descendants(style + "style").Single(element => (string?)element.Attribute(style + "name") == "txYearEntry")
+                .Element(style + "text-properties")!.Attribute(fo + "font-size")!.Value == "3.6pt", "Calc holiday text must fit the unchanged annual rows.");
         }
         var output = Environment.GetEnvironmentVariable("MAGNOLIE_ODS_FIXTURE_OUTPUT");
         if (!string.IsNullOrEmpty(output))

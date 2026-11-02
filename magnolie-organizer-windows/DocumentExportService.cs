@@ -432,7 +432,7 @@ internal static partial class DocumentExportService
             var style = CellStyle(sheet, rowIndex, column);
             var colors = sheet.TextColors is not null ? sheet.TextColors[rowIndex][column] : null;
             var backgrounds = sheet.TextBackgrounds is not null ? sheet.TextBackgrounds[rowIndex][column] : null;
-            var cell = TypedCell(value, style, colors, sheet.Layout is not ("addresses" or "year" or "month"), backgrounds);
+            var cell = TypedCell(value, style, colors, sheet.Layout is not ("addresses" or "year" or "month"), backgrounds, sheet.Layout == "year");
             if (sheet.Layout.StartsWith("health", StringComparison.Ordinal) && sheet.Groups is { } groups && column == groups[0].Span)
                 cell.SetAttributeValue(Table + "style-name", "ceSpacer");
             return cell;
@@ -444,7 +444,7 @@ internal static partial class DocumentExportService
     private static XElement Cell(string value, string style) => new(Table + "table-cell",
         new XAttribute(Table + "style-name", style), new XAttribute(Office + "value-type", "string"), Paragraph(value));
 
-    private static XElement TypedCell(string value, string style, IReadOnlyList<string>? colors, bool typeNumbers, IReadOnlyList<string>? backgrounds = null)
+    private static XElement TypedCell(string value, string style, IReadOnlyList<string>? colors, bool typeNumbers, IReadOnlyList<string>? backgrounds = null, bool year = false)
     {
         var cell = new XElement(Table + "table-cell", new XAttribute(Table + "style-name", style));
         if (typeNumbers && value.Length > 0 && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
@@ -452,7 +452,18 @@ internal static partial class DocumentExportService
             cell.Add(new XAttribute(Office + "value-type", "float"), new XAttribute(Office + "value", number.ToString("G15", CultureInfo.InvariantCulture)));
         }
         else cell.Add(new XAttribute(Office + "value-type", "string"));
-        cell.Add(Paragraph(value, colors, backgrounds));
+        if (year)
+        {
+            var lines = value.ReplaceLineEndings("\n").Split('\n');
+            for (var index = 0; index < lines.Length; index++)
+            {
+                var color = colors is not null && index < colors.Count ? SafeColor(colors[index]) : null;
+                var background = backgrounds is not null && index < backgrounds.Count ? SafeColor(backgrounds[index]) : null;
+                cell.Add(new XElement(Text + "p", new XElement(Text + "span",
+                    new XAttribute(Text + "style-name", YearTextStyle(index, color, background)), lines[index])));
+            }
+        }
+        else cell.Add(Paragraph(value, colors, backgrounds));
         return cell;
     }
 
@@ -497,20 +508,27 @@ internal static partial class DocumentExportService
             CellStyleElement("ceSpacer", "#ffffff", "#ffffff", "none", "7pt", false, "left", "top"));
         foreach (var (key, colors) in PlannerColors)
         {
-            styles.Add(CellStyleElement("cePlan" + StyleSuffix(key), colors.Fill, colors.Text, "0.02cm solid #625b50", "7pt", false, "left", "top"));
+            styles.Add(CellStyleElement("cePlan" + StyleSuffix(key), colors.Fill, colors.Text, "0.02cm solid #625b50", "7pt", false, "left", "top", padding: "0.025cm"));
             if (key.Length > 0) styles.Add(CellStyleElement("ceMonth" + StyleSuffix(key), colors.Fill, colors.Text,
                 "0.02cm solid #756a59", "8pt", key == "week-number", key == "week-number" ? "center" : "left", "top", wrap: false));
         }
+        AddYearTextStyles(styles);
         var textColors = sheets.Where(sheet => sheet.TextColors is not null).SelectMany(sheet => sheet.TextColors!)
             .SelectMany(row => row).SelectMany(cell => cell).Select(SafeColor).Where(color => color is not null).Distinct(StringComparer.Ordinal);
         foreach (var color in textColors)
+        {
             styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "tx" + color![1..]), new XAttribute(Style + "family", "text"),
                 new XElement(Style + "text-properties", new XAttribute(Fo + "color", color))));
+            AddYearTextStyles(styles, color);
+        }
         var backgrounds = sheets.Where(sheet => sheet.TextBackgrounds is not null).SelectMany(sheet => sheet.TextBackgrounds!)
             .SelectMany(row => row).SelectMany(cell => cell).Select(SafeColor).Where(color => color is not null).Distinct(StringComparer.Ordinal);
         foreach (var color in backgrounds)
+        {
             styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "ax" + color![1..]), new XAttribute(Style + "family", "text"),
                 new XElement(Style + "text-properties", new XAttribute(Fo + "background-color", color), new XAttribute(Fo + "color", AccentTextColor(color)))));
+            AddYearTextStyles(styles, background: color);
+        }
         for (var sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++)
         {
             var sheet = sheets[sheetIndex];
@@ -523,11 +541,24 @@ internal static partial class DocumentExportService
         return styles;
     }
 
+    private static string YearTextStyle(int index, string? color, string? background) =>
+        (index == 0 ? "txYearDate" : "txYearEntry") + (background is not null ? "Bg" + background[1..] : color is not null ? "Fg" + color[1..] : "");
+
+    private static void AddYearTextStyles(XElement styles, string? color = null, string? background = null)
+    {
+        for (var index = 0; index < 2; index++)
+            styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", YearTextStyle(index, color, background)),
+                new XAttribute(Style + "family", "text"), new XElement(Style + "text-properties",
+                    new XAttribute(Fo + "font-size", index == 0 ? "5.5pt" : "3.6pt"),
+                    background is null ? color is null ? null : new XAttribute(Fo + "color", color) :
+                        new object[] { new XAttribute(Fo + "background-color", background), new XAttribute(Fo + "color", AccentTextColor(background)) })));
+    }
+
     private static XElement CellStyleElement(string name, string fill, string text, string border, string size,
-        bool bold, string align, string vertical, string font = "Liberation Sans", bool wrap = true) =>
+        bool bold, string align, string vertical, string font = "Liberation Sans", bool wrap = true, string padding = "0.1cm") =>
         new(Style + "style", new XAttribute(Style + "name", name), new XAttribute(Style + "family", "table-cell"),
             new XElement(Style + "table-cell-properties", new XAttribute(Fo + "background-color", fill), new XAttribute(Fo + "border", border),
-                new XAttribute(Fo + "padding", "0.1cm"), new XAttribute(Style + "vertical-align", vertical), new XAttribute(Fo + "wrap-option", wrap ? "wrap" : "no-wrap")),
+                new XAttribute(Fo + "padding", padding), new XAttribute(Style + "vertical-align", vertical), new XAttribute(Fo + "wrap-option", wrap ? "wrap" : "no-wrap")),
             new XElement(Style + "paragraph-properties", new XAttribute(Fo + "text-align", align),
                 wrap ? null : new XAttribute(Fo + "line-height", "100%")),
             new XElement(Style + "text-properties", new XAttribute(Fo + "font-family", font), new XAttribute(Fo + "font-size", size),
