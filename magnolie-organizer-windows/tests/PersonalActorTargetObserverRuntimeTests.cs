@@ -189,9 +189,23 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 writes++;
                 if (scenario.EndsWith("-failure", StringComparison.Ordinal)) throw new IOException("Synthetic pre-write failure");
                 atomic.WriteRecoverableJson(path, encryption.EncryptData(text));
+                if (scenario.EndsWith("-after-write", StringComparison.Ordinal)) throw new IOException("Synthetic failure after atomic file replacement");
                 owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(text));
                 coordinator.NativeProducerBook = () => NativeActorBookSnapshot.Capture(() => owner.SaveState("target-observer", true), () => text);
             };
+            if (scenario.EndsWith("-after-write", StringComparison.Ordinal))
+            {
+                await TestAssert.ThrowsAsync<IOException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Uncertain post-write outcome minted persistence.");
+                var actualBytes = File.ReadAllBytes(path);
+                TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(path), password) == candidateText, "Uncertain writer rolled back the actual saved content.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Uncertain write was replayed.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Missing native SaveACK became a receipt after I/O failure.");
+                var status = await coordinator.PersonalActorStatusAsync(handle);
+                TestAssert.That(writes == 1 && status["phase"]!.GetValue<string>() == "cancelled" && !status["historical_book_persisted"]!.GetValue<bool>() &&
+                    actualBytes.AsSpan().SequenceEqual(File.ReadAllBytes(path)) && owner.SaveState("target-observer", true) == saved && transport.Length == wireBefore,
+                    "Uncertain encrypted write fabricated a SaveACK or changed the actual file twice.");
+                return;
+            }
             if (scenario.EndsWith("-failure", StringComparison.Ordinal))
                 await TestAssert.ThrowsAsync<IOException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Writer failure was promoted to persistence.");
             else if (scenario.EndsWith("-payload", StringComparison.Ordinal))

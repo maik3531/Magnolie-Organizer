@@ -38,6 +38,12 @@ internal static class PersonalActorLocalRestoreSourceTests
             await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), "prepare-file-" + fault);
     }
 
+    internal static async Task HistoricalUncertainWriterAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true);
+        await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), "prepare-file-after-write");
+    }
+
     internal static async Task HistoricalConfirmAsync()
     {
         var fixtures = await LoadGuiFixturesAsync(candidates: true);

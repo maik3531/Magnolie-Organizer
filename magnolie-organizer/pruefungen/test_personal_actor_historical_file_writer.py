@@ -25,7 +25,7 @@ def native_store(tmp_path, monkeypatch):
     return module
 
 
-@pytest.mark.parametrize('fault', ['none', 'failure', 'payload'])
+@pytest.mark.parametrize('fault', ['none', 'failure', 'payload', 'after-write'])
 def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_completes(tmp_path, monkeypatch, gui_candidates, fault):
     native = native_store(tmp_path, monkeypatch)
     fixtures = gui_candidates if fault == 'none' else gui_candidates[:1]
@@ -46,11 +46,26 @@ def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_com
                 raise OSError('Synthetic pre-write failure')
             stored = native.daten_verschluesseln(payload, password, dek, dek_id, wrapper)
             native.atomar_text_schreiben(str(path), stored)
+            if fault == 'after-write':
+                raise OSError('Synthetic failure after atomic file replacement')
             owner.record_saved('native-producer-fixture', True, hashlib.sha256(payload.encode()).hexdigest())
             data = json.loads(payload); saved = read()
             fingerprint = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             service.native_actor_producer_book = lambda: NativeProducerBookSnapshot.capture(read, lambda: data,
                 lambda: (saved['book_source'], saved['sequence'], fingerprint))
+        if fault == 'after-write':
+            with pytest.raises(OSError):
+                service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text, writer)
+            after_bytes = path.read_bytes()
+            assert native.daten_entschluesseln(path.read_text(), password) == text
+            with pytest.raises(PermissionError):
+                service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text, writer)
+            with pytest.raises(PermissionError):
+                service.confirm_personal_actor_historical_restore_save(registry, handle, claim['claim_token'])
+            status = service.personal_actor_status(registry, handle)
+            assert len(writes) == 1 and status['phase'] == 'cancelled' and status['historical_book_persisted'] is False
+            assert path.read_bytes() == after_bytes and read() == before_saved and durable_queue(service) == queue and not channel.sent
+            continue
         if fault != 'none':
             with pytest.raises(OSError if fault == 'failure' else PermissionError):
                 service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text + (' ' if fault == 'payload' else ''), writer)
