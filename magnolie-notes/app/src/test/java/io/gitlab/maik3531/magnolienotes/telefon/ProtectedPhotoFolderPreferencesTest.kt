@@ -47,6 +47,23 @@ class ProtectedPhotoFolderPreferencesTest {
         assertTrue(f.state.exists()); assertFalse(f.fence.exists())
     }
 
+    @Test fun legacyCipherRemainsUnchangedWhileExplicitPairingAssociationRoundtripsInTheExistingNamespace(): Unit = Fixture().use { f ->
+        val store = f.store()
+        val legacy = store.compareAndSet(store.read(), preference(true)) { true }
+        val original = f.state.readBytes()
+        assertNull(f.store().read().preference!!.pairingEpoch)
+        assertArrayEquals(original, f.state.readBytes())
+        val associated = preference(true, 'b').copy(pairingEpoch = "1".repeat(64))
+        val saved = store.compareAndSet(legacy, associated) { true }
+        assertEquals(saved, f.store().read())
+        val raw = f.state.readBytes()
+        assertEquals("photo_source_pairing_downgrade", assertThrows(PhotoFolderScopeError::class.java) {
+            store.compareAndSet(saved, preference(false, 'c')) { true } }.code)
+        assertArrayEquals(raw, f.state.readBytes()); assertFalse(f.fence.exists())
+        val replacement = associated.copy(pairingEpoch = "2".repeat(64), epoch = "d".repeat(64), enabled = false)
+        assertEquals(replacement, store.compareAndSet(saved, replacement) { true }.preference)
+    }
+
     @Test fun everyUncertainPublicationRemainsDurablyFencedAndNeedsExplicitObservedRepair() {
         for (point in listOf("fenced", "before-publication", "published", "before-fence-clear")) Fixture().use { f ->
             val initial = f.store(); val before = initial.compareAndSet(initial.read(), preference()) { true }

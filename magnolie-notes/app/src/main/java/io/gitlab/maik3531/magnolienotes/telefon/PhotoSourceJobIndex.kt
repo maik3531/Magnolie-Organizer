@@ -473,7 +473,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             "tree" to JsonPrimitive(lease.sourceKey), "version" to JsonPrimitive(lease.version),
             "epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
             "identity" to JsonPrimitive(lease.receiver.identitySha256), "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch),
-            "read_grant" to JsonPrimitive(lease.readGrantToken)))))
+            "read_grant" to JsonPrimitive(lease.readGrantToken)) +
+            (lease.receiver.pairingEpoch?.let { mapOf("pairing_epoch" to JsonPrimitive(it)) } ?: emptyMap()))))
         private fun data(value: PhotoSourceJob) = JsonObject(mapOf("format" to JsonPrimitive(1), "source_context" to JsonPrimitive(value.sourceContext),
             "plain_bytes" to JsonPrimitive(value.plainBytes), "cipher_budget" to JsonPrimitive(value.cipherBudget),
             "root_key" to (value.rootKey?.let { JsonPrimitive(it) } ?: JsonNull), "phase" to JsonPrimitive(value.phase),

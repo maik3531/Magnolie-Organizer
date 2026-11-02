@@ -82,10 +82,28 @@ class PhotoFolderScopeTest {
         assertNull(f.scope.lease())
     }
 
+    @Test fun newPairingWithSameIdentityCannotReuseLegacyOrPreviouslySelectedTreeWithoutExplicitPicker() {
+        val f = Fixture(); val legacy = f.enable()
+        f.receiver = f.receiver!!.copy(pairingEpoch = "1".repeat(64))
+        assertNull(f.scope.lease()); assertFalse(f.scope.isCurrent(legacy))
+        assertThrows(PhotoFolderScopeError::class.java) { f.scope.setEnabled(true) }
+        assertEquals(legacy.preference, f.store.state.preference)
+        f.choose(); assertFalse(f.store.state.preference!!.enabled)
+        assertEquals("1".repeat(64), f.store.state.preference!!.pairingEpoch)
+        f.scope.setEnabled(true); val associated = f.scope.lease()!!
+        f.receiver = f.receiver!!.copy(pairingEpoch = "2".repeat(64))
+        assertNull(f.scope.lease()); assertFalse(f.scope.isCurrent(associated))
+        assertThrows(PhotoFolderScopeError::class.java) { f.scope.setEnabled(true) }
+        f.choose(); f.scope.setEnabled(true)
+        assertEquals("2".repeat(64), f.scope.lease()!!.preference.pairingEpoch)
+        assertTrue(BACKUP in f.trees.grants); assertTrue(BACKUP in f.trees.writeGrants)
+    }
+
     @Test fun pickerResultCannotMoveToAnotherPeerKeyOwnerOrGrantEpoch() {
         val changes: List<(NativePhotoReceiver) -> NativePhotoReceiver> = listOf(
             { it.copy(peerId = "another_receiver_01") }, { it.copy(identitySha256 = "1".repeat(64)) },
             { it.copy(owner = EqualOwner()) }, { it.copy(permissionEpoch = "1".repeat(64)) },
+            { it.copy(pairingEpoch = "1".repeat(64)) },
             { it.copy(ready = false) }, { it.copy(paired = false) }, { it.copy(ownDevice = false) },
             { it.copy(remoteOwnDevice = false) }, { it.copy(sendGranted = false) },
             { it.copy(receiveGranted = false) }, { it.copy(manifestVersion = 0) })

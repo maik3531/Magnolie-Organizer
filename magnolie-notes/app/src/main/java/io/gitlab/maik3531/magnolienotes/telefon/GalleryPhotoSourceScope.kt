@@ -95,7 +95,8 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
         first.receiver.allowed && second.receiver.allowed && first.policyEpoch == second.policyEpoch && first.kinds == second.kinds &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
-        first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch
+        first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
+        first.receiver.pairingEpoch == second.receiver.pairingEpoch
 
     private fun stamp(observation: GalleryAccessObservation): String = digest(mapOf(
         "coverage" to observation.coverage.name, "access_epoch" to observation.accessEpoch,

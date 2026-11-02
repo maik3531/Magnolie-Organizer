@@ -59,13 +59,14 @@ class GalleryPhotoAccessControllerTest {
     }
 
     @Test fun ownerPolicyIdentityGrantOrDeadlineChangesCannotApplyAStaleSystemDialogResult() {
-        for (change in listOf("owner", "policy", "identity", "grant", "kinds", "timeout", "clock")) {
+        for (change in listOf("owner", "policy", "identity", "pairing", "grant", "kinds", "timeout", "clock")) {
             val f = Fixture(); f.controller.onResume()
             val ticket = f.controller.preparePermissionRequest(); f.controller.launch(ticket) { }
             when (change) {
                 "owner" -> f.request = NativeGalleryRequest(f.receiver.copy(owner = Any()), "b".repeat(64), f.request!!.kinds)
                 "policy" -> f.request = NativeGalleryRequest(f.receiver, "c".repeat(64), f.request!!.kinds)
                 "identity" -> f.request = NativeGalleryRequest(f.receiver.copy(identitySha256 = "c".repeat(64)), "b".repeat(64), f.request!!.kinds)
+                "pairing" -> f.request = NativeGalleryRequest(f.receiver.copy(pairingEpoch = "c".repeat(64)), "b".repeat(64), f.request!!.kinds)
                 "grant" -> f.request = NativeGalleryRequest(f.receiver.copy(receiveGranted = false), "b".repeat(64), f.request!!.kinds)
                 "kinds" -> f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.SCREENSHOTS))
                 "timeout" -> f.clock += GalleryPhotoAccessController.MAX_PROMPT_MS + 1

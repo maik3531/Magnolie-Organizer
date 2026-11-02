@@ -20,11 +20,12 @@ internal data class NativePhotoReceiver(val peerId: String, val identitySha256: 
 }
 
 internal data class PhotoFolderPreference(val treeUri: String, val receiverId: String,
-    val receiverIdentitySha256: String, val epoch: String, val enabled: Boolean) {
+    val receiverIdentitySha256: String, val epoch: String, val enabled: Boolean, val pairingEpoch: String? = null) {
     init {
         require(treeUri.isNotEmpty() && treeUri.length <= 4096 && treeUri.none { it.code < 32 || it.code == 127 })
         require(Regex("[A-Za-z0-9_-]{16,160}").matches(receiverId))
         require(Regex("[0-9a-f]{64}").matches(receiverIdentitySha256) && Regex("[0-9a-f]{64}").matches(epoch))
+        require(pairingEpoch == null || Regex("[0-9a-f]{64}").matches(pairingEpoch))
     }
 }
 
@@ -84,7 +85,7 @@ internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoRe
     private fun sameAuthority(first: NativePhotoReceiver, second: NativePhotoReceiver?): Boolean =
         second != null && first.allowed && second.allowed && first.peerId == second.peerId &&
             first.identitySha256 == second.identitySha256 && first.permissionEpoch == second.permissionEpoch &&
-            first.owner === second.owner
+            first.owner === second.owner && first.pairingEpoch == second.pairingEpoch
 
     private fun receiver(): NativePhotoReceiver = currentReceiver()?.takeIf { it.allowed }
         ?: throw PhotoFolderScopeError("photo_receiver_not_ready")
@@ -105,7 +106,7 @@ internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoRe
             val tree = trees.canonicalTree(resultUri)
             trees.persistRead(tree)
             val readGrant = trees.readGrantToken(tree) ?: throw PhotoFolderScopeError("photo_tree_read_permission_missing")
-            val next = PhotoFolderPreference(tree, ticket.receiver.peerId, ticket.receiver.identitySha256, newEpoch(), false)
+            val next = PhotoFolderPreference(tree, ticket.receiver.peerId, ticket.receiver.identitySha256, newEpoch(), false, ticket.receiver.pairingEpoch)
             commit(ticket.expected, next) {
                 sameAuthority(ticket.receiver, currentReceiver()) && trees.readGrantToken(tree) == readGrant
             }
@@ -128,7 +129,7 @@ internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoRe
         }
         val observed = if (enabled) receiver() else null
         val readGrant = if (enabled) trees.readGrantToken(old.treeUri) else null
-        if (enabled && (old.receiverId != observed!!.peerId || old.receiverIdentitySha256 != observed.identitySha256 ||
+        if (enabled && (old.receiverId != observed!!.peerId || old.receiverIdentitySha256 != observed.identitySha256 || old.pairingEpoch != observed.pairingEpoch ||
             trees.canonicalTree(old.treeUri) != old.treeUri || readGrant == null))
             throw PhotoFolderScopeError("photo_source_permission_changed")
         val next = old.copy(enabled = enabled, epoch = newEpoch())
@@ -155,7 +156,7 @@ internal class PhotoFolderScope(private val currentReceiver: () -> NativePhotoRe
             val preference = saved.preference ?: return null
             val readGrant = trees.readGrantToken(preference.treeUri) ?: return null
             if (!preference.enabled || preference.receiverId != observed.peerId ||
-                preference.receiverIdentitySha256 != observed.identitySha256 ||
+                preference.receiverIdentitySha256 != observed.identitySha256 || preference.pairingEpoch != observed.pairingEpoch ||
                 trees.canonicalTree(preference.treeUri) != preference.treeUri) return null
             if (!sameAuthority(observed, currentReceiver()) || store.read() != saved ||
                 trees.readGrantToken(preference.treeUri) != readGrant) return null

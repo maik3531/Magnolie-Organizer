@@ -60,6 +60,7 @@ internal class ProtectedPhotoFolderPreferences(
         val before = raw(stateName)
         if (PhotoPreferenceSnapshot(version(before), before?.let { decodePreference(it.bytes) }) != expected)
             fail("photo_source_cas_conflict")
+        if (expected.preference?.pairingEpoch != null && next.pairingEpoch == null) fail("photo_source_pairing_downgrade")
         if (!permitted()) fail("photo_source_revoked")
         val wanted = protection.seal(encode(preferenceJson(next)), domain + stateName)
         val fenceBytes = protection.seal(encode(JsonObject(mapOf("format" to JsonPrimitive(1),
@@ -158,18 +159,19 @@ internal class ProtectedPhotoFolderPreferences(
         return before to wanted
     }
 
-    private fun preferenceJson(value: PhotoFolderPreference) = JsonObject(mapOf("format" to JsonPrimitive(1),
+    private fun preferenceJson(value: PhotoFolderPreference) = JsonObject(mapOf("format" to JsonPrimitive(if (value.pairingEpoch == null) 1 else 2),
         "tree_uri" to JsonPrimitive(value.treeUri), "receiver_id" to JsonPrimitive(value.receiverId),
         "receiver_identity_sha256" to JsonPrimitive(value.receiverIdentitySha256), "epoch" to JsonPrimitive(value.epoch),
-        "enabled" to JsonPrimitive(value.enabled)))
+        "enabled" to JsonPrimitive(value.enabled)) + (value.pairingEpoch?.let { mapOf("pairing_epoch" to JsonPrimitive(it)) } ?: emptyMap()))
 
     private fun decodePreference(cipher: ByteArray): PhotoFolderPreference {
         val value = decode(protection.open(cipher, domain + stateName))
-        if (value.keys != setOf("format", "tree_uri", "receiver_id", "receiver_identity_sha256", "epoch", "enabled") ||
-            value["format"] != JsonPrimitive(1) || value["enabled"] !in listOf(JsonPrimitive(true), JsonPrimitive(false)))
+        val paired = when (value["format"]) { JsonPrimitive(1) -> false; JsonPrimitive(2) -> true; else -> fail("invalid_photo_source_preference") }
+        if (value.keys != setOf("format", "tree_uri", "receiver_id", "receiver_identity_sha256", "epoch", "enabled") +
+                (if (paired) setOf("pairing_epoch") else emptySet()) || value["enabled"] !in listOf(JsonPrimitive(true), JsonPrimitive(false)))
             fail("invalid_photo_source_preference")
         return PhotoFolderPreference(text(value, "tree_uri"), text(value, "receiver_id"), text(value, "receiver_identity_sha256"),
-            text(value, "epoch"), value["enabled"] == JsonPrimitive(true))
+            text(value, "epoch"), value["enabled"] == JsonPrimitive(true), if (paired) text(value, "pairing_epoch") else null)
     }
 
     private fun encode(value: JsonObject): ByteArray = ByteArrayOutputStream().also { TelefonRahmen.schreiben(it, value, LIMIT) }.toByteArray()

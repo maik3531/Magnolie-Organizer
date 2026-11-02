@@ -51,6 +51,31 @@ class ProtectedPhotoSourceSnapshotTest {
         }
     }
 
+    @Test fun encryptedSnapshotCannotRestoreUnderAnotherPairingEvenWithIdenticalLegacyScopeFields() {
+        Fixture("hello".toByteArray()).use { f ->
+            fun associated(pairing: String): PhotoFolderInventory {
+                f.native.receiver = f.native.receiver.copy(pairingEpoch = pairing)
+                val old = f.native.store.read()
+                f.native.store.compareAndSet(old, old.preference!!.copy(pairingEpoch = pairing)) { true }
+                val lease = f.native.scope.lease()!!
+                return AndroidPhotoFolderInventory(f.native.context, f.native.scope).enumerate(lease)
+            }
+            val first = associated("1".repeat(64))
+            val frozen = f.freeze(first)
+            val record = frozen.nativeRecord()
+            val before = f.root.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val second = associated("2".repeat(64))
+            assertEquals(first.lease.receiver.permissionEpoch, second.lease.receiver.permissionEpoch)
+            assertEquals(first.lease.sourceEpoch, second.lease.sourceEpoch)
+            assertThrows(PhotoFolderScopeError::class.java) {
+                ProtectedPhotoSourceSnapshot.restore(f.root, record, "sender_fixture_01", f.native.scope, second.lease,
+                    f.protection, CancellationSignal())
+            }
+            assertEquals(before, f.root.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            assertArrayEquals("hello".toByteArray(), f.original.readBytes())
+        }
+    }
+
     @Test fun actualPfdBytesAreFrozenEncryptedReadBackAndNeverReplacedByLaterLiveContent() {
         val data = ByteArray(DeviceFileManifest.CHUNK_BYTES + 7) { (it % 251).toByte() }
         Fixture(data).use { f ->

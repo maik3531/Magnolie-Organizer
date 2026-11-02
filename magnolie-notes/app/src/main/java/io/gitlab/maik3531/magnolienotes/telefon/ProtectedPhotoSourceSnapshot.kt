@@ -41,7 +41,8 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         "tree" to JsonPrimitive(lease.sourceKey), "source_version" to JsonPrimitive(lease.version),
         "source_epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
         "receiver_identity" to JsonPrimitive(lease.receiver.identitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken),
-        "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch)))))
+        "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch)) +
+        (lease.receiver.pairingEpoch?.let { mapOf("pairing_epoch" to JsonPrimitive(it)) } ?: emptyMap()))))
     private val domain = "photo-source-snapshot-v1/$owner/$sourceDomain/"
     val manifest: DeviceFileManifest get() = synchronized(this) {
         fresh(); sealedManifest ?: fail("photo_snapshot_not_sealed")

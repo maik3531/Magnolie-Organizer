@@ -188,6 +188,32 @@ worker-END receipt. All three affected runtime cases pass, including an actual
 bounded worker thread followed by final UI-thread cleanup. No asynchronous
 background cleanup or automatic permission UI is started by this change.
 
+### Pairing identity in lower source authorities
+
+The native gallery permission ticket, gallery lease and SAF picker/lease authority
+comparisons also include the local pairing generation. A generation change is
+not masked by equal receiver ID/key, channel-owner reference, permission epoch or
+source epoch. SAF preferences use inner format 2 only when an explicit native
+picker selection supplies a pairing association. Legacy format 1 remains in its
+original protection namespace without read-time migration. An associated state
+cannot be downgraded to an unassociated record; a different pairing must make a
+fresh explicit selection, initially off, before enabling that source. This does
+not release shared Android URI grants.
+
+Protected source-job context and frozen-snapshot domain hashes include pairing
+identity when present. Its absence preserves the exact legacy domain calculation;
+an existing source cache is not silently adopted by a new pairing with otherwise
+identical legacy scope fields. The actual dispatcher/fallback/UI integration
+remains separate and unadvertised.
+
+The eight affected permission/source/preference/snapshot/index/native inventory
+classes pass 85 cases. These include explicit SAF re-selection for a new pairing,
+unchanged legacy ciphertext, protected association downgrade rejection and actual
+read-only-PFD frozen-cache restore denial when only native pairing identity
+changes. The earlier attempt failed test compilation only because a fixture's
+anonymous-store property was not exported; using its actual read/CAS interface
+fixed setup without weakening production checks or assertions.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

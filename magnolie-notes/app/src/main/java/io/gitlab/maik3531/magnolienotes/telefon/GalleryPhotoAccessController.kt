@@ -109,7 +109,8 @@ internal class GalleryPhotoAccessController(context: Context, private val curren
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
         first.receiver.allowed && second.receiver.allowed && first.kinds == second.kinds && first.policyEpoch == second.policyEpoch &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
-        first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch
+        first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
+        first.receiver.pairingEpoch == second.receiver.pairingEpoch
     private fun ready() { if (closed) fail("gallery_access_controller_closed") }
     private fun rotate() { epoch = nonce() }
 

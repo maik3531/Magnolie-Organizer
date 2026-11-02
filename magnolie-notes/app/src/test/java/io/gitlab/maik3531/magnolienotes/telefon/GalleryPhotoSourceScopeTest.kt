@@ -67,6 +67,7 @@ class GalleryPhotoSourceScopeTest {
             { it.request = NativeGalleryRequest(it.request!!.receiver.copy(owner = Any()), "b".repeat(64), it.request!!.kinds) },
             { it.request = NativeGalleryRequest(it.request!!.receiver.copy(identitySha256 = "c".repeat(64)), "b".repeat(64), it.request!!.kinds) },
             { it.request = NativeGalleryRequest(it.request!!.receiver.copy(permissionEpoch = "c".repeat(64)), "b".repeat(64), it.request!!.kinds) },
+            { it.request = NativeGalleryRequest(it.request!!.receiver.copy(pairingEpoch = "c".repeat(64)), "b".repeat(64), it.request!!.kinds) },
             { it.request = NativeGalleryRequest(it.request!!.receiver.copy(receiveGranted = false), "b".repeat(64), it.request!!.kinds) },
             { it.request = NativeGalleryRequest(it.request!!.receiver, "c".repeat(64), it.request!!.kinds) },
             { it.request = NativeGalleryRequest(it.request!!.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA)) })
