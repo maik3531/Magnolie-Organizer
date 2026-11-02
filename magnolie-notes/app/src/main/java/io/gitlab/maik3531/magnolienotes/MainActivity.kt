@@ -66,6 +66,9 @@ import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
 import io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhr
 import io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhrergebnis
 import io.gitlab.maik3531.magnolienotes.ui.AufgabenBlatt
+import io.gitlab.maik3531.magnolienotes.ui.ZeitMonatsDruckAuswahl
+import io.gitlab.maik3531.magnolienotes.ui.zeitMonatDrucken
+import io.gitlab.maik3531.magnolienotes.ui.EintragDruckKnopf
 import io.gitlab.maik3531.magnolienotes.ui.AufgabenEditor
 import io.gitlab.maik3531.magnolienotes.ui.BaumBlatt
 import io.gitlab.maik3531.magnolienotes.ui.Baumhandlungen
@@ -496,6 +499,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     }
 
     var zeitSpeichert by remember { mutableStateOf(false) }
+    var zeitDruckAuswahl by remember { mutableStateOf<ZeitMonatsDruckAuswahl?>(null) }
     fun zeitAktion(aktion: () -> Unit, success: () -> Unit = {}) {
         if (!zeitSpeichert) {
             zeitSpeichert = true
@@ -1003,6 +1007,11 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     }
     Scaffold(
         topBar = { Einband(stringResource(R.string.app_name), rechts = {
+            if (blatt == 6 && zeitAnsicht == "settings") zeitDruckAuswahl?.let { auswahl ->
+                EintragDruckKnopf(!zeitSpeichert && auswahl.tage.isNotEmpty()) {
+                    zeitMonatDrucken(zusammenhang, bestand.zeiterfassung, auswahl, zeitSpeichern)
+                }
+            }
             if (blatt == 0 || blatt == 1) io.gitlab.maik3531.magnolienotes.ui.ListenSortierKnopf(blatt == 1) { sortierBlatt = blatt }
             io.gitlab.maik3531.magnolienotes.ui.TelefonKopf(telefonZustand,
                 sync = { runCatching {
@@ -1065,7 +1074,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 }, papierkorb = bestand.papierkorbEinstellungen,
                     beiEntfernen = { eintraege, monat, einstellung, fertig ->
                         zeitAktion({ ablage.entferneZeitenLokal(eintraege, monat, einstellung) }, fertig)
-                    })
+                    }, beiDruckAuswahl = { zeitDruckAuswahl = it })
                 0 -> NotizBlatt(
                     papierkorbAn = bestand.papierkorbEinstellungen.an,
                     notizen = bestand.notizen,

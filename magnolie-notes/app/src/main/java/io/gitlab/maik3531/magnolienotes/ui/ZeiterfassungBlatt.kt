@@ -61,7 +61,8 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                       beiPapierkorb: () -> Unit,
                       beiBearbeiten: (Zeiteintrag, Boolean) -> Unit,
                       papierkorb: PapierkorbEinstellungen = PapierkorbEinstellungen(),
-                      beiEntfernen: ZeitEntfernen? = null) {
+                      beiEntfernen: ZeitEntfernen? = null,
+                      beiDruckAuswahl: (ZeitMonatsDruckAuswahl?) -> Unit = {}) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     var now by remember { mutableStateOf(Zeiteintrag.currentMinute()) }
@@ -141,7 +142,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 ZeitPausenOptionen(stand, speichert, speichern)
                 ZeitFeierabendOptionen(stand, speichert, speichern)
                 ZeitWlanOptionen(stand, speichert, speichern)
-                ZeitMonate(stand, speichert, speichern, beiPapierkorb, papierkorb, beiEntfernen)
+                ZeitMonate(stand, speichert, speichern, beiPapierkorb, papierkorb, beiEntfernen, beiDruckAuswahl)
             }
         } else if (ansicht == "history") {
             LazyColumn(Modifier.weight(1f)) {

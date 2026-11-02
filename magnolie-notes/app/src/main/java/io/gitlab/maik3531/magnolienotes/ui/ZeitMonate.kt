@@ -30,8 +30,6 @@ import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.PapierkorbEinstellungen
 import io.gitlab.maik3531.magnolienotes.daten.Zeiteintrag
 import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
-import io.gitlab.maik3531.magnolienotes.daten.ZeitDruckTexte
-import io.gitlab.maik3531.magnolienotes.daten.ZeitDruckvorlage
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -39,7 +37,8 @@ import java.time.format.DateTimeFormatter
 internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern: ZeitSpeichern,
                         beiPapierkorb: () -> Unit,
                         papierkorb: PapierkorbEinstellungen = PapierkorbEinstellungen(),
-                        beiEntfernen: ZeitEntfernen? = null) {
+                        beiEntfernen: ZeitEntfernen? = null,
+                        beiDruckAuswahl: (ZeitMonatsDruckAuswahl?) -> Unit = {}) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     val entries = stand.entries.filterNot { it.deleted }
@@ -53,6 +52,13 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
     val month = YearMonth.parse(selected)
     val formatter = remember(locale) { DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale) }
     val monthEntries = entries.filter { YearMonth.from(it.localStart()) == month }
+    val druckAuswahl = ZeitMonatsDruckAuswahl(month,
+        if (allDays) (1..month.lengthOfMonth()).toSet() else picked.toSet(), reportName)
+    val aktuelleDruckAuswahl by androidx.compose.runtime.rememberUpdatedState(beiDruckAuswahl)
+    androidx.compose.runtime.SideEffect { aktuelleDruckAuswahl(druckAuswahl) }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { aktuelleDruckAuswahl(null) }
+    }
     Abschnitt(stringResource(R.string.zeit_erfasste)) {
         Text(stringResource(R.string.zeit_monat))
         Box {
@@ -81,23 +87,6 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
                 Checkbox(day in picked, null, enabled = !speichert)
                 Text(dayFormat.format(month.atDay(day)))
             }
-        }
-        Lederknopf(stringResource(R.string.zeit_drucken), aktiv = !speichert && (allDays || picked.isNotEmpty())) {
-            val chosenName = reportName
-            val days = if (allDays) (1..month.lengthOfMonth()).toSet() else picked.toSet()
-            val labels = ZeitDruckTexte(context.getString(R.string.zeit_titel), context.getString(R.string.zeit_druck_name),
-                context.getString(R.string.zeit_druck_datum), context.getString(R.string.zeit_druck_unterschrift),
-                context.getString(R.string.zeit_druck_summe), context.getString(R.string.zeit_druck_uhrzeit),
-                listOf(R.string.zeit_druck_datum, R.string.zeit_art, R.string.zeit_beginn, R.string.zeit_druck_enddatum,
-                    R.string.zeit_ende, R.string.zeit_druck_stunden, R.string.zeit_pause, R.string.zeit_gesamt,
-                    R.string.baum_kontakt_notiz, R.string.zeit_druck_zeitumstellung).map { context.getString(it) })
-            fun error() = android.widget.Toast.makeText(context, R.string.zeit_druck_fehler, android.widget.Toast.LENGTH_LONG).show()
-            val document = runCatching { ZeitDruckvorlage.html(month, days, entries, chosenName, stand.calendar,
-                labels, locale, DateFormat.is24HourFormat(context)) }.getOrNull()
-            if (document == null) error() else speichern({ it.copy(reportName = chosenName) }, {
-                runCatching { ZeitDrucken.starten(context, document, labels.title + " " + month) { error() } }
-                    .onFailure { error() }
-            })
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty(), destruktiv = true) {
