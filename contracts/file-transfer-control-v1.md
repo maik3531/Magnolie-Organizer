@@ -495,6 +495,32 @@ Windows source-settings group passes with zero build warnings/errors. These are
 synthetic/Robolectric/source-host checks, not a physical tap, installed UI or OS
 system-dialog acceptance.
 
+### Explicit source-preparation I/O owner (not activated)
+
+The native source worker is inert on construction. An explicit native start owns
+one preparation operation; cancellation/close only signals cancellation and does
+not release a blocked provider or claim I/O end. The slot is released only after
+the preparation function, including descriptor cleanup, has actually returned.
+Native cancellation and completion callbacks execute outside its owner monitor.
+Unexpected preparation errors remain held failures, not successful snapshots.
+
+`snapshot_ready` is source-cache metadata only: it is not a sent/accepted offer,
+published destination, retired quota, saved receipt or complete synchronization
+END. The desktop's whole-run coordinator must remain active through actual data
+transport/worker completion, independently of this source-preparation slot.
+Source-index/runtime cleanup must wait for actual preparation quiescence. This
+worker is not yet connected to runtime-close ownership or a remote run command;
+no timer, retry, implicit scan, quota cleanup or discovery advertisement is
+activated by the class.
+
+Five distinct focused cases pass: four ownership/error/cancellation cases and
+one actual native workflow/provider/read-only-PFD/encrypted-index integration
+case. The real preparation runs off the main thread; after its I/O end the
+protected cache job remains held until explicit native retirement, and changing
+the live source does not alter the frozen chunk. No permission prompt or source
+mutation is introduced. These are synthetic/Robolectric checks, not a physical
+phone, runtime-close integration or end-to-end transfer acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

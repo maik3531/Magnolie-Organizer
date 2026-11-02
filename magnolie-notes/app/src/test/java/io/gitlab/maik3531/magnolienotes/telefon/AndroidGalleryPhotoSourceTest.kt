@@ -288,6 +288,49 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun explicitNativeWorkerPreparesActualReadOnlyPfdSnapshotOffMainAndKeepsCacheUntilExplicitRetirement() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "native-worker-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            val ended = java.util.concurrent.CountDownLatch(1)
+            val worker = NativeGallerySourceWorker({ selected, cancellation ->
+                assertNotSame(android.os.Looper.getMainLooper(), android.os.Looper.myLooper())
+                workflow.freeze(selected, cancellation)
+            }, { ended.countDown() })
+            var catalog: NativeGalleryAlbumCatalog? = null
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { throw AssertionError("Worker must not request permissions") }
+                activity.start().resume()
+                val discovered = workflow.discoverSelectable(); catalog = discovered
+                val page = discovered.page()
+                val selected = discovered.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                assertTrue(f.provider.opens.isEmpty()); assertTrue(worker.isQuiescent)
+                val run = worker.start(selected)
+                assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertNull(run.nativeFailure())
+                assertTrue(run.ioEnded); assertEquals("snapshot_ready", run.phase); assertTrue(worker.isQuiescent)
+                val job = run.snapshotJob()!!
+                assertEquals(job, workflow.jobs().single()) // I/O end is not quota retirement.
+                assertEquals("sealed", job.phase); assertEquals(2, f.provider.opens.size)
+                val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
+                File(f.root, "source.bin").writeText("keep changed original")
+                assertArrayEquals("hello".toByteArray(), source.readChunk(source.manifest.files.single().id, 0))
+                assertEquals(1, workflow.jobs().size)
+                workflow.retireCached(job) // Explicit native cleanup only after real preparation I/O ended.
+                assertTrue(workflow.jobs().isEmpty())
+                assertEquals("keep changed original", File(f.root, "source.bin").readText())
+                assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
+            } finally {
+                worker.close()
+                if (!worker.isQuiescent) assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                catalog?.close(); workflow.close(); activity.pause().stop().destroy()
+            }
+        }
+    }
+
     @Test fun nativeWorkflowRejectsCatalogCapturedBeforeResumeWithoutOpeningContentsOrReservingQuota() {
         Fixture().use { f ->
             val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()
