@@ -24,8 +24,16 @@ const watchdog = setTimeout(() => { console.error("Historical source fixture tim
       b.t.inDenPapierkorb(kind, plain(entry), entry.titel); data[list] = data[list].filter(value => value !== entry);
       await b.t.personalSyncSnapshot(["notes", "tasks"], format, peer);
       const meta = data.personalSync.entities[kind + "\0" + record.id];
-      fixtures.push({ peer, run, format, book: plain(data), target: { proposal_id: b.w.crypto.randomUUID(), kind, id: record.id, parent_id: "",
-        prior_hash: meta.prior_hash, clock: plain(meta.clock) }, members: { notes: data.notizen.map(value => value.id).sort(), tasks: data.aufgaben.map(value => value.id).sort() } });
+      const fixture = { peer, run, format, book: plain(data), target: { proposal_id: b.w.crypto.randomUUID(), kind, id: record.id, parent_id: "",
+        prior_hash: meta.prior_hash, clock: plain(meta.clock) }, members: { notes: data.notizen.map(value => value.id).sort(), tasks: data.aufgaben.map(value => value.id).sort() } };
+      if (process.argv.includes("--candidate")) {
+        fixture.choice = { proposal_id: fixture.target.proposal_id, decision: "restore", expected_clock: plain(meta.clock), confirm_conflict: true };
+        const proposal = { ...plain(fixture.target), run_id: run, source_device: peer, deleted_ms: 2, label: "Synthetic candidate" };
+        const result = await b.t.personalSyncHistorischerRestoreKandidat(data, peer, [proposal], [fixture.choice],
+          { notes: new b.w.Set(fixture.members.notes), tasks: new b.w.Set(fixture.members.tasks) }, format);
+        fixture.candidate_text = JSON.stringify(result.book);
+      }
+      fixtures.push(fixture);
     } finally { b.close(); }
   }
   process.stdout.write(JSON.stringify(fixtures));
