@@ -1283,6 +1283,90 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     offen.state = "queued"; planeSpeichern();
   }
 
+  // Private candidate preparation, not incoming origin, mutation/save permission
+  // or a receipt. No public tool/native route calls this before claim integration.
+  // In particular, historical targets never enter the normal data selection.
+  async function personalSyncHistorischerRestoreKandidat(input, peerId, proposals, choices, selection, format) {
+    const fail = () => { throw new Error("historical_restore_unavailable"); };
+    const uuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
+    const original = kopie(input), book = kopie(original), ps = book.personalSync, same = (a, b) => personalSyncKanonisch(a) === personalSyncKanonisch(b);
+    const live = value => ({ notes: value.notizen.filter(personalSyncEigeneNotiz).map(n => personalSyncNotizWireId(n.id, "note", value)).sort(personalSyncUtf8),
+      tasks: value.aufgaben.filter(t => !t.vonZweig && !t.fremdId && !t.delegiertAn && !t.herkunft).map(t => t.id).sort(personalSyncUtf8) });
+    const before = live(book);
+    if (!uuid(peerId) || !uuid(ps?.actor_id) || ps.peer_device_id !== peerId || ![3, 14].includes(format) ||
+        !Number.isSafeInteger(ps.counter) || ps.counter < 0 || !selection?.notes || !selection?.tasks ||
+        !same(before, { notes: [...selection.notes].sort(personalSyncUtf8), tasks: [...selection.tasks].sort(personalSyncUtf8) }) ||
+        !Array.isArray(proposals) || proposals.length < 1 || proposals.length > 256 || !Array.isArray(choices) || choices.length !== proposals.length ||
+        new Set(proposals.map(p => p.run_id)).size !== 1) fail();
+    proposals = kopie(proposals); choices = kopie(choices);
+    selection = { notes: new Set(selection.notes), tasks: new Set(selection.tasks) };
+    const ids = new Set(), keys = new Set(), selected = new Set(), prepared = [];
+    for (const choice of choices) {
+      if (!choice || !uuid(choice.proposal_id) || selected.has(choice.proposal_id) || choice.decision !== "restore" || choice.confirm_conflict !== true) fail();
+      selected.add(choice.proposal_id);
+    }
+    for (const proposal of proposals) {
+      const kind = proposal.kind, id = proposal.id, key = kind + "\u0000" + id;
+      const meta = ps.entities[key], choice = choices.find(value => value.proposal_id === proposal.proposal_id);
+      if (!uuid(proposal.proposal_id) || ids.has(proposal.proposal_id) || keys.has(key) || !choice ||
+          !["note", "task"].includes(kind) || proposal.parent_id !== "" || proposal.source_device !== peerId ||
+          !uuid(proposal.run_id) || !personalSyncNotizIdGueltig(id) || selection[kind === "note" ? "notes" : "tasks"].has(id) ||
+          !meta || meta.state !== "deleted" || meta.status !== "local_pending" || meta.peer_device_id !== peerId || meta.hash !== "" ||
+          meta.conflict || (meta.parent_id || "") !== "" || !/^[a-f0-9]{64}$/.test(meta.prior_hash) ||
+          !same(meta.clock, proposal.clock) || !same(meta.clock, choice.expected_clock) || meta.prior_hash !== proposal.prior_hash ||
+          !Array.isArray(meta.clock) || meta.clock.length < 1 || meta.clock.length > 16 ||
+          meta.clock.some((c, index) => !uuid(c.actor_id) || !Number.isSafeInteger(c.counter) || c.counter < 1 ||
+            index > 0 && personalSyncUtf8(meta.clock[index - 1].actor_id, c.actor_id) >= 0)) fail();
+      if (meta.proposal_id !== await personalSyncProposalId(peerId, kind, id, "", meta.clock, meta.prior_hash)) fail();
+      const list = kind === "note" ? "notizen" : "aufgaben";
+      const sources = book.papierkorb.filter(value => value.art === kind && value.eintrag &&
+        (kind === "note" ? personalSyncNotizWireId(value.eintrag.id, "note", book) === id : value.eintrag.id === id));
+      if (sources.length !== 1 || book[list].some(value => kind === "note" ? personalSyncNotizWireId(value.id, "note", book) === id : value.id === id)) fail();
+      const source = sources[0], entry = source.eintrag;
+      const localId = entry.id;
+      if (kind === "note" ? !personalSyncEigeneNotiz(entry) : entry.vonZweig || entry.fremdId || entry.delegiertAn || entry.herkunft) fail();
+      if (kind === "note" && Object.entries(ps.entities).some(([entity, value]) => entity.startsWith("attachment\u0000" + id + "\u0000") && value.state === "deleted")) fail();
+      const value = personalSyncWert(kind, entry, Number(meta.modified_ms || 0), book);
+      if (kind === "task") Object.assign(value, { uid: String(entry.uid || ""), parent_uid: String(entry.elternUid || ""), order: Math.max(0, Number(entry.reihenfolge) || 0) });
+      if (format === 14) value.origin_app = ["notes", "organizer"].includes(entry.ursprungApp) ? entry.ursprungApp : "";
+      if (kind === "note") {
+        value.attachments = [];
+        for (const attachment of entry.anhaenge || []) {
+          const snapshot = await personalSyncAnhangSnapshot(attachment, id, book);
+          if (!snapshot) fail();
+          value.attachments.push(snapshot.descriptor);
+        }
+        if (value.attachments.length > 64) fail();
+      }
+      if (await personalSyncHash(value) !== meta.prior_hash) fail();
+      if ((ps.applied_decisions || []).some(old => old.proposal_id === proposal.proposal_id)) fail();
+      ids.add(proposal.proposal_id); keys.add(key); prepared.push({ proposal, source, localId, list });
+    }
+    if ((ps.applied_decisions || []).length + prepared.length > 500 || ps.counter + prepared.length > Number.MAX_SAFE_INTEGER) fail();
+    for (const { proposal, source } of prepared) {
+      if (!ausDemPapierkorb(source, book)) fail();
+      ps.applied_decisions = (ps.applied_decisions || []).concat([{ proposal_id: proposal.proposal_id, decision: "restore",
+        expected_clock: kopie(proposal.clock), kind: proposal.kind, id: proposal.id, parent_id: "" }]);
+    }
+    for (const { proposal } of prepared) {
+      const meta = ps.entities[proposal.kind + "\u0000" + proposal.id];
+      if (meta.state !== "live" || meta.status !== "restored" || meta.clock.length > 16 ||
+          !proposal.clock.every(old => meta.clock.some(c => c.actor_id === old.actor_id && c.counter >= old.counter)) ||
+          !meta.clock.some(c => c.counter > (proposal.clock.find(old => old.actor_id === c.actor_id)?.counter || 0))) fail();
+    }
+    const after = live(book), expected = { notes: before.notes.concat(proposals.filter(p => p.kind === "note").map(p => p.id)).sort(personalSyncUtf8),
+      tasks: before.tasks.concat(proposals.filter(p => p.kind === "task").map(p => p.id)).sort(personalSyncUtf8) };
+    const untouched = kopie(book);
+    untouched.notizen = untouched.notizen.filter(n => !prepared.some(p => p.list === "notizen" && p.localId === n.id));
+    untouched.aufgaben = untouched.aufgaben.filter(t => !prepared.some(p => p.list === "aufgaben" && p.localId === t.id));
+    untouched.papierkorb = kopie(original.papierkorb); untouched.personalSync = kopie(original.personalSync);
+    if (!same(after, expected)) throw new Error("historical_live_delta_changed");
+    if (!same(untouched, original) || !same(kopie(input), original)) throw new Error("historical_non_target_changed");
+    if (!same(Object.fromEntries(Object.entries(ps.entities).filter(([key]) => !keys.has(key))),
+        Object.fromEntries(Object.entries(original.personalSync.entities).filter(([key]) => !keys.has(key))))) fail();
+    return { book, before_live: before, after_live: after, action_authorized: false };
+  }
+
   function personalSyncEingehendeEntscheidungen(decisions, peer = null) {
     return personalSyncEingehendeEntscheidungenImBestand(DATEN, decisions, peer, null);
   }
@@ -41312,6 +41396,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncAnwenden: personalSyncAnwenden,
     personalSyncEntscheidungAnwenden: personalSyncEntscheidungAnwenden,
     personalSyncEntscheidungAusBestand,
+    personalSyncHistorischerRestoreKandidat,
     personalSyncEingehendeEntscheidungenAusBestand,
     personalSyncEingehendeEntscheidungen: personalSyncEingehendeEntscheidungen,
     personalSyncNachWiederherstellung: personalSyncNachWiederherstellung,
