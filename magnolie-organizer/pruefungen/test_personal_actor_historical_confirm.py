@@ -100,7 +100,8 @@ def test_prepared_outgoing_request_waits_without_cancelling_writer_and_is_not_a_
     assert result['deletion_completion']['expected'] == 1 and not channel.sent
 
 
-def test_independent_native_save_after_confirm_blocks_the_old_decision_ack_without_rolling_back_local_data(tmp_path, monkeypatch, gui_candidates):
+@pytest.mark.parametrize('fault', ['save', 'book-source-provider'])
+def test_independent_native_save_after_confirm_blocks_the_old_decision_ack_without_rolling_back_local_data(tmp_path, monkeypatch, gui_candidates, fault):
     service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path, monkeypatch, gui_candidates[0])
     claim = service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
     service.check_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text)
@@ -108,7 +109,8 @@ def test_independent_native_save_after_confirm_blocks_the_old_decision_ack_witho
     service.confirm_personal_actor_historical_restore_save(registry, handle, claim['claim_token'])
     service.advance_personal_actor_completion(registry, handle)
     sent = channel.sent.pop(); assert not channel.sent
-    owner.record_saved('native-producer-fixture', True, read()['sha256'])
+    if fault == 'save': owner.record_saved('native-producer-fixture', True, read()['sha256'])
+    else: service.native_actor_book_source = lambda: '0' * 64
     saved = read()
     service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, sent['message_id'])))
     result = service.personal_actor_status(registry, handle)

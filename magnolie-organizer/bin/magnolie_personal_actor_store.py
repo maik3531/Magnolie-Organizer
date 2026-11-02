@@ -86,6 +86,38 @@ class NativeProducerBookSnapshot:
         return cls(before["book_source"], before["sequence"], before["sha256"], observed[2], text)
 
 
+@dataclass(frozen=True)
+class NativeSavedBookContentWitness:
+    """Native metadata only, NOT authority and never accepted as IPC JSON.
+
+    The owner/source/writer gates must be checked independently and freshly.
+    This lets an operation-live native broker attest its content binding without
+    retaining a consumed plaintext projection in a long-lived callback.
+    """
+    book_source: str = field(repr=False)
+    sequence: int = field(repr=False)
+    saved_sha256: str = field(repr=False)
+    content_sha256: str = field(repr=False)
+
+    def __post_init__(self):
+        if (type(self.sequence) is not int or self.sequence <= 0 or
+                any(not isinstance(value, str) or HEX.fullmatch(value) is None for value in
+                    (self.book_source, self.saved_sha256, self.content_sha256))):
+            raise ValueError('invalid_native_book_content_witness')
+
+    @property
+    def saved_book(self):
+        return {'book_source': self.book_source, 'sequence': self.sequence, 'sha256': self.saved_sha256}
+
+    @classmethod
+    def from_snapshot(cls, snapshot):
+        if not isinstance(snapshot, NativeProducerBookSnapshot):
+            raise TypeError('Native saved content snapshot required')
+        if hashlib.sha256(snapshot.text.encode('utf-8')).hexdigest() != snapshot.content_sha256:
+            raise ValueError('invalid_native_book_content_witness')
+        return cls(snapshot.book_source, snapshot.sequence, snapshot.saved_sha256, snapshot.content_sha256)
+
+
 class NativeBookOwnerScope:
     """Native lifecycle fence, not a document tracker or a client-supplied revision."""
     def __init__(self):

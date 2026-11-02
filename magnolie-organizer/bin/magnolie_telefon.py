@@ -4820,7 +4820,9 @@ class PhoneService:
                 'choice_revision': draft['choice_revision'], 'saved_book': captured.saved_book, 'sources': result['local_restore_sources']})
             return result
 
-    def prepare_personal_actor_historical_restore_save(self, registry, handle, expected_revision, choices, candidate_text):
+    def prepare_personal_actor_historical_restore_save(self, registry, handle, expected_revision, choices, candidate_text, *,
+            native_book_source=None, native_saved_book=None, native_producer_book=None,
+            native_book_witness=None, native_completion_saved_book=None):
         """Private GUI-writer preparation only; no public/native RPC route yet.
 
         The native exact delta validator, not a caller-selected hash, establishes
@@ -4829,6 +4831,22 @@ class PhoneService:
         A separate actual SaveACK confirmation/terminal handoff is still needed.
         """
         from magnolie_personal_actor_restore_candidate import NativeHistoricalRestoreCandidateProof
+        from magnolie_personal_actor_store import NativeSavedBookContentWitness
+        book_provider = native_book_source if native_book_source is not None else lambda: self.native_actor_book_source() if callable(self.native_actor_book_source) else None
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
+        if native_book_witness is not None and not callable(native_book_witness):
+            raise TypeError('Native current content witness provider required')
+        if native_completion_saved_book is not None and not callable(native_completion_saved_book):
+            raise TypeError('Native live terminal saved-book provider required')
+        def local_witness(operation, token):
+            actual = self.native_actor_producer_book() if callable(self.native_actor_producer_book) else None
+            saved = self.native_actor_saved_book() if callable(self.native_actor_saved_book) else None
+            if actual is None or saved is None:
+                return None
+            return NativeSavedBookContentWitness.from_snapshot(actual) if actual.saved_book == saved else False
+        witness_provider = native_book_witness if native_book_witness is not None else local_witness
+        terminal_saved_provider = native_completion_saved_book if native_completion_saved_book is not None else lambda: self.native_actor_saved_book()
         with self.lock:
             choices = copy.deepcopy(choices)
             admission, source, manifest = self._personal_actor_target_origin_current(registry, handle)
@@ -4840,13 +4858,14 @@ class PhoneService:
                     admission.get('completion') is not None):
                 raise PermissionError('actor_historical_mixed_group_not_ready')
             registry.require_historical_data_idle(handle, manifest)
-            reviewed = self.review_personal_actor_historical_restore(registry, handle, expected_revision, choices)
+            reviewed = self.review_personal_actor_historical_restore(registry, handle, expected_revision, choices,
+                native_book_source=book_provider, native_saved_book=saved_provider, native_producer_book=producer_provider)
             targets = [value['target'] for value in reviewed['local_restore_sources']]
             request = self.store.personal_run(private, handle.actor_id)
             proof = NativeHistoricalRestoreCandidateProof.prepare(admission['peer'], handle.actor_id, request['format'], targets, choices, candidate_text,
                 current_owner=lambda: self._personal_actor_target_origin_current(registry, handle)[0] is admission,
                 current_source=lambda: self._personal_actor_target_origin_current(registry, handle)[1],
-                current_snapshot=self.native_actor_producer_book,
+                current_snapshot=producer_provider,
                 current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
             fingerprint = registry.status(handle)['fingerprint']
             origin = admission['incoming_target_origin']
@@ -4855,7 +4874,7 @@ class PhoneService:
             plan = {'token': secrets.token_hex(32), 'proof': proof, 'review_revision': expected_revision,
                 'choice_revision': reviewed['choice_revision'], 'restore_source_revision': reviewed['restore_source_revision'],
                 'targets': copy.deepcopy(targets), 'choices': copy.deepcopy(choices), 'original_hashes': original,
-                'completion_authority': self.current_actor_completion_authority(admission['peer'], fingerprint)}
+                'completion_authority': self.current_actor_completion_authority(admission['peer'], fingerprint, book_provider)}
             if plan['completion_authority'] is None:
                 raise PermissionError('actor_historical_completion_source_unavailable')
 
@@ -4886,19 +4905,25 @@ class PhoneService:
                 if not confirming:
                     for clear in origin['frames'].values():
                         registry._wire_payload(handle, json.loads(clear))
-                actual = self.native_actor_producer_book()
-                actual_saved = self.native_actor_saved_book()
-                if actual is None or actual_saved is None:
+                actual = witness_provider(operation, plan['token'])
+                if actual is None:
                     return None
+                if type(actual) is not NativeSavedBookContentWitness:
+                    return False
                 if confirming:
                     return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence + 1 and
                         actual.saved_sha256 == proof.after_sha256 and actual.content_sha256 == proof.after_content_sha256 and
-                        actual_saved == plan['confirming_saved_book'] == actual.saved_book and
-                        self.current_actor_completion_authority(admission['peer'], fingerprint) == plan['completion_authority'])
+                        plan['confirming_saved_book'] == actual.saved_book and
+                        self.current_actor_completion_authority(admission['peer'], fingerprint, book_provider) == plan['completion_authority'])
                 return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence and
-                    actual.saved_sha256 == proof.before_sha256 and actual.content_sha256 == proof.before_content_sha256 and
-                    actual_saved == actual.saved_book)
+                    actual.saved_sha256 == proof.before_sha256 and actual.content_sha256 == proof.before_content_sha256)
 
+            # Only live native metadata callbacks survive Prepare. The scoped
+            # producer/saved providers above must NOT escape with a plaintext
+            # projection. The terminal provider must likewise observe the live
+            # native broker, not an operation's frozen saved-book dictionary.
+            plan['completion_saved_provider'] = terminal_saved_provider
+            plan['book_source_provider'] = book_provider
             admission['historical_save_claim'] = plan
             try:
                 registry.begin_completion(handle, native_guard)
@@ -4946,7 +4971,7 @@ class PhoneService:
                 raise  # Unknown I/O outcome never permits replay or local rollback.
             return self.personal_actor_status(registry, handle)
 
-    def confirm_personal_actor_historical_restore_save(self, registry, handle, claim_token):
+    def confirm_personal_actor_historical_restore_save(self, registry, handle, claim_token, *, native_producer_book=None, native_saved_book=None):
         """Bind a real native SaveACK, not a caller Boolean or new content scope.
 
         Private native method only; actual GUI writer/IPC routing remains gated.
@@ -4954,6 +4979,8 @@ class PhoneService:
         """
         from magnolie_personal_actor_completion import DecisionAckCompletion
         from magnolie_personal_actor_restore_candidate import _live
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
         with self.lock:
             admission = self.personal_actor_admissions.get(handle.actor_id)
             plan = admission.get('historical_save_claim') if admission is not None else None
@@ -4966,8 +4993,8 @@ class PhoneService:
             if plan.get('writer_gate_checked') is not True:
                 raise PermissionError('actor_historical_writer_not_invoked')
             proof = plan['proof']
-            actual = self.native_actor_producer_book()
-            saved = self.native_actor_saved_book()
+            actual = producer_provider() if callable(producer_provider) else None
+            saved = saved_provider() if callable(saved_provider) else None
             if (actual is None or saved is None or actual.book_source != proof.book_source or actual.sequence != proof.before_sequence + 1 or
                     actual.saved_sha256 != proof.after_sha256 or actual.content_sha256 != proof.after_content_sha256 or saved != actual.saved_book):
                 raise PermissionError('actor_historical_actual_save_proof_missing')
@@ -4994,8 +5021,8 @@ class PhoneService:
                     body = {'format': 1, 'run_id': handle.actor_id, 'decision_id': str(uuid.uuid4()), 'decisions': decisions[offset:offset + 32]}
                     queued.append(self.store.queue(admission['peer'], 'personal_sync.deletion_decision', body, DAY_MS, actor_run_id=handle.actor_id))
                 terminal = DecisionAckCompletion(handle.actor_id, plan['targets'], queued,
-                    current_authority=lambda: self.current_actor_completion_authority(admission['peer'], fingerprint),
-                    current_scope=native_scope, current_saved_book=lambda: self.native_actor_saved_book(),
+                    current_authority=lambda: self.current_actor_completion_authority(admission['peer'], fingerprint, plan['book_source_provider']),
+                    current_scope=native_scope, current_saved_book=plan['completion_saved_provider'],
                     persisted_controls=lambda: registry.read_completion_controls(handle), before_scope=manifest, native_historical_targets=plan['targets'])
                 if terminal.authority != plan['completion_authority']:
                     raise PermissionError('actor_historical_completion_source_changed')
