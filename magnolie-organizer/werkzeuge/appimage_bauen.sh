@@ -170,6 +170,7 @@ install -m 0644 "$WURZEL/bin/magnolie_drawing_svg.py" "$APPDIR/usr/bin/magnolie_
 install -m 0644 "$WURZEL/bin/magnolie_versand.py" "$APPDIR/usr/bin/magnolie_versand.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_filesystem.py" "$APPDIR/usr/bin/magnolie_kde_filesystem.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_transfer.py" "$APPDIR/usr/bin/magnolie_kde_transfer.py"
+install -m 0644 "$WURZEL/bin/magnolie_file_transfer.py" "$APPDIR/usr/bin/magnolie_file_transfer.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_input.py" "$APPDIR/usr/bin/magnolie_kde_input.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_input_x11.py" "$APPDIR/usr/bin/magnolie_kde_input_x11.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_media.py" "$APPDIR/usr/bin/magnolie_kde_media.py"

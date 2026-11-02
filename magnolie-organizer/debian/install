@@ -38,6 +38,7 @@ bin/magnolie_drawing_svg.py            usr/bin
 bin/magnolie_versand.py                usr/bin
 bin/magnolie_kde_filesystem.py         usr/bin
 bin/magnolie_kde_transfer.py           usr/bin
+bin/magnolie_file_transfer.py          usr/bin
 bin/magnolie_kde_input.py              usr/bin
 bin/magnolie_kde_input_x11.py          usr/bin
 bin/magnolie_kde_media.py              usr/bin

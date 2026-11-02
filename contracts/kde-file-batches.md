@@ -120,3 +120,7 @@ scheduler and service boundaries; DOM tests use the actual Windows frontend.
 These checks and a Windows-targeted compilation do not replace the outstanding
 installed Windows GUI and physical-phone acceptance. No new installer is
 delivered or approved by these source changes.
+
+The separate immutable-manifest/readback-ledger groundwork for #329 is described
+in [file-transfer-manifest-v1.md](file-transfer-manifest-v1.md). It is not yet
+negotiated, advertised or connected to a SAF photo-folder sender.

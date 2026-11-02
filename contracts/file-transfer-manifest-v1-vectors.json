@@ -1,0 +1,27 @@
+{
+  "status": "source-groundwork-not-advertised",
+  "vectors": [
+    {
+      "name": "utf8-path-five-byte-file",
+      "manifest": {
+        "format": 1,
+        "transfer_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sender_id": "sender_fixture_01",
+        "receiver_id": "receiver_fixture_01",
+        "chunk_bytes": 65536,
+        "total_bytes": 5,
+        "files": [
+          {
+            "id": "cccccccccccccccccccccccccccccccc",
+            "path": "Photos/Blüte.jpg",
+            "size": 5,
+            "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+          }
+        ]
+      },
+      "manifest_sha256": "1d54543aefd4422070765d5421cf647a805103d0c5d3ecbc438c973f4216a559",
+      "file_bytes_hex": "68656c6c6f"
+    }
+  ]
+}

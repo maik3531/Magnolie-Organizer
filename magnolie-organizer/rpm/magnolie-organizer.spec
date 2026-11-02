@@ -175,6 +175,7 @@ install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_dr
 install -Dpm 0644 bin/magnolie_versand.py %{buildroot}%{_bindir}/magnolie_versand.py
 install -Dpm 0644 bin/magnolie_kde_filesystem.py %{buildroot}%{_bindir}/magnolie_kde_filesystem.py
 install -Dpm 0644 bin/magnolie_kde_transfer.py %{buildroot}%{_bindir}/magnolie_kde_transfer.py
+install -Dpm 0644 bin/magnolie_file_transfer.py %{buildroot}%{_bindir}/magnolie_file_transfer.py
 install -Dpm 0644 bin/magnolie_kde_input.py %{buildroot}%{_bindir}/magnolie_kde_input.py
 install -Dpm 0644 bin/magnolie_kde_input_x11.py %{buildroot}%{_bindir}/magnolie_kde_input_x11.py
 install -Dpm 0644 bin/magnolie_kde_media.py %{buildroot}%{_bindir}/magnolie_kde_media.py
@@ -329,6 +330,7 @@ done
 %{_bindir}/magnolie_versand.py
 %{_bindir}/magnolie_kde_filesystem.py
 %{_bindir}/magnolie_kde_transfer.py
+%{_bindir}/magnolie_file_transfer.py
 %{_bindir}/magnolie_kde_input.py
 %{_bindir}/magnolie_kde_input_x11.py
 %{_bindir}/magnolie_kde_media.py
