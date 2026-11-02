@@ -2421,6 +2421,22 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
+                JsonPrimitive(DeviceFileSourceCommand.RESULT))) {
+            val connection = synchronized(this) {
+                if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
+                    DeviceFileControl.fail("file_control_native_channel_changed")
+                galleryFileConnection?.takeIf { it.channel === channel }
+                    ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
+            }
+            // Runtime/session callbacks acquire Werk: never dispatch under its monitor.
+            val runtime = connection.runtime
+            if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
+            else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST)) runtime.receiveSourceCommand(message, channel::send)
+            else DeviceFileControl.fail("file_sources_unexpected_result")
+            runtime.sendControls()
+            return // Reserved file frames never enter personal-store staging/ACKs.
+        }
         // Reserved frames never fall through to ordinary receive/staging.
         if (PersonalSyncActor.isReservedMessage(message)) {
             receiveActorMessage(sessionPeer, message, channel, generation)

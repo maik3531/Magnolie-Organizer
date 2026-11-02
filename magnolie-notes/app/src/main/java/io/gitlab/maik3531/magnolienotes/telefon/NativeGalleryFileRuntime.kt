@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.content.Context
 import android.os.Looper
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -18,6 +19,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     handlersReady: () -> Boolean) : AutoCloseable {
     private val closed = AtomicBoolean(false)
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
+    private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val nativePeer = { if (closed.get()) null else currentPeer() }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
@@ -31,7 +33,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             controls = prepared
             workflow = NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(context, directory, identity.deviceId, protection,
                 { if (closed.get()) null else controls.session.photoReceiver() },
-                { ticket.get()?.let { controls.session.configurationAuthority(it) } })
+                { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } })
         } catch (error: Exception) {
             closed.set(true); prepared?.close(); index.close()
             throw error // Dedicated metadata/cache is preserved, not reset.
@@ -48,6 +50,55 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     fun requestReadPermission() { ready(); workflow.requestReadPermission() }
     fun attachForeground(onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
         ready(); return NativeGalleryForeground.attach(this, onResult)
+    }
+
+    /** Real source command execution, using a fresh native metadata ticket even
+     * while initial local send consent is OFF. This never scans, requests OS
+     * permissions or schedules a transfer. Replies are metadata, not SaveACKs.
+     */
+    @Synchronized fun receiveSourceCommand(message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = { System.currentTimeMillis() }) {
+        ready()
+        val command = DeviceFileSourceCommand.parse(message, now())
+        val issued = controls.session.configurationTicket()
+        if (!ticket.compareAndSet(null, issued)) {
+            controls.session.finishConfiguration(issued)
+            DeviceFileControl.fail("file_control_configuration_busy")
+        }
+        commandLive.set { now() < command.expires }
+        fun authority(): NativeGalleryConfigurer {
+            if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")
+            return controls.session.configurationAuthority(issued) ?: DeviceFileControl.fail("file_sources_authority_changed")
+        }
+        try {
+            val owner = authority()
+            val before = workflow.savedPolicy()
+            val saved = if (command.operation == "configure") {
+                if (before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+                authority()
+                workflow.configure(before, command.enabled!!, command.kinds)
+            } else before
+            authority()
+            val policy = saved.policy
+            val associated = policy != null && policy.receiverId == owner.peerId && policy.receiverIdentitySha256 == owner.identitySha256 &&
+                policy.pairingEpoch == owner.pairingEpoch
+            val body = kotlinx.serialization.json.buildJsonObject {
+                put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
+                put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(saved.version))
+                put("revision", JsonPrimitive(policy?.revision ?: 0)); put("enabled", JsonPrimitive(policy?.enabled ?: false))
+                put("associated", JsonPrimitive(associated)); put("repair_pending", JsonPrimitive(saved.repairPending))
+                put("kinds", kotlinx.serialization.json.JsonArray((policy?.kinds ?: emptySet()).map { it.name.lowercase(java.util.Locale.ROOT) }
+                    .sorted().map(::JsonPrimitive)))
+            }
+            val at = now()
+            val reply = TelefonNachrichten.message(DeviceFileSourceCommand.RESULT, body,
+                minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at).also {
+                    if (it <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                }, at)
+            authority()
+            send(reply) // Actual caller's secure send, never the personal queue.
+            authority()
+        } finally { commandLive.set(null); ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
     }
 
     @Synchronized fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,

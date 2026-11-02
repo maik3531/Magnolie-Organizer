@@ -326,6 +326,59 @@ channel end isolation, bounded worker-thread end/UI cleanup and preserved metada
 reopen. The factory is not yet invoked by a registered remote source dispatcher;
 discovery 21 and data workers remain inactive.
 
+### Source status/configuration messages (partial dispatcher integration)
+
+`file_transfer.sources.request` uses the ordinary strict application envelope,
+at most 8192 canonical UTF-8 bytes and at most 60 seconds TTL; a command is expired
+at its deadline. Inner format 1 has exactly:
+
+* Status: `format`, `operation: "status"`.
+* Configure: `format`, `operation: "configure"`, `expected_version` (the exact
+  protected policy ciphertext-version hash from status), Boolean `enabled`, and
+  sorted unique `kinds` (`camera`, `downloads`, `screenshots`,
+  `whatsapp_received`). Enabling requires at least one kind.
+
+No paths, native owners, OS permission claims, file grants, deletion/automatic
+settings or run commands are accepted in these messages. Status does not create
+an OFF policy record. Both operations require a fresh bilateral native metadata
+ticket and remote receive consent, including when local send consent is OFF.
+The configure ticket's deadline is also checked through the actual protected CAS
+callbacks, not only before entering the transaction.
+
+`file_transfer.sources.result` contains exactly inner `format: 1`, `request_id`,
+`operation`, `version`, `revision` (0 for absent policy), `enabled`, `associated`,
+`repair_pending` and sorted `kinds`. `enabled` describes saved settings;
+`associated` separately states whether the policy belongs to this native pairing.
+Neither field promises OS READ or currently negotiated sending. The reply is
+metadata, not a file/book SaveACK, transfer checkpoint or destination receipt.
+
+The real Android `TelefonWerk.receiveMessage` reserves control/source messages
+before personal-store staging. Dispatch requires an already explicitly opened
+exact native connection, does not create it from the request, and executes
+outside the Werk monitor. Native authority is rechecked around the actual secure
+reply, and changed source grants need fresh control echoes. Unexpected inbound
+source results fail closed on the source-only phone path. Shared desktop codecs,
+actual Organizer activation, permission-action invocation, album discovery/run
+workers and complete data handlers remain open; discovery 21 stays unadvertised.
+
+The first nine affected Android codec/runtime/actual-Werk-dispatch cases pass,
+including decrypting real synthetic-channel replies and new-grant echoes. Linux
+provides strict request builders/parsers and correlated immutable result metadata
+with 27 focused cases passing. The Windows pure codec source-host group passes
+with zero build warnings/errors. These desktop codecs do not yet register the
+desktop transport or Organizer controls. The shared configure-envelope vector is
+347 bytes, SHA-256
+`5aaac403bb8fe387973221adb1a47fa5a3c63395167f5e9c6ede47b7a924ef5a`.
+No physical phone/installed GUI/OS dialog or completed photo synchronization is
+implied by these source-host and synthetic-channel checks.
+
+Three additional targeted Android cases pass: the shared canonical vector,
+command expiry reaching the native configurer before policy publication, and
+failed reply output retaining the already committed policy without claiming
+delivery or reapplying a stale expected version. Together with the retained
+nine-case run this is 12 distinct Android cases; unchanged passing cases were
+not rerun for these test-only additions.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

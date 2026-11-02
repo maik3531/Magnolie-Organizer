@@ -45,6 +45,7 @@
     <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />
     <Compile Include="..\DeviceFileControl.cs" Link="DeviceFileControl.cs" />
+    <Compile Include="..\DeviceFileSources.cs" Link="DeviceFileSources.cs" />
     <Compile Remove="callstate\**\*.cs" />
     <Compile Remove="notification-uninstall\**\*.cs" />
     <Compile Remove="kde-media-native\**\*.cs" />

@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "now_ms": 1800000000000,
+  "configure": {
+    "type": "message",
+    "v": 1,
+    "message_id": "11111111-1111-4111-8111-111111111111",
+    "kind": "file_transfer.sources.request",
+    "created_ms": 1800000000000,
+    "expires_ms": 1800000060000,
+    "body": {
+      "format": 1,
+      "operation": "configure",
+      "expected_version": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "enabled": true,
+      "kinds": ["camera", "screenshots"]
+    }
+  },
+  "canonical_bytes": 347,
+  "canonical_sha256": "5aaac403bb8fe387973221adb1a47fa5a3c63395167f5e9c6ede47b7a924ef5a"
+}

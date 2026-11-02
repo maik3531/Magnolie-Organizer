@@ -33,6 +33,70 @@ class NativeGalleryFileRuntimeTest {
         }
     }
 
+    private fun negotiatedRuntime(action: (NativeGalleryFileRuntime, () -> Unit) -> Unit) {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-source-command330-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val link = Link()
+        val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel, true, true, true, true, true, "1".repeat(64))
+        val desktopPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, "1".repeat(64))
+        val state = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+        val desktop = NativeFileControlSession(remote, { desktopPeer }, { state })
+        val runtime = NativeGalleryFileRuntime(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection, link.channel, { peer }, { true })
+        try {
+            fun echo() {
+                if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
+                val packet = desktop.packet(); desktop.markSent(packet)
+                runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
+            }
+            echo()
+            action(runtime, ::echo)
+        } finally { runtime.close(); desktop.close(); link.channel.close(); root.deleteRecursively() }
+    }
+
+    private fun sourceCommand(operation: String, version: String? = null) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+        put("format", JsonPrimitive(1)); put("operation", JsonPrimitive(operation))
+        if (version != null) {
+            put("expected_version", JsonPrimitive(version)); put("enabled", JsonPrimitive(true))
+            put("kinds", JsonArray(listOf(JsonPrimitive("camera"))))
+        }
+    }, 60_000, now)
+
+    @Test fun sourceCommandExpiryReachesTheNativeConfigurerBeforePolicyPublicationAndReleasesItsTicket() {
+        negotiatedRuntime { runtime, _ ->
+            val before = runtime.savedPolicy()
+            var ticks = 0; var replies = 0
+            assertThrows(PhotoFolderScopeError::class.java) {
+                runtime.receiveSourceCommand(sourceCommand("configure", before.version), { replies++ },
+                    { if (++ticks >= 4) now + 60_000 else now })
+            }
+            assertEquals(0, replies)
+            assertEquals(before, runtime.savedPolicy())
+            runtime.receiveSourceCommand(sourceCommand("status"), { replies++ }, { now })
+            assertEquals(1, replies)
+            assertNull(runtime.savedPolicy().policy)
+        }
+    }
+
+    @Test fun lostSourceConfigurationReplyPreservesCommittedPolicyWithoutInventingDeliveryOrReapplyingStaleSettings() {
+        negotiatedRuntime { runtime, echo ->
+            val command = sourceCommand("configure", runtime.savedPolicy().version)
+            assertThrows(java.io.IOException::class.java) {
+                runtime.receiveSourceCommand(command, { throw java.io.IOException("actual reply write failed") }, { now })
+            }
+            val committed = runtime.savedPolicy()
+            assertTrue(committed.policy!!.enabled)
+            assertFalse(committed.repairPending)
+            assertNull(runtime.currentRequest())
+            echo()
+            var replies = 0
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(command, { replies++ }, { now }) }
+            assertEquals(0, replies); assertEquals(committed, runtime.savedPolicy())
+            runtime.receiveSourceCommand(sourceCommand("status"), { replies++ }, { now })
+            assertEquals(1, replies)
+        }
+    }
+
     @Test fun actualProtectedRuntimeJoinsInitialOffNativeEchoConfigurationAndFreshSourceGrant() {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }

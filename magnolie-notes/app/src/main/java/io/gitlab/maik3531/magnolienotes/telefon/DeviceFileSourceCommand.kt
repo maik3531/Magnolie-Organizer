@@ -1,0 +1,41 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import kotlinx.serialization.json.*
+import java.util.Locale
+
+/** Metadata/configuration only. No paths, OS permission claims, file grants,
+ * run scheduling or album READ authority can be supplied in this body.
+ */
+internal class DeviceFileSourceCommand private constructor(val requestId: String, val operation: String,
+    val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long) {
+    companion object {
+        const val REQUEST = "file_transfer.sources.request"
+        const val RESULT = "file_transfer.sources.result"
+        fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
+            fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
+            if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
+            TelefonNachrichten.validateHeader(message, now)
+            if (message.string("kind") != REQUEST || now >= message.long("expires_ms") ||
+                message.long("expires_ms") - message.long("created_ms") > DeviceFileControl.MAX_TTL_MS) fail()
+            val body = message["body"] as? JsonObject ?: fail()
+            fun text(name: String) = (body[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
+            val operation = text("operation")
+            val base = setOf("format", "operation")
+            if (body["format"] != JsonPrimitive(1)) fail()
+            if (operation == "status") {
+                if (body.keys != base) fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, null, null, emptySet(), message.long("expires_ms"))
+            }
+            if (operation != "configure" || body.keys != base + setOf("expected_version", "enabled", "kinds")) fail()
+            val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+            val enabled = (body["enabled"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
+            val raw = body["kinds"] as? JsonArray ?: fail()
+            if (raw.size > GallerySourceKind.entries.size) fail()
+            val labels = raw.map { (it as? JsonPrimitive)?.takeIf { value -> value.isString }?.content ?: fail() }
+            if (labels != labels.sorted().distinct()) fail()
+            val kinds = labels.map { label -> GallerySourceKind.entries.singleOrNull { it.name.lowercase(Locale.ROOT) == label } ?: fail() }.toSet()
+            if (enabled && kinds.isEmpty()) fail()
+            return DeviceFileSourceCommand(message.string("message_id"), operation, expected, enabled, kinds, message.long("expires_ms"))
+        }
+    }
+}

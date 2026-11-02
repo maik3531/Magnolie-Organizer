@@ -14,6 +14,7 @@ import java.security.Provider
 import java.security.Security
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import kotlinx.serialization.json.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -234,6 +235,75 @@ class NativeFilePairingBootstrapTest {
                 assertNull(reopened.runtime.savedPolicy().policy)
                 assertNull(reopened.runtime.currentRequest())
             }
+        }
+    }
+
+    @Test fun actualMessageDispatcherKeepsFileStatusAndConfigurationOutOfPersonalStagingAndOsRead() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            var peer = storage.fileAuthorityPeers().peer!!
+            peer = work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            val native = work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true)!!
+            val desktopPeer = NativeFileControlPeer("sender_fixture_01", "d".repeat(64), Any(), true, true, true, true, true, native.pairingEpoch)
+            val desktopState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+            val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.device_id, native.identitySha256), { desktopPeer }, { desktopState })
+            val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            fun sent(): List<JsonObject> {
+                val input = ByteArrayInputStream(bytes.toByteArray()); bytes.reset()
+                val result = mutableListOf<JsonObject>()
+                while (input.available() > 0) {
+                    val frame = TelefonRahmen.lesen(input)
+                    val header = JsonObject(frame - "ciphertext")
+                    val encrypted = java.util.Base64.getDecoder().decode(frame.string("ciphertext"))
+                    val clear = TelefonKrypto.entschluesseln(ByteArray(32), TelefonKrypto.nonce(ByteArray(4), header.long("seq")),
+                        encrypted, TelefonKanonisch.bytes(header))
+                    result += Json.parseToJsonElement(clear.decodeToString()).jsonObject
+                }
+                return result
+            }
+            fun command(operation: String, version: String? = null) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", operation)
+                if (version != null) {
+                    put("expected_version", version); put("enabled", true); put("kinds", JsonArray(listOf(JsonPrimitive("camera"))))
+                }
+            }, 60_000)
+            val initial = command("status")
+            assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(peer, initial, channel, generation) }
+            assertEquals(0, bytes.size()) // No fallback to ordinary personal staging/ACK.
+            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { connection ->
+                assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(peer, initial, channel, generation) }
+                assertNull(connection.runtime.savedPolicy().policy)
+                fun metadata() {
+                    val packet = desktop.packet(); desktop.markSent(packet)
+                    work.receiveMessage(peer, DeviceFileControlEnvelope.create(packet), channel, generation)
+                    sent().forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it), desktopPeer) }
+                }
+                metadata(); metadata()
+                work.receiveMessage(peer, command("status"), channel, generation)
+                val status = sent().single()
+                assertEquals(DeviceFileSourceCommand.RESULT, status.string("kind"))
+                assertEquals(JsonPrimitive(false), status["body"]!!.jsonObject["enabled"])
+                assertNull(connection.runtime.savedPolicy().policy)
+                val version = status["body"]!!.jsonObject.string("version")
+                val configure = command("configure", version)
+                work.receiveMessage(peer, configure, channel, generation)
+                val reply = sent()
+                assertEquals(2, reply.size) // Metadata result followed by changed control grant.
+                assertEquals(JsonPrimitive(true), reply.first()["body"]!!.jsonObject["associated"])
+                assertEquals(JsonPrimitive(true), reply.first()["body"]!!.jsonObject["enabled"])
+                desktop.observeRemote(DeviceFileControlEnvelope.validate(reply.last()), desktopPeer)
+                assertNull(connection.runtime.currentRequest()) // No data authority until the new grant is echoed.
+                metadata()
+                assertNotNull(connection.runtime.currentRequest())
+                val saved = connection.runtime.savedPolicy()
+                assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(peer, configure, channel, generation) }
+                assertEquals(saved, connection.runtime.savedPolicy())
+                assertEquals(0, bytes.size())
+                assertFalse(storage.fileAuthorityPeers().peer!!.personal_notes_sync_granted)
+                assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) {
+                    connection.runtime.requestReadPermission() }.code)
+            }
+            desktop.close()
         }
     }
 }
