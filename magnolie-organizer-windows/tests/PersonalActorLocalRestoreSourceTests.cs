@@ -20,6 +20,15 @@ internal static class PersonalActorLocalRestoreSourceTests
             await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), fault);
     }
 
+    internal static async Task HistoricalPrepareAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true);
+        foreach (var raw in fixtures) foreach (var fault in new[] { "prepare-none", "prepare-candidate" })
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), fault);
+        foreach (var fault in new[] { "prepare-token", "prepare-payload", "prepare-save", "prepare-frame", "prepare-grant", "prepare-cancel", "prepare-receive" })
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), fault);
+    }
+
     internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false)
     {
         var root = TestSource.Root("magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js");

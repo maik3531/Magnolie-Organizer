@@ -64,7 +64,10 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
                 await connection.HandlePlainAsync(Message(SharedSyncSettings.Kind, SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), settings, peer.Id, identity.Id)));
                 if (sourceFixture is not null) peer = store.LoadPeers().Single(value => value.Id == peer.Id);
-                var scope = PhoneContentScope.Create(["selected-note"], ["selected-task"]);
+                var scope = sourceFixture is not null && sourceFault?.StartsWith("prepare-", StringComparison.Ordinal) == true
+                    ? PhoneContentScope.Create(sourceFixture["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()),
+                        sourceFixture["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()))
+                    : PhoneContentScope.Create(["selected-note"], ["selected-task"]);
                 foreach (var chunk in PhoneContentScope.Chunks(scope)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, chunk));
                 var kind = scenario.Split('-').Contains("task") ? "task" : scenario.Split('-').Contains("attachment") ? "attachment" : "note";
                 var id = kind == "task" ? "outside-task" : kind == "attachment" ? "outside-file" : "outside-note";
@@ -125,7 +128,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 if (scenario.StartsWith("origin-", StringComparison.Ordinal))
                 {
                     await OriginAsync(scenario, coordinator, store, peer, connection, handle, target, grants, owner, captured, scope,
-                        wire, () => emitted, () => captures, sourceFixture?["format"]?.GetValue<int>() ?? 3);
+                        wire, () => emitted, () => captures, sourceFixture?["format"]?.GetValue<int>() ?? 3, sourceFixture);
                     continue;
                 }
                 if (scenario == "foreign-owner") handle = new PersonalActorHandle(handle.ActorId, new string('f', 64));
@@ -171,7 +174,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
 
     private static async Task OriginAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
         TelefonConnection connection, PersonalActorHandle handle, JsonObject target, JsonObject grants, NativeBookOwnerScope owner,
-        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3)
+        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3, JsonObject? sourceFixture = null)
     {
         await coordinator.StartPersonalActorAsync(handle);
         var request = new JsonObject { ["format"] = wireFormat, ["run_id"] = handle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
@@ -194,6 +197,63 @@ internal static class PersonalActorTargetObserverRuntimeTests
             var view = await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle);
             var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore",
                 ["expected_clock"] = target["clock"]!.DeepClone(), ["confirm_conflict"] = true };
+            if (scenario.Contains("-prepare-", StringComparison.Ordinal))
+            {
+                var proposed = JsonNode.Parse(sourceFixture!["candidate_text"]!.GetValue<string>())!.AsObject();
+                proposed["personalSync"]!["peer_device_id"] = peer.Id;
+                proposed["personalSync"]!["entities"]![target["kind"]!.GetValue<string>() + "\0" + target["id"]!.GetValue<string>()]!["peer_device_id"] = peer.Id;
+                if (scenario.EndsWith("-candidate", StringComparison.Ordinal))
+                {
+                    proposed["einstellungen"]!["unrelated_synthetic_change"] = true;
+                    await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.PreparePersonalActorHistoricalRestoreSaveAsync(handle,
+                        view["revision"]!.GetValue<string>(), [choice], proposed.ToJsonString()), "Unrelated candidate mutation minted a historical writer claim.");
+                    await coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; });
+                    TestAssert.That(JsonNode.DeepEquals(beforeStatus, await coordinator.PersonalActorStatusAsync(handle)), "Rejected candidate retired the original native data owner.");
+                }
+                else
+                {
+                    var candidateText = proposed.ToJsonString();
+                    var claim = await coordinator.PreparePersonalActorHistoricalRestoreSaveAsync(handle, view["revision"]!.GetValue<string>(), [choice], candidateText);
+                    TestAssert.That(claim["data_closed"]!.GetValue<bool>() && !claim["book_persisted"]!.GetValue<bool>() && !claim["phone_persisted"]!.GetValue<bool>(), "Prepare manufactured a saved/peer receipt.");
+                    await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Prepared owner retained data access.");
+                    var token = claim["claim_token"]!.GetValue<string>();
+                    if (scenario.EndsWith("-token", StringComparison.Ordinal)) token = new string('f', 64);
+                    if (scenario.EndsWith("-payload", StringComparison.Ordinal)) candidateText += " ";
+                    if (scenario.EndsWith("-save", StringComparison.Ordinal)) owner.RecordSaved("target-observer", true, snapshot.SavedBook.Sha256);
+                    if (scenario.EndsWith("-frame", StringComparison.Ordinal))
+                    {
+                        var admissions = (System.Collections.IDictionary)typeof(TelefonCoordinator).GetField("actorAdmissions", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
+                        var admitted = admissions[handle.ActorId]!;
+                        var origin = admitted.GetType().GetProperty("IncomingTargetOrigin", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(admitted)!;
+                        var frames = (Dictionary<string, byte[]>)origin.GetType().GetField("Frames", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(origin)!;
+                        var id = frames.Keys.Single(); var changed = JsonNode.Parse(frames[id])!.AsObject();
+                        changed["expires_ms"] = changed["expires_ms"]!.GetValue<long>() - 1; frames[id] = TelefonCrypto.Canonical(changed);
+                    }
+                    if (scenario.EndsWith("-grant", StringComparison.Ordinal)) store.SetLocalGrant("personal_deletions_sync", false);
+                    if (scenario.EndsWith("-cancel", StringComparison.Ordinal)) await coordinator.WithPersonalActorStoreAsync(registry => registry.Cancel(handle));
+                    if (scenario.EndsWith("-receive", StringComparison.Ordinal))
+                    {
+                        var status = await coordinator.PersonalActorStatusAsync(handle);
+                        await coordinator.ReceivePersonalActorAsync(connection, peer, Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, Guid.NewGuid().ToString("D"))));
+                        var records = new JsonArray(sourceFixture["live_records"]![0]!.DeepClone());
+                        var data = new JsonObject { ["format"] = wireFormat, ["run_id"] = handle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                            ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records_hash"] = PersonalSyncContract.RecordsHash(records), ["records"] = records };
+                        await coordinator.ReceivePersonalActorAsync(connection, peer, PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", data), handle.ActorId));
+                        await coordinator.PumpPersonalActorAsync(connection);
+                        TestAssert.That(JsonNode.DeepEquals(status, await coordinator.PersonalActorStatusAsync(handle)), "Prepared network controls admitted data or cancelled the native writer.");
+                    }
+                    var expectedSaved = owner.SaveState("target-observer", true);
+                    if (scenario.EndsWith("-none", StringComparison.Ordinal) || scenario.EndsWith("-receive", StringComparison.Ordinal))
+                    {
+                        await coordinator.CheckPersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText);
+                        await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.CheckPersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText), "Historical writer invocation was replayed.");
+                    }
+                    else await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.CheckPersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText), "Changed native writer claim was accepted.");
+                    TestAssert.That(expectedSaved == owner.SaveState("target-observer", true), "Native writer gate changed/reverted saved state.");
+                }
+                TestAssert.That(transport.Length == beforeWire && emitted() == beforeEmitted && Rows() == beforeRows, "Historical writer preparation changed wire/callbacks/outbox.");
+                return;
+            }
             if (scenario.EndsWith("-none", StringComparison.Ordinal))
             {
                 var result = await coordinator.ReviewPersonalActorHistoricalRestoreAsync(handle, view["revision"]!.GetValue<string>(), [choice]);

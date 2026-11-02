@@ -1,11 +1,25 @@
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonCoordinator
 {
     private sealed record ActorCommitPlan(string Token, string ViewRevision, string AfterHash, string BookSource, long BeforeSequence, JsonObject DeletionReview, JsonObject? FixedReview);
+    // Metadata only: no candidate text, source book or provider callback retained.
+    private sealed class ActorHistoricalSaveClaim(NativeHistoricalRestoreCandidateProof proof, string reviewRevision,
+        string choiceRevision, string sourceRevision, JsonArray targets, JsonArray choices, Dictionary<string, string> frameHashes, string authority)
+    {
+        internal readonly string Token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        internal readonly NativeHistoricalRestoreCandidateProof Proof = proof;
+        internal readonly string ReviewRevision = reviewRevision, ChoiceRevision = choiceRevision, RestoreSourceRevision = sourceRevision, CompletionAuthority = authority;
+        internal readonly JsonArray Targets = targets.DeepClone().AsArray(), Choices = choices.DeepClone().AsArray();
+        internal readonly Dictionary<string, string> OriginalHashes = frameHashes;
+        internal bool WriterGateChecked;
+        internal NativeBookSaveState? SavedReceipt = null;
+        internal PersonalActorDecisionCompletion? Completion = null;
+    }
     // Volatile authenticated-origin quarantine, never normal data/save/ACK authority.
     private sealed class ActorTargetOrigin(string source, JsonObject scope)
     {
@@ -53,6 +67,7 @@ internal sealed partial class TelefonCoordinator
         internal Dictionary<string, JsonObject> CompletionDeferredControls { get; } = new(StringComparer.Ordinal);
         internal bool StartDispatched { get; set; }
         internal ActorTargetOrigin? IncomingTargetOrigin { get; set; }
+        internal ActorHistoricalSaveClaim? HistoricalSaveClaim { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -386,7 +401,11 @@ internal sealed partial class TelefonCoordinator
         IReadOnlyList<JsonObject> choices, CancellationToken cancellation = default)
     {
         var copied = choices.Select(value => value.DeepClone().AsObject()).ToArray();
-        return WithPersonalActorStoreAsync(registry => {
+        return WithPersonalActorStoreAsync(registry => ReviewPersonalActorHistoricalRestore(registry, handle, expectedRevision, copied), cancellation);
+    }
+
+    private JsonObject ReviewPersonalActorHistoricalRestore(PersonalSyncActorStore registry, PersonalActorHandle handle, string expectedRevision, IReadOnlyList<JsonObject> copied)
+    {
             var view = ReviewPersonalActorIncomingTargets(registry, handle);
             var draft = ReviewPersonalActorIncomingTargets(registry, handle, expectedRevision, copied);
             if (draft["decisions"]!.AsArray().OfType<JsonObject>().Any(value => value["decision"]!.GetValue<string>() != "restore"))
@@ -427,8 +446,79 @@ internal sealed partial class TelefonCoordinator
                 ["saved_book"] = new JsonObject { ["book_source"] = captured.SavedBook.BookSource, ["sequence"] = captured.SavedBook.Sequence,
                     ["sha256"] = captured.SavedBook.Sha256 }, ["sources"] = sourceNodes.DeepClone() });
             return result;
+    }
+
+    // Native writer preparation only, no public/MCP/IPC route or document I/O.
+    internal Task<JsonObject> PreparePersonalActorHistoricalRestoreSaveAsync(PersonalActorHandle handle, string expectedRevision,
+        IReadOnlyList<JsonObject> choices, string candidateText, CancellationToken cancellation = default)
+    {
+        var copied = choices.Select(value => value.DeepClone().AsObject()).ToArray();
+        return WithPersonalActorStoreAsync(registry => {
+            var initial = PersonalActorTargetOriginCurrent(registry, handle); var admission = initial.Admission;
+            if (admission.HistoricalSaveClaim is not null) throw new InvalidOperationException("actor_historical_save_already_prepared");
+            var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+            if (personalSync.DecisionIntents(Now()).Any(value => value.PeerId == privatePeer && value.Body["run_id"]?.GetValue<string>() == handle.ActorId) ||
+                admission.ProducerBodies is not null || admission.CommitPlan is not null || admission.Completion is not null)
+                throw new InvalidOperationException("actor_historical_mixed_group_not_ready");
+            registry.RequireHistoricalDataIdle(handle, initial.Scope);
+            var reviewed = ReviewPersonalActorHistoricalRestore(registry, handle, expectedRevision, copied);
+            var targets = reviewed["local_restore_sources"]!.AsArray().Select(value => value!["target"]!.DeepClone().AsObject()).ToArray();
+            var request = personalSync.LoadRun(privatePeer, handle.ActorId, Now()) ?? throw new InvalidOperationException("actor_target_origin_run_retired");
+            var proof = NativeHistoricalRestoreCandidateProof.Prepare(admission.PeerId, handle.ActorId, checked((int)TelefonProtocolContract.Integer(request.Request["format"])),
+                targets, copied, candidateText, () => ReferenceEquals(PersonalActorTargetOriginCurrent(registry, handle).Admission, admission),
+                () => PersonalActorTargetOriginCurrent(registry, handle).Source, NativeProducerBook,
+                () => admission.Connection.CurrentContentScope(admission.Scope));
+            var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+            var authority = CurrentActorCompletionAuthority(admission.PeerId, fingerprint) ?? throw new InvalidOperationException("actor_historical_completion_source_unavailable");
+            var origin = admission.IncomingTargetOrigin ?? throw new InvalidOperationException("actor_target_origin_missing");
+            var hashes = ReadPersonalActorIncomingTargetFrames(registry, handle).ToDictionary(wire => wire["message_id"]!.GetValue<string>(), PersonalSyncContract.ProjectionHash, StringComparer.Ordinal);
+            var plan = new ActorHistoricalSaveClaim(proof, expectedRevision, reviewed["choice_revision"]!.GetValue<string>(), reviewed["restore_source_revision"]!.GetValue<string>(),
+                new JsonArray(targets.Select(value => (JsonNode)value.DeepClone()).ToArray()), new JsonArray(copied.Select(value => (JsonNode)value.DeepClone()).ToArray()), hashes, authority);
+            bool? NativeGuard(string operation, JsonObject? wire)
+            {
+                if (plan.Completion is { } terminal) return operation == "save" ? false : terminal.Validator(operation == "maintain" ? "read" : operation, wire);
+                if (operation is not ("begin" or "save")) return null;
+                if (!ReferenceEquals(actorAdmissions.GetValueOrDefault(handle.ActorId), admission) || !ReferenceEquals(admission.HistoricalSaveClaim, plan) ||
+                    online.GetValueOrDefault(admission.PeerId) != admission.Connection || !ReferenceEquals(admission.IncomingTargetOrigin, origin)) return false;
+                var source = CurrentActorSource(admission.PeerId, fingerprint);
+                if (source is null) return null;
+                if (source != initial.Source) return false;
+                var scope = admission.Connection.CurrentContentScope(admission.Scope);
+                CheckPersonalActorTargetOrigin(origin, source, scope);
+                if (!JsonNode.DeepEquals(scope, initial.Scope)) return false;
+                var frames = origin.Frames.Values.Select(clear => JsonNode.Parse(clear)!.AsObject()).ToArray();
+                if (frames.Length != hashes.Count || frames.Any(frame => hashes.GetValueOrDefault(frame["message_id"]!.GetValue<string>()) != PersonalSyncContract.ProjectionHash(frame))) return false;
+                foreach (var frame in frames) registry.ValidateHistoricalTargetEnvelope(handle, frame);
+                var snapshot = NativeProducerBook(); var saved = NativeSavedBook();
+                if (snapshot is null || saved is null) return null;
+                return snapshot.SavedBook == proof.BeforeSavedBook && saved == snapshot.SavedBook;
+            }
+            admission.HistoricalSaveClaim = plan;
+            try { registry.BeginCompletion(handle, NativeGuard); registry.CheckHistoricalSave(handle); }
+            catch
+            {
+                admission.HistoricalSaveClaim = null;
+                registry.Cancel(handle);
+                throw;
+            }
+            return new JsonObject { ["claim_token"] = plan.Token, ["after_sha256"] = proof.AfterSha256, ["before_sequence"] = proof.BeforeSavedBook.Sequence,
+                ["book_source"] = proof.BeforeSavedBook.BookSource, ["data_closed"] = true, ["book_persisted"] = false, ["phone_persisted"] = false };
         }, cancellation);
     }
+
+    // Called under the retained native writer/source guard immediately before
+    // writing exactly candidateText. Invocation is single-use, not a SaveACK.
+    internal Task<JsonObject> CheckPersonalActorHistoricalRestoreSaveAsync(PersonalActorHandle handle, string claimToken, string candidateText,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.HistoricalSaveClaim is not { } plan ||
+            claimToken != plan.Token) throw new InvalidOperationException("actor_historical_save_claim_unavailable");
+        if (plan.WriterGateChecked) throw new InvalidOperationException("actor_historical_writer_claim_already_used");
+        if (candidateText.Length > 256L * 1024 * 1024 || Encoding.UTF8.GetByteCount(candidateText) > 256L * 1024 * 1024 ||
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidateText))).ToLowerInvariant() != plan.Proof.AfterSha256)
+            throw new InvalidOperationException("actor_historical_writer_payload_changed");
+        registry.CheckHistoricalSave(handle); plan.WriterGateChecked = true;
+        return new JsonObject { ["writer_invocation_checked"] = true, ["book_persisted"] = false };
+    }, cancellation);
 
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
     {
@@ -914,6 +1004,7 @@ internal sealed partial class TelefonCoordinator
             result["deletion_book_persisted"] = admission.LateSaveReceipt is not null;
             result["phone_data_persisted"] = admission.PhoneDataPersisted;
             result["phone_persisted"] = admission.PhonePersisted; result["completion_report_queued"] = admission.CompletionReportId.Length != 0;
+            if (admission.HistoricalSaveClaim is { } historical) result["historical_book_persisted"] = historical.SavedReceipt is not null;
             if (admission.Completion is not null) result["deletion_completion"] = admission.Completion.Summary();
         }
         return result;
@@ -1169,6 +1260,8 @@ internal sealed partial class TelefonCoordinator
                     catch (Microsoft.Data.Sqlite.SqliteException) { return DeferPersonalActorPeerAcknowledgment(admission, message); }
                     return true;
                 }
+                if (admission.HistoricalSaveClaim is not null)
+                    return true; // Prepared data-closed owner: no raw/content staging, SaveACK or earned receipt yet.
                 if (admission.ReportOwner is not null)
                 {
                     registry.PutCompletionControl(admission.Handle, message);
@@ -1466,6 +1559,7 @@ internal sealed partial class TelefonCoordinator
                             continue; // Retain the bound cancellation target until its lease expires.
                     }
                     catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
+                    if (admission.HistoricalSaveClaim is not null && admission.Completion is null) continue;
                     if (admission.Completion is not null)
                     {
                         foreach (var pending in admission.CompletionDeferredControls.Values.ToArray())
