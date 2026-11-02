@@ -139,7 +139,20 @@ while blocking ordinary data/control I/O. Protected-read uncertainty or observed
 pairing replacement fences the adapter; a new native owner must explicitly
 reauthorize a mismatched policy. Source requests require the same native pairing
 association. This is neither an Android READ grant nor automatic synchronization.
-Actual channel/peer builders and handler registration are still separate work.
+Dispatcher registration and physical channel/phone acceptance remain separate
+work; native peer/control-channel adapters are described below.
+
+### Actual secure-channel control writes (not dispatcher registration)
+
+`NativeFileControlChannel` validates the bounded complete control envelope and
+exact native channel owner. Send completion is recorded only after the actual
+synchronous `TelefonSecureChannel.send` encrypted-frame write returns and native
+scope is rechecked. Failed or stale writes close this file adapter's authority,
+not the shared phone socket. Expired/oversized/wrong-kind/header-invalid envelopes
+do not become control metadata. Four targeted cases pass, including decrypting
+the actually written frame, bilateral echo, native write failure and owner change
+during output. This is synthetic native channel I/O, not a physical phone test.
+The adapter does not register a dispatcher, advertise discovery or start work.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
