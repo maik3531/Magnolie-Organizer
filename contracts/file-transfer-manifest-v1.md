@@ -274,6 +274,16 @@ stale results never migrate to another source or revoke app-wide rights. No
 remote packet supplies that authority. Its real activity lifecycle/permission
 launcher and authenticated desktop-policy adapters are still to be connected;
 this controller does not start UI or request permissions on construction.
+`GalleryPhotoPermissionLauncher` provides the concrete AndroidX
+`ComponentActivity`/`RequestMultiplePermissions` adapter and native lifecycle
+hooks. Construction registers only; an explicit native foreground/UI-thread
+request is required. Background requests fail as foreground-required rather than
+launching an activity; old results after recreation/destruction cannot reconstruct
+native tickets. Five actual AndroidX/Robolectric lifecycle/result-dispatch cases
+pass without touching personal state. The adapter is not yet instantiated by
+MainActivity or an authenticated desktop command; background notification-tap
+handoff and physical OS-dialog acceptance remain outstanding. No phone settings
+surface has been added.
 `AndroidGalleryPhotoSource` now inventories only the selected native image album
 using bounded keyset pages (32 rows, at most 128 images/400 MiB, 30-second scan
 deadline). Every returned member must match its bucket, label and modern relative
