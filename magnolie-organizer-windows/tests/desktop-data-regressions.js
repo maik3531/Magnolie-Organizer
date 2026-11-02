@@ -14,6 +14,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
 (async () => {
   let count = 0;
   for (const web of harness.exports.roots) {
+    const isWindows = path.resolve(web) === path.resolve(__dirname, "../app/web");
     for (const action of ["newer-selection", "remove"]) {
       const b = await harness.exports.boot(web, { kontakte: [{ id: "photo", uid: "photo-source",
         vorname: "Photo", nachname: "Fixture", foto: "data:image/png;base64,AQID" }] });
@@ -91,7 +92,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
             syncQuellen: mutation === "retry" ? { source: { id: "created-in-flight", etag: "observed" } } : {} });
         }
         b.t.speichereJetzt(); b.ack();
-        if (mutation === "retry" && path.resolve(web) === path.resolve(__dirname, "../app/web")) {
+        if (mutation === "retry" && isWindows) {
           b.t.starteSync(false); b.ack();
           assert.equal(b.messages.filter(message => message.cmd === "sync").at(-1).transactionId, request.transactionId);
         }
@@ -158,7 +159,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.equal(commits().length, 1);
       const persisted = JSON.parse(b.saves().at(-1).text);
       assert.equal(persisted.syncMetadaten.ersteSyncLoeschungsfrei, false);
-      if (web.includes("Windows")) assert.equal(persisted.syncNachRestore, null);
+      if (isWindows) assert.equal(persisted.syncNachRestore, null);
       b.t.daten().aufgaben.push({ id: "after", uid: "after", titel: "After completion" });
       b.w.App.syncFertig(response);
       assert.ok(b.t.daten().aufgaben.some(item => item.id === "after"), "Duplicate completion discarded a later edit");
