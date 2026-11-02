@@ -142,3 +142,28 @@ deleting keys, constructing a personal phone store or migrating settings.
 AEAD entries are bound to the native context and bounded before key lookup.
 This separate primitive leaves existing general phone-storage behavior unchanged;
 it still needs to be connected to the protected Android staging/source policy.
+
+## Android photo-source consent groundwork
+
+`PhotoFolderScope` captures a native picker ticket before an explicit system
+tree selection. The result cannot migrate to another peer, key, native lifecycle
+owner or transfer-permission epoch. Selecting a source creates an off preference;
+enabling is a separate explicit action requiring a ready, paired own receiver,
+both relevant grants, the negotiated manifest version and persisted read access.
+Leases bind the exact dedicated source preference/version, receiver and observed
+read-grant stamp. Ordinary book saves do not change that dedicated source state.
+Pending pickers, repair fences, revoked rights and stale owners prevent use.
+
+`AndroidReadOnlyPhotoTrees` accepts canonical content-tree URIs only and requests
+persistable READ, never WRITE. It does not release app-wide Android permissions
+when a source changes or is disabled; those rights may belong to backup/import
+features too. A missing READ grant is not a gallery/default-folder fallback.
+The adapter's resolver tests use a synthetic Robolectric application and grants,
+not a physical user's system picker or personal provider.
+
+The source preference store currently remains a native CAS/readback/fence
+interface, tested with a bounded model. Its concrete protected file, explicit
+repair flow and actual native picker/controller still need integration, as do
+bounded SAF enumeration/frozen source snapshots and the transfer handlers.
+These source classes alone do not expose a photo-sync UI, scan photos, schedule
+work, change existing permissions or advertise a feature.
