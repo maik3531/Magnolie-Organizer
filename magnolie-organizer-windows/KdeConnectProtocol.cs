@@ -9,7 +9,11 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed record KdeConnectPacket(long Id, string Type, JsonObject Body);
+internal sealed record KdeConnectPacket(long Id, string Type, JsonObject Body)
+{
+    internal long? PayloadSize { get; init; }
+    internal int? PayloadPort { get; init; }
+}
 internal sealed record KdeConnectIdentity(string DeviceId, string DeviceName, int TcpPort,
     string[] IncomingCapabilities, string[] OutgoingCapabilities, string DeviceType = "phone");
 internal sealed record KdeConnectNormalizedSms(string Text, int Units, int Segments, bool Changed);
@@ -69,7 +73,9 @@ internal static class KdeConnectProtocol
             root = JsonNode.Parse(bytes[..^1]) as JsonObject ?? throw new InvalidDataException("Das KDE-Connect-Paket ist kein Objekt.");
         }
         catch (JsonException error) { throw new InvalidDataException("Ungültiges KDE-Connect-JSON.", error); }
-        if (root.Count != 3 || !root.ContainsKey("id") || !root.ContainsKey("type") || !root.ContainsKey("body"))
+        var hasPayload = root.ContainsKey("payloadSize") || root.ContainsKey("payloadTransferInfo");
+        if (root.Count != (hasPayload ? 5 : 3) || !root.ContainsKey("id") || !root.ContainsKey("type") || !root.ContainsKey("body") ||
+            hasPayload && (!root.ContainsKey("payloadSize") || !root.ContainsKey("payloadTransferInfo")))
             throw new InvalidDataException("Ungültiger KDE-Connect-Paketkopf.");
         long id;
         string type;
@@ -80,7 +86,23 @@ internal static class KdeConnectProtocol
             throw new InvalidDataException("Ungültiger KDE-Connect-Paketkopf.");
         if (bytes.Length > MaxPacketBytes && !IsContactResponse(type))
             throw new InvalidDataException("Das KDE-Connect-Paket ist zu groß.");
-        return new KdeConnectPacket(id, type, body.DeepClone().AsObject());
+        long? payloadSize = null;
+        int? payloadPort = null;
+        if (hasPayload)
+        {
+            if (type != KdeShareProtocol.Request || root["payloadTransferInfo"] is not JsonObject info ||
+                info.Count != 1 || !info.ContainsKey("port")) throw new InvalidDataException("invalid_share_payload_header");
+            payloadSize = KdeShareProtocol.Integer(root["payloadSize"]);
+            var port = KdeShareProtocol.Integer(info["port"]);
+            if (payloadSize > KdeShareProtocol.MaxFileBytes || port is < FirstPort or > LastPort)
+                throw new InvalidDataException("invalid_share_payload_header");
+            payloadPort = (int)port;
+        }
+        var packet = new KdeConnectPacket(id, type, body.DeepClone().AsObject())
+            { PayloadSize = payloadSize, PayloadPort = payloadPort };
+        if (type == KdeShareProtocol.Request) KdeShareProtocol.Parse(packet);
+        if (type == KdeShareProtocol.Update) KdeShareProtocol.ParseUpdate(packet.Body);
+        return packet;
     }
 
     internal static async Task<KdeConnectPacket> ReadAsync(Stream stream, CancellationToken cancellationToken,
