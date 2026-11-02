@@ -285,6 +285,29 @@ class Prueffenster(m.Fenster):
     }
     OrganizerTest.schliesseEinstellungen();
   }
+  phase("empty-time-print-preview");
+  App.init({daten: JSON.parse(JSON.stringify(basis)), datenPfad: "/tmp/magnolie-layout",
+    regional: {language: "en", formatLocale: "en-US", timeZone: "UTC"}, neu: false});
+  OrganizerTest.zustand().planer.jahr = 2026;
+  OrganizerTest.zustand().kalender.monat = 10;
+  const roots = new WeakMap(), originalAttach = Element.prototype.attachShadow;
+  Element.prototype.attachShadow = function(options) {
+    const root = originalAttach.call(this, options); roots.set(this, root); return root;
+  };
+  try {
+    const preview = OrganizerTest.oeffneDruckvorschau(null, "planer");
+    const choice = preview.querySelector("#planer-druck-art"); choice.value = "time";
+    choice.dispatchEvent(new Event("change", {bubbles:true}));
+    await warten();
+    const host = preview.querySelector(".zeit-druck-rahmen"), root = roots.get(host);
+    const table = root?.querySelector("table"), bounds = table?.getBoundingClientRect();
+    if (preview.querySelector("iframe") || !document.querySelector('meta[http-equiv="Content-Security-Policy"]').content.includes("frame-src 'none'") ||
+        !bounds || bounds.width < 100 || bounds.height < 100 ||
+        root.querySelectorAll("tbody tr:not(.totals)").length !== 40 ||
+        root.querySelectorAll("thead tr:last-child th").length !== 6 ||
+        Array.from(root.querySelectorAll("tbody tr:not(.totals)")).filter(row => row.cells[0].textContent.trim()).length !== 30)
+      throw new Error("Empty time-print table is not rendered under the unchanged no-frame CSP");
+  } finally { Element.prototype.attachShadow = originalAttach; }
   window.webkit.messageHandlers[window.__MAGNOLIE_BRUECKE__].postMessage(
     JSON.stringify({cmd: "ui_ueberlauf", fehler}));
  } catch (fehler) {

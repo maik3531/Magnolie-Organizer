@@ -17,6 +17,10 @@ for (const web of sources) {
     url: "https://time.invalid/", runScripts: "outside-only", pretendToBeVisual: true
   });
   const w = dom.window;
+  const previewRoots = new WeakMap(), attachShadow = w.Element.prototype.attachShadow;
+  w.Element.prototype.attachShadow = function (options) {
+    const root = attachShadow.call(this, options); previewRoots.set(this, root); return root;
+  };
   w.setTimeout = w.setInterval = w.requestAnimationFrame = () => 0;
   w.HTMLElement.prototype.scrollIntoView = () => {};
   w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
@@ -110,18 +114,26 @@ for (const web of sources) {
   const preview = t.oeffneDruckvorschau(null, "planer");
   const layout = preview.querySelector("#planer-druck-art"); layout.value = "time";
   layout.dispatchEvent(new w.Event("change", { bubbles: true }));
-  assert.ok(preview.querySelector("iframe[sandbox]"));
+  assert.match(w.document.querySelector('meta[http-equiv="Content-Security-Policy"]').content, /frame-src 'none'/);
+  assert.equal(preview.querySelector("iframe"), null, "Do not bypass the application's no-frame CSP for printing");
+  const previewTable = () => previewRoots.get(preview.querySelector(".zeit-druck-rahmen"));
+  assert.equal(previewTable().querySelectorAll("tbody tr:not(.totals)").length, 40);
   assert.equal(preview.querySelectorAll("[data-zeit-druck-tag]:checked").length, 31);
   const allDays = preview.querySelector("#zeit-druck-alle-tage"); allDays.click();
   assert.equal(button(preview, "ODS").disabled, true);
   assert.equal(button(preview, "Print now").disabled, true);
-  assert.equal(preview.querySelector("iframe"), null);
+  assert.equal(preview.querySelector(".zeit-druck-rahmen"), null);
   preview.querySelector('[data-zeit-druck-tag="4"]').click();
   assert.equal(allDays.indeterminate, true);
   assert.equal(button(preview, "ODS").disabled, false);
   const monthChoice = preview.querySelector("#planer-druck-monat"); monthChoice.value = "1";
   monthChoice.dispatchEvent(new w.Event("change", { bubbles: true }));
   assert.equal(preview.querySelectorAll("[data-zeit-druck-tag]:checked").length, 28);
+  assert.equal(previewTable().querySelectorAll("thead tr:last-child th").length, 6);
+  assert.equal(previewTable().querySelectorAll("tbody tr:not(.totals)").length, 40,
+    "An empty month must still show the blank writing table");
+  assert.equal(Array.from(previewTable().querySelectorAll("tbody tr:not(.totals)"))
+    .filter(row => row.cells[0].textContent.trim()).length, 28);
   assert.equal(allDays.checked, true); assert.equal(allDays.indeterminate, false);
   monthChoice.value = "9"; monthChoice.dispatchEvent(new w.Event("change", { bubbles: true }));
   assert.equal(preview.querySelectorAll("[data-zeit-druck-tag]:checked").length, 31);

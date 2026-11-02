@@ -13377,9 +13377,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const payload = zeitOdsNutzlast(zustand.planer.jahr, wahl.monat, zeitName.value, tage);
         modell = { art: "time", sheet: payload.sheet };
         monatZeile.style.display = ""; vorschau.textContent = "";
-        const rahmen = document.createElement("iframe"); rahmen.className = "zeit-druck-rahmen";
-        rahmen.title = payload.sheet.labels.title; rahmen.setAttribute("sandbox", "");
-        rahmen.srcdoc = zeitDruckSeite(payload.sheet).replace("</style>", "@media screen{body{zoom:.6}}</style>");
+        // Frames are deliberately forbidden by the application CSP. Render the
+        // escaped print document in a style-isolated local preview instead.
+        const rahmen = el("div", "zeit-druck-rahmen");
+        rahmen.setAttribute("role", "region"); rahmen.setAttribute("aria-label", payload.sheet.labels.title);
+        const dokument = new DOMParser().parseFromString(zeitDruckSeite(payload.sheet), "text/html");
+        const schatten = rahmen.attachShadow({ mode: "closed" }), stil = document.createElement("style");
+        stil.textContent = dokument.querySelector("style").textContent.replace(/body\{/g, ".zeit-vorschau-seite{") +
+          ":host{display:block;overflow:auto;background:white}.zeit-vorschau-seite{zoom:.6}";
+        const seite = el("div", "zeit-vorschau-seite");
+        seite.lang = dokument.documentElement.lang; seite.dir = dokument.documentElement.dir;
+        seite.innerHTML = dokument.body.innerHTML; schatten.append(stil, seite);
         vorschau.append(rahmen); vorschau.setAttribute("aria-busy", "false");
         kopf.querySelector("h2").textContent = uebersetzt("Print · %(title)s", { title: payload.sheet.labels.title + " · " + payload.sheet.monthTitle });
         druckKnopf.disabled = odsKnopf.disabled = faxKnopf.disabled = false;
