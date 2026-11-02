@@ -281,6 +281,18 @@ class NativeFileReceiveOperation:
                 self._failed = True
                 raise
 
+    def saved_receipt_message(self,*,now=None,message_id=None):
+        """Fresh protected readback of complete historical local receipts only.
+        No publication, re-publication, receipt construction or quota retirement.
+        """
+        from magnolie_file_saved_message import create_saved
+        with self._gate:
+            self._require()
+            receipts=self._index.saved_receipts()
+            result=create_saved(self._accepted,receipts,self._current,self.job.owner,now=now,message_id=message_id)
+            self._require()
+            return result
+
     def close(self):
         with self._gate:
             if self._closed:

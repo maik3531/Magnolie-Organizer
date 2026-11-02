@@ -154,6 +154,31 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         // A completed chunk write releases no source quota or whole-run owner.
     }
 
+    internal fun observeRemoteSaved(message: JsonObject, now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        val run=syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+        val accepted=run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
+        fun authority() {
+            if (run.cancelRequested || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+                DeviceFileControl.fail("file_saved_authority_changed")
+        }
+        authority()
+        val job=run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        val selected=run.selection
+        val source=workflow.source(job,selected.catalog.source,selected.album,selected.desktopChoice)
+        val confirmation=DeviceFileSavedEnvelope.parse(message,source.manifest,now())
+        if (confirmation.transferId != accepted.transferId || confirmation.manifestSha256 != accepted.manifestSha256 ||
+            confirmation.acceptanceSha256 != accepted.acceptanceSha256 || confirmation.permissionEpoch != accepted.permissionEpoch ||
+            confirmation.destinationToken != accepted.destinationToken) DeviceFileControl.fail("file_saved_acceptance_changed")
+        val prior=run.remoteSaved.get()
+        if (prior != null && prior.fingerprint != confirmation.fingerprint) DeviceFileControl.fail("file_saved_already_bound")
+        authority()
+        if (source.manifest.fingerprint != confirmation.manifestSha256 || now() >= confirmation.expires)
+            DeviceFileControl.fail("file_saved_authority_changed")
+        run.remoteSaved.set(prior ?: confirmation)
+        // Do not retire source quota, commit photo baselines or report whole-run
+        // success from a remote historical assertion. Those native steps differ.
+    }
+
     /** Only an explicitly stopped run can end here. This neither reports sync
      * success nor retires source quota; data/publication receipts remain separate. */
     internal fun endStoppedSyncRun(run: NativeGallerySyncRun) = withOperation {

@@ -747,6 +747,44 @@ member retained/fenced, native revocation/close/publication and exclusive receiv
 ownership. This API starts no timer or background loop and is not a physical
 restart/end-to-end phone acceptance.
 
+### Historical local-save confirmation, not synchronization END
+
+`file_transfer.saved` projects a complete set of protected receiver-local saved
+receipts. Its strict envelope has at most 60 seconds TTL, strict expiry and the
+existing complete-application budget (262144 bytes). Inner format 1 has exactly
+`transfer_id`, `manifest_sha256`, `acceptance_sha256`, `permission_epoch`,
+`destination_token`, `receipts`. Every manifest member appears once in manifest
+order, with exactly `file_id`, integer `size`, `sha256`, `receipt_sha256` (the
+protected local record hash). Full manifest hashes/sizes/IDs must match; a partial
+or duplicate set, path, native file key, grant, quota or sync-success claim fails.
+
+Linux `saved_receipt_message` reads the actual protected index receipts afresh,
+including their native DB/directory durability checks, under current native
+destination/binding authority. Verified chunk totals and physically published but
+unreceipted files cannot produce this message. Receipt construction/publication
+is a separate explicit local operation. Reopened historical receipts can be
+projected without repeating publication or overwriting later PC edits. Partial
+receipt commit/recovery remains held, never represented as a complete set.
+
+The phone independently binds the remote historical assertion to its exact
+noncancelled native run, immutable acceptance, current permission epoch and actual
+protected frozen-source manifest. Deadlines are checked again after native work.
+Identical content is idempotent; a different receipt set cannot silently rebind it.
+The immutable remote metadata is **not** a native phone saved receipt, evidence of
+current destination presence, photo-baseline commit, source quota retirement or
+whole synchronization success. The native whole-run slot and cached source stay
+held. Phone restart recovery and explicit baseline/quota completion remain open.
+
+Four Android cases pass (strict full-128-member codec two, actual runtime lifecycle
+one, actual-Werk reconnect one); Linux passes 14 targeted real saved-receipt/
+protected-readback/history/partial-commit cases. The Windows pure saved-confirmation
+group passes, without implying native receiver admission or publication support.
+These source-host/Robolectric/synthetic checks are not physical phone, installed
+GUI, real power-loss or full end-to-end synchronization acceptance. Desktop
+coordinator/activation/Pictures preferences/advanced UI, complete recovery/photo
+baselines and native quota completion remain outstanding. No package, automatic
+run or discovery 21 advertisement is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

@@ -523,6 +523,26 @@ class AndroidGalleryPhotoSourceTest {
                         assertEquals(DeviceFileChunkEnvelope.RESULT,chunk.string("kind"))
                         assertEquals(chunkRequest.string("message_id"),chunk["body"]!!.jsonObject.string("request_id"))
                         assertArrayEquals("hello".toByteArray(),java.util.Base64.getDecoder().decode(chunk["body"]!!.jsonObject.string("data_base64")))
+                        val savedMessage=TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND,buildJsonObject {
+                            put("format",1);put("transfer_id",manifest!!.transferId);put("manifest_sha256",manifest!!.fingerprint)
+                            put("acceptance_sha256","c".repeat(64));put("permission_epoch",runtime.currentRequest()!!.receiver.permissionEpoch)
+                            put("destination_token","e".repeat(64));put("receipts",JsonArray(manifest!!.files.map { file -> buildJsonObject {
+                                put("file_id",file.id);put("size",file.size);put("sha256",file.sha256);put("receipt_sha256","0".repeat(64))
+                            } }))
+                        },60_000,now)
+                        val incompleteSaved=JsonObject(savedMessage+("body" to JsonObject(savedMessage["body"]!!.jsonObject+("receipts" to JsonArray(emptyList())))))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.observeRemoteSaved(incompleteSaved,{now}) }
+                        assertNull(whole.remoteSaved.get())
+                        var savedTicks=0
+                        assertThrows(PhotoFolderScopeError::class.java) {
+                            runtime.observeRemoteSaved(savedMessage,{if (++savedTicks>=2) now+60_000 else now})
+                        }
+                        assertNull(whole.remoteSaved.get())
+                        runtime.observeRemoteSaved(savedMessage,{now})
+                        val historical=whole.remoteSaved.get()!!
+                        runtime.observeRemoteSaved(savedMessage,{now});assertSame(historical,whole.remoteSaved.get())
+                        assertEquals(manifest!!.files.single().id,historical.members.single().fileId)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(selected) }
                         val replacement=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+("destination_token" to JsonPrimitive("f".repeat(64))))))
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(replacement,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole,{},now) }
@@ -533,6 +553,7 @@ class AndroidGalleryPhotoSourceTest {
                         assertTrue(whole.cancelRequested)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(acceptance,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveChunkRequest(chunkRequest,channel::send,{now}) }
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.observeRemoteSaved(savedMessage,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole, {}, now) }
                         runtime.endStoppedSyncRun(whole)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }
