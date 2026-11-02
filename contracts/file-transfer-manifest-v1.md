@@ -161,9 +161,22 @@ features too. A missing READ grant is not a gallery/default-folder fallback.
 The adapter's resolver tests use a synthetic Robolectric application and grants,
 not a physical user's system picker or personal provider.
 
-The source preference store currently remains a native CAS/readback/fence
-interface, tested with a bounded model. Its concrete protected file, explicit
-repair flow and actual native picker/controller still need integration, as do
-bounded SAF enumeration/frozen source snapshots and the transfer handlers.
+`ProtectedPhotoFolderPreferences` implements the dedicated source store using
+existing-key AEAD protection, a native process/file publication gate, exact
+ciphertext versions and actual readback. It requires an existing private native
+directory, not a SAF or peer-supplied path. Before replacing source state it
+durably creates an encrypted repair fence preserving both the before and wanted
+ciphertexts. Missing state alone means off; malformed state/fences and missing
+keys never become defaults. Failed/uncertain changes remain fenced, including
+after recreating the store. Concurrent bytes are not rolled back or accepted as
+a new baseline.
+
+Explicit native repair inspection accepts only the exact authenticated before
+or wanted ciphertext. Acknowledgement rechecks the inspected state and fence
+under the publication gate; unknown concurrent states and invalid fences stay
+blocked and preserved. Repair does not choose a new source or enable permission
+by itself. This storage boundary is not yet wired to the native picker/controller
+or repair UI. Bounded SAF enumeration/frozen source snapshots and transfer
+handlers also remain outstanding.
 These source classes alone do not expose a photo-sync UI, scan photos, schedule
 work, change existing permissions or advertise a feature.
