@@ -53,6 +53,18 @@ class ScopedDataRuntimeTest {
     @Test fun rawActorJournalCannotSupplyAuthenticatedHistoricalOrigin() = exercise("actor-deletions-origin-raw")
     @Test fun conflictingHistoricalFrameRetiresItsPrivateOrigin() = exercise("actor-deletions-origin-conflict")
     @Test fun historicalOriginCannotSurviveNativeGrantRevocation() = exercise("actor-deletions-origin-grants")
+    @Test fun nativeHistoricalRestoreClosesDataBeforeOneSaveAndKeepsScopeFrozenUntilTheExactDecisionReceipt() = exercise("actor-deletions-origin-pending-save")
+    @Test fun nativeHistoricalTaskRestoreKeepsOriginalDataScopeUntilItsExactReceipt() = exercise("actor-deletions-origin-pending-save-task")
+    @Test fun nativeHistoricalRestoreAcross256MembersKeepsTheOriginalAcceptedScopePartsUntilCompletion() = exercise("actor-deletions-origin-pending-save-boundary")
+    @Test fun nativeHistoricalWriterFailureDoesNotRestoreOrSendAndCannotReplayTheClosedOwner() = exercise("actor-deletions-origin-pending-save-writer-failure")
+    @Test fun nativeHistoricalSaveRejectsAChangedBookReviewWithoutOverwritingTheUserChange() = exercise("actor-deletions-origin-pending-save-before-book")
+    @Test fun nativeHistoricalSaveRejectsAChangedOriginalFrame() = exercise("actor-deletions-origin-pending-save-before-frame")
+    @Test fun nativeHistoricalSaveRejectsAChangedChoiceClock() = exercise("actor-deletions-origin-pending-save-before-clock")
+    @Test fun nativeHistoricalSaveCannotSkipAnOrdinaryUnresolvedIntentGroup() = exercise("actor-deletions-origin-pending-save-before-intents")
+    @Test fun nativeHistoricalSaveCannotAdoptAReplacementBookInstance() = exercise("actor-deletions-origin-pending-save-before-instance")
+    @Test fun nativeHistoricalSavedReceiptCannotSurviveAnIndependentBookWrite() = exercise("actor-deletions-origin-pending-save-after-book")
+    @Test fun nativeHistoricalSavedReceiptCannotSurviveGrantRevocation() = exercise("actor-deletions-origin-pending-save-after-grants")
+    @Test fun nativeHistoricalSavedReceiptCannotSurviveAReplacementBookInstance() = exercise("actor-deletions-origin-pending-save-after-instance")
     @Test fun actualPendingNoteOriginAndExplicitRestoreDraftPreserveTheEncryptedBookAndClosedDataScope() = exercise("actor-producer-origin-pending")
     @Test fun nativeActorCompleteReportCheckpointsAndPersistsPrivateReplyExactlyOnce() = exercise("actor-commit")
     @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
@@ -129,6 +141,9 @@ class ScopedDataRuntimeTest {
         val actorCommit = mode.startsWith("actor-commit")
         val actorTerminal = mode.startsWith("actor-commit-terminal")
         val actorProducer = mode.startsWith("actor-producer")
+        val historicalSave = mode.startsWith("actor-deletions-origin-pending-save")
+        val historicalTask = mode == "actor-deletions-origin-pending-save-task"
+        val historicalBoundary = mode == "actor-deletions-origin-pending-save-boundary"
         val actorAckFailure = mode in setOf("actor-commit-ack-failure", "actor-commit-terminal-auto-ack-failure")
         val nativeActor = actorDeletion || actorCommit || actorProducer || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -182,6 +197,14 @@ class ScopedDataRuntimeTest {
                 documents.loescheNotiz("removed-note")
                 documents.personalSyncSnapshot(setOf("notes"), 3)
                 assertEquals(33, PersonalSync.proposals(documents.bestand.value, peerId).count { it.kind == "attachment" })
+            }
+            if (historicalSave) {
+                if (historicalBoundary) repeat(254) { documents.setzeNotiz(Notiz("boundary-note-$it", text = "Synthetic boundary note $it")) }
+                if (historicalTask) documents.setzeAufgabe(Aufgabe("removed-task", titel = "Synthetic historical task"))
+                else documents.setzeNotiz(Notiz("removed-note", text = "Synthetic historical source"))
+                documents.personalSyncSnapshot(setOf("notes", "tasks"), 3); documents.personalSyncAcknowledge(peerId)
+                if (historicalTask) documents.loescheAufgabe("removed-task") else documents.loescheNotiz("removed-note")
+                documents.personalSyncSnapshot(setOf("notes", "tasks"), 3)
             }
             val deletionGrant = actorDeletion || actorTerminal || actorProducer && mode != "actor-producer-no-grants" || mode in setOf("delete", "skip-delete")
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
@@ -728,9 +751,11 @@ class ScopedDataRuntimeTest {
                         }
                         return@use
                     }
-                    val batch = batches.single { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
-                    val records = PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(batch.getValue("body").jsonObject).second)
-                    assertEquals(setOf("phone-note"), records.filter { it.kind == "note" }.map { it.id }.toSet())
+                    val snapshotBatches = batches.filter { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
+                    val batch = if (historicalBoundary) snapshotBatches.first() else snapshotBatches.single()
+                    val records = (if (historicalBoundary) snapshotBatches else listOf(batch))
+                        .flatMap { PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(it.getValue("body").jsonObject).second) }
+                    assertEquals(setOf("phone-note") + (if (historicalBoundary) (0..253).map { "boundary-note-$it" }.toSet() else emptySet()), records.filter { it.kind == "note" }.map { it.id }.toSet())
                     assertEquals(setOf("phone-task"), records.filter { it.kind == "task" }.map { it.id }.toSet())
                     ack(batch.string("message_id"))
                     assertEquals(batch, queue.outboxWireMessage(peerId, batch.string("message_id")))
@@ -740,7 +765,11 @@ class ScopedDataRuntimeTest {
                     work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                         PersonalSyncActor.ack(run, batch.string("message_id")), 60000), channel, 0L)
                     assertNull(queue.outboxWireMessage(peerId, batch.string("message_id"))); assertTrue(sent().isEmpty())
-                    val old = records.single { it.kind == "note" }
+                    if (historicalBoundary) snapshotBatches.drop(1).forEach { remaining ->
+                        work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                            PersonalSyncActor.ack(run, remaining.string("message_id")), 60000), channel, 0L)
+                    }
+                    val old = records.single { it.kind == "note" && it.id == "phone-note" }
                     if (actorDeletion) {
                         val privatePeer = PersonalSyncActor.storagePeer(run)
                         val proposalId = UUID.randomUUID().toString()
@@ -764,7 +793,12 @@ class ScopedDataRuntimeTest {
                         if (mode.startsWith("actor-deletions-origin")) {
                             @Suppress("UNCHECKED_CAST")
                             val handle = requireNotNull((field(TelefonWerk::class.java, "personalActorHandles").get(work) as Map<String, PersonalActorHandle>)[run])
-                            val historical = proposals(JsonObject(proposal + ("id" to JsonPrimitive("outside-scope"))))
+                            val restoredId = if (historicalTask) "removed-task" else "removed-note"
+                            val historical = if (historicalSave) {
+                                val meta = documents.bestand.value.personalSync.entities.getValue((if (historicalTask) "task" else "note") + "\u0000" + restoredId)
+                                proposals(JsonObject(proposal + mapOf("kind" to JsonPrimitive(if (historicalTask) "task" else "note"), "id" to JsonPrimitive(restoredId), "prior_hash" to JsonPrimitive(meta.prior_hash),
+                                    "clock" to JsonArray(meta.clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))))
+                            } else proposals(JsonObject(proposal + ("id" to JsonPrimitive("outside-scope"))))
                             val wire = PersonalSyncActor.wireMessage(historical, run)
                             val saved = documents.personalActorSavedBookState()
                             val bytes = java.io.File(context.filesDir, "notizen.json").readBytes()
@@ -778,6 +812,111 @@ class ScopedDataRuntimeTest {
                                 assertEquals(listOf(wire), work.readPersonalActorIncomingTargetFrames(handle))
                                 assertTrue(queue.actorDeletionIntents(run).isEmpty())
                                 assertTrue(runCatching { work.personalActorJournal.readWire(handle, wire.string("message_id")) }.isFailure)
+                                if (historicalSave) {
+                                    val beforeScope = checkNotNull(session.localContentScope)
+                                    if (historicalBoundary) {
+                                        assertEquals(256, session.contentScopeSelection!!.let { it.notes.size + it.tasks.size })
+                                        assertEquals(setOf(0), session.contentScopeAccepted)
+                                    }
+                                    val beforeAuthority = checkNotNull(work.currentActorCompletionAuthority(peerId, peer.static_public, channel, 0L))
+                                    val view = work.reviewPersonalActorIncomingTargets(handle)
+                                    val target = view.getValue("targets").jsonArray.single().jsonObject
+                                    val choices = listOf(buildJsonObject {
+                                        put("proposal_id", target.getValue("proposal_id")); put("decision", "restore")
+                                        put("expected_clock", target.getValue("clock")); put("confirm_conflict", true)
+                                    })
+                                    if (mode.contains("-before-")) {
+                                        var submitted = choices
+                                        when {
+                                            mode.endsWith("-book") -> documents.setzeNotiz(requireNotNull(documents.notiz("phone-note")).copy(text = "Synthetic independent change"))
+                                            mode.endsWith("-frame") -> { work.receiveMessage(peer, JsonObject(wire + ("expires_ms" to JsonPrimitive(wire.long("expires_ms") - 1))), channel, 0L); assertTrue(sent().isEmpty()) }
+                                            mode.endsWith("-clock") -> submitted = listOf(JsonObject(choices.single() + ("expected_clock" to JsonArray(listOf(buildJsonObject { put("actor_id", peerId); put("counter", 999) })))))
+                                            mode.endsWith("-intents") -> receive(valid)
+                                            mode.endsWith("-instance") -> field(Ablage::class.java, "einzig").set(null, Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") })
+                                        }
+                                        val active = Ablage.hole(context); val retained = active.bestand.value; val beforeSave = active.personalActorSavedBookState()
+                                        val expectedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                        assertTrue(runCatching { work.commitHistoricalActorTargetReview(handle, view.string("revision"), submitted) }.isFailure)
+                                        assertSame(retained, active.bestand.value); assertEquals(beforeSave, active.personalActorSavedBookState())
+                                        assertArrayEquals(expectedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                        assertEquals(beforeScope, session.localContentScope); assertNull(active.notiz("removed-note")); assertTrue(sent().isEmpty())
+                                        work.stopPersonalActor(handle)
+                                        return@use
+                                    }
+                                    if (mode.endsWith("-writer-failure")) {
+                                        failBookWrites.set(true)
+                                        assertTrue(runCatching { work.commitHistoricalActorTargetReview(handle, view.string("revision"), choices) }.isFailure)
+                                        failBookWrites.set(false)
+                                        assertSame(currentBook, documents.bestand.value); assertEquals(saved, documents.personalActorSavedBookState())
+                                        assertArrayEquals(bytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                        assertEquals("cancelled", work.personalActorJournal.completionState(handle))
+                                        assertTrue(runCatching { work.commitHistoricalActorTargetReview(handle, view.string("revision"), choices) }.isFailure)
+                                        assertNull(documents.notiz("removed-note")); assertTrue(sent().isEmpty())
+                                        return@use
+                                    }
+                                    assertEquals("completion", work.commitHistoricalActorTargetReview(handle, view.string("revision"), choices))
+                                    val after = checkNotNull(documents.personalActorSavedBookState())
+                                    assertEquals(checkNotNull(saved).getValue("sequence").jsonPrimitive.long + 1, after.getValue("sequence").jsonPrimitive.long)
+                                    assertEquals(saved["book_source"], after["book_source"])
+                                    if (historicalTask) assertEquals("Synthetic historical task", documents.bestand.value.aufgaben.single { it.id == restoredId }.titel)
+                                    else assertEquals("Synthetic historical source", documents.notiz(restoredId)?.text)
+                                    assertEquals(beforeScope, session.localContentScope)
+                                    assertFalse(JsonPrimitive(restoredId) in beforeScope.getValue("members").jsonObject.getValue(if (historicalTask) "tasks" else "notes").jsonArray)
+                                    assertNull(work.currentActorSource(peerId, peer.static_public, channel, 0L))
+                                    assertEquals(beforeAuthority, work.currentActorCompletionAuthority(peerId, peer.static_public, channel, 0L))
+                                    assertTrue(runCatching { work.personalActorJournal.withActive(handle) {} }.isFailure)
+                                    val afterBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                    assertEquals("completion", work.commitHistoricalActorTargetReview(handle, view.string("revision"), choices))
+                                    assertEquals(after, documents.personalActorSavedBookState())
+                                    assertArrayEquals(afterBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                    val queueScope = TelefonWerk::class.java.getDeclaredMethod("queueContentScope", TelefonPeer::class.java, PersonalNoteSession::class.java).apply { isAccessible = true }
+                                    synchronized(work) { synchronized(Ablage.SCHREIBSPERRE) { queueScope.invoke(work, peer, session) } }
+                                    assertEquals(beforeScope, session.localContentScope); assertTrue(sent().isEmpty())
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    val emitted = sent()
+                                    // The real pump also retransmits its six existing
+                                    // session controls. No scope/content frame is allowed.
+                                    val controlKinds = setOf("capabilities.update", "grants.update", "personal_sync.settings",
+                                        "personal_sync.time_settings", "personal_sync.custom_settings", SharedSyncSettings.KIND)
+                                    assertTrue(emitted.map { it.string("kind") }.toString(), emitted.all { it.string("kind") in controlKinds || it.string("kind") == PersonalSyncActor.DATA_KIND })
+                                    val sentDecision = emitted.filter { it.string("kind") == PersonalSyncActor.DATA_KIND }.single()
+                                    assertEquals(PersonalSyncActor.DATA_KIND, sentDecision.string("kind"))
+                                    assertEquals("personal_sync.deletion_decision", PersonalSyncActor.unwrap(sentDecision.getValue("body").jsonObject).first)
+                                    assertEquals("completion", work.personalActorJournal.completionState(handle))
+                                    if (mode.contains("-after-")) {
+                                        when {
+                                            mode.endsWith("-book") -> documents.setzeNotiz(requireNotNull(documents.notiz("phone-note")).copy(text = "Synthetic independent change"))
+                                            mode.endsWith("-grants") -> storage.savePeer(requireNotNull(storage.peers().peer).copy(remote_personal_deletions_sync_granted = false))
+                                            mode.endsWith("-instance") -> field(Ablage::class.java, "einzig").set(null, Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") })
+                                        }
+                                        assertNull(work.currentActorCompletionAuthority(peerId, peer.static_public, channel, 0L))
+                                        val active = Ablage.hole(context); val retained = active.bestand.value
+                                        val expectedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                                        work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                            PersonalSyncActor.ack(run, sentDecision.string("message_id")), 60000), channel, 0L)
+                                        // Missing consent leaves no fresh terminal authority;
+                                        // its ACK is blocked before lifecycle maintenance retires it.
+                                        assertNotEquals("completed", work.personalActorJournal.completionState(handle))
+                                        assertEquals("pending", active.bestand.value.personalSync.pending_decisions.single { it.proposal_id == target.string("proposal_id") }.state)
+                                        assertSame(retained, active.bestand.value); assertArrayEquals(expectedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                                        assertEquals(beforeScope, session.localContentScope); assertTrue(sent().isEmpty())
+                                        assertEquals("Synthetic historical source", active.notiz(restoredId)?.text)
+                                        work.maintenance()
+                                        assertEquals("cancelled", work.personalActorJournal.completionState(handle))
+                                        assertTrue((field(TelefonWerk::class.java, "personalActorHistoricalHandoffs").get(work) as Map<*, *>).isEmpty())
+                                        return@use
+                                    }
+                                    work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                                        PersonalSyncActor.ack(run, sentDecision.string("message_id")), 60000), channel, 0L)
+                                    assertTrue(sent().isEmpty()); assertEquals("completed", work.personalActorJournal.completionState(handle))
+                                    assertEquals(beforeScope, session.localContentScope)
+                                    synchronized(work) { synchronized(Ablage.SCHREIBSPERRE) { queueScope.invoke(work, peer, session) } }
+                                    assertTrue(JsonPrimitive(restoredId) in checkNotNull(session.localContentScope).getValue("members").jsonObject.getValue(if (historicalTask) "tasks" else "notes").jsonArray)
+                                    assertNotEquals(PhoneContentScope.reference(beforeScope), PhoneContentScope.reference(checkNotNull(session.localContentScope)))
+                                    if (historicalBoundary) assertEquals(2, session.contentScopeMessages.size)
+                                    assertTrue(runCatching { work.personalActorJournal.withActive(handle) {} }.isFailure)
+                                    return@use
+                                }
                                 // Origin is not evidence that this unselected target exists locally.
                                 assertTrue(runCatching { work.reviewPersonalActorIncomingTargets(handle) }.isFailure)
                                 if (mode.endsWith("-conflict")) {

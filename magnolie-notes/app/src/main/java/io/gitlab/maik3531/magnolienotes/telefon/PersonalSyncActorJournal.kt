@@ -255,6 +255,16 @@ internal class PersonalSyncActorJournal(
         return completionState(handle)
     }
 
+    /** Native writer gate only: data must have been retired by this live owner,
+     * not merely by persisted/caller-supplied metadata. No document I/O in SQL. */
+    internal fun checkHistoricalSave(handle: PersonalActorHandle) = completionOperation(handle) {
+        val binding = requireOwner(this, handle, false)
+        check(binding.stopped && binding.completionPhase == "completion" && handle.runId in dataRetired) { "actor_data_owner_not_retired" }
+        requireCompletion(this, handle, "save")
+        requireCompletion(this, handle, "save")
+        Unit
+    }
+
     private fun validateCompletionWire(handle: PersonalActorHandle, wire: JsonObject, fresh: Boolean) {
         require(wire.string("kind") == PersonalSyncActor.ACK_KIND ||
             wire.string("kind") == PersonalSyncActor.DATA_KIND && PersonalSyncActor.unwrap(wire.getValue("body").jsonObject).first == "personal_sync.deletion_decision") {

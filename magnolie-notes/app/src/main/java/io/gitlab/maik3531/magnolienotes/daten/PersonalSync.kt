@@ -596,6 +596,18 @@ object PersonalSync {
 
     internal fun ownTask(task: Aufgabe) = task.vonZweig.isBlank() && task.fremdId.isBlank() && task.delegiertAn.isBlank() && task.herkunft.isBlank()
 
+    /** Local validation projection only; never accepted-batch/peer/blob fallback. */
+    internal fun historicalRestoreSourceHash(input: Bestand, source: PapierkorbEintrag, canonicalId: String): String? {
+        val probe = when (source.art) {
+            "note" -> source.notiz?.let { input.copy(notizen = input.notizen + it) }
+            "task" -> source.aufgabe?.let { input.copy(aufgaben = input.aufgaben + it) }
+            else -> null
+        } ?: return null
+        val value = projections(probe, setOf(if (source.art == "task") "tasks" else "notes"), input.personalSync.format)[source.art + "\u0000" + canonicalId]
+            ?: return null
+        return hash(value)
+    }
+
     private fun projections(input: Bestand, modules: Set<String>, format: Int, selection: PersonalContentSelection? = null): Map<String, JsonObject> {
         val result = linkedMapOf<String, JsonObject>()
         if ("notes" in modules) {

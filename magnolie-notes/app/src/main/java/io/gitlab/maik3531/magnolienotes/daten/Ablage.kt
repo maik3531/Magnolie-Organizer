@@ -597,6 +597,19 @@ class Ablage private constructor(
         "applied"
     }
 
+    /** Dedicated native historical writer; the normal in-scope writer above is
+     * unchanged. Native service owns source/book guards and proves data retired. */
+    internal fun personalSyncApplyHistoricalRestoreClaim(claim: PersonalHistoricalRestoreClaim,
+        nativeClosedClaim: () -> Unit): String = synchronized(sperre) {
+        schreibbar()
+        nativeClosedClaim()
+        if (_bestand.value !== claim.beforeBook || personalActorSavedBookState() != claim.beforeSavedBook ||
+            PersonalSync.livePersonalContent(_bestand.value) != claim.beforeLive || claim.batchKey in _bestand.value.personalSync.applied_batches)
+            return@synchronized "conflict"
+        schreibeBestand(claim.afterBook)
+        "applied"
+    }
+
     fun personalSyncPendingDecisions(): List<PendingPersonalDecision> = synchronized(sperre) {
         _bestand.value.personalSync.pending_decisions
     }

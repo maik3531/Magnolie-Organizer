@@ -39,6 +39,7 @@ import io.gitlab.maik3531.magnolienotes.daten.AnhangPruefung
 import io.gitlab.maik3531.magnolienotes.daten.PersonalDeletionProposal
 import io.gitlab.maik3531.magnolienotes.daten.AppliedPersonalDecision
 import io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection
+import io.gitlab.maik3531.magnolienotes.daten.PersonalHistoricalRestoreClaim
 import io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung
 import kotlin.concurrent.thread
 
@@ -224,6 +225,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val personalActorCompletions = mutableMapOf<String, ActorDeletionCompletion>()
     private val personalActorBooks = mutableMapOf<String, Bestand>()
     private val personalActorTargetOrigins = mutableMapOf<String, PersonalActorIncomingTargetOrigin>()
+    /** Post-writer metadata only. Never a retained pre-save book/provider. */
+    private class ActorHistoricalSavedHandoff(val handle: PersonalActorHandle, val publicKey: String,
+        val channel: TelefonSecureChannel, val generation: Long, val beforeScope: JsonObject,
+        val beforeLive: PersonalContentSelection, val afterLive: PersonalContentSelection, val savedBook: JsonObject,
+        val authority: String, val reviewRevision: String, val choiceHash: String, val choiceRevision: String,
+        val originalFrameHashes: Map<String, String>)
+    private val personalActorHistoricalHandoffs = mutableMapOf<String, ActorHistoricalSavedHandoff>()
 
     @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
         startWire: JsonObject? = null): PersonalActorHandle =
@@ -257,6 +265,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorTransports.remove(handle.runId)
         personalActorBooks.remove(handle.runId)
         personalActorTargetOrigins.remove(handle.runId)?.clear()
+        personalActorHistoricalHandoffs.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
             pendingScopedSync = null
     }
@@ -269,6 +278,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 runCatching { stopPersonalActor(handle) }
             }
         }
+        personalActorHistoricalHandoffs.values.toList().forEach { saved ->
+            if (personalActorCompletions[saved.handle.runId]?.completed != true &&
+                currentActorCompletionAuthority(saved.handle.peerId, saved.publicKey, saved.channel, saved.generation) == null)
+                runCatching { stopPersonalActor(saved.handle) }
+        }
     }
 
     @Synchronized private fun reapPersonalActors() {
@@ -279,6 +293,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             personalActorKeys.remove(run); personalActorTransports.remove(run)
             personalActorBooks.remove(run)
             personalActorTargetOrigins.remove(run)?.clear()
+            personalActorHistoricalHandoffs.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
                 pendingScopedSync = null
         }
@@ -431,6 +446,112 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 throw error
             }
         }
+    /** First private historical save lane: exact locally available own pending
+     * note/task restores only. No public tool/wire entry or mixed readiness. */
+    @Synchronized internal fun commitHistoricalActorTargetReview(handle: PersonalActorHandle,
+        expectedRevision: String, choices: List<JsonObject>): String = synchronized(Ablage.SCHREIBSPERRE) {
+        require(Regex("[a-f0-9]{64}").matches(expectedRevision))
+        val copied = choices.map { TelefonKanonisch.json.parseToJsonElement(it.toString()).jsonObject }
+        val choiceHash = PersonalSync.hash(buildJsonObject { put("choices", JsonArray(copied.sortedBy { it.string("proposal_id") })) })
+        val run = handle.runId; val documents = Ablage.hole(context)
+        personalActorHistoricalHandoffs[run]?.let { saved ->
+            val pending = checkNotNull(personalActorCompletions[run])
+            check(saved.handle === handle && saved.reviewRevision == expectedRevision && saved.choiceHash == choiceHash && !pending.completed) {
+                "actor_completion_review_changed"
+            }
+            personalActorJournal.readCompletionControls(handle)
+            return@synchronized "completion"
+        }
+        val view = reviewPersonalActorIncomingTargets(handle)
+        check(view.string("revision") == expectedRevision) { "actor_target_review_revision_changed" }
+        val draft = reviewPersonalActorIncomingTargets(handle, expectedRevision, copied)
+        val frames = readPersonalActorIncomingTargetFrames(handle)
+        check(queue.actorDeletionIntents(run).isEmpty() && queue.actorDeletionIntents(run, true).isEmpty()) {
+            "actor_historical_mixed_group_not_ready"
+        }
+        val (dataSource, scope) = personalActorTargetOriginCurrent(handle)
+        val channel = checkNotNull(personalActorTransports[run]); val publicKey = checkNotNull(personalActorKeys[run]); val generation = pairingGeneration
+        val peer = checkNotNull(safePeer())
+        check(commonValues(peer)?.get("content_mode") != JsonPrimitive("phone_import")) { "actor_deletions_not_granted" }
+        val session = checkNotNull(noteSessions[channel])
+        val authority = checkNotNull(currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation))
+        val savedBefore = checkNotNull(documents.personalActorSavedBookState())
+        var retainedBefore: Bestand? = documents.bestand.value
+        var retainedDocuments: Ablage? = documents
+        val proposals = frames.flatMap { wire -> PersonalSyncProtokoll.decodeDeletionProposals(PersonalSyncActor.unwrap(wire.getValue("body").jsonObject).second) }
+            .map { PersonalDeletionProposal(run, it.proposalId, it.kind, it.id, it.parentId, it.clock, it.priorHash, it.deletedMs, it.label, peer.device_id) }
+        val decisions = draft.getValue("decisions").jsonArray.map { raw ->
+            val decision = raw.jsonObject; val proposal = proposals.single { it.proposal_id == decision.string("proposal_id") }
+            AppliedPersonalDecision(proposal.proposal_id, decision.string("decision"), proposal.clock, UUID.randomUUID().toString())
+        }
+        val beforeSelection = PersonalContentSelection(scope.getValue("members").jsonObject.getValue("notes").jsonArray.map { it.jsonPrimitive.content }.toSet(),
+            scope.getValue("members").jsonObject.getValue("tasks").jsonArray.map { it.jsonPrimitive.content }.toSet())
+        val claim = PersonalHistoricalRestoreClaim.prepare(peer.device_id, run, checkNotNull(retainedBefore), savedBefore, beforeSelection, proposals, decisions)
+        val targets = view.getValue("targets").jsonArray
+        val decisionBodies = decisions.map { decision -> buildJsonObject {
+            put("format", 1); put("run_id", run); put("decision_id", decision.decision_id)
+            put("decisions", JsonArray(listOf(buildJsonObject {
+                put("proposal_id", decision.proposal_id); put("decision", decision.decision)
+                put("expected_clock", JsonArray(decision.expected_clock.map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+            })))
+        } }
+        val expectedMembers = PersonalSyncActor.historicalCompletionMembers(run, scope, targets,
+            JsonArray(decisionBodies.flatMap { it.getValue("decisions").jsonArray }), targets)
+        check(expectedMembers == scope["members"])
+        val originalHashes = frames.associate { it.string("message_id") to PersonalSync.hash(it) }
+        val origin = checkNotNull(personalActorTargetOrigins[run])
+        var terminal: ActorDeletionCompletion? = null
+        val nativeGuard: (String, JsonObject?) -> Boolean? = { operation, wire ->
+            val completedSave = terminal
+            if (completedSave != null) {
+                if (operation == "save") false else completedSave.guard.validator(operation, wire)
+            } else if (operation in setOf("begin", "save")) {
+                val actual = retainedDocuments
+                actual != null && Ablage.hole(context) === actual && actual.bestand.value === retainedBefore && actual.personalActorSavedBookState() == savedBefore &&
+                    currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == authority &&
+                    noteSessions[channel]?.localContentScope == scope && personalActorTargetOrigins[run] === origin &&
+                    origin.read(dataSource, scope, System.currentTimeMillis(), android.os.SystemClock.elapsedRealtime())
+                        .associate { it.string("message_id") to PersonalSync.hash(it) } == originalHashes
+            } else null
+        }
+        try {
+            val policy = checkNotNull(queue.personalRunPolicy(peer.device_id, run))
+            val queued = decisionBodies.map { queue.queueDeletionDecision(peer.device_id, it, policy) }
+            personalActorJournal.beginCompletion(handle, nativeGuard)
+            personalActorWork.remove(run)
+            io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
+            check(documents.personalSyncApplyHistoricalRestoreClaim(claim) { personalActorJournal.checkHistoricalSave(handle) } == "applied") {
+                "actor_historical_save_changed"
+            }
+            val witness = checkNotNull(documents.personalActorSavedBookState())
+            check(Ablage.hole(context) === documents && witness["book_source"] == savedBefore["book_source"] && witness.getValue("sequence").jsonPrimitive.long ==
+                savedBefore.getValue("sequence").jsonPrimitive.long + 1 && PersonalSync.livePersonalContent(documents.bestand.value) == claim.afterLive) {
+                "actor_historical_saved_live_delta_changed"
+            }
+            personalActorHistoricalHandoffs[run] = ActorHistoricalSavedHandoff(handle, publicKey, channel, generation, scope,
+                claim.beforeLive, claim.afterLive, witness, authority, expectedRevision, choiceHash, draft.string("choice_revision"), originalHashes)
+            retainedBefore = null // No captured pre-save book survives the native handoff.
+            retainedDocuments = null
+            personalActorBooks[run] = documents.bestand.value
+            val guard = PersonalActorDecisionCompletion(run, targets, queued,
+                { currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) },
+                { if (currentActorCompletionAuthority(peer.device_id, publicKey, channel, generation) == null) null else noteSessions[channel]?.localContentScope },
+                { Ablage.hole(context).personalActorSavedBookState() }, { personalActorJournal.readCompletionControls(handle) }, scope, authority,
+                nativeHistoricalTargets = targets)
+            val pending = ActorDeletionCompletion(decisions.associate { it.proposal_id to it.decision }, emptyList(), witness, expectedMembers, guard)
+            pending.ledgerReady = true
+            terminal = pending; personalActorCompletions[run] = pending
+            personalActorTargetOrigins.remove(run)?.clear()
+            personalActorJournal.readCompletionControls(handle)
+            "completion"
+        } catch (error: Exception) {
+            if (terminal == null) runCatching { stopPersonalActor(handle) }.exceptionOrNull()?.let(error::addSuppressed)
+            // A real save with a later failure is never reported as rollback or
+            // repeated blindly. The closed owner cannot send success metadata.
+            throw error
+        }
+    }
+
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
     internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1() }
@@ -509,6 +630,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val session = noteSessions[channel] ?: return null
         val capabilities = sharedLocalCapabilities()
         if (session.actorOwnDecision != true || !PersonalSyncActor.supported(peer, capabilities) || !contentScopeControlsReady(peer, session)) return null
+        val historicalContext = personalActorHistoricalHandoffs.values.filter { saved ->
+            saved.handle.peerId == peerId && saved.publicKey == publicKey && saved.channel === channel && saved.generation == generation &&
+                personalActorHandles[saved.handle.runId] === saved.handle && personalActorTransports[saved.handle.runId] === channel
+        }
+        if (!completionOnly && historicalContext.any { personalActorCompletions[it.handle.runId]?.completed != true }) return null
         return synchronized(Ablage.SCHREIBSPERRE) {
             val documents = Ablage.hole(context)
             if (!documents.synchronisationsSchreibbar()) return@synchronized null
@@ -517,8 +643,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val manifest = session.localContentScope ?: return@synchronized null
             val settings = sharedPreferences.read(sharedBinding(peer)) ?: return@synchronized null
             val preference = (settings.getValue("settings") as JsonObject).getValue("content_mode")
-            val parts = maxOf(1, (live.notes.size + live.tasks.size + 255) / 256)
-            if (session.contentScopeSelection != live || session.contentScopeRestoreEpoch != epoch ||
+            // Only a private actual-save handoff may bridge this exact live
+            // delta for TERMINAL METADATA. Normal data/source remains closed.
+            val historical = if (completionOnly && historicalContext.isNotEmpty()) {
+                val saved = historicalContext.singleOrNull() ?: return@synchronized null
+                if (saved.beforeScope != manifest || saved.savedBook != documents.personalActorSavedBookState() ||
+                    saved.afterLive != live || session.contentScopeSelection != saved.beforeLive) return@synchronized null
+                saved
+            } else null
+            val acceptedLive = historical?.beforeLive ?: live
+            val parts = maxOf(1, (acceptedLive.notes.size + acceptedLive.tasks.size + 255) / 256)
+            if (session.contentScopeSelection != acceptedLive || session.contentScopeRestoreEpoch != epoch ||
                 session.contentScopePreference != preference || session.contentScopeMessages.isNotEmpty() ||
                 session.contentScopeAccepted != (0 until parts).toSet()) return@synchronized null
             val snapshot = buildJsonObject {
@@ -545,12 +680,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
             try {
                 val mac = javax.crypto.Mac.getInstance("HmacSHA256")
                 mac.init(javax.crypto.spec.SecretKeySpec(actorSourceKey, "HmacSHA256"))
-                mac.doFinal(clear).joinToString("") { "%02x".format(it) }
+                val revision = mac.doFinal(clear).joinToString("") { "%02x".format(it) }
+                if (historical != null && revision != historical.authority) null else revision
             } finally { clear.fill(0) }
         }
     }
 
     private fun queueContentScope(peer: TelefonPeer, session: PersonalNoteSession?) {
+        val historical = personalActorHistoricalHandoffs.filter { (_, saved) -> saved.handle.peerId == peer.device_id &&
+            saved.publicKey == peer.static_public && noteSessions[saved.channel] === session }
+        if (historical.any { (run, _) -> personalActorCompletions[run]?.completed != true }) return
+        historical.keys.forEach { personalActorHistoricalHandoffs.remove(it) }
         if (session != null && sharedControlsReady(peer, session)) {
             val settings = sharedPreferences.read(sharedBinding(peer))
             if (settings != null && session.sharedSent == settings && session.sharedReceived == settings &&

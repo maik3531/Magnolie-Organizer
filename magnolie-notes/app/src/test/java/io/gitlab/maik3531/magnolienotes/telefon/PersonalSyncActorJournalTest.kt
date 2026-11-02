@@ -16,6 +16,21 @@ import java.security.Security
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class PersonalSyncActorJournalTest {
+    @Test fun historicalWriterGateRequiresRealVolatileDataRetirementAndCannotBeReopenedFromSealedPhaseAlone() = fixture { db, storage ->
+        val epoch = "e".repeat(64)
+        fun journal() = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" }, ownerEpoch = epoch)
+        val owner = journal(); val handle = owner.create(PEER, KEY, REV)
+        assertTrue(runCatching { owner.checkHistoricalSave(handle) }.isFailure)
+        owner.withActive(handle) {}
+        owner.beginCompletion(handle) { _, _ -> true }
+        assertTrue(runCatching { owner.withActive(handle) {} }.isFailure)
+        owner.checkHistoricalSave(handle)
+        assertTrue(runCatching { journal().checkHistoricalSave(handle) }.isFailure)
+        owner.finishCompletion(handle)
+        assertTrue(runCatching { owner.checkHistoricalSave(handle) }.isFailure)
+        assertEquals("completed", owner.completionState(handle))
+    }
+
     @Test fun sealedOwnershipSurvivesReopenButNotNativeEpochReplacement() = fixture { db, storage ->
         val epoch = "e".repeat(64)
         fun journal() = PersonalSyncActorJournal(db, storage, { peer, key ->
