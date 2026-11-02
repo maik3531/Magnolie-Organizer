@@ -1193,12 +1193,13 @@ for (const explicit of [false, true]) {
   window.App.telefonStand({ ...connectedPhoneState, peers: [{ ...connectedPhoneState.peers[0],
     device_id: id, auto_wifi: !explicit, initial_skip_deletions: explicit,
     note_sync: explicit ? { local: { mode: "phone_import" } } : {},
+    time_sync: explicit ? { local: { enabled: false } } : {},
     shared_sync: { supported: true, initialized: false, ready: false, values: null } }] });
   const initial = messages.find(message => message.cmd === "personal_sync_gemeinsam_initialisieren" && message.kennung === id)?.initial;
   assert.ok(initial, "paired phone must initialize its preferences without another own-device confirmation");
   assert.deepStrictEqual(JSON.parse(JSON.stringify(initial)), {
     content_mode: explicit ? "phone_import" : "phone_scope", auto_mode: explicit ? "manual" : "wifi",
-    skip_deletions: explicit, custom_enabled: false, time_enabled: false, time_mode: "two_way"
+    skip_deletions: explicit, custom_enabled: false, time_enabled: !explicit, time_mode: "two_way"
   }, "new defaults and explicit manual/content/deletion preferences must stay distinct");
 }
 window.App.telefonStand(connectedPhoneState);

@@ -91,7 +91,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
             syncQuellen: mutation === "retry" ? { source: { id: "created-in-flight", etag: "observed" } } : {} });
         }
         b.t.speichereJetzt(); b.ack();
-        if (mutation === "retry" && web.includes("Windows")) {
+        if (mutation === "retry" && path.resolve(web) === path.resolve(__dirname, "../app/web")) {
           b.t.starteSync(false); b.ack();
           assert.equal(b.messages.filter(message => message.cmd === "sync").at(-1).transactionId, request.transactionId);
         }
