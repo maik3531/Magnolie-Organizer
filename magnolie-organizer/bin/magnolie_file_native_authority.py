@@ -36,10 +36,11 @@ class NativeDesktopFileAuthority:
     UI revocation uses revoke() only. Actual close belongs to the native I/O lane
     after its outstanding work ends, never an impatient UI ownership release.
     """
-    def __init__(self,binding,current_binding):
+    def __init__(self,binding,current_binding,*,channel):
         if type(binding) is not AuthenticatedNativeFileBinding or not callable(current_binding) or current_binding() is not binding:
             raise TransferError('file_authority_native_channel_changed')
         self.binding=binding;self.identity=binding.local_identity;self._current=current_binding
+        self.native_channel=channel # Exact authenticated owner supplied by native factory.
         self._revoked=threading.Event()
         self.protection=ExistingFileTransferProtection(binding.native_directory)
         try:

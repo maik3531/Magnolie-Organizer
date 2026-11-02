@@ -906,6 +906,40 @@ native dialog, installed GUI or physical synchronization acceptance. No schedule
 worker, desktop dispatcher or advanced-controls caller is connected by this
 store; discovery 21, automatic runs and package publication remain disabled.
 
+### Actual desktop reserved control dispatch (data readiness remains OFF)
+
+An explicit native `PhoneService.open_native_file_connection` can now attach one
+file-control owner to the exact captured authenticated channel/generation. Native
+authority/preference reads happen outside the service monitor. A foreign output
+channel, second owner, replaced channel or stale key/generation cannot adopt it.
+The constructor starts no worker, sends nothing and creates no preference store.
+
+The actual desktop `_payload` reserves the entire `file_transfer.*` namespace
+before personal defaults, deduplication, staging or legacy acknowledgement logic.
+Without an admitted native owner it fails closed. The present owner supports only
+strict file-control packets and their actual secure echo completion. Unsupported
+offers/data/source metadata fail closed rather than falling through. Legacy
+outbound/global-grant/outbox paths also reject the reserved namespace; only the
+dedicated owner performs guarded control writes. A failed or expired actual write
+is never marked sent. Control callbacks do not run under the service monitor.
+
+Transport end/replacement removes cached file authority before revoking the native
+control owner. Revocation is nonwaiting; an active control write retains native
+resources until actual I/O end and cannot mark late completion or enable a new
+owner on that ended channel. Even an associated enabled/automatic saved policy
+announces send/receive OFF here: full desktop data handlers, source-command
+authority, recovery/baseline union and private advanced UI are not yet ready.
+Control echo is not permission to scan, transfer, publish or synchronize.
+
+Thirty-seven targeted Python cases pass across actual reserved dispatch/native
+control ownership, factory/authenticated socketpair lifecycle, transport/call
+replacement, outbound namespace fencing and affected personal actor/time/MCP-call
+paths. Fixtures forbid legacy peer/defaulting, dedupe, persistence and outbox calls
+on reserved file routes. Blocked-write close, lost-output/expiry and foreign native
+channel cases are included. This is not installed/native-dialog or physical phone
+acceptance. No frontend activation, data worker, scheduler, new package, automatic
+run or discovery 21 advertisement is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

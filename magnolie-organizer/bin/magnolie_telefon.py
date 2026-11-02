@@ -2712,6 +2712,7 @@ class PhoneService:
         self.pairing_attempt_active = False
         self.connections = {}
         self._file_channel_bindings = weakref.WeakKeyDictionary()
+        self._native_file_connections = weakref.WeakKeyDictionary()
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
@@ -2791,7 +2792,52 @@ class PhoneService:
         if binding is None:
             raise ValueError('file_authority_native_channel_changed')
         # Disk/key/peer I/O deliberately happens outside the PhoneService monitor.
-        return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation))
+        return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation), channel=channel)
+
+    def open_native_file_connection(self, peer_id, static_public, channel, generation):
+        from magnolie_file_desktop_connection import NativeDesktopFileConnection
+        binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
+        if binding is None:
+            raise ValueError('file_authority_native_channel_changed')
+        with self.lock:
+            if channel in self._native_file_connections:
+                raise ValueError('file_desktop_connection_busy')
+        # No native peer/key/preference I/O while holding the service monitor.
+        authority = self.open_native_file_authority(peer_id, static_public, channel, generation)
+        try:
+            connection = NativeDesktopFileConnection(authority, channel)
+        except BaseException:
+            authority.close()
+            raise
+        try:
+            with self.lock:
+                if (self._current_native_file_binding(peer_id, static_public, channel, generation) is not binding
+                        or channel in self._native_file_connections):
+                    raise ValueError('file_desktop_native_owner_changed')
+                self._native_file_connections[channel] = connection
+            return connection
+        except BaseException:
+            connection.close()
+            raise
+
+    def _end_native_file_connection(self, channel):
+        with self.lock:
+            bindings = getattr(self, '_file_channel_bindings', None)
+            owners = getattr(self, '_native_file_connections', None)
+            if bindings is not None:
+                bindings.pop(channel, None)
+            connection = owners.pop(channel, None) if owners is not None else None
+        if connection is not None:
+            connection.close()  # Revokes now; active owner releases only at actual I/O end.
+
+    def _receive_native_file_message(self, peer, channel, payload):
+        with self.lock:
+            connection = self._native_file_connections.get(channel)
+            binding = self._file_channel_bindings.get(channel)
+            if (connection is None or binding is None
+                    or self._current_native_file_binding(peer.get('device_id'), peer.get('static_public'), channel, binding.generation) is not binding):
+                raise ValueError('file_desktop_native_route_unavailable')
+        connection.receive(payload)
 
     def report(self):
         with self.lock:
@@ -7362,6 +7408,9 @@ class PhoneService:
             return True
 
     def _send_message(self, channel, peer_id, message):
+        from magnolie_file_desktop_connection import is_reserved_file_message
+        if is_reserved_file_message(message):
+            return False  # Dedicated native file owner only, never legacy grants/outbox.
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
             return self._send_personal_actor_queued(channel, peer_id, message)
         if message.get("kind") in {"dial_request.command", "answer_call.command", "end_call.command"}:
@@ -7377,6 +7426,9 @@ class PhoneService:
 
     def _send_message_locked(self, channel, peer_id, message):
         # Reserved actors require their own authorized route, never a legacy fallback.
+        from magnolie_file_desktop_connection import is_reserved_file_message
+        if is_reserved_file_message(message):
+            return False
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
             return False
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
@@ -8098,6 +8150,7 @@ class PhoneService:
                     for message in self.store.pending(peer["device_id"], transport):
                         self._send_message(channel, peer["device_id"], message)
         finally:
+            self._end_native_file_connection(channel)
             with self.lock:
                 self._file_channel_bindings.pop(channel, None)
             if activated and self.connections.get(peer_id) is channel:
@@ -8142,6 +8195,7 @@ class PhoneService:
                 self._file_channel_bindings[channel] = file_binding
             self.connection_transports[peer_id] = transport
         if current and current is not channel:
+            self._end_native_file_connection(current)
             try:
                 current.send({"type": "close", "reason": "better_transport"})
             except Exception:  # noqa: S110 - Transport replacement continues after send failure.
@@ -8163,6 +8217,7 @@ class PhoneService:
         channel = self.connections.get(peer_id)
         if not channel:
             return
+        self._end_native_file_connection(channel)
         try:
             channel.send({"type": "close", "reason": reason})
         except Exception:  # noqa: S110 - Closing a failed transport is best effort.
@@ -8210,6 +8265,10 @@ class PhoneService:
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
         # Reserved frames use only the admitted native route, never ordinary replay/GUI handlers.
+        from magnolie_file_desktop_connection import is_reserved_file_message
+        if is_reserved_file_message(payload):
+            self._receive_native_file_message(peer, channel, payload)
+            return
         if personal_actor_contract.is_reserved_message(payload):
             self._receive_personal_actor(peer, channel, payload)
             return
