@@ -279,6 +279,30 @@ consumption and invalidation of an old intent on source-policy change. This is
 Robolectric/synthetic native integration, **not** a physical notification tap,
 installed MainActivity, Android system-dialog or phone end-to-end acceptance.
 
+### Existing-key-only native peer authority
+
+A targeted synthetic-keystore regression confirmed that the new file bootstrap
+was still reaching the normal phone loader's key-creation path when its existing
+key was missing. That path is now separated: file authority reads only an existing
+key and a bounded, no-follow original peer ciphertext snapshot. Compatibility
+parsing and completed-pairing trust produce a read-only native view; reading does
+not save migrations, defaults, ownership flags or identities.
+
+Explicit relationship initialization updates only the selected peer's epoch in
+the original raw JSON. Other peers/preferences and legacy fields are preserved.
+The native serialized publication checks exact ciphertext/file witnesses and
+authorization again, uses existing-key-only encryption and unique CREATE_NEW
+private staging, then syncs and reads back. Old generic `.new` artifacts are not
+overwritten. Held native staging is bounded and preserved rather than deleted.
+The ordinary phone initialization crypto/key-creation methods remain unchanged.
+
+The original failing case recorded one unwanted synthetic key generation; all
+11 affected authority/bootstrap cases now pass with zero generation in file
+authority paths. They also cover missing/replaced keys, unchanged legacy cipher
+on read, raw other-peer/settings preservation, reentrant native changes, staging
+evidence and the actual synthetic channel guards. This does not establish native
+Android Keystore, power-loss or physical phone acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

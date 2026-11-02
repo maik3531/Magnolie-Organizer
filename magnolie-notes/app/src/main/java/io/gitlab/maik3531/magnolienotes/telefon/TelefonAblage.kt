@@ -163,28 +163,100 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         savePeers(peers().remember(peer))
     }
 
+    private class FileAuthoritySnapshot(val cipher: ByteArray?, val raw: JsonObject?, val peers: TelefonBestand, val witness: String?)
+
+    /** Transfer authority reads must not enter the normal initialising/migrating
+     * phone-store loader. Missing keys/invalid records remain errors, never new
+     * identities, replacement keys, migrated grants or rewritten defaults.
+     */
+    @Synchronized internal fun fileAuthorityPeers(): TelefonBestand = fileAuthoritySnapshot().peers
+
+    private fun existingFileAuthorityKey(): SecretKey {
+        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        return store.getKey(KEY_ALIAS, null) as? SecretKey ?: throw DeviceTransferKeyUnavailable()
+    }
+
+    private fun fileAuthoritySnapshot(): FileAuthoritySnapshot {
+        val key = existingFileAuthorityKey()
+        val path = peersFile.toPath()
+        if (!Files.exists(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return FileAuthoritySnapshot(null, null, TelefonBestand(), null)
+        fun attributes() = Files.readAttributes(path, java.nio.file.attribute.BasicFileAttributes::class.java, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+        val before = attributes()
+        if (!before.isRegularFile || before.fileKey() == null || before.size() !in 1..FILE_AUTHORITY_LIMIT.toLong())
+            DeviceFileControl.fail("file_pairing_unsafe_peer_record")
+        val bytes = java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.READ, java.nio.file.LinkOption.NOFOLLOW_LINKS).use { channel ->
+            val buffer = java.nio.ByteBuffer.allocate(before.size().toInt() + 1)
+            while (buffer.hasRemaining() && channel.read(buffer) != -1) { }
+            if (buffer.position() != before.size().toInt()) DeviceFileControl.fail("file_pairing_peer_read_changed")
+            buffer.flip(); ByteArray(buffer.remaining()).also { buffer.get(it) }
+        }
+        val after = attributes()
+        if (before.fileKey() != after.fileKey() || before.size() != after.size() || before.lastModifiedTime() != after.lastModifiedTime())
+            DeviceFileControl.fail("file_pairing_peer_read_changed")
+        val clear = decryptUsingKey(bytes.toString(Charsets.US_ASCII), "peers", "v1", key)
+        try {
+            val raw = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString(throwOnInvalidSequence = true)) as? JsonObject
+                ?: DeviceFileControl.fail("file_pairing_invalid_peer_record")
+            val sanitized = sanitizeLegacyPeer(raw).first // Compatibility parsing only: never saved on read.
+            val decoded = json.decodeFromJsonElement(TelefonBestand.serializer(), sanitized).validated()
+            if (decoded.all().size > 8) DeviceFileControl.fail("file_pairing_peer_limit")
+            fun confirmed(peer: TelefonPeer) = if (peer.state == "paired") peer.copy(own_device = true, remote_own_device = true) else peer
+            val native = decoded.copy(peer = decoded.peer?.let(::confirmed), other_peers = decoded.other_peers.map(::confirmed))
+            return FileAuthoritySnapshot(bytes, raw, native, before.fileKey().toString() + ":" + before.size() + ":" + before.lastModifiedTime())
+        } finally { clear.fill(0) }
+    }
+
+    private fun sameFileAuthority(first: FileAuthoritySnapshot, second: FileAuthoritySnapshot): Boolean =
+        first.witness == second.witness && if (first.cipher == null) second.cipher == null else second.cipher != null && first.cipher.contentEquals(second.cipher)
+
     /** Explicit authenticated native file-activation path only. Legacy reads do
      * not call this. Establishes relationship metadata, never a file/media grant,
      * source policy, personal-module preference or Android READ permission.
      */
     @Synchronized internal fun initializeFilePairingEpoch(expected: TelefonPeer, permitted: () -> Boolean): TelefonPeer {
-        val current = peers()
-        val peer = current.peer ?: DeviceFileControl.fail("file_pairing_native_peer_changed")
+        val current = fileAuthoritySnapshot()
+        val peer = current.peers.peer ?: DeviceFileControl.fail("file_pairing_native_peer_changed")
         if (peer != expected || peer.state != "paired" || !peer.own_device || !peer.remote_own_device)
             DeviceFileControl.fail("file_pairing_native_peer_changed")
-        fun fresh(wanted: TelefonBestand) {
-            if (!permitted() || peers() != wanted) DeviceFileControl.fail("file_pairing_native_activation_revoked")
+        fun fresh(wanted: FileAuthoritySnapshot) {
+            if (!permitted() || !sameFileAuthority(fileAuthoritySnapshot(), wanted)) DeviceFileControl.fail("file_pairing_native_activation_revoked")
         }
         fresh(current)
         if (peer.file_pairing_epoch.isNotEmpty()) return peer
         val epoch = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
             .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
         val next = peer.copy(file_pairing_epoch = epoch)
-        fresh(current)
-        val wanted = current.remember(next)
-        savePeers(wanted)
-        fresh(wanted) // A lost reply keeps protected metadata, not a send grant.
-        return peers().peer?.takeIf { it == next } ?: DeviceFileControl.fail("file_pairing_native_readback_failed")
+        val raw = current.raw ?: DeviceFileControl.fail("file_pairing_invalid_peer_record")
+        val rawPeer = raw["peer"] as? JsonObject ?: DeviceFileControl.fail("file_pairing_invalid_peer_record")
+        val wanted = JsonObject(raw + ("peer" to JsonObject(rawPeer + ("file_pairing_epoch" to JsonPrimitive(epoch)))))
+        val clear = TelefonKanonisch.bytes(wanted)
+        val cipher = try { encryptUsingKey(clear, "peers", "v1", existingFileAuthorityKey()).toByteArray(Charsets.US_ASCII) } finally { clear.fill(0) }
+        if (cipher.size > FILE_AUTHORITY_LIMIT) DeviceFileControl.fail("file_pairing_peer_limit")
+        Files.newDirectoryStream(requireNotNull(peersFile.parentFile).toPath(), peersFile.name + ".file-*.new").use { entries ->
+            var held = 0
+            for (entry in entries) {
+                val value = Files.readAttributes(entry, java.nio.file.attribute.BasicFileAttributes::class.java, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                if (++held >= 4 || !value.isRegularFile || value.size() > FILE_AUTHORITY_LIMIT)
+                    DeviceFileControl.fail("file_pairing_native_staging_held")
+            }
+        }
+        // Unique native CREATE_NEW staging: preserve any old generic .new file.
+        val temp = File(peersFile.parentFile, peersFile.name + ".file-" + java.util.UUID.randomUUID() + ".new").toPath()
+        java.nio.channels.FileChannel.open(temp, setOf<java.nio.file.OpenOption>(java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE,
+            java.nio.file.LinkOption.NOFOLLOW_LINKS), java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+            java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))).use { channel ->
+            val buffer = java.nio.ByteBuffer.wrap(cipher)
+            while (buffer.hasRemaining()) if (channel.write(buffer) <= 0) DeviceFileControl.fail("file_pairing_stalled_peer_write")
+            channel.force(true)
+        }
+        fresh(current) // Exact native consent and original ciphertext at publication.
+        Files.move(temp, peersFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner(requireNotNull(peersFile.parentFile))
+        val saved = fileAuthoritySnapshot()
+        if (saved.raw != wanted || saved.cipher?.contentEquals(cipher) != true || saved.peers.peer != next)
+            DeviceFileControl.fail("file_pairing_native_readback_failed")
+        fresh(saved) // A lost reply keeps protected metadata, not a send grant.
+        return saved.peers.peer!!
     }
 
     /** Only the completed code-confirmation path may replace this pinned relationship. */
@@ -265,11 +337,27 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         return Base64.getEncoder().encodeToString(cipher.iv + cipher.doFinal(clear))
     }
 
+    private fun encryptUsingKey(clear: ByteArray, type: String, id: String, existingKey: SecretKey): String {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, existingKey)
+        cipher.updateAAD("magnolie-phone-storage-v1\u0000$type$id".toByteArray())
+        return Base64.getEncoder().encodeToString(cipher.iv + cipher.doFinal(clear))
+    }
+
     private fun decrypt(value: String, type: String, id: String): ByteArray {
         val raw = Base64.getDecoder().decode(value)
         if (raw.size < 29) throw TelefonProtokollFehler("Telefonablage ist beschädigt.")
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, raw.copyOfRange(0, 12)))
+        cipher.updateAAD("magnolie-phone-storage-v1\u0000$type$id".toByteArray())
+        return cipher.doFinal(raw.copyOfRange(12, raw.size))
+    }
+
+    private fun decryptUsingKey(value: String, type: String, id: String, existingKey: SecretKey): ByteArray {
+        val raw = Base64.getDecoder().decode(value)
+        if (raw.size < 29) throw TelefonProtokollFehler("Telefonablage ist beschädigt.")
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, existingKey, GCMParameterSpec(128, raw.copyOfRange(0, 12)))
         cipher.updateAAD("magnolie-phone-storage-v1\u0000$type$id".toByteArray())
         return cipher.doFinal(raw.copyOfRange(12, raw.size))
     }
@@ -294,6 +382,7 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     }
 
     companion object {
+        private const val FILE_AUTHORITY_LIMIT = 4 * 1024 * 1024
         const val KEY_ALIAS = "magnolie_phone_storage_v1"
         @Volatile private var instance: TelefonAblage? = null
         fun get(context: Context) = instance ?: synchronized(this) {

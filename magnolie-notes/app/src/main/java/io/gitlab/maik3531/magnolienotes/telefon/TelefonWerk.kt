@@ -635,7 +635,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         channel: TelefonSecureChannel, generation: Long): TelefonPeer? {
         if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
             generation != pairingGeneration || activeTransport == null) return null
-        return safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey }
+        return runCatching { storage.fileAuthorityPeers().peer }.getOrNull()?.takeIf { it.device_id == peerId && it.static_public == publicKey }
     }
 
     /** Only the explicit native own-PC activation command may initialize a
