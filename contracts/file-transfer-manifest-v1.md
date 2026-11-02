@@ -450,6 +450,20 @@ receipts, baselines or Android rights. Offline/revocation/lock/source changes
 pause rather than prove deletions. Scheduler/UI/native automatic acceptance
 remain open integration work, not an already active background service.
 
+The Linux/Windows `PhotoSyncSchedule` groundwork now implements this run-state
+boundary without creating timers, threads, stores or scans. It starts Manual,
+requires an explicit mode change for automatic due checks, coalesces change
+hints, and returns the same active native run for Sync now. Active ownership is
+released only by the exact actual worker-end handle, not by a cancellation
+request, copied handle or transport ACK. Peer/key/permission/source/destination/
+native-owner changes request cancellation while retaining ownership until the
+worker ends. Switching back to Manual removes repeats without modifying any
+transfer binding or receipt. Close requests cancellation but does not pretend a
+worker already stopped. Monotonic deadlines are not silently rebased on clock
+rollback. Seven Linux tests and the Windows source-host group pass. Protected
+PC preference persistence, real event-loop/worker adapters, controls and native
+automatic-sync acceptance still need integration; no background sync was enabled.
+
 The requested default desktop destination is the native **Pictures** folder
 with a safely generated `<phone-name>-Fotos` child, with an optional different
 user-selected destination. A device display name is not a trusted filesystem

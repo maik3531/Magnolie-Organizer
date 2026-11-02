@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
     <Compile Include="..\DeviceFileOfferEnvelope.cs" Link="DeviceFileOfferEnvelope.cs" />
+    <Compile Include="..\PhotoSyncSchedule.cs" Link="PhotoSyncSchedule.cs" />
     <Compile Remove="callstate\**\*.cs" />
     <Compile Remove="notification-uninstall\**\*.cs" />
     <Compile Remove="kde-media-native\**\*.cs" />
