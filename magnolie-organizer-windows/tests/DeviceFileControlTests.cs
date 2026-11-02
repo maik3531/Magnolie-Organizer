@@ -57,6 +57,11 @@ internal static class DeviceFileControlTests
         TestAssert.That(binding == second.Session.Binding(new string('c', 64)) && binding.PermissionEpoch == vector["permission_epoch"]!.GetValue<string>() &&
             first.Session.Binding(new string('c', 64)) is null && !first.Session.NeedsPacket && !second.Session.NeedsPacket,
             "File direction, persistent permission epoch or bounded echo differs.");
+        first.Local = new(first.Local.Grants, first.Local.Owner, true, policyReady: false);
+        TestAssert.That(first.Session.Binding(new string('c', 64), true) is null && !first.Session.NeedsPacket, "Pending native policy retained data I/O authority.");
+        TestAssert.Throws<InvalidDataException>(() => first.Session.Packet(), "Pending policy generated ordinary file controls.");
+        first.Local = new(first.Local.Grants, first.Local.Owner, true, policyReady: true);
+        TestAssert.That(first.Session.Binding(new string('c', 64), true) == binding, "Temporary native policy fence rekeyed unchanged confirmed grants.");
 
         var old = first.Session; var oldPacket = old.Packet();
         first.Peer = first.Peer with { Owner = new object() }; second.Peer = second.Peer with { Owner = new object() };

@@ -99,9 +99,10 @@ class NativeLocalFileGrant:
     grants: FileGrantState
     owner: object
     handlers_ready: bool
+    policy_ready: bool = True
 
     def __post_init__(self):
-        if (type(self.grants) is not FileGrantState or self.owner is None or type(self.handlers_ready) is not bool
+        if (type(self.grants) is not FileGrantState or self.owner is None or type(self.handlers_ready) is not bool or type(self.policy_ready) is not bool
                 or not self.handlers_ready and (self.grants.send_files or self.grants.receive_files)):
             raise TransferError("file_control_native_local_state_required")
 
@@ -171,6 +172,8 @@ class NativeFileControlSession:
             scope = self._scope()
             if scope is None or self._sequence >= MAX_REVISION:
                 raise TransferError("file_control_native_scope_changed")
+            if not scope[1].policy_ready:
+                raise TransferError("file_control_policy_pending")
             self._sequence += 1
             result = FileControlPacket(scope[1].grants, self._session_epoch, self._sequence,
                 self._remote.challenge if self._remote is not None else None)
@@ -183,7 +186,7 @@ class NativeFileControlSession:
         """
         with self._gate:
             scope = self._scope()
-            if (scope is None or type(packet) is not FileControlPacket or packet is not self._pending_packet or packet.grants != scope[1].grants
+            if (scope is None or not scope[1].policy_ready or type(packet) is not FileControlPacket or packet is not self._pending_packet or packet.grants != scope[1].grants
                     or packet.echo != (self._remote.challenge if self._remote is not None else None)):
                 raise TransferError("file_control_invalid_native_send_completion")
             self._sent_grants, self._sent_echo = packet.grants, packet.echo
@@ -193,7 +196,7 @@ class NativeFileControlSession:
     def needs_packet(self):
         with self._gate:
             scope = self._scope()
-            return scope is not None and (self._sent_grants != scope[1].grants
+            return scope is not None and scope[1].policy_ready and (self._sent_grants != scope[1].grants
                 or self._remote is not None and self._sent_echo != self._remote.challenge)
 
     def observe_remote(self, packet, bound_peer):
@@ -227,7 +230,7 @@ class NativeFileControlSession:
             peer, local = scope
             remote = self._remote
             local_challenge = FileControlPacket(local.grants, self._session_epoch, 1, None).challenge
-            if (not local.handlers_ready or remote is None or remote.echo != local_challenge
+            if (not local.handlers_ready or not local.policy_ready or remote is None or remote.echo != local_challenge
                     or self._sent_grants != local.grants or self._sent_echo != remote.challenge
                     or 1 not in local.grants.manifest_versions or 1 not in remote.grants.manifest_versions):
                 return None

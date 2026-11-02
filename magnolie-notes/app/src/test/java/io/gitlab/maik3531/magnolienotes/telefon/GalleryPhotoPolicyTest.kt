@@ -40,6 +40,98 @@ class GalleryPhotoPolicyTest {
         override fun close() { root.deleteRecursively() }
     }
 
+    @Test fun actualFileControlConfigurerBootstrapsProtectedWorkflowWithoutPretendingToHaveDataOrOsRead() {
+        Fixture().use { f -> f.open().use { index ->
+            val localIdentity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+            val pcIdentity = NativeFileControlIdentity("receiver_fixture_01", "e".repeat(64))
+            val localOwner = Any(); val pcOwner = Any()
+            val localPeer = NativeFileControlPeer(pcIdentity.deviceId, pcIdentity.identitySha256, Any(), true, true, true, true, true)
+            val pcPeer = NativeFileControlPeer(localIdentity.deviceId, localIdentity.identitySha256, Any(), true, true, true, true, true)
+            var confirmed = DeviceFileGrantState(1, "0".repeat(64), false, false)
+            fun localState(): NativeLocalFileGrant {
+                val snapshot = index.galleryPolicy()
+                if (snapshot.repairPending) return NativeLocalFileGrant(confirmed, localOwner, true, policyReady = false)
+                snapshot.policy?.let { confirmed = DeviceFileGrantState(it.revision, it.epoch, it.enabled, false) }
+                return NativeLocalFileGrant(confirmed, localOwner, true)
+            }
+            val source = NativeFileControlSession(localIdentity, { localPeer }, ::localState)
+            val desktop = NativeFileControlSession(pcIdentity, { pcPeer }, {
+                NativeLocalFileGrant(DeviceFileGrantState(7, "b".repeat(64), false, true), pcOwner, true)
+            })
+            fun send(first: NativeFileControlSession, second: NativeFileControlSession, peer: NativeFileControlPeer) {
+                val packet = first.packet(); first.markSent(packet)
+                second.observeRemote(DeviceFileControlPacket.parse(packet.wire()), peer)
+            }
+            send(source, desktop, pcPeer); send(desktop, source, localPeer); send(source, desktop, pcPeer)
+            assertNull(source.photoReceiver())
+            val ticket = source.configurationTicket()
+            val app = org.robolectric.RuntimeEnvironment.getApplication()
+            NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(app, f.root, localIdentity.deviceId, f.protection,
+                { source.photoReceiver() }, { source.configurationAuthority(ticket) }).use { workflow ->
+                val saved = workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                assertEquals(2L, saved.policy!!.revision)
+                assertEquals(JsonPrimitive(2), saved.policy!!.wire()["format"])
+                assertNotNull(source.configurationAuthority(ticket)) // Its own policy publication did not revoke the command.
+                assertNull(workflow.currentRequest()) // New data consent still needs fresh native echo.
+                source.finishConfiguration(ticket)
+                send(source, desktop, pcPeer); send(desktop, source, localPeer)
+                assertTrue(workflow.currentRequest()!!.receiver.allowed)
+                org.robolectric.Shadows.shadowOf(app).denyPermissions(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                assertEquals(GalleryReadCoverage.NONE, AndroidGalleryReadPermissions.observe(app))
+                val catalog = AndroidGalleryAlbumDiscovery(app, { workflow.currentRequest() }).discover()
+                assertEquals(GalleryReadCoverage.NONE, catalog.coverage)
+                assertTrue(catalog.albums.isEmpty()) // Dedicated grants cannot manufacture Android READ.
+            }
+            source.close(); desktop.close()
+        } }
+    }
+
+    @Test fun legacyPolicyBytesRemainReadableAndUnchangedWhileRealPolicyChangesGetMonotonicRevision2() {
+        Fixture().use { f -> f.open().use { index ->
+            val legacy = f.policy()
+            val restored = GalleryPhotoPolicy.parse(legacy.wire())
+            assertEquals(1L, restored.revision); assertEquals(legacy.wire(), restored.wire())
+            val stored = index.compareAndSetGalleryPolicy(index.galleryPolicy(), legacy) { true }
+            val controller = GalleryPhotoPolicyController(index) { f.receiver }
+            assertEquals(stored, controller.configure(stored, true, legacy.kinds))
+            assertEquals(stored, index.galleryPolicy()) // No nonce/revision/epoch churn on unchanged settings.
+            val changed = controller.configure(stored, true, setOf(GallerySourceKind.SCREENSHOTS))
+            assertEquals(2L, changed.policy!!.revision)
+            assertEquals(JsonPrimitive(2), changed.policy!!.wire()["format"])
+            assertEquals(changed.policy!!.wire(), GalleryPhotoPolicy.parse(changed.policy!!.wire()).wire())
+            assertNotEquals(legacy.epoch, changed.policy!!.epoch)
+            assertEquals(changed, controller.configure(changed, true, changed.policy!!.kinds))
+        } }
+    }
+
+    @Test fun authenticatedConfigurerCannotFallBackToAnUnrelatedAllowedDataReceiverOrDowngradeItsCounter() {
+        Fixture().use { f -> f.open().use { index ->
+            val controlled = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { f.receiver }, { null })
+            assertEquals("gallery_configurer_not_ready", assertThrows(PhotoFolderScopeError::class.java) {
+                controlled.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA)) }.code)
+            val empty = index.galleryPolicy()
+            assertNull(empty.policy); assertEquals(empty, controlled.disableLocally(empty))
+            val controller = GalleryPhotoPolicyController(index) { f.receiver }
+            val saved = controller.configure(empty, true, setOf(GallerySourceKind.CAMERA))
+            assertEquals(2L, saved.policy!!.revision)
+            assertEquals("gallery_policy_revision_conflict", assertThrows(PhotoFolderScopeError::class.java) {
+                index.compareAndSetGalleryPolicy(saved, f.policy("c".repeat(64))) { true } }.code)
+            assertEquals(saved, index.galleryPolicy())
+            f.receiver = null
+            val disabled = controlled.disableLocally(saved)
+            assertFalse(disabled.policy!!.enabled); assertEquals(3L, disabled.policy!!.revision)
+        } }
+    }
+
+    @Test fun strictPolicyRevisionParsingRejectsBooleanAliasesMissingCountersAndRollback() {
+        val valid = GalleryPhotoPolicy("receiver_fixture_01", "e".repeat(64), "a".repeat(64), true,
+            setOf(GallerySourceKind.CAMERA), 2, 2).wire()
+        for (value in listOf(JsonObject(valid - "revision"), JsonObject(valid + ("revision" to JsonPrimitive(true))),
+            JsonObject(valid + ("revision" to JsonPrimitive("2"))), JsonObject(valid + ("revision" to JsonPrimitive(0))),
+            JsonObject(valid + ("revision" to JsonPrimitive(DeviceFileControl.MAX_REVISION + 1)))))
+            assertThrows(PhotoFolderScopeError::class.java) { GalleryPhotoPolicy.parse(value) }
+    }
+
     @Test fun actualPolicyBackedGalleryAuthorityCanFreezePublishOfferAndRetireUnderTheSameNativeIndexGate() {
         Fixture().use { f -> f.open().use { index ->
             val controller = GalleryPhotoPolicyController(index) { f.receiver }
@@ -234,7 +326,13 @@ class GalleryPhotoPolicyTest {
             SQLiteDatabase.openDatabase(File(f.root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
                 it.execSQL("INSERT INTO source_meta(name,sealed) VALUES(?,?)", arrayOf("unrelated-fixture", byteArrayOf(4, 2)))
             }
-            f.open().use { index -> index.compareAndSetGalleryPolicy(index.galleryPolicy(), f.policy("c".repeat(64))) { true } }
+            f.open().use { index ->
+                val expected = index.galleryPolicy()
+                val old = expected.policy!!
+                val next = GalleryPhotoPolicy(old.receiverId, old.receiverIdentitySha256, "c".repeat(64), true,
+                    setOf(GallerySourceKind.CAMERA), old.revision + 1, 2)
+                assertEquals(old.revision + 1, index.compareAndSetGalleryPolicy(expected, next) { true }.policy!!.revision)
+            }
             SQLiteDatabase.openDatabase(File(f.root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 db.rawQuery("SELECT sealed FROM source_meta WHERE name='unrelated-fixture'", null).use {
                     assertTrue(it.moveToFirst()); assertArrayEquals(byteArrayOf(4, 2), it.getBlob(0))

@@ -223,3 +223,15 @@ def test_shared_control_canonical_challenge_and_persistent_permission_epoch():
     first, second = pair()
     handshake(first, second)
     assert first.session.binding("c" * 64, sender_is_local=True).permission_epoch == vector["permission_epoch"]
+
+
+def test_native_pending_policy_blocks_io_and_packets_without_rekeying_confirmed_grants():
+    first, second = pair()
+    handshake(first, second)
+    before = first.session.binding("c" * 64, sender_is_local=True)
+    first.local = replace(first.local, policy_ready=False)
+    assert first.session.binding("c" * 64, sender_is_local=True) is None and not first.session.needs_packet
+    with pytest.raises(TransferError, match="policy_pending"):
+        first.session.packet()
+    first.local = replace(first.local, policy_ready=True)
+    assert first.session.binding("c" * 64, sender_is_local=True) == before

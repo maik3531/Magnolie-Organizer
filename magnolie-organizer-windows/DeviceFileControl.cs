@@ -109,10 +109,12 @@ internal sealed class NativeLocalFileGrant
     internal DeviceFileGrantState Grants { get; }
     internal object Owner { get; }
     internal bool HandlersReady { get; }
-    internal NativeLocalFileGrant(DeviceFileGrantState grants, object owner, bool handlersReady)
+    internal bool PolicyReady { get; }
+    internal NativeLocalFileGrant(DeviceFileGrantState grants, object owner, bool handlersReady, bool policyReady = true)
     {
         if (owner is null || !handlersReady && (grants.SendFiles || grants.ReceiveFiles)) throw DeviceFileControl.Error("file_control_native_local_state_required");
         Grants = grants; Owner = owner; HandlersReady = handlersReady;
+        PolicyReady = policyReady;
     }
 }
 
@@ -162,6 +164,7 @@ internal sealed class NativeFileControlSession : IDisposable
         {
             var scope = Scope() ?? throw DeviceFileControl.Error("file_control_native_scope_changed");
             if (sequence >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_control_native_scope_changed");
+            if (!scope.Local.PolicyReady) throw DeviceFileControl.Error("file_control_policy_pending");
             pending = new(scope.Local.Grants, sessionEpoch, ++sequence, remote?.Challenge);
             return pending;
         }
@@ -171,14 +174,14 @@ internal sealed class NativeFileControlSession : IDisposable
         lock (gate)
         {
             var scope = Scope();
-            if (scope is null || !ReferenceEquals(packet, pending) || packet is null || !packet.Grants.Same(scope.Value.Local.Grants) || packet.Echo != remote?.Challenge)
+            if (scope is null || !scope.Value.Local.PolicyReady || !ReferenceEquals(packet, pending) || packet is null || !packet.Grants.Same(scope.Value.Local.Grants) || packet.Echo != remote?.Challenge)
                 throw DeviceFileControl.Error("file_control_invalid_native_send_completion");
             sentGrants = packet.Grants; sentEcho = packet.Echo; pending = null;
         }
     }
     internal bool NeedsPacket
     {
-        get { lock (gate) { var scope = Scope(); return scope is not null && (!scope.Value.Local.Grants.Same(sentGrants) || remote is not null && sentEcho != remote.Challenge); } }
+        get { lock (gate) { var scope = Scope(); return scope is not null && scope.Value.Local.PolicyReady && (!scope.Value.Local.Grants.Same(sentGrants) || remote is not null && sentEcho != remote.Challenge); } }
     }
     internal bool ObserveRemote(DeviceFileControlPacket packet, NativeFileControlPeer boundPeer)
     {
@@ -205,7 +208,7 @@ internal sealed class NativeFileControlSession : IDisposable
             var scope = Scope(); if (scope is null || remote is null) return null;
             var (current, state) = scope.Value;
             var challenge = new DeviceFileControlPacket(state.Grants, sessionEpoch, 1, null).Challenge;
-            if (!state.HandlersReady || remote.Echo != challenge || !state.Grants.Same(sentGrants) || sentEcho != remote.Challenge ||
+            if (!state.HandlersReady || !state.PolicyReady || remote.Echo != challenge || !state.Grants.Same(sentGrants) || sentEcho != remote.Challenge ||
                 !state.Grants.ManifestVersions.Contains(1) || !remote.Grants.ManifestVersions.Contains(1) ||
                 !(senderIsLocal ? state.Grants.SendFiles && remote.Grants.ReceiveFiles : remote.Grants.SendFiles && state.Grants.ReceiveFiles)) return null;
             var entries = new[] { (Id: identity.DeviceId, Value: new JsonArray(identity.DeviceId, identity.IdentitySha256, state.Grants.PermissionWire())),

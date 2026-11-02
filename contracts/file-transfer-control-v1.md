@@ -82,6 +82,40 @@ not substitute for actual OS READ grants or enable a source policy by itself.
 
 ## Verified boundary and open work
 
+### Native policy fence and explicit Android configuration
+
+`policyReady` is native-only state, never a packet field. Pending policy CAS or
+repair blocks ordinary control packet production/send completion and data
+bindings without rewriting previously confirmed grants. A temporary fence does
+not by itself change persistent consent epochs.
+
+Android configuration uses a distinct exact one-shot native ticket, issued only
+after fresh bilateral metadata echoes, actual native send completion and remote
+receive consent. Local send consent may still be off. The ticket permits only
+policy configuration, not media READ or file sending. It expires after 60 seconds
+on a monotonic clock; observed expiry, remote consent/session replacement or
+native scope loss invalidates it. Explicit completion consumes the ticket. Its
+own local policy CAS fence/change does not invalidate the in-flight command.
+
+`NativeGalleryConfigurer` and authenticated workflow/controller factories keep
+configuration authority separate from source READ/send authority. Missing
+configuration authority never falls back to an unrelated data receiver.
+`disableLocally` is an explicit native decrease-only operation, not a remote
+bypass, implicit default creation or Android URI-permission release.
+
+Gallery policy inner format 2 adds a positive safe-integer revision. Legacy
+format 1/revision 1 and its original protection namespace remain readable. The
+first real controller change writes revision 2; unchanged settings preserve the
+stored ciphertext, epoch and revision. The index rejects revision downgrade or
+skipped new revisions. This is not a reset of existing grants or personal stores.
+
+Current evidence: 25 Python cases; 74 unchanged passing Android cases plus the
+two corrected fixture methods each passing in a targeted rerun; the Windows
+source-host group passes with zero build warnings/errors. The Android integration
+case exercises actual control→protected workflow configuration, fresh grant echo
+and denied Android READ yielding no albums. No physical phone, prompt, transport,
+installed GUI or end-to-end acceptance is implied.
+
 The shared vector is 284 canonical body bytes, SHA-256
 `4a607be40c5d2fc917158a1007334416882ecc14a0ea18ce1681cd4a9a5c633d`,
 challenge `3f919e84648c52122aa9946d27a6cd265077739a41d19f6d9395934325e2c8a4`.

@@ -140,4 +140,55 @@ class DeviceFileControlTest {
         assertNull(second.session.binding("c".repeat(64)))
         first.session.close(); assertNull(first.session.photoReceiver()); assertFalse(first.session.needsPacket())
     }
+
+    @Test fun pendingNativePolicyPausesDataAndPacketsWithoutChangingConfirmedConsent() {
+        val (first, second) = pair(); handshake(first, second)
+        val before = first.session.photoReceiver()!!
+        first.local = NativeLocalFileGrant(first.local.grants, first.local.owner, true, policyReady = false)
+        assertNull(first.session.photoReceiver()); assertFalse(first.session.needsPacket())
+        assertThrows(PhotoFolderScopeError::class.java) { first.session.packet() }
+        first.local = NativeLocalFileGrant(first.local.grants, first.local.owner, true, policyReady = true)
+        assertEquals(before.permissionEpoch, first.session.photoReceiver()!!.permissionEpoch)
+    }
+
+    @Test fun freshMetadataTicketCanBootstrapSourcePolicyWithoutInventingFileSendOrOsRead() {
+        val (first, second) = pair()
+        first.local = NativeLocalFileGrant(DeviceFileGrantState(3, "a".repeat(64), false, false), first.local.owner, true)
+        first.session.close(); first.session = first.newSession() // Capture OFF as the initial native policy, not an illegal same-revision mutation.
+        handshake(first, second)
+        assertNull(first.session.photoReceiver())
+        val ticket = first.session.configurationTicket()
+        assertThrows(PhotoFolderScopeError::class.java) { first.session.configurationTicket() }
+        val authority = first.session.configurationAuthority(ticket)!!
+        assertTrue(authority.allowed); assertSame(ticket, authority.owner)
+        assertNull(first.session.photoReceiver())
+        first.local = NativeLocalFileGrant(first.local.grants, first.local.owner, true, policyReady = false)
+        assertNotNull(first.session.configurationAuthority(ticket)); assertNull(first.session.photoReceiver())
+        first.local = NativeLocalFileGrant(DeviceFileGrantState(4, "c".repeat(64), true, false), first.local.owner, true)
+        assertNotNull(first.session.configurationAuthority(ticket)); assertNull(first.session.photoReceiver())
+        first.session.finishConfiguration(ticket)
+        assertNull(first.session.configurationAuthority(ticket))
+        assertThrows(PhotoFolderScopeError::class.java) { first.session.finishConfiguration(ticket) }
+        send(first, second); send(second, first)
+        assertTrue(first.session.photoReceiver()!!.allowed)
+    }
+
+    @Test fun configurationTicketsAreNativeOneShotBoundAndExpiryCannotBeRewound() {
+        val (first, second) = pair(); var now = 100L
+        first.session = NativeFileControlSession(first.identity, { first.peer }, { first.local }, { now })
+        handshake(first, second)
+        val ticket = first.session.configurationTicket()
+        assertNull(first.session.configurationAuthority(NativeFileConfigurationTicket()))
+        assertNotNull(first.session.configurationAuthority(ticket))
+        now += DeviceFileControl.MAX_TTL_MS
+        assertNull(first.session.configurationAuthority(ticket))
+        now = 100L
+        assertNull(first.session.configurationAuthority(ticket))
+        first.session.finishConfiguration(ticket)
+        val fresh = first.session.configurationTicket()
+        second.local = NativeLocalFileGrant(DeviceFileGrantState(8, "d".repeat(64), false, false), second.local.owner, true)
+        send(second, first)
+        assertNull(first.session.configurationAuthority(fresh))
+        first.session.finishConfiguration(fresh)
+    }
 }

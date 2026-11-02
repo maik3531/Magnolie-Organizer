@@ -770,6 +770,10 @@ photo synchronization or permission to deliver/publish a new package.
 
 Dedicated own-peer control negotiation is specified in
 `file-transfer-control-v1.md`, with a shared cross-platform codec/epoch vector.
+Native pending-policy gates and exact Android configuration tickets distinguish
+source configuration from data consent and OS READ. Gallery policy format 2
+retains legacy format-1 protection compatibility and adds monotonic revisions;
+unchanged settings do not churn the accepted permission epoch.
 It does not extend the legacy exact global capability/grant key sets, reuse
 contacts/notes grants, advertise discovery 21 prematurely or itself start sync.
 

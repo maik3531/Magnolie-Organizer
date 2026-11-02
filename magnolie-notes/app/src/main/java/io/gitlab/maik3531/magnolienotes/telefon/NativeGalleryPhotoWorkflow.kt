@@ -18,12 +18,21 @@ internal class GalleryPhotoBuildFailure internal constructor(val reservationId: 
  * Not a service/worker/remote handler: callers must supply the authenticated
  * native receiver and existing local sender identity/key/private directory.
  */
-internal class NativeGalleryPhotoWorkflow(context: Context, directory: File, private val senderId: String,
-    private val protection: DeviceTransferProtection, currentReceiver: () -> NativePhotoReceiver?) : AutoCloseable {
+internal class NativeGalleryPhotoWorkflow private constructor(context: Context, directory: File, private val senderId: String,
+    private val protection: DeviceTransferProtection, currentReceiver: () -> NativePhotoReceiver?,
+    currentConfigurer: (() -> NativeGalleryConfigurer?)?) : AutoCloseable {
+    constructor(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
+        currentReceiver: () -> NativePhotoReceiver?) : this(context, directory, senderId, protection, currentReceiver, null)
+    companion object {
+        fun forAuthenticatedConfigurer(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
+            currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?) =
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer)
+    }
     private val app = context.applicationContext
     init { require(Regex("[A-Za-z0-9_-]{16,160}").matches(senderId)) }
     private val index = PhotoSourceJobIndex(directory, protection)
-    private val policy = GalleryPhotoPolicyController(index, currentReceiver)
+    private val policy = if (currentConfigurer == null) GalleryPhotoPolicyController(index, currentReceiver)
+        else GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, currentReceiver, currentConfigurer)
     private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope)
     private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
     private val binding = AtomicReference<Binding?>()
@@ -34,6 +43,10 @@ internal class NativeGalleryPhotoWorkflow(context: Context, directory: File, pri
     fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
         ready()
         return policy.configure(expected, enabled, kinds)
+    }
+    fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot {
+        ready()
+        return policy.disableLocally(expected)
     }
     fun currentRequest(): NativeGalleryRequest? { ready(); return policy.currentRequest() }
     fun jobs(): List<PhotoSourceJob> { ready(); return index.jobs() }
