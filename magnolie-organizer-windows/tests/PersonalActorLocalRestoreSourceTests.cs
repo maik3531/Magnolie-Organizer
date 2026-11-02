@@ -50,6 +50,13 @@ internal static class PersonalActorLocalRestoreSourceTests
         await PersonalActorNativeSaveHost.VerifyOrdinaryAsync(fixtures[0]!["book"]!.ToJsonString(), fixtures[0]!["candidate_text"]!.GetValue<string>());
     }
 
+    internal static async Task HistoricalBridgeIndependentSaveAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true);
+        foreach (var raw in fixtures.Take(2))
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), "prepare-bridge-user-save");
+    }
+
     internal static async Task HistoricalBridgeDrawingSaveAsync()
     {
         var fixtures = await LoadGuiFixturesAsync(candidates: true, drawing: true);

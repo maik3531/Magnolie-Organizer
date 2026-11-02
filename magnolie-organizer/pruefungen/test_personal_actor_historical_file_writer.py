@@ -96,10 +96,10 @@ def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_com
         with pytest.raises(PermissionError): registry.require_current(handle)
 
 
-@pytest.mark.parametrize('fault', ['none', 'drawing', 'grant', 'payload', 'impostor', 'busy-queue', 'busy-running'])
+@pytest.mark.parametrize('fault', ['none', 'drawing', 'grant', 'payload', 'impostor', 'busy-queue', 'busy-running', 'user-save'])
 def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates, gui_drawing_candidates, fault):
     native = native_store(tmp_path, monkeypatch)
-    fixtures = gui_drawing_candidates if fault == 'drawing' else gui_candidates if fault == 'none' else gui_candidates[:1]
+    fixtures = gui_drawing_candidates if fault == 'drawing' else gui_candidates if fault == 'none' else gui_candidates[:2] if fault == 'user-save' else gui_candidates[:1]
     for index, fixture in enumerate(fixtures):
         service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path / str(index), monkeypatch, fixture)
         path = tmp_path / str(index) / 'actual-worker-book.json'
@@ -119,6 +119,7 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
         service.native_actor_saved_book = probe._telefon_actor_buchnachweis
         service.native_actor_producer_book = probe._telefon_actor_producer_buch
         before = probe._telefon_actor_buchnachweis()
+        independent_text = None
         if fault in ('busy-queue', 'busy-running'):
             pending = (17, json.dumps(book), None)
             if fault == 'busy-queue': probe._speicher_auftraege.put(pending)
@@ -145,11 +146,28 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
                 job = probe._speicher_auftraege.get_nowait(); probe._speicher_auftraege.task_done()
                 probe._speicher_auftraege.put((job[0], job[1] + ' ' if fault == 'payload' else job[1], None,
                     job[3] if fault == 'payload' else {'claim_token': claim['claim_token']}))
+            elif fault == 'user-save':
+                job = probe._speicher_auftraege.get_nowait(); probe._speicher_auftraege.task_done()
+                independent = json.loads(json.dumps(book))
+                (independent['notizen'] or independent['aufgaben'])[0]['titel'] = 'Synthetic independent user edit'
+                independent_text = json.dumps(independent, ensure_ascii=False)
+                # Model a native ordinary writer already in flight before the
+                # queued historical job reaches its fresh invocation gate.
+                probe._speicher_auftraege.put((9, independent_text, None)); probe._speicher_auftraege.put(job)
             probe._speicher_auftraege.put(None)
         worker = threading.Thread(target=native.Fenster._speicher_lauf, args=(probe,), daemon=True)
         worker.start(); worker.join(timeout=15)
         assert not worker.is_alive(), 'Bounded native writer did not finish'
-        saved_responses = [value for callback, value in responses if callback == 'App.gespeichert']
+        saved_responses = [value for callback, value in responses if callback == 'App.gespeichert' and value['id'] == 1]
+        if fault == 'user-save':
+            assert len(saved_responses) == 1 and saved_responses[0]['ok'] is False
+            assert native.daten_entschluesseln(path.read_text(), password) == independent_text
+            assert probe._aktuelle_daten == json.loads(independent_text) and probe._aktuelle_daten['papierkorb'] == fixture['book']['papierkorb']
+            assert probe._telefon_actor_buchnachweis()['sequence'] == before['sequence'] + 1 and len(snapshots) == 1
+            status = service.personal_actor_status(registry, handle)
+            assert status['phase'] == 'cancelled' and status['historical_book_persisted'] is False and status['phone_persisted'] is False
+            assert durable_queue(service) == queued_rows and not channel.sent
+            continue
         if fault not in ('none', 'drawing'):
             assert len(saved_responses) == 1 and saved_responses[0]['ok'] is False
             assert path.read_bytes() == original_bytes and probe._telefon_actor_buchnachweis() == before and not snapshots

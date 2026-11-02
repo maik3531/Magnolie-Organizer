@@ -184,15 +184,35 @@ internal static class PersonalActorTargetObserverRuntimeTests
         TelefonConnection connection, PersonalActorHandle handle, JsonObject scope, string candidateText, string token, PersonalActorNativeSaveHost host, NativeHistoricalWriterInvocation invocation)
     {
         var beforeBytes = File.ReadAllBytes(host.DataPath); var before = host.Saved();
+        if (scenario.EndsWith("-user-save", StringComparison.Ordinal))
+        {
+            var independent = JsonNode.Parse(host.Snapshot()!.Text)!.AsObject();
+            var live = independent["notizen"]!.AsArray().FirstOrDefault() ?? independent["aufgaben"]!.AsArray().First();
+            live!["titel"] = "Synthetic independent user edit";
+            using var ordinary = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 9, ["text"] = independent.ToJsonString() }.ToJsonString());
+            await host.SaveAsync(ordinary.RootElement);
+            TestAssert.That(host.Responses.Last().Value["ok"]!.GetValue<bool>(), "Independent ordinary user edit was not actually saved.");
+            beforeBytes = File.ReadAllBytes(host.DataPath); before = host.Saved();
+        }
+        var beforeSnapshots = host.Snapshots;
         var sentText = scenario.EndsWith("-payload", StringComparison.Ordinal) ? candidateText + " " : candidateText;
         host.FailAfterPrimary = scenario.EndsWith("-uncertain", StringComparison.Ordinal);
         using var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = sentText }.ToJsonString());
         await host.SaveAsync(message.RootElement, invocation);
-        var result = host.Responses.Single(value => value.Callback == "App.gespeichert").Value;
-        if (scenario.EndsWith("-payload", StringComparison.Ordinal))
+        var result = host.Responses.Single(value => value.Callback == "App.gespeichert" && value.Value["id"]?.GetValue<int>() == 1).Value;
+        if (scenario.EndsWith("-payload", StringComparison.Ordinal) || scenario.EndsWith("-user-save", StringComparison.Ordinal))
         {
-            TestAssert.That(!result["ok"]!.GetValue<bool>() && host.Available && host.Saved() == before && host.Snapshots == 0 &&
+            TestAssert.That(!result["ok"]!.GetValue<bool>() && host.Available && host.Saved() == before && host.Snapshots == beforeSnapshots &&
                 beforeBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)), "Denied payload mutated the actual SaveAsync file/book/snapshot.");
+            if (scenario.EndsWith("-user-save", StringComparison.Ordinal))
+            {
+                TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password).Contains("Synthetic independent user edit", StringComparison.Ordinal),
+                    "Historical save overwrote a newer independent user edit.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Independent ordinary user save was misattributed as a historical restore.");
+                var status = await coordinator.PersonalActorStatusAsync(handle);
+                TestAssert.That(status["phase"]!.GetValue<string>() == "cancelled" && !status["historical_book_persisted"]!.GetValue<bool>() && !status["phone_persisted"]!.GetValue<bool>(),
+                    "Stale historical claim survived independent user persistence.");
+            }
             return;
         }
         var actualBytes = File.ReadAllBytes(host.DataPath);
