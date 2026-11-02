@@ -33,7 +33,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     private val index = PhotoSourceJobIndex(directory, protection)
     private val policy = if (currentConfigurer == null) GalleryPhotoPolicyController(index, currentReceiver)
         else GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, currentReceiver, currentConfigurer)
-    private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope)
+    private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope, val host: GalleryPhotoPermissionHost? = null)
     private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
     private val binding = AtomicReference<Binding?>()
     private val pending = ConcurrentHashMap<String, Pending>()
@@ -57,12 +57,33 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun bindActivity(activity: ComponentActivity, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         uiThread(); ready()
         if (activity.applicationContext !== app) fail("gallery_workflow_foreign_application")
-        binding.getAndSet(null)?.launcher?.close()
+        binding.getAndSet(null)?.let(::releaseBinding)
         val launcher = GalleryPhotoPermissionLauncher(activity, { if (closed.get()) null else policy.currentRequest() }, onResult)
         binding.set(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() }, launcher.access.environment)))
     }
 
-    fun requestReadPermission() { ready(); bound().launcher.request() }
+    /** Host already registered during native Activity.onCreate; no late
+     * ActivityResult registration or forced recreation/draft loss is needed.
+     */
+    fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
+        uiThread(); ready()
+        if (host.applicationContext !== app) fail("gallery_workflow_foreign_application")
+        val launcher = host.attach(this, onResult)
+        binding.getAndSet(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() },
+            launcher.access.environment), host))?.let { old -> if (old.host !== host) releaseBinding(old) }
+    }
+
+    internal fun detachPermissionHost(host: GalleryPhotoPermissionHost) {
+        val current = binding.get()?.takeIf { it.host === host } ?: return
+        binding.compareAndSet(current, null)
+    }
+    private fun releaseBinding(value: Binding) { if (value.host == null) value.launcher.close() else value.host.detach(this) }
+
+    fun requestReadPermission() {
+        ready()
+        val current = bound()
+        if (current.host == null) current.launcher.request() else current.host.request(this)
+    }
 
     fun discover(cancellation: CancellationSignal = CancellationSignal()): GalleryAlbumCatalog {
         ready()
@@ -126,7 +147,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     override fun close() {
         uiThread()
         if (!closed.compareAndSet(false, true)) return
-        try { binding.getAndSet(null)?.launcher?.close() } finally { index.close() }
+        try { binding.getAndSet(null)?.let(::releaseBinding) } finally { index.close() }
     }
     private fun uiThread() { if (Looper.myLooper() != Looper.getMainLooper()) fail("gallery_permission_ui_thread_required") }
     private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)

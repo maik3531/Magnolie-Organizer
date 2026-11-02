@@ -214,6 +214,23 @@ changes. The earlier attempt failed test compilation only because a fixture's
 anonymous-store property was not exported; using its actual read/CAS interface
 fixed setup without weakening production checks or assertions.
 
+### Early Activity permission host, late native workflow attachment
+
+`GalleryPhotoPermissionHost` registers the genuine ActivityResult launcher before
+STARTED and allows a native workflow to attach after the Activity is resumed.
+Construction/attachment does not prompt, create stores or recreate the Activity.
+Pending system requests cannot be reassigned to a replacement workflow; detached
+owners' results are dropped. Replacement/detachment rotates native access proofs,
+and closing an old workflow cannot detach its replacement. The shared host is
+Activity-owned, not closed as if it belonged to the old source workflow.
+
+The three new host cases and affected launcher/runtime/gallery/policy classes
+pass 45 cases. They exercise actual AndroidX registration/result routing under
+Robolectric, preserved unsaved EditText contents, late resumed attachment,
+selected-only OS readback despite success booleans, pending-result ownership and
+old-owner close. These are not physical Android dialog/phone acceptance. The
+actual MainActivity/service/notification command connections remain open.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

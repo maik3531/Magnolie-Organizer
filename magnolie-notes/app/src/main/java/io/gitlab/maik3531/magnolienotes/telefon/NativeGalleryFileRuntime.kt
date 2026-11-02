@@ -42,6 +42,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.observe(message, now) }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(): NativeGalleryRequest? { ready(); return workflow.currentRequest() }
+    fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
+        ready(); workflow.attachPermissionHost(host, onResult)
+    }
+    fun requestReadPermission() { ready(); workflow.requestReadPermission() }
 
     @Synchronized fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
         kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {

@@ -1,0 +1,71 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.os.Looper
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import java.util.concurrent.atomic.AtomicReference
+
+/** Activity-owned early registration, with late native workflow attachment.
+ * Construct before STARTED; attaching an explicitly activated source while the
+ * Activity is already resumed never registers another launcher or recreates it.
+ * No store/key access, settings screen or permission prompt on construction.
+ */
+internal class GalleryPhotoPermissionHost(private val activity: ComponentActivity) : DefaultLifecycleObserver, AutoCloseable {
+    private class Attachment(val workflow: NativeGalleryPhotoWorkflow, val onResult: (Result<GalleryReadCoverage>) -> Unit)
+    private val attachment = AtomicReference<Attachment?>()
+    private val pendingResult = AtomicReference<Attachment?>()
+    private var closed = false
+    internal val applicationContext get() = activity.applicationContext
+    private val launcher = GalleryPhotoPermissionLauncher(activity, { attachment.get()?.workflow?.currentRequest() }) { result ->
+        val original = pendingResult.getAndSet(null)
+        if (original != null && attachment.get() === original) original.onResult(result)
+    }
+    internal val requestPending: Boolean get() = launcher.requestPending
+    init { activity.lifecycle.addObserver(this) }
+
+    internal fun attach(workflow: NativeGalleryPhotoWorkflow, onResult: (Result<GalleryReadCoverage>) -> Unit): GalleryPhotoPermissionLauncher {
+        uiThread()
+        if (closed) fail("gallery_permission_host_closed")
+        if (attachment.get()?.workflow === workflow) return launcher
+        if (launcher.requestPending) fail("gallery_permission_request_pending")
+        val next = Attachment(workflow, onResult)
+        val previous = attachment.getAndSet(next)
+        previous?.workflow?.detachPermissionHost(this)
+        pendingResult.set(null)
+        launcher.access.onAccessChanged()
+        return launcher
+    }
+
+    internal fun request(workflow: NativeGalleryPhotoWorkflow) {
+        uiThread()
+        if (closed) fail("gallery_permission_host_closed")
+        val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
+        if (launcher.requestPending || !pendingResult.compareAndSet(null, original)) fail("gallery_permission_request_pending")
+        try { launcher.request() }
+        catch (error: Exception) { pendingResult.compareAndSet(original, null); throw error }
+    }
+
+    internal fun detach(workflow: NativeGalleryPhotoWorkflow) {
+        val original = attachment.get()?.takeIf { it.workflow === workflow } ?: return
+        if (attachment.compareAndSet(original, null)) {
+            pendingResult.compareAndSet(original, null)
+            launcher.access.onAccessChanged()
+        }
+        // A launched Android request is still held until its old callback or
+        // Activity destruction. Do not let that callback consume a new ticket.
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) { close() }
+    override fun close() {
+        uiThread()
+        if (closed) return
+        closed = true
+        attachment.getAndSet(null)?.workflow?.detachPermissionHost(this)
+        pendingResult.set(null)
+        launcher.close()
+        activity.lifecycle.removeObserver(this)
+    }
+    private fun uiThread() { if (Looper.myLooper() != Looper.getMainLooper()) fail("gallery_permission_ui_thread_required") }
+    private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
+}

@@ -17,6 +17,7 @@ internal class GalleryPhotoPermissionLauncher(private val activity: ComponentAct
     val access = GalleryPhotoAccessController(activity, current)
     private var ticket: GalleryPhotoPermissionTicket? = null
     private var closed = false
+    internal val requestPending: Boolean get() = ticket != null
     private val launcher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         // Lost/recreated native owner: an old OS callback cannot select a new
         // source or recreate a ticket from saved strings/Boolean grant claims.
