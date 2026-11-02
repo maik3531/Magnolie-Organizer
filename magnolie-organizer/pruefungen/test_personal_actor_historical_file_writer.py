@@ -96,7 +96,7 @@ def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_com
         with pytest.raises(PermissionError): registry.require_current(handle)
 
 
-@pytest.mark.parametrize('fault', ['none', 'grant', 'payload', 'impostor'])
+@pytest.mark.parametrize('fault', ['none', 'grant', 'payload', 'impostor', 'busy-queue', 'busy-running'])
 def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates, fault):
     native = native_store(tmp_path, monkeypatch)
     for index, fixture in enumerate(gui_candidates if fault == 'none' else gui_candidates[:1]):
@@ -118,6 +118,20 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
         service.native_actor_saved_book = probe._telefon_actor_buchnachweis
         service.native_actor_producer_book = probe._telefon_actor_producer_buch
         before = probe._telefon_actor_buchnachweis()
+        if fault in ('busy-queue', 'busy-running'):
+            pending = (17, json.dumps(book), None)
+            if fault == 'busy-queue': probe._speicher_auftraege.put(pending)
+            else: probe._speicher_laeuft = True
+            original_bytes, queued_rows, registry_before = path.read_bytes(), durable_queue(service), registry.status(handle)
+            with pytest.raises(PermissionError):
+                native.Fenster._telefon_actor_historisch_speichern(probe, service, registry, handle, view['revision'], choices, text, 1)
+            registry.require_current(handle)
+            assert registry.status(handle) == registry_before and path.read_bytes() == original_bytes and probe._telefon_actor_buchnachweis() == before
+            assert not responses and not snapshots and durable_queue(service) == queued_rows and not channel.sent
+            if fault == 'busy-queue':
+                assert probe._speicher_auftraege.qsize() == 1 and probe._speicher_auftraege.get_nowait() == pending
+                probe._speicher_auftraege.task_done()
+            continue
         with probe._daten_sperre:
             # The actual native GUI-owner method prepares the claim and queues a
             # non-serializable native job. The worker itself now invokes its
