@@ -1,0 +1,96 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.app.Application
+import kotlinx.serialization.json.*
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.nio.file.Files
+import javax.crypto.spec.SecretKeySpec
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], application = Application::class)
+class NativeGalleryFileRuntimeTest {
+    private val now = 1_800_000_000_000L
+    private val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+    private val remote = NativeFileControlIdentity("receiver_fixture_01", "e".repeat(64))
+    private class Link {
+        val output = ByteArrayOutputStream()
+        val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+        val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16) { 2 },
+            key.copyOf(), prefix, ByteArray(32) { 5 }, ByteArray(4) { 6 })
+        fun sent(): JsonObject {
+            val frame = TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray())); output.reset()
+            val header = JsonObject(frame - "ciphertext")
+            val cipher = java.util.Base64.getDecoder().decode(frame.string("ciphertext"))
+            val plain = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")), cipher, TelefonKanonisch.bytes(header))
+            return Json.parseToJsonElement(plain.decodeToString()).jsonObject
+        }
+    }
+
+    @Test fun actualProtectedRuntimeJoinsInitialOffNativeEchoConfigurationAndFreshSourceGrant() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val app = org.robolectric.RuntimeEnvironment.getApplication()
+        try {
+            for (pairing in listOf("1".repeat(64), "1".repeat(64), "2".repeat(64))) {
+                val link = Link()
+                val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel, true, true, true, true, true, pairing)
+                val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, pairing)
+                val pcState = NativeLocalFileGrant(DeviceFileGrantState(7, "b".repeat(64), false, true), Any(), true)
+                NativeFileControlSession(remote, { pcPeer }, { pcState }).use { desktop ->
+                    NativeGalleryFileRuntime(app, root, identity, protection, link.channel, { peer }, { true }).use { runtime ->
+                        fun toDesktop() {
+                            assertTrue(runtime.sendControls(now))
+                            desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), pcPeer)
+                        }
+                        fun fromDesktop() {
+                            val packet = desktop.packet(); desktop.markSent(packet)
+                            runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                        }
+                        assertNull(runtime.currentRequest())
+                        toDesktop(); fromDesktop(); toDesktop()
+                        val before = runtime.savedPolicy()
+                        if (before.policy?.pairingEpoch == pairing) {
+                            assertNotNull(runtime.currentRequest()) // Same protected association survives a fresh real channel.
+                        } else {
+                            assertNull(runtime.currentRequest())
+                            val saved = runtime.configureFromAuthenticatedCommand(before, true, setOf(GallerySourceKind.CAMERA))
+                            assertEquals(pairing, saved.policy!!.pairingEpoch)
+                            assertNull(runtime.currentRequest()) // The changed send grant is not yet echoed.
+                            toDesktop(); fromDesktop()
+                            assertNotNull(runtime.currentRequest())
+                        }
+                        assertFalse(runtime.sendControls(now))
+                        assertEquals(pairing, runtime.currentRequest()!!.receiver.pairingEpoch)
+                    }
+                }
+                link.channel.close()
+            }
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun runtimeCannotConfigureBeforeNativeHandshakeOrCreateOffPolicyFromReading() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-closed-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val link = Link()
+        var peer: NativeFileControlPeer? = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel,
+            true, true, true, true, true, "1".repeat(64))
+        try {
+            NativeGalleryFileRuntime(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection, link.channel, { peer }, { true }).use { runtime ->
+                val empty = runtime.savedPolicy()
+                assertNull(empty.policy); assertNull(runtime.currentRequest())
+                assertThrows(PhotoFolderScopeError::class.java) { runtime.configureFromAuthenticatedCommand(empty, true, setOf(GallerySourceKind.CAMERA)) }
+                assertEquals(empty, runtime.savedPolicy())
+                peer = null
+                assertNull(runtime.currentRequest())
+                assertEquals(empty, runtime.disableLocally(empty))
+            }
+        } finally { link.channel.close(); root.deleteRecursively() }
+    }
+}

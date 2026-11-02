@@ -154,6 +154,18 @@ the actually written frame, bilateral echo, native write failure and owner chang
 during output. This is synthetic native channel I/O, not a physical phone test.
 The adapter does not register a dispatcher, advertise discovery or start work.
 
+`NativeGalleryFileRuntime` now explicitly joins the actual protected source index,
+pairing-associated grant projection, secure control channel and native gallery
+workflow. It uses existing supplied identity/protection, exact configuration
+tickets and protected CAS, not a personal-store constructor or wire-derived
+native grants. Two targeted integration cases pass: actual encrypted control
+writes/echo → initial OFF → explicit associated policy → fresh send-grant echo;
+same-pair restart and same-ID/key re-pair HOLD followed by explicit association;
+and no-handshake/no-policy-default/no-remote-authority local disable. The runtime
+does not register handlers, scan media, prompt for OS permission or start a
+worker/timer. Physical phone/installed GUI/Android dialog acceptance, explicit
+legacy bootstrap and dispatcher/foreground/UI connections remain open.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

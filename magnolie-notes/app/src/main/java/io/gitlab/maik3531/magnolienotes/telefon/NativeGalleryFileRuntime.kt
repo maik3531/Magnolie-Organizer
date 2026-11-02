@@ -1,0 +1,69 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.content.Context
+import kotlinx.serialization.json.JsonObject
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+
+/** Explicit native I/O-lane join of actual protected policy, dedicated grants,
+ * secure-channel controls and source workflow. Not a service/dispatcher: no
+ * construction from a wire body, store/key generation, scanning, scheduling or
+ * discovery advertisement. The caller supplies existing native identity/key,
+ * private directory and authenticated current-peer/channel ownership.
+ */
+internal class NativeGalleryFileRuntime(context: Context, directory: File, identity: NativeFileControlIdentity,
+    protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
+    handlersReady: () -> Boolean) : AutoCloseable {
+    private val closed = AtomicBoolean(false)
+    private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
+    private val nativePeer = { if (closed.get()) null else currentPeer() }
+    private val index = PhotoSourceJobIndex(directory, protection)
+    private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
+    private val controls: NativeFileControlChannel
+    private val workflow: NativeGalleryPhotoWorkflow
+
+    init {
+        var prepared: NativeFileControlChannel? = null
+        try {
+            prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() })
+            controls = prepared
+            workflow = NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(context, directory, identity.deviceId, protection,
+                { if (closed.get()) null else controls.session.photoReceiver() },
+                { ticket.get()?.let { controls.session.configurationAuthority(it) } })
+        } catch (error: Exception) {
+            closed.set(true); prepared?.close(); index.close()
+            throw error // Dedicated metadata/cache is preserved, not reset.
+        }
+    }
+
+    fun sendControls(now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.sendIfNeeded(now) }
+    fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.observe(message, now) }
+    fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
+    fun currentRequest(): NativeGalleryRequest? { ready(); return workflow.currentRequest() }
+
+    @Synchronized fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
+        kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
+        ready()
+        val issued = controls.session.configurationTicket()
+        if (!ticket.compareAndSet(null, issued)) {
+            controls.session.finishConfiguration(issued)
+            DeviceFileControl.fail("file_control_configuration_busy")
+        }
+        try { return workflow.configure(expected, enabled, kinds) }
+        finally { ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
+    }
+
+    @Synchronized fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot {
+        ready(); return workflow.disableLocally(expected)
+    }
+
+    @Synchronized override fun close() {
+        if (!closed.compareAndSet(false, true)) return
+        ticket.set(null)
+        controls.close()
+        try { workflow.close() } finally { index.close() }
+    }
+
+    private fun ready() { if (closed.get()) DeviceFileControl.fail("gallery_file_runtime_closed") }
+}
