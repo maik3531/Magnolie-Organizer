@@ -1,4 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Reuse the native-source host approach without a second build/toolchain.
+       Compile the ACTUAL current SaveAsync body; only GUI/derived side effects
+       are supplied by the bounded test host, not a copied replacement writer. -->
+  <UsingTask TaskName="GenerateHistoricalNativeSaveHost" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = System.IO.File.ReadAllText(Source);
+        var start = source.IndexOf("    private async Task SaveAsync(", System.StringComparison.Ordinal);
+        var end = start < 0 ? -1 : source.IndexOf("    private async Task UnlockAsync(", start, System.StringComparison.Ordinal);
+        if (start < 0 || end <= start) throw new System.InvalidOperationException("Actual native SaveAsync source boundary changed");
+        var body = source.Substring(start, end - start).Replace("private async Task SaveAsync(", "internal async Task SaveAsync(");
+        var generated = "#nullable enable\nusing System.Text.Json;\nusing System.Text.Json.Nodes;\nnamespace MagnolieOrganizer.Windows.Tests;\ninternal sealed partial class PersonalActorNativeSaveHost {\n" + body + "\n}\n";
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Output));
+        if (!System.IO.File.Exists(Output) || System.IO.File.ReadAllText(Output) != generated) System.IO.File.WriteAllText(Output, generated);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateHistoricalNativeSaveHostSource" BeforeTargets="CoreCompile">
+    <GenerateHistoricalNativeSaveHost Source="$(MSBuildProjectDirectory)/../BridgeDispatcher.cs" Output="$(MSBuildProjectDirectory)/$(IntermediateOutputPath)HistoricalNativeSaveHost.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)HistoricalNativeSaveHost.g.cs" /></ItemGroup>
+  </Target>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>

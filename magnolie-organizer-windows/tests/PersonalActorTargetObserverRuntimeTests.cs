@@ -124,11 +124,19 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 var captured = NativeActorBookSnapshot.Capture(() => owner.SaveState("target-observer", true), () => text)!;
                 var captures = 0;
                 coordinator.NativeProducerBook = () => { captures++; if (scenario == "save-during-capture") owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(text)); return captured; };
+                PersonalActorNativeSaveHost? nativeSaveHost = null;
+                if (scenario.Contains("-prepare-bridge-", StringComparison.Ordinal))
+                {
+                    nativeSaveHost = new PersonalActorNativeSaveHost(root, text);
+                    coordinator.NativeBookSource = nativeSaveHost.Source;
+                    coordinator.NativeSavedBook = nativeSaveHost.Saved;
+                    coordinator.NativeProducerBook = nativeSaveHost.Snapshot;
+                }
                 var handle = await coordinator.CreatePersonalActorAsync(peer.Id, TelefonCrypto.Fingerprint(peer.PublicKey));
                 if (scenario.StartsWith("origin-", StringComparison.Ordinal))
                 {
                     await OriginAsync(scenario, coordinator, store, peer, connection, handle, target, grants, owner, captured, scope,
-                        wire, () => emitted, () => captures, sourceFixture?["format"]?.GetValue<int>() ?? 3, sourceFixture);
+                        wire, () => emitted, () => captures, sourceFixture?["format"]?.GetValue<int>() ?? 3, sourceFixture, nativeSaveHost);
                     continue;
                 }
                 if (scenario == "foreign-owner") handle = new PersonalActorHandle(handle.ActorId, new string('f', 64));
@@ -170,6 +178,50 @@ internal static class PersonalActorTargetObserverRuntimeTests
             }
             finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
+    }
+
+    private static async Task HistoricalBridgeSaveAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
+        TelefonConnection connection, PersonalActorHandle handle, JsonObject scope, string candidateText, string token, PersonalActorNativeSaveHost host)
+    {
+        var beforeBytes = File.ReadAllBytes(host.DataPath); var before = host.Saved();
+        var invocation = new NativeHistoricalWriterInvocation(coordinator, handle, token);
+        var sentText = scenario.EndsWith("-payload", StringComparison.Ordinal) ? candidateText + " " : candidateText;
+        host.FailAfterPrimary = scenario.EndsWith("-uncertain", StringComparison.Ordinal);
+        using var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = sentText }.ToJsonString());
+        await host.SaveAsync(message.RootElement, invocation);
+        var result = host.Responses.Single(value => value.Callback == "App.gespeichert").Value;
+        if (scenario.EndsWith("-payload", StringComparison.Ordinal))
+        {
+            TestAssert.That(!result["ok"]!.GetValue<bool>() && host.Available && host.Saved() == before && host.Snapshots == 0 &&
+                beforeBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)), "Denied payload mutated the actual SaveAsync file/book/snapshot.");
+            return;
+        }
+        var actualBytes = File.ReadAllBytes(host.DataPath);
+        TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(host.DataPath), PersonalActorNativeSaveHost.Password) == candidateText, "Actual SaveAsync lost exact encrypted candidate bytes.");
+        if (scenario.EndsWith("-uncertain", StringComparison.Ordinal))
+        {
+            TestAssert.That(!result["ok"]!.GetValue<bool>() && !host.Available && host.Saved() is null, "Uncertain actual SaveAsync left stale memory writable.");
+            host.FailAfterPrimary = false;
+            using var stale = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 2, ["text"] = "{\"stale\":true}" }.ToJsonString());
+            await host.SaveAsync(stale.RootElement);
+            TestAssert.That(host.Responses.Last(value => value.Callback == "App.gespeichert").Value["ok"]!.GetValue<bool>() == false && actualBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+                "Ordinary autosave overwrote uncertain actual saved content with stale memory.");
+            await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Uncertain actual bridge save fabricated its native witness.");
+            return;
+        }
+        TestAssert.That(result["ok"]!.GetValue<bool>() && result["standSha256"]!.GetValue<string>() == BaumSyncSnapshot.Hash(candidateText) && host.Saved()?.Sequence == before!.Sequence + 1,
+            "Actual bridge save did not establish its own exact native witness.");
+        var confirmed = await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
+        await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
+        TestAssert.That(confirmed["historical_book_persisted"]!.GetValue<bool>() && !confirmed["phone_data_persisted"]!.GetValue<bool>() && actualBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+            "Actual bridge confirmation changed the saved file or fabricated ordinary data persistence.");
+        var queued = store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Single(item => item.Message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind && item.Message["body"]?["run_id"]?.GetValue<string>() == handle.ActorId);
+        await coordinator.PumpPersonalActorAsync(connection);
+        await coordinator.ReceivePersonalActorAsync(connection, peer, Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, queued.Id)));
+        var done = await coordinator.PersonalActorStatusAsync(handle);
+        TestAssert.That(done["phase"]!.GetValue<string>() == "completed" && done["phone_persisted"]!.GetValue<bool>() && !done["phone_data_persisted"]!.GetValue<bool>() &&
+            JsonNode.DeepEquals(connection.CurrentContentScope(PhoneContentScope.Reference(scope)), scope) && actualBytes.AsSpan().SequenceEqual(File.ReadAllBytes(host.DataPath)),
+            "Actual bridge save receipt changed native file/data scope or lost exact completion.");
     }
 
     // Actual product AES/atomic file writer, but not WinForms/physical phone E2E.
@@ -302,7 +354,8 @@ internal static class PersonalActorTargetObserverRuntimeTests
 
     private static async Task OriginAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
         TelefonConnection connection, PersonalActorHandle handle, JsonObject target, JsonObject grants, NativeBookOwnerScope owner,
-        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3, JsonObject? sourceFixture = null)
+        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3, JsonObject? sourceFixture = null,
+        PersonalActorNativeSaveHost? nativeSaveHost = null)
     {
         await coordinator.StartPersonalActorAsync(handle);
         var request = new JsonObject { ["format"] = wireFormat, ["run_id"] = handle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
@@ -345,6 +398,11 @@ internal static class PersonalActorTargetObserverRuntimeTests
                     TestAssert.That(claim["data_closed"]!.GetValue<bool>() && !claim["book_persisted"]!.GetValue<bool>() && !claim["phone_persisted"]!.GetValue<bool>(), "Prepare manufactured a saved/peer receipt.");
                     await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Prepared owner retained data access.");
                     var token = claim["claim_token"]!.GetValue<string>();
+                    if (nativeSaveHost is not null)
+                    {
+                        await HistoricalBridgeSaveAsync(scenario, coordinator, store, peer, connection, handle, scope, candidateText, token, nativeSaveHost);
+                        return;
+                    }
                     if (scenario.Contains("-prepare-file-", StringComparison.Ordinal))
                     {
                         await HistoricalFileWriterAsync(scenario, coordinator, store, peer, connection, handle, owner, scope, snapshot.Text, candidateText, token, transport);

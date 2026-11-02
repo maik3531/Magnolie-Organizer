@@ -44,6 +44,21 @@ internal static class PersonalActorLocalRestoreSourceTests
         await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), "prepare-file-after-write");
     }
 
+    internal static async Task ActualOrdinarySaveAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true);
+        await PersonalActorNativeSaveHost.VerifyOrdinaryAsync(fixtures[0]!["book"]!.ToJsonString(), fixtures[0]!["candidate_text"]!.GetValue<string>());
+    }
+
+    internal static async Task HistoricalBridgeSaveAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true);
+        foreach (var raw in fixtures)
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), "prepare-bridge-none");
+        foreach (var fault in new[] { "payload", "uncertain" })
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), "prepare-bridge-" + fault);
+    }
+
     internal static async Task HistoricalConfirmAsync()
     {
         var fixtures = await LoadGuiFixturesAsync(candidates: true);

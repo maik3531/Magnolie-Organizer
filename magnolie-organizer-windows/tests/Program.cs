@@ -126,6 +126,8 @@ runner.Add("Notes actor historical native prepare / closed data / exact writer p
 runner.Add("Notes actor historical native confirm / exact SaveACK / terminal receipt", PersonalActorLocalRestoreSourceTests.HistoricalConfirmAsync);
 runner.Add("Notes actor historical encrypted native file writer / exact receipt", PersonalActorLocalRestoreSourceTests.HistoricalFileWriterAsync);
 runner.Add("Notes actor historical uncertain file write / no replay or false receipt", PersonalActorLocalRestoreSourceTests.HistoricalUncertainWriterAsync);
+runner.Add("Notes actor actual Windows SaveAsync / historical native job / file receipt", PersonalActorLocalRestoreSourceTests.HistoricalBridgeSaveAsync);
+runner.Add("Actual Windows SaveAsync / ordinary encryption / epoch and id fence", PersonalActorLocalRestoreSourceTests.ActualOrdinarySaveAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
