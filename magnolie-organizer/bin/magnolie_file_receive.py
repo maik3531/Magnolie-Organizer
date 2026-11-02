@@ -207,6 +207,23 @@ class NativeFileReceiveOperation:
             body=request['body']
             return self.receive_chunk(body['file_id'],body['chunk_index'],data)
 
+    def next_chunk_request_message(self,*,now=None,message_id=None):
+        """One explicit native coordinator step, not a timer or worker loop.
+        Resume construction already authenticated the checkpoint and read back
+        every claimed staged chunk. Only that native ledger chooses the member.
+        None means no missing source bytes, never saved/published/sync success.
+        """
+        with self._gate:
+            self._require()
+            if self._published is not None or self._receipts is not None:
+                raise TransferError('file_receive_already_physically_published')
+            for file in self._accepted.manifest.files:
+                missing=self._ledger.missing(file.id)
+                if missing:
+                    return self.chunk_request_message(file.id,missing[0],now=now,message_id=message_id)
+            self._require()
+            return None
+
     def checkpoint(self):
         with self._gate:
             self._require()

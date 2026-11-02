@@ -735,6 +735,18 @@ Desktop transport/UI activation,
 resume/receipt data handlers and complete recovery/photo baselines remain open;
 discovery 21 stays unadvertised and no automatic run/package is enabled.
 
+The Linux receive operation also exposes a single explicit native coordinator
+step, `next_chunk_request_message`. It selects the first missing member/chunk
+only from its actual verified ledger. Reopening already authenticates the
+checkpoint and reads back every claimed staged chunk; corrupt evidence prevents
+admission rather than being trusted as progress. Returning no next request means
+only that no source bytes are missing, never publication, local save, quota
+retirement or synchronization END. Six new targeted native cases pass, including
+reopen/next exact chunk, multiple manifest members, empty file, corrupt staged
+member retained/fenced, native revocation/close/publication and exclusive receiver
+ownership. This API starts no timer or background loop and is not a physical
+restart/end-to-end phone acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
