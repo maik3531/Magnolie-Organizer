@@ -12,6 +12,7 @@ internal static class AtomicStoreTests
         {
             var store = new AtomicStore();
             VerifyProfileBackup(root);
+            PeerContentReadOnlyProbe.Verify();
             var path = Path.Combine(root, "data.json");
             store.Write(path, "alt");
             await Task.WhenAll(Enumerable.Range(0, 12).Select(index => Task.Run(() =>
