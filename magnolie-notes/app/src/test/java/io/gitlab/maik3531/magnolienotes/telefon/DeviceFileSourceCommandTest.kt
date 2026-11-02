@@ -54,4 +54,18 @@ class DeviceFileSourceCommandTest {
             java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) })
         assertEquals(setOf(GallerySourceKind.CAMERA, GallerySourceKind.SCREENSHOTS), command.kinds)
     }
+
+    @Test fun discoveryAndPagingRequireTheExactPolicyVersionAndCanonicalOpaqueCatalogCursor() {
+        val discover = buildJsonObject { put("format", 1); put("operation", "discover"); put("expected_version", "a".repeat(64)) }
+        assertEquals("discover", DeviceFileSourceCommand.parse(message(discover), now).operation)
+        val page = JsonObject(discover + mapOf("operation" to JsonPrimitive("catalog_page"),
+            "catalog_id" to JsonPrimitive("11111111-1111-4111-8111-111111111111"), "after" to JsonPrimitive(1)))
+        assertEquals(1, DeviceFileSourceCommand.parse(message(page), now).after)
+        for ((key, value) in listOf("after" to JsonPrimitive(true), "after" to JsonPrimitive("1"), "after" to JsonPrimitive(129),
+            "catalog_id" to JsonPrimitive("/storage/private"), "expected_version" to JsonPrimitive("stale-label"),
+            "send_files" to JsonPrimitive(true))) {
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(page + (key to value))), now) }
+        }
+        assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(discover + ("after" to JsonPrimitive(0)))), now) }
+    }
 }

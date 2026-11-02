@@ -20,6 +20,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private val closed = AtomicBoolean(false)
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
     private val commandLive = AtomicReference<(() -> Boolean)?>()
+    private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
     private val nativePeer = { if (closed.get()) null else currentPeer() }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
@@ -76,8 +77,30 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         try {
             val owner = authority()
             val before = workflow.savedPolicy()
+            if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation in setOf("discover", "catalog_page")) {
+                if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+                val catalog = if (command.operation == "discover") {
+                    wireCatalog.getAndSet(null)?.close()
+                    workflow.discoverSelectable().also { wireCatalog.set(it) }
+                } else wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
+                val page = catalog.page(command.catalogId, command.after)
+                authority()
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
+                    put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version)); put("page", page)
+                }
+                val at = now()
+                val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                val reply = TelefonNachrichten.message(DeviceFileSourceCommand.CATALOG, body, ttl, at)
+                if (TelefonKanonisch.bytes(reply).size > DeviceFileControl.MAX_WIRE_BYTES) DeviceFileControl.fail("gallery_catalog_envelope_too_large")
+                authority(); catalog.page(command.catalogId, command.after) // Actual metadata freshness at send.
+                send(reply)
+                authority()
+                return
+            }
             val saved = if (command.operation == "configure") {
-                if (before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
                 authority()
                 workflow.configure(before, command.enabled!!, command.kinds)
             } else before
@@ -136,6 +159,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         if (!closed.compareAndSet(false, true)) return
         ticket.set(null)
+        wireCatalog.getAndSet(null)?.close()
         NativeGalleryForeground.detach(this)
         try { workflow.close() } finally { index.close() }
     }

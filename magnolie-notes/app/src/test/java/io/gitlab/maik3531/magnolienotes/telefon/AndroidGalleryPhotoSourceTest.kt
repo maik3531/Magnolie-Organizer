@@ -28,8 +28,9 @@ import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.nio.file.Files
 import javax.crypto.spec.SecretKeySpec
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.*
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], application = Application::class, shadows = [AndroidGalleryVolumeAccessTest.MountedVolumes::class])
@@ -207,6 +208,70 @@ class AndroidGalleryPhotoSourceTest {
                 workflow.retireCached(job)
                 assertEquals("hello", File(f.root, "source.bin").readText())
             } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun wireDiscoveryAndPagingReturnActualNativeAlbumMetadataWithoutOpeningPhotoBytesOrPrompting() {
+        Fixture().use { f ->
+            val now = 1_800_000_000_000L
+            val root = Files.createTempDirectory(f.root.toPath(), "wire-catalog-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val output = ByteArrayOutputStream(); val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+            val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
+            val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+            val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64))
+            val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
+            val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+            val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
+            val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val host = GalleryPhotoPermissionHost(activity.get())
+            try {
+                runtime.attachPermissionHost(host) { throw AssertionError("Metadata cannot request OS permissions") }
+                activity.start().resume()
+                fun drain(): List<JsonObject> {
+                    val input = ByteArrayInputStream(output.toByteArray()); output.reset(); val messages = mutableListOf<JsonObject>()
+                    while (input.available() > 0) {
+                        val frame = TelefonRahmen.lesen(input); val header = JsonObject(frame - "ciphertext")
+                        val cipher = java.util.Base64.getDecoder().decode(frame.string("ciphertext"))
+                        val clear = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")), cipher, TelefonKanonisch.bytes(header))
+                        messages += Json.parseToJsonElement(clear.decodeToString()).jsonObject
+                    }
+                    return messages
+                }
+                fun echo() {
+                    if (runtime.sendControls(now)) drain().forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it, now), pcPeer) }
+                    val packet = desktop.packet(); desktop.markSent(packet)
+                    runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                    if (runtime.sendControls(now)) drain().forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it, now), pcPeer) }
+                }
+                fun request(operation: String, version: String, catalogId: String? = null) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", operation); put("expected_version", version)
+                    if (catalogId != null) { put("catalog_id", catalogId); put("after", 0) }
+                }, 60_000, now)
+                echo()
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    runtime.receiveSourceCommand(request("discover", runtime.savedPolicy().version), channel::send, { now })
+                }
+                assertTrue(f.provider.requests.isEmpty())
+                runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                val version = runtime.savedPolicy().version
+                runtime.receiveSourceCommand(request("discover", version), channel::send, { now })
+                val response = drain().single()
+                assertEquals(DeviceFileSourceCommand.CATALOG, response.string("kind"))
+                assertTrue(TelefonKanonisch.bytes(response).size <= DeviceFileControl.MAX_WIRE_BYTES)
+                val page = response["body"]!!.jsonObject["page"]!!.jsonObject
+                assertEquals("Camera", page["albums"]!!.jsonArray.single().jsonObject.string("display_name"))
+                assertEquals(JsonPrimitive(false), page["proves_deletion"])
+                assertTrue(f.provider.opens.isEmpty()); assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
+                runtime.receiveSourceCommand(request("catalog_page", version, page.string("catalog_id")), channel::send, { now })
+                assertEquals(page, drain().single()["body"]!!.jsonObject["page"])
+                runtime.receiveSourceCommand(request("discover", version), channel::send, { now }); drain()
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    runtime.receiveSourceCommand(request("catalog_page", version, page.string("catalog_id")), channel::send, { now })
+                }
+                assertTrue(f.provider.opens.isEmpty())
+            } finally { runtime.close(); host.close(); activity.pause().stop().destroy(); desktop.close(); channel.close() }
         }
     }
 

@@ -417,6 +417,38 @@ metadata. The five earlier catalog cases were rerun only for this changed clock
 boundary; the two unchanged scope/workflow passes were retained. This remains
 synthetic/Robolectric evidence, not physical phone acceptance.
 
+### Discovery/page command connection
+
+The request envelope now also accepts `discover` with exactly `format`,
+`operation`, `expected_version`, and `catalog_page` with those fields plus
+canonical UUID-v4 `catalog_id` and integer `after` in 0..128. Both use the exact
+current protected policy version, a fresh native metadata ticket **and** current
+negotiated source-send authority. Neither activates a policy, requests OS READ
+nor opens image bytes. OS permission and the existing native permission host are
+checked independently by the real workflow. A new discovery invalidates the
+prior native catalog mapping; a page can only address an existing live mapping.
+
+`file_transfer.sources.catalog` returns inner format 1 with `request_id`,
+`operation`, `version`, `page`. The bounded page contains `format`, `catalog_id`,
+`after`, nullable `next_cursor`, `coverage`, `proves_deletion: false`, and `albums`.
+Album metadata has only opaque UUID-v4 `album_id`, `kind`, `display_name`,
+`visible_images`, `needs_choice`. Paging cursors, IDs and visible counts are not
+READ/delete authority or complete file inventories. Native freshness is checked
+again at the actual secure send. Linux/Windows strict correlated page decoders
+check request/operation/policy/catalog/cursor identity and reject deletion claims,
+duplicate IDs, extra technical path fields and malformed metadata.
+
+Nine affected Android cases pass, including actual MediaStore discovery through
+the encrypted channel, stable paging, initial-OFF denial and old-ID rejection
+after rediscovery without photo PFD opens or permission prompts. The targeted
+Linux catalog run passes 25 cases (24 catalog checks plus the unchanged configure
+golden after its builder change). The Windows source-settings group passes;
+build warnings/errors are zero. Desktop transport/UI registration, explicit
+permission-command invocation, native activation callers, run workers and full
+transfer/recovery/baseline integration are still open. No discovery advertisement,
+automatic synchronization, physical phone/installed GUI acceptance or release is
+implied.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

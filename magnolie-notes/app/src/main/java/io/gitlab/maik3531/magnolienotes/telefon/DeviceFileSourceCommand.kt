@@ -7,10 +7,12 @@ import java.util.Locale
  * run scheduling or album READ authority can be supplied in this body.
  */
 internal class DeviceFileSourceCommand private constructor(val requestId: String, val operation: String,
-    val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long) {
+    val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long,
+    val catalogId: String? = null, val after: Int = 0) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
+        const val CATALOG = "file_transfer.sources.catalog"
         fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
             fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
             if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
@@ -25,6 +27,16 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             if (operation == "status") {
                 if (body.keys != base) fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, null, null, emptySet(), message.long("expires_ms"))
+            }
+            if (operation in setOf("discover", "catalog_page")) {
+                if (body.keys != base + setOf("expected_version") + (if (operation == "catalog_page") setOf("catalog_id", "after") else emptySet())) fail()
+                val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val id = if (operation == "catalog_page") text("catalog_id").takeIf {
+                    Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
+                } ?: fail() else null
+                val after = if (operation == "catalog_page") (body["after"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
+                    ?.takeIf { it in 0..AndroidGalleryAlbumDiscovery.MAX_ALBUMS } ?: fail() else 0
+                return DeviceFileSourceCommand(message.string("message_id"), operation, expected, null, emptySet(), message.long("expires_ms"), id, after)
             }
             if (operation != "configure" || body.keys != base + setOf("expected_version", "enabled", "kinds")) fail()
             val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

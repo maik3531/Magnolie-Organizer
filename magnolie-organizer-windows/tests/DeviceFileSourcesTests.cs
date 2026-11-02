@@ -35,6 +35,29 @@ internal static class DeviceFileSourcesTests
         TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseResult(reply, Guid.NewGuid().ToString(), "configure", now), "Wrong request result accepted.");
         reply["body"]!.AsObject()["revision"] = true;
         TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseResult(reply, command.RequestId, "configure", now), "Boolean revision accepted.");
+        var discover = DeviceFileSources.CreateRequest("discover", now, new string('a', 64));
+        TestAssert.That(DeviceFileSources.ParseRequest(discover, now).Operation == "discover", "Discovery request rejected.");
+        const string catalogId = "22222222-2222-4222-8222-222222222222";
+        var pageRequest = DeviceFileSources.CreateRequest("catalog_page", now, new string('a', 64), catalogId: catalogId, after: 1);
+        TestAssert.That(DeviceFileSources.ParseRequest(pageRequest, now).After == 1, "Paging request rejected.");
+        pageRequest["body"]!.AsObject()["after"] = true;
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseRequest(pageRequest, now), "Boolean catalog cursor accepted.");
+        var catalog = (JsonObject)discover.DeepClone(); catalog["kind"] = DeviceFileSources.CatalogKind;
+        catalog["body"] = new JsonObject { ["format"] = 1, ["request_id"] = discover["message_id"]!.DeepClone(), ["operation"] = "discover",
+            ["version"] = new string('a', 64), ["page"] = new JsonObject { ["format"] = 1, ["catalog_id"] = catalogId, ["after"] = 0,
+                ["next_cursor"] = null, ["coverage"] = "full_images", ["proves_deletion"] = false, ["albums"] = new JsonArray(new JsonObject {
+                    ["album_id"] = "33333333-3333-4333-8333-333333333333", ["kind"] = "camera", ["display_name"] = "Camera",
+                    ["visible_images"] = 3, ["needs_choice"] = false }) } };
+        DeviceFileCatalogPage ReadCatalog(JsonObject value) => DeviceFileSources.ParseCatalog(value, discover["message_id"]!.GetValue<string>(), "discover", new string('a', 64), now);
+        TestAssert.That(ReadCatalog(catalog).Albums.Single().DisplayName == "Camera", "Native album metadata rejected.");
+        foreach (var (key, value) in new (string, JsonNode?)[] { ("proves_deletion", JsonValue.Create(true)), ("proves_deletion", JsonValue.Create(0)),
+            ("next_cursor", JsonValue.Create(0)), ("next_cursor", JsonValue.Create(2)), ("after", JsonValue.Create(true)), ("path", JsonValue.Create("/private")) })
+        {
+            var invalid = (JsonObject)catalog.DeepClone(); invalid["body"]!["page"]!.AsObject()[key] = value;
+            TestAssert.Throws<InvalidDataException>(() => ReadCatalog(invalid), "Invalid catalog scope/deletion metadata accepted.");
+        }
+        var duplicates = (JsonObject)catalog.DeepClone(); var entries = duplicates["body"]!["page"]!["albums"]!.AsArray(); entries.Add(entries[0]!.DeepClone());
+        TestAssert.Throws<InvalidDataException>(() => ReadCatalog(duplicates), "Duplicate native album IDs accepted.");
         return Task.CompletedTask;
     }
 }
