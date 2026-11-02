@@ -205,6 +205,24 @@ through public `ContentResolver.call`; the public resolver-based
 There is no hidden-API reflection, path-prefix trust fallback or minimum-Android
 version increase. Missing/invalid provider descendant results fail closed.
 
+`AndroidGalleryAlbumDiscovery` is a second read-only metadata adapter for the
+requested desktop-driven automatic sources. It does nothing before explicit
+native activation or without actual Android photo-read permission. Queries are
+targeted to enabled camera/messenger/screenshot/download categories, use bounded
+keyset pages over the platform image index, and never crawl filesystem paths
+or open image contents. Known modern WhatsApp received-image paths are matched
+exactly (not sent-image or backup subfolders); ambiguous same-name legacy albums
+require a choice on the desktop, not knowledge of technical Android paths.
+
+The result retains its native policy activation/epoch and distinguishes full
+image access from selected-only visibility. Neither an empty catalog nor full
+permission plus album metadata proves any file deletion. Permission/source/
+owner changes or malformed/unbounded pages discard the whole result. The media
+read permissions are declared, but no startup permission request, new phone
+settings screen, background discovery or automatic synchronization is started.
+Concrete gallery-item source leases/readers, desktop policy control, native OS
+permission launchers and full inventory/receipt integration remain outstanding.
+
 ## Protected Android source snapshots
 
 `AndroidPhotoSourceReader` rechecks exact document identity/name/image metadata,

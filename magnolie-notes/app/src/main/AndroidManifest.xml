@@ -14,6 +14,10 @@
 
     <!-- Lesen für Einmalimport; Schreiben zusätzlich nur für ausdrücklich gestartete Dauersynchronisation. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Requested only by an explicitly enabled desktop photo source, never on app startup. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <!-- Der Empfangsdienst läuft als sichtbarer Vordergrunddienst. -->
