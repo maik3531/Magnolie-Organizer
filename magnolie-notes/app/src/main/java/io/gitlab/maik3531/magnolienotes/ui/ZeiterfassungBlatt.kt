@@ -159,7 +159,6 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 }
             }
         } else LazyColumn(Modifier.weight(1f)) {
-        if (current != null) item(key = current.id) { karte(current, false) }
         item { Abschnitt(stringResource(R.string.zeit_titel)) {
             BestaetigungsSchieber(stringResource(if (current == null) R.string.zeit_starten else R.string.zeit_beenden), confirm,
                 "primary:${current?.id ?: startId}:${current?.clock}", !speichert && (current != null || stand.enabled)) {
@@ -176,6 +175,9 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 }
             }
         } }
+        // Keep the primary confirmation control anchored when a run starts.
+        // The minute-only running overview remains directly below the controls.
+        if (current != null) item(key = current.id) { karte(current, false) }
         val pauseAlarm = current?.let { stand.pauseRuns[it.id]?.alarm }
         if (current != null && pauseAlarm != null) item {
             Abschnitt(stringResource(R.string.zeit_pause)) {

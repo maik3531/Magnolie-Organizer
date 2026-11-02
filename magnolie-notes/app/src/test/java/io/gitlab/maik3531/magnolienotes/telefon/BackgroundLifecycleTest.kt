@@ -206,12 +206,17 @@ class BackgroundLifecycleTest {
         fun values() = initial.invoke(work, storage.peers().peer) as Map<*, *>
         assertEquals(mapOf("content_mode" to JsonPrimitive("phone_scope"), "auto_mode" to JsonPrimitive("wifi"),
             "skip_deletions" to JsonPrimitive(false), "custom_enabled" to JsonPrimitive(false),
-            "time_enabled" to JsonPrimitive(false), "time_mode" to JsonPrimitive("two_way")), values())
+            "time_enabled" to JsonPrimitive(true), "time_mode" to JsonPrimitive("two_way")), values())
         work.setPersonalSync(true, true, true, false, true, reconnectAfterChange = false)
         assertEquals(JsonPrimitive("manual"), values()["auto_mode"])
         assertEquals(JsonPrimitive(false), values()["skip_deletions"])
         work.setPersonalSync(true, true, true, false, false, reconnectAfterChange = false)
         assertEquals(JsonPrimitive(true), values()["skip_deletions"])
+        val initialized = storage.peers().peer!!
+        storage.savePeer(initialized.copy(personal_time_policy = TimeSyncProtokoll.newSettings(false)))
+        assertEquals(JsonPrimitive(false), values()["time_enabled"])
+        storage.savePeer(initialized.copy(personal_time_policy = TimeSyncProtokoll.newSettings(true)))
+        assertEquals(JsonPrimitive(true), values()["time_enabled"])
     }
 
     @Test fun personalPairingDefaultsApplyOnceAndKeepLaterOptOuts() = fixture { storage, work, queue ->

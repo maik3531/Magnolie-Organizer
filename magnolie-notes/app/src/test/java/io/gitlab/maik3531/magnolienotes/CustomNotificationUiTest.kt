@@ -342,6 +342,11 @@ class CustomNotificationUiTest {
         }
         assertEquals(2, nodes().count { it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null })
         assertEquals(bounds.top, control(R.string.zeit_beenden).boundsInRoot.top, 1f)
+        for (resource in listOf(R.string.zeit_beginn, R.string.zeit_laufzeit,
+            R.string.zeit_startart, R.string.zeit_start_manuell)) {
+            assertTrue("Running overview must remain visible: ${app.getString(resource)}", nodes().any { node ->
+                node.config.getOrNull(SemanticsProperties.Text)?.any { it.text == app.getString(resource) } == true })
+        }
         val pauseTop = control(R.string.zeit_pausieren).boundsInRoot.top
         confirm(R.string.zeit_pausieren) { ablage.bestand.value.zeiterfassung.entries.single().pauseMinute != null }
         assertEquals(pauseTop, control(R.string.zeit_fortsetzen).boundsInRoot.top, 1f)
