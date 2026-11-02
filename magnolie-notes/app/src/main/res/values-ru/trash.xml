@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">Переместить выбранные записи в корзину?</string>
-    <string name="loeschen_endgueltig_frage">Удалить выбранные записи безвозвратно? Они не попадут в корзину, и восстановить их здесь будет невозможно.</string>
+    <string name="loeschen_endgueltig_frage">Корзина отключена: удалить выбранные записи безвозвратно?</string>
     <string name="loeschen_nur_lokal">Записи времени будут удалены только с этого телефона. В Organizer они сохранятся.</string>
 </resources>

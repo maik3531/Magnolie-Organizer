@@ -41,4 +41,18 @@ class PapierkorbVerkabelungTest {
         assertFalse(main.contains("it.purgeExpired()"))
         assertFalse(main.contains("it.removeLocal("))
     }
+
+    @Test fun disabledTrashQuestionNamesThePolicyWithoutRedundantRestorationScope() {
+        val files = File(root, "res").listFiles()!!.map { File(it, "trash.xml") }.filter { it.isFile }
+        for (file in files) {
+            val strings = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file).getElementsByTagName("string")
+            val value = (0 until strings.length).map { strings.item(it) }
+                .single { it.attributes.getNamedItem("name").nodeValue == "loeschen_endgueltig_frage" }.textContent
+            assertTrue(file.path, value.contains(':') || value.contains('：'))
+            if (file.parentFile.name == "values-de") assertEquals(
+                "Papierkorb deaktiviert: Die ausgewählten Einträge endgültig löschen?", value)
+            if (file.parentFile.name == "values") assertEquals(
+                "Trash disabled: Permanently delete the selected items?", value)
+        }
+    }
 }

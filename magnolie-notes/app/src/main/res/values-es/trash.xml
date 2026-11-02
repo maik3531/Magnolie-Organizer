@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">¿Mover los elementos seleccionados a la papelera?</string>
-    <string name="loeschen_endgueltig_frage">¿Eliminar permanentemente los elementos seleccionados? No irán a la papelera y no se podrán restaurar aquí.</string>
+    <string name="loeschen_endgueltig_frage">Papelera desactivada: ¿eliminar permanentemente los elementos seleccionados?</string>
     <string name="loeschen_nur_lokal">Los tiempos registrados solo se quitarán de este teléfono. Se conservarán en Organizer.</string>
 </resources>

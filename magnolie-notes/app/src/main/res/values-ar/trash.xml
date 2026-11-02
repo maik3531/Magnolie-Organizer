@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">هل تريد نقل العناصر المحددة إلى سلة المهملات؟</string>
-    <string name="loeschen_endgueltig_frage">هل تريد حذف العناصر المحددة نهائيًا؟ لن تُنقل إلى سلة المهملات ولن يمكن استعادتها هنا.</string>
+    <string name="loeschen_endgueltig_frage">سلة المهملات معطّلة: هل تريد حذف العناصر المحددة نهائيًا؟</string>
     <string name="loeschen_nur_lokal">ستُزال الأوقات المسجلة من هذا الهاتف فقط. وستبقى في Organizer.</string>
 </resources>

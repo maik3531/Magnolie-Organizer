@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">選択した項目をゴミ箱に移動しますか？</string>
-    <string name="loeschen_endgueltig_frage">選択した項目を完全に削除しますか？ゴミ箱には移動されず、ここでは復元できません。</string>
+    <string name="loeschen_endgueltig_frage">ゴミ箱は無効です：選択した項目を完全に削除しますか？</string>
     <string name="loeschen_nur_lokal">記録した時間はこの電話からのみ削除されます。Organizerには残ります。</string>
 </resources>

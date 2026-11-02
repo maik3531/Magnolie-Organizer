@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">Move the selected items to the trash?</string>
-    <string name="loeschen_endgueltig_frage">Permanently delete the selected items? They will not be moved to the trash and cannot be restored here.</string>
+    <string name="loeschen_endgueltig_frage">Trash disabled: Permanently delete the selected items?</string>
     <string name="loeschen_nur_lokal">This only removes the recorded times from this phone. Times in Organizer are kept.</string>
 </resources>

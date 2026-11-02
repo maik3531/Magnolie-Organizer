@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">Przenieść wybrane elementy do kosza?</string>
-    <string name="loeschen_endgueltig_frage">Trwale usunąć wybrane elementy? Nie trafią do kosza i nie będzie można ich tutaj przywrócić.</string>
+    <string name="loeschen_endgueltig_frage">Kosz wyłączony: trwale usunąć wybrane elementy?</string>
     <string name="loeschen_nur_lokal">Zarejestrowane czasy zostaną usunięte tylko z tego telefonu. Pozostaną w Organizer.</string>
 </resources>

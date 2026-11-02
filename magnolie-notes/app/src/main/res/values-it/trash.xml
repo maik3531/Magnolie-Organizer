@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">Spostare gli elementi selezionati nel cestino?</string>
-    <string name="loeschen_endgueltig_frage">Eliminare definitivamente gli elementi selezionati? Non verranno spostati nel cestino e non potranno essere ripristinati qui.</string>
+    <string name="loeschen_endgueltig_frage">Cestino disattivato: eliminare definitivamente gli elementi selezionati?</string>
     <string name="loeschen_nur_lokal">I tempi registrati verranno rimossi solo da questo telefono. Rimarranno in Organizer.</string>
 </resources>

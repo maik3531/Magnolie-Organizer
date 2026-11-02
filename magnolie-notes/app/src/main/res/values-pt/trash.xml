@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">Mover os itens selecionados para o lixo?</string>
-    <string name="loeschen_endgueltig_frage">Eliminar permanentemente os itens selecionados? Não serão movidos para o lixo e não poderão ser restaurados aqui.</string>
+    <string name="loeschen_endgueltig_frage">Lixo desativado: eliminar permanentemente os itens selecionados?</string>
     <string name="loeschen_nur_lokal">Os tempos registados serão removidos apenas deste telefone. Serão mantidos no Organizer.</string>
 </resources>

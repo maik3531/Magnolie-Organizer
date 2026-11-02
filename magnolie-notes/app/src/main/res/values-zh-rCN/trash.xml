@@ -1,5 +1,5 @@
 <resources>
     <string name="loeschen_papierkorb_frage">将所选条目移至回收站？</string>
-    <string name="loeschen_endgueltig_frage">永久删除所选条目？它们不会移至回收站，也无法在此恢复。</string>
+    <string name="loeschen_endgueltig_frage">回收站已停用：永久删除所选条目？</string>
     <string name="loeschen_nur_lokal">记录的时间仅从此手机移除，在Organizer中仍会保留。</string>
 </resources>
