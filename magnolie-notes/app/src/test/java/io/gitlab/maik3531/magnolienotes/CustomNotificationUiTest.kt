@@ -383,8 +383,14 @@ class CustomNotificationUiTest {
         frames()
         clickText(R.string.blatt_journal)
         frames()
-        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.Text)
-            ?.any { text -> text.text.contains(app.getString(R.string.zeit_erfasste)) } == true })
+        val locale = app.resources.configuration.locales[0]
+        val month = java.time.format.DateTimeFormatter.ofPattern(
+            android.text.format.DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale)
+            .format(java.time.YearMonth.of(1970, 1).atDay(1))
+        val texts = nodes().flatMap { it.config.getOrNull(SemanticsProperties.Text).orEmpty() }.map { it.text }
+        assertTrue(texts.contains(month))
+        assertTrue(texts.contains(app.getString(R.string.papierkorb_leeren)))
+        assertFalse(texts.contains(app.getString(R.string.zeit_erfasste) + " · " + app.getString(R.string.papierkorb_titel)))
         clickText(R.string.journal_restore)
         val until = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
         while (ablage.bestand.value.zeiterfassung.entries.isEmpty() && System.nanoTime() < until) {
