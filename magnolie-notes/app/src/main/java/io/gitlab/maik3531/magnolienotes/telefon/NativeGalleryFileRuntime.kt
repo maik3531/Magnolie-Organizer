@@ -46,6 +46,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         ready(); workflow.attachPermissionHost(host, onResult)
     }
     fun requestReadPermission() { ready(); workflow.requestReadPermission() }
+    fun attachForeground(onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
+        ready(); return NativeGalleryForeground.attach(this, onResult)
+    }
 
     @Synchronized fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
         kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
@@ -79,6 +82,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         if (!closed.compareAndSet(false, true)) return
         ticket.set(null)
+        NativeGalleryForeground.detach(this)
         try { workflow.close() } finally { index.close() }
     }
 

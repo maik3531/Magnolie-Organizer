@@ -121,6 +121,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 
 
 class MainActivity : ComponentActivity() {
+    private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
     internal val gewuenschtesCustom = mutableStateOf<Intent?>(null)
@@ -132,6 +133,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(zustand: Bundle?) {
         super.onCreate(zustand)
+        // Register before STARTED without constructing a phone store/service.
+        // Explicit native file activation can attach later, preserving drafts.
+        galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this).also {
+            io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
+        }
         // Ein gemeinsamer Insets-Vertrag auf älteren Geräten und ab Android 15:
         // helle Systemknöpfe auf Leder, ohne die Sichtbarkeit der Leisten zu ändern.
         enableEdgeToEdge(
@@ -151,6 +157,12 @@ class MainActivity : ComponentActivity() {
             empfangeAbsicht(intent)
         }
         setContent { MagnolieThema { Startblatt(gewuenschteAufgabe) } }
+    }
+
+    override fun onDestroy() {
+        galleryPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }
+        galleryPermissionHost = null
+        super.onDestroy()
     }
 
     override fun onResume() {

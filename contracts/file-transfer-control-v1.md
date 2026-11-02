@@ -231,6 +231,16 @@ selected-only OS readback despite success booleans, pending-result ownership and
 old-owner close. These are not physical Android dialog/phone acceptance. The
 actual MainActivity/service/notification command connections remain open.
 
+MainActivity now registers this passive host in its real `onCreate` before
+STARTED and unregisters the exact owner in `onDestroy`. The native foreground
+route can attach an already existing runtime without creating a phone store,
+service, grant or source. It holds the Activity weakly, rejects a competing
+runtime and uses an exact opaque native owner handle. An old Activity's cleanup
+cannot remove its replacement. All four affected runtime cases pass, including
+genuine AndroidX Activity lifecycle routing; MainActivity production sources
+compile. This is not installed MainActivity/phone acceptance. Explicit permission
+action/notification-tap and actual command dispatcher connections remain open.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

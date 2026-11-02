@@ -116,4 +116,46 @@ class NativeGalleryFileRuntimeTest {
             assertThrows(PhotoFolderScopeError::class.java) { runtime.savedPolicy() }
         } finally { runtime.close(); link.channel.close(); root.deleteRecursively() }
     }
+
+    @Test fun passiveForegroundRouteAttachesAnExistingRuntimeAndOldActivityCannotRemoveItsReplacement() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-activity-").toFile()
+        val otherRoot = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-other-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val link = Link(); val otherLink = Link()
+        val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel, true, true, true, true, true, "1".repeat(64))
+        val otherPeer = peer.copy(owner = otherLink.channel)
+        val app = org.robolectric.RuntimeEnvironment.getApplication()
+        val runtime = NativeGalleryFileRuntime(app, root, identity, protection, link.channel, { peer }, { true })
+        val other = NativeGalleryFileRuntime(app, otherRoot, identity, protection, otherLink.channel, { otherPeer }, { true })
+        val firstActivity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).create()
+        val firstHost = GalleryPhotoPermissionHost(firstActivity.get())
+        val secondActivity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).create()
+        val secondHost = GalleryPhotoPermissionHost(secondActivity.get())
+        try {
+            val owner = runtime.attachForeground { }
+            assertTrue(NativeGalleryForeground.isCurrent(owner))
+            assertFalse(NativeGalleryForeground.isCurrent(NativeGalleryForegroundOwner(runtime)))
+            assertSame(owner, runtime.attachForeground { })
+            assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) { runtime.requestReadPermission() }.code)
+            NativeGalleryForeground.registerHost(firstHost)
+            firstActivity.start().resume()
+            assertEquals("gallery_source_not_activated", assertThrows(PhotoFolderScopeError::class.java) { runtime.requestReadPermission() }.code)
+            assertNull(org.robolectric.Shadows.shadowOf(firstActivity.get()).lastRequestedPermission)
+            assertThrows(PhotoFolderScopeError::class.java) { other.attachForeground { } }
+            other.close()
+            assertTrue(NativeGalleryForeground.isCurrent(owner))
+            NativeGalleryForeground.registerHost(secondHost)
+            secondActivity.start().resume()
+            NativeGalleryForeground.unregisterHost(firstHost)
+            assertEquals("gallery_source_not_activated", assertThrows(PhotoFolderScopeError::class.java) { runtime.requestReadPermission() }.code)
+            assertNull(org.robolectric.Shadows.shadowOf(secondActivity.get()).lastRequestedPermission)
+            runtime.close()
+            assertFalse(NativeGalleryForeground.isCurrent(owner))
+        } finally {
+            runtime.close(); other.close()
+            NativeGalleryForeground.unregisterHost(firstHost); NativeGalleryForeground.unregisterHost(secondHost)
+            firstActivity.pause().stop().destroy(); secondActivity.pause().stop().destroy()
+            link.channel.close(); otherLink.channel.close(); root.deleteRecursively(); otherRoot.deleteRecursively()
+        }
+    }
 }
