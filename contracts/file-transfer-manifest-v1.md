@@ -55,6 +55,24 @@ The resulting digest is represented as lowercase hex. This framing does not
 depend on JSON escaping, object-key ordering or a book canonicalization helper.
 The accompanying vectors are synthetic and include a Unicode path.
 
+## Complete offer-envelope preflight (not registered yet)
+
+The Android source preflight prepares kind `file_transfer.offer`, with exact body
+`{version:1,manifest:<complete immutable manifest>,manifest_sha256:<fingerprint>}`
+and the existing exact `TelefonNachrichten` application header. TTL is at most
+60 seconds. The entire canonical UTF-8 application message must fit the unchanged
+262144-byte application maximum; budgeting just the manifest/local frame is not
+enough. Exactly the maximum fits, one byte more fails without splitting, trimming
+or mutating the manifest. The encrypted transport retains its separate outer
+frame bound. Native sender/receiver IDs and the full manifest fingerprint are
+checked; none is permission inferred from the offer itself.
+
+`IndexedPhotoSource.offerMessage` runs this preflight only under the current
+sealed native index head and source lease. A returned message grants no enduring
+send authority; actual send/receive handlers must recheck negotiated consent.
+The kind is deliberately still rejected by the application dispatcher and is not
+advertised. Desktop counterpart/handler/acceptance integration remains pending.
+
 ## Native binding and actual readback
 
 The native owner supplies the authenticated sender/receiver IDs and identity

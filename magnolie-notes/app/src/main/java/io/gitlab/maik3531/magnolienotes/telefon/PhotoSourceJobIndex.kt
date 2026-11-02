@@ -29,6 +29,11 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
     private val snapshot: ProtectedPhotoSourceSnapshot) {
     val manifest: DeviceFileManifest get() = index.withSealedHead(job, scope, lease) { snapshot.manifest }
     fun readChunk(fileId: String, chunk: Int): ByteArray = index.withSealedHead(job, scope, lease) { snapshot.readChunk(fileId, chunk) }
+    /** Preflight only; the actual send handler must recheck live negotiated
+     * authority. Returning an envelope does not preserve consent after revoke.
+     */
+    fun offerMessage(now: Long = System.currentTimeMillis(), messageId: String = UUID.randomUUID().toString()): JsonObject =
+        index.withSealedHead(job, scope, lease) { DeviceFileOfferEnvelope.create(snapshot.manifest, now, messageId) }
     fun retireAndDiscard() = index.retireAndClean(job) { snapshot.discard() }
 }
 

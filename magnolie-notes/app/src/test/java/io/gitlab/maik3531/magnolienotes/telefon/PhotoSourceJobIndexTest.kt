@@ -34,6 +34,23 @@ class PhotoSourceJobIndexTest {
         override fun close() { directory.deleteRecursively(); original.delete() }
     }
 
+    @Test fun offerPreflightUsesOnlyTheActualSealedHeadAndStillRejectsRevokedOrRetiredAuthority() {
+        Fixture().use { f -> f.open().use { index ->
+            val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+            val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            val reader = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+            val message = reader.offerMessage()
+            assertEquals(reader.manifest.fingerprint, DeviceFileOfferEnvelope.validate(message, "sender_fixture_01", inventory.lease.receiver.peerId).fingerprint)
+            val original = f.native.receiver
+            f.native.receiver = original.copy(receiveGranted = false)
+            assertThrows(PhotoFolderScopeError::class.java) { reader.offerMessage() }
+            f.native.receiver = original
+            assertThrows(PhotoFolderScopeError::class.java) { index.retireAndClean(job) { } }
+            assertThrows(PhotoFolderScopeError::class.java) { reader.offerMessage() }
+            index.retireCachedSnapshot(index.jobs().single())
+        } }
+    }
+
     @Test fun revokedSourceCacheCanBeRetiredAfterRestartWithoutRestoringOrOpeningLivePhotos() {
         Fixture().use { f ->
             val job: PhotoSourceJob
