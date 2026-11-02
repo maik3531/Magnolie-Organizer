@@ -68,8 +68,13 @@ class NativeBookProjection:
         return self._closed
 
     def _require(self, token):
-        if (self._closed or not isinstance(token, str) or not secrets.compare_digest(token, self._token) or
-                self._clock() >= self._deadline or self._owner() is not True or
+        if self._closed or not isinstance(token, str) or not secrets.compare_digest(token, self._token):
+            raise PermissionError('native_book_projection_owner_changed')
+        self._require_native_current()
+
+    def _require_native_current(self):
+        # Metadata validation only; this does not reopen a consumed transport.
+        if (self._clock() >= self._deadline or self._owner() is not True or
                 self._current_source() != self._source or self._current_saved() != self._saved):
             raise PermissionError('native_book_projection_owner_changed')
 
@@ -131,3 +136,96 @@ class NativeBookProjection:
 
     def __repr__(self):
         return f'NativeBookProjection(received_bytes={len(self._buffer)}, closed={self._closed})'
+
+
+class NativeHistoricalPrepareProjection:
+    """One purpose-separated, bounded before/candidate working pair.
+
+    The adapter must share the existing SINGLE global projection slot, including
+    producer/observer/review operations. Each side is at most MAX_BYTES and both
+    expire together after 30 seconds. Nothing survives Finish/Abort except the
+    caller's operation-local return values. Receiving a candidate hash is NOT
+    exact-delta proof, authority, a writer invocation or a save acknowledgment.
+    """
+    def __init__(self, saved_book, content_sha256, total_bytes, candidate_sha256, candidate_bytes, expected_source, *,
+                 current_owner, current_source, current_saved_book, clock=time.monotonic):
+        if (not isinstance(candidate_sha256, str) or HEX.fullmatch(candidate_sha256) is None or
+                type(candidate_bytes) is not int or not 2 <= candidate_bytes <= MAX_BYTES):
+            raise ValueError('invalid_native_historical_projection')
+        self._before = NativeBookProjection(saved_book, content_sha256, total_bytes, expected_source,
+            current_owner=current_owner, current_source=current_source, current_saved_book=current_saved_book, clock=clock)
+        self._candidate = bytearray()
+        self._candidate_total, self._candidate_hash = candidate_bytes, candidate_sha256
+        self._token = secrets.token_hex(32)  # Never expose/reuse the nested before-book token.
+        self._closed = False
+
+    @property
+    def token(self):
+        return self._token
+
+    @property
+    def closed(self):
+        return self._closed
+
+    @property
+    def received_bytes(self):
+        return {'book': self._before.received_bytes, 'candidate': len(self._candidate)}
+
+    def _authenticate(self, token):
+        if not isinstance(token, str) or not secrets.compare_digest(token, self._token):
+            raise PermissionError('native_historical_projection_owner_changed')
+
+    def _require(self, token):
+        self._authenticate(token)
+        if self._closed:
+            raise PermissionError('native_historical_projection_owner_changed')
+        self._before._require(self._before.token)
+
+    def close(self):
+        self._before.close()
+        self._candidate[:] = b'\0' * len(self._candidate)
+        self._candidate.clear()
+        self._closed = True
+
+    def append(self, token, channel, offset, data_base64):
+        self._authenticate(token)
+        try:
+            self._require(token)
+            if channel == 'book':
+                received = self._before.append(self._before.token, offset, data_base64)
+            elif channel == 'candidate':
+                if (type(offset) is not int or offset != len(self._candidate) or not isinstance(data_base64, str) or
+                        not 1 <= len(data_base64) <= 4 * ((CHUNK_BYTES + 2) // 3)):
+                    raise ValueError('invalid_native_historical_projection_chunk')
+                try:
+                    raw = base64.b64decode(data_base64, validate=True)
+                except (ValueError, binascii.Error) as error:
+                    raise ValueError('invalid_native_historical_projection_chunk') from error
+                if not 1 <= len(raw) <= CHUNK_BYTES or len(self._candidate) + len(raw) > self._candidate_total:
+                    raise ValueError('invalid_native_historical_projection_chunk')
+                self._candidate.extend(raw); received = len(self._candidate)
+            else:
+                raise ValueError('invalid_native_historical_projection_channel')
+            self._require(token)
+            return received
+        except BaseException:
+            self.close()
+            raise
+
+    def finish(self, token):
+        self._authenticate(token)
+        try:
+            self._require(token)
+            if len(self._candidate) != self._candidate_total or hashlib.sha256(self._candidate).hexdigest() != self._candidate_hash:
+                raise ValueError('incomplete_native_historical_projection')
+            candidate = self._candidate.decode('utf-8', errors='strict')
+            snapshot = self._before.finish(self._before.token)
+            # finish() closed the nested receiver. Recheck its native callbacks
+            # directly without manufacturing a reopened transport capability.
+            self._before._require_native_current()
+            return snapshot, candidate
+        finally:
+            self.close()
+
+    def __repr__(self):
+        return f'NativeHistoricalPrepareProjection(received_bytes={self.received_bytes}, closed={self._closed})'
