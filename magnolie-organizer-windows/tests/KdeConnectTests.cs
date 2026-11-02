@@ -952,7 +952,7 @@ internal static class KdeConnectTests
         ["type"] = type, ["read"] = 1, ["sub_id"] = 0, ["event"] = smsEvent
     };
 
-    private static TcpListener BindKdeListener()
+    internal static TcpListener BindKdeListener()
     {
         for (var port = KdeConnectProtocol.FirstPort; port <= KdeConnectProtocol.LastPort; port++)
         {

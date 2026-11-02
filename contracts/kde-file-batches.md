@@ -69,3 +69,10 @@ receive capability, ask a user for consent or publish destination files. Backend
 bridge and native destination publication still have to be connected and tested
 before Windows receiving can be described as available. In particular, the
 source-only tests are not evidence of a Windows GUI or physical phone transfer.
+
+The Windows payload transport separately checks a private IP, permitted KDE
+port, pinned certificate and peer identity using mutual TLS. It writes only to
+an already-owned staging stream, checks the exact advertised byte count and
+EOF, reports actual written-byte progress, and returns a size/SHA-256 witness.
+Source revocation, cancellation, extra or missing bytes produce no successful
+receipt. A payload receipt is neither consent nor a completed destination save.
