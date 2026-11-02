@@ -277,3 +277,76 @@ def test_weakened_sqlite_durability_is_rejected_before_head_update(fixture):
     with pytest.raises(TransferError, match="unsupported_journal"):
         index.publish_head(f.handle, None)
     assert index._db.execute("SELECT COUNT(*) FROM heads").fetchone() == (0,)
+
+
+def test_exact_operation_lease_holds_owner_across_calls_and_foreign_end_is_denied(fixture):
+    f = fixture
+    index, foreign = f.open(create=True), f.open()
+    lease = index.claim_operation()
+    assert index.snapshot() is None
+    with pytest.raises(TransferError, match="operation_busy"):
+        foreign.snapshot()
+    with pytest.raises(TransferError, match="operation_busy"):
+        f.open()
+    for wrong in (None, object()):
+        with pytest.raises(TransferError, match="invalid_operation_end"):
+            index.release_operation(wrong)
+    head = index.publish_head(f.handle, None)
+    index.guard_head(head.handle, lambda: index.read_head())
+    with pytest.raises(TransferError, match="operation_busy"):
+        foreign.snapshot()
+    index.release_operation(lease)
+    assert foreign.snapshot() == head
+    with pytest.raises(TransferError, match="invalid_operation_end"):
+        index.release_operation(lease)
+
+
+def test_operation_lease_can_end_after_revocation_but_not_inside_guarded_io(fixture):
+    f = fixture
+    index, foreign = f.open(create=True), f.open()
+    lease = index.claim_operation()
+    head = index.publish_head(f.handle, None)
+    def action():
+        with pytest.raises(TransferError, match="invalid_operation_end"):
+            index.release_operation(lease)
+    index.guard_head(head.handle, action)
+    f.current = None
+    with pytest.raises(TransferError, match="operation_busy"):
+        foreign.snapshot()
+    index.release_operation(lease)
+    assert foreign.snapshot() == head
+
+
+def test_close_releases_native_operation_only_after_index_is_closed(fixture):
+    f = fixture
+    index, foreign = f.open(create=True), f.open()
+    index.claim_operation()
+    index.publish_head(f.handle, None)
+    index.close()
+    assert foreign.read_head() == f.handle
+
+
+def test_other_process_cannot_open_active_native_operation(fixture):
+    f = fixture
+    index = f.open(create=True)
+    lease = index.claim_operation()
+    script = r'''
+import json,sys
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+value=json.loads(sys.stdin.read());sys.path.insert(0,value["bin"])
+from magnolie_file_transfer import FileManifest,NativeTransferBinding,TransferError
+from magnolie_transfer_job_index import ProtectedTransferJobIndex
+key=AESGCM(bytes.fromhex(value["key"]))
+def unseal(blob,domain):return key.decrypt(blob[:12],blob[12:],domain.encode())
+def no_seal(*args):raise AssertionError("must not write")
+try:
+    with ProtectedTransferJobIndex(value["parent"],FileManifest.parse(value["manifest"]),NativeTransferBinding(**value["binding"]),
+            lambda:None,no_seal,unseal,owner=value["owner"]):
+        raise AssertionError("active operation was opened")
+except TransferError as error:print(str(error))
+'''
+    result = subprocess.run([sys.executable, "-c", script], input=json.dumps({"bin": str(Path(__file__).resolve().parents[1] / "bin"),
+        "key": f.cipher.raw_key.hex(), "parent": str(f.parent), "manifest": f.manifest.wire(), "binding": vars(f.binding), "owner": f.owner}),
+        text=True, capture_output=True, check=True, timeout=20)
+    assert result.stdout.strip() == "transfer_job_index_operation_busy"
+    index.release_operation(lease)

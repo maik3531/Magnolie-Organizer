@@ -288,6 +288,15 @@ class ProtectedTransferJobCatalog:
         with self._locked():
             return self._jobs()  # Discovery is metadata-only, not resume consent.
 
+    def require_reserved(self, job):
+        """Authenticate exact native operation metadata and private parent.
+        This does not start work, grant permission or release any reservation.
+        """
+        with self._locked():
+            if type(job) is not NativeReservedTransferJob or not any(value == job for value in self._jobs()):
+                raise TransferError("file_job_catalog_unknown_native_reservation")
+            return self._parent
+
     def reserve(self, accepted, current_binding):
         with self._locked():
             reserving = getattr(_LOCAL, "reserving", None)

@@ -473,6 +473,46 @@ controller/handlers, Organizer controls and end-to-end acceptance remain open.
 
 ### Persisted per-operation acceptance and checkpoint heads
 
+The index also has an exclusive native operation lease. Its exact opaque handle
+belongs to the real worker, not a wire ACK/cancellation request. The OS lock
+remains held across native calls/threads until actual end; competing instances
+and processes fail busy instead of starting another receiver. Normal owner
+inspection/checkpoint retirement does not accidentally unlock it. Foreign,
+repeated or in-I/O end handles are rejected. Close releases ownership only after
+index I/O closes. Four additional lease tests, including a competing process,
+pass with the affected acceptance/catalog/index suites (79 focused cases).
+
+### Native receive-operation connection (not yet a transport handler)
+
+`NativeFileReceiveOperation` now connects actual catalog reservation → protected
+accepted index/worker lease → encrypted staging/readback → durable checkpoint
+head → publication journal → accepted no-replace publisher. It is blocking
+native I/O-lane code only; it starts no thread/timer/listener and registers no
+transport handler/capability. All current binding and serialized publication
+authority callbacks must come from the actual native controller.
+
+Progress distinguishes actual verified bytes from checkpoint-covered bytes.
+Checkpoint cadence coalesces large jobs so a checkpoint per 64-KiB chunk does
+not exhaust the bounded head history. Publication requires the entire immutable
+manifest to be complete and is still explicitly `physically_published_unreceipted`.
+Duplicated calls reread the original target instead of creating another save.
+Failure/permission loss retains quota, private data and actual uncertainty.
+Start failures return the native reserved job for repair instead of discarding
+its cache. Close serializes against active I/O and ends the lease last.
+
+Restart chunk reception uses the actual authenticated index head and rereads
+staged chunk bytes. It does **not** adopt/recreate the publication cache or resume
+journal writes; destination publication remains repair-pending. Original target
+inspection is available separately. Thirteen actual operation tests pass,
+including multichunk/empty/Unicode saves, real partial chunk restart, an existing
+equal target, failed startup, corrupted duplicates, a 130-chunk checkpoint run
+and real concurrent native I/O/end ownership. These are private native filesystem
+integration tests, not a physical telephone/system-dialog/end-to-end acceptance.
+Durable saved receipt heads/recovery, proven quota retirement, actual own-peer
+transport handlers and Organizer-only controls still remain to connect.
+
+### Per-operation persistence details
+
 New native operations can now persist a `NativeAcceptedTransfer` in owner-record
 context format 2: the complete ordered manifest, exact complete target mapping,
 peer/permission/destination binding and original native destination/ancestor

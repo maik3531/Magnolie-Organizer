@@ -23,6 +23,7 @@ from magnolie_file_acceptance import NativeAcceptedTransfer
 
 
 _ROOT_GATES = weakref.WeakValueDictionary()
+_ACTIVE_OPERATIONS = weakref.WeakValueDictionary()
 _ROOT_GATES_LOCK = threading.Lock()
 _LOCAL = threading.local()
 
@@ -83,6 +84,7 @@ class ProtectedTransferJobIndex:
         self._db = None
         self._closed = False
         self._uncertain = False
+        self._operation_lease = None
         self._last = None
         self._name = self.PREFIX + owner
         try:
@@ -187,13 +189,20 @@ class ProtectedTransferJobIndex:
     @contextmanager
     def _locked(self):
         with self._gate, self._root_gate:
+            active = _ACTIVE_OPERATIONS.get(self._root_key)
+            if active is not None and active is not self:
+                raise TransferError("transfer_job_index_operation_busy")
             self._directories()
             held = getattr(_LOCAL, "held", None)
             if held is None:
                 held = _LOCAL.held = set()
             first = self._root_key not in held
             if first:
-                fcntl.flock(self._lock_fd, fcntl.LOCK_EX)
+                if self._operation_lease is None:
+                    try:
+                        fcntl.flock(self._lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError as error:
+                        raise TransferError("transfer_job_index_operation_busy") from error
                 held.add(self._root_key)
             try:
                 self._directories()
@@ -202,7 +211,8 @@ class ProtectedTransferJobIndex:
             finally:
                 if first:
                     held.remove(self._root_key)
-                    fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+                    if self._operation_lease is None:
+                        fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
 
     @staticmethod
     def _json(value):
@@ -356,6 +366,36 @@ class ProtectedTransferJobIndex:
             finally:
                 actions.remove(self._root_key)
 
+    def claim_operation(self):
+        """Exact native worker ownership, held across calls/threads until its
+        actual end. This is not file/grant/publication or wire authority.
+        Competing processes fail busy instead of starting another receiver.
+        """
+        if self._root_key in getattr(_LOCAL, "held", set()):
+            raise TransferError("transfer_job_index_operation_busy")
+        with self._locked():
+            self._fresh()
+            self._snapshot()
+            if self._uncertain or self._operation_lease is not None or self._root_key in getattr(_LOCAL, "actions", set()):
+                raise TransferError("transfer_job_index_operation_busy")
+            self._operation_lease = object()
+            _ACTIVE_OPERATIONS[self._root_key] = self
+            return self._operation_lease
+
+    def release_operation(self, lease):
+        """Actual native worker END only; cancellation/transport ACK is not END."""
+        with self._gate, self._root_gate:
+            if (lease is None or lease is not self._operation_lease or self._root_key in getattr(_LOCAL, "held", set())):
+                raise TransferError("transfer_job_index_invalid_operation_end")
+            self._release_operation()
+
+    def _release_operation(self):
+        if self._operation_lease is not None:
+            if _ACTIVE_OPERATIONS.get(self._root_key) is self:
+                del _ACTIVE_OPERATIONS[self._root_key]
+            self._operation_lease = None
+            fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+
     def close(self):
         with self._gate:
             if self._closed:
@@ -363,6 +403,9 @@ class ProtectedTransferJobIndex:
             self._closed = True
             if self._db is not None:
                 self._db.close()
+            if self._operation_lease is not None:
+                with self._root_gate:
+                    self._release_operation()
             for fd in (self._database_fd, self._lock_fd, self._root_fd, self._parent_fd):
                 if fd is not None:
                     os.close(fd)
