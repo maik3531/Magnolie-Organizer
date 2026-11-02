@@ -627,10 +627,33 @@ class TelefonWerk private constructor(private val context: Context, private val 
      */
     @Synchronized internal fun currentNativeFilePeer(peerId: String, publicKey: String,
         channel: TelefonSecureChannel, generation: Long, handlersReady: Boolean): NativeFileControlPeer? {
+        val peer = currentNativeFileTransportPeer(peerId, publicKey, channel, generation) ?: return null
+        return NativeFilePairingAuthority.controlPeer(peer, channel, true, handlersReady)
+    }
+
+    private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long): TelefonPeer? {
         if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
             generation != pairingGeneration || activeTransport == null) return null
-        val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
-        return NativeFilePairingAuthority.controlPeer(peer, channel, true, handlersReady)
+        return safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey }
+    }
+
+    /** Only the explicit native own-PC activation command may initialize a
+     * legacy relationship's CLOSED file metadata. It must then perform a fresh
+     * file-control handshake before any policy configuration or source access.
+     */
+    @Synchronized internal fun prepareNativeFileRelationshipForExplicitActivation(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long, handlersReady: () -> Boolean): TelefonPeer {
+        val peer = currentNativeFileTransportPeer(peerId, publicKey, channel, generation)
+            ?: DeviceFileControl.fail("file_pairing_native_channel_changed")
+        fun permitted(): Boolean {
+            val live = currentNativeFileTransportPeer(peerId, publicKey, channel, generation) ?: return false
+            return handlersReady() && live.state == "paired" && live.own_device && live.remote_own_device &&
+                live.remote_device_status_available && DeviceFileControl.DISCOVERY_VERSION in live.remote_device_status_versions &&
+                live.copy(file_pairing_epoch = peer.file_pairing_epoch) == peer
+        }
+        if (!permitted()) DeviceFileControl.fail("file_pairing_native_activation_revoked")
+        return storage.initializeFilePairingEpoch(peer, ::permitted)
     }
 
     private fun actorSourceRevision(peerId: String, publicKey: String,

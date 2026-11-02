@@ -166,6 +166,19 @@ does not register handlers, scan media, prompt for OS permission or start a
 worker/timer. Physical phone/installed GUI/Android dialog acceptance, explicit
 legacy bootstrap and dispatcher/foreground/UI connections remain open.
 
+Android now also provides an explicit legacy relationship-metadata bootstrap:
+`TelefonWerk.prepareNativeFileRelationshipForExplicitActivation` rechecks actual
+channel/generation/transport/pinned peer/discovery and a live native handler
+readiness callback. `TelefonAblage.initializeFilePairingEpoch` performs protected
+expected-peer CAS/readback, preserving other preferences and rejecting stale or
+reentrantly changed state. It creates relationship metadata only, not a source
+policy, file grant or OS permission. Existing metadata is idempotent; lost
+post-commit authority retains evidence rather than reverting it. A fresh control
+handshake is still mandatory afterwards. Four protected-store cases and two
+targeted actual `TelefonWerk` synthetic-channel cases pass. No listener/service
+or physical phone was started, and the activation command dispatcher itself is
+not registered by this API.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

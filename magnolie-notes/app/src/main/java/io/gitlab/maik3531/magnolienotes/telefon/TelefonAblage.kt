@@ -163,6 +163,30 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         savePeers(peers().remember(peer))
     }
 
+    /** Explicit authenticated native file-activation path only. Legacy reads do
+     * not call this. Establishes relationship metadata, never a file/media grant,
+     * source policy, personal-module preference or Android READ permission.
+     */
+    @Synchronized internal fun initializeFilePairingEpoch(expected: TelefonPeer, permitted: () -> Boolean): TelefonPeer {
+        val current = peers()
+        val peer = current.peer ?: DeviceFileControl.fail("file_pairing_native_peer_changed")
+        if (peer != expected || peer.state != "paired" || !peer.own_device || !peer.remote_own_device)
+            DeviceFileControl.fail("file_pairing_native_peer_changed")
+        fun fresh(wanted: TelefonBestand) {
+            if (!permitted() || peers() != wanted) DeviceFileControl.fail("file_pairing_native_activation_revoked")
+        }
+        fresh(current)
+        if (peer.file_pairing_epoch.isNotEmpty()) return peer
+        val epoch = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+            .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
+        val next = peer.copy(file_pairing_epoch = epoch)
+        fresh(current)
+        val wanted = current.remember(next)
+        savePeers(wanted)
+        fresh(wanted) // A lost reply keeps protected metadata, not a send grant.
+        return peers().peer?.takeIf { it == next } ?: DeviceFileControl.fail("file_pairing_native_readback_failed")
+    }
+
     /** Only the completed code-confirmation path may replace this pinned relationship. */
     @Synchronized internal fun replaceConfirmedPeer(expected: TelefonPeer, replacement: TelefonPeer) {
         val current = peers()
