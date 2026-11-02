@@ -88,8 +88,9 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
             val now = current()
             if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.kinds != request.kinds ||
                 now.receiver.owner !== request.receiver.owner || now.receiver.peerId != request.receiver.peerId ||
-                now.receiver.identitySha256 != request.receiver.identitySha256 || now.receiver.permissionEpoch != request.receiver.permissionEpoch ||
-                readCoverage() != coverage || accessEpoch() != permissionEpoch) throw PhotoFolderScopeError("gallery_source_scope_changed")
+                 now.receiver.identitySha256 != request.receiver.identitySha256 || now.receiver.permissionEpoch != request.receiver.permissionEpoch ||
+                 now.receiver.pairingEpoch != request.receiver.pairingEpoch ||
+                 readCoverage() != coverage || accessEpoch() != permissionEpoch) throw PhotoFolderScopeError("gallery_source_scope_changed")
             if (SystemClock.elapsedRealtime() - started > MAX_ELAPSED_MS) throw PhotoFolderScopeError("gallery_discovery_deadline")
         }
         fresh()

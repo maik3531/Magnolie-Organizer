@@ -379,6 +379,16 @@ delivery or reapplying a stale expected version. Together with the retained
 nine-case run this is 12 distinct Android cases; unchanged passing cases were
 not rerun for these test-only additions.
 
+Album discovery must enforce the same pairing-generation freshness as source
+leases, including while an actual provider query is in progress. A focused
+synthetic provider regression confirmed a missing comparison in this lower
+metadata path (#331, linked from #330): a pairing-only change was incorrectly
+allowed to return a catalog. The missing comparison is corrected; all nine
+affected discovery cases pass, including entire-catalog rejection and cursor
+closure for the injected pairing-only change. This does not imply any new
+READ/send capability or deletion evidence from album metadata, nor physical
+phone acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

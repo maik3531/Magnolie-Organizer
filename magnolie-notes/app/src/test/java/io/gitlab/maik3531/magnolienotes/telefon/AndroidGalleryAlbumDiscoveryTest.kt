@@ -84,6 +84,17 @@ class AndroidGalleryAlbumDiscoveryTest {
         f.assertClosed()
     }
 
+    @Test fun nativePairingChangeDuringActualAlbumQueryRejectsTheEntireCatalogEvenWithIdenticalLegacyScope() {
+        val f = Fixture(); f.provider.rows = listOf(Row(1, "bucket", "WhatsApp Images"))
+        val before = NativeGalleryRequest(f.receiver.copy(pairingEpoch = "1".repeat(64)), "a".repeat(64), f.request!!.kinds)
+        f.request = before
+        f.provider.onQuery = {
+            f.request = NativeGalleryRequest(before.receiver.copy(pairingEpoch = "2".repeat(64)), before.policyEpoch, before.kinds)
+        }
+        assertEquals("gallery_source_scope_changed", assertThrows(PhotoFolderScopeError::class.java) { f.discovery().discover() }.code)
+        f.assertClosed()
+    }
+
     @Test fun noActivationOrNoActualOsPhotoPermissionNeverQueriesTheGallery() {
         val f = Fixture()
         f.request = null
