@@ -297,7 +297,7 @@
         <item quantity="one">Slette det %1$d papirkurvelementet permanent? Det kan ikke angres.</item>
         <item quantity="other">Slette alle %1$d papirkurvelementene permanent? Det kan ikke angres.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Slettede notater og oppgaver oppbevares her til de slettes permanent.</string>
+    <string name="papierkorb_hinweis">Én papirkurv for notater, oppgaver, vedlegg og registrerte tider.</string>
     <string name="technischer_wert_art_notiz">Notat</string>
     <string name="technischer_wert_art_notizbuch">Notatbok</string>
     <string name="technischer_wert_art_aufgabe">Oppgave</string>

@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.daten.PapierkorbEinstellungen
 import io.gitlab.maik3531.magnolienotes.daten.Zeiteintrag
 import io.gitlab.maik3531.magnolienotes.daten.ZeitEntwurf
 import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
@@ -52,12 +53,15 @@ import java.util.UUID
 import kotlinx.coroutines.delay
 
 typealias ZeitSpeichern = ((ZeiterfassungStand) -> ZeiterfassungStand, () -> Unit) -> Unit
+typealias ZeitEntfernen = (List<Zeiteintrag>, String?, PapierkorbEinstellungen, () -> Unit) -> Unit
 
 @Composable
 fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern: ZeitSpeichern,
                       ansicht: String, beiAnsicht: (String) -> Unit, beiAktiv: (Boolean) -> Unit,
                       beiPapierkorb: () -> Unit,
-                      beiBearbeiten: (Zeiteintrag, Boolean) -> Unit) {
+                      beiBearbeiten: (Zeiteintrag, Boolean) -> Unit,
+                      papierkorb: PapierkorbEinstellungen = PapierkorbEinstellungen(),
+                      beiEntfernen: ZeitEntfernen? = null) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     var now by remember { mutableStateOf(Zeiteintrag.currentMinute()) }
@@ -137,7 +141,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 ZeitPausenOptionen(stand, speichert, speichern)
                 ZeitFeierabendOptionen(stand, speichert, speichern)
                 ZeitWlanOptionen(stand, speichert, speichern)
-                ZeitMonate(stand, speichert, speichern, beiPapierkorb)
+                ZeitMonate(stand, speichert, speichern, beiPapierkorb, papierkorb, beiEntfernen)
             }
         } else if (ansicht == "history") {
             LazyColumn(Modifier.weight(1f)) {
@@ -237,7 +241,8 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
 @Composable
 fun ZeiteintragEditor(entwurf: ZeitEntwurf, aktuell: () -> ZeitEntwurf, speichert: Boolean,
                      beiAenderung: (ZeitEntwurf) -> Unit, abbrechen: () -> Unit,
-                     beiSichern: (ZeitEntwurf, Zeiteintrag) -> Unit, beiLoeschen: (ZeitEntwurf) -> Unit) {
+                     beiSichern: (ZeitEntwurf, Zeiteintrag) -> Unit, beiLoeschen: (ZeitEntwurf) -> Unit,
+                     papierkorbAn: Boolean = true) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     val original = entwurf.original
@@ -320,7 +325,7 @@ fun ZeiteintragEditor(entwurf: ZeitEntwurf, aktuell: () -> ZeitEntwurf, speicher
     }
     if (loeschen) AlertDialog(onDismissRequest = { if (!speichert) loeschen = false }, containerColor = Magnolie.papier,
         title = { Text(stringResource(R.string.loeschen)) },
-        text = { Text(stringResource(R.string.zeit_loeschen_frage)) },
+        text = { Text(loeschHinweis(papierkorbAn, lokal = true)) },
         confirmButton = { TextButton(enabled = !speichert, onClick = { loeschen = false; beiLoeschen(aktuell()) }) {
             Text(stringResource(R.string.loeschen), color = Magnolie.rot)
         } }, dismissButton = { TextButton(enabled = !speichert, onClick = { loeschen = false }) {

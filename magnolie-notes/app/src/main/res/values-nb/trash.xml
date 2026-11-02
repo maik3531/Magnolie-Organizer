@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Flytte de valgte elementene til papirkurven?</string>
+    <string name="loeschen_endgueltig_frage">Slette de valgte elementene permanent? De flyttes ikke til papirkurven og kan ikke gjenopprettes her.</string>
+    <string name="loeschen_nur_lokal">De registrerte tidene fjernes bare fra denne telefonen. De beholdes i Organizer.</string>
+</resources>

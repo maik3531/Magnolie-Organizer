@@ -97,11 +97,16 @@ internal class WischEinstellungen(context: Context) {
     }
 }
 
-@Composable internal fun EintragLoeschFrage(titel: String, beiLoeschen: () -> Boolean, beiSchliessen: () -> Unit) {
+@Composable internal fun loeschHinweis(papierkorbAn: Boolean, lokal: Boolean = false): String =
+    stringResource(if (papierkorbAn) R.string.loeschen_papierkorb_frage else R.string.loeschen_endgueltig_frage) +
+        if (lokal) "\n\n" + stringResource(R.string.loeschen_nur_lokal) else ""
+
+@Composable internal fun EintragLoeschFrage(titel: String, beiLoeschen: () -> Boolean, beiSchliessen: () -> Unit,
+                                         papierkorbAn: Boolean = true) {
     val context = LocalContext.current
     AlertDialog(onDismissRequest = beiSchliessen, containerColor = Magnolie.papier,
         title = { Text(stringResource(R.string.loeschen), fontFamily = FontFamily.Serif) },
-        text = { Text(titel + "\n\n" + stringResource(R.string.wischen_bestaetigung)) },
+        text = { Text(titel + "\n\n" + loeschHinweis(papierkorbAn)) },
         confirmButton = { TextButton(onClick = {
             val result = runCatching(beiLoeschen)
             if (result.getOrNull() != true) android.widget.Toast.makeText(context,

@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Перемістити вибрані записи до кошика?</string>
+    <string name="loeschen_endgueltig_frage">Видалити вибрані записи назавжди? Вони не потраплять до кошика, і відновити їх тут буде неможливо.</string>
+    <string name="loeschen_nur_lokal">Записи часу буде видалено лише з цього телефона. В Organizer вони збережуться.</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Die ausgewählten Einträge in den Papierkorb verschieben?</string>
+    <string name="loeschen_endgueltig_frage">Die ausgewählten Einträge endgültig löschen? Sie kommen nicht in den Papierkorb und können hier nicht wiederhergestellt werden.</string>
+    <string name="loeschen_nur_lokal">Die erfassten Zeiten werden nur von diesem Telefon entfernt. Im Organizer bleiben sie erhalten.</string>
+</resources>

@@ -313,7 +313,7 @@
         <item quantity="many">Навсегда удалить содержимое корзины? Элементов: %1$d. Действие необратимо.</item>
         <item quantity="other">Навсегда удалить содержимое корзины? Элементов: %1$d. Действие необратимо.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Удалённые заметки и задачи хранятся здесь до окончательного удаления.</string>
+    <string name="papierkorb_hinweis">Общая корзина для заметок, задач, вложений и записей времени.</string>
     <string name="technischer_wert_art_notiz">Заметка</string>
     <string name="technischer_wert_art_notizbuch">Блокнот</string>
     <string name="technischer_wert_art_aufgabe">Задача</string>

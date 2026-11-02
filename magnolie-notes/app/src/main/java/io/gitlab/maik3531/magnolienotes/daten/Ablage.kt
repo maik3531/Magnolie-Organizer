@@ -283,9 +283,9 @@ class Ablage private constructor(
         val notizStand = lesen(notizDatei, Bestand(zeiterfassung = ZeiterfassungStand(enabled = true, defaultType = "")))
         val baumStand = lesen(baumDatei, Baumzustand())
         _bestand.value = notizStand.wert.let { gelesen ->
-            val sauber = PapierkorbLogik.bereinigen(gelesen).copy(
-                zeiterfassung = gelesen.zeiterfassung.validate().purgeExpired(),
-                aufgaben = AufgabenHierarchie.normalisieren(gelesen.aufgaben))
+            val sauber = PapierkorbLogik.bereinigen(gelesen.copy(
+                zeiterfassung = gelesen.zeiterfassung.validate(),
+                aufgaben = AufgabenHierarchie.normalisieren(gelesen.aufgaben)))
             if (sauber.notizbuecher.isEmpty()) {
                 sauber.copy(notizbuecher = listOf(Notizbuch(STANDARD_BUCH, standardBuchName)))
             } else sauber
@@ -377,13 +377,14 @@ class Ablage private constructor(
         schreibeBestand(_bestand.value.copy(notizen = liste))
     }
 
-    fun loescheNotizWennUnveraendert(expected: Notiz): Boolean = synchronized(sperre) {
+    fun loescheNotizWennUnveraendert(expected: Notiz, expectedTrash: PapierkorbEinstellungen? = null): Boolean = synchronized(sperre) {
         if (_bestand.value.notizen.firstOrNull { it.id == expected.id } != expected) return@synchronized false
-        loescheNotiz(expected.id)
+        loescheNotiz(expected.id, expectedTrash)
         true
     }
 
-    fun loescheNotiz(id: String) = synchronized(sperre) {
+    fun loescheNotiz(id: String, expectedTrash: PapierkorbEinstellungen? = null) = synchronized(sperre) {
+        check(expectedTrash == null || expectedTrash == _bestand.value.papierkorbEinstellungen) { "trash_policy_changed" }
         schreibeBestand(PapierkorbLogik.loescheNotiz(_bestand.value, notiz(id)?.id ?: id))
     }
 
@@ -459,9 +460,34 @@ class Ablage private constructor(
     /** Publish state only after the encrypted atomic write has succeeded. */
     fun aendereZeiterfassung(change: (ZeiterfassungStand) -> ZeiterfassungStand) = synchronized(sperre) {
         schreibbar()
-        val next = change(_bestand.value.zeiterfassung.purgeExpired()).prepareSharedPlans().validate()
-        if (next != _bestand.value.zeiterfassung) schreibeBestand(_bestand.value.copy(zeiterfassung = next))
+        val clean = PapierkorbLogik.bereinigen(_bestand.value)
+        val next = change(clean.zeiterfassung).prepareSharedPlans().validate()
+        val document = clean.copy(zeiterfassung = next)
+        if (document != _bestand.value) schreibeBestand(document)
         next
+    }
+
+    fun entferneZeitenLokal(expected: List<Zeiteintrag>, month: String? = null,
+                           expectedTrash: PapierkorbEinstellungen? = null) = synchronized(sperre) {
+        val settings = _bestand.value.papierkorbEinstellungen
+        check(expectedTrash == null || expectedTrash == settings) { "trash_policy_changed" }
+        aendereZeiterfassung { it.removeLocal(expected, month = month, papierkorb = settings) }
+    }
+
+    fun zeitPapierkorbWiederherstellen(id: String) = synchronized(sperre) {
+        val settings = _bestand.value.papierkorbEinstellungen
+        check(settings.an) { "trash_disabled" }
+        aendereZeiterfassung { it.restoreLocal(id, retentionDays = settings.tage) }
+    }
+
+    fun bereinigePapierkorb() = synchronized(sperre) {
+        val clean = PapierkorbLogik.bereinigen(_bestand.value)
+        if (clean != _bestand.value) schreibeBestand(clean)
+    }
+
+    fun zeitPapierkorbEndgueltig(id: String) = synchronized(sperre) {
+        check(_bestand.value.papierkorbEinstellungen.an) { "trash_disabled" }
+        aendereZeiterfassung { it.permanentlyRemoveLocal(id) }
     }
 
     internal fun steuereZeiterfassung(command: ZeitSteuerBefehl, nativePeerKeyHash: String, expectedRestoreEpoch: String,
@@ -505,13 +531,14 @@ class Ablage private constructor(
         schreibeBestand(_bestand.value.copy(aufgaben = AufgabenHierarchie.normalisieren(liste)))
     }
 
-    fun loescheAufgabeWennUnveraendert(expected: Aufgabe): Boolean = synchronized(sperre) {
+    fun loescheAufgabeWennUnveraendert(expected: Aufgabe, expectedTrash: PapierkorbEinstellungen? = null): Boolean = synchronized(sperre) {
         if (_bestand.value.aufgaben.firstOrNull { it.id == expected.id } != expected) return@synchronized false
-        loescheAufgabe(expected.id)
+        loescheAufgabe(expected.id, expectedTrash)
         true
     }
 
-    fun loescheAufgabe(id: String) = synchronized(sperre) {
+    fun loescheAufgabe(id: String, expectedTrash: PapierkorbEinstellungen? = null) = synchronized(sperre) {
+        check(expectedTrash == null || expectedTrash == _bestand.value.papierkorbEinstellungen) { "trash_policy_changed" }
         schreibeBestand(PapierkorbLogik.loescheAufgabe(_bestand.value, id))
     }
 
@@ -527,7 +554,8 @@ class Ablage private constructor(
         schreibeBestand(_bestand.value.copy(aufgaben = neu)); true
     }
 
-    fun loescheAnhang(notizId: String, anhangId: String) = synchronized(sperre) {
+    fun loescheAnhang(notizId: String, anhangId: String, expectedTrash: PapierkorbEinstellungen? = null) = synchronized(sperre) {
+        check(expectedTrash == null || expectedTrash == _bestand.value.papierkorbEinstellungen) { "trash_policy_changed" }
         schreibeBestand(PapierkorbLogik.loescheAnhang(_bestand.value, notiz(notizId)?.id ?: notizId, anhangId))
     }
 
@@ -543,16 +571,19 @@ class Ablage private constructor(
     }
 
     fun papierkorbWiederherstellen(id: String): Boolean = synchronized(sperre) {
-        val neu = PapierkorbLogik.wiederherstellen(_bestand.value, id) ?: return@synchronized false
+        check(_bestand.value.papierkorbEinstellungen.an) { "trash_disabled" }
+        val neu = PapierkorbLogik.wiederherstellen(PapierkorbLogik.bereinigen(_bestand.value), id) ?: return@synchronized false
         schreibeBestand(neu); true
     }
 
     fun papierkorbEndgueltig(id: String) = synchronized(sperre) {
+        check(_bestand.value.papierkorbEinstellungen.an) { "trash_disabled" }
         schreibeBestand(_bestand.value.copy(papierkorb = _bestand.value.papierkorb.filterNot { it.id == id }))
     }
 
-    fun papierkorbLeeren() = synchronized(sperre) {
-        schreibeBestand(_bestand.value.copy(papierkorb = emptyList()))
+    fun papierkorbLeeren(expected: Set<String>? = null) = synchronized(sperre) {
+        check(_bestand.value.papierkorbEinstellungen.an) { "trash_disabled" }
+        schreibeBestand(PapierkorbLogik.leeren(PapierkorbLogik.bereinigen(_bestand.value), expected))
     }
 
     fun personalSyncStageProposals(runId: String, source: String,

@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Přesunout vybrané položky do koše?</string>
+    <string name="loeschen_endgueltig_frage">Trvale smazat vybrané položky? Nebudou přesunuty do koše a zde je nebude možné obnovit.</string>
+    <string name="loeschen_nur_lokal">Zaznamenané časy budou odstraněny pouze z tohoto telefonu. V Organizer zůstanou zachovány.</string>
+</resources>

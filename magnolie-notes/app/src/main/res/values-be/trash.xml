@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Перамясціць выбраныя запісы ў сметніцу?</string>
+    <string name="loeschen_endgueltig_frage">Выдаліць выбраныя запісы назаўсёды? Яны не трапяць у сметніцу, і аднавіць іх тут будзе немагчыма.</string>
+    <string name="loeschen_nur_lokal">Запісы часу будуць выдалены толькі з гэтага тэлефона. У Organizer яны захаваюцца.</string>
+</resources>

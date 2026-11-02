@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">चुनी गई प्रविष्टियों को कूड़ेदान में भेजें?</string>
+    <string name="loeschen_endgueltig_frage">चुनी गई प्रविष्टियों को स्थायी रूप से मिटाएँ? वे कूड़ेदान में नहीं जाएँगी और यहाँ बहाल नहीं की जा सकेंगी।</string>
+    <string name="loeschen_nur_lokal">दर्ज किए गए समय केवल इस फ़ोन से हटेंगे। वे Organizer में बने रहेंगे।</string>
+</resources>

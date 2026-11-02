@@ -320,7 +320,7 @@
         <item quantity="many">Назаўсёды выдаліць змесціва сметніцы? Элементаў: %1$d. Дзеянне незваротнае.</item>
         <item quantity="other">Назаўсёды выдаліць змесціва сметніцы? Элементаў: %1$d. Дзеянне незваротнае.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Выдаленыя нататкі і заданні захоўваюцца тут да канчатковага выдалення.</string>
+    <string name="papierkorb_hinweis">Агульная сметніца для нататак, заданняў, укладанняў і запісаў часу.</string>
     <string name="technischer_wert_art_notiz">Нататка</string>
     <string name="technischer_wert_art_notizbuch">Нататнік</string>
     <string name="technischer_wert_art_aufgabe">Задача</string>

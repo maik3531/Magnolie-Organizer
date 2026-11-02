@@ -297,7 +297,7 @@
         <item quantity="one">सभी %1$d ट्रैश आइटम स्थायी रूप से हटाएँ? इसे पूर्ववत नहीं किया जा सकता।</item>
         <item quantity="other">सभी %1$d ट्रैश आइटम स्थायी रूप से हटाएँ? इसे पूर्ववत नहीं किया जा सकता।</item>
     </plurals>
-    <string name="papierkorb_hinweis">हटाए गए नोट और कार्य यहां तब तक रखे जाते हैं, जब तक उन्हें स्थायी रूप से नहीं मिटाया जाता।</string>
+    <string name="papierkorb_hinweis">नोट, कार्य, संलग्नक और दर्ज किए गए समय के लिए एक ही कूड़ेदान।</string>
     <string name="technischer_wert_art_notiz">नोट</string>
     <string name="technischer_wert_art_notizbuch">नोटबुक</string>
     <string name="technischer_wert_art_aufgabe">कार्य</string>

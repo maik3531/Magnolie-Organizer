@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">De geselecteerde items naar de prullenbak verplaatsen?</string>
+    <string name="loeschen_endgueltig_frage">De geselecteerde items definitief verwijderen? Ze gaan niet naar de prullenbak en kunnen hier niet worden hersteld.</string>
+    <string name="loeschen_nur_lokal">De geregistreerde tijden worden alleen van deze telefoon verwijderd. Ze blijven in Organizer bewaard.</string>
+</resources>

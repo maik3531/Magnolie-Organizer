@@ -392,7 +392,7 @@
         <item quantity="one">Permanently delete the %1$d trash item? This cannot be undone.</item>
         <item quantity="other">Permanently delete all %1$d trash items? This cannot be undone.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Deleted notes and tasks are kept here until they are permanently deleted.</string>
+    <string name="papierkorb_hinweis">One trash for notes, tasks, attachments and recorded times.</string>
     <string name="technischer_wert_art_notiz">Note</string>
     <string name="technischer_wert_art_notizbuch">Notebook</string>
     <string name="technischer_wert_art_aufgabe">Task</string>

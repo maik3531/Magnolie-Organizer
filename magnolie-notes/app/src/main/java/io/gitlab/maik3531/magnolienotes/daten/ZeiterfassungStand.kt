@@ -197,9 +197,9 @@ data class ZeiterfassungStand(
         return store(replacement)
     }
 
-    /** Keep local removals in encrypted trash for 30 days; never emit remote deletions. */
+    /** The document's one trash policy also governs local time removals. */
     fun removeLocal(expected: List<Zeiteintrag>, now: Long = System.currentTimeMillis(),
-                    month: String? = null): ZeiterfassungStand {
+                    month: String? = null, papierkorb: PapierkorbEinstellungen = PapierkorbEinstellungen()): ZeiterfassungStand {
         validate()
         require(expected.map { it.id }.toSet().size == expected.size)
         expected.forEach { old ->
@@ -208,29 +208,30 @@ data class ZeiterfassungStand(
         }
         val ids = expected.mapTo(mutableSetOf()) { it.id }
         val removed = entries.filter { it.id in ids }
-        val clean = purgeExpired(now)
+        val clean = purgeExpired(now, if (papierkorb.an) papierkorb.tage else 0)
         if (removed.isEmpty()) return clean
         val archived = ZeitPapierkorb(removedMs = now, entries = removed, month = month,
             conflicts = conflicts.filterKeys { it in ids }, pauseRuns = pauseRuns.filterKeys { it in ids })
         return clean.copy(entries = entries.filterNot { it.id in ids }, removedIds = removedIds + ids,
             removedMonths = if (month == null) removedMonths else removedMonths + month,
-            trash = clean.trash + archived,
+            trash = if (papierkorb.an) clean.trash + archived else clean.trash,
             conflicts = conflicts - ids,
             pauseRuns = pauseRuns - ids,
             wifi = removed.filter { it.endMinute == null }.fold(wifi) { value, record ->
                 value.afterStop(record.id, now, "remove:${archived.id}:${record.id}") }).validate()
     }
 
-    fun purgeExpired(now: Long = System.currentTimeMillis()): ZeiterfassungStand =
-        copy(trash = trash.filter { it.expiresMs > now })
+    fun purgeExpired(now: Long = System.currentTimeMillis(), retentionDays: Int = 30): ZeiterfassungStand =
+        if (retentionDays <= 0) this else copy(trash = trash.filter { it.removedMs > now - retentionDays * 86_400_000L })
 
-    fun restoreLocal(id: String, now: Long = System.currentTimeMillis()): ZeiterfassungStand {
+    fun restoreLocal(id: String, now: Long = System.currentTimeMillis(), retentionDays: Int = 30): ZeiterfassungStand {
         validate()
-        val item = trash.firstOrNull { it.id == id && it.expiresMs > now } ?: error("expired time trash")
+        val clean = purgeExpired(now, retentionDays)
+        val item = clean.trash.firstOrNull { it.id == id } ?: error("expired time trash")
         val ids = item.entries.mapTo(mutableSetOf()) { it.id }
-        return purgeExpired(now).copy(entries = entries + item.entries, removedIds = removedIds - ids,
+        return clean.copy(entries = entries + item.entries, removedIds = removedIds - ids,
             removedMonths = if (item.month == null) removedMonths else removedMonths - item.month,
-            trash = trash.filter { it.id != id && it.expiresMs > now }, conflicts = conflicts + item.conflicts,
+            trash = clean.trash.filterNot { it.id == id }, conflicts = conflicts + item.conflicts,
             pauseRuns = pauseRuns + item.pauseRuns).validate()
     }
 

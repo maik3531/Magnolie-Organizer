@@ -315,7 +315,7 @@
         <item quantity="many">Supprimer définitivement les %1$d éléments de la corbeille ? Cette action est irréversible.</item>
         <item quantity="other">Supprimer définitivement les %1$d éléments de la corbeille ? Cette action est irréversible.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Les notes et tâches supprimées sont conservées ici jusqu’à leur suppression définitive.</string>
+    <string name="papierkorb_hinweis">Une seule corbeille pour les notes, tâches, pièces jointes et temps enregistrés.</string>
     <string name="technischer_wert_art_notiz">Note</string>
     <string name="technischer_wert_art_notizbuch">Carnet</string>
     <string name="technischer_wert_art_aufgabe">Tâche</string>

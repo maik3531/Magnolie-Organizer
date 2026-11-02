@@ -298,7 +298,7 @@
         <item quantity="one">Çöpteki %1$d öğenin tümü kalıcı olarak silinsin mi? Geri alınamaz.</item>
         <item quantity="other">Çöpteki %1$d öğenin tümü kalıcı olarak silinsin mi? Geri alınamaz.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Silinen notlar ve görevler kalıcı olarak silinene kadar burada tutulur.</string>
+    <string name="papierkorb_hinweis">Notlar, görevler, ekler ve kaydedilen süreler için tek bir çöp kutusu.</string>
     <string name="technischer_wert_art_notiz">Not</string>
     <string name="technischer_wert_art_notizbuch">Not defteri</string>
     <string name="technischer_wert_art_aufgabe">Görev</string>

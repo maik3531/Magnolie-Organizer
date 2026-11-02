@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Seçili öğeler çöp kutusuna taşınsın mı?</string>
+    <string name="loeschen_endgueltig_frage">Seçili öğeler kalıcı olarak silinsin mi? Çöp kutusuna taşınmayacaklar ve burada geri yüklenemeyecekler.</string>
+    <string name="loeschen_nur_lokal">Kaydedilen süreler yalnızca bu telefondan kaldırılır. Organizer içinde korunur.</string>
+</resources>

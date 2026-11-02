@@ -335,7 +335,7 @@
         <item quantity="many">هل تريد حذف محتويات سلة المهملات نهائيًا؟ عدد العناصر: %1$d. لا يمكن التراجع.</item>
         <item quantity="other">هل تريد حذف محتويات سلة المهملات نهائيًا؟ عدد العناصر: %1$d. لا يمكن التراجع.</item>
     </plurals>
-    <string name="papierkorb_hinweis">يتم الاحتفاظ هنا بالملاحظات والمهام المحذوفة حتى حذفها نهائيًا.</string>
+    <string name="papierkorb_hinweis">سلة مهملات واحدة للملاحظات والمهام والمرفقات والأوقات المسجلة.</string>
     <string name="technischer_wert_art_notiz">ملاحظة</string>
     <string name="technischer_wert_art_notizbuch">دفتر ملاحظات</string>
     <string name="technischer_wert_art_aufgabe">مهمة</string>

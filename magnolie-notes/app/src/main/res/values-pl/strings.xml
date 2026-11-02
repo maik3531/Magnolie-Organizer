@@ -313,7 +313,7 @@
         <item quantity="many">Trwale usunąć zawartość kosza? Liczba elementów: %1$d. Nie można tego cofnąć.</item>
         <item quantity="other">Trwale usunąć zawartość kosza? Liczba elementów: %1$d. Nie można tego cofnąć.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Usunięte notatki i zadania są tu przechowywane do czasu trwałego usunięcia.</string>
+    <string name="papierkorb_hinweis">Jeden kosz na notatki, zadania, załączniki i zarejestrowane czasy.</string>
     <string name="technischer_wert_art_notiz">Notatka</string>
     <string name="technischer_wert_art_notizbuch">Notatnik</string>
     <string name="technischer_wert_art_aufgabe">Zadanie</string>

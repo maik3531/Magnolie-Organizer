@@ -101,12 +101,13 @@ fun AufgabenBlatt(
     modifier: Modifier = Modifier,
     wischen: WischAnzeige = WischAnzeige(),
     anzeige: ListenAnzeige = ListenAnzeige(),
-    abgleichMoeglich: (Aufgabe) -> Boolean = { true }
+    abgleichMoeglich: (Aufgabe) -> Boolean = { true },
+    papierkorbAn: Boolean = true
 ) {
     val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
     var loeschFrage by remember { mutableStateOf<Aufgabe?>(null) }
-    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }) }
+    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }, papierkorbAn) }
     aufgaben.firstOrNull { it.id == eigenschaftenId }?.let { value ->
         EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
             verbindungsQuelle = value.vonZweig, beiSchliessen = { eigenschaftenId = null })
@@ -342,7 +343,8 @@ fun AufgabenEditor(
     speichert: Boolean,
     beiLoeschen: () -> Unit,
     beiWeitergeben: (List<String>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    papierkorbAn: Boolean = true
 ) {
     val titel = aufgabe.titel
     val notiz = aufgabe.notiz
@@ -528,7 +530,7 @@ fun AufgabenEditor(
             onDismissRequest = { fragtLoeschen = false },
             containerColor = Magnolie.papier,
             title = { Text(stringResource(R.string.aufgabe_loeschen), fontFamily = FontFamily.Serif) },
-            text = { Text(stringResource(R.string.wirklich_loeschen)) },
+            text = { Text(loeschHinweis(papierkorbAn)) },
             confirmButton = {
                 TextButton(onClick = { fragtLoeschen = false; beiLoeschen() }) {
                     Text(stringResource(R.string.loeschen), color = Magnolie.rot)

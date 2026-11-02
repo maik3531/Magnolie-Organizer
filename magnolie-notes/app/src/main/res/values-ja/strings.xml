@@ -280,7 +280,7 @@
     </plurals><string name="papierkorb_leeren">ごみ箱を空にする</string><string name="papierkorb_endgueltig_titel">完全に削除</string><string name="papierkorb_endgueltig_hinweis">このごみ箱項目を完全に削除しますか？元に戻せません。</string><plurals name="papierkorb_leeren_hinweis">
         <item quantity="other">ごみ箱の %1$d 件をすべて完全に削除しますか？元に戻せません。</item>
     </plurals>
-    <string name="papierkorb_hinweis">削除したメモとタスクは、完全に削除されるまでここに保管されます。</string>
+    <string name="papierkorb_hinweis">メモ、タスク、添付ファイル、記録した時間に共通のゴミ箱です。</string>
     <string name="technischer_wert_art_notiz">メモ</string>
     <string name="technischer_wert_art_notizbuch">ノートブック</string>
     <string name="technischer_wert_art_aufgabe">タスク</string>

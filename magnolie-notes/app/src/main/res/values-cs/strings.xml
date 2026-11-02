@@ -313,7 +313,7 @@
         <item quantity="many">Trvale odstranit obsah koše? Počet položek: %1$d. Akci nelze vrátit.</item>
         <item quantity="other">Trvale odstranit obsah koše? Počet položek: %1$d. Akci nelze vrátit.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Smazané poznámky a úkoly se zde uchovávají až do trvalého odstranění.</string>
+    <string name="papierkorb_hinweis">Jeden koš pro poznámky, úkoly, přílohy a zaznamenané časy.</string>
     <string name="technischer_wert_art_notiz">Poznámka</string>
     <string name="technischer_wert_art_notizbuch">Zápisník</string>
     <string name="technischer_wert_art_aufgabe">Úkol</string>

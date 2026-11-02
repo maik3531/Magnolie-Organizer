@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Déplacer les éléments sélectionnés dans la corbeille ?</string>
+    <string name="loeschen_endgueltig_frage">Supprimer définitivement les éléments sélectionnés ? Ils ne seront pas placés dans la corbeille et ne pourront pas être restaurés ici.</string>
+    <string name="loeschen_nur_lokal">Les temps enregistrés seront retirés uniquement de ce téléphone. Ils resteront dans Organizer.</string>
+</resources>

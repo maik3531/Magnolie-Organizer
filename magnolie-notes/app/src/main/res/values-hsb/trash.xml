@@ -1,0 +1,5 @@
+<resources>
+    <string name="loeschen_papierkorb_frage">Wubrane zapiski do papjernika přesunyć?</string>
+    <string name="loeschen_endgueltig_frage">Wubrane zapiski na přeco zhašeć? Njedóstanu so do papjernika a njedadźa so tu wobnowić.</string>
+    <string name="loeschen_nur_lokal">Zapisane časy so jenož z tutoho telefona wotstronja. W Organizer wostanu zachowane.</string>
+</resources>

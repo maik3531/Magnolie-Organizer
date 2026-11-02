@@ -291,7 +291,7 @@
         <item quantity="one">Het %1$d prullenbakitem permanent verwijderen? Dit kan niet ongedaan worden gemaakt.</item>
         <item quantity="other">Alle %1$d prullenbakitems permanent verwijderen? Dit kan niet ongedaan worden gemaakt.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Verwijderde notities en taken worden hier bewaard totdat ze definitief worden verwijderd.</string>
+    <string name="papierkorb_hinweis">Eén prullenbak voor notities, taken, bijlagen en geregistreerde tijden.</string>
     <string name="technischer_wert_art_notiz">Notitie</string>
     <string name="technischer_wert_art_notizbuch">Notitieboek</string>
     <string name="technischer_wert_art_aufgabe">Taak</string>

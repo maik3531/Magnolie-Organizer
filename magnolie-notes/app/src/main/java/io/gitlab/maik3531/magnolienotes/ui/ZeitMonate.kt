@@ -3,7 +3,10 @@ package io.gitlab.maik3531.magnolienotes.ui
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
@@ -20,9 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.daten.PapierkorbEinstellungen
 import io.gitlab.maik3531.magnolienotes.daten.Zeiteintrag
 import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
 import io.gitlab.maik3531.magnolienotes.daten.ZeitDruckTexte
@@ -32,7 +37,9 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern: ZeitSpeichern,
-                        beiPapierkorb: () -> Unit) {
+                        beiPapierkorb: () -> Unit,
+                        papierkorb: PapierkorbEinstellungen = PapierkorbEinstellungen(),
+                        beiEntfernen: ZeitEntfernen? = null) {
     val context = LocalContext.current
     val locale = context.resources.configuration.locales[0]
     val entries = stand.entries.filterNot { it.deleted }
@@ -92,17 +99,20 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
                     .onFailure { error() }
             })
         }
-        Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty(), destruktiv = true) {
-            removal = selected to monthEntries.toList()
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty(), destruktiv = true) {
+                removal = selected to monthEntries.toList()
+            }
+            if (papierkorb.an) Papierknopf(stringResource(R.string.papierkorb_titel), beiKlick = beiPapierkorb)
         }
-        Papierknopf(stringResource(R.string.papierkorb_titel), beiKlick = beiPapierkorb)
     }
     removal?.let { (key, snapshot) ->
         AlertDialog(onDismissRequest = { if (!speichert) removal = null }, containerColor = Magnolie.papier,
             title = { Text(formatter.format(YearMonth.parse(key).atDay(1))) },
-            text = { Text(stringResource(R.string.zeit_monat_entfernen_frage)) },
+            text = { Text(loeschHinweis(papierkorb.an, lokal = true)) },
             confirmButton = { TextButton(enabled = !speichert, onClick = {
-                speichern({ it.removeLocal(snapshot, month = key) }, { removal = null })
+                if (beiEntfernen != null) beiEntfernen(snapshot, key, papierkorb) { removal = null }
+                else speichern({ it.removeLocal(snapshot, month = key, papierkorb = papierkorb) }, { removal = null })
             }) { Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
             dismissButton = { TextButton(enabled = !speichert, onClick = { removal = null }) { Text(stringResource(R.string.abbrechen), color = Magnolie.braun) } })
     }

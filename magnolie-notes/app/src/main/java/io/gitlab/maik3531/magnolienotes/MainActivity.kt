@@ -496,12 +496,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     }
 
     var zeitSpeichert by remember { mutableStateOf(false) }
-    fun zeitAendern(change: (ZeiterfassungStand) -> ZeiterfassungStand, success: () -> Unit, vorher: () -> Unit = {}) {
+    fun zeitAktion(aktion: () -> Unit, success: () -> Unit = {}) {
         if (!zeitSpeichert) {
             zeitSpeichert = true
             faden.launch {
                 try {
-                    withContext(Dispatchers.IO) { vorher(); ablage.aendereZeiterfassung(change) }
+                    withContext(Dispatchers.IO) { aktion() }
                     success()
                 } catch (error: kotlinx.coroutines.CancellationException) {
                     throw error
@@ -511,6 +511,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             }
         }
     }
+    fun zeitAendern(change: (ZeiterfassungStand) -> ZeiterfassungStand, success: () -> Unit, vorher: () -> Unit = {}) {
+        zeitAktion({ vorher(); ablage.aendereZeiterfassung(change) }, success)
+    }
     val zeitSpeichern: ZeitSpeichern = { change, success -> zeitAendern(change, success) }
     val zeitAktiv: (Boolean) -> Unit = { an ->
         zeitAendern({ it.copy(enabled = an) }, { if (an) telefonWerk.enableOwnDeviceTimeSync() }, { if (!an) telefonWerk.pauseTimeSync() })
@@ -518,7 +521,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
 
     LaunchedEffect(blatt) {
         if (blatt == 4) withContext(Dispatchers.IO) {
-            runCatching { ablage.aendereZeiterfassung { it.purgeExpired() } }
+            runCatching { ablage.bereinigePapierkorb() }
         }
     }
 
@@ -854,6 +857,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         Scaffold(topBar = { Einband(stringResource(R.string.zeit_titel)) }) { rand ->
             Box(Modifier.fillMaxSize().padding(rand)) {
                 ZeiteintragEditor(offeneZeit,
+                    papierkorbAn = bestand.papierkorbEinstellungen.an,
                     aktuell = { ablage.entwurf.value.zeit ?: offeneZeit },
                     speichert = editorSpeichert,
                     beiAenderung = {
@@ -874,7 +878,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiLoeschen = { draft ->
                         val erwartet = io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf(zeit = draft)
                         editorAktion {
-                            ablage.aendereZeiterfassung { it.removeLocal(listOf(draft.original)) }
+                            ablage.entferneZeitenLokal(listOf(draft.original), expectedTrash = bestand.papierkorbEinstellungen)
                             ablage.beendeEntwurf(erwartet)
                         }
                     })
@@ -886,6 +890,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val offeneA = offeneAufgabe
     if (offeneA != null) {
         AufgabenEditor(
+            papierkorbAn = bestand.papierkorbEinstellungen.an,
             aufgabe = offeneA,
             alleAufgaben = bestand.aufgaben,
             partnernamen = bestaetigte,
@@ -902,8 +907,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             beiLoeschen = {
                 val erwartet = entwurf
                 editorAktion {
+                    ablage.loescheAufgabe(offeneA.id, bestand.papierkorbEinstellungen)
                     Erinnerung.abbestellen(zusammenhang, offeneA.id)
-                    ablage.loescheAufgabe(offeneA.id)
                     ablage.beendeEntwurf(erwartet)
                 }
             },
@@ -923,6 +928,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val offen = offeneNotiz
     if (offen != null) {
         NotizEditor(
+            papierkorbAn = bestand.papierkorbEinstellungen.an,
             notiz = offen,
             partnernamen = bestaetigte,
             beiEntwurf = { if (!editorSpeichert) ablage.setzeNotizEntwurf(it) },
@@ -937,7 +943,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             },
             beiLoeschen = {
                 val erwartet = entwurf
-                editorAktion { ablage.loescheNotiz(offen.id); ablage.beendeEntwurf(erwartet) }
+                editorAktion { ablage.loescheNotiz(offen.id, bestand.papierkorbEinstellungen); ablage.beendeEntwurf(erwartet) }
             },
             beiTeilen = { kennungen ->
                 editorAktion {
@@ -977,9 +983,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 val current = ablage.entwurf.value.notiz?.takeIf { it.id == offen.id }
                 val removed = current?.anhaenge?.filter { old -> anhaenge.none { it.id == old.id } }.orEmpty()
                 if (removed.size == 1) {
-                    ablage.loescheAnhang(offen.id, removed.single().id)
-                }
-                current?.let { ablage.setzeNotizEntwurf(it.copy(anhaenge = anhaenge)) }
+                    editorAktion {
+                        check(ablage.entwurf.value.notiz == current) { "draft_changed" }
+                        ablage.loescheAnhang(offen.id, removed.single().id, bestand.papierkorbEinstellungen)
+                        current?.let { ablage.setzeNotizEntwurf(it.copy(anhaenge = anhaenge)) }
+                    }
+                } else current?.let { ablage.setzeNotizEntwurf(it.copy(anhaenge = anhaenge)) }
             }
         )
         return
@@ -1049,16 +1058,20 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     })
                 6 -> ZeiterfassungBlatt(bestand.zeiterfassung, zeitSpeichert, zeitSpeichern,
                     zeitAnsicht, { zeitAnsicht = it }, zeitAktiv,
-                    { blatt = 4 }) { entry, neu ->
+                    { blatt = 4 }, beiBearbeiten = { entry, neu ->
                     ablage.setzeZeitEntwurf(io.gitlab.maik3531.magnolienotes.daten.ZeitEntwurf(entry, neu,
                         pause = bestand.zeiterfassung.projected(entry).pausedMinutes().toString(),
                         pauseRun = bestand.zeiterfassung.pauseRuns[entry.id]))
-                }
+                }, papierkorb = bestand.papierkorbEinstellungen,
+                    beiEntfernen = { eintraege, monat, einstellung, fertig ->
+                        zeitAktion({ ablage.entferneZeitenLokal(eintraege, monat, einstellung) }, fertig)
+                    })
                 0 -> NotizBlatt(
+                    papierkorbAn = bestand.papierkorbEinstellungen.an,
                     notizen = bestand.notizen,
                     anzeige = listenAnzeige,
                     wischen = wischAnzeige,
-                    beiLoeschen = ablage::loescheNotizWennUnveraendert,
+                    beiLoeschen = { ablage.loescheNotizWennUnveraendert(it, bestand.papierkorbEinstellungen) },
                     beiAbgleichen = { einzelAbgleich("note", it.id) },
                     abgleichMoeglich = { (wischVerbindungen.notizen && io.gitlab.maik3531.magnolienotes.daten.PersonalSync.ownNote(it)) ||
                         fernAbgleichMoeglich(it.baumFreigabe?.partner.orEmpty()) },
@@ -1075,10 +1088,11 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 )
 
                 1 -> AufgabenBlatt(
+                    papierkorbAn = bestand.papierkorbEinstellungen.an,
                     aufgaben = bestand.aufgaben,
                     anzeige = listenAnzeige,
                     wischen = wischAnzeige,
-                    beiLoeschen = ablage::loescheAufgabeWennUnveraendert,
+                    beiLoeschen = { ablage.loescheAufgabeWennUnveraendert(it, bestand.papierkorbEinstellungen) },
                     beiAbgleichen = { einzelAbgleich("task", it.id) },
                     abgleichMoeglich = { (wischVerbindungen.aufgaben && io.gitlab.maik3531.magnolienotes.daten.PersonalSync.ownTask(it)) ||
                         (!it.istFremd && fernAbgleichMoeglich(it.standPartner + it.delegiertAn)) },
@@ -1445,17 +1459,13 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             .getOrDefault(false)
                     },
                     beiLoeschen = journal::delete,
-                    beiPapierkorbSchalter = ablage::setzePapierkorb,
-                    beiPapierkorbTage = ablage::setzePapierkorb,
+                    beiPapierkorbSchalter = { an, tage -> zeitAktion({ ablage.setzePapierkorb(an, tage) }) },
+                    beiPapierkorbTage = { an, tage -> zeitAktion({ ablage.setzePapierkorb(an, tage) }) },
                     beiPapierkorbWiederherstellen = { id ->
-                        faden.launch(Dispatchers.IO) {
-                            runCatching {
-                                if (ablage.papierkorbWiederherstellen(id)) Erinnerung.allesNeuStellen(zusammenhang)
-                            }.onFailure { withContext(Dispatchers.Main) { sage(zusammenhang.fehlertext(it)) } }
-                        }
+                        zeitAktion({ if (ablage.papierkorbWiederherstellen(id)) Erinnerung.allesNeuStellen(zusammenhang) })
                     },
-                    beiPapierkorbLoeschen = ablage::papierkorbEndgueltig,
-                    beiPapierkorbLeeren = ablage::papierkorbLeeren,
+                    beiPapierkorbLoeschen = { id -> zeitAktion({ ablage.papierkorbEndgueltig(id) }) },
+                    beiPapierkorbLeeren = { auswahl -> zeitAktion({ ablage.papierkorbLeeren(auswahl) }) },
                     absturzberichtVorhanden = Absturzberichte.bericht(zusammenhang) != null,
                     beiAbsturzberichtTeilen = {
                         Absturzberichte.bericht(zusammenhang)?.let { bericht ->
@@ -1529,8 +1539,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiAutoAufbewahrung = autoSicherung::aufbewahrungSetzen,
                     beiAutoJetzt = autoSicherung::jetztTesten,
                     zeitSpeichert = zeitSpeichert,
-                    beiZeitWiederherstellen = { id -> zeitSpeichern({ it.restoreLocal(id) }, {}) },
-                    beiZeitLoeschen = { id -> zeitSpeichern({ it.permanentlyRemoveLocal(id) }, {}) },
+                    beiZeitWiederherstellen = { id -> zeitAktion({ ablage.zeitPapierkorbWiederherstellen(id) }) },
+                    beiZeitLoeschen = { id -> zeitAktion({ ablage.zeitPapierkorbEndgueltig(id) }) },
                 ))
             }
         }

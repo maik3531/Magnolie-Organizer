@@ -51,8 +51,20 @@ object PapierkorbLogik {
         val valid = input.papierkorb.filter { item -> item.art in setOf("note", "task", "notebook", "attachment") &&
             item.geloescht_ms >= 0 && listOfNotNull(item.notiz, item.aufgabe, item.notizbuch, item.anhang).size == 1 &&
             (item.art != "attachment" || item.parent_id.isNotBlank()) }
-        val retained = if (days == 0) valid else valid.filter { it.geloescht_ms > now - days * 86_400_000L }
-        return input.copy(papierkorb = retained.takeLast(MAX))
+        val retained = if (!input.papierkorbEinstellungen.an || days <= 0) valid
+            else valid.filter { it.geloescht_ms > now - days * 86_400_000L }
+        return input.copy(papierkorb = retained.takeLast(MAX), zeiterfassung = input.zeiterfassung.purgeExpired(now,
+            if (input.papierkorbEinstellungen.an) days else 0))
+    }
+
+    fun kennungen(input: Bestand): Set<String> = input.papierkorb.map { "document\u0000${it.id}" }.toSet() +
+        input.zeiterfassung.trash.map { "time\u0000${it.id}" }
+
+    /** One confirmed operation empties both payload stores, not the suppression ledger. */
+    fun leeren(input: Bestand, expected: Set<String>? = null): Bestand {
+        check(expected == null || expected == kennungen(input)) { "trash_selection_changed" }
+        return input.copy(papierkorb = emptyList(),
+            zeiterfassung = input.zeiterfassung.copy(trash = emptyList()).validate())
     }
 
     fun wiederherstellen(input: Bestand, trashId: String, now: Long = System.currentTimeMillis()): Bestand? {

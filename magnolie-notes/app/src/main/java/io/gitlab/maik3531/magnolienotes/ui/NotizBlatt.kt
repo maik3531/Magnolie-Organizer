@@ -88,12 +88,13 @@ fun NotizBlatt(
     modifier: Modifier = Modifier,
     wischen: WischAnzeige = WischAnzeige(),
     anzeige: ListenAnzeige = ListenAnzeige(),
-    abgleichMoeglich: (Notiz) -> Boolean = { true }
+    abgleichMoeglich: (Notiz) -> Boolean = { true },
+    papierkorbAn: Boolean = true
 ) {
     var suche by remember { mutableStateOf("") }
     var eigenschaftenId by remember { mutableStateOf<String?>(null) }
     var loeschFrage by remember { mutableStateOf<Notiz?>(null) }
-    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }) }
+    loeschFrage?.let { value -> EintragLoeschFrage(value.anzeigeTitel, { beiLoeschen(value) }, { loeschFrage = null }, papierkorbAn) }
     notizen.firstOrNull { it.id == eigenschaftenId }?.let { value ->
         EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
             importQuelle = value.herkunft, beiSchliessen = { eigenschaftenId = null })
@@ -268,7 +269,8 @@ fun NotizEditor(
     anhangEreignis: AnhangEreignis?,
     beiAnhangEreignisVerbraucht: () -> Unit,
     beiAnhaengeAenderung: (List<Anhang>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    papierkorbAn: Boolean = true
 ) {
     val titel = notiz.titel
     val text = notiz.text
@@ -278,6 +280,7 @@ fun NotizEditor(
     var fragtLoeschen by remember { mutableStateOf(false) }
     var fragtTeilen by remember { mutableStateOf(false) }
     var anhangAktion by remember { mutableStateOf<Anhang?>(null) }
+    var anhangLoeschen by remember { mutableStateOf<Anhang?>(null) }
 
     LaunchedEffect(anhangEreignis) {
         val ereignis = anhangEreignis ?: return@LaunchedEffect
@@ -342,7 +345,7 @@ fun NotizEditor(
                                 stringResource(if (anhang.art == "pdf") R.string.notiz_pdf else R.string.notiz_bild)
                             }) { anhangAktion = anhang }
                             TextButton(enabled = !speichert, onClick = {
-                                beiAnhaengeAenderung(anhaenge.filterNot { it.id == anhang.id })
+                                anhangLoeschen = anhang
                             }) {
                                 Text(stringResource(R.string.notiz_anhang_entfernen), color = Magnolie.rot)
                             }
@@ -428,6 +431,16 @@ fun NotizEditor(
         }
     }
 
+    anhangLoeschen?.let { anhang ->
+        AlertDialog(onDismissRequest = { anhangLoeschen = null },
+            title = { Text(stringResource(R.string.notiz_anhang_entfernen)) },
+            text = { Text(anhang.name + "\n\n" + loeschHinweis(papierkorbAn)) },
+            confirmButton = { TextButton(enabled = !speichert, onClick = {
+                if (anhaenge.any { it == anhang }) beiAnhaengeAenderung(anhaenge.filterNot { it.id == anhang.id })
+                anhangLoeschen = null
+            }) { Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
+            dismissButton = { TextButton(onClick = { anhangLoeschen = null }) { Text(stringResource(R.string.abbrechen)) } })
+    }
     anhangAktion?.let { anhang ->
         AlertDialog(
             onDismissRequest = { anhangAktion = null },
@@ -463,7 +476,7 @@ fun NotizEditor(
             onDismissRequest = { fragtLoeschen = false },
             containerColor = Magnolie.papier,
             title = { Text(stringResource(R.string.notiz_loeschen), fontFamily = FontFamily.Serif) },
-            text = { Text(stringResource(R.string.wirklich_loeschen)) },
+            text = { Text(loeschHinweis(papierkorbAn)) },
             confirmButton = {
                 TextButton(onClick = { fragtLoeschen = false; beiLoeschen() }) {
                     Text(stringResource(R.string.loeschen), color = Magnolie.rot)

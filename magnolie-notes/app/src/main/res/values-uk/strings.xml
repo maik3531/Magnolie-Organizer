@@ -320,7 +320,7 @@
         <item quantity="many">Назавжди видалити вміст кошика? Елементів: %1$d. Дію не можна скасувати.</item>
         <item quantity="other">Назавжди видалити вміст кошика? Елементів: %1$d. Дію не можна скасувати.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Видалені нотатки й завдання зберігаються тут до остаточного видалення.</string>
+    <string name="papierkorb_hinweis">Спільний кошик для нотаток, завдань, вкладень і записів часу.</string>
     <string name="technischer_wert_art_notiz">Нотатка</string>
     <string name="technischer_wert_art_notizbuch">Нотатник</string>
     <string name="technischer_wert_art_aufgabe">Завдання</string>

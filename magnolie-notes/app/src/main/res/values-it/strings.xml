@@ -311,7 +311,7 @@
         <item quantity="many">Eliminare definitivamente tutti i %1$d elementi del cestino? L’azione è irreversibile.</item>
         <item quantity="other">Eliminare definitivamente tutti i %1$d elementi del cestino? L’azione è irreversibile.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Le note e le attività eliminate vengono conservate qui fino alla cancellazione definitiva.</string>
+    <string name="papierkorb_hinweis">Un unico cestino per note, attività, allegati e tempi registrati.</string>
     <string name="technischer_wert_art_notiz">Nota</string>
     <string name="technischer_wert_art_notizbuch">Taccuino</string>
     <string name="technischer_wert_art_aufgabe">Attività</string>

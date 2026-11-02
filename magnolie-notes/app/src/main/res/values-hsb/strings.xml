@@ -313,7 +313,7 @@
         <item quantity="few">Wšěch %1$d zapiskow papjernika na přeco zhašeć? To njeda so cofnyć.</item>
         <item quantity="other">Wšěch %1$d zapiskow papjernika na přeco zhašeć? To njeda so cofnyć.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Zhašane noticy a nadawki so tu chowaja, doniž so na přeco njezhašeja.</string>
+    <string name="papierkorb_hinweis">Zhromadny papjernik za noticy, nadawki, přiwěški a zapisane časy.</string>
     <string name="technischer_wert_art_notiz">Notica</string>
     <string name="technischer_wert_art_notizbuch">Noticownik</string>
     <string name="technischer_wert_art_aufgabe">Nadawk</string>

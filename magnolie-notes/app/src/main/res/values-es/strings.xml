@@ -312,7 +312,7 @@
         <item quantity="many">¿Eliminar definitivamente los %1$d elementos de la papelera? No se puede deshacer.</item>
         <item quantity="other">¿Eliminar definitivamente los %1$d elementos de la papelera? No se puede deshacer.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Las notas y tareas eliminadas se guardan aquí hasta que se borran definitivamente.</string>
+    <string name="papierkorb_hinweis">Una sola papelera para notas, tareas, adjuntos y tiempos registrados.</string>
     <string name="technischer_wert_art_notiz">Nota</string>
     <string name="technischer_wert_art_notizbuch">Cuaderno</string>
     <string name="technischer_wert_art_aufgabe">Tarea</string>

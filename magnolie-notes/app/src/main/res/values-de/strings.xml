@@ -360,7 +360,7 @@
         <item quantity="one">Den %1$d Papierkorbeintrag endgültig löschen? Dies kann nicht rückgängig gemacht werden.</item>
         <item quantity="other">Alle %1$d Papierkorbeinträge endgültig löschen? Dies kann nicht rückgängig gemacht werden.</item>
     </plurals>
-    <string name="papierkorb_hinweis">Gelöschte Notizen und Aufgaben werden hier bis zur endgültigen Löschung aufbewahrt.</string>
+    <string name="papierkorb_hinweis">Ein gemeinsamer Papierkorb für Notizen, Aufgaben, Anhänge und erfasste Zeiten.</string>
     <string name="technischer_wert_art_notiz">Notiz</string>
     <string name="technischer_wert_art_notizbuch">Notizbuch</string>
     <string name="technischer_wert_art_aufgabe">Aufgabe</string>

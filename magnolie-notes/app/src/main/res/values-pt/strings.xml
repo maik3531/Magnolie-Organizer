@@ -302,7 +302,7 @@
         <item quantity="many">Eliminar definitivamente os %1$d itens do lixo? Não é possível desfazer.</item>
         <item quantity="other">Eliminar definitivamente os %1$d itens do lixo? Não é possível desfazer.</item>
     </plurals>
-    <string name="papierkorb_hinweis">As notas e tarefas eliminadas são guardadas aqui até serem apagadas definitivamente.</string>
+    <string name="papierkorb_hinweis">Um único lixo para notas, tarefas, anexos e tempos registados.</string>
     <string name="technischer_wert_art_notiz">Nota</string>
     <string name="technischer_wert_art_notizbuch">Caderno</string>
     <string name="technischer_wert_art_aufgabe">Tarefa</string>

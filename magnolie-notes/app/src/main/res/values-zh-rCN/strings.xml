@@ -280,7 +280,7 @@
     </plurals><string name="papierkorb_leeren">清空回收站</string><string name="papierkorb_endgueltig_titel">永久删除</string><string name="papierkorb_endgueltig_hinweis">永久删除此回收站项目？此操作无法撤销。</string><plurals name="papierkorb_leeren_hinweis">
         <item quantity="other">永久删除回收站中的全部 %1$d 个项目？此操作无法撤销。</item>
     </plurals>
-    <string name="papierkorb_hinweis">已删除的笔记和任务会保存在这里，直到被永久删除。</string>
+    <string name="papierkorb_hinweis">笔记、任务、附件和记录时间共用一个回收站。</string>
     <string name="technischer_wert_art_notiz">笔记</string>
     <string name="technischer_wert_art_notizbuch">笔记本</string>
     <string name="technischer_wert_art_aufgabe">任务</string>
