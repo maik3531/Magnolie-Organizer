@@ -420,15 +420,30 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         checkDirectory()
         val lock = File(directory, "photo-source-jobs.lock")
         if (Files.exists(lock.toPath(), NOFOLLOW_LINKS)) regular(lock)
+        fun checked(): T {
+            checkDirectory()
+            if (::dbKey.isInitialized) {
+                regular(path)
+                sidecars()
+                if (attributes(path).fileKey() != dbKey) fail("photo_jobs_db_replaced")
+            }
+            return action()
+        }
+        // A source-authority check may read its protected policy in this SAME
+        // index (or another native index object for the same directory). The
+        // global process monitor is reentrant, FileChannel.lock is not. Only
+        // the same thread already holding this exact root's OS lock may reuse
+        // it; all root/DB/sidecar checks still run on every nested operation.
+        val key = directory.path
+        if (heldRoots.get()?.contains(key) == true) return@synchronized checked()
         FileChannel.open(lock.toPath(), setOf(WRITE, CREATE, NOFOLLOW_LINKS), PRIVATE_FILE).use { channel ->
             channel.lock().use {
-                checkDirectory()
-                if (::dbKey.isInitialized) {
-                    regular(path)
-                    sidecars()
-                    if (attributes(path).fileKey() != dbKey) fail("photo_jobs_db_replaced")
+                val held = heldRoots.get() ?: mutableSetOf<String>().also { heldRoots.set(it) }
+                held.add(key)
+                try { checked() } finally {
+                    held.remove(key)
+                    if (held.isEmpty()) heldRoots.remove()
                 }
-                action()
             }
         }
     }
@@ -438,6 +453,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         const val MAX_JOBS = 8
         const val MAX_CIPHER_BYTES = DeviceFileManifest.MAX_TOTAL_BYTES + 8L * 1024 * 1024
         private val gate = Any()
+        private val heldRoots = ThreadLocal<MutableSet<String>>()
         private val ID = Regex("[0-9a-f]{32}")
         private val SHA = Regex("[0-9a-f]{64}")
         private const val HEADER = "magnolie-private-photo-source-jobs-v1"

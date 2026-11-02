@@ -182,7 +182,14 @@ state. Unknown concurrent policy/fence states remain preserved and blocked.
 The native controller also remains fenced after uncertainty until recreated;
 disabling never revokes app-wide Android rights. Eight policy/provider-store
 cases and 18 affected source-index cases passed. This is not yet an active remote
-settings handler, lifecycle/system-dialog adapter or automatic scan.
+settings handler or automatic scan. Policy-backed gallery authority now also
+passes the combined native reservation/freeze/publish/restore/offer/disable/cache-
+retirement path. A nested protected-policy read reuses only the same thread's
+already-held OS lock for the exact private index root; it still rechecks root,
+database and sidecar witnesses. Other threads/roots cannot reuse that lock. This
+avoids incorrectly rejecting a valid source on an overlapping FileChannel lock.
+The combined and affected index suite passes 28 cases; an earlier focused
+integration failure remains recorded, not relabeled as a successful run.
 
 `PhotoFolderScope` captures a native picker ticket before an explicit system
 tree selection. The result cannot migrate to another peer, key, native lifecycle

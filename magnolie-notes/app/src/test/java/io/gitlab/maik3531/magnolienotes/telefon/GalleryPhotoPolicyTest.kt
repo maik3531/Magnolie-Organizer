@@ -2,6 +2,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.app.Application
 import android.database.sqlite.SQLiteDatabase
+import android.os.CancellationSignal
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.*
@@ -10,6 +11,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -36,6 +38,64 @@ class GalleryPhotoPolicyTest {
             TelefonRahmen.schreiben(it, value, DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
         }.toByteArray(), "photo-source-jobs-v1/$name")
         override fun close() { root.deleteRecursively() }
+    }
+
+    @Test fun actualPolicyBackedGalleryAuthorityCanFreezePublishOfferAndRetireUnderTheSameNativeIndexGate() {
+        Fixture().use { f -> f.open().use { index ->
+            val controller = GalleryPhotoPolicyController(index) { f.receiver }
+            val saved = controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            val environment = object : GalleryAccessEnvironment {
+                override fun observe(volume: String) = GalleryAccessObservation(GalleryReadCoverage.FULL_IMAGES, "d".repeat(64), "fixture-store-v1", true)
+            }
+            val scope = GalleryPhotoSourceScope({ controller.currentRequest() }, environment)
+            val album = GalleryAlbumCandidate(GallerySourceKind.CAMERA, "external", "camera", "Camera", null, 1, false)
+            val lease = scope.capture(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(album), controller.currentRequest()), album)
+            val inventory = PhotoSourceInventory(lease, listOf(PhotoInventoryEntry("content://media/external/images/media/1", "1:90", "image.jpg", 5, 100000)))
+            val source = object : PhotoSourceAccess {
+                override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) { check(scope.isCurrent(lease)) }
+                override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) = ByteArrayInputStream("hello".toByteArray())
+            }
+            val reserved = index.reserve(inventory, scope)
+            val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", scope, source, f.protection)
+            val sealed = index.publishSnapshot(reserved, snapshot, scope, lease)
+            val reader = index.restore(sealed, "sender_fixture_01", scope, lease)
+            assertEquals("file_transfer.offer", (reader.offerMessage()["kind"] as JsonPrimitive).content)
+            assertArrayEquals("hello".toByteArray(), reader.readChunk(reader.manifest.files.single().id, 0))
+            controller.configure(saved, false, emptySet())
+            assertThrows(PhotoFolderScopeError::class.java) { reader.offerMessage() }
+            index.retireCachedSnapshot(index.jobs().single())
+            assertTrue(index.jobs().isEmpty())
+        } }
+    }
+
+    @Test fun nestedNativePolicyReadsAcrossTwoIndexObjectsReuseOnlyTheSameThreadHeldRootLock() {
+        Fixture().use { f -> f.open().use { writer -> f.open().use { policyReader ->
+            val controller = GalleryPhotoPolicyController(policyReader) { f.receiver }
+            controller.configure(policyReader.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            val request = controller.currentRequest()!!
+            val lease = object : NativePhotoSourceLease {
+                override val sourceKey = "native-fixture-source"
+                override val sourceEpoch = request.policyEpoch
+                override val version = "c".repeat(64)
+                override val receiver = request.receiver
+                override val readGrantToken = "d".repeat(64)
+            }
+            val authority = object : NativePhotoSourceAuthority {
+                override fun isCurrent(lease: NativePhotoSourceLease) = controller.currentRequest()?.policyEpoch == request.policyEpoch
+            }
+            val inventory = PhotoSourceInventory(lease, listOf(PhotoInventoryEntry("fixture", "1", "photo.jpg", 5, 100)))
+            val job = writer.reserve(inventory, authority)
+            assertEquals("reserved", job.phase)
+            writer.retireAndClean(job) { assertTrue(writer.rootFile(job).delete()) }
+            // A callback failure must unwind the reused-lock bookkeeping too.
+            val broken = object : NativePhotoSourceAuthority {
+                override fun isCurrent(lease: NativePhotoSourceLease): Boolean { policyReader.galleryPolicy(); throw IOException("synthetic callback failure") }
+            }
+            assertThrows(IOException::class.java) { writer.reserve(inventory, broken) }
+            assertTrue(writer.jobs().isEmpty()); assertNotNull(policyReader.galleryPolicy().policy)
+            val fresh = writer.reserve(inventory, authority)
+            writer.retireAndClean(fresh) { assertTrue(writer.rootFile(fresh).delete()) }
+        } } }
     }
 
     @Test fun actualProtectedPolicyPersistsSeparatelyWithAbsenceOffAndFrozenKinds() {
