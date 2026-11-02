@@ -135,3 +135,10 @@ integration. Protected Windows/Android staging adapters, protocol handlers, SAF 
 end-to-end/native acceptance also remain open. No capability is advertised by
 these classes, and no user data or installed test package is changed by their
 source tests.
+
+The Notes protection primitive for new transfer state reads only the existing
+phone-storage key. Missing/unavailable keys fail without generating a replacement,
+deleting keys, constructing a personal phone store or migrating settings.
+AEAD entries are bound to the native context and bounded before key lookup.
+This separate primitive leaves existing general phone-storage behavior unchanged;
+it still needs to be connected to the protected Android staging/source policy.
