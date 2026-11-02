@@ -14,9 +14,12 @@ internal static class PersonalActorTargetObserverRuntimeTests
             ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body.DeepClone() };
     }
 
-    internal static async Task RunAsync()
+    internal static Task RunAsync() => RunCasesAsync(null, null);
+    internal static Task RunHistoricalSourceAsync(JsonObject fixture, string fault) => RunCasesAsync(fixture, fault);
+
+    private static async Task RunCasesAsync(JsonObject? sourceFixture, string? sourceFault)
     {
-        foreach (var scenario in new[] { "note", "task", "attachment", "foreign-owner", "cancelled", "local-grant", "remote-grant",
+        var scenarios = new[] { "note", "task", "attachment", "foreign-owner", "cancelled", "local-grant", "remote-grant",
             "skip-deletions", "channel", "missing-snapshot", "saved-mismatch", "source-mismatch", "save-during-capture", "invalid-group", "empty-group", "over-capacity",
             "origin-note", "origin-task", "origin-attachment", "origin-raw-only", "origin-foreign-key", "origin-conflict", "origin-partial",
             "origin-local-grant", "origin-remote-grant", "origin-expired", "origin-cancelled", "origin-capacity", "origin-channel", "origin-source",
@@ -24,7 +27,8 @@ internal static class PersonalActorTargetObserverRuntimeTests
             "pending-attachment-missing-parent", "pending-attachment-foreign-parent", "pending-attachment-duplicate-parent" }.Concat(
                 from kind in new[] { "note", "task", "attachment" }
                 from fault in new[] { "resolved", "old-ack", "foreign-peer", "conflict", "forged-proposal", "nonempty-hash", "present-object" }
-                select $"pending-{kind}-{fault}"))
+                select $"pending-{kind}-{fault}");
+        foreach (var scenario in sourceFixture is null ? scenarios : new[] { "origin-local-source-" + sourceFixture["target"]!["kind"]!.GetValue<string>() + "-" + sourceFault })
         {
             var root = Path.Combine(Path.GetTempPath(), "actor-target-observer-" + Guid.NewGuid().ToString("N"));
             try
@@ -59,6 +63,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 await connection.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = grants }));
                 await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
                 await connection.HandlePlainAsync(Message(SharedSyncSettings.Kind, SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), settings, peer.Id, identity.Id)));
+                if (sourceFixture is not null) peer = store.LoadPeers().Single(value => value.Id == peer.Id);
                 var scope = PhoneContentScope.Create(["selected-note"], ["selected-task"]);
                 foreach (var chunk in PhoneContentScope.Chunks(scope)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, chunk));
                 var kind = scenario.Split('-').Contains("task") ? "task" : scenario.Split('-').Contains("attachment") ? "attachment" : "note";
@@ -73,6 +78,17 @@ internal static class PersonalActorTargetObserverRuntimeTests
                             ["parent_id"] = parent, ["hash"] = new string('a', 64), ["clock"] = clock.DeepClone() } } } };
                 var target = new JsonObject { ["proposal_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind, ["id"] = id,
                     ["parent_id"] = parent, ["prior_hash"] = new string('a', 64), ["clock"] = clock.DeepClone() };
+                if (sourceFixture is not null)
+                {
+                    book = sourceFixture["book"]!.DeepClone().AsObject(); target = sourceFixture["target"]!.DeepClone().AsObject();
+                    id = target["id"]!.GetValue<string>(); clock = target["clock"]!.DeepClone().AsArray();
+                    var state = book["personalSync"]!.AsObject(); state["peer_device_id"] = peer.Id;
+                    var meta = state["entities"]![kind + "\0" + id]!.AsObject(); meta["peer_device_id"] = peer.Id;
+                    meta["proposal_id"] = PersonalSyncContract.DeletionProposalId(peer.Id, kind, id, "", clock, meta["prior_hash"]!.GetValue<string>());
+                    if (sourceFault == "missing") book["papierkorb"]!.AsArray().Clear();
+                    if (sourceFault == "changed") book["papierkorb"]![0]!["eintrag"]!["titel"] = "Changed source";
+                    if (sourceFault == "duplicate") book["papierkorb"]!.AsArray().Add(book["papierkorb"]![0]!.DeepClone());
+                }
                 if (scenario.StartsWith("pending-", StringComparison.Ordinal) || scenario.StartsWith("origin-pending-", StringComparison.Ordinal))
                 {
                     var meta = book["personalSync"]!["entities"]!.AsObject().Single().Value!.AsObject();
@@ -109,7 +125,7 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 if (scenario.StartsWith("origin-", StringComparison.Ordinal))
                 {
                     await OriginAsync(scenario, coordinator, store, peer, connection, handle, target, grants, owner, captured, scope,
-                        wire, () => emitted, () => captures);
+                        wire, () => emitted, () => captures, sourceFixture?["format"]?.GetValue<int>() ?? 3);
                     continue;
                 }
                 if (scenario == "foreign-owner") handle = new PersonalActorHandle(handle.ActorId, new string('f', 64));
@@ -155,10 +171,10 @@ internal static class PersonalActorTargetObserverRuntimeTests
 
     private static async Task OriginAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
         TelefonConnection connection, PersonalActorHandle handle, JsonObject target, JsonObject grants, NativeBookOwnerScope owner,
-        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures)
+        NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3)
     {
         await coordinator.StartPersonalActorAsync(handle);
-        var request = new JsonObject { ["format"] = 3, ["run_id"] = handle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+        var request = new JsonObject { ["format"] = wireFormat, ["run_id"] = handle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
         await coordinator.ReceivePersonalActorAsync(connection, peer, PersonalSyncActorContract.WireMessage(Message("personal_sync.request", request), handle.ActorId));
         var proposal = target.DeepClone().AsObject(); proposal["deleted_ms"] = 1; proposal["label"] = "Synthetic target";
         var body = new JsonObject { ["format"] = 1, ["run_id"] = handle.ActorId, ["proposal_batch_id"] = Guid.NewGuid().ToString("D"),
@@ -172,6 +188,26 @@ internal static class PersonalActorTargetObserverRuntimeTests
             return Convert.ToInt64(query.ExecuteScalar());
         }
         var beforeRows = Rows();
+        if (scenario.StartsWith("origin-local-source-", StringComparison.Ordinal))
+        {
+            await coordinator.ReceivePersonalActorAsync(connection, peer, message);
+            var view = await coordinator.ReviewPersonalActorIncomingTargetsAsync(handle);
+            var choice = new JsonObject { ["proposal_id"] = target["proposal_id"]!.DeepClone(), ["decision"] = "restore",
+                ["expected_clock"] = target["clock"]!.DeepClone(), ["confirm_conflict"] = true };
+            if (scenario.EndsWith("-none", StringComparison.Ordinal))
+            {
+                var result = await coordinator.ReviewPersonalActorHistoricalRestoreAsync(handle, view["revision"]!.GetValue<string>(), [choice]);
+                TestAssert.That(!result["action_authorized"]!.GetValue<bool>() && result["restore_source_revision"]!.GetValue<string>().Length == 64 &&
+                    JsonNode.DeepEquals(result["local_restore_sources"]![0]!["target"], target), "Historical source review lost original identity or no-action boundary.");
+                TestAssert.That(!result.ToJsonString().Contains("Protected synthetic source", StringComparison.Ordinal) && !result.ToJsonString().Contains("data:", StringComparison.Ordinal), "Historical source review leaked source bytes.");
+            }
+            else await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ReviewPersonalActorHistoricalRestoreAsync(handle,
+                view["revision"]!.GetValue<string>(), [choice]), "Historical source review accepted an unavailable/changed source.");
+            TestAssert.That(JsonNode.DeepEquals(beforeStatus, await coordinator.PersonalActorStatusAsync(handle)) && beforeSaved == owner.SaveState("target-observer", true),
+                "Historical source review mutated registry or native saved book.");
+            TestAssert.That(transport.Length == beforeWire && emitted() == beforeEmitted && Rows() == beforeRows, "Historical source review changed queue, callbacks or wire.");
+            return;
+        }
         if (scenario == "origin-raw-only")
             await coordinator.WithPersonalActorStoreAsync(registry => registry.Put(handle, message));
         else if (scenario == "origin-foreign-key")

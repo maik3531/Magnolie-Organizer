@@ -4765,6 +4765,58 @@ class PhoneService:
                 current_authority=lambda: current()[0], current_scope=lambda: current()[1], current_saved_book=saved)
             return review.review() if choices is None else review.draft_choices(expected_revision, choices)
 
+    def review_personal_actor_historical_restore(self, registry, handle, expected_revision, choices, *,
+            native_book_source=None, native_saved_book=None, native_producer_book=None):
+        """Private operation-local origin/choice/local-source binding, NOT save.
+
+        Native GUI caller retains its writer guard. No public MCP/IPC/wire route
+        invokes this; a separate native save claim must still close data before
+        its actual writer acknowledgement and exact terminal receipt handoff.
+        """
+        from magnolie_personal_actor_restore_source import NativeHistoricalRestoreSourceObservation
+        book_provider = native_book_source if native_book_source is not None else self.native_actor_book_source
+        saved_provider = native_saved_book if native_saved_book is not None else self.native_actor_saved_book
+        producer_provider = native_producer_book if native_producer_book is not None else self.native_actor_producer_book
+        with self.lock:
+            view = self.review_personal_actor_incoming_targets(registry, handle,
+                native_book_source=book_provider, native_saved_book=saved_provider, native_producer_book=producer_provider)
+            draft = self.review_personal_actor_incoming_targets(registry, handle, expected_revision=expected_revision, choices=choices,
+                native_book_source=book_provider, native_saved_book=saved_provider, native_producer_book=producer_provider)
+            if any(value['decision'] != 'restore' for value in draft['decisions']):
+                raise PermissionError('actor_historical_restore_target_not_ready')
+            admission, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+            original = {wire['message_id']: personal_sync_contract.projection_hash(wire)
+                for wire in self.read_personal_actor_incoming_target_frames(registry, handle)}
+            request = self.store.personal_run(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id)
+            captured = producer_provider()
+            if captured is None:
+                raise PermissionError('actor_native_saved_book_unavailable')
+
+            def current():
+                observed, actual_source, actual_scope = self._personal_actor_target_origin_current(registry, handle)
+                if observed is not admission or actual_source != source or actual_scope != manifest:
+                    raise PermissionError('actor_source_changed')
+                return actual_source
+
+            def snapshot():
+                if saved_provider() != captured.saved_book or book_provider() != captured.book_source:
+                    raise PermissionError('actor_native_saved_book_changed')
+                return captured
+
+            proof = NativeHistoricalRestoreSourceObservation(admission['peer'], handle.actor_id, request['format'],
+                current_owner=lambda: current() is not None, current_source=current, current_snapshot=snapshot,
+                current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
+            sources = proof.observe_many(handle.actor_id, view['targets'])
+            if original != {wire['message_id']: personal_sync_contract.projection_hash(wire)
+                    for wire in self.read_personal_actor_incoming_target_frames(registry, handle)}:
+                raise PermissionError('actor_target_origin_frame_changed')
+            current(); snapshot()
+            result = copy.deepcopy(draft)
+            result['local_restore_sources'] = [{'target': value['target'], 'source': value['local_restore_source']} for value in sources]
+            result['restore_source_revision'] = personal_sync_contract.projection_hash({
+                'choice_revision': draft['choice_revision'], 'saved_book': captured.saved_book, 'sources': result['local_restore_sources']})
+            return result
+
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:

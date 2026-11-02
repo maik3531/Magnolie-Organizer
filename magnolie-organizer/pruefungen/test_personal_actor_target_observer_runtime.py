@@ -14,7 +14,7 @@ from test_personal_actor_incoming_target_evidence import live_fixture
 from test_shared_sync_transport import message
 
 
-def observation_runtime(tmp_path, monkeypatch, kind, pending=False):
+def observation_runtime(tmp_path, monkeypatch, kind, pending=False, source_fixture=None):
     service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
     for side in ('local_grants', 'grants'):
         peer[side]['grants']['personal_deletions_sync'] = True
@@ -22,7 +22,13 @@ def observation_runtime(tmp_path, monkeypatch, kind, pending=False):
     setting = service.store.change_shared_setting(peer['device_id'], peer['static_public'], 'skip_deletions', False)
     service._payload(peer, channel, message(shared.merge(shared.create(peer['device_id']), setting,
         peer['device_id'], service.store.identity['device_id'])))
-    _, _, book, target, key, _ = live_fixture(kind)
+    if source_fixture is None:
+        _, _, book, target, key, _ = live_fixture(kind)
+    else:
+        book, target = copy.deepcopy(source_fixture['book']), copy.deepcopy(source_fixture['target'])
+        key = kind + '\0' + target['id']
+        meta = book['personalSync']['entities'][key]
+        meta['proposal_id'] = personal.deletion_proposal_id(peer['device_id'], kind, target['id'], '', meta['clock'], meta['prior_hash'])
     book['personalSync']['peer_device_id'] = peer['device_id']
     book['personalSync']['entities'][key]['peer_device_id'] = peer['device_id']
     if pending:

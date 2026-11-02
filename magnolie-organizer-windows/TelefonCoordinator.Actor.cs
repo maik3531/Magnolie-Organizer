@@ -349,29 +349,84 @@ internal sealed partial class TelefonCoordinator
     internal Task<JsonObject> ReviewPersonalActorIncomingTargetsAsync(PersonalActorHandle handle,
         string? expectedRevision = null, IReadOnlyList<JsonObject>? choices = null, CancellationToken cancellation = default)
     {
+        var copied = choices?.Select(value => value.DeepClone().AsObject()).ToArray();
+        return WithPersonalActorStoreAsync(registry => ReviewPersonalActorIncomingTargets(registry, handle, expectedRevision, copied), cancellation);
+    }
+
+    private JsonObject ReviewPersonalActorIncomingTargets(PersonalSyncActorStore registry, PersonalActorHandle handle,
+        string? expectedRevision = null, IReadOnlyList<JsonObject>? choices = null)
+    {
         if ((choices is null) != (expectedRevision is null) || expectedRevision is not null &&
             (expectedRevision.Length != 64 || expectedRevision.Any(value => value is not (>= 'a' and <= 'f' or >= '0' and <= '9'))))
             throw new InvalidDataException("actor_target_review_explicit_choices_required");
         var copied = choices?.Select(value => value.DeepClone().AsObject()).ToArray();
+        var admission = PersonalActorTargetOriginCurrent(registry, handle).Admission;
+        (string Source, JsonObject Scope) Current()
+        {
+            var current = PersonalActorTargetOriginCurrent(registry, handle);
+            if (!ReferenceEquals(current.Admission, admission)) throw new InvalidOperationException("actor_source_changed");
+            return (current.Source, current.Scope);
+        }
+        NativeBookSaveState? Saved()
+        {
+            Current(); var saved = NativeSavedBook();
+            if (saved is null || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("native_book_not_saved");
+            return saved;
+        }
+        var review = new PersonalActorIncomingTargetChoiceReview(handle.ActorId,
+            () => ReadPersonalActorIncomingTargetFrames(registry, handle),
+            targets => ObservePersonalActorIncomingTargets(registry, handle, targets),
+            () => Current().Source, () => Current().Scope, Saved);
+        return copied is null ? review.Review() : review.DraftChoices(expectedRevision!, copied);
+    }
+
+    // Private operation-local origin/choice/source binding, NOT a native save
+    // claim. Caller retains its writer guard. No MCP/IPC/wire route invokes it.
+    internal Task<JsonObject> ReviewPersonalActorHistoricalRestoreAsync(PersonalActorHandle handle, string expectedRevision,
+        IReadOnlyList<JsonObject> choices, CancellationToken cancellation = default)
+    {
+        var copied = choices.Select(value => value.DeepClone().AsObject()).ToArray();
         return WithPersonalActorStoreAsync(registry => {
-            var admission = PersonalActorTargetOriginCurrent(registry, handle).Admission;
-            (string Source, JsonObject Scope) Current()
+            var view = ReviewPersonalActorIncomingTargets(registry, handle);
+            var draft = ReviewPersonalActorIncomingTargets(registry, handle, expectedRevision, copied);
+            if (draft["decisions"]!.AsArray().OfType<JsonObject>().Any(value => value["decision"]!.GetValue<string>() != "restore"))
+                throw new InvalidOperationException("actor_historical_restore_target_not_ready");
+            var initial = PersonalActorTargetOriginCurrent(registry, handle);
+            Dictionary<string, string> Frames() => ReadPersonalActorIncomingTargetFrames(registry, handle)
+                .ToDictionary(wire => wire["message_id"]!.GetValue<string>(), PersonalSyncContract.ProjectionHash, StringComparer.Ordinal);
+            var original = Frames();
+            var request = personalSync.LoadRun(PersonalSyncActorContract.StoragePeer(handle.ActorId), handle.ActorId, Now())
+                ?? throw new InvalidOperationException("actor_target_origin_run_retired");
+            var captured = NativeProducerBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
+            string Current()
             {
-                var current = PersonalActorTargetOriginCurrent(registry, handle);
-                if (!ReferenceEquals(current.Admission, admission)) throw new InvalidOperationException("actor_source_changed");
-                return (current.Source, current.Scope);
+                var actual = PersonalActorTargetOriginCurrent(registry, handle);
+                if (!ReferenceEquals(actual.Admission, initial.Admission) || actual.Source != initial.Source || !JsonNode.DeepEquals(actual.Scope, initial.Scope))
+                    throw new InvalidOperationException("actor_source_changed");
+                return actual.Source;
             }
-            NativeBookSaveState? Saved()
+            NativeActorBookSnapshot Snapshot()
             {
-                Current(); var saved = NativeSavedBook();
-                if (saved is null || saved.BookSource != NativeBookSource()) throw new InvalidOperationException("native_book_not_saved");
-                return saved;
+                if (NativeSavedBook() != captured.SavedBook || NativeBookSource() != captured.SavedBook.BookSource)
+                    throw new InvalidOperationException("actor_native_saved_book_changed");
+                return captured;
             }
-            var review = new PersonalActorIncomingTargetChoiceReview(handle.ActorId,
-                () => ReadPersonalActorIncomingTargetFrames(registry, handle),
-                targets => ObservePersonalActorIncomingTargets(registry, handle, targets),
-                () => Current().Source, () => Current().Scope, Saved);
-            return copied is null ? review.Review() : review.DraftChoices(expectedRevision!, copied);
+            var proof = new PersonalActorHistoricalRestoreSourceObservation(initial.Admission.PeerId, handle.ActorId,
+                checked((int)TelefonProtocolContract.Integer(request.Request["format"])), () => Current().Length != 0, Current, Snapshot,
+                () => initial.Admission.Connection.CurrentContentScope(initial.Admission.Scope));
+            var sources = proof.ObserveMany(handle.ActorId, view["targets"]!.AsArray().Select(value => value!.AsObject()).ToArray());
+            var after = Frames();
+            if (original.Count != after.Count || original.Any(pair => after.GetValueOrDefault(pair.Key) != pair.Value))
+                throw new InvalidOperationException("actor_target_origin_frame_changed");
+            Current(); Snapshot();
+            var result = draft.DeepClone().AsObject();
+            var sourceNodes = new JsonArray(sources.Select(value => (JsonNode)new JsonObject {
+                ["target"] = value["target"]!.DeepClone(), ["source"] = value["local_restore_source"]!.DeepClone() }).ToArray());
+            result["local_restore_sources"] = sourceNodes;
+            result["restore_source_revision"] = PersonalSyncContract.ProjectionHash(new JsonObject { ["choice_revision"] = draft["choice_revision"]!.DeepClone(),
+                ["saved_book"] = new JsonObject { ["book_source"] = captured.SavedBook.BookSource, ["sequence"] = captured.SavedBook.Sequence,
+                    ["sha256"] = captured.SavedBook.Sha256 }, ["sources"] = sourceNodes.DeepClone() });
+            return result;
         }, cancellation);
     }
 

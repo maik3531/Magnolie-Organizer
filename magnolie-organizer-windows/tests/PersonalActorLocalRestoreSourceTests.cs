@@ -9,6 +9,19 @@ internal static class PersonalActorLocalRestoreSourceTests
 {
     internal static async Task RunAsync()
     {
+        var fixtures = await LoadGuiFixturesAsync();
+        VerifySources(fixtures);
+    }
+
+    internal static async Task HistoricalReviewAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync();
+        foreach (var raw in fixtures) foreach (var fault in new[] { "none", "missing", "changed", "duplicate" })
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), fault);
+    }
+
+    private static async Task<JsonArray> LoadGuiFixturesAsync()
+    {
         var root = TestSource.Root("magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js");
         var script = Path.Combine(root, "magnolie-organizer-windows", "tests", "mcp-notes-historical-source-fixture.js");
         var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
@@ -22,6 +35,11 @@ internal static class PersonalActorLocalRestoreSourceTests
         var text = await output; var error = await errors;
         TestAssert.That(process.ExitCode == 0, "Synthetic GUI source fixture failed: " + error);
         var fixtures = JsonNode.Parse(text)!.AsArray(); TestAssert.That(fixtures.Count == 8, "Incomplete shared GUI source matrix.");
+        return fixtures;
+    }
+
+    private static void VerifySources(JsonArray fixtures)
+    {
         foreach (var raw in fixtures) foreach (var fault in new[] { "none", "missing", "duplicate", "foreign", "changed", "hash", "clock", "live", "child", "scope", "save", "source", "owner" })
         {
             var fixture = raw!.DeepClone().AsObject(); var book = fixture["book"]!.AsObject(); var target = fixture["target"]!.AsObject();
