@@ -96,9 +96,10 @@ def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_com
         with pytest.raises(PermissionError): registry.require_current(handle)
 
 
-def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates):
+@pytest.mark.parametrize('fault', ['none', 'grant', 'payload', 'impostor'])
+def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates, fault):
     native = native_store(tmp_path, monkeypatch)
-    for index, fixture in enumerate(gui_candidates):
+    for index, fixture in enumerate(gui_candidates if fault == 'none' else gui_candidates[:1]):
         service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path / str(index), monkeypatch, fixture)
         path = tmp_path / str(index) / 'actual-worker-book.json'
         monkeypatch.setattr(native, 'daten_datei', lambda: str(path))
@@ -106,27 +107,42 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
         envelope, dek, dek_id, wrapper = native.daten_huelle_anlegen(json.dumps(book), password)
         native.speichere_text(envelope)
         initial = service.native_actor_producer_book()
-        responses = []
+        responses, snapshots = [], []
         probe = SimpleNamespace(_kennwort=password, _daten_dek=dek, _daten_dek_kennung=dek_id, _daten_umschlag=wrapper,
             _aktuelle_daten=book, _daten_sperre=threading.RLock(), _speicher_auftraege=queue.Queue(), _gesperrt=False, _ladefehler='',
             _notes_actor_book_owner=owner, _notes_actor_saved_data=(initial.book_source, initial.sequence, initial.content_sha256),
-            _telefon_actor_buchbindung=lambda: ('native-producer-fixture', True), _journal_snapshot=lambda reason: None,
+            _telefon_actor_buchbindung=lambda: ('native-producer-fixture', True), _journal_snapshot=lambda reason: snapshots.append(reason),
             antwort=lambda callback, value: responses.append((callback, value)))
         for name in ('_vielleicht_verschluesseln', '_telefon_actor_buchnachweis', '_telefon_actor_producer_buch'):
             setattr(probe, name, MethodType(getattr(native.Fenster, name), probe))
         service.native_actor_saved_book = probe._telefon_actor_buchnachweis
         service.native_actor_producer_book = probe._telefon_actor_producer_buch
-        claim = service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
         before = probe._telefon_actor_buchnachweis()
-        def writer(payload):
-            # Invoke the ACTUAL serial native save worker with a bounded queue,
-            # not a replacement record_saved callback or fabricated SaveACK.
-            probe._speicher_auftraege.put((1, payload)); probe._speicher_auftraege.put(None)
-            native.Fenster._speicher_lauf(probe)
-            saved_responses = [value for callback, value in responses if callback == 'App.gespeichert']
-            assert len(saved_responses) == 1 and saved_responses[0]['ok'] is True
         with probe._daten_sperre:
-            service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text, writer)
+            # The actual native GUI-owner method prepares the claim and queues a
+            # non-serializable native job. The worker itself now invokes its
+            # source-atomic gate, not an outer test wrapper around the worker.
+            claim = native.Fenster._telefon_actor_historisch_speichern(probe, service, registry, handle, view['revision'], choices, text, 1)
+            assert probe._speicher_auftraege.qsize() == 1
+            original_bytes, queued_rows = path.read_bytes(), durable_queue(service)
+            if fault == 'grant': peer['local_grants']['grants']['personal_deletions_sync'] = False
+            elif fault in ('payload', 'impostor'):
+                job = probe._speicher_auftraege.get_nowait(); probe._speicher_auftraege.task_done()
+                probe._speicher_auftraege.put((job[0], job[1] + ' ' if fault == 'payload' else job[1], None,
+                    job[3] if fault == 'payload' else {'claim_token': claim['claim_token']}))
+            probe._speicher_auftraege.put(None)
+        worker = threading.Thread(target=native.Fenster._speicher_lauf, args=(probe,), daemon=True)
+        worker.start(); worker.join(timeout=15)
+        assert not worker.is_alive(), 'Bounded native writer did not finish'
+        saved_responses = [value for callback, value in responses if callback == 'App.gespeichert']
+        if fault != 'none':
+            assert len(saved_responses) == 1 and saved_responses[0]['ok'] is False
+            assert path.read_bytes() == original_bytes and probe._telefon_actor_buchnachweis() == before and not snapshots
+            assert durable_queue(service) == queued_rows and not channel.sent
+            assert service.personal_actor_status(registry, handle)['historical_book_persisted'] is False
+            continue
+        assert len(saved_responses) == 1 and saved_responses[0]['ok'] is True
+        with probe._daten_sperre:
             fresh = probe._telefon_actor_buchnachweis()
             assert fresh['sequence'] == before['sequence'] + 1 and fresh['sha256'] == hashlib.sha256(text.encode()).hexdigest()
             assert native.daten_entschluesseln(path.read_text(), password) == text and probe._aktuelle_daten == json.loads(text)

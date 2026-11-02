@@ -23097,6 +23097,7 @@ class Fenster(_FENSTER_BASIS):
                 return
             kennung, klartext, *nachweise = auftrag
             proof = nachweise[0] if nachweise else None
+            historical = nachweise[1] if len(nachweise) > 1 else None
             self._speicher_laeuft = True
             warnung = ""
             try:
@@ -23118,29 +23119,38 @@ class Fenster(_FENSTER_BASIS):
                     previous = self._aktuelle_daten
                     changed = isinstance(previous, dict) and journal_inhalt_geaendert(previous, daten)
                     covered = lease.covers(previous, proof, time.monotonic())
-                    if changed and not covered:
-                        self._journal_snapshot("pre-change")
-                    gespeichert = self._vielleicht_verschluesseln(klartext)
-                    try:
-                        speichere_text(gespeichert)
-                    except Exception as fehler:
-                        # A directory fsync/chmod may fail after rename. Preserve
-                        # known commit success; do not publish derived data yet.
+                    def native_write(payload):
+                        nonlocal warnung
+                        if changed and not covered:
+                            self._journal_snapshot("pre-change")
+                        gespeichert = self._vielleicht_verschluesseln(payload)
                         try:
-                            aktuell, _bindung = _erinnerungsprofil_lesen()
-                        except Exception:
-                            self._ladefehler = _("The file could not be read.")
-                            raise
-                        if aktuell != gespeichert:
-                            raise
-                        warnung = fehler_deutsch(fehler, _("Saving the data"))
-                    self._aktuelle_daten = daten
-                    lease.saved(previous, daten, klartext, proof, changed, covered, time.monotonic())
-                    book_owner = getattr(self, "_notes_actor_book_owner", None)
-                    observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
-                    if observed is not None:
-                        self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
-                            hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
+                            speichere_text(gespeichert)
+                        except Exception as fehler:
+                            # A directory fsync/chmod may fail after rename. Preserve
+                            # known commit success; do not publish derived data yet.
+                            try:
+                                aktuell, _bindung = _erinnerungsprofil_lesen()
+                            except Exception:
+                                self._ladefehler = _("The file could not be read.")
+                                raise
+                            if aktuell != gespeichert:
+                                raise
+                            warnung = fehler_deutsch(fehler, _("Saving the data"))
+                        self._aktuelle_daten = daten
+                        lease.saved(previous, daten, payload, proof, changed, covered, time.monotonic())
+                        book_owner = getattr(self, "_notes_actor_book_owner", None)
+                        observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
+                        if observed is not None:
+                            self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
+                                hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
+                    if historical is not None:
+                        from magnolie_personal_actor_writer import NativeHistoricalWriterInvocation
+                        if type(historical) is not NativeHistoricalWriterInvocation or proof is not None:
+                            raise PermissionError("Invalid native historical writer invocation")
+                        historical.write(klartext, native_write)
+                    else:
+                        native_write(klartext)
                     if not warnung:
                         try:
                             if erinnerungsdaten_schreiben(kennwort=getattr(self, "_kennwort", ""),
@@ -24274,6 +24284,25 @@ class Fenster(_FENSTER_BASIS):
             return None
         current = hashlib.sha256(json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         return state if current == observed[2] else None
+
+    def _telefon_actor_historisch_speichern(self, source, registry, handle, revision, choices, klartext, kennung):
+        """Private GUI-owner entry; not wired to a public tool or IPC action.
+
+        Frontend must keep its pristine mutation lock until App.gespeichert.
+        Remote daemon ownership needs its own broker handoff, not a local job.
+        """
+        from magnolie_personal_actor_writer import NativeHistoricalWriterInvocation
+        if threading.current_thread() is not threading.main_thread():
+            raise PermissionError("Historical save preparation requires the GUI owner")
+        with self._daten_sperre:
+            if (type(kennung) is not int or kennung < 1 or getattr(self, "_gesperrt", False) or getattr(self, "_ladefehler", "") or
+                    self._telefon_actor_buchnachweis() is None or getattr(self, "_speicher_laeuft", False) or not self._speicher_auftraege.empty() or
+                    not hasattr(source, "personal_actor_admissions") or registry is None):
+                raise PermissionError("Historical native writer is unavailable")
+            plan = source.prepare_personal_actor_historical_restore_save(registry, handle, revision, choices, klartext)
+            invocation = NativeHistoricalWriterInvocation(source, registry, handle, plan['claim_token'])
+            self._speicher_auftraege.put((kennung, klartext, None, invocation))
+            return plan
 
     def _telefon_actor_producer_buch(self):
         # Native GUI memory only. No persistent daemon plaintext cache and no
