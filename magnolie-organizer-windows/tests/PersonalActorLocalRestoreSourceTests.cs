@@ -91,8 +91,10 @@ internal static class PersonalActorLocalRestoreSourceTests
 
     internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false, bool drawing = false)
     {
-        var root = TestSource.Root("magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js");
-        var script = Path.Combine(root, "magnolie-organizer-windows", "tests", "mcp-notes-historical-source-fixture.js");
+        var root = TestSource.Root("contracts/notes-actor-completion-scope.json");
+        var windows = File.Exists(Path.Combine(root, "MagnolieOrganizer.Windows.csproj"))
+            ? root : Path.Combine(root, "magnolie-organizer-windows");
+        var script = Path.Combine(windows, "tests", "mcp-notes-historical-source-fixture.js");
         var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
             RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         start.ArgumentList.Add(script);

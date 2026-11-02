@@ -26,6 +26,9 @@ try {
         'tests/resources/personal-sync-contract.json', 'tests/resources/telefon-control-contract.json',
         'tests/resources/linux-parity-contract.json', 'tests/linux-parity-fixture.js',
         'tests/generate-linux-parity-fixture.js', 'tests/fixtures/new-schema.sql',
+        'tests/mcp-notes-historical-source-fixture.js',
+        'shared/magnolie-organizer/web/index.html', 'shared/magnolie-organizer/web/anwendung.js',
+        'shared/magnolie-organizer/web/zeichenblatt.js', 'shared/magnolie-organizer/web/i18n.js',
         'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt',
         'shared/magnolie-handbuch/web/index.html', 'shared/magnolie-handbuch/web/inhalt.js',
         'shared/magnolie-handbuch/web/i18n/de.js', 'shared/magnolie-handbuch/web/i18n/en.js', 'shared/magnolie-handbuch/web/kaffee-qr.mga',
@@ -48,7 +51,8 @@ try {
     }
     foreach ($relative in 'local.token', 'local.secret', 'local.pem', '.private-testing/personal.json',
         'an-claude.md', 'shared/magnolie-handbuch/web/.private-testing/personal.json',
-        'shared/magnolie-handbuch/web/local.token') {
+        'shared/magnolie-handbuch/web/local.token', 'shared/magnolie-organizer/web/local.token',
+        'shared/magnolie-organizer/web/.private-testing/personal.json') {
         Write-Fixture (Join-Path $root $relative)
     }
     $files = @(Get-ReleaseArchiveSources $root)
@@ -60,6 +64,9 @@ try {
         'contracts/sms-plan-review-v1.md',
         'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md',
         'shared/magnolie-handbuch/web/i18n/en.js',
+        'tests/mcp-notes-historical-source-fixture.js',
+        'shared/magnolie-organizer/web/index.html', 'shared/magnolie-organizer/web/anwendung.js',
+        'shared/magnolie-organizer/web/zeichenblatt.js', 'shared/magnolie-organizer/web/i18n.js',
         'shared/magnolie-organizer/web/country-flags.png', 'shared/magnolie-organizer/web/country-flags-LICENSE.txt') {
         if ($names -notcontains $name) { throw "Current feature source missing from standalone archive: $name" }
     }

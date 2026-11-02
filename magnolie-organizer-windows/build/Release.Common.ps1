@@ -103,16 +103,23 @@ function Get-ReleaseArchiveSources([string] $Root) {
             Relative = "shared/magnolie-handbuch/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
         }
     }
-    # Keep the independent Linux artwork reference inside standalone sources.
-    # Native flag checks must not reach back into an outer canonical checkout.
+    # Keep the independent Linux GUI reference inside standalone sources.
+    # Historical exact-delta tests and artwork checks must not reach back into
+    # an outer canonical checkout or silently drop their second GUI matrix.
     $linuxWeb = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/web'
-    if (-not (Test-Path -LiteralPath (Join-Path $linuxWeb 'country-flags.png') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath (Join-Path $linuxWeb 'index.html') -PathType Leaf)) {
         $linuxWeb = Join-Path $Root 'shared/magnolie-organizer/web'
     }
-    foreach ($name in 'country-flags.png', 'country-flags-LICENSE.txt') {
-        $file = Get-Item -LiteralPath (Join-Path $linuxWeb $name) -ErrorAction Stop
+    foreach ($required in 'index.html', 'anwendung.js', 'zeichenblatt.js', 'i18n.js', 'country-flags.png', 'country-flags-LICENSE.txt') {
+        if (-not (Test-Path -LiteralPath (Join-Path $linuxWeb $required) -PathType Leaf)) { throw "Independent Linux GUI source missing: $required" }
+    }
+    foreach ($file in Get-ChildItem -LiteralPath $linuxWeb -Recurse -File -Force |
+        Sort-Object { [IO.Path]::GetRelativePath($linuxWeb, $_.FullName).Replace('\', '/') }) {
+        $relative = [IO.Path]::GetRelativePath($linuxWeb, $file.FullName).Replace('\', '/')
+        if (Test-PrivateReleasePath $relative) { continue }
+        if (($relative -split '/') | Where-Object { $_ -in @('.git', 'node_modules', '__pycache__') }) { continue }
         Assert-SourceFileSafe $file
-        [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$name" }
+        [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$relative" }
     }
     $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
     if (-not (Test-Path -LiteralPath $contracts -PathType Container)) { $contracts = Join-Path $Root 'contracts' }
@@ -291,6 +298,11 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/resources/linux-parity-contract.json",
         "tests/linux-parity-fixture.js",
         "tests/generate-linux-parity-fixture.js",
+        "tests/mcp-notes-historical-source-fixture.js",
+        "shared/magnolie-organizer/web/index.html",
+        "shared/magnolie-organizer/web/anwendung.js",
+        "shared/magnolie-organizer/web/zeichenblatt.js",
+        "shared/magnolie-organizer/web/i18n.js",
         "shared/magnolie-organizer/web/country-flags.png",
         "shared/magnolie-organizer/web/country-flags-LICENSE.txt",
         "shared/magnolie-handbuch/web/index.html",

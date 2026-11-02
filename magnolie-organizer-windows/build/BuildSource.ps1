@@ -49,6 +49,9 @@ try {
         if (-not $python) { $python = Get-Command python -ErrorAction Stop }
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
+        # Core historical-restore tests execute the actual jsdom GUI fixture.
+        # Install its locked dependencies before, not after, that native gate.
+        Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "dotnet" @("restore", "tests/CoreTests.csproj", "--locked-mode")
         $previousSourceArchiveTest = $env:MAGNOLIE_SOURCE_ARCHIVE_TEST
         try {
@@ -58,7 +61,6 @@ try {
             $env:MAGNOLIE_SOURCE_ARCHIVE_TEST = $previousSourceArchiveTest
         }
         Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
-        Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "bun" @("run", "test")
         Invoke-NativeCommand "dotnet" @("build", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "--no-restore")
     } finally {

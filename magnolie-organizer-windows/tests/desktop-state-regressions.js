@@ -5,7 +5,10 @@ const { webcrypto } = require("node:crypto");
 const vm = require("node:vm");
 const { JSDOM } = require("jsdom");
 const windows = path.resolve(__dirname, "../app/web");
-const linux = path.resolve(process.env.MAGNOLIE_LINUX_SOURCE || path.join(__dirname, "../../magnolie-organizer"), "web");
+const siblingLinux = path.resolve(__dirname, "../../magnolie-organizer");
+const embeddedLinux = path.resolve(__dirname, "../shared/magnolie-organizer");
+const linux = path.resolve(process.env.MAGNOLIE_LINUX_SOURCE ||
+  (fs.existsSync(path.join(siblingLinux, "web/index.html")) ? siblingLinux : embeddedLinux), "web");
 const roots = process.env.MAGNOLIE_WEB ? [process.env.MAGNOLIE_WEB] : [windows, linux].filter(root => fs.existsSync(root));
 const plain = value => JSON.parse(JSON.stringify(value));
 const tick = () => new Promise(resolve => setImmediate(resolve));

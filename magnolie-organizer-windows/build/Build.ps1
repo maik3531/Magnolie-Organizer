@@ -159,12 +159,14 @@ try {
     $env:MAGNOLIE_HANDBOOK_WEB = $handbookWeb
     $env:MAGNOLIE_HANDBUCH_WEB = $handbookWeb
     $env:MAGNOLIE_TEST_SOURCE_ROOT = $buildRoot
-    $linuxSource = Join-Path (Split-Path -Parent $root) 'magnolie-organizer'
-    $env:MAGNOLIE_LINUX_SOURCE = if (Test-Path -LiteralPath $linuxSource -PathType Container) { $linuxSource } else { $null }
+    $linuxSource = Join-Path $buildRoot 'shared/magnolie-organizer'
+    if (-not (Test-Path -LiteralPath (Join-Path $linuxSource 'web/index.html') -PathType Leaf)) { throw 'Source-bound Linux GUI reference is missing.' }
+    $env:MAGNOLIE_LINUX_SOURCE = $linuxSource
     Push-Location $buildRoot
     try {
         Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
         Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
+        Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
         Invoke-NativeCommand "dotnet" @("restore", "tests/CoreTests.csproj", "--locked-mode")
         $previousReleaseBuildTest = $env:MAGNOLIE_RELEASE_BUILD_TEST
@@ -174,7 +176,6 @@ try {
         } finally {
             $env:MAGNOLIE_RELEASE_BUILD_TEST = $previousReleaseBuildTest
         }
-        Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "bun" @("run", "test")
         Invoke-NativeCommand "dotnet" @("publish", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "--no-restore", "-p:Version=$version", "-o", $publish)
         Invoke-NativeCommand $python.Source @((Join-Path $buildRoot "werkzeuge/account_runtime.py"), "--output", (Join-Path $publish "account-runtime"))
