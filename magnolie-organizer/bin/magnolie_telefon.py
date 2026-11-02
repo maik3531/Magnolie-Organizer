@@ -4851,10 +4851,17 @@ class PhoneService:
                 for wire in self.read_personal_actor_incoming_target_frames(registry, handle)}
             plan = {'token': secrets.token_hex(32), 'proof': proof, 'review_revision': expected_revision,
                 'choice_revision': reviewed['choice_revision'], 'restore_source_revision': reviewed['restore_source_revision'],
-                'targets': copy.deepcopy(targets), 'choices': copy.deepcopy(choices), 'original_hashes': original}
+                'targets': copy.deepcopy(targets), 'choices': copy.deepcopy(choices), 'original_hashes': original,
+                'completion_authority': self.current_actor_completion_authority(admission['peer'], fingerprint)}
+            if plan['completion_authority'] is None:
+                raise PermissionError('actor_historical_completion_source_unavailable')
 
             def native_guard(operation, wire):
-                if operation not in ('begin', 'save'):
+                terminal = plan.get('completion')
+                if terminal is not None:
+                    return False if operation == 'save' else terminal.validator(operation, wire)
+                confirming = operation == 'confirm' and plan.get('confirming_saved_book') is not None and plan.get('writer_gate_checked') is True
+                if operation not in ('begin', 'save') and not confirming:
                     return None  # No mutation/send/receipt authority before a genuine SaveACK handoff.
                 if (self.personal_actor_admissions.get(handle.actor_id) is not admission or admission.get('historical_save_claim') is not plan or
                         self.connections.get(admission['peer']) is not admission['channel'] or
@@ -4866,18 +4873,25 @@ class PhoneService:
                 if current_source != source:
                     return False
                 actual_scope = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
-                self._check_personal_actor_target_origin(registry, origin, source, actual_scope)
+                if not confirming:
+                    self._check_personal_actor_target_origin(registry, origin, source, actual_scope)
                 if actual_scope != manifest:
                     return False
                 frames = {json.loads(clear)['message_id']: personal_sync_contract.projection_hash(json.loads(clear)) for clear in origin['frames'].values()}
                 if frames != original:
                     return False
-                for clear in origin['frames'].values():
-                    registry._wire_payload(handle, json.loads(clear))
+                if not confirming:
+                    for clear in origin['frames'].values():
+                        registry._wire_payload(handle, json.loads(clear))
                 actual = self.native_actor_producer_book()
                 actual_saved = self.native_actor_saved_book()
                 if actual is None or actual_saved is None:
                     return None
+                if confirming:
+                    return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence + 1 and
+                        actual.saved_sha256 == proof.after_sha256 and actual.content_sha256 == proof.after_content_sha256 and
+                        actual_saved == plan['confirming_saved_book'] == actual.saved_book and
+                        self.current_actor_completion_authority(admission['peer'], fingerprint) == plan['completion_authority'])
                 return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence and
                     actual.saved_sha256 == proof.before_sha256 and actual.content_sha256 == proof.before_content_sha256 and
                     actual_saved == actual.saved_book)
@@ -4910,6 +4924,84 @@ class PhoneService:
                 raise PermissionError('actor_historical_writer_payload_changed')
             registry.check_historical_save(handle)
             plan['writer_gate_checked'] = True  # An invocation marker, never a successful SaveACK.
+
+    def confirm_personal_actor_historical_restore_save(self, registry, handle, claim_token):
+        """Bind a real native SaveACK, not a caller Boolean or new content scope.
+
+        Private native method only; actual GUI writer/IPC routing remains gated.
+        Repetition is metadata-only and can never execute another document save.
+        """
+        from magnolie_personal_actor_completion import DecisionAckCompletion
+        from magnolie_personal_actor_restore_candidate import _live
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            plan = admission.get('historical_save_claim') if admission is not None else None
+            if (admission is None or admission.get('registry') is not registry or admission.get('handle') != handle or plan is None or
+                    not isinstance(claim_token, str) or not secrets.compare_digest(plan['token'], claim_token)):
+                raise PermissionError('actor_historical_save_claim_unavailable')
+            if plan.get('completion') is not None:
+                registry.check_completion(handle, 'read')
+                return self.personal_actor_status(registry, handle)
+            if plan.get('writer_gate_checked') is not True:
+                raise PermissionError('actor_historical_writer_not_invoked')
+            proof = plan['proof']
+            actual = self.native_actor_producer_book()
+            saved = self.native_actor_saved_book()
+            if (actual is None or saved is None or actual.book_source != proof.book_source or actual.sequence != proof.before_sequence + 1 or
+                    actual.saved_sha256 != proof.after_sha256 or actual.content_sha256 != proof.after_content_sha256 or saved != actual.saved_book):
+                raise PermissionError('actor_historical_actual_save_proof_missing')
+            live = _live(actual.book())
+            if (tuple(live['notes']), tuple(live['tasks'])) != proof.after_live:
+                raise PermissionError('actor_historical_saved_live_delta_changed')
+            plan['confirming_saved_book'] = copy.deepcopy(saved)
+            registry.check_completion(handle, 'confirm')
+            manifest = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
+            fingerprint = registry.status(handle)['fingerprint']
+
+            def native_scope():
+                session = self.content_scope_sessions.get(admission['channel'])
+                if session is None:
+                    raise PermissionError('actor_completion_scope_unavailable')
+                reference = session.current_reference((admission['peer'], admission['key'], id(admission['channel'])))
+                return self.current_content_scope(admission['peer'], admission['key'], reference)
+
+            decisions = [{key: copy.deepcopy(choice[key]) for key in ('proposal_id', 'decision', 'expected_clock')} for choice in plan['choices']]
+            personal_actor_contract.historical_completion_members(handle.actor_id, manifest, plan['targets'], decisions, plan['targets'])
+            queued = []
+            try:
+                for offset in range(0, len(decisions), 32):
+                    body = {'format': 1, 'run_id': handle.actor_id, 'decision_id': str(uuid.uuid4()), 'decisions': decisions[offset:offset + 32]}
+                    queued.append(self.store.queue(admission['peer'], 'personal_sync.deletion_decision', body, DAY_MS, actor_run_id=handle.actor_id))
+                terminal = DecisionAckCompletion(handle.actor_id, plan['targets'], queued,
+                    current_authority=lambda: self.current_actor_completion_authority(admission['peer'], fingerprint),
+                    current_scope=native_scope, current_saved_book=lambda: self.native_actor_saved_book(),
+                    persisted_controls=lambda: registry.read_completion_controls(handle), before_scope=manifest, native_historical_targets=plan['targets'])
+                if terminal.authority != plan['completion_authority']:
+                    raise PermissionError('actor_historical_completion_source_changed')
+                # Old request retries remain data-closed; they are not historical
+                # receipt frames and must not starve the exact terminal outbox.
+                for identity in admission['outbound']:
+                    old = self.store.outbox_message(admission['peer'], identity)
+                    if old is not None and old.get('kind') == personal_actor_contract.DATA_KIND and old.get('body', {}).get('run_id') == handle.actor_id:
+                        self.store.acknowledge(admission['peer'], identity)
+                plan['completion'] = terminal
+                admission['completion'] = terminal
+                admission['completion_ids'] = {wire['message_id'] for wire in queued}
+                admission['outbound'] = set(admission['completion_ids'])
+                admission['completion_native_acks'] = {}
+                admission['completion_deferred_controls'] = {}
+                admission['historical_save_receipt'] = copy.deepcopy(saved)
+                admission['phone_persisted'] = False
+                origin = admission.pop('incoming_target_origin', None)
+                if origin is not None:
+                    origin['frames'].clear()
+                registry.check_completion(handle, 'read')
+            except BaseException:
+                if plan.get('completion') is None:
+                    for wire in queued:
+                        self.store.acknowledge(admission['peer'], wire['message_id'])
+                raise  # No rollback/repeat of an already acknowledged document save.
+            return self.personal_actor_status(registry, handle)
 
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
@@ -5373,6 +5465,8 @@ class PhoneService:
                     deletion_book_persisted=bool(admission.get('late_save_receipt')),
                     phone_data_persisted=bool(admission.get("phone_data_persisted")),
                     phone_persisted=bool(admission.get("phone_persisted")), completion_report_queued=bool(admission.get("completion_report_id")))
+                if admission.get('historical_save_claim') is not None:
+                    value['historical_book_persisted'] = bool(admission.get('historical_save_receipt'))
                 if admission.get("completion") is not None:
                     value.update(phone_data_persisted=bool(admission.get("phone_data_persisted")),
                         deletion_completion=admission["completion"].summary())
@@ -5937,6 +6031,8 @@ class PhoneService:
                     message.get("message_id") not in admission["outbound"]):
                 return False
             registry, handle = admission["registry"], admission["handle"]
+            if admission.get('historical_save_claim') is not None and admission.get('completion') is None:
+                return False  # A prepared writer invocation is not a SaveACK or send capability.
             if any(wire['body']['message_id'] == message['message_id'] for wire in admission.get('completion_deferred_controls', {}).values()):
                 return False  # An exact peer ACK is awaiting metadata adoption, not another decision send.
             producer = message['message_id'] in admission.get('producer_ids', ())

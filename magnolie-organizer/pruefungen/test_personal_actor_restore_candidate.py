@@ -42,6 +42,8 @@ def test_independent_native_delta_accepts_actual_gui_candidates_and_retains_only
         proof, book, snapshot = prepare(fixture)
         assert book == fixture['book'] and proof.before_sequence == snapshot.sequence and proof.before_sha256 == snapshot.saved_sha256
         assert proof.after_sha256 == hashlib.sha256(fixture['candidate_text'].encode()).hexdigest()
+        candidate = json.loads(fixture['candidate_text'])
+        assert proof.after_content_sha256 == hashlib.sha256(json.dumps(candidate, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         assert proof.before_scope[1] == 1 and len(proof.before_scope[2]) == 64
         assert proof.before_live == (tuple(fixture['members']['notes']), tuple(fixture['members']['tasks']))
         assert fixture['target']['id'] in proof.after_live[0 if fixture['target']['kind'] == 'note' else 1]

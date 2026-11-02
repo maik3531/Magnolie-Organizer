@@ -13,15 +13,17 @@ internal sealed class NativeHistoricalRestoreCandidateProof
     internal NativeBookSaveState BeforeSavedBook { get; }
     internal string BeforeContentSha256 { get; }
     internal string AfterSha256 { get; }
+    internal string AfterContentSha256 { get; }
     internal string BeforeScopeJson { get; }
     internal string BeforeLiveJson { get; }
     internal string AfterLiveJson { get; }
     internal string TargetRevision { get; }
     internal string SourceProofRevision { get; }
-    private NativeHistoricalRestoreCandidateProof(string source, NativeBookSaveState saved, string beforeContentHash, string afterHash,
+    private NativeHistoricalRestoreCandidateProof(string source, NativeBookSaveState saved, string beforeContentHash, string afterHash, string afterContentHash,
         JsonObject scope, JsonObject beforeLive, JsonObject afterLive, string targetHash, string sourceHash)
     {
         SourceRevision = source; BeforeSavedBook = saved; BeforeContentSha256 = beforeContentHash; AfterSha256 = afterHash;
+        AfterContentSha256 = afterContentHash;
         BeforeScopeJson = PhoneContentScope.Reference(scope).ToJsonString(); BeforeLiveJson = beforeLive.ToJsonString(); AfterLiveJson = afterLive.ToJsonString();
         TargetRevision = targetHash; SourceProofRevision = sourceHash;
     }
@@ -119,7 +121,7 @@ internal sealed class NativeHistoricalRestoreCandidateProof
         if (!Same(afterLive, wanted)) throw new InvalidOperationException("actor_historical_live_delta_changed");
         Current();
         return new(sourceRevision, snapshot.SavedBook, PersonalSyncContract.ProjectionHash(before),
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidateText))).ToLowerInvariant(), scope, beforeLive, afterLive,
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidateText))).ToLowerInvariant(), PersonalSyncContract.ProjectionHash(candidate), scope, beforeLive, afterLive,
             PersonalSyncContract.ProjectionHash(new JsonObject { ["targets"] = Array(targets), ["choices"] = Array(choices) }),
             PersonalSyncContract.ProjectionHash(new JsonObject { ["sources"] = Array(sources) }));
     }

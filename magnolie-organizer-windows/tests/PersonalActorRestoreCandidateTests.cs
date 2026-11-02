@@ -44,6 +44,7 @@ internal static class PersonalActorRestoreCandidateTests
                 var proof = Prepare();
                 TestAssert.That(proof.BeforeSavedBook == snapshot.SavedBook && proof.AfterSha256 == Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(originalText))).ToLowerInvariant(),
                     "Native delta proof lost its actual before/after byte witnesses.");
+                TestAssert.That(proof.AfterContentSha256 == PersonalSyncContract.ProjectionHash(JsonNode.Parse(originalText)!.AsObject()), "Native proof lost exact after-content binding.");
                 TestAssert.That(JsonNode.DeepEquals(JsonNode.Parse(proof.BeforeLiveJson), fixture["members"]) &&
                     JsonNode.Parse(proof.AfterLiveJson)![kind == "note" ? "notes" : "tasks"]!.AsArray().Any(value => value!.GetValue<string>() == id), "Native delta proof changed expected live membership.");
                 TestAssert.That(!proof.ToString().Contains("Protected", StringComparison.Ordinal) && JsonNode.DeepEquals(JsonNode.Parse(proof.BeforeScopeJson), PhoneContentScope.Reference(scope)),

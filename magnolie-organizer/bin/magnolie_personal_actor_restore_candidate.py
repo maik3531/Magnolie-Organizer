@@ -43,6 +43,7 @@ class NativeHistoricalRestoreCandidateProof:
     before_sha256: str = field(repr=False)
     before_content_sha256: str = field(repr=False)
     after_sha256: str = field(repr=False)
+    after_content_sha256: str = field(repr=False)
     before_scope: tuple = field(repr=False)
     before_live: tuple = field(repr=False)
     after_live: tuple = field(repr=False)
@@ -118,7 +119,8 @@ class NativeHistoricalRestoreCandidateProof:
             raise PermissionError('actor_historical_live_delta_changed')
         observer._check_current()
         return cls(observer._source_revision, snapshot.book_source, snapshot.sequence, snapshot.saved_sha256, snapshot.content_sha256,
-            hashlib.sha256(clear).hexdigest(), (observer._before['epoch'], observer._before['revision'], observer._before['scope_hash']),
+            hashlib.sha256(clear).hexdigest(), hashlib.sha256(json.dumps(candidate, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest(),
+            (observer._before['epoch'], observer._before['revision'], observer._before['scope_hash']),
             (tuple(before_live['notes']), tuple(before_live['tasks'])),
             (tuple(after_live['notes']), tuple(after_live['tasks'])),
             personal.projection_hash({'targets': targets, 'choices': choices}), personal.projection_hash({'sources': sources}))
