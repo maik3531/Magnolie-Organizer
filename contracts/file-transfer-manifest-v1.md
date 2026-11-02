@@ -443,6 +443,32 @@ acceptance or proof of an end-to-end transfer.
 
 ### Native protected checkpoint-head index
 
+New native operations can now persist a `NativeAcceptedTransfer` in owner-record
+context format 2: the complete ordered manifest, exact complete target mapping,
+peer/permission/destination binding and original native destination/ancestor
+inode witnesses. Capture checks the native binding and actual existing safe
+destination; no folder or consent is created implicitly. Protected parsing is
+metadata-only and does not touch or recreate an unavailable destination.
+Legacy context-format-1 indices retain their original AAD/schema and expose
+`accepted_transfer=None`, never an invented default destination or mapping.
+
+On reopen, an authenticated format-2 owner record restores the full immutable
+description without requiring live access. Head updates and guarded actions
+must still revalidate the native binding and original destination identity.
+The publisher can bind to this exact restored description; changed roots,
+destination paths, mappings or bindings are rejected before a publication cache
+is created. Stored consent metadata grants **no write authority** and is **not
+a saved receipt**. The existing-key adapter supports its bounded 2 MiB owner
+record; ordinary checkpoint-head records retain their separate small bound.
+
+The 31 acceptance cases plus affected checkpoint/key-integration/publisher/
+journal/recovery tests pass together (132 cases). They cover a complete
+128-member Unicode mapping, immutable roundtrips, native root/ancestor changes,
+partial/reordered/aliased mappings, unavailable destinations and legacy no-default
+reopen, followed by actual restored-index → publisher → journal readback. This
+does not add a global discovery/quota catalog, durable receipt heads, handlers,
+Organizer controls or native end-to-end acceptance.
+
 `ProtectedTransferJobIndex` is now an actual per-operation private SQLite head
 index, rather than the synthetic test index previously used by staging tests.
 Creation is explicit and exclusive under a separately reserved native owner.
@@ -477,8 +503,8 @@ adapter → stage → durable head → reopen integration. They cover one CAS wi
 across two native instances, nested cross-instance inspection, actual old-stage
 checkpoint retirement, separate-process inspection, revoke/corrupt/identity
 failures, uncertain readback, sidecar preservation and rejected durability
-weakening. Accepted-destination/mapping persistence, publication/receipt heads,
-recovery ownership, discovery/quota/retirement, common baselines and actual
+weakening. Global accepted-job discovery, publication/receipt heads,
+recovery ownership, quota/retirement, common baselines and actual
 application handlers/controls still require integration. This is not native
 end-to-end photo synchronization acceptance.
 

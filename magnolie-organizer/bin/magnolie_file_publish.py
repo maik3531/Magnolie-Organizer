@@ -20,6 +20,7 @@ import unicodedata
 from magnolie_file_transfer import (CHUNK_BYTES, FileManifest, ManifestFile, NativeTransferBinding,
     ResumeLedger, TransferError)
 from magnolie_publication_journal import ProtectedPublicationJournal, PublicationWitness
+from magnolie_file_acceptance import NativeAcceptedTransfer
 
 
 def _read_original_data(check_directories, parent, name, key, file, *, links):
@@ -72,7 +73,7 @@ class NativeFilePublisher:
     MAX_DIRECTORY_ENTRIES = 10_000
 
     def __init__(self, destination, manifest, binding, current_binding, publication_gate, *, owner, targets=None,
-            boundary=lambda _: None, journal=None):
+            boundary=lambda _: None, journal=None, accepted=None):
         if sys.platform != "linux" or not hasattr(os, "O_NOFOLLOW") or not os.path.isdir("/proc/self/fd"):
             raise TransferError("native_descriptor_publication_platform_required")
         if type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding:
@@ -90,6 +91,12 @@ class NativeFilePublisher:
             tuple(ManifestFile(file.id, values[file.id], file.size, file.sha256) for file in manifest.files), manifest.total_bytes)
         if any(part.startswith(self.PREFIX) for path in values.values() for part in path.split("/")):
             raise TransferError("native_publication_reserved_mapping")
+        if accepted is not None:
+            if (type(accepted) is not NativeAcceptedTransfer or accepted.manifest != manifest or accepted.binding != binding
+                    or dict(accepted.targets) != values or str(Path(destination)) != accepted.destination.path):
+                raise TransferError("native_publication_acceptance_mismatch")
+            accepted.verify(current_binding)
+        self._accepted = accepted
         if journal is not None:
             if type(journal) is not ProtectedPublicationJournal:
                 raise TransferError("native_publication_journal_required")
@@ -171,6 +178,8 @@ class NativeFilePublisher:
         self._directories()
         if self._current() != self.binding:
             raise TransferError("native_publication_binding_revoked")
+        if self._accepted is not None:
+            self._accepted.verify(self._current)
 
     def _cache_entries(self):
         names = set()

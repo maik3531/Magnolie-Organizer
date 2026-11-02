@@ -19,6 +19,7 @@ import threading
 import weakref
 
 from magnolie_file_transfer import FileManifest, NativeTransferBinding, TransferError, TransferStageHandle
+from magnolie_file_acceptance import NativeAcceptedTransfer
 
 
 _ROOT_GATES = weakref.WeakValueDictionary()
@@ -52,16 +53,23 @@ class ProtectedTransferJobIndex:
     MAX_REVISIONS = 128
     MAX_DATABASE_BYTES = 4 * 1024 * 1024
     MAX_RECORD_BYTES = 4096
+    MAX_OWNER_BYTES = 2 * 1024 * 1024
     _SCHEMA = {"meta": "CREATE TABLE meta(id INTEGER PRIMARY KEY CHECK(id=1),payload BLOB NOT NULL)",
         "heads": "CREATE TABLE heads(revision INTEGER PRIMARY KEY,payload BLOB NOT NULL)"}
 
-    def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False):
+    def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False, accepted=None):
         if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
                 or (manifest.sender_id, manifest.receiver_id) != (binding.sender_id, binding.receiver_id)
                 or type(owner) is not str or re.fullmatch(r"[0-9a-f]{32}", owner) is None
                 or type(create) is not bool or not all(callable(value) for value in (current_binding, seal, unseal))):
             raise TransferError("transfer_job_index_native_context_required")
         self._context = {"format": 1, "owner": owner, "manifest_sha256": manifest.fingerprint, "binding": vars(binding)}
+        if accepted is not None:
+            if type(accepted) is not NativeAcceptedTransfer or accepted.manifest != manifest or accepted.binding != binding:
+                raise TransferError("transfer_job_index_acceptance_mismatch")
+            self._context = dict(self._context, format=2, accepted=accepted.wire())
+        self._accepted = accepted
+        self._expected_manifest = manifest
         self._binding, self._current = binding, current_binding
         self._seal, self._unseal = seal, unseal
         self._domain = "magnolie-transfer-job-index-v1/" + owner + "/" + manifest.fingerprint + "/"
@@ -136,6 +144,8 @@ class ProtectedTransferJobIndex:
     def _fresh(self):
         if self._current() != self._binding:
             raise TransferError("transfer_job_index_binding_revoked")
+        if self._accepted is not None:
+            self._accepted.verify(self._current)
 
     def _directories(self):
         if self._closed:
@@ -200,16 +210,20 @@ class ProtectedTransferJobIndex:
 
     def _protect(self, value, suffix):
         plain = self._json(value)
+        maximum = self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECORD_BYTES
+        if len(plain) > maximum:
+            raise TransferError("transfer_job_index_record_size")
         blob = self._seal(plain, self._domain + suffix)
-        if type(blob) is not bytes or not len(plain) <= len(blob) <= len(plain) + 128 or len(blob) > self.MAX_RECORD_BYTES:
+        if type(blob) is not bytes or not len(plain) <= len(blob) <= len(plain) + 128 or len(blob) > maximum + 128:
             raise TransferError("transfer_job_index_invalid_protection")
         return blob
 
     def _open(self, blob, suffix):
-        if type(blob) is not bytes or not 1 <= len(blob) <= self.MAX_RECORD_BYTES:
+        maximum = self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECORD_BYTES
+        if type(blob) is not bytes or not 1 <= len(blob) <= maximum + 128:
             raise TransferError("transfer_job_index_invalid_record")
         plain = self._unseal(blob, self._domain + suffix)
-        if type(plain) is not bytes or len(plain) > self.MAX_RECORD_BYTES:
+        if type(plain) is not bytes or len(plain) > maximum:
             raise TransferError("transfer_job_index_invalid_protection")
         value = json.loads(plain)
         if self._json(value) != plain:
@@ -229,11 +243,35 @@ class ProtectedTransferJobIndex:
         if len(rows) != 1 or rows[0][0] != 1:
             raise TransferError("transfer_job_index_owner_missing")
         blob = rows[0][1]
-        wanted = {"context": self._context, "root_key": list(self._root_key),
+        value = self._open(blob, "owner")
+        if (type(value) is dict and type(value.get("context")) is dict
+                and type(value["context"].get("format")) is int
+                and value["context"].get("format") == 2 and self._context["format"] == 1):
+            stored = value["context"]
+            base = {key: item for key, item in stored.items() if key != "accepted"}
+            if dict(base, format=1) != self._context or "accepted" not in stored:
+                raise TransferError("transfer_job_index_acceptance_mismatch")
+            accepted = NativeAcceptedTransfer.parse(stored["accepted"])
+            if accepted.manifest != self._expected_manifest or accepted.binding != self._binding:
+                raise TransferError("transfer_job_index_acceptance_mismatch")
+            # Parsing authenticated metadata does not check a live destination
+            # or grant. Mutation still goes through _fresh/accepted.verify.
+            wanted_context = dict(self._context, format=2, accepted=accepted.wire())
+        else:
+            accepted = self._accepted
+            wanted_context = self._context
+        wanted = {"context": wanted_context, "root_key": list(self._root_key),
             "database_key": list(self._database_key), "lock_key": list(self._lock_key)}
-        if self._open(blob, "owner") != wanted or self._owner_cipher is not None and self._owner_cipher != blob:
+        if value != wanted or self._owner_cipher is not None and self._owner_cipher != blob:
             raise TransferError("transfer_job_index_owner_changed")
+        self._context, self._accepted = wanted_context, accepted
         self._owner_cipher = blob
+
+    @property
+    def accepted_transfer(self):
+        with self._locked():
+            self._owner()
+            return self._accepted  # None for legacy heads; never guessed defaults.
 
     def _snapshot(self):
         self._schema()
