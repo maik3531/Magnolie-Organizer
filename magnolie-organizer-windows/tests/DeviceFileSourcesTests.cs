@@ -71,6 +71,21 @@ internal static class DeviceFileSourcesTests
             var invalid = (JsonObject)permission.DeepClone(); invalid["body"]!.AsObject()[key] = value;
             TestAssert.Throws<InvalidDataException>(() => ReadPermission(invalid), "Permission UI metadata became authority or mismatched state.");
         }
+        var runRequest = DeviceFileSources.CreateRequest("run", now, new string('a',64), catalogId: catalogId,
+            albumId: "33333333-3333-4333-8333-333333333333", desktopChoice: true);
+        TestAssert.That(DeviceFileSources.ParseRequest(runRequest, now).DesktopChoice == true, "Exact native album start rejected.");
+        const string runId = "44444444-4444-4444-8444-444444444444";
+        var runReply = (JsonObject)runRequest.DeepClone(); runReply["kind"] = DeviceFileSources.RunResultKind;
+        runReply["body"] = new JsonObject { ["format"] = 1, ["request_id"] = runRequest["message_id"]!.DeepClone(), ["operation"] = "run",
+            ["version"] = new string('a',64), ["run_id"] = runId, ["state"] = "preparing", ["source_io_ended"] = false };
+        DeviceFileRunResult ReadRun(JsonObject value) => DeviceFileSources.ParseRunResult(value, runRequest["message_id"]!.GetValue<string>(), "run", new string('a',64), now);
+        TestAssert.That(ReadRun(runReply).RunId == runId, "Correlated source preparation state rejected.");
+        foreach (var (key,value) in new (string,JsonNode?)[] { ("success",JsonValue.Create(true)), ("quota_retired",JsonValue.Create(true)),
+            ("state",JsonValue.Create("success")), ("source_io_ended",JsonValue.Create(true)), ("source_io_ended",JsonValue.Create(1)) })
+        {
+            var invalid=(JsonObject)runReply.DeepClone(); invalid["body"]!.AsObject()[key]=value;
+            TestAssert.Throws<InvalidDataException>(() => ReadRun(invalid), "Run metadata became sync success/false END.");
+        }
         return Task.CompletedTask;
     }
 }

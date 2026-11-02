@@ -135,6 +135,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()
+    private val galleryRunCommands = NativeGalleryRunCommands()
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -2423,7 +2424,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
         if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
-                JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG), JsonPrimitive(DeviceFileSourceCommand.PERMISSION_RESULT))) {
+                JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG),
+                JsonPrimitive(DeviceFileSourceCommand.PERMISSION_RESULT), JsonPrimitive(DeviceFileSourceCommand.RUN_RESULT))) {
             val connection = synchronized(this) {
                 if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
                     DeviceFileControl.fail("file_control_native_channel_changed")
@@ -2443,7 +2445,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 return
             }
             if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
-            else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST)) runtime.receiveSourceCommand(message, channel::send)
+            else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))
+                runtime.receiveSourceCommand(message, channel::send, runCommands = galleryRunCommands)
             else DeviceFileControl.fail("file_sources_unexpected_result")
             runtime.sendControls()
             return // Reserved file frames never enter personal-store staging/ACKs.

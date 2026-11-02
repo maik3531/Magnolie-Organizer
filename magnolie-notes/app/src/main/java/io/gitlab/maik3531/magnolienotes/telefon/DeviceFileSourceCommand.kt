@@ -8,12 +8,14 @@ import java.util.Locale
  */
 internal class DeviceFileSourceCommand private constructor(val requestId: String, val operation: String,
     val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long,
-    val catalogId: String? = null, val after: Int = 0) {
+    val catalogId: String? = null, val after: Int = 0,
+    val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
         const val CATALOG = "file_transfer.sources.catalog"
         const val PERMISSION_RESULT = "file_transfer.sources.permission_result"
+        const val RUN_RESULT = "file_transfer.sources.run_result"
         fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
             fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
             if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
@@ -25,6 +27,21 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             val operation = text("operation")
             val base = setOf("format", "operation")
             if (body["format"] != JsonPrimitive(1)) fail()
+            fun opaque(name: String) = text(name).takeIf {
+                Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
+            } ?: fail()
+            if (operation in setOf("run", "run_status", "cancel_run")) {
+                if (body.keys != base + setOf("expected_version") +
+                    (if (operation == "run") setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                if (operation == "run") {
+                    val choice = (body["desktop_choice"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
+                    return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
+                        message.long("expires_ms"), catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice)
+                }
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
+                    message.long("expires_ms"), runId = opaque("run_id"))
+            }
             if (operation == "status") {
                 if (body.keys != base) fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, null, null, emptySet(), message.long("expires_ms"))

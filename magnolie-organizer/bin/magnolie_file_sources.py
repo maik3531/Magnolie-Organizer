@@ -15,6 +15,7 @@ REQUEST = "file_transfer.sources.request"
 RESULT = "file_transfer.sources.result"
 CATALOG = "file_transfer.sources.catalog"
 PERMISSION_RESULT = "file_transfer.sources.permission_result"
+RUN_RESULT = "file_transfer.sources.run_result"
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
 
 
@@ -52,6 +53,9 @@ class SourceCommand:
     kinds: tuple = ()
     catalog_id: str | None = None
     after: int = 0
+    album_id: str | None = None
+    desktop_choice: bool | None = None
+    run_id: str | None = None
 
 
 def parse_command(message, *, now=None):
@@ -59,6 +63,20 @@ def parse_command(message, *, now=None):
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
         return SourceCommand(message["message_id"], "status")
+    if body.get('operation') in ('run', 'run_status', 'cancel_run'):
+        starting = body['operation'] == 'run'
+        if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
+                or not _hex(body['expected_version'])):
+            raise TransferError('file_sources_invalid_command')
+        if starting:
+            if (not valid_uuid(body['catalog_id'], version=4) or not valid_uuid(body['album_id'], version=4)
+                    or type(body['desktop_choice']) is not bool):
+                raise TransferError('file_sources_invalid_command')
+            return SourceCommand(message['message_id'], 'run', body['expected_version'], catalog_id=body['catalog_id'],
+                                 album_id=body['album_id'], desktop_choice=body['desktop_choice'])
+        if not valid_uuid(body['run_id'], version=4):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], body['operation'], body['expected_version'], run_id=body['run_id'])
     if body.get("operation") in ("discover", "catalog_page", "request_read"):
         paging = body['operation'] == 'catalog_page'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'after'} if paging else set())
@@ -76,12 +94,26 @@ def parse_command(message, *, now=None):
     return SourceCommand(message["message_id"], "configure", body["expected_version"], body["enabled"], kinds)
 
 
-def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None, now=None, message_id=None):
+def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
+                   album_id=None, desktop_choice=None, run_id=None, now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation in ('discover', 'catalog_page', 'request_read'):
+    if operation not in ('run', 'run_status', 'cancel_run') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+        raise TransferError('file_sources_invalid_command')
+    if operation in ('run', 'run_status', 'cancel_run'):
+        if enabled is not None or kinds != () or after is not None:
+            raise TransferError('file_sources_invalid_command')
+        body['expected_version'] = expected_version
+        if operation == 'run':
+            if run_id is not None: raise TransferError('file_sources_invalid_command')
+            body.update(catalog_id=catalog_id, album_id=album_id, desktop_choice=desktop_choice)
+        else:
+            if any(value is not None for value in (catalog_id, album_id, desktop_choice)):
+                raise TransferError('file_sources_invalid_command')
+            body['run_id'] = run_id
+    elif operation in ('discover', 'catalog_page', 'request_read'):
         if enabled is not None or kinds != () or operation != 'catalog_page' and (catalog_id is not None or after is not None):
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
@@ -201,3 +233,30 @@ def parse_permission_result(message, *, expected_request_id, expected_version, n
             or body['state'] not in ('requested', 'notification_posted', 'foreground_required', 'failed')):
         raise TransferError('file_sources_invalid_permission_result')
     return SourcePermissionResult(body['request_id'], body['version'], body['state'])
+
+
+@dataclass(frozen=True)
+class SourceRunResult:
+    request_id: str
+    operation: str
+    version: str
+    run_id: str
+    state: str
+    source_io_ended: bool
+
+
+def parse_run_result(message, *, expected_request_id, expected_operation, expected_version,
+                     expected_run_id=None, now=None):
+    body = _body(message, RUN_RESULT, now_ms() if now is None else now)
+    if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'}
+            or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
+            or body['operation'] not in ('run', 'run_status', 'cancel_run') or body['operation'] != expected_operation
+            or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
+            or body['operation'] != 'run' and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
+            or body['operation'] == 'run' and expected_run_id is not None and body['run_id'] != expected_run_id
+            or type(body['source_io_ended']) is not bool
+            or body['state'] not in ('preparing', 'snapshot_ready', 'cancel_pending', 'canceled_held', 'failed_held')
+            or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'canceled_held', 'failed_held'))
+            or body['operation'] == 'cancel_run' and body['state'] not in ('cancel_pending', 'canceled_held')):
+        raise TransferError('file_sources_invalid_run_result')
+    return SourceRunResult(body['request_id'], body['operation'], body['version'], body['run_id'], body['state'], body['source_io_ended'])

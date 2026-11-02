@@ -25,6 +25,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private val app = context.applicationContext
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
+    private val localRunCommands = NativeGalleryRunCommands()
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
@@ -66,10 +67,15 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     internal fun beginSyncRun(selection: NativeGalleryAlbumSelection): NativeGallerySyncRun = withOperation {
+        beginSyncRunOwned(selection)
+    }
+
+    private fun beginSyncRunOwned(selection: NativeGalleryAlbumSelection, checkCommand: () -> Unit = {}): NativeGallerySyncRun {
         if (syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
-        NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
+        checkCommand()
+        return NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
     }
 
     /** Native-only offer path. An output receipt is not acceptance/publication.
@@ -118,7 +124,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
      * Replies are metadata, never SaveACKs or OS READ grants.
      */
     fun receiveSourceCommand(message: JsonObject, send: (JsonObject) -> Unit,
-        now: () -> Long = { System.currentTimeMillis() }, permissionCommands: NativeGalleryPermissionCommands = localPermissionCommands): Unit = withOperation {
+        now: () -> Long = { System.currentTimeMillis() }, permissionCommands: NativeGalleryPermissionCommands = localPermissionCommands,
+        runCommands: NativeGalleryRunCommands = localRunCommands): Unit = withOperation {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
         if (command.operation == "request_read" && Looper.myLooper() != Looper.getMainLooper())
@@ -137,6 +144,37 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation in setOf("run", "run_status", "cancel_run")) {
+                val run = if (command.operation == "run") {
+                    if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
+                    val scope = DeviceFileControl.digest("magnolie-gallery-run-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
+                        JsonPrimitive(localIdentity.deviceId), JsonPrimitive(localIdentity.identitySha256), JsonPrimitive(owner.peerId),
+                        JsonPrimitive(owner.identitySha256), JsonPrimitive(owner.pairingEpoch))))
+                    runCommands.start(scope, this, command, message) {
+                        authority()
+                        val catalog = wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
+                        val selection = catalog.select(command.catalogId!!, command.albumId!!, command.desktopChoice!!)
+                        beginSyncRunOwned(selection) { authority(); Unit }
+                    }
+                } else syncRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+                if (syncRun !== run) DeviceFileControl.fail("gallery_sync_run_not_current")
+                if (command.operation == "cancel_run") {
+                    run.stopped.set(true); run.preparation.cancel()
+                }
+                authority()
+                val ioEnded = run.preparation.ioEnded
+                val state = if (run.cancelRequested && !ioEnded) "cancel_pending"
+                    else if (run.cancelRequested) "canceled_held" else if (ioEnded) run.preparation.phase else "preparing"
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                    put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
+                    put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ioEnded))
+                }
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                authority(); send(TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)); authority()
+                return@withOperation
+            }
             if (command.operation == "request_read") {
                 if (workflow.currentRequest() == null || owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                 val scope = DeviceFileControl.digest("magnolie-gallery-permission-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(

@@ -595,6 +595,44 @@ overlap/foreign handles, cancellation and one-shot stopped-run end. Reserved or
 sealed quota and source bytes remain preserved. This is one targeted method with
 three native modes, not three separate tests or physical/end-to-end acceptance.
 
+### Explicit remote source-run preparation (partial data integration)
+
+Source commands additionally accept `run` with exactly `format`, `operation`,
+`expected_version`, `catalog_id`, `album_id`, Boolean `desktop_choice`; and
+`run_status`/`cancel_run` with exactly `format`, `operation`, `expected_version`,
+`run_id`. IDs are canonical UUID-v4 native mapping keys, never path or READ claims.
+Start resolves a live native catalog/selection under current source authority;
+the original command authority/deadline is rechecked after selection before
+starting actual source I/O. Status/cancellation access an already native-owned
+whole run using a fresh metadata ticket and exact protected version.
+
+`file_transfer.sources.run_result` contains exactly `format: 1`, `request_id`,
+`operation`, `version`, `run_id`, `state`, Boolean `source_io_ended`. Source states
+are `preparing`, `snapshot_ready`, `cancel_pending`, `canceled_held`, `failed_held`.
+Neither successful preparation nor cancellation conveys complete sync END,
+destination publication, saved receipt or quota retirement. A stopped run remains
+held; no remote success/retire/end command is introduced.
+
+A bounded 64-entry/monotonic-60-second process-local start ledger is shared by
+the actual transport owner. Exact repeats on the same native runtime return the
+same native handle without another scan. Modified bytes with the same request ID,
+failed attempts and adoption by a new runtime fail closed. It is not a restart
+recovery database or source-consent record. No disk reset or implicit rescan on
+reconnect occurs. Linux/Windows strict metadata codecs correlate operation,
+request/policy/run identity and source-I/O-state consistency, rejecting fabricated
+success/publication/quota claims.
+
+Fourteen distinct affected Android cases pass across the parser, replay ledger,
+actual encrypted source-run/blocked-PFD path, native whole-run/offer lifecycle
+and actual permission-dispatch/reconnect guard. The final source-run test also
+proves an expired command cannot start photo I/O after selection. Linux passes 25
+targeted codec cases (24 run cases and the unchanged configure golden after its
+builder change); the Windows source-settings group passes with zero warnings or
+errors. These remain source-host/Robolectric/synthetic-channel checks. Desktop
+activation/UI, accepted-offer/chunk/resume/receipt handlers and full recovery/photo
+baseline integration remain open. Discovery 21 stays unadvertised; no automatic
+synchronization or package publication is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

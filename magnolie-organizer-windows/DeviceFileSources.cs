@@ -4,12 +4,14 @@ namespace MagnolieOrganizer.Windows;
 
 // Pure source settings metadata, never native grants, media READ or workers.
 internal sealed record DeviceFileSourceRequest(string RequestId, string Operation, string? ExpectedVersion, bool? Enabled,
-    IReadOnlyList<string> Kinds, string? CatalogId = null, int After = 0);
+    IReadOnlyList<string> Kinds, string? CatalogId = null, int After = 0,
+    string? AlbumId = null, bool? DesktopChoice = null, string? RunId = null);
 internal sealed record DeviceFileSourceStatus(string RequestId, string Operation, string Version, long Revision,
     bool Enabled, bool Associated, bool RepairPending, IReadOnlyList<string> Kinds);
 internal sealed record DeviceFileAlbumMetadata(string AlbumId, string Kind, string DisplayName, long VisibleImages, bool NeedsChoice);
 internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? NextCursor, string Coverage, IReadOnlyList<DeviceFileAlbumMetadata> Albums);
 internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State);
+internal sealed record DeviceFileRunResult(string RequestId, string Operation, string Version, string RunId, string State, bool SourceIoEnded);
 
 internal static class DeviceFileSources
 {
@@ -17,6 +19,7 @@ internal static class DeviceFileSources
     internal const string ResultKind = "file_transfer.sources.result";
     internal const string CatalogKind = "file_transfer.sources.catalog";
     internal const string PermissionResultKind = "file_transfer.sources.permission_result";
+    internal const string RunResultKind = "file_transfer.sources.run_result";
     private static readonly string[] Kinds = ["camera", "downloads", "screenshots", "whatsapp_received"];
     private static InvalidDataException Error() => new("file_sources_invalid_message");
     private static string Text(JsonObject value, string key) =>
@@ -52,6 +55,22 @@ internal static class DeviceFileSources
     internal static DeviceFileSourceRequest ParseRequest(JsonObject message, long now)
     {
         var body = Body(message, RequestKind, now); var operation = Text(body, "operation");
+        if (operation is "run" or "run_status" or "cancel_run")
+        {
+            Exact(body, operation == "run" ? ["format", "operation", "expected_version", "catalog_id", "album_id", "desktop_choice"] :
+                ["format", "operation", "expected_version", "run_id"]);
+            var expected = Text(body, "expected_version");
+            if (!DeviceFileControl.Hash(expected)) throw Error();
+            if (operation == "run")
+            {
+                var catalog = Text(body, "catalog_id"); var album = Text(body, "album_id"); var choice = Flag(body, "desktop_choice");
+                if (!TelefonProtocolContract.IsUuidV4(catalog) || !TelefonProtocolContract.IsUuidV4(album)) throw Error();
+                return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), catalog, AlbumId: album, DesktopChoice: choice);
+            }
+            var run = Text(body, "run_id");
+            if (!TelefonProtocolContract.IsUuidV4(run)) throw Error();
+            return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), RunId: run);
+        }
         if (operation == "status")
         {
             Exact(body, "format", "operation");
@@ -76,11 +95,28 @@ internal static class DeviceFileSources
         return new(Text(message, "message_id"), operation, version, enabled, kinds);
     }
     internal static JsonObject CreateRequest(string operation, long now, string? expectedVersion = null, bool? enabled = null,
-        IEnumerable<string>? kinds = null, string? messageId = null, string? catalogId = null, int? after = null)
+        IEnumerable<string>? kinds = null, string? messageId = null, string? catalogId = null, int? after = null,
+        string? albumId = null, bool? desktopChoice = null, string? runId = null)
     {
         if (now is < 0 or > 253402300739999) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
-        if (operation is "discover" or "catalog_page" or "request_read")
+        if (operation is not ("run" or "run_status" or "cancel_run") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
+        if (operation is "run" or "run_status" or "cancel_run")
+        {
+            if (enabled is not null || kinds is not null || after is not null) throw Error();
+            body["expected_version"] = expectedVersion;
+            if (operation == "run")
+            {
+                if (runId is not null) throw Error();
+                body["catalog_id"] = catalogId; body["album_id"] = albumId; body["desktop_choice"] = desktopChoice;
+            }
+            else
+            {
+                if (catalogId is not null || albumId is not null || desktopChoice is not null) throw Error();
+                body["run_id"] = runId;
+            }
+        }
+        else if (operation is "discover" or "catalog_page" or "request_read")
         {
             if (enabled is not null || kinds is not null || operation != "catalog_page" && (catalogId is not null || after is not null)) throw Error();
             body["expected_version"] = expectedVersion;
@@ -155,5 +191,22 @@ internal static class DeviceFileSources
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || Text(body, "operation") != "request_read" ||
             !DeviceFileControl.Hash(version) || version != expectedVersion || state is not ("requested" or "notification_posted" or "foreground_required" or "failed")) throw Error();
         return new(id, version, state);
+    }
+
+    internal static DeviceFileRunResult ParseRunResult(JsonObject message, string expectedRequestId, string expectedOperation,
+        string expectedVersion, long now, string? expectedRunId = null)
+    {
+        var body = Body(message, RunResultKind, now);
+        Exact(body, "format", "request_id", "operation", "version", "run_id", "state", "source_io_ended");
+        var id = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
+        var run = Text(body, "run_id"); var state = Text(body, "state"); var ended = Flag(body, "source_io_ended");
+        if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || operation != expectedOperation ||
+            operation is not ("run" or "run_status" or "cancel_run") || !DeviceFileControl.Hash(version) || version != expectedVersion ||
+            !TelefonProtocolContract.IsUuidV4(run) || operation != "run" && (!TelefonProtocolContract.IsUuidV4(expectedRunId) || run != expectedRunId) ||
+            operation == "run" && expectedRunId is not null && run != expectedRunId ||
+            state is not ("preparing" or "snapshot_ready" or "cancel_pending" or "canceled_held" or "failed_held") ||
+            ended != (state is "snapshot_ready" or "canceled_held" or "failed_held") ||
+            operation == "cancel_run" && state is not ("cancel_pending" or "canceled_held")) throw Error();
+        return new(id, operation, version, run, state, ended);
     }
 }

@@ -31,7 +31,7 @@ class DeviceFileSourceCommandTest {
             configure + ("kinds" to JsonArray(listOf(JsonPrimitive("camera"), JsonPrimitive("camera")))),
             configure + ("kinds" to JsonArray(listOf(JsonPrimitive("screenshots"), JsonPrimitive("camera")))),
             configure + ("kinds" to JsonArray(listOf(JsonPrimitive("CAMERA")))),
-            configure + ("kinds" to JsonArray(emptyList())), status + ("operation" to JsonPrimitive("run")))
+            configure + ("kinds" to JsonArray(emptyList())), status + ("operation" to JsonPrimitive("grant_read")))
         invalid.forEach { body -> assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body)), now) } }
     }
 
@@ -76,6 +76,26 @@ class DeviceFileSourceCommandTest {
             assertThrows(PhotoFolderScopeError::class.java) {
                 DeviceFileSourceCommand.parse(message(JsonObject(read + (key to JsonPrimitive(true)))), now)
             }
+        }
+    }
+
+    @Test fun runCommandsUseExactOpaqueNativeSelectionAndNeverAcceptSuccessOrQuotaClaims() {
+        val start = buildJsonObject {
+            put("format", 1); put("operation", "run"); put("expected_version", "a".repeat(64))
+            put("catalog_id", "11111111-1111-4111-8111-111111111111")
+            put("album_id", "22222222-2222-4222-8222-222222222222"); put("desktop_choice", true)
+        }
+        assertEquals(true, DeviceFileSourceCommand.parse(message(start), now).desktopChoice)
+        for ((key, value) in listOf("desktop_choice" to JsonPrimitive(1), "album_id" to JsonPrimitive("bucket"),
+            "path" to JsonPrimitive("/private"), "success" to JsonPrimitive(true), "quota_retired" to JsonPrimitive(true))) {
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(start + (key to value))), now) }
+        }
+        for (op in listOf("run_status", "cancel_run")) {
+            val body = buildJsonObject {
+                put("format", 1); put("operation", op); put("expected_version", "a".repeat(64))
+                put("run_id", "33333333-3333-4333-8333-333333333333")
+            }
+            assertEquals(op, DeviceFileSourceCommand.parse(message(body), now).operation)
         }
     }
 }

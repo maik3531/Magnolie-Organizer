@@ -284,6 +284,58 @@ class AndroidGalleryPhotoSourceTest {
                 assertEquals("requested", drain().single()["body"]!!.jsonObject.string("state"))
                 assertSame(pending, Shadows.shadowOf(activity.get()).lastRequestedPermission)
                 assertTrue(f.provider.opens.isEmpty())
+                // Permission attempts above still opened no photo bytes. Only
+                // this following explicit, exact-album run may prepare a source.
+                Shadows.shadowOf(f.context as Application).grantPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+                runtime.receiveSourceCommand(request("discover", version), channel::send, { now })
+                val runPage = drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
+                val start = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "run"); put("expected_version", version)
+                    put("catalog_id", runPage.string("catalog_id"))
+                    put("album_id", runPage["albums"]!!.jsonArray.single().jsonObject.string("album_id")); put("desktop_choice", true)
+                }, 60_000, now)
+                val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+                val ended = java.util.concurrent.CountDownLatch(1)
+                val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime)
+                val endedField = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
+                @Suppress("UNCHECKED_CAST") val originalEnd = endedField.get(worker) as (NativeGallerySourceRun) -> Unit
+                endedField.set(worker, { value: NativeGallerySourceRun -> try { originalEnd(value) } finally { ended.countDown() } })
+                f.provider.onOpen = { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                val sharedRuns = NativeGalleryRunCommands()
+                try {
+                    val expiring = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, start["body"]!!.jsonObject, 60_000, now)
+                    var ticks = 0
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        runtime.receiveSourceCommand(expiring, channel::send,
+                            { if (++ticks >= 4) now + 60_000 else now }, runCommands = sharedRuns)
+                    }
+                    assertTrue(f.provider.opens.isEmpty()); assertEquals(0, output.size())
+                    assertThrows(java.io.IOException::class.java) {
+                        runtime.receiveSourceCommand(start, { throw java.io.IOException("run reply lost") }, { now }, runCommands = sharedRuns)
+                    }
+                    assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    runtime.receiveSourceCommand(start, channel::send, { now }, runCommands = sharedRuns)
+                    val running = drain().single()["body"]!!.jsonObject
+                    assertEquals("preparing", running.string("state")); assertEquals(JsonPrimitive(false), running["source_io_ended"])
+                    val runId = running.string("run_id")
+                    val rewritten = JsonObject(start + ("body" to JsonObject(start["body"]!!.jsonObject + ("desktop_choice" to JsonPrimitive(false)))))
+                    assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(rewritten, channel::send, { now }, runCommands = sharedRuns) }
+                    fun control(op: String) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                        put("format", 1); put("operation", op); put("expected_version", version); put("run_id", runId)
+                    }, 60_000, now)
+                    runtime.receiveSourceCommand(control("cancel_run"), channel::send, { now })
+                    assertEquals("cancel_pending", drain().single()["body"]!!.jsonObject.string("state"))
+                    release.countDown(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    runtime.receiveSourceCommand(control("run_status"), channel::send, { now })
+                    val stopped = drain().single()["body"]!!.jsonObject
+                    assertEquals("canceled_held", stopped.string("state")); assertEquals(JsonPrimitive(true), stopped["source_io_ended"])
+                    assertFalse(stopped.containsKey("success")); assertFalse(stopped.containsKey("quota_retired"))
+                    val another = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, start["body"]!!.jsonObject, 60_000, now)
+                    assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(another, channel::send, { now }, runCommands = sharedRuns) }
+                    assertEquals(1, f.provider.opens.size)
+                } finally {
+                    release.countDown(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                }
             } finally { runtime.close(); host.close(); activity.pause().stop().destroy(); desktop.close(); channel.close() }
         }
     }
