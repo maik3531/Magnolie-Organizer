@@ -93,6 +93,23 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
             accessEpoch = { observed.launcher.access.accessEpoch() }).discover(cancellation)
     }
 
+    fun discoverSelectable(cancellation: CancellationSignal = CancellationSignal()): NativeGalleryAlbumCatalog {
+        ready()
+        val observed = bound()
+        val catalog = discover(cancellation)
+        return NativeGalleryAlbumCatalog(catalog, this, {
+            !closed.get() && binding.get() === observed &&
+                catalog.accessEpoch?.let { it == observed.launcher.access.accessEpoch() } != false &&
+                AndroidGalleryReadPermissions.observe(app) == catalog.coverage && observed.scope.isCatalogCurrent(catalog)
+        })
+    }
+
+    fun freeze(selection: NativeGalleryAlbumSelection, cancellation: CancellationSignal = CancellationSignal()): PhotoSourceJob {
+        ready()
+        val album = selection.catalog.resolve(this, selection)
+        return freeze(selection.catalog.source, album, selection.desktopChoice, cancellation)
+    }
+
     /** Blocking bounded IO: run off the main UI thread in the real coordinator.
      * No partial source or manifest is offered on any failure; reservation and
      * exact native in-process cleanup witnesses remain held for explicit repair.

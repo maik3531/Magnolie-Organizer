@@ -60,6 +60,21 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
     private val authority = Any()
     private val runtimeNamespace = ByteArray(32).also(SecureRandom()::nextBytes).let(::hash)
 
+    /** Metadata freshness only. Unlike capture, this does not claim an explicit
+     * desktop album choice and never constructs a source READ lease.
+     */
+    internal fun isCatalogCurrent(catalog: GalleryAlbumCatalog): Boolean = runCatching {
+        val activation = catalog.activation ?: return false
+        if (!same(activation, current()) || catalog.albums.any { it.kind !in activation.kinds }) return false
+        for (volume in catalog.albums.map { it.volume }.distinct()) {
+            val observed = environment.observe(volume)
+            validate(observed)
+            if (!observed.volumeMounted || observed.coverage == GalleryReadCoverage.NONE || observed.coverage != catalog.coverage ||
+                catalog.accessEpoch?.let { it != observed.accessEpoch } == true) return false
+        }
+        same(activation, current())
+    }.getOrDefault(false)
+
     fun capture(catalog: GalleryAlbumCatalog, album: GalleryAlbumCandidate, desktopAlbumChoice: Boolean = false): GalleryPhotoSourceLease {
         val activation = catalog.activation ?: fail("gallery_source_not_activated")
         if (!catalog.albums.any { it === album } || album.kind !in activation.kinds ||

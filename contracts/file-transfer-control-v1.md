@@ -389,6 +389,34 @@ closure for the injected pairing-only change. This does not imply any new
 READ/send capability or deletion evidence from album metadata, nor physical
 phone acceptance.
 
+### Native selectable album snapshots (no wire/run activation)
+
+The native workflow can project actual discovered albums into a short-lived
+opaque catalog. Catalog and album IDs resolve only through that live native
+mapping, for the exact workflow owner and actual discovered candidate instance.
+Pages contain display labels, category and visible count, not technical
+volume/bucket/path fields. Their canonical body budget is 6144 bytes, reserving
+2048 bytes for a future complete correlated envelope. Every page explicitly
+reports `proves_deletion: false`; neither a count nor empty/limited visibility
+proves deletion.
+
+The catalog lifetime is a fixed monotonic 60 seconds. Observed expiry, clock
+rollback, host/OS/native-source revocation or close cannot be undone by replaying
+matching IDs. Metadata freshness does not mint a source lease or stand in for
+explicit desktop choice when an album is ambiguous. A native selection can enter
+the existing actual read-only-PFD/frozen-snapshot workflow only after current
+policy/OS/lease checks. The runtime exposes native discovery, not yet a remote
+catalog/run command or automatic worker. Permission-command invocation, desktop
+catalog rendering, actual run transport and end-to-end acceptance remain open.
+
+Eight distinct focused cases pass: six native mapping/page/expiry cases plus
+metadata-only source-scope freshness and actual discovery→opaque choice→read-only
+PFD→protected frozen job→revocation/cleanup. After the native freshness callback
+returns, the clock is checked again so a slow read cannot release expired
+metadata. The five earlier catalog cases were rerun only for this changed clock
+boundary; the two unchanged scope/workflow passes were retained. This remains
+synthetic/Robolectric evidence, not physical phone acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

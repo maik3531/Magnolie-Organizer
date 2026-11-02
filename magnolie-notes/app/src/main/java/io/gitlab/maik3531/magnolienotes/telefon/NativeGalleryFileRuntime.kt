@@ -44,6 +44,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.observe(message, now) }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(): NativeGalleryRequest? { ready(); return workflow.currentRequest() }
+    fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): NativeGalleryAlbumCatalog {
+        ready(); return workflow.discoverSelectable(cancellation)
+    }
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         ready(); workflow.attachPermissionHost(host, onResult)
     }

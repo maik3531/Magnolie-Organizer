@@ -42,6 +42,24 @@ class GalleryPhotoSourceScopeTest {
         assertEquals("gallery_source_visibility_changed", assertThrows(PhotoFolderScopeError::class.java) { f.scope.capture(catalog, f.album) }.code)
     }
 
+    @Test fun metadataFreshnessNeverInventsAnExplicitAlbumChoiceAndChecksNativePairingOsEpochAndVisibility() {
+        for (change in listOf("pairing", "access", "coverage", "volume", "owner", "policy")) {
+            val f = Fixture(); val ambiguous = f.album.copy(needsAlbumChoice = true)
+            val catalog = GalleryAlbumCatalog(f.environment.value.coverage, listOf(ambiguous), f.request, f.environment.value.accessEpoch)
+            assertTrue(f.scope.isCatalogCurrent(catalog))
+            assertThrows(PhotoFolderScopeError::class.java) { f.scope.capture(catalog, ambiguous) }
+            when (change) {
+                "pairing" -> f.request = NativeGalleryRequest(f.request!!.receiver.copy(pairingEpoch = "c".repeat(64)), f.request!!.policyEpoch, f.request!!.kinds)
+                "access" -> f.environment.value = f.environment.value.copy(accessEpoch = "c".repeat(64))
+                "coverage" -> f.environment.value = f.environment.value.copy(coverage = GalleryReadCoverage.SELECTED_ONLY)
+                "volume" -> f.environment.value = f.environment.value.copy(volumeMounted = false)
+                "owner" -> f.request = NativeGalleryRequest(f.request!!.receiver.copy(owner = Any()), f.request!!.policyEpoch, f.request!!.kinds)
+                else -> f.request = NativeGalleryRequest(f.request!!.receiver, "c".repeat(64), f.request!!.kinds)
+            }
+            assertFalse(f.scope.isCatalogCurrent(catalog))
+        }
+    }
+
     @Test fun onlyAnActualActivatedCatalogMemberCanBecomeANativeGalleryLease() {
         val f = Fixture(); val catalog = f.catalog()
         val lease = f.scope.capture(catalog, f.album)

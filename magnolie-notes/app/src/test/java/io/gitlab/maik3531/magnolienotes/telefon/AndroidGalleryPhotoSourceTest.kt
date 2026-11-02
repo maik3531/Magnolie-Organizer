@@ -28,6 +28,8 @@ import org.robolectric.shadows.ShadowContentResolver
 import java.io.File
 import java.nio.file.Files
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], application = Application::class, shadows = [AndroidGalleryVolumeAccessTest.MountedVolumes::class])
@@ -178,6 +180,32 @@ class AndroidGalleryPhotoSourceTest {
                 assertEquals(held, workflow.jobs().single())
                 workflow.discardFailedBuild(error)
                 assertTrue(workflow.jobs().isEmpty()); assertEquals("bad", File(f.root, "source.bin").readText())
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun nativeOpaqueAlbumSelectionJoinsActualDiscoveryAndFrozenReadOnlyPfdWithoutTrustingWirePaths() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "selectable-workflow-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                val enabled = workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { throw AssertionError("No automatic permission prompt") }
+                activity.start().resume()
+                val catalog = workflow.discoverSelectable()
+                val page = catalog.page()
+                assertTrue(f.provider.opens.isEmpty()) // Listing metadata never opens any image bytes.
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                val job = workflow.freeze(selection)
+                assertEquals("sealed", job.phase); assertEquals(2, f.provider.opens.size)
+                assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
+                workflow.configure(enabled, false, emptySet())
+                assertThrows(PhotoFolderScopeError::class.java) { catalog.page() }
+                assertThrows(PhotoFolderScopeError::class.java) { workflow.freeze(selection) }
+                workflow.retireCached(job)
+                assertEquals("hello", File(f.root, "source.bin").readText())
             } finally { workflow.close(); activity.pause().stop().destroy() }
         }
     }
