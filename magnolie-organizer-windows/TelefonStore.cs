@@ -586,7 +586,8 @@ internal sealed partial class TelefonStore
     {
         if (transcript.Length != 32 || phoneProof.Length != 32 || desktopProof.Length != 32) throw new InvalidDataException();
         var pending = peer with { State = "pair_commit_pending", PendingTranscript = transcript.ToArray(),
-            PendingPhoneProof = phoneProof.ToArray(), PendingDesktopProof = desktopProof.ToArray(), PendingExpiresMs = expiresMs };
+            PendingPhoneProof = phoneProof.ToArray(), PendingDesktopProof = desktopProof.ToArray(), PendingExpiresMs = expiresMs,
+            FilePairingEpoch = DeviceFileControl.PairingEpoch(transcript) };
         var existing = LoadPeers();
         if (existing.Any(value => value.Id != peer.Id)) throw new InvalidOperationException("binding_conflict");
         var peers = existing.Where(value => value.Id != peer.Id).Append(pending).ToArray();
@@ -1293,14 +1294,22 @@ internal sealed partial class TelefonStore
         var capabilities = MigrateCapabilities(value["capabilities"] as JsonObject);
         var bluetoothAddress = value["bluetooth_address"]?.GetValue<string>() ?? "";
         if (bluetoothAddress.Length > 0 && !TelefonBluetoothClient.ValidAddress(bluetoothAddress)) throw new InvalidDataException();
+        string? filePairingEpoch = null;
+        if (value.ContainsKey("file_pairing_epoch"))
+        {
+            if (value["file_pairing_epoch"] is not JsonValue field || !field.TryGetValue<string>(out filePairingEpoch) ||
+                !DeviceFileControl.Hash(filePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
+        }
         return new TelefonPeer(value["device_id"]!.GetValue<string>(), value["display_name"]!.GetValue<string>(), ReadBase64(value, "static_public", 32), state,
             value["last_seen_ms"]?.GetValue<long>() ?? 0, value["capability_revision"]?.GetValue<long>() ?? 0, capabilities.DeepClone().AsObject(),
             value["grant_revision"]?.GetValue<long>() ?? 0, grants.DeepClone().AsObject(), OptionalBase64(value, "pending_transcript"), OptionalBase64(value, "pending_phone_proof"),
-            OptionalBase64(value, "pending_desktop_proof"), value["pending_expires_ms"]?.GetValue<long>() ?? 0, bluetoothAddress);
+            OptionalBase64(value, "pending_desktop_proof"), value["pending_expires_ms"]?.GetValue<long>() ?? 0, bluetoothAddress, filePairingEpoch);
     }
 
-    private static JsonObject WritePeer(TelefonPeer peer) => new()
+    private static JsonObject WritePeer(TelefonPeer peer)
     {
+        var value = new JsonObject
+        {
         ["device_id"] = peer.Id, ["display_name"] = peer.Name, ["static_public"] = Convert.ToBase64String(peer.PublicKey), ["state"] = peer.State,
         ["last_seen_ms"] = peer.LastSeenMs, ["capability_revision"] = peer.CapabilityRevision, ["capabilities"] = peer.Capabilities.DeepClone(),
         ["grant_revision"] = peer.GrantRevision, ["grants"] = peer.Grants.DeepClone(),
@@ -1308,7 +1317,14 @@ internal sealed partial class TelefonStore
         ["pending_phone_proof"] = peer.PendingPhoneProof is null ? null : Convert.ToBase64String(peer.PendingPhoneProof),
         ["pending_desktop_proof"] = peer.PendingDesktopProof is null ? null : Convert.ToBase64String(peer.PendingDesktopProof), ["pending_expires_ms"] = peer.PendingExpiresMs,
         ["bluetooth_address"] = peer.BluetoothAddress
-    };
+        };
+        if (peer.FilePairingEpoch is not null)
+        {
+            if (!DeviceFileControl.Hash(peer.FilePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
+            value["file_pairing_epoch"] = peer.FilePairingEpoch;
+        }
+        return value;
+    }
 
     private static JsonObject MigrateGrants(JsonObject? stored)
     {
@@ -1359,7 +1375,8 @@ internal sealed partial class TelefonStore
 internal sealed record TelefonIdentity(string Id, string Name, byte[] PublicKey, byte[] PrivateKey);
 internal sealed record TelefonPeer(string Id, string Name, byte[] PublicKey, string State = "paired", long LastSeenMs = 0,
     long CapabilityRevision = 0, JsonObject? StoredCapabilities = null, long GrantRevision = 0, JsonObject? StoredGrants = null,
-    byte[]? PendingTranscript = null, byte[]? PendingPhoneProof = null, byte[]? PendingDesktopProof = null, long PendingExpiresMs = 0, string BluetoothAddress = "")
+    byte[]? PendingTranscript = null, byte[]? PendingPhoneProof = null, byte[]? PendingDesktopProof = null, long PendingExpiresMs = 0, string BluetoothAddress = "",
+    string? FilePairingEpoch = null)
 {
     internal JsonObject Capabilities { get; init; } = StoredCapabilities ?? new JsonObject();
     internal JsonObject Grants { get; init; } = StoredGrants ?? TelefonProtocolContract.DesktopGrants();

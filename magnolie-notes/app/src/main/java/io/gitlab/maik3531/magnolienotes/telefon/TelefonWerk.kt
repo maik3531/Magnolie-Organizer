@@ -622,6 +622,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
         channel: TelefonSecureChannel, generation: Long): String? =
         actorSourceRevision(peerId, publicKey, channel, generation, true)
 
+    /** Current authenticated transport owner only, deliberately independent of
+     * Notes/contacts/content grants. File handlers still remain unregistered.
+     */
+    @Synchronized internal fun currentNativeFilePeer(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long, handlersReady: Boolean): NativeFileControlPeer? {
+        if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
+            generation != pairingGeneration || activeTransport == null) return null
+        val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
+        return NativeFilePairingAuthority.controlPeer(peer, channel, true, handlersReady)
+    }
+
     private fun actorSourceRevision(peerId: String, publicKey: String,
         channel: TelefonSecureChannel, generation: Long, completionOnly: Boolean): String? {
         if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||

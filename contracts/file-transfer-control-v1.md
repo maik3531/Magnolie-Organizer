@@ -104,6 +104,25 @@ bilateral own-device state and does not construct a `PhoneStore`. Eighteen
 focused Python cases pass, including existing pending-finish restart and known
 legacy-key migration checks. This local metadata is not a new global wire grant.
 
+Windows `SavePending` now records the same domain-separated local generation
+from the actual pairing transcript; successful Finish retains it. Its native
+peer codecs retain legacy absence, reject malformed present fields and preserve
+the epoch across ordinary copies/reopen. Targeted source-host control/codec and
+actual protected pending/Finish/renewal groups pass with zero build warnings or
+errors. The renewal test verifies fresh generation for identical device ID/key
+and rejection of the prior Finish transcript. This is not installed Windows GUI,
+native DPAPI acceptance or physical phone pairing evidence.
+
+Android `TelefonWerk.currentNativeFilePeer` now checks actual service/storage
+enablement, exact active secure-channel owner, current pairing generation,
+transport presence and pinned peer ID/key before invoking the native peer
+builder. The builder additionally requires current local relationship generation,
+remote discovery 21 and handler readiness, independent of contacts/Notes grants.
+Its new targeted unit method passes; the actual physical channel path is not yet
+accepted and no file session/handler is registered by this method. Existing
+legacy pairing activation still requires an explicit protected bootstrap path;
+the current native builder correctly remains closed without that generation.
+
 Gallery inner format 3 adds `pairing_epoch` alongside its monotonic revision;
 formats 1/2 and their original protection namespace remain readable unchanged.
 An explicit authenticated configure action can associate/reassociate existing

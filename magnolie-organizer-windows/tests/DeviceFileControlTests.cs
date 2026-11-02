@@ -39,6 +39,31 @@ internal static class DeviceFileControlTests
     }
     internal static Task RunAsync()
     {
+        // Actual peer codecs, without constructing TelefonStore/keys/personal DB.
+        var writePeer = typeof(TelefonStore).GetMethod("WritePeer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var readPeer = typeof(TelefonStore).GetMethod("ReadPeer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        JsonObject Write(TelefonPeer value) => (JsonObject)writePeer.Invoke(null, [value])!;
+        TelefonPeer Read(JsonObject value) => (TelefonPeer)readPeer.Invoke(null, [value])!;
+        var legacyPeer = new TelefonPeer("receiver_fixture_01", "Fixture", Enumerable.Repeat((byte)7, 32).ToArray());
+        var legacyWire = Write(legacyPeer);
+        TestAssert.That(!legacyWire.ContainsKey("file_pairing_epoch") && DeviceFileControl.CurrentPairingEpoch(Read(legacyWire), true, true) is null,
+            "Legacy peer read created native file relationship authority.");
+        var firstEpoch = DeviceFileControl.PairingEpoch(Enumerable.Repeat((byte)1, 32).ToArray());
+        var secondEpoch = DeviceFileControl.PairingEpoch(Enumerable.Repeat((byte)2, 32).ToArray());
+        var pairedPeer = legacyPeer with { FilePairingEpoch = firstEpoch };
+        TestAssert.That(firstEpoch != secondEpoch && DeviceFileControl.CurrentPairingEpoch(Read(Write(pairedPeer)) with { LastSeenMs = 1000 }, true, true) == firstEpoch &&
+            DeviceFileControl.CurrentPairingEpoch(pairedPeer with { FilePairingEpoch = secondEpoch }, true, true) == secondEpoch,
+            "Native reconnect lost its epoch or re-pair reused the old relationship.");
+        TestAssert.That(DeviceFileControl.CurrentPairingEpoch(pairedPeer with { State = "pair_commit_pending" }, true, true) is null &&
+            DeviceFileControl.CurrentPairingEpoch(pairedPeer, false, true) is null && DeviceFileControl.CurrentPairingEpoch(pairedPeer, true, false) is null,
+            "Pending or revoked relationship exposed native file authority.");
+        foreach (var invalid in new JsonNode?[] { null, JsonValue.Create(true), JsonValue.Create(""), JsonValue.Create(new string('A', 64)) })
+        {
+            var corrupt = Write(pairedPeer); corrupt["file_pairing_epoch"] = invalid;
+            try { Read(corrupt); throw new InvalidOperationException("Corrupt file relationship was accepted."); }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is InvalidDataException) { }
+        }
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileControl.PairingEpoch(new byte[31]), "Invalid native transcript length was accepted.");
         const string relative = "contracts/file-transfer-control-v1-vectors.json";
         var vector = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(relative), relative)))!.AsObject();
         var packet = DeviceFileControlPacket.Parse(vector["packet"]!.AsObject());

@@ -19,6 +19,13 @@ internal static class DeviceFileControl
     internal static string Digest(string domain, JsonNode value) => Convert.ToHexString(SHA256.HashData(
         Encoding.UTF8.GetBytes(domain).Concat(TelefonCrypto.Canonical(value)).ToArray())).ToLowerInvariant();
     internal static InvalidDataException Error(string code) => new(code);
+    internal static string PairingEpoch(byte[] transcript)
+    {
+        if (transcript.Length != 32) throw Error("file_pairing_invalid_transcript");
+        return Digest("magnolie-native-file-pairing-v1\0", JsonValue.Create(Convert.ToBase64String(transcript))!);
+    }
+    internal static string? CurrentPairingEpoch(TelefonPeer? peer, bool ownDevice, bool remoteOwnDevice) =>
+        peer is { State: "paired" } && ownDevice && remoteOwnDevice && Hash(peer.FilePairingEpoch) ? peer.FilePairingEpoch : null;
 }
 
 internal sealed class DeviceFileGrantState

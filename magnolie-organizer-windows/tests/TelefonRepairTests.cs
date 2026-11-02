@@ -16,6 +16,7 @@ internal static class TelefonRepairTests
             store.LoadOrCreateIdentity(); store.Enabled = true;
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Fixture", Enumerable.Repeat((byte)1, 32).ToArray());
             store.SavePeers([peer]);
+            TestAssert.That(store.LoadPeers().Single().FilePairingEpoch is null, "Reading legacy pairing created file authority metadata.");
             var defaults = store.PersonalSettings(peer.Id);
             TestAssert.That(defaults.OwnDevice && defaults.AutoWifi && defaults.RemoteOwnDevice, "Confirmed pairing did not provide device authorization.");
             store.SetPersonalSettings(peer.Id, remoteOwnDevice: true);
@@ -45,11 +46,23 @@ internal static class TelefonRepairTests
             var phoneProof = Enumerable.Repeat((byte)3, 32).ToArray();
             var desktopProof = Enumerable.Repeat((byte)4, 32).ToArray();
             store.SavePending(peer, transcript, phoneProof, desktopProof, long.MaxValue);
+            var pendingEpoch = store.LoadPeers().Single().FilePairingEpoch;
+            TestAssert.That(pendingEpoch == DeviceFileControl.PairingEpoch(transcript) &&
+                DeviceFileControl.CurrentPairingEpoch(store.LoadPeers().Single(), true, true) is null,
+                "Actual pending pairing did not persist its fresh local generation or exposed it before Finish.");
             TestAssert.That(!store.PersonalSettings(peer.Id).OwnDevice, "Pending renewal reused the old pairing authority.");
             TestAssert.That(store.LoadPeers().Count == 1, "Renewal created a second phone binding.");
             TestAssert.That(!store.TryFinishPending(peer.Id, new byte[32], new byte[32], 1, out _, out _), "Old proof completed renewed pairing.");
             TestAssert.That(store.TryFinishPending(peer.Id, transcript, phoneProof, 1, out var confirmed, out _)
                 && confirmed.State == "paired" && confirmed.PublicKey.SequenceEqual(peer.PublicKey), "New phone finish proof was not accepted.");
+            TestAssert.That(DeviceFileControl.CurrentPairingEpoch(store.LoadPeers().Single(), true, true) == pendingEpoch,
+                "Actual Finish/reopen lost the local relationship generation.");
+            var freshTranscript = Enumerable.Repeat((byte)5, 32).ToArray();
+            store.SavePending(confirmed, freshTranscript, phoneProof, desktopProof, long.MaxValue);
+            TestAssert.That(store.LoadPeers().Single().FilePairingEpoch != pendingEpoch &&
+                !store.TryFinishPending(peer.Id, transcript, phoneProof, 1, out _, out _) &&
+                store.TryFinishPending(peer.Id, freshTranscript, phoneProof, 1, out _, out _),
+                "Re-pairing with identical ID/key reused its old native file generation or old Finish proof.");
             await coordinator.RemoveAsync(peer.Id);
             var flags = BindingFlags.Instance | BindingFlags.NonPublic;
             byte[]? AdvertisedToken() => (byte[]?)typeof(TelefonCoordinator).GetMethod("CurrentPairingToken", flags)!.Invoke(coordinator, null);

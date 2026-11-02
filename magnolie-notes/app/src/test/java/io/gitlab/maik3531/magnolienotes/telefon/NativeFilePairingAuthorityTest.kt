@@ -40,4 +40,22 @@ class NativeFilePairingAuthorityTest {
             NativeFilePairingAuthority.epochForConfirmedTranscript(TelefonKrypto.b64(ByteArray(31)))
         }
     }
+
+    @Test fun nativePeerBuilderNeedsFileDiscoveryAndHandlersNotNotesOrContactsConsent() {
+        val epoch = NativeFilePairingAuthority.epochForConfirmedTranscript(TelefonKrypto.b64(ByteArray(32) { 3 }))
+        val saved = peer(epoch).copy(remote_device_status_available = true,
+            remote_device_status_versions = listOf(1, DeviceFileControl.DISCOVERY_VERSION), contacts_read_enabled = false,
+            personal_notes_sync_granted = false, personal_tasks_sync_granted = false, device_status_granted = false)
+        val owner = Any()
+        val native = NativeFilePairingAuthority.controlPeer(saved, owner, true, true)!!
+        assertSame(owner, native.owner); assertTrue(native.allowed); assertEquals(epoch, native.pairingEpoch)
+        assertEquals(saved.device_id, native.peerId)
+        assertEquals(java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKrypto.b64(saved.static_public, 32))
+            .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }, native.identitySha256)
+        assertNull(NativeFilePairingAuthority.controlPeer(saved, owner, false, true))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved, owner, true, false))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(remote_device_status_versions = listOf(1, 20)), owner, true, true))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(remote_device_status_available = false), owner, true, true))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(file_pairing_epoch = ""), owner, true, true))
+    }
 }
