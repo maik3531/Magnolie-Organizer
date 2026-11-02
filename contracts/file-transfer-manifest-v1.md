@@ -441,6 +441,47 @@ acceptance or proof of an end-to-end transfer.
 
 ## Linux physical no-replace publication (not a durable saved receipt)
 
+### Native protected checkpoint-head index
+
+`ProtectedTransferJobIndex` is now an actual per-operation private SQLite head
+index, rather than the synthetic test index previously used by staging tests.
+Creation is explicit and exclusive under a separately reserved native owner.
+Reopen never creates a replacement database/schema or key. The protected owner
+record binds the manifest fingerprint, native peer/permission/destination-token
+binding and original root/database/lock inode identities. Head records are
+immutable encrypted rows with bounded revisions and a predecessor-ciphertext
+hash chain. Original schema, DELETE journaling and FULL synchronous mode are
+checked, not silently weakened or migrated.
+
+Native CAS serializes head updates across index instances using a shared
+in-process root gate and OS file lock. Same-thread nested inspection reuses the
+root lock without releasing an outer guard; mutation during a guarded retirement
+action is rejected. Real `EncryptedTransferStage.commit_checkpoint` can use
+`publish_head`, `read_head` and `guard_head` directly through a native captured
+expected-head callback. A failed post-commit readback fences later updates in
+that instance. Reopening only restores an authenticated checkpoint pointer:
+the stage must independently re-read every claimed chunk. Local head inspection
+can work after permission revocation; mutation/retirement still requires the
+current native binding. No head is a saved destination receipt or SaveACK.
+
+Unknown entries, copied/changed original files, missing databases, invalid
+ciphertext/schema, live observed head rollback and leftover SQLite sidecars are
+preserved as failures. A leftover journal is held for explicit repair before
+opening SQLite, not guessed to be an owned crash journal and automatically
+deleted/recovered. Cross-restart external snapshot rollback protection and an
+explicit journal-repair procedure remain open. The index bounds history to 128
+head revisions and its database to 4 MiB; it is not yet a global job/quota index.
+
+Twenty focused tests pass: 19 SQLite/index cases plus the actual existing-key
+adapter → stage → durable head → reopen integration. They cover one CAS winner
+across two native instances, nested cross-instance inspection, actual old-stage
+checkpoint retirement, separate-process inspection, revoke/corrupt/identity
+failures, uncertain readback, sidecar preservation and rejected durability
+weakening. Accepted-destination/mapping persistence, publication/receipt heads,
+recovery ownership, discovery/quota/retirement, common baselines and actual
+application handlers/controls still require integration. This is not native
+end-to-end photo synchronization acceptance.
+
 ### Existing native key access without personal-store construction
 
 `ExistingFileTransferProtection` reads only an already present native telephone

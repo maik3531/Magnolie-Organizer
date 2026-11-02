@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from magnolie_file_protection import ExistingFileTransferProtection
 from magnolie_file_transfer import EncryptedTransferStage, ResumeLedger, TransferError
 from magnolie_publication_journal import ProtectedPublicationJournal, PublicationWitness
+from magnolie_transfer_job_index import ProtectedTransferJobIndex
 from test_file_transfer_stage import binding, description
 
 
@@ -167,3 +168,22 @@ def test_unsafe_or_missing_native_root_is_not_created_or_fixed(telephone, kind):
         assert not root.exists()
     elif kind == "permissions":
         assert root.stat().st_mode & 0o777 == 0o755
+
+
+def test_existing_key_adapter_protects_real_job_index_and_checkpoint_head(telephone, tmp_path):
+    manifest, native = description(), binding()
+    private = tmp_path / "indexed-checkpoint"
+    private.mkdir(mode=0o700)
+    owner = "1" * 32
+    with ExistingFileTransferProtection(telephone) as protection:
+        with ProtectedTransferJobIndex(private, manifest, native, lambda: native, protection.seal, protection.unseal,
+                owner=owner, create=True) as index:
+            with EncryptedTransferStage(private, manifest, native, lambda: native, protection.seal, protection.unseal, owner=owner) as encrypted:
+                encrypted.create()
+                ledger = ResumeLedger(manifest, native, lambda: native)
+                ledger.record(manifest.files[0].id, 0, b"hello", encrypted.write_chunk, encrypted.read_chunk)
+                result = encrypted.commit_checkpoint(ledger, lambda handle: index.publish_head(handle, None), index.read_head, index.guard_head)
+                assert not result.cleanup_pending and index.read_head() == result.handle
+        with ProtectedTransferJobIndex(private, manifest, native, lambda: None, protection.seal, protection.unseal, owner=owner) as reopened:
+            assert reopened.read_head() == result.handle
+            assert not reopened.snapshot().is_saved_receipt
