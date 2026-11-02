@@ -84,6 +84,16 @@ not substitute for actual OS READ grants or enable a source policy by itself.
 
 ### Native policy fence and explicit Android configuration
 
+The actual Android code-confirmed pairing path now stores a local
+`file_pairing_epoch`, domain-separated from its fresh authenticated transcript.
+It survives ordinary protected peer copies and reconnects, but a new pairing
+with the same device ID/public key obtains a different epoch. Pending/unverified
+relationships expose no current epoch. Legacy peer records decode with an empty
+epoch; merely reading them creates no generation or consent. Three focused
+codec/native-state cases pass. This is relationship identity only, not file
+consent: protected file-policy association and legacy explicit authorization must
+still be connected before the epoch can govern real transfer handlers.
+
 `policyReady` is native-only state, never a packet field. Pending policy CAS or
 repair blocks ordinary control packet production/send completion and data
 bindings without rewriting previously confirmed grants. A temporary fence does

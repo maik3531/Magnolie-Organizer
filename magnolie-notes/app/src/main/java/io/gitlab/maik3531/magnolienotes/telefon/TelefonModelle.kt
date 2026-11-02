@@ -67,8 +67,13 @@ data class TelefonPeer(
     val remote_desktop_features: JsonObject? = null,
     val personal_time_policy: JsonObject? = null,
     val remote_personal_time_policy: JsonObject? = null,
-    val contacts_write_enabled: Boolean = contact_groups_write_enabled
-)
+    val contacts_write_enabled: Boolean = contact_groups_write_enabled,
+    // Local protected relationship generation, never wire consent or OS READ.
+    // Legacy records stay empty; loading them must not create/revive file grants.
+    val file_pairing_epoch: String = ""
+) {
+    init { require(file_pairing_epoch.isEmpty() || Regex("[0-9a-f]{64}").matches(file_pairing_epoch)) }
+}
 
 @Serializable
 data class TelefonBestand(val storage_version: Int = 1, val peer: TelefonPeer? = null,

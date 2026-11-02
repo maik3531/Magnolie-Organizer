@@ -1931,7 +1931,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val peer = TelefonPeer(pair.response.string("device_id"), pair.response.string("display_name"),
                 pair.response.string("static_public"), state = "paired_unverified", last_host = pair.host,
                 bluetooth_address = pair.bluetoothAddress, bluetooth_inbound = pair.bluetoothAddress.isNotBlank(),
-                pending_finish = TelefonKanonisch.text(phoneFinish), pending_finish_expires_ms = System.currentTimeMillis() + 600_000)
+                pending_finish = TelefonKanonisch.text(phoneFinish), pending_finish_expires_ms = System.currentTimeMillis() + 600_000,
+                file_pairing_epoch = NativeFilePairingAuthority.epochForConfirmedTranscript(transcript))
             synchronized(this) {
                 if (pair.generation != pairingGeneration || !samePairingPeer(safePeer(), pair.previousPeer))
                     throw TelefonProtokollFehler("Ein Organizer ist bereits kryptografisch gekoppelt.")
