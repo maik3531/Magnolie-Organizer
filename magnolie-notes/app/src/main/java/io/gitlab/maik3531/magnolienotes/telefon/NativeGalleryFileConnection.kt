@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class NativeGalleryFileConnection internal constructor(internal val channel: TelefonSecureChannel,
     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
+    private val permissionQueued = AtomicBoolean(false)
     @Volatile private var bound: NativeGalleryFileRuntime? = null
     val runtime: NativeGalleryFileRuntime get() = bound?.takeUnless { ended.get() }
         ?: DeviceFileControl.fail("gallery_file_connection_ended")
@@ -28,6 +29,19 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         bound?.revokeControl()
         if (Looper.myLooper() == Looper.getMainLooper()) close()
         else Handler(Looper.getMainLooper()).post { close() }
+    }
+
+    internal fun enqueuePermissionCommand(operation: (NativeGalleryFileRuntime) -> Unit) {
+        if (ended.get() || !permissionQueued.compareAndSet(false, true)) DeviceFileControl.fail("gallery_permission_command_busy")
+        val posted = Handler(Looper.getMainLooper()).post {
+            try { operation(runtime) }
+            catch (_: Exception) {
+                // Fail closed on the file route, not by crashing the UI or
+                // inventing delivery. A caller receives no success reply.
+                runCatching { close() }
+            } finally { permissionQueued.set(false) }
+        }
+        if (!posted) { permissionQueued.set(false); DeviceFileControl.fail("gallery_permission_foreground_required") }
     }
 
     override fun close() {

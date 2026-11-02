@@ -18,6 +18,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
     handlersReady: () -> Boolean) : AutoCloseable {
     private val closed = AtomicBoolean(false)
+    private val app = context.applicationContext
+    private val localIdentity = identity
+    private val localPermissionCommands = NativeGalleryPermissionCommands()
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
@@ -61,9 +64,11 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
      * permissions or schedules a transfer. Replies are metadata, not SaveACKs.
      */
     @Synchronized fun receiveSourceCommand(message: JsonObject, send: (JsonObject) -> Unit,
-        now: () -> Long = { System.currentTimeMillis() }) {
+        now: () -> Long = { System.currentTimeMillis() }, permissionCommands: NativeGalleryPermissionCommands = localPermissionCommands) {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
+        if (command.operation == "request_read" && Looper.myLooper() != Looper.getMainLooper())
+            DeviceFileControl.fail("gallery_permission_ui_thread_required")
         val issued = controls.session.configurationTicket()
         if (!ticket.compareAndSet(null, issued)) {
             controls.session.finishConfiguration(issued)
@@ -78,6 +83,39 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "request_read") {
+                if (workflow.currentRequest() == null || owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
+                val scope = DeviceFileControl.digest("magnolie-gallery-permission-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
+                    JsonPrimitive(localIdentity.deviceId), JsonPrimitive(localIdentity.identitySha256), JsonPrimitive(owner.peerId),
+                    JsonPrimitive(owner.identitySha256), JsonPrimitive(owner.pairingEpoch))))
+                val state = permissionCommands.execute(scope, command, message) {
+                    authority()
+                    val foreground = attachForeground { }
+                    val action = NativeGalleryForeground.permissionAction(foreground)
+                    try {
+                        authority()
+                        NativeGalleryForeground.performPermissionAction(action.token)
+                        "requested"
+                    } catch (error: PhotoFolderScopeError) {
+                        if (error.code !in NativeGalleryPermissionActions.RETRYABLE) throw error
+                        if (error.code == "gallery_permission_request_pending") "requested"
+                        else {
+                            authority()
+                            if (NativeGalleryForeground.postPermissionAction(app, action)) "notification_posted" else "foreground_required"
+                        }
+                    }
+                }
+                authority()
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                    put("version", JsonPrimitive(before.version)); put("state", JsonPrimitive(state))
+                }
+                send(TelefonNachrichten.message(DeviceFileSourceCommand.PERMISSION_RESULT, body, ttl, at))
+                authority()
+                return
+            }
             if (command.operation in setOf("discover", "catalog_page")) {
                 if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
                 val catalog = if (command.operation == "discover") {

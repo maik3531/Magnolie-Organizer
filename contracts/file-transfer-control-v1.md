@@ -449,6 +449,52 @@ transfer/recovery/baseline integration are still open. No discovery advertisemen
 automatic synchronization, physical phone/installed GUI acceptance or release is
 implied.
 
+### Explicit native permission command connection
+
+`request_read` is an explicit source command with exactly `format: 1`,
+`operation: "request_read"`, `expected_version`. It does not carry an OS grant,
+native owner, action token or notification-permission claim. Actual Android
+dispatch queues at most one native permission operation on the main thread and
+rechecks the whole command/deadline, protected version, native pairing, fresh
+metadata ticket and current source-send authority before invoking the existing
+bound foreground action. It never starts an Activity from the background.
+Foreground execution uses the genuine launcher; otherwise the optional private
+notification path or foreground-required state is used. Ending the native file
+connection before the UI callback prevents it from running.
+
+`file_transfer.sources.permission_result` has exactly inner `format: 1`,
+`request_id`, `operation: "request_read"`, `version`, `state`. States are
+`requested`, `notification_posted`, `foreground_required`, `failed`. These are UI
+attempt metadata, **not** OS permission, a currently usable notification/action,
+media READ or a transfer receipt. The real OS permission controller still owns
+readback and permission epochs. A repeated response may describe a prior attempt
+whose native action has since ended; a new explicit user attempt needs a new
+request ID, not resurrection of an old native owner.
+
+A bounded process-local command ledger is shared by the actual native transport
+owner across file-runtime reconnects. Its key is authenticated local/peer identity
+and pairing scope plus request ID; exact canonical command bytes must match.
+Up to 64 receipts are held for a monotonic 60 seconds. Failure evidence is recorded
+before the UI call, so lost replies/native UI exceptions cannot cause the same
+command to prompt again. Clock rollback fences the ledger. No personal store or
+persistent OS ticket is created. UI-queue failure closes only the file route
+without inventing success or crashing the Activity; unrelated phone transport is
+not deliberately closed by that callback. Desktop request/result codecs remain
+metadata-only. This is not yet a complete Organizer activation/run UI or physical
+phone/system-dialog acceptance.
+
+Thirteen focused Android cases pass for this connection: strict command parsing,
+bounded/replay-safe command receipts, genuine AndroidX request after denied OS
+permission, actual native queued notification without starting an Activity, and
+cancel-before-UI ownership. The single extended actual-Werk case also passes
+after file-runtime close/reopen and fresh control epochs: the shared ledger
+returns only the previous attempt metadata, does not recreate a foreground
+owner, and leaves the original action invalid. The other twelve unchanged passes
+were retained, not counted twice. Linux passes 23 targeted codec cases; the
+Windows source-settings group passes with zero build warnings/errors. These are
+synthetic/Robolectric/source-host checks, not a physical tap, installed UI or OS
+system-dialog acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

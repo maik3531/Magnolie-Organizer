@@ -58,6 +58,19 @@ internal static class DeviceFileSourcesTests
         }
         var duplicates = (JsonObject)catalog.DeepClone(); var entries = duplicates["body"]!["page"]!["albums"]!.AsArray(); entries.Add(entries[0]!.DeepClone());
         TestAssert.Throws<InvalidDataException>(() => ReadCatalog(duplicates), "Duplicate native album IDs accepted.");
+        var read = DeviceFileSources.CreateRequest("request_read", now, new string('a', 64));
+        TestAssert.That(DeviceFileSources.ParseRequest(read, now).Operation == "request_read", "Explicit native UI request rejected.");
+        var permission = (JsonObject)read.DeepClone(); permission["kind"] = DeviceFileSources.PermissionResultKind;
+        permission["body"] = new JsonObject { ["format"] = 1, ["request_id"] = read["message_id"]!.DeepClone(), ["operation"] = "request_read",
+            ["version"] = new string('a', 64), ["state"] = "foreground_required" };
+        DeviceFilePermissionResult ReadPermission(JsonObject value) => DeviceFileSources.ParsePermissionResult(value, read["message_id"]!.GetValue<string>(), new string('a', 64), now);
+        TestAssert.That(ReadPermission(permission).State == "foreground_required", "Native foreground-pending result rejected.");
+        foreach (var (key, value) in new (string, JsonNode?)[] { ("read_granted", JsonValue.Create(true)), ("state", JsonValue.Create("granted")),
+            ("version", JsonValue.Create(new string('b', 64))), ("state", JsonValue.Create(true)) })
+        {
+            var invalid = (JsonObject)permission.DeepClone(); invalid["body"]!.AsObject()[key] = value;
+            TestAssert.Throws<InvalidDataException>(() => ReadPermission(invalid), "Permission UI metadata became authority or mismatched state.");
+        }
         return Task.CompletedTask;
     }
 }

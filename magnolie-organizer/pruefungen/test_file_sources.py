@@ -44,7 +44,7 @@ def test_aliases_extra_authority_and_unordered_selection_fail(key, value):
     with pytest.raises(TransferError): sources.parse_command(command, now=NOW)
 
 
-@pytest.mark.parametrize('operation', ['run', 'delete', 'request_read'])
+@pytest.mark.parametrize('operation', ['run', 'delete', 'grant_read'])
 def test_unsupported_actions_cannot_be_disguised_as_metadata(operation):
     with pytest.raises(TransferError): sources.create_command(operation, now=NOW)
 

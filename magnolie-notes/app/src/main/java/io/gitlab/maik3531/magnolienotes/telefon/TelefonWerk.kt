@@ -134,6 +134,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
+    private val galleryPermissionCommands = NativeGalleryPermissionCommands()
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -2422,7 +2423,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
         if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
-                JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG))) {
+                JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG), JsonPrimitive(DeviceFileSourceCommand.PERMISSION_RESULT))) {
             val connection = synchronized(this) {
                 if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
                     DeviceFileControl.fail("file_control_native_channel_changed")
@@ -2431,6 +2432,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }
             // Runtime/session callbacks acquire Werk: never dispatch under its monitor.
             val runtime = connection.runtime
+            if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST) && DeviceFileSourceCommand.parse(message).operation == "request_read") {
+                connection.enqueuePermissionCommand { active ->
+                    active.receiveSourceCommand(message, channel::send, permissionCommands = galleryPermissionCommands)
+                    active.sendControls()
+                }
+                return
+            }
             if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
             else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST)) runtime.receiveSourceCommand(message, channel::send)
             else DeviceFileControl.fail("file_sources_unexpected_result")

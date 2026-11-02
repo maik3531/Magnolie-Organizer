@@ -271,6 +271,19 @@ class AndroidGalleryPhotoSourceTest {
                     runtime.receiveSourceCommand(request("catalog_page", version, page.string("catalog_id")), channel::send, { now })
                 }
                 assertTrue(f.provider.opens.isEmpty())
+                Shadows.shadowOf(f.context as Application).denyPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+                val read = request("request_read", version)
+                val sharedReceipts = NativeGalleryPermissionCommands()
+                runtime.receiveSourceCommand(read, channel::send, { now }, sharedReceipts)
+                val permission = drain().single()
+                assertEquals(DeviceFileSourceCommand.PERMISSION_RESULT, permission.string("kind"))
+                assertEquals("requested", permission["body"]!!.jsonObject.string("state"))
+                assertEquals(setOf("format", "request_id", "operation", "version", "state"), permission["body"]!!.jsonObject.keys)
+                val pending = Shadows.shadowOf(activity.get()).lastRequestedPermission!!
+                runtime.receiveSourceCommand(read, channel::send, { now }, sharedReceipts)
+                assertEquals("requested", drain().single()["body"]!!.jsonObject.string("state"))
+                assertSame(pending, Shadows.shadowOf(activity.get()).lastRequestedPermission)
+                assertTrue(f.provider.opens.isEmpty())
             } finally { runtime.close(); host.close(); activity.pause().stop().destroy(); desktop.close(); channel.close() }
         }
     }

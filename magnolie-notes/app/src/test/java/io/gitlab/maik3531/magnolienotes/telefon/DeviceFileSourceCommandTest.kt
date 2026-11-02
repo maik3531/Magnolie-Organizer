@@ -68,4 +68,14 @@ class DeviceFileSourceCommandTest {
         }
         assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(discover + ("after" to JsonPrimitive(0)))), now) }
     }
+
+    @Test fun requestReadCanOnlyRequestNativeUiForTheExactSavedSourceVersionNotGrantOsAccess() {
+        val read = buildJsonObject { put("format", 1); put("operation", "request_read"); put("expected_version", "a".repeat(64)) }
+        assertEquals("request_read", DeviceFileSourceCommand.parse(message(read), now).operation)
+        for (key in listOf("read_granted", "send_files", "notification_allowed", "owner", "token", "path")) {
+            assertThrows(PhotoFolderScopeError::class.java) {
+                DeviceFileSourceCommand.parse(message(JsonObject(read + (key to JsonPrimitive(true)))), now)
+            }
+        }
+    }
 }

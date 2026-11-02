@@ -13,6 +13,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
         const val CATALOG = "file_transfer.sources.catalog"
+        const val PERMISSION_RESULT = "file_transfer.sources.permission_result"
         fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
             fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
             if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
@@ -28,7 +29,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 if (body.keys != base) fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, null, null, emptySet(), message.long("expires_ms"))
             }
-            if (operation in setOf("discover", "catalog_page")) {
+            if (operation in setOf("discover", "catalog_page", "request_read")) {
                 if (body.keys != base + setOf("expected_version") + (if (operation == "catalog_page") setOf("catalog_id", "after") else emptySet())) fail()
                 val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
                 val id = if (operation == "catalog_page") text("catalog_id").takeIf {

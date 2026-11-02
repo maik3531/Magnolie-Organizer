@@ -14,6 +14,7 @@ from magnolie_telefon import CLOCK_SKEW_MS, canonical, now_ms, valid_uuid
 REQUEST = "file_transfer.sources.request"
 RESULT = "file_transfer.sources.result"
 CATALOG = "file_transfer.sources.catalog"
+PERMISSION_RESULT = "file_transfer.sources.permission_result"
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
 
 
@@ -58,7 +59,7 @@ def parse_command(message, *, now=None):
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
         return SourceCommand(message["message_id"], "status")
-    if body.get("operation") in ("discover", "catalog_page"):
+    if body.get("operation") in ("discover", "catalog_page", "request_read"):
         paging = body['operation'] == 'catalog_page'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'after'} if paging else set())
                 or not _hex(body['expected_version']) or paging and (
@@ -80,8 +81,8 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation in ('discover', 'catalog_page'):
-        if enabled is not None or kinds != () or operation == 'discover' and (catalog_id is not None or after is not None):
+    if operation in ('discover', 'catalog_page', 'request_read'):
+        if enabled is not None or kinds != () or operation != 'catalog_page' and (catalog_id is not None or after is not None):
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
         if operation == 'catalog_page': body.update(catalog_id=catalog_id, after=after)
@@ -183,3 +184,20 @@ def parse_catalog(message, *, expected_request_id, expected_operation, expected_
         ids.add(album['album_id'])
         albums.append(AlbumMetadata(album['album_id'], album['kind'], album['display_name'], album['visible_images'], album['needs_choice']))
     return SourceCatalogPage(page['catalog_id'], page['after'], following, page['coverage'], tuple(albums))
+
+
+@dataclass(frozen=True)
+class SourcePermissionResult:
+    request_id: str
+    version: str
+    state: str
+
+
+def parse_permission_result(message, *, expected_request_id, expected_version, now=None):
+    body = _body(message, PERMISSION_RESULT, now_ms() if now is None else now)
+    if (set(body) != {'format', 'request_id', 'operation', 'version', 'state'}
+            or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
+            or body['operation'] != 'request_read' or not _hex(body['version']) or body['version'] != expected_version
+            or body['state'] not in ('requested', 'notification_posted', 'foreground_required', 'failed')):
+        raise TransferError('file_sources_invalid_permission_result')
+    return SourcePermissionResult(body['request_id'], body['version'], body['state'])

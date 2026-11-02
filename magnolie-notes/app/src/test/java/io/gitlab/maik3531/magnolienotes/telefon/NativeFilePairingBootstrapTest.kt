@@ -246,7 +246,7 @@ class NativeFilePairingBootstrapTest {
             val native = work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true)!!
             val desktopPeer = NativeFileControlPeer("sender_fixture_01", "d".repeat(64), Any(), true, true, true, true, true, native.pairingEpoch)
             val desktopState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
-            val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.device_id, native.identitySha256), { desktopPeer }, { desktopState })
+            var desktop = NativeFileControlSession(NativeFileControlIdentity(peer.device_id, native.identitySha256), { desktopPeer }, { desktopState })
             val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
             fun sent(): List<JsonObject> {
                 val input = ByteArrayInputStream(bytes.toByteArray()); bytes.reset()
@@ -264,7 +264,8 @@ class NativeFilePairingBootstrapTest {
             fun command(operation: String, version: String? = null) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
                 put("format", 1); put("operation", operation)
                 if (version != null) {
-                    put("expected_version", version); put("enabled", true); put("kinds", JsonArray(listOf(JsonPrimitive("camera"))))
+                    put("expected_version", version)
+                    if (operation == "configure") { put("enabled", true); put("kinds", JsonArray(listOf(JsonPrimitive("camera")))) }
                 }
             }, 60_000)
             val initial = command("status")
@@ -302,8 +303,54 @@ class NativeFilePairingBootstrapTest {
                 assertFalse(storage.fileAuthorityPeers().peer!!.personal_notes_sync_granted)
                 assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) {
                     connection.runtime.requestReadPermission() }.code)
+                val read = command("request_read", saved.version)
+                work.receiveMessage(peer, read, channel, generation)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                val permission = sent().single()
+                assertEquals(DeviceFileSourceCommand.PERMISSION_RESULT, permission.string("kind"))
+                assertEquals("notification_posted", permission["body"]!!.jsonObject.string("state"))
+                val app = ApplicationProvider.getApplicationContext<Application>()
+                assertNull(org.robolectric.Shadows.shadowOf(app).nextStartedActivity)
+                val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                val originalIntent = org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent
+                work.receiveMessage(peer, read, channel, generation)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertEquals("notification_posted", sent().single()["body"]!!.jsonObject.string("state"))
+                assertSame(originalIntent, org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent)
+                assertEquals(saved, connection.runtime.savedPolicy())
+                val oldAction = GalleryPhotoPermissionIntent.token(org.robolectric.Shadows.shadowOf(originalIntent).savedIntent)!!
+                connection.close(); desktop.close()
+                assertFalse(NativeGalleryForeground.acceptsPermissionAction(oldAction))
+                desktop = NativeFileControlSession(NativeFileControlIdentity(peer.device_id, native.identitySha256), { desktopPeer }, { desktopState })
+                work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { reopened ->
+                    metadata(); metadata() // Fresh dedicated control epochs, same protected pairing/policy.
+                    work.receiveMessage(peer, read, channel, generation)
+                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    assertEquals("notification_posted", sent().single()["body"]!!.jsonObject.string("state"))
+                    assertSame(originalIntent, org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent)
+                    assertFalse(NativeGalleryForeground.acceptsPermissionAction(oldAction))
+                    assertNull(field(NativeGalleryForeground::class.java, "binding").get(null)) // No new UI attempt/owner was created.
+                    assertEquals(saved, reopened.runtime.savedPolicy())
+                }
             }
             desktop.close()
+        }
+    }
+
+    @Test fun queuedNativePermissionWorkIsBoundedAndCannotRunAfterItsConnectionCloses() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val peer = storage.fileAuthorityPeers().peer!!
+            work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            val connection = work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }
+            var calls = 0
+            connection.enqueuePermissionCommand { calls++ }
+            assertThrows(PhotoFolderScopeError::class.java) { connection.enqueuePermissionCommand { calls++ } }
+            connection.close()
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(0, calls)
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            assertThrows(PhotoFolderScopeError::class.java) { connection.enqueuePermissionCommand { calls++ } }
         }
     }
 }

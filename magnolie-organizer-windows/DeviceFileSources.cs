@@ -9,12 +9,14 @@ internal sealed record DeviceFileSourceStatus(string RequestId, string Operation
     bool Enabled, bool Associated, bool RepairPending, IReadOnlyList<string> Kinds);
 internal sealed record DeviceFileAlbumMetadata(string AlbumId, string Kind, string DisplayName, long VisibleImages, bool NeedsChoice);
 internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? NextCursor, string Coverage, IReadOnlyList<DeviceFileAlbumMetadata> Albums);
+internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State);
 
 internal static class DeviceFileSources
 {
     internal const string RequestKind = "file_transfer.sources.request";
     internal const string ResultKind = "file_transfer.sources.result";
     internal const string CatalogKind = "file_transfer.sources.catalog";
+    internal const string PermissionResultKind = "file_transfer.sources.permission_result";
     private static readonly string[] Kinds = ["camera", "downloads", "screenshots", "whatsapp_received"];
     private static InvalidDataException Error() => new("file_sources_invalid_message");
     private static string Text(JsonObject value, string key) =>
@@ -55,9 +57,9 @@ internal static class DeviceFileSources
             Exact(body, "format", "operation");
             return new(Text(message, "message_id"), operation, null, null, Array.Empty<string>());
         }
-        if (operation is "discover" or "catalog_page")
+        if (operation is "discover" or "catalog_page" or "request_read")
         {
-            Exact(body, operation == "discover" ? ["format", "operation", "expected_version"] : ["format", "operation", "expected_version", "catalog_id", "after"]);
+            Exact(body, operation != "catalog_page" ? ["format", "operation", "expected_version"] : ["format", "operation", "expected_version", "catalog_id", "after"]);
             var expected = Text(body, "expected_version");
             if (!DeviceFileControl.Hash(expected)) throw Error();
             string? catalog = null; var after = 0L;
@@ -78,9 +80,9 @@ internal static class DeviceFileSources
     {
         if (now is < 0 or > 253402300739999) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
-        if (operation is "discover" or "catalog_page")
+        if (operation is "discover" or "catalog_page" or "request_read")
         {
-            if (enabled is not null || kinds is not null || operation == "discover" && (catalogId is not null || after is not null)) throw Error();
+            if (enabled is not null || kinds is not null || operation != "catalog_page" && (catalogId is not null || after is not null)) throw Error();
             body["expected_version"] = expectedVersion;
             if (operation == "catalog_page") { body["catalog_id"] = catalogId; body["after"] = after; }
         }
@@ -143,5 +145,15 @@ internal static class DeviceFileSources
             result.Add(new(id, kind, label, count, choice));
         }
         return new(catalogId, (int)after, next, coverage, result.AsReadOnly());
+    }
+
+    internal static DeviceFilePermissionResult ParsePermissionResult(JsonObject message, string expectedRequestId, string expectedVersion, long now)
+    {
+        var body = Body(message, PermissionResultKind, now);
+        Exact(body, "format", "request_id", "operation", "version", "state");
+        var id = Text(body, "request_id"); var version = Text(body, "version"); var state = Text(body, "state");
+        if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || Text(body, "operation") != "request_read" ||
+            !DeviceFileControl.Hash(version) || version != expectedVersion || state is not ("requested" or "notification_posted" or "foreground_required" or "failed")) throw Error();
+        return new(id, version, state);
     }
 }
