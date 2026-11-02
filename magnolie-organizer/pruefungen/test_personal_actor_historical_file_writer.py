@@ -1,0 +1,78 @@
+"""Actual native AES/atomic store + controller, not GTK/IPC/physical phone E2E."""
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+import magnolie_personal_actor as actor
+from magnolie_personal_actor_store import NativeProducerBookSnapshot
+from test_personal_actor_restore_candidate import gui_candidates
+from test_personal_actor_historical_prepare import prepared, durable_queue
+from test_personal_actor_transport import frame
+
+
+def native_store(tmp_path, monkeypatch):
+    for key in ('HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR'):
+        directory = tmp_path / key; directory.mkdir(parents=True)
+        monkeypatch.setenv(key, str(directory))
+    monkeypatch.setenv('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/nonexistent-historical-writer-test')
+    source = Path(__file__).resolve().parents[1] / 'bin/magnolie-organizer'
+    loader = importlib.machinery.SourceFileLoader('historical_writer_native', str(source))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec); loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize('fault', ['none', 'failure', 'payload'])
+def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_completes(tmp_path, monkeypatch, gui_candidates, fault):
+    native = native_store(tmp_path, monkeypatch)
+    fixtures = gui_candidates if fault == 'none' else gui_candidates[:1]
+    for index, fixture in enumerate(fixtures):
+        service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path / str(index), monkeypatch, fixture)
+        admission = service.personal_actor_admissions[handle.actor_id]
+        manifest = service.current_content_scope(peer['device_id'], peer['static_public'], admission['scope'])
+        claim = service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
+        before_text = json.dumps(book, ensure_ascii=False); password = 'synthetic-only-historical-file'
+        envelope, dek, dek_id, wrapper = native.daten_huelle_anlegen(before_text, password)
+        path = tmp_path / str(index) / 'encrypted-book.json'
+        native.atomar_text_schreiben(str(path), envelope)
+        before_bytes, before_saved, queue = path.read_bytes(), read(), durable_queue(service)
+        writes = []
+        def writer(payload):
+            writes.append(payload)
+            if fault == 'failure':
+                raise OSError('Synthetic pre-write failure')
+            stored = native.daten_verschluesseln(payload, password, dek, dek_id, wrapper)
+            native.atomar_text_schreiben(str(path), stored)
+            owner.record_saved('native-producer-fixture', True, hashlib.sha256(payload.encode()).hexdigest())
+            data = json.loads(payload); saved = read()
+            fingerprint = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            service.native_actor_producer_book = lambda: NativeProducerBookSnapshot.capture(read, lambda: data,
+                lambda: (saved['book_source'], saved['sequence'], fingerprint))
+        if fault != 'none':
+            with pytest.raises(OSError if fault == 'failure' else PermissionError):
+                service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text + (' ' if fault == 'payload' else ''), writer)
+            assert len(writes) == (1 if fault == 'failure' else 0) and path.read_bytes() == before_bytes and read() == before_saved
+            assert durable_queue(service) == queue and not channel.sent
+            continue
+        result = service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text, writer)
+        assert result['historical_book_persisted'] is False
+        assert native.ist_verschluesselt(path.read_text()) and native.daten_entschluesseln(path.read_text(), password) == text
+        assert read()['sequence'] == before_saved['sequence'] + 1
+        with pytest.raises(PermissionError):
+            service.write_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text, writer)
+        after_bytes = path.read_bytes()
+        confirmed = service.confirm_personal_actor_historical_restore_save(registry, handle, claim['claim_token'])
+        assert confirmed['historical_book_persisted'] is True and confirmed['phone_data_persisted'] is False
+        service.confirm_personal_actor_historical_restore_save(registry, handle, claim['claim_token'])
+        assert len(writes) == 1 and path.read_bytes() == after_bytes
+        service.advance_personal_actor_completion(registry, handle)
+        decision = channel.sent.pop(); assert not channel.sent
+        assert actor.unwrap(decision['body'])[0] == 'personal_sync.deletion_decision'
+        service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, decision['message_id'])))
+        done = service.personal_actor_status(registry, handle)
+        assert done['phase'] == 'completed' and done['phone_persisted'] is True and done['phone_data_persisted'] is False
+        assert path.read_bytes() == after_bytes and service.current_content_scope(peer['device_id'], peer['static_public'], admission['scope']) == manifest
+        with pytest.raises(PermissionError): registry.require_current(handle)

@@ -4925,6 +4925,24 @@ class PhoneService:
             registry.check_historical_save(handle)
             plan['writer_gate_checked'] = True  # An invocation marker, never a successful SaveACK.
 
+    def write_personal_actor_historical_restore_save(self, registry, handle, claim_token, candidate_text, native_writer):
+        """Invoke the private native writer inside its live source/owner gate.
+
+        GUI caller must additionally retain the document writer lock. No wire
+        I/O/public callback/IPC callback is permitted. This is not a SaveACK;
+        only the separate fresh native confirmation can assert persistence.
+        """
+        if not callable(native_writer):
+            raise TypeError('actor_historical_native_writer_required')
+        with self.lock:
+            self.check_personal_actor_historical_restore_save(registry, handle, claim_token, candidate_text)
+            try:
+                native_writer(candidate_text)
+            except BaseException:
+                registry.cancel(handle)
+                raise  # Unknown I/O outcome never permits replay or local rollback.
+            return self.personal_actor_status(registry, handle)
+
     def confirm_personal_actor_historical_restore_save(self, registry, handle, claim_token):
         """Bind a real native SaveACK, not a caller Boolean or new content scope.
 
