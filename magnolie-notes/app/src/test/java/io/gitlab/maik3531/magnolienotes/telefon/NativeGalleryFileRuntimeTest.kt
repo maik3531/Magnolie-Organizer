@@ -97,6 +97,32 @@ class NativeGalleryFileRuntimeTest {
         }
     }
 
+    @Test fun preparedPermissionMetadataCannotAuthorizeBackgroundSendAfterExpiryVersionChangeOrRevocation() {
+        for (change in listOf("expired", "version", "revoked", "unchanged")) {
+            negotiatedRuntime { runtime, echo ->
+                runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                val saved = runtime.savedPolicy()
+                val command = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("operation", JsonPrimitive("request_read"))
+                    put("expected_version", JsonPrimitive(saved.version))
+                }, 60_000, now)
+                val prepared = runtime.preparePermissionReply(command, NativeGalleryPermissionCommands(), { now })
+                when (change) {
+                    "version" -> {
+                        runtime.configureFromAuthenticatedCommand(saved, true, setOf(GallerySourceKind.SCREENSHOTS)); echo()
+                    }
+                    "revoked" -> runtime.revokeControl()
+                }
+                var writes = 0
+                val send = { _: JsonObject -> writes++; Unit }
+                val clock = { if (change == "expired") now + 60_000 else now }
+                if (change == "unchanged") runtime.sendPreparedPermissionReply(command, prepared, send, clock)
+                else assertThrows(PhotoFolderScopeError::class.java) { runtime.sendPreparedPermissionReply(command, prepared, send, clock) }
+                assertEquals(if (change == "unchanged") 1 else 0, writes)
+            }
+        }
+    }
+
     @Test fun actualProtectedRuntimeJoinsInitialOffNativeEchoConfigurationAndFreshSourceGrant() {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }

@@ -178,6 +178,34 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         Unit
     }
 
+    /** UI preparation returns attempt metadata only; background transport must
+     * acquire fresh native authority independently, never from reply fields. */
+    internal fun preparePermissionReply(message: JsonObject, ledger: NativeGalleryPermissionCommands,
+        now: () -> Long = { System.currentTimeMillis() }): JsonObject {
+        if (DeviceFileSourceCommand.parse(message, now()).operation != "request_read") DeviceFileControl.fail("file_sources_invalid_command")
+        var reply: JsonObject? = null
+        receiveSourceCommand(message, { reply = it }, now, ledger)
+        return reply ?: DeviceFileControl.fail("file_sources_invalid_command")
+    }
+
+    internal fun sendPreparedPermissionReply(message: JsonObject, reply: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        val command = DeviceFileSourceCommand.parse(message, now())
+        if (command.operation != "request_read") DeviceFileControl.fail("file_sources_invalid_command")
+        val issued = controls.session.configurationTicket()
+        fun checkAuthority() {
+            if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")
+            if (controls.session.configurationAuthority(issued) == null || workflow.currentRequest() == null)
+                DeviceFileControl.fail("file_sources_authority_changed")
+            if (workflow.savedPolicy().version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+        }
+        try {
+            checkAuthority()
+            send(reply) // Actual completion, not queue acceptance.
+            checkAuthority()
+        } finally { controls.session.finishConfiguration(issued) }
+    }
+
     fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
         kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot = withOperation {
         ready()

@@ -12,6 +12,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
     private val cleanupReported = AtomicBoolean(false)
+    private val permissionIoEnd = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(0))
     @Volatile private var bound: NativeGalleryFileRuntime? = null
     val runtime: NativeGalleryFileRuntime get() = bound?.takeUnless { ended.get() }
         ?: DeviceFileControl.fail("gallery_file_connection_ended")
@@ -33,22 +34,40 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     }
 
     internal fun enqueuePermissionCommand(operation: (NativeGalleryFileRuntime) -> Unit) {
+        enqueuePermissionCommand(operation, null)
+    }
+
+    internal fun enqueuePermissionCommand(prepare: (NativeGalleryFileRuntime) -> Unit,
+        background: ((NativeGalleryFileRuntime) -> Unit)?) {
         if (ended.get() || !permissionQueued.compareAndSet(false, true)) DeviceFileControl.fail("gallery_permission_command_busy")
-        val posted = Handler(Looper.getMainLooper()).post {
-            try { operation(runtime) }
-            catch (_: Exception) {
-                // Fail closed on the file route, not by crashing the UI or
-                // inventing delivery. A caller receives no success reply.
-                runCatching { close() }
-            } finally { permissionQueued.set(false) }
+        val completed = java.util.concurrent.CountDownLatch(1)
+        permissionIoEnd.set(completed)
+        fun finish(failed: Boolean) {
+            if (failed) { ended.set(true); bound?.revokeControl() }
+            permissionQueued.set(false)
+            try {
+                if (ended.get()) Handler(Looper.getMainLooper()).post { close() }
+            } finally { completed.countDown() }
         }
-        if (!posted) { permissionQueued.set(false); DeviceFileControl.fail("gallery_permission_foreground_required") }
+        val posted = Handler(Looper.getMainLooper()).post {
+            try {
+                prepare(runtime)
+                if (background == null) finish(false)
+                else Thread({
+                    var failed = false
+                    try { background(runtime) } catch (_: Exception) { failed = true }
+                    finally { finish(failed) }
+                }, "magnolie-permission-response").apply { isDaemon = true }.start()
+            } catch (_: Exception) { finish(true) }
+        }
+        if (!posted) { permissionQueued.set(false); completed.countDown(); DeviceFileControl.fail("gallery_permission_foreground_required") }
     }
 
     override fun close() {
         ended.set(true)
         bound?.revokeControl()
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
+        if (permissionQueued.get()) return // Includes actual background response/control I/O.
         if (bound?.closeWhenQuiescent { close() } == false) return
         bound = null
         if (cleanupReported.compareAndSet(false, true)) released(this)

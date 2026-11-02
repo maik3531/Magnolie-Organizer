@@ -306,6 +306,7 @@ class NativeFilePairingBootstrapTest {
                 val read = command("request_read", saved.version)
                 work.receiveMessage(peer, read, channel, generation)
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                awaitPermissionIo(connection)
                 val permission = sent().single()
                 assertEquals(DeviceFileSourceCommand.PERMISSION_RESULT, permission.string("kind"))
                 assertEquals("notification_posted", permission["body"]!!.jsonObject.string("state"))
@@ -315,6 +316,7 @@ class NativeFilePairingBootstrapTest {
                 val originalIntent = org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent
                 work.receiveMessage(peer, read, channel, generation)
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                awaitPermissionIo(connection)
                 assertEquals("notification_posted", sent().single()["body"]!!.jsonObject.string("state"))
                 assertSame(originalIntent, org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent)
                 assertEquals(saved, connection.runtime.savedPolicy())
@@ -326,14 +328,85 @@ class NativeFilePairingBootstrapTest {
                     metadata(); metadata() // Fresh dedicated control epochs, same protected pairing/policy.
                     work.receiveMessage(peer, read, channel, generation)
                     org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    awaitPermissionIo(reopened)
                     assertEquals("notification_posted", sent().single()["body"]!!.jsonObject.string("state"))
                     assertSame(originalIntent, org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent)
                     assertFalse(NativeGalleryForeground.acceptsPermissionAction(oldAction))
                     assertNull(field(NativeGalleryForeground::class.java, "binding").get(null)) // No new UI attempt/owner was created.
                     assertEquals(saved, reopened.runtime.savedPolicy())
+                    val outputField = field(TelefonSecureChannel::class.java, "output")
+                    val originalOutput = outputField.get(channel) as java.io.OutputStream
+                    val writeEntered = java.util.concurrent.CountDownLatch(1); val releaseWrite = java.util.concurrent.CountDownLatch(1)
+                    val uiReturned = java.util.concurrent.CountDownLatch(1); val uiBlocked = java.util.concurrent.atomic.AtomicBoolean(false)
+                    val delayed = object : java.io.OutputStream() {
+                        override fun write(value: Int) {
+                            writeEntered.countDown(); check(releaseWrite.await(5, java.util.concurrent.TimeUnit.SECONDS)); originalOutput.write(value)
+                        }
+                        override fun flush() { originalOutput.flush() }
+                    }
+                    outputField.set(channel, delayed)
+                    val guard = Thread {
+                        try {
+                            check(writeEntered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                            uiBlocked.set(!uiReturned.await(500, java.util.concurrent.TimeUnit.MILLISECONDS))
+                        } finally { releaseWrite.countDown() }
+                    }
+                    try {
+                        guard.start()
+                        work.receiveMessage(peer, command("request_read", saved.version), channel, generation)
+                        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); uiReturned.countDown()
+                        @Suppress("UNCHECKED_CAST")
+                        val completion = field(NativeGalleryFileConnection::class.java, "permissionIoEnd").get(reopened) as
+                            java.util.concurrent.atomic.AtomicReference<java.util.concurrent.CountDownLatch>
+                        assertTrue(completion.get().await(5, java.util.concurrent.TimeUnit.SECONDS)); guard.join(5000)
+                        assertFalse("Permission UI waited for native response frame output", uiBlocked.get())
+                        assertEquals(DeviceFileSourceCommand.PERMISSION_RESULT, sent().single().string("kind"))
+                    } finally {
+                        uiReturned.countDown(); releaseWrite.countDown(); guard.join(5000)
+                        outputField.set(channel, originalOutput)
+                    }
                 }
             }
             desktop.close()
+        }
+    }
+
+    private fun awaitPermissionIo(connection: NativeGalleryFileConnection) {
+        @Suppress("UNCHECKED_CAST")
+        val completion = field(NativeGalleryFileConnection::class.java, "permissionIoEnd").get(connection) as
+            java.util.concurrent.atomic.AtomicReference<java.util.concurrent.CountDownLatch>
+        assertTrue(completion.get().await(5, java.util.concurrent.TimeUnit.SECONDS))
+    }
+
+    @Test fun permissionBackgroundIoRetainsTheNativeOwnerUntilActualEndAfterUiClose() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val peer = storage.fileAuthorityPeers().peer!!
+            work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            val connection = work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }
+            val entered = java.util.concurrent.CountDownLatch(1)
+            val release = java.util.concurrent.CountDownLatch(1)
+            val calls = java.util.concurrent.atomic.AtomicInteger()
+            try {
+                connection.enqueuePermissionCommand({ calls.incrementAndGet() }, {
+                    assertNotSame(android.os.Looper.getMainLooper(), android.os.Looper.myLooper())
+                    entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                })
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertEquals(1, calls.get())
+                assertThrows(PhotoFolderScopeError::class.java) { connection.enqueuePermissionCommand { calls.incrementAndGet() } }
+                connection.close()
+                assertSame(connection, field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertThrows(PhotoFolderScopeError::class.java) { connection.runtime }
+                release.countDown(); awaitPermissionIo(connection)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertEquals(1, calls.get())
+            } finally {
+                release.countDown(); awaitPermissionIo(connection)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); connection.close()
+            }
         }
     }
 

@@ -552,6 +552,26 @@ power-loss or complete file-transfer acceptance. #330's remote run/data handlers
 desktop activation/preferences/UI and full recovery/baseline integration remain
 open, with discovery 21 unadvertised and no package publication.
 
+### Permission response transport is not UI work (#333)
+
+A further actual-dispatch regression confirmed that the permission-result frame
+write itself could block Main (unchanged 500-ms guard). The native UI operation
+now prepares attempt metadata only. A bounded connection-owned background task
+independently acquires a fresh configuration ticket and checks current negotiated
+source authority, exact protected policy version and the original command deadline
+before/after actual response output. Serialized result fields never grant that
+authority. Control echoes also run on the background task, not Main.
+
+The permission queue stays occupied through actual response/control I/O end.
+Close revokes immediately but retains the native connection until that task ends;
+final UI cleanup is posted before reporting task completion. A queued action after
+close cannot run. Four focused cases pass: the extended actual-dispatch/reconnect
+case with its unchanged response-write guard, cancel-before-UI, blocked background
+ownership through close, and expired/changed-version/revoked versus unchanged
+native send authority. Existing unchanged permission-ledger evidence is retained.
+This is synthetic/Robolectric evidence, not physical phone acceptance or completed
+synchronization. No package, discovery advertisement or automatic run is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

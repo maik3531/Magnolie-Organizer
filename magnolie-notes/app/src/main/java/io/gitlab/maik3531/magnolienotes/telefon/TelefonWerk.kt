@@ -2433,10 +2433,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
             // Runtime/session callbacks acquire Werk: never dispatch under its monitor.
             val runtime = connection.runtime
             if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST) && DeviceFileSourceCommand.parse(message).operation == "request_read") {
-                connection.enqueuePermissionCommand { active ->
-                    active.receiveSourceCommand(message, channel::send, permissionCommands = galleryPermissionCommands)
+                var prepared: JsonObject? = null
+                connection.enqueuePermissionCommand({ active ->
+                    prepared = active.preparePermissionReply(message, galleryPermissionCommands)
+                }, { active ->
+                    active.sendPreparedPermissionReply(message, prepared ?: DeviceFileControl.fail("file_sources_invalid_command"), channel::send)
                     active.sendControls()
-                }
+                })
                 return
             }
             if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
