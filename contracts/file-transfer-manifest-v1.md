@@ -501,8 +501,9 @@ Even `verified` evidence remains **not a saved receipt**, common baseline or
 transport ACK. The protected PC job/receipt index, native destination recovery
 and exact operation ownership must still be integrated before actual handlers.
 
-The combined 63 real-filesystem tests cover 28 journal/integration cases and
-the 35 publication cases. They include separate-process inspection with an
+The combined 66 real-filesystem tests cover 31 journal/integration cases and
+the 35 publication cases. The authenticated original owner header is re-read
+before each inspection/append, not trusted from construction alone. They include separate-process inspection with an
 ephemeral fixture key, scope/key/mapping mismatches, copied/linked/tampered
 records, original-root changes, failed seal/write/fsync/readback, actual
 publisher ordering and journal faults on both sides of the real link. This is

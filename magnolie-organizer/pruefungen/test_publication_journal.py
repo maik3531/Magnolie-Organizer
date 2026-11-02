@@ -174,7 +174,12 @@ def test_failed_append_holds_original_files_and_blocks_further_mutations(fixture
     elif failure == "fsync":
         monkeypatch.setattr(os, "fsync", fault)
     else:
-        monkeypatch.setattr(journal, "_unseal", fault)
+        original_unseal = journal._unseal
+        def readback_fault(blob, domain):
+            if domain.endswith("owner.enc"):
+                return original_unseal(blob, domain)
+            return fault()
+        monkeypatch.setattr(journal, "_unseal", readback_fault)
     with pytest.raises(OSError, match="synthetic"):
         journal.append("prepared", f.witness)
     with pytest.raises(TransferError, match="recovery_read_only"):
@@ -301,3 +306,26 @@ def test_reopened_or_wrong_scope_journal_cannot_be_attached_to_new_publisher(tmp
     finally:
         publisher.close()
         f.close()
+
+
+@pytest.mark.parametrize("change", ["tamper", "copy", "mode"])
+def test_owner_header_is_reauthenticated_before_every_inspection_and_append(fixture, change):
+    f = fixture
+    journal = f.open(create=True)
+    first = journal.append("prepared", f.witness)
+    owner = f.root / "owner.enc"
+    if change == "tamper":
+        raw = bytearray(owner.read_bytes()); raw[-1] ^= 1; owner.write_bytes(raw)
+    elif change == "copy":
+        raw = owner.read_bytes()
+        owner.rename(f.parent / "owner-original.enc")
+        owner.write_bytes(raw)
+        owner.chmod(0o600)
+    else:
+        owner.chmod(0o644)
+    with pytest.raises((TransferError, InvalidTag)):
+        journal.inspect(f.witness.file_id)
+    with pytest.raises((TransferError, InvalidTag)):
+        journal.append("linked", f.witness)
+    assert not (f.root / ("linked-" + f.witness.file_id + ".enc")).exists()
+    assert first.phase == "prepared" and owner.exists()

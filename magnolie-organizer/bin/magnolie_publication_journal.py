@@ -143,6 +143,9 @@ class ProtectedPublicationJournal:
                 names.add(entry.name)
         if "owner.enc" not in names or not set(self._known) <= names:
             raise TransferError("publication_journal_original_missing")
+        payload, _ = self._read("owner.enc")
+        if payload != {"context": self._context}:
+            raise TransferError("publication_journal_context_mismatch")
         return names
 
     @staticmethod
