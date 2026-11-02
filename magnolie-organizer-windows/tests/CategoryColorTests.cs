@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.IO.Compression;
+using System.Xml.Linq;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
@@ -40,7 +41,18 @@ internal static class CategoryColorTests
             using var archive = new ZipArchive(new MemoryStream(DocumentExportService.CreateSpreadsheet(new[] { sheet })), ZipArchiveMode.Read);
             using var reader = new StreamReader(archive.GetEntry("content.xml")!.Open());
             var content = reader.ReadToEnd();
-            TestAssert.That(content.Contains("fo:background-color=\"#112233\"", StringComparison.Ordinal) && content.Contains("fo:color=\"#ffffff\"", StringComparison.Ordinal) && content.Contains("text:style-name=\"ax112233\"", StringComparison.Ordinal), "Native planner accent/contrast was lost in ODS " + layout);
+            var xml = XDocument.Parse(content);
+            XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+            XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+            XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
+            var styles = xml.Descendants(style + "style").ToDictionary(node => (string)node.Attribute(style + "name")!, StringComparer.Ordinal);
+            TestAssert.That(xml.Descendants(text + "span").Where(node => node.Value.Contains("Owned task", StringComparison.Ordinal)).Any(node =>
+                styles.TryGetValue((string?)node.Attribute(text + "style-name") ?? "", out var referenced) &&
+                referenced.Element(style + "text-properties") is { } properties &&
+                (string?)properties.Attribute(fo + "background-color") == "#112233" &&
+                (string?)properties.Attribute(fo + "color") == "#ffffff" &&
+                (layout != "year" || (string?)properties.Attribute(fo + "font-size") == "3.6pt")),
+                "Actual planner text lost its referenced accent/contrast or annual size in ODS " + layout);
         }
         return Task.CompletedTask;
     }
