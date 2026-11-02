@@ -179,6 +179,15 @@ targeted actual `TelefonWerk` synthetic-channel cases pass. No listener/service
 or physical phone was started, and the activation command dispatcher itself is
 not registered by this API.
 
+Runtime shutdown distinguishes immediate native control revocation from final
+Activity/lifecycle cleanup. `revokeControl` synchronously closes file authority
+on any thread. A worker-thread `close` revokes first, then rejects final UI cleanup
+without marking ownership fully closed or releasing only half the resources.
+The native owner must complete `close` on the UI thread; this is not a quota or
+worker-END receipt. All three affected runtime cases pass, including an actual
+bounded worker thread followed by final UI-thread cleanup. No asynchronous
+background cleanup or automatic permission UI is started by this change.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

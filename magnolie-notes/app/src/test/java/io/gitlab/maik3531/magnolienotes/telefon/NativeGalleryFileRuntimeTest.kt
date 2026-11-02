@@ -93,4 +93,27 @@ class NativeGalleryFileRuntimeTest {
             }
         } finally { link.channel.close(); root.deleteRecursively() }
     }
+
+    @Test fun nativeWorkerCloseRevokesImmediatelyButDoesNotClaimFinalUiCleanupBeforeItHappens() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-runtime330-end-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val link = Link()
+        val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel, true, true, true, true, true, "1".repeat(64))
+        val runtime = NativeGalleryFileRuntime(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection, link.channel, { peer }, { true })
+        try {
+            val failure = java.util.concurrent.atomic.AtomicReference<Exception?>()
+            val ended = java.util.concurrent.CountDownLatch(1)
+            val worker = Thread {
+                try { runtime.close() } catch (error: Exception) { failure.set(error) } finally { ended.countDown() }
+            }
+            worker.start()
+            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); worker.join(5000)
+            assertEquals("gallery_permission_ui_thread_required", (failure.get() as PhotoFolderScopeError).code)
+            assertNull(runtime.currentRequest())
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.sendControls(now) }
+            assertNull(runtime.savedPolicy().policy) // Ownership was not falsely marked fully closed.
+            runtime.close() // Actual final Activity/lifecycle cleanup on the UI thread.
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.savedPolicy() }
+        } finally { runtime.close(); link.channel.close(); root.deleteRecursively() }
+    }
 }

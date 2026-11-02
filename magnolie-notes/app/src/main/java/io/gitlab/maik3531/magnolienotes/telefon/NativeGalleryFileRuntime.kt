@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.content.Context
+import android.os.Looper
 import kotlinx.serialization.json.JsonObject
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -58,10 +59,22 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         ready(); return workflow.disableLocally(expected)
     }
 
+    /** Native channel-end path can revoke file authority synchronously on any
+     * thread. Metadata/permission-host ownership remains held until actual UI
+     * cleanup; this is not a worker-END or quota-retirement receipt.
+     */
+    @Synchronized fun revokeControl() { controls.close() }
+
     @Synchronized override fun close() {
+        if (closed.get()) return
+        revokeControl()
+        // The workflow owns ActivityResult/lifecycle registration. Reject a
+        // wrong-thread final close BEFORE claiming completed cleanup or closing
+        // only half of the native resources. The native owner must then finish
+        // close on the UI thread; authority is already synchronously revoked.
+        if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         if (!closed.compareAndSet(false, true)) return
         ticket.set(null)
-        controls.close()
         try { workflow.close() } finally { index.close() }
     }
 
