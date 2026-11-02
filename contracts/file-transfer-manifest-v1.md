@@ -93,3 +93,35 @@ storage and negotiation, SAF opt-in, UI and end-to-end recovery remain active
 work in #329. The three implementations have matching shared UTF-8 manifest and
 checkpoint-vector tests plus actual owned-staging readback tests. Bounded
 Windows source-host and Kotlin unit tests are not physical-device acceptance.
+
+## Linux protected staging groundwork
+
+`EncryptedTransferStage` connects the Python ledger to directory-descriptor-
+bound private storage. The native coordinator must supply the accepted manifest,
+fresh native binding, a private parent and existing local AEAD protection
+callbacks. It never creates a personal identity/key store or chooses a public
+destination. Only opaque owner/member/chunk identifiers become filesystem names;
+sender-supplied relative paths do not.
+
+The root/entry ownership, permissions, directory identities, regular-file type,
+link count and bounds are checked. Reads/writes use no-follow directory-relative
+operations. Ciphertexts are bound to owner, manifest, native binding and entry.
+A durable chunk is read back and authenticated before the ledger retains a
+proof. Existing conflicting or later changed entries are not overwritten or
+adopted as a new baseline. Unknown files make cleanup fail before deleting any
+adopted files; no recursive deletion or wrong-key reset is used.
+
+Checkpoints are immutable encrypted versions, never blind replacements of a
+concurrently changed head. At most eight checkpoint versions are retained by
+this primitive. Closing releases descriptors without discarding resumable data.
+A synthetic fresh-process test opens an actual encrypted checkpoint and checks
+actual chunk bytes again, without sharing an in-memory proof ledger. Missing
+owned zero-byte markers are not treated as successful empty files.
+
+This is not yet a native durable job-index/retention coordinator: committing the
+selected checkpoint head, safe version retirement, retired-context quota and
+restart cleanup after revoked grants still need integration. Protected Windows/
+Android staging adapters, protocol negotiation/handlers, SAF source consent and
+end-to-end/native acceptance also remain open. No capability is advertised by
+these classes, and no user data or installed test package is changed by their
+source tests.

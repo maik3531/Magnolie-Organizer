@@ -7,7 +7,12 @@ never to a network request. Persisted chunk claims are re-read, not trusted.
 
 from dataclasses import dataclass
 from hashlib import sha256
+import json
+import os
+from pathlib import Path
 import re
+import secrets
+import stat
 import struct
 import threading
 import unicodedata
@@ -291,3 +296,341 @@ class ResumeLedger:
             raise TransferError("transfer_final_integrity_mismatch")
         self._require()
         return member
+
+
+@dataclass(frozen=True)
+class TransferStageHandle:
+    owner: str
+    checkpoint: str
+
+    def __post_init__(self):
+        _text(self.owner, _ID)
+        _text(self.checkpoint, _ID)
+
+
+class EncryptedTransferStage:
+    """Linux native, directory-fd-bound encrypted staging and immutable checkpoints.
+
+    The native coordinator supplies existing local protection callbacks, an
+    accepted manifest/binding and its own private job handle. No key creation,
+    directory scanning, peer store construction or destination publication.
+    Closing releases descriptors only; cleanup is a separate explicit action.
+    """
+
+    MAX_CHECKPOINT_BYTES = 2 * 1024 * 1024
+    MAX_PROTECTION_OVERHEAD = 128
+    MAX_CHECKPOINTS = 8
+
+    def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner=None):
+        if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+            raise TransferError("guarded_native_staging_platform_required")
+        # The same constructor validation as the ledger, without adopting any
+        # persisted authority or constructing a personal identity/key store.
+        ResumeLedger(manifest, binding, current_binding)
+        self._manifest, self._binding = manifest, binding
+        self._current_binding = current_binding
+        self._seal, self._unseal = seal, unseal
+        self._owner = _text(owner, _ID) if owner is not None else secrets.token_hex(16)
+        self._root_name = "file-transfer-" + self.owner
+        self._parent = Path(parent)
+        if not self._parent.is_absolute() or self._parent.resolve(strict=True) != self._parent:
+            raise TransferError("canonical_existing_staging_parent_required")
+        for path in (self._parent, *self._parent.parents):
+            if stat.S_ISLNK(os.lstat(path).st_mode):
+                raise TransferError("linked_staging_parent")
+        self._parent_fd = os.open(self._parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        self._root_fd = None
+        self._closed = False
+        self._owned = {}
+        self._gate = threading.RLock()
+        try:
+            metadata = os.fstat(self._parent_fd)
+            if metadata.st_uid != os.geteuid() or metadata.st_mode & 0o022:
+                raise TransferError("native_owned_staging_parent_required")
+        except BaseException:
+            os.close(self._parent_fd)
+            self._closed = True
+            raise
+        binding_hash = sha256(json.dumps(vars(binding), sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        self._domain = "device-file-stage-v1/" + self.owner + "/" + manifest.fingerprint + "/" + binding_hash + "/"
+
+    @property
+    def manifest(self):
+        return self._manifest
+
+    @property
+    def binding(self):
+        return self._binding
+
+    @property
+    def owner(self):
+        return self._owner
+
+    def _fresh(self):
+        if self._closed or self._current_binding() != self.binding:
+            raise TransferError("staging_native_binding_revoked")
+
+    @staticmethod
+    def _same(first, second):
+        return (first.st_dev, first.st_ino) == (second.st_dev, second.st_ino)
+
+    def _directories(self):
+        if self._closed or self._root_fd is None:
+            raise TransferError("staging_not_open")
+        if (not self._same(os.fstat(self._parent_fd), os.lstat(self._parent)) or
+                not self._same(os.fstat(self._root_fd), os.stat(self._root_name, dir_fd=self._parent_fd, follow_symlinks=False))):
+            raise TransferError("staging_directory_identity_changed")
+        root = os.fstat(self._root_fd)
+        if not stat.S_ISDIR(root.st_mode) or root.st_uid != os.geteuid() or root.st_mode & 0o077:
+            raise TransferError("staging_directory_privacy_changed")
+        owner_proof = self._owned.get("owner.enc")
+        if owner_proof is not None:
+            blob, metadata = self._raw_read_cipher("owner.enc", 4096 + self.MAX_PROTECTION_OVERHEAD)
+            if (metadata.st_dev, metadata.st_ino, sha256(blob).hexdigest()) != owner_proof:
+                raise TransferError("staging_owner_witness_changed")
+
+    def _owner_bytes(self):
+        return json.dumps({"format": 1, "owner": self.owner, "manifest_sha256": self.manifest.fingerprint,
+                           "binding": vars(self.binding)}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+    def _read_cipher(self, name, maximum):
+        self._directories()
+        return self._raw_read_cipher(name, maximum)
+
+    def _raw_read_cipher(self, name, maximum):
+        # Nonblocking open also rejects a substituted FIFO/device without
+        # hanging before fstat can establish the regular-file boundary.
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=self._root_fd)
+        with os.fdopen(fd, "rb") as source:
+            metadata = os.fstat(source.fileno())
+            if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1 or metadata.st_uid != os.geteuid()
+                    or metadata.st_mode & 0o077 or metadata.st_size > maximum):
+                raise TransferError("unsafe_or_oversized_staging_entry")
+            blob = source.read(maximum + 1)
+            if len(blob) > maximum:
+                raise TransferError("staging_entry_grew")
+        return blob, metadata
+
+    def _adopt(self, name, blob, metadata):
+        proof = metadata.st_dev, metadata.st_ino, sha256(blob).hexdigest()
+        if name in self._owned and self._owned[name] != proof:
+            raise TransferError("original_staging_witness_changed")
+        self._owned[name] = proof
+
+    def _read(self, name, maximum):
+        self._fresh()
+        blob, metadata = self._read_cipher(name, maximum + self.MAX_PROTECTION_OVERHEAD)
+        plain = self._unseal(blob, self._domain + name)
+        if type(plain) is not bytes or len(plain) > maximum:
+            raise TransferError("invalid_protected_staging_entry")
+        self._fresh()
+        self._adopt(name, blob, metadata)
+        return plain
+
+    def _write_new(self, name, plain):
+        self._fresh()
+        self._directories()
+        blob = self._seal(plain, self._domain + name)
+        if type(blob) is not bytes or not len(plain) <= len(blob) <= len(plain) + self.MAX_PROTECTION_OVERHEAD:
+            raise TransferError("invalid_native_staging_protection")
+        self._fresh()
+        try:
+            fd = os.open(name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=self._root_fd)
+        except FileExistsError:
+            if self._read(name, len(plain)) != plain:
+                raise TransferError("existing_staging_entry_changed")
+            return
+        with os.fdopen(fd, "w+b") as target:
+            try:
+                target.write(blob)
+                target.flush()
+                os.fsync(target.fileno())
+                self._adopt(name, blob, os.fstat(target.fileno()))
+                os.fsync(self._root_fd)
+                self._fresh()
+            except BaseException:
+                # Capture only the exact inode/bytes we created. A later changed
+                # inode or content will not be deleted by explicit cleanup.
+                try:
+                    target.flush()
+                    target.seek(0)
+                    actual = target.read(len(blob) + 1)
+                    self._adopt(name, actual, os.fstat(target.fileno()))
+                except OSError:
+                    pass
+                raise
+
+    @_serialized
+    def create(self):
+        self._fresh()
+        if self._root_fd is not None:
+            raise TransferError("staging_already_open")
+        if not self._same(os.fstat(self._parent_fd), os.lstat(self._parent)):
+            raise TransferError("staging_parent_changed")
+        os.mkdir(self._root_name, mode=0o700, dir_fd=self._parent_fd)
+        self._root_fd = os.open(self._root_name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=self._parent_fd)
+        self._write_new("owner.enc", self._owner_bytes())
+        os.fsync(self._parent_fd)
+        for file in self.manifest.files:
+            if file.size == 0:
+                self._write_new("empty-" + file.id + ".enc", b"empty-file-v1")
+
+    def _chunk(self, file_id, offset, size):
+        file = next((entry for entry in self.manifest.files if entry.id == file_id), None)
+        if (file is None or type(offset) is not int or type(size) is not int or offset < 0
+                or offset % CHUNK_BYTES or offset >= file.size or size != min(CHUNK_BYTES, file.size - offset)):
+            raise TransferError("invalid_native_staging_chunk_range")
+        return file_id + "-" + str(offset // CHUNK_BYTES) + ".enc"
+
+    @_serialized
+    def write_chunk(self, file_id, offset, data):
+        if type(data) is not bytes:
+            raise TransferError("native_staging_bytes_required")
+        name = self._chunk(file_id, offset, len(data))
+        # A version byte also keeps empty-plaintext protection edge cases out
+        # of the existing phone-storage AEAD interface.
+        self._write_new(name, b"\x01" + data)
+
+    @_serialized
+    def read_chunk(self, file_id, offset, size):
+        self._fresh()
+        file = next((entry for entry in self.manifest.files if entry.id == file_id), None)
+        if file is None:
+            raise TransferError("unknown_native_staging_member")
+        if type(offset) is int and type(size) is int and offset == file.size and size == 1:
+            if file.size == 0:
+                if self._read("empty-" + file.id + ".enc", 32) != b"empty-file-v1":
+                    raise TransferError("missing_owned_empty_file")
+            else:
+                last = ((file.size - 1) // CHUNK_BYTES) * CHUNK_BYTES
+                self.read_chunk(file_id, last, file.size - last)
+            return b""
+        name = self._chunk(file_id, offset, size)
+        plain = self._read(name, size + 1)
+        if len(plain) != size + 1 or plain[:1] != b"\x01":
+            raise TransferError("protected_staging_chunk_size_changed")
+        return plain[1:]
+
+    def save_checkpoint(self, ledger):
+        if ledger.manifest != self.manifest or ledger.binding != self.binding:
+            raise TransferError("checkpoint_native_owner_mismatch")
+        # Never take the ledger lock while holding the staging lock: chunk IO
+        # has the opposite (ledger -> stage) order. A subset snapshot is valid;
+        # resumed claims are always re-read before reuse.
+        plain = json.dumps(ledger.checkpoint(), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        if len(plain) > self.MAX_CHECKPOINT_BYTES:
+            raise TransferError("checkpoint_too_large")
+        with self._gate:
+            self._fresh()
+            names = self._entry_names()
+            if sum(name.startswith("checkpoint-") for name in names) >= self.MAX_CHECKPOINTS:
+                raise TransferError("native_checkpoint_version_limit_reached")
+            checkpoint = secrets.token_hex(16)
+            self._write_new("checkpoint-" + checkpoint + ".enc", plain)
+            return TransferStageHandle(self.owner, checkpoint)
+
+    @_serialized
+    def open_checkpoint(self, handle):
+        self._fresh()
+        if type(handle) is not TransferStageHandle or handle.owner != self.owner or self._root_fd is not None:
+            raise TransferError("invalid_native_checkpoint_handle")
+        self._root_fd = os.open(self._root_name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=self._parent_fd)
+        if self._read("owner.enc", 4096) != self._owner_bytes():
+            raise TransferError("protected_staging_owner_changed")
+        raw = self._read("checkpoint-" + handle.checkpoint + ".enc", self.MAX_CHECKPOINT_BYTES)
+        def strict_pairs(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value:
+                    raise TransferError("duplicate_checkpoint_key")
+                value[key] = item
+            return value
+        checkpoint = json.loads(raw, object_pairs_hook=strict_pairs,
+                                parse_constant=lambda _: (_ for _ in ()).throw(TransferError("nonfinite_checkpoint_value")))
+        return ResumeLedger.restore(self.manifest, self.binding, self._current_binding, checkpoint, self.read_chunk)
+
+    @_serialized
+    def cleanup(self):
+        # Revocation must not prevent removal of the exact local bytes already
+        # adopted by this native instance. It never authorizes reading/publishing
+        # new transfer data or recursively removing unfamiliar files.
+        self._directories()
+        names = self._entry_names()
+        # Authenticate bounded recognized leftovers (e.g. a crash after chunk
+        # fsync but before checkpoint publication) without treating them as
+        # resume/progress proofs. Unknown files make cleanup fail before deletion.
+        for name in names:
+            if name not in self._owned:
+                maximum = self.MAX_CHECKPOINT_BYTES if name.startswith("checkpoint-") else CHUNK_BYTES + 1
+                blob, metadata = self._read_cipher(name, maximum + self.MAX_PROTECTION_OVERHEAD)
+                plain = self._unseal(blob, self._domain + name)
+                if type(plain) is not bytes or len(plain) > maximum:
+                    raise TransferError("unrecognized_protected_staging_entry")
+                self._adopt(name, blob, metadata)
+        # Check ALL adopted witnesses before deleting ANY entry.
+        for name, proof in self._owned.items():
+            try:
+                blob, metadata = self._read_cipher(name, self.MAX_CHECKPOINT_BYTES + self.MAX_PROTECTION_OVERHEAD)
+            except FileNotFoundError:
+                continue
+            if (metadata.st_dev, metadata.st_ino, sha256(blob).hexdigest()) != proof:
+                raise TransferError("adopted_staging_entry_changed_before_cleanup")
+        for name, proof in sorted(self._owned.items(), key=lambda item: item[0] == "owner.enc"):
+            try:
+                blob, metadata = self._read_cipher(name, self.MAX_CHECKPOINT_BYTES + self.MAX_PROTECTION_OVERHEAD)
+            except FileNotFoundError:
+                self._owned.pop(name)
+                continue
+            if (metadata.st_dev, metadata.st_ino, sha256(blob).hexdigest()) != proof:
+                raise TransferError("adopted_staging_entry_changed_before_cleanup")
+            os.unlink(name, dir_fd=self._root_fd)
+            self._owned.pop(name)
+        os.fsync(self._root_fd)
+        os.rmdir(self._root_name, dir_fd=self._parent_fd)
+        os.fsync(self._parent_fd)
+
+    def _entry_names(self):
+        self._directories()
+        files = {file.id: file for file in self.manifest.files}
+        maximum = 1 + self.MAX_CHECKPOINTS + sum(max(1, file.chunks) for file in self.manifest.files)
+        names = []
+        checkpoints = 0
+        with os.scandir(self._root_fd) as entries:
+            for entry in entries:
+                if len(names) >= maximum or not entry.is_file(follow_symlinks=False):
+                    raise TransferError("unknown_or_unbounded_staging_entries")
+                name = entry.name
+                known = name == "owner.enc"
+                if name.startswith("checkpoint-") and name.endswith(".enc"):
+                    known = _ID.fullmatch(name[11:-4]) is not None
+                    checkpoints += 1
+                    if checkpoints > self.MAX_CHECKPOINTS:
+                        raise TransferError("native_checkpoint_version_limit_reached")
+                elif name.startswith("empty-") and name.endswith(".enc"):
+                    file = files.get(name[6:-4])
+                    known = file is not None and file.size == 0
+                elif name.endswith(".enc") and len(name) > 37:
+                    file_id, _, number = name[:-4].partition("-")
+                    file = files.get(file_id)
+                    known = (file is not None and number.isascii() and number.isdecimal() and len(number) <= 4
+                             and number == str(int(number)) and int(number) < file.chunks)
+                if not known:
+                    raise TransferError("unfamiliar_staging_entry_preserved")
+                names.append(name)
+        return names
+
+    def close(self):
+        with self._gate:
+            if self._closed:
+                return
+            self._closed = True
+            if self._root_fd is not None:
+                os.close(self._root_fd)
+            os.close(self._parent_fd)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
