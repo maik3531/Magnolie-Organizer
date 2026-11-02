@@ -63,7 +63,7 @@ internal class AndroidPhotoFolderInventory(context: Context, private val scope: 
                     if (id.isNullOrEmpty() || id.length > 4096 || id.any { character -> character.code < 32 || character.code == 127 } || !seen.add(id))
                         throw PhotoFolderScopeError("photo_inventory_ambiguous_document")
                     val document = DocumentsContract.buildDocumentUriUsingTree(tree, id)
-                    if (!isChild(rootDocument, document))
+                    if (!isPhotoTreeChild(resolver, rootDocument, document))
                         throw PhotoFolderScopeError("photo_inventory_document_outside_tree")
                     fresh()
                     val mime = if (it.isNull(mimeColumn)) null else it.getString(mimeColumn)
@@ -108,19 +108,6 @@ internal class AndroidPhotoFolderInventory(context: Context, private val scope: 
         return PhotoFolderInventory(lease, entries)
     }
 
-    private fun isChild(parent: Uri, child: Uri): Boolean {
-        if (android.os.Build.VERSION.SDK_INT >= 29) return DocumentsContract.isChildDocument(resolver, parent, child)
-        // API26-28: use the same read-only provider call as Android's framework,
-        // via public ContentResolver.call (no hidden-API reflection). The public
-        // DocumentsContract resolver convenience method was only added in API29.
-        // Protocol: AOSP android-8.0.0_r1 DocumentsContract.isChildDocument(client,...).
-        val arguments = android.os.Bundle().apply {
-            putParcelable("uri", parent)
-            putParcelable("android.content.extra.TARGET_URI", child)
-        }
-        return resolver.call(parent, "android:isChildDocument", null, arguments)?.get("result") == true
-    }
-
     companion object {
         const val MAX_VISITED = 512
         const val MAX_DIRECTORIES = 32
@@ -130,4 +117,14 @@ internal class AndroidPhotoFolderInventory(context: Context, private val scope: 
             DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE,
             DocumentsContract.Document.COLUMN_SIZE, DocumentsContract.Document.COLUMN_LAST_MODIFIED, DocumentsContract.Document.COLUMN_FLAGS)
     }
+}
+
+internal fun isPhotoTreeChild(resolver: android.content.ContentResolver, parent: Uri, child: Uri): Boolean {
+    if (android.os.Build.VERSION.SDK_INT >= 29) return DocumentsContract.isChildDocument(resolver, parent, child)
+    // Same read-only Android8 provider protocol through public APIs on API26-28.
+    val arguments = android.os.Bundle().apply {
+        putParcelable("uri", parent)
+        putParcelable("android.content.extra.TARGET_URI", child)
+    }
+    return resolver.call(parent, "android:isChildDocument", null, arguments)?.get("result") == true
 }

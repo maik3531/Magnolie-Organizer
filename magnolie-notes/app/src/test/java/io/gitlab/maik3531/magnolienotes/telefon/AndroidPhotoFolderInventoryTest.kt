@@ -21,9 +21,9 @@ import org.robolectric.shadows.ShadowContentResolver
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class AndroidPhotoFolderInventoryTest {
-    private data class Row(val id: String, val name: String = "photo.jpg", val mime: String = "image/jpeg",
+    internal data class Row(val id: String, val name: String = "photo.jpg", val mime: String = "image/jpeg",
         val size: Any? = 5L, val modified: Any? = 100L, val flags: Any? = 0L)
-    private class Provider : DocumentsProvider() {
+    internal class Provider : DocumentsProvider() {
         val rows = mutableMapOf<String, List<Row>>()
         val queried = mutableListOf<String>()
         val cursors = mutableListOf<Cursor>()
@@ -31,32 +31,42 @@ class AndroidPhotoFolderInventoryTest {
         var onClose: (() -> Unit)? = null
         var opened = 0
         var deleted = 0
+        val contents = mutableMapOf<String, java.io.File>()
+        var onOpen: ((String, Int) -> Unit)? = null
         override fun onCreate() = true
         override fun queryRoots(projection: Array<out String>?) = throw AssertionError("Unselected roots enumerated")
-        override fun queryDocument(documentId: String, projection: Array<out String>?) = throw AssertionError("Unexpected document lookup")
+        override fun queryDocument(documentId: String, projection: Array<out String>?): Cursor =
+            cursor(rows.values.flatten().filter { it.id == documentId }, requireNotNull(projection))
         override fun queryChildDocuments(parentDocumentId: String, projection: Array<out String>?, sortOrder: String?): Cursor {
             queried += parentDocumentId
             val columns = requireNotNull(projection)
+            return cursor(rows[parentDocumentId].orEmpty(), columns).also { onQuery?.invoke() }
+        }
+        private fun cursor(entries: List<Row>, columns: Array<out String>): Cursor {
             val cursor = object : MatrixCursor(columns) {
                 override fun close() { super.close(); onClose?.invoke() }
             }
-            rows[parentDocumentId].orEmpty().forEach { row ->
+            entries.forEach { row ->
                 val fields = mapOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID to row.id,
                     DocumentsContract.Document.COLUMN_DISPLAY_NAME to row.name, DocumentsContract.Document.COLUMN_MIME_TYPE to row.mime,
                     DocumentsContract.Document.COLUMN_SIZE to row.size, DocumentsContract.Document.COLUMN_LAST_MODIFIED to row.modified,
                     DocumentsContract.Document.COLUMN_FLAGS to row.flags)
                 cursor.addRow(columns.map { fields[it] }.toTypedArray())
             }
-            cursors += cursor; onQuery?.invoke(); return cursor
+            cursors += cursor; return cursor
         }
         override fun isChildDocument(parentDocumentId: String, documentId: String) = documentId.startsWith(parentDocumentId + "/")
         override fun openDocument(documentId: String, mode: String, signal: CancellationSignal?): ParcelFileDescriptor {
-            opened++; throw AssertionError("Inventory is not a frozen byte snapshot and must not open content")
+            opened++
+            check(mode == "r") { "Photo source requested write access" }
+            val file = contents[documentId] ?: throw AssertionError("Inventory must not open content")
+            onOpen?.invoke(documentId, opened)
+            return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         }
         override fun deleteDocument(documentId: String) { deleted++; throw AssertionError("Read-only inventory attempted provider mutation") }
     }
 
-    private class Fixture {
+    internal class Fixture {
         val context = RuntimeEnvironment.getApplication()
         val provider = Provider()
         var receiver = NativePhotoReceiver("receiver_fixture_01", "e".repeat(64), Any(), "f".repeat(64),
@@ -164,7 +174,7 @@ class AndroidPhotoFolderInventoryTest {
 
     companion object {
         private const val AUTHORITY = "inventory.fixture.documents"
-        private const val ROOT = "selected"
+        internal const val ROOT = "selected"
         private const val TREE = "content://inventory.fixture.documents/tree/selected"
     }
 }

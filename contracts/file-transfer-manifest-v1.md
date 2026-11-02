@@ -204,3 +204,33 @@ through public `ContentResolver.call`; the public resolver-based
 `DocumentsContract.isChildDocument` convenience method is guarded to API29+.
 There is no hidden-API reflection, path-prefix trust fallback or minimum-Android
 version increase. Missing/invalid provider descendant results fail closed.
+
+## Protected Android source snapshots
+
+`AndroidPhotoSourceReader` rechecks exact document identity/name/image metadata,
+size/mtime and descendant status, then opens only a cancellable READ-only PFD.
+Every source read is bracketed by native lease/cancellation checks. It does not
+request WRITE permission, choose another folder or open personal stores.
+
+`ProtectedPhotoSourceSnapshot` requires a newly reserved, empty private native
+directory from the coordinator. It streams at most 64 KiB at a time into new
+existing-key AEAD chunk files, fsyncs them and reads/authenticates actual bytes
+back. A second bounded live-source read must have the same whole SHA and exact
+EOF, with metadata revalidation between observations. Empty files still require
+actual source opens/EOF plus an owned encrypted marker. The final immutable
+manifest is exposed only after protected manifest readback and a final complete
+private-byte hash check. Subsequent chunk reads use the frozen private copy,
+not potentially changed live provider bytes.
+
+CREATE_NEW operations never replace existing entries. Original inode/ciphertext
+witnesses are retained, not rebased after a change. Failure returns a native
+pending-cache handle rather than a completed manifest; explicit cleanup can
+remove only exact adopted bytes, including after grant revocation/cancellation.
+Unknown files/changed witnesses block cleanup before deletion. No recursive
+provider or private-directory deletion is used by this primitive.
+
+This is not yet the native reservation/job-index/quota/restart coordinator or
+sender handler. A local metadata frame bound does not replace checking the
+**complete actual encoded offer envelope** against the existing 262144-byte
+application limit. No photo-sync capability, UI, background schedule or saved
+destination receipt is activated by these source classes.
