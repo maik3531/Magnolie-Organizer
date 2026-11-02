@@ -181,10 +181,9 @@ internal static class PersonalActorTargetObserverRuntimeTests
     }
 
     private static async Task HistoricalBridgeSaveAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
-        TelefonConnection connection, PersonalActorHandle handle, JsonObject scope, string candidateText, string token, PersonalActorNativeSaveHost host)
+        TelefonConnection connection, PersonalActorHandle handle, JsonObject scope, string candidateText, string token, PersonalActorNativeSaveHost host, NativeHistoricalWriterInvocation invocation)
     {
         var beforeBytes = File.ReadAllBytes(host.DataPath); var before = host.Saved();
-        var invocation = new NativeHistoricalWriterInvocation(coordinator, handle, token);
         var sentText = scenario.EndsWith("-payload", StringComparison.Ordinal) ? candidateText + " " : candidateText;
         host.FailAfterPrimary = scenario.EndsWith("-uncertain", StringComparison.Ordinal);
         using var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = sentText }.ToJsonString());
@@ -394,13 +393,20 @@ internal static class PersonalActorTargetObserverRuntimeTests
                 else
                 {
                     var candidateText = proposed.ToJsonString();
-                    var claim = await coordinator.PreparePersonalActorHistoricalRestoreSaveAsync(handle, view["revision"]!.GetValue<string>(), [choice], candidateText);
+                    NativeHistoricalWriterInvocation? bridgeInvocation = null;
+                    JsonObject claim;
+                    if (nativeSaveHost is not null)
+                    {
+                        var issued = await nativeSaveHost.PreparePersonalActorHistoricalSaveAsync(coordinator, handle, view["revision"]!.GetValue<string>(), [choice], candidateText);
+                        claim = issued.Claim; bridgeInvocation = issued.Invocation;
+                    }
+                    else claim = await coordinator.PreparePersonalActorHistoricalRestoreSaveAsync(handle, view["revision"]!.GetValue<string>(), [choice], candidateText);
                     TestAssert.That(claim["data_closed"]!.GetValue<bool>() && !claim["book_persisted"]!.GetValue<bool>() && !claim["phone_persisted"]!.GetValue<bool>(), "Prepare manufactured a saved/peer receipt.");
                     await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Prepared owner retained data access.");
                     var token = claim["claim_token"]!.GetValue<string>();
                     if (nativeSaveHost is not null)
                     {
-                        await HistoricalBridgeSaveAsync(scenario, coordinator, store, peer, connection, handle, scope, candidateText, token, nativeSaveHost);
+                        await HistoricalBridgeSaveAsync(scenario, coordinator, store, peer, connection, handle, scope, candidateText, token, nativeSaveHost, bridgeInvocation!);
                         return;
                     }
                     if (scenario.Contains("-prepare-file-", StringComparison.Ordinal))

@@ -43,6 +43,7 @@ internal sealed partial class PersonalActorNativeSaveHost
         return saved is not null && saved.Sha256 == BaumSyncSnapshot.Hash(currentPlainText) ? saved : null;
     }
     internal NativeActorBookSnapshot? Snapshot() => NativeActorBookSnapshot.Capture(Saved, () => currentPlainTextAvailable ? currentPlainText : null);
+    private NativeBookSaveState? NativeActorSavedBook() => Saved();
     internal static async Task VerifyOrdinaryAsync(string beforeText, string afterText)
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actual-save-regression-" + Guid.NewGuid().ToString("N"));

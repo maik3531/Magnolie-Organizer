@@ -969,6 +969,30 @@ internal sealed partial class BridgeDispatcher : IDisposable
         finally { if (locked) MutationGate.Global.Release(); }
     }
 
+    // Private native issuer, never an ExecuteMcp/request action. The frontend
+    // caller must retain its pristine mutation boundary until actual SaveAsync
+    // result, then adopt the saved candidate even if terminal Confirm is delayed.
+    internal async Task<(JsonObject Claim, NativeHistoricalWriterInvocation Invocation)> PreparePersonalActorHistoricalSaveAsync(
+        TelefonCoordinator source, PersonalActorHandle handle, string reviewRevision, IReadOnlyList<JsonObject> choices, string candidateText)
+    {
+        await RetryRestoreRepairAsync();
+        await MutationGate.Global.WaitAsync(backgroundLifetime.Token);
+        try
+        {
+            if (disposed || restoreInProgress || !currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+                throw new InvalidOperationException("actor_historical_native_writer_unavailable");
+            var before = NativeActorSavedBook() ?? throw new InvalidOperationException("actor_native_saved_book_unavailable");
+            var plan = await source.PreparePersonalActorHistoricalRestoreSaveAsync(handle, reviewRevision, choices, candidateText, backgroundLifetime.Token);
+            if (plan["book_source"]?.GetValue<string>() != before.BookSource || plan["before_sequence"]?.GetValue<long>() != before.Sequence || NativeActorSavedBook() != before)
+            {
+                await source.WithPersonalActorStoreAsync(registry => registry.Cancel(handle));
+                throw new InvalidOperationException("actor_historical_native_writer_source_changed");
+            }
+            return (plan, new NativeHistoricalWriterInvocation(source, handle, plan["claim_token"]!.GetValue<string>()));
+        }
+        finally { MutationGate.Global.Release(); }
+    }
+
     private async Task UnlockAsync(string password)
     {
         var now = Stopwatch.GetTimestamp();
