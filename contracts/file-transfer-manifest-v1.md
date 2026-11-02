@@ -627,6 +627,11 @@ storage, mutation/publication adapters, handlers and UI remain open.
 
 ## User-required photo sync policy (open integration criteria)
 
+The verified groundwork is archived in #329. The still-open native integration,
+durable destination/receipt ownership, Organizer controls and end-to-end
+acceptance continue in #330. Archiving the groundwork is not completion of
+photo synchronization or permission to deliver/publish a new package.
+
 All additional configuration belongs **only in Organizer → KDE Connect →
 Advanced functions**, grouped in expandable sections. Detailed photo options
 should appear only when photo synchronization is enabled. There are no additional
