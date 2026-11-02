@@ -2423,7 +2423,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
-        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
+        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
+                JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
                 JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG),
                 JsonPrimitive(DeviceFileSourceCommand.PERMISSION_RESULT), JsonPrimitive(DeviceFileSourceCommand.RUN_RESULT))) {
             val connection = synchronized(this) {
@@ -2446,6 +2447,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }
             if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
             else if (message["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND)) runtime.observeAcceptance(message)
+            else if (message["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST)) runtime.receiveChunkRequest(message,channel::send)
             else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))
                 runtime.receiveSourceCommand(message, channel::send, runCommands = galleryRunCommands)
             else DeviceFileControl.fail("file_sources_unexpected_result")

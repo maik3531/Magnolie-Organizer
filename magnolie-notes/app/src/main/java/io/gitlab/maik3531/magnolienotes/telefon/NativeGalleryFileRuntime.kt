@@ -127,6 +127,33 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         run.preparation.cancel() // Cancellation does not release whole-run ownership.
     }
 
+    internal fun receiveChunkRequest(message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        val request=DeviceFileChunkEnvelope.parseRequest(message,now())
+        val run=syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+        val accepted=run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
+        if (request.transferId != accepted.transferId || request.manifestSha256 != accepted.manifestSha256 ||
+            request.acceptanceSha256 != accepted.acceptanceSha256 || request.destinationToken != accepted.destinationToken ||
+            request.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_chunk_acceptance_changed")
+        fun authority() {
+            if (now() >= request.expires || run.cancelRequested || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+                DeviceFileControl.fail("file_chunk_authority_changed")
+        }
+        authority()
+        val selected=run.selection
+        val job=run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        val source=workflow.source(job,selected.catalog.source,selected.album,selected.desktopChoice)
+        if (source.manifest.fingerprint != accepted.manifestSha256) DeviceFileControl.fail("file_chunk_acceptance_changed")
+        val data=source.readChunk(request.fileId,request.chunkIndex)
+        try {
+            authority()
+            val response=DeviceFileChunkEnvelope.response(request,data,now())
+            authority();send(response);authority()
+            if (source.manifest.fingerprint != accepted.manifestSha256) DeviceFileControl.fail("file_chunk_acceptance_changed")
+        } finally { data.fill(0) }
+        // A completed chunk write releases no source quota or whole-run owner.
+    }
+
     /** Only an explicitly stopped run can end here. This neither reports sync
      * success nor retires source quota; data/publication receipts remain separate. */
     internal fun endStoppedSyncRun(run: NativeGallerySyncRun) = withOperation {

@@ -3,11 +3,13 @@
 Status: **source groundwork, not a negotiated or advertised capability**.
 The Python/Windows/Kotlin ledger and manifest implementations are not a
 working Android photo-folder sync, Windows resume implementation or accepted
-native transfer feature. File-data/offer/chunk/publication handlers are still
-unregistered. Dedicated native control/source-metadata/permission command paths
+native transfer feature. Source-side accepted-offer/chunk request handlers now
+join the native frozen source; complete receiver transport/publication/resume/
+receipt integration is still pending. Dedicated native control/source-metadata/permission command paths
 are documented in `file-transfer-control-v1.md`; they remain unadvertised and do
 not activate a listener, grant default, source-run worker or automatic filesystem
-action merely by reading metadata.
+action merely by reading metadata. Explicit source-run commands are separate from
+passive metadata and remain unadvertised until complete native integration.
 
 This contract is separate from personal note/task/book transactions. Neither
 a chunk witness nor a complete file digest is a Notes/Organizer SaveACK or

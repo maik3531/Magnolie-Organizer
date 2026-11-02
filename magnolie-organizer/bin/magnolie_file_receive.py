@@ -189,6 +189,24 @@ class NativeFileReceiveOperation:
                 self._failed = True
                 raise
 
+    def chunk_request_message(self,file_id,index,*,now=None,message_id=None):
+        from magnolie_file_chunk_message import create_request
+        with self._gate:
+            self._require()
+            if self._published is not None or self._receipts is not None:
+                raise TransferError('file_receive_already_physically_published')
+            result=create_request(self._accepted,self._current,file_id,index,now=now,message_id=message_id)
+            self._require()
+            return result
+
+    def receive_chunk_message(self,message,request,*,now=None):
+        from magnolie_file_chunk_message import parse_chunk
+        with self._gate:
+            self._require()
+            data=parse_chunk(message,request,self._accepted,self._current,now=now)
+            body=request['body']
+            return self.receive_chunk(body['file_id'],body['chunk_index'],data)
+
     def checkpoint(self):
         with self._gate:
             self._require()

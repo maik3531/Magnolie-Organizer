@@ -499,6 +499,30 @@ class AndroidGalleryPhotoSourceTest {
                         assertNull(whole.acceptance.get())
                         runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
                         assertEquals("e".repeat(64),whole.acceptance.get()!!.destinationToken)
+                        val chunkRequest=TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST,buildJsonObject {
+                            put("format",1);put("transfer_id",manifest!!.transferId);put("manifest_sha256",manifest!!.fingerprint)
+                            put("acceptance_sha256","c".repeat(64));put("permission_epoch",runtime.currentRequest()!!.receiver.permissionEpoch)
+                            put("destination_token","e".repeat(64));put("file_id",manifest!!.files.single().id);put("chunk_index",0)
+                        },60_000,now)
+                        val wrongChunk=JsonObject(chunkRequest+("body" to JsonObject(chunkRequest["body"]!!.jsonObject+("destination_token" to JsonPrimitive("f".repeat(64))))))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveChunkRequest(wrongChunk,channel::send,{now}) }
+                        var chunkTicks=0
+                        assertThrows(PhotoFolderScopeError::class.java) {
+                            runtime.receiveChunkRequest(chunkRequest,channel::send,{if (++chunkTicks>=3) now+60_000 else now})
+                        }
+                        assertEquals(0,output.size())
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.receiveChunkRequest(chunkRequest,{throw java.io.IOException("chunk output failed")},{now})
+                        }
+                        runtime.receiveChunkRequest(chunkRequest,channel::send,{now})
+                        val chunkFrame=TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray()));output.reset()
+                        val chunkHeader=JsonObject(chunkFrame-"ciphertext")
+                        val chunkClear=TelefonKrypto.entschluesseln(key,TelefonKrypto.nonce(prefix,chunkHeader.long("seq")),
+                            java.util.Base64.getDecoder().decode(chunkFrame.string("ciphertext")),TelefonKanonisch.bytes(chunkHeader))
+                        val chunk=Json.parseToJsonElement(chunkClear.decodeToString()).jsonObject
+                        assertEquals(DeviceFileChunkEnvelope.RESULT,chunk.string("kind"))
+                        assertEquals(chunkRequest.string("message_id"),chunk["body"]!!.jsonObject.string("request_id"))
+                        assertArrayEquals("hello".toByteArray(),java.util.Base64.getDecoder().decode(chunk["body"]!!.jsonObject.string("data_base64")))
                         val replacement=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+("destination_token" to JsonPrimitive("f".repeat(64))))))
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(replacement,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole,{},now) }
@@ -508,6 +532,7 @@ class AndroidGalleryPhotoSourceTest {
                         runtime.cancelSyncRun(whole)
                         assertTrue(whole.cancelRequested)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(acceptance,{now}) }
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveChunkRequest(chunkRequest,channel::send,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole, {}, now) }
                         runtime.endStoppedSyncRun(whole)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }

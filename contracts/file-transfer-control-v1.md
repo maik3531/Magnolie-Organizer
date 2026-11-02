@@ -691,6 +691,50 @@ This does not yet activate chunk/resume/receipt data handlers, desktop UI or a
 published capability. Physical phone/installed UI/full synchronization acceptance
 remain outstanding, with discovery 21 unadvertised.
 
+### Accepted-source chunk request/output (partial receiver integration)
+
+`file_transfer.chunk.request` uses a strict maximum-8192-byte envelope with at
+most 60 seconds TTL and strict expiry. Inner format 1 has exactly `transfer_id`,
+`manifest_sha256`, `acceptance_sha256`, `permission_epoch`, `destination_token`,
+`file_id`, integer `chunk_index`. Transfer/member IDs are 32 lowercase hex; the
+hashes/token are 64 lowercase hex. No path, range extension, late manifest member,
+OS grant, progress total or publication claim is accepted.
+
+The actual phone dispatcher resolves only the currently native-owned noncancelled
+whole run and its immutable acceptance. Every binding must match. The protected
+frozen source is restored under current native source authority and the requested
+exact member/chunk is read from it. Deadline/native authority is checked again
+after the actual read and around actual secure output. The temporary raw chunk
+buffer is cleared on completion/failure. No source quota or whole-run slot is
+released by chunk output.
+
+`file_transfer.chunk` returns all request fields plus `request_id`, canonical
+`data_base64`, `data_sha256`. Data is at most 65536 bytes; the complete application
+envelope uses the existing 262144-byte budget, not the smaller metadata budget.
+The phone reserves unexpected inbound chunk data before personal staging and
+rejects it on this source-only route. The response is source bytes, not a durable
+checkpoint, accepted publication, saved receipt or synchronization END.
+
+Linux's native receive operation can build a request from the actual accepted
+transfer and consume a response only with exact original request correlation,
+full accepted manifest/native binding, expected member/index/length, canonical
+base64 and actual data digest. Those checks precede native staging; the existing
+durable encrypted-stage/readback/resume-ledger operation then records it. A fresh
+response header does not revive an expired original request. Windows currently
+provides pure strict chunk preflight only, not native receive admission or writes.
+
+The targeted Linux chunk run passes 23 cases, including real stage/readback/
+checkpoint, 65536-byte and final-partial chunks, duplicate no-recount, different
+duplicate rejection, revoked binding and no implicit publication or quota release.
+Four affected Android cases pass: strict request/complete chunk budget two,
+actual native protected-source→encrypted chunk→decrypted byte readback and lifecycle
+one, and actual-Werk permission/reconnect one. The Windows chunk source-host group
+passes with zero build warnings/errors. These are synthetic/Robolectric/source-host
+checks, not physical phone or installed native Windows receiver acceptance.
+Desktop transport/UI activation,
+resume/receipt data handlers and complete recovery/photo baselines remain open;
+discovery 21 stays unadvertised and no automatic run/package is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
