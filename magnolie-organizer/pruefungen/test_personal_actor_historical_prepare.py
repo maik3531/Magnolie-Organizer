@@ -124,3 +124,21 @@ def test_idle_data_check_recognizes_only_the_original_scoped_request_wrapper_wit
         registry.require_historical_data_idle(handle, manifest)
     registry.require_current(handle)
     assert registry.status(handle) == before and read() == saved and durable_queue(service) == queue and not channel.sent
+
+
+def test_prepared_native_writer_does_not_reopen_data_or_count_delayed_network_controls_as_save_receipts(tmp_path, monkeypatch, gui_candidates):
+    fixture = gui_candidates[0]
+    service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path, monkeypatch, fixture)
+    claim = service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
+    before, retained, saved, queue = registry.status(handle), copy.deepcopy(book), read(), durable_queue(service)
+    records = [fixture['live_records'][0]]
+    batch = {'format': fixture['format'], 'run_id': handle.actor_id, 'batch_id': str(uuid.uuid4()), 'reply': False, 'sequence': 0, 'last': True,
+        'records_hash': personal.records_hash(records), 'records': records}
+    incoming = actor.wire_message(frame('personal_sync.batch', batch), handle.actor_id)
+    service._payload(peer, channel, incoming)
+    service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, str(uuid.uuid4()))))
+    assert registry.status(handle) == before and book == retained and read() == saved and durable_queue(service) == queue and not channel.sent
+    with pytest.raises(PermissionError): registry.read(handle, incoming['message_id'])
+    assert service.personal_actor_status(registry, handle)['book_persisted'] is False
+    service.check_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text)
+    service.cancel_personal_actor(registry, handle, notify=False)

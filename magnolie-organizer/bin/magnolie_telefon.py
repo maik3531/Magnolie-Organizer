@@ -5714,6 +5714,12 @@ class PhoneService:
                         deferred[identity] = copy.deepcopy(payload)
                         return
                     return True
+                if admission.get('historical_save_claim') is not None:
+                    # Prepared historical owner is already data-closed, but has
+                    # no actual SaveACK/terminal handoff yet. Delayed start ACKs
+                    # or new data must neither cancel its valid native writer
+                    # claim nor enter raw/content staging or count as receipts.
+                    return True
                 waiting = admission.get('report_owner')
                 if waiting is not None:
                     # Only metadata accepted by the exact pre-report owner;
