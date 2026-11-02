@@ -4836,6 +4836,7 @@ class PhoneService:
                     admission.get('producer_bodies') or admission.get('commit_plan') or
                     admission.get('completion') is not None):
                 raise PermissionError('actor_historical_mixed_group_not_ready')
+            registry.require_historical_data_idle(handle, manifest)
             reviewed = self.review_personal_actor_historical_restore(registry, handle, expected_revision, choices)
             targets = [value['target'] for value in reviewed['local_restore_sources']]
             request = self.store.personal_run(private, handle.actor_id)
@@ -4902,10 +4903,13 @@ class PhoneService:
             if (admission is None or admission.get('registry') is not registry or admission.get('handle') != handle or plan is None or
                     not isinstance(claim_token, str) or not secrets.compare_digest(plan['token'], claim_token)):
                 raise PermissionError('actor_historical_save_claim_unavailable')
+            if plan.get('writer_gate_checked'):
+                raise PermissionError('actor_historical_writer_claim_already_used')
             if (not isinstance(candidate_text, str) or len(candidate_text) > 256 * 1024 * 1024 or
                     hashlib.sha256(candidate_text.encode('utf-8')).hexdigest() != plan['proof'].after_sha256):
                 raise PermissionError('actor_historical_writer_payload_changed')
             registry.check_historical_save(handle)
+            plan['writer_gate_checked'] = True  # An invocation marker, never a successful SaveACK.
 
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""

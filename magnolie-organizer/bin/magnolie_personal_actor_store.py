@@ -415,6 +415,29 @@ class ActorStore:
                     pass  # The volatile capability is already irreversibly gone.
                 raise PermissionError(str(error)) from None
 
+    def require_historical_data_idle(self, handle, manifest):
+        """First pure historical lane must not skip partial/ready data groups.
+
+        Reads protected metadata internally, returns no ordinary content or
+        admission rights. Raw stored bytes can deny this lane, never grant it.
+        """
+        scope.validate(manifest)
+        with self._database() as db:
+            self._require(db, handle)
+            rows = db.execute('SELECT message_id,payload FROM personal_actor_wire WHERE actor_id=?', (handle.actor_id,)).fetchall()
+            for message_id, sealed in rows:
+                wire = json.loads(self.store._decrypt(sealed, 'personal_actor_wire', handle.actor_id + ':' + message_id))
+                self._wire_payload(handle, wire, fresh=False)
+                if wire['kind'] == actor.DATA_KIND:
+                    kind, body = actor.unwrap(wire['body'])
+                    if kind == scope.DATA_KIND:
+                        kind, _ = scope.unwrap(body, manifest)
+                    if kind != 'personal_sync.request':
+                        raise PermissionError('actor_historical_mixed_data_not_ready')
+                elif wire['kind'] not in (actor.START_KIND, actor.ACK_KIND):
+                    raise PermissionError('actor_historical_mixed_data_not_ready')
+            self._require(db, handle)
+
     def check_historical_save(self, handle):
         """Native writer gate only, NOT save/origin/restore authority.
 

@@ -7,6 +7,8 @@ import uuid
 
 import pytest
 import magnolie_personal_actor as actor
+import magnolie_personal_sync as personal
+import magnolie_content_scope as scope
 from test_personal_actor_restore_candidate import gui_candidates
 from test_personal_actor_target_observer_runtime import observation_runtime
 from test_personal_actor_transport import frame
@@ -51,6 +53,8 @@ def test_native_historical_prepare_uses_exact_candidate_and_irreversibly_closes_
         with pytest.raises(PermissionError): registry.require_current(handle)
         with pytest.raises(PermissionError): registry.read_completion_controls(handle)
         service.check_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text)
+        with pytest.raises(PermissionError, match='already_used'):
+            service.check_personal_actor_historical_restore_save(registry, handle, claim['claim_token'], text)
         with pytest.raises(PermissionError): service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
         assert book == retained and read() == saved and durable_queue(service) == queue and not channel.sent
         service.cancel_personal_actor(registry, handle, notify=False)
@@ -84,3 +88,39 @@ def test_native_writer_gate_rechecks_the_prepared_claim_before_any_actual_write(
     with pytest.raises(PermissionError): service.check_personal_actor_historical_restore_save(registry, handle, token, text)
     assert book == retained and read() == saved and durable_queue(service) == queue and not channel.sent
     with pytest.raises(PermissionError): registry.require_current(handle)
+
+
+@pytest.mark.parametrize('last', [False, True])
+def test_a_partial_or_ready_ordinary_data_group_cannot_be_silently_skipped_by_historical_prepare(tmp_path, monkeypatch, gui_candidates, last):
+    fixture = gui_candidates[0]
+    service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path, monkeypatch, fixture)
+    records = [fixture['live_records'][0]]
+    batch = {'format': fixture['format'], 'run_id': handle.actor_id, 'batch_id': str(uuid.uuid4()), 'reply': False, 'sequence': 0, 'last': last,
+        'records_hash': personal.records_hash(records), 'records': records}
+    wire = actor.wire_message(frame('personal_sync.batch', batch), handle.actor_id)
+    service._payload(peer, channel, wire)
+    assert registry.read(handle, wire['message_id']) == wire
+    channel.sent.clear()
+    before, saved, queue, retained = registry.status(handle), read(), durable_queue(service), copy.deepcopy(book)
+    with pytest.raises(PermissionError, match='mixed_data'):
+        service.prepare_personal_actor_historical_restore_save(registry, handle, view['revision'], choices, text)
+    registry.require_current(handle)
+    assert registry.status(handle) == before and read() == saved and book == retained and durable_queue(service) == queue and not channel.sent
+
+
+@pytest.mark.parametrize('foreign_scope', [False, True])
+def test_idle_data_check_recognizes_only_the_original_scoped_request_wrapper_without_granting_data_rights(tmp_path, monkeypatch, gui_candidates, foreign_scope):
+    service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path, monkeypatch, gui_candidates[0])
+    admission = service.personal_actor_admissions[handle.actor_id]
+    manifest = service.current_content_scope(peer['device_id'], peer['static_public'], admission['scope'])
+    used = scope.create(['foreign'], []) if foreign_scope else manifest
+    request = service.store.personal_run(actor.storage_peer(handle.actor_id), handle.actor_id)
+    wire = actor.wire_message(frame(scope.DATA_KIND, scope.wrap('personal_sync.request', request, used)), handle.actor_id)
+    registry.put(handle, wire)  # Raw storage is not authenticated origin or action authority.
+    before = registry.status(handle); saved = read(); queue = durable_queue(service)
+    if foreign_scope:
+        with pytest.raises(ValueError): registry.require_historical_data_idle(handle, manifest)
+    else:
+        registry.require_historical_data_idle(handle, manifest)
+    registry.require_current(handle)
+    assert registry.status(handle) == before and read() == saved and durable_queue(service) == queue and not channel.sent
