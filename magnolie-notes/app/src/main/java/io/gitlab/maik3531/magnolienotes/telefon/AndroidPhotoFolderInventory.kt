@@ -11,7 +11,7 @@ import java.util.Collections
  * Callers must still freeze/read back actual source bytes before creating an offer.
  */
 internal data class PhotoInventoryEntry(val documentUri: String, val documentId: String,
-    val relativePath: String, val advertisedBytes: Long, val advertisedModifiedMs: Long?)
+    val relativePath: String, val advertisedBytes: Long, val advertisedModifiedMs: Long?, val nativeRevision: String? = null)
 
 internal class PhotoSourceInventory internal constructor(val lease: NativePhotoSourceLease, entries: List<PhotoInventoryEntry>) {
     val entries: List<PhotoInventoryEntry> = Collections.unmodifiableList(entries.toList())

@@ -31,7 +31,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
     private fun projection(): Array<String> = arrayOf("_id", "bucket_id", "bucket_display_name", "_display_name",
         "mime_type", "_size", "date_modified", "date_added") +
         (if (modern) arrayOf("relative_path", "is_pending") else emptyArray()) +
-        (if (Build.VERSION.SDK_INT >= 30) arrayOf("is_trashed") else emptyArray())
+        (if (Build.VERSION.SDK_INT >= 30) arrayOf("is_trashed", "generation_added", "generation_modified") else emptyArray())
 
     fun enumerate(lease: GalleryPhotoSourceLease, cancellation: CancellationSignal = CancellationSignal()): PhotoSourceInventory {
         val started = SystemClock.elapsedRealtime()
@@ -105,18 +105,24 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         val bytes = number("_size")
         val modified = number("date_modified")
         val added = number("date_added")
+        val insertionGeneration = if (Build.VERSION.SDK_INT >= 30) number("generation_added") else null
+        val revision = if (Build.VERSION.SDK_INT >= 30) number("generation_modified") else null
         if (id <= 0 || !Regex("image/[a-z0-9][a-z0-9.+-]{0,126}").matches(text("mime_type")) ||
             '/' in name || !DeviceFileManifest.portablePath(name) || bytes !in 0..DeviceFileManifest.MAX_FILE_BYTES ||
-            modified !in 0..Long.MAX_VALUE / 1000 || added < 0)
+            modified !in 0..Long.MAX_VALUE / 1000 || added < 0 ||
+            insertionGeneration != null && (insertionGeneration < 0 || revision == null || revision < insertionGeneration))
             fail("gallery_inventory_invalid_metadata")
-        // Opaque native member witness: MediaStore row ID + insertion timestamp.
+        // Opaque native member witness: row ID + insertion timestamp and API30+
+        // insertion generation. Modification generation is a separate revision
+        // so cropping does not manufacture a different photo correlation ID.
         // Never treated as a content digest or an independently granted URI.
-        return PhotoInventoryEntry(ContentUris.withAppendedId(collection(lease), id).toString(), "$id:$added", name, bytes, modified * 1000)
+        val nativeMember = "$id:$added" + (insertionGeneration?.let { ":$it" } ?: "")
+        return PhotoInventoryEntry(ContentUris.withAppendedId(collection(lease), id).toString(), nativeMember, name, bytes, modified * 1000, revision?.toString())
     }
 
     private fun document(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): Uri {
         fresh(lease, cancellation)
-        if (lease !is GalleryPhotoSourceLease || !Regex("[1-9][0-9]{0,18}:(0|[1-9][0-9]{0,18})").matches(entry.documentId))
+        if (lease !is GalleryPhotoSourceLease || !Regex("[1-9][0-9]{0,18}:(0|[1-9][0-9]{0,18})(:(0|[1-9][0-9]{0,18}))?").matches(entry.documentId))
             fail("gallery_inventory_invalid_member")
         val id = entry.documentId.substringBefore(':').toLongOrNull() ?: fail("gallery_inventory_invalid_member")
         val uri = ContentUris.withAppendedId(collection(lease), id)

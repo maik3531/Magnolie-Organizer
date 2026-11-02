@@ -61,6 +61,35 @@ class GalleryPhotoOriginsTest {
         assertFalse(selected.provesFileDeletion)
     }
 
+    @Test fun actualInsertionGenerationIsStableAcrossEditsButNeverUsedAsWriteConsent() {
+        val lease = lease()
+        val first = GalleryPhotoOrigins.capture(lease, listOf(entry(member = "1:90:7").copy(nativeRevision = "9")), manifest())
+        val changed = GalleryPhotoOrigins.capture(lease, listOf(entry("cropped.jpg", 3, "1:90:7").copy(nativeRevision = "10")), manifest("cropped.jpg", "d".repeat(32), 3))
+        assertTrue(first.hasNativeInsertionWitness); assertFalse(first.provesMutationIdentity)
+        assertEquals(first.entries.single().photoId, changed.entries.single().photoId)
+        assertNotEquals(first.entries.single().nativeRevision, changed.entries.single().nativeRevision)
+        val replaced = GalleryPhotoOrigins.capture(lease, listOf(entry(member = "1:90:8").copy(nativeRevision = "10")), manifest())
+        assertNotEquals(first.entries.single().photoId, replaced.entries.single().photoId)
+        val unknown = GalleryPhotoOrigins.capture(lease(namespace = null), listOf(entry(member = "1:90:7").copy(nativeRevision = "9")), manifest())
+        assertFalse(unknown.hasNativeInsertionWitness)
+        for (revision in listOf(null, "6", "09", "9223372036854775808"))
+            assertThrows(PhotoFolderScopeError::class.java) { GalleryPhotoOrigins.capture(lease, listOf(entry(member = "1:90:7").copy(nativeRevision = revision)), manifest()) }
+    }
+
+    @Test fun oldOriginFormatRemainsCorrelationalAndCannotInventProviderGenerations() {
+        val lease = lease(); val manifest = manifest()
+        val current = GalleryPhotoOrigins.capture(lease, listOf(entry()), manifest()).wire()
+        val oldEntry = JsonObject(current["entries"]!!.jsonArray.single().jsonObject.minus("native_revision"))
+        val legacy = JsonObject(mapOf("format" to JsonPrimitive(1), "entries" to JsonArray(listOf(oldEntry))))
+        val restored = GalleryPhotoOrigins.parse(legacy, manifest, lease)
+        assertFalse(restored.hasNativeInsertionWitness); assertFalse(restored.provesMutationIdentity)
+        assertNull(restored.entries.single().nativeRevision)
+        assertEquals(legacy, restored.wire())
+        assertEquals(GalleryPhotoOrigins.capture(lease, listOf(entry()), manifest).entries.single().photoId, restored.entries.single().photoId)
+        val forgedGeneration = JsonObject(legacy + ("entries" to JsonArray(listOf(JsonObject(oldEntry + ("native_member" to JsonPrimitive("1:90:7")))))))
+        assertThrows(PhotoFolderScopeError::class.java) { GalleryPhotoOrigins.parse(forgedGeneration, manifest, lease) }
+    }
+
     @Test fun strictNativeMemberAndManifestAlignmentRejectForgedUriMetadataAndAliases() {
         val lease = lease(); val manifest = manifest()
         for (invalid in listOf(entry(member = "01:90"), entry(member = "1:090"), entry(member = "0:90"),

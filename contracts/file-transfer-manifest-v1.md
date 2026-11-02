@@ -307,7 +307,7 @@ permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
-Private gallery-origin records passed 62 focused origin/compatibility/index/
+Private gallery-origin/source records passed 71 focused origin/compatibility/index/
 workflow cases. The format-2 native snapshot record adds member-to-provider correlation
 inside the existing authenticated index row, without changing chunk/manifest
 AAD, wire manifests or cache-file layout. Format-1 snapshots must retain their
@@ -324,6 +324,20 @@ Restored origin entries must exactly match ordered manifest IDs and recompute
 against the current native lease. Legacy format-1 records expose `null` origins,
 never guessed IDs. The original chunk/manifest AAD and cache-file quota/layout
 remain unchanged; private cleanup accepts both authenticated record formats.
+
+On API30+, the actual MediaStore reader additionally requires typed nonnegative
+`generation_added` and `generation_modified`, with modified generation at least
+insertion generation. Insertion generation becomes part of the native member;
+modification generation is a separate `nativeRevision` so cropping does not
+rekey the photo correlation. Same-size/same-coarse-mtime modification is detected
+through actual revision readback. Inner origin format 2 retains that revision;
+old inner format 1 remains correlational with no manufactured generation proof.
+Positive native insertion generation plus the actual known volume namespace
+can expose an insertion witness, but `provesMutationIdentity` remains false:
+ownership/WRITE consent/fresh content CAS and no-loss provider mutation are not
+granted by metadata. Generation zero, legacy/unknown namespaces and malformed
+provider values do not create insertion proof. The SAF reader explicitly rejects
+a gallery revision instead of silently treating it as SAF-provider authority.
 
 `NativeGalleryPhotoWorkflow` now joins the explicit native protected-policy,
 ActivityResult permission lifecycle, targeted album discovery, bounded actual

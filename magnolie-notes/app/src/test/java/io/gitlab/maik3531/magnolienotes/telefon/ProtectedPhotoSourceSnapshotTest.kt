@@ -41,6 +41,16 @@ class ProtectedPhotoSourceSnapshotTest {
         override fun close() { parent.deleteRecursively() }
     }
 
+    @Test fun safReaderNeverAdoptsAGalleryGenerationRevisionAsASafProviderProof() {
+        Fixture("hello".toByteArray()).use { f ->
+            val inventory = f.inventory(); val opened = f.native.provider.opened
+            val entry = inventory.entries.single().copy(nativeRevision = "9")
+            assertEquals("photo_snapshot_unsupported_native_revision", assertThrows(PhotoFolderScopeError::class.java) {
+                f.reader.openRead(inventory.lease, entry, CancellationSignal()) }.code)
+            assertEquals(opened, f.native.provider.opened)
+        }
+    }
+
     @Test fun actualPfdBytesAreFrozenEncryptedReadBackAndNeverReplacedByLaterLiveContent() {
         val data = ByteArray(DeviceFileManifest.CHUNK_BYTES + 7) { (it % 251).toByte() }
         Fixture(data).use { f ->

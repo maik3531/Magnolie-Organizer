@@ -34,7 +34,8 @@ import javax.crypto.spec.SecretKeySpec
 class AndroidGalleryPhotoSourceTest {
     private data class Row(val id: Long = 1, val bucket: String = "camera", val label: String = "Camera",
         val name: String = "image.jpg", val bytes: Long = 5, val modified: Any = 100L, val added: Long = 90,
-        val mime: String = "image/jpeg", val path: String = "DCIM/Camera/", val pending: Long = 0, val trashed: Long = 0)
+        val mime: String = "image/jpeg", val path: String = "DCIM/Camera/", val pending: Long = 0, val trashed: Long = 0,
+        val generationAdded: Any = 1L, val generationModified: Any = 1L)
     private class Provider(val root: File) : ContentProvider() {
         var rows = listOf(Row())
         var ignoreSelection = false
@@ -84,7 +85,7 @@ class AndroidGalleryPhotoSourceTest {
                 val data = mapOf("_id" to row.id, "bucket_id" to row.bucket, "bucket_display_name" to row.label,
                     "_display_name" to row.name, "mime_type" to row.mime, "_size" to row.bytes,
                     "date_modified" to row.modified, "date_added" to row.added, "relative_path" to row.path, "is_pending" to row.pending,
-                    "is_trashed" to row.trashed)
+                    "is_trashed" to row.trashed, "generation_added" to row.generationAdded, "generation_modified" to row.generationModified)
                 cursor.addRow(columns.map { data[it] }.toTypedArray())
             }
             cursors += cursor
@@ -332,6 +333,62 @@ class AndroidGalleryPhotoSourceTest {
                 entry.copy(documentId = "01:90"), entry.copy(relativePath = "other.jpg")))
                 assertThrows(PhotoFolderScopeError::class.java) { f.reader.openRead(lease, forged, CancellationSignal()) }
             assertTrue(f.provider.opens.isEmpty())
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun nativeProviderInsertionGenerationSurvivesCropsWhileModificationRevisionChanges() {
+        Fixture().use { f ->
+            f.provider.rows = listOf(Row(generationAdded = 7L, generationModified = 9L))
+            val lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            assertEquals("1:90:7", inventory.entries.single().documentId)
+            assertEquals("9", inventory.entries.single().nativeRevision)
+            val cache = Files.createTempDirectory(f.root.toPath(), "generation-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                fun freeze(value: PhotoSourceInventory): PhotoSourceJob {
+                    val reserved = index.reserve(value, f.scope)
+                    val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), value, "sender_fixture_01", f.scope, f.reader, protection)
+                    return index.publishSnapshot(reserved, snapshot, f.scope, lease)
+                }
+                val first = freeze(inventory)
+                val before = index.restore(first, "sender_fixture_01", f.scope, lease)
+                assertTrue(before.galleryOrigins!!.hasNativeInsertionWitness)
+                assertFalse(before.galleryOrigins!!.provesMutationIdentity)
+                val origin = before.galleryOrigins!!.entries.single()
+                f.provider.rows = listOf(Row(generationAdded = 7L, generationModified = 10L)) // Same size, coarse mtime and bytes.
+                assertEquals("gallery_inventory_member_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                    f.reader.verifyMetadata(lease, inventory.entries.single(), CancellationSignal()) }.code)
+                f.provider.rows = listOf(Row(bytes = 3, generationAdded = 7L, generationModified = 10L))
+                File(f.root, "source.bin").writeText("hey")
+                val second = freeze(f.reader.enumerate(lease))
+                val after = index.restore(second, "sender_fixture_01", f.scope, lease)
+                assertEquals(origin.photoId, after.galleryOrigins!!.entries.single().photoId)
+                assertEquals("10", after.galleryOrigins!!.entries.single().nativeRevision)
+                assertNotEquals(before.manifest.files.single().sha256, after.manifest.files.single().sha256)
+                assertArrayEquals("hello".toByteArray(), before.readChunk(before.manifest.files.single().id, 0))
+                assertArrayEquals("hey".toByteArray(), after.readChunk(after.manifest.files.single().id, 0))
+                index.retireCachedSnapshot(first); index.retireCachedSnapshot(second)
+            }
+            assertEquals("hey", File(f.root, "source.bin").readText())
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun malformedOrUnknownNativeGenerationsNeverManufactureAnInsertionWitness() {
+        for (row in listOf(Row(generationAdded = -1L), Row(generationAdded = 8L, generationModified = 7L),
+            Row(generationAdded = "1"), Row(generationModified = "1"))) Fixture().use { f ->
+            f.provider.rows = listOf(row)
+            assertEquals("gallery_inventory_invalid_metadata", assertThrows(PhotoFolderScopeError::class.java) { f.reader.enumerate(f.lease()) }.code)
+            assertTrue(f.provider.opens.isEmpty())
+        }
+        Fixture().use { f ->
+            f.provider.rows = listOf(Row(generationAdded = 0L, generationModified = 0L))
+            val lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            val root = Files.createTempDirectory(f.root.toPath(), "unknown-generation-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val snapshot = ProtectedPhotoSourceSnapshot.freeze(root, inventory, "sender_fixture_01", f.scope, f.reader, protection)
+            assertFalse(snapshot.galleryOrigins!!.hasNativeInsertionWitness)
+            assertFalse(snapshot.galleryOrigins!!.provesMutationIdentity)
+            snapshot.discard()
         }
     }
 

@@ -24,6 +24,7 @@ internal class AndroidPhotoSourceReader(context: Context, private val scope: Pho
     private fun document(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): Uri {
         fresh(lease, cancellation)
         if (lease !is PhotoFolderLease) throw PhotoFolderScopeError("photo_snapshot_wrong_source_kind")
+        if (entry.nativeRevision != null) throw PhotoFolderScopeError("photo_snapshot_unsupported_native_revision")
         val tree = Uri.parse(lease.preference.treeUri)
         val document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.documentId)
         if (document.toString() != entry.documentUri || !DeviceFileManifest.portablePath(entry.relativePath) ||
