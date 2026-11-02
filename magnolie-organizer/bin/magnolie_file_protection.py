@@ -146,6 +146,10 @@ class ExistingFileTransferProtection:
             self._directories()
             return result
 
+    @property
+    def native_directory(self):
+        return str(self._root) # Existing canonical native root, never a wire path.
+
     def close(self):
         with self._gate:
             if not self._closed:

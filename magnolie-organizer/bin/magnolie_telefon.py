@@ -2711,6 +2711,7 @@ class PhoneService:
         self.pairings = {}
         self.pairing_attempt_active = False
         self.connections = {}
+        self._file_channel_bindings = weakref.WeakKeyDictionary()
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
@@ -2770,6 +2771,27 @@ class PhoneService:
         self.contact_access_available = lambda: self.personal_sync_available()
         self.personal_offers = deque(maxlen=256)
         self.personal_offer_keys = set()
+
+    def _current_native_file_binding(self, peer_id, static_public, channel, generation):
+        with self.lock:
+            binding = self._file_channel_bindings.get(channel)
+            if (binding is None or not self.enabled or self.stop_event.is_set() or self.connections.get(peer_id) is not channel
+                    or generation != self._generation or binding.generation != generation or binding.store_owner is not self.store
+                    or binding.peer_id != peer_id or binding.static_public != static_public):
+                return None
+            return binding
+
+    def current_native_file_identity(self, peer_id, static_public, channel, generation):
+        binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
+        return binding.local_identity if binding is not None else None
+
+    def open_native_file_authority(self, peer_id, static_public, channel, generation):
+        from magnolie_file_native_authority import NativeDesktopFileAuthority
+        binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
+        if binding is None:
+            raise ValueError('file_authority_native_channel_changed')
+        # Disk/key/peer I/O deliberately happens outside the PhoneService monitor.
+        return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation))
 
     def report(self):
         with self.lock:
@@ -7943,11 +7965,15 @@ class PhoneService:
         from cryptography.hazmat.primitives.asymmetric.x25519 import (X25519PrivateKey,
                                                                       X25519PublicKey)
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+        from magnolie_file_native_authority import capture_authenticated_binding
+        authenticated_store = self.store
+        authenticated_identity = dict(authenticated_store.identity)
+        file_generation = self._generation
         fields = {"p", "type", "sid", "from", "to", "initiator_role",
                   "ephemeral_public", "nonce", "versions", "mac"}
         if (set(start) != fields or start["p"] != PROTOCOL
                 or start["type"] != "session_start" or start["initiator_role"] != "phone"
-                or start["to"] != self.store.identity["device_id"]
+                or start["to"] != authenticated_identity["device_id"]
                 or not valid_uuid(start["from"])
                 or not isinstance(start["versions"], list)
                 or len(start["versions"]) not in range(1, 17)
@@ -7963,11 +7989,12 @@ class PhoneService:
         peer = self.store.peer(start["from"])
         if not peer or peer.get("state") != "paired":
             raise ValueError("unknown phone")
+        authenticated_peer = dict(peer)
         if expected_peer is not None and peer["device_id"] != expected_peer:
             raise ValueError("RFCOMM phone does not match configured peer")
-        ids = sorted([peer["device_id"].encode(), self.store.identity["device_id"].encode()])
+        ids = sorted([peer["device_id"].encode(), authenticated_identity["device_id"].encode()])
         ids = ids[0] + b"\0" + ids[1]
-        shared = self.store.private.exchange(X25519PublicKey.from_public_bytes(
+        shared = authenticated_store.private.exchange(X25519PublicKey.from_public_bytes(
             unb64(peer["static_public"], 32)))
         if shared == b"\0" * 32:
             raise ValueError("invalid static key")
@@ -7983,7 +8010,7 @@ class PhoneService:
             raise ValueError("invalid start MAC")
         ephemeral = X25519PrivateKey.generate()
         response_without_mac = {"p": PROTOCOL, "type": "session_response",
-            "sid": start["sid"], "from": self.store.identity["device_id"],
+            "sid": start["sid"], "from": authenticated_identity["device_id"],
             "to": peer["device_id"], "ephemeral_public": b64(
                 ephemeral.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)),
             "nonce": b64(os.urandom(32)), "version": 1}
@@ -8041,7 +8068,8 @@ class PhoneService:
                     self._payload(peer, channel, payload)
             if control_ids:
                 raise TimeoutError("desktop control update acknowledgement timeout")
-            self._activate_connection(peer_id, channel, transport)
+            file_binding = capture_authenticated_binding(authenticated_identity, authenticated_peer, file_generation, authenticated_store)
+            self._activate_connection(peer_id, channel, transport, file_binding=file_binding)
             activated = True
             self.connection_errors.pop(peer_id, None)
             peer["last_contact_ms"] = int(time.time() * 1000)
@@ -8070,6 +8098,8 @@ class PhoneService:
                     for message in self.store.pending(peer["device_id"], transport):
                         self._send_message(channel, peer["device_id"], message)
         finally:
+            with self.lock:
+                self._file_channel_bindings.pop(channel, None)
             if activated and self.connections.get(peer_id) is channel:
                 self._purge_identifiers(peer_id)
                 self.connections.pop(peer_id, None)
@@ -8083,10 +8113,15 @@ class PhoneService:
             else:
                 self.callback("status", self.report())
 
-    def _activate_connection(self, peer_id, channel, transport):
+    def _activate_connection(self, peer_id, channel, transport, *, file_binding=None):
         with self.lock:
             if self.stop_event.is_set():
                 raise OSError("phone service stopped")
+            if file_binding is not None:
+                from magnolie_file_native_authority import AuthenticatedNativeFileBinding
+                if (type(file_binding) is not AuthenticatedNativeFileBinding or file_binding.store_owner is not self.store
+                        or file_binding.generation != self._generation or file_binding.peer_id != peer_id):
+                    raise OSError('file_authority_native_channel_changed')
             current = self.connections.get(peer_id)
             current_transport = self.connection_transports.get(peer_id)
             if transport == "bluetooth" and current_transport == "wifi":
@@ -8103,6 +8138,8 @@ class PhoneService:
             self.call_action_tickets = {key: value for key, value in self.call_action_tickets.items()
                 if value[0] != peer_id}
             self.connections[peer_id] = channel
+            if file_binding is not None:
+                self._file_channel_bindings[channel] = file_binding
             self.connection_transports[peer_id] = transport
         if current and current is not channel:
             try:

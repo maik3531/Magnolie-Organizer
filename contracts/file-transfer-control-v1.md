@@ -813,6 +813,34 @@ normalization, peer change during decryption and same-key re-pair isolation. The
 Windows control source-host group passes. No installed Windows/native GUI, physical
 phone or completed desktop transport acceptance is implied.
 
+The actual Linux `PhoneService._session` now captures the public desktop identity,
+pinned peer, native store owner and service generation used by its authenticated
+handshake. Exact channel binding caches that public projection only after native
+activation; finally cleanup removes it. Lookup never reloads the identity or
+private key, selects by device label/IP, or fabricates a missing channel entry.
+Stale generation/store/channel ownership is rejected. Ordinary transport activation
+without this captured native binding does not create file authority.
+
+An explicit native authority factory opens only the captured existing native
+directory/key and read-only pinned peer. Its metadata/key work happens outside the
+service ownership monitor. Active-channel, generation, pairing and root/key checks
+surround actual reads. Replacement, removal, read failure or revocation permanently
+ends that owner; restoring old values cannot revive it. UI revocation is a
+nonwaiting native signal; final descriptor close belongs to the I/O owner after
+actual work ends. Construction starts no worker/listener/source scan and creates
+no file consent, preference record, receiver job or native pairing default.
+
+Eleven targeted Python cases pass, including native factory/no-identity-reload/
+no-key-replacement, channel replacement, blocked peer I/O with immediate revocation,
+service-monitor exclusion and existing call/transport activation behavior. A bounded
+local socket-pair fixture exercises actual session MAC, directional encrypted
+Ready frames, captured public identity and end cleanup; a generation change during
+that handshake creates no file binding. Unrelated personal outbox producers are
+inert in that focused crypto fixture. This is not installed GUI, physical phone,
+full personal-sync/control-handshake or desktop file-controller acceptance. The
+desktop source/receiver dispatcher/preferences/activation UI remains unconnected,
+with discovery 21 still absent.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
