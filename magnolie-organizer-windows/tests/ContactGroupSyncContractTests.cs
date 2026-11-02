@@ -62,6 +62,28 @@ internal static class ContactGroupSyncContractTests
                 "A removed membership was restored by additive provider merge.");
             if (concurrent) TestAssert.That(result.Contacts[0]!["syncKonflikte"]!["cards"] is JsonObject, "Competing group version was lost.");
         }
+        // Same membership, merely provider/localized aliases: Linux compares
+        // canonical group identities, not their translated presentation names.
+        {
+            var baseline = Card("Colleagues", "Work");
+            var local = baseline.DeepClone().AsObject();
+            ContactFields.SetSource(local, "cards", new RemoteContact("native-card", "v1", 100, baseline, true));
+            local["vcardRoundtrip"] = Card("Coworkers", "Arbeit")["vcardRoundtrip"]!.DeepClone();
+            var remote = new GroupRemote(new RemoteContact("native-card", "v2", 200, Card("Colleagues", "Work"), true));
+            var result = await new ContactSyncEngine().SyncAsync("cards", new JsonArray(local), [], 0, remote);
+            TestAssert.That(result.Counts.Conflicts == 0,
+                "Equivalent provider/localized group aliases created a false concurrent-membership conflict.");
+            TestAssert.That(remote.Writes == 0, "Equivalent group aliases unexpectedly wrote provider data.");
+            remote.Item = new RemoteContact("native-card", "v3", 300, Card("Family"), true);
+            var later = await new ContactSyncEngine().SyncAsync("cards", result.Contacts, [], 0, remote);
+            TestAssert.That(later.Counts.Conflicts == 0 && remote.Writes == 0,
+                "A later remote-only membership change conflicted after the alias-equivalent baseline was saved.");
+            TestAssert.That(JsonNode.DeepEquals(later.Contacts[0]!["vcardRoundtrip"], Card("Family")["vcardRoundtrip"]),
+                "The later authoritative membership set was not adopted exactly.");
+            var repeated = await new ContactSyncEngine().SyncAsync("cards", later.Contacts, [], 0, remote);
+            TestAssert.That(repeated.Counts.Conflicts == 0 && remote.Writes == 0 &&
+                repeated.Contacts[0]!["syncKonflikte"] is null, "Sequential remote update did not remain settled.");
+        }
         var initial = Card("Colleagues", "Work");
         var provider = new GroupRemote(new RemoteContact("native-card", "v1", 100, initial.DeepClone().AsObject(), true));
         ContactFields.SetSource(initial, "cards", provider.Item);

@@ -81,7 +81,11 @@ internal static class ContactFields
             foreach (var character in match.Groups[1].Value + ",") {
                 if (escaped) { part.Append(character is 'n' or 'N' ? ' ' : character); escaped = false; }
                 else if (character == '\\') escaped = true;
-                else if (character == ',') { var value = part.ToString().Trim(); if (value.Length > 0) groups.Add(value); part.Clear(); }
+                else if (character == ',') {
+                    var value = ContactGroupExclusions.GroupKey(System.Text.RegularExpressions.Regex.Replace(part.ToString(), @"[\x00-\x1f\x7f]", " "));
+                    if (value.Length > 0 && value != "my contacts") groups.Add(value);
+                    part.Clear();
+                }
                 else part.Append(character);
             }
         }

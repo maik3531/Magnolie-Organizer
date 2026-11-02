@@ -10,7 +10,7 @@ internal static class ContactGroupExclusions
 {
     private static readonly string[] Presets = ["Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor"];
     private static string Key(string value) => value.Normalize(NormalizationForm.FormC).Trim().ToLowerInvariant();
-    private static string GroupKey(string value)
+    internal static string GroupKey(string value)
     {
         var key = Key(value);
         if (key is "coworkers" or "kollegen") return "colleagues";
