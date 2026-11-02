@@ -39,7 +39,8 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     private val sourceDomain = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
         "tree" to JsonPrimitive(lease.preference.treeUri), "source_version" to JsonPrimitive(lease.version),
         "source_epoch" to JsonPrimitive(lease.preference.epoch), "receiver" to JsonPrimitive(lease.preference.receiverId),
-        "receiver_identity" to JsonPrimitive(lease.preference.receiverIdentitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken)))))
+        "receiver_identity" to JsonPrimitive(lease.preference.receiverIdentitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken),
+        "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch)))))
     private val domain = "photo-source-snapshot-v1/$owner/$sourceDomain/"
     val manifest: DeviceFileManifest get() = synchronized(this) {
         fresh(); sealedManifest ?: fail("photo_snapshot_not_sealed")
@@ -125,6 +126,20 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         val bytes = read("${file.id}-$index.enc", expected + 1)
         if (bytes.size != expected + 1 || bytes[0] != 1.toByte()) fail("photo_snapshot_chunk_size_changed")
         return bytes.copyOfRange(1, bytes.size).also { bytes.fill(0) }
+    }
+
+    /** Native protected job-index metadata, never an IPC/storage receipt. */
+    @Synchronized internal fun nativeRecord(): JsonObject {
+        val sealed = manifest
+        var bytes = 0L
+        val files = owned.map { (name, witness) ->
+            val actual = cipher(name, MAX_METADATA)
+            bytes += actual.size
+            JsonObject(mapOf("name" to JsonPrimitive(name), "key" to JsonPrimitive(witness.key.toString()), "sha256" to JsonPrimitive(witness.digest)))
+        }
+        fresh()
+        return JsonObject(mapOf("format" to JsonPrimitive(1), "owner" to JsonPrimitive(owner), "source_domain" to JsonPrimitive(sourceDomain),
+            "root_key" to JsonPrimitive(rootKey.toString()), "cipher_bytes" to JsonPrimitive(bytes), "manifest" to sealed.wire(), "files" to JsonArray(files)))
     }
 
     /** Explicit exact-owned-cache cleanup also works after revocation/cancel.

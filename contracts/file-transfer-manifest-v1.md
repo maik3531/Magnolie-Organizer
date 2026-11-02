@@ -234,3 +234,55 @@ sender handler. A local metadata frame bound does not replace checking the
 **complete actual encoded offer envelope** against the existing 262144-byte
 application limit. No photo-sync capability, UI, background schedule or saved
 destination receipt is activated by these source classes.
+
+`PhotoSourceJobIndex` provides a dedicated native SQLite source index, not the
+personal phone database. Existing-key AEAD protects each job/header, native
+process/file gates and SQLite transactions serialize changes, and ciphertext
+versions/CAS plus actual database reads distinguish committed heads from stale
+caller state. It durably reserves and reads back quota **before** creating a
+source directory. Reserved, sealed, uncertain and retired jobs all count toward
+the eight-job / 400 MiB source-byte limits and bounded logical ciphertext budget.
+Unindexed files/roots and invalid existing state are preserved and block new
+reservations, rather than silently becoming empty storage.
+
+Only actual verified snapshot objects can publish a sealed record. Retirement
+commits before cleanup; quota is released only after actual root absence,
+directory sync, row deletion and database readback. Failed/no-op cleanup or lost
+post-commit acknowledgements retain the real job/head and quota for native retry.
+Unrelated SQLite metadata is not discarded. Reopening index metadata alone is
+not a successful frozen-byte restore: authenticated job-to-snapshot restart,
+partial-crash repair, active sender coordination and application UI/handlers
+still need their concrete integration.
+
+## User-required photo sync policy (open integration criteria)
+
+The requested default desktop destination is the native **Pictures** folder
+with a safely generated `<phone-name>-Fotos` child, with an optional different
+user-selected destination. A device display name is not a trusted filesystem
+path or publication grant. Native path planning/consent/no-overwrite and fixed
+destination retry rules still apply.
+
+Source selection must distinguish camera images from optional additional image
+sources (for example received WhatsApp images, screenshots or downloads) through
+explicitly selected accessible folders/albums, not guesses from JPEG/EXIF or an
+automatic crawl of app directories. Recursion scope must be visible, including
+whether sent-image subfolders are included. Multiple sources need independent
+source identities/epochs and collision-safe persistent destination mappings.
+Changing source selection is not a file deletion; excluded sources must not
+trigger deletion cascades or reinterpret a prior baseline as an empty inventory.
+
+Content changes such as cropping should be synchronized, preferably both ways.
+A clearly identified phone-to-desktop-only mode is acceptable when the provider
+cannot support safe reverse writes. Deletion propagation must be independently
+switchable per direction and initially off. Phone writes/deletions require
+separate explicit Android WRITE and module consent/provider support; the
+existing READ-only adapter does not silently gain mutation methods.
+
+Mutation planning needs proven last-common content/destination associations and
+fresh readbacks. A simultaneous binary edit or edit-versus-delete is a conflict,
+not permission to overwrite/remove the other side. Only previously confirmed
+managed members can become deletion candidates, after complete successful
+inventory observations. Permission loss, partial/failed scans, changed scope,
+unknown files and new destination contents never prove a deletion. These are
+requirements, **not a claim that policy UI, bidirectional writes, deletion
+propagation or per-photo inventory receipts are already implemented**.
