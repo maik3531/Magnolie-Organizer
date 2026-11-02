@@ -90,16 +90,16 @@ internal sealed class DeviceFileManifest
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
 
-    private static void Exact(JsonElement value, params string[] fields)
+    internal static void Exact(JsonElement value, params string[] fields)
     {
         if (value.ValueKind != JsonValueKind.Object) throw new InvalidDataException("file_manifest_object_required");
         var names = value.EnumerateObject().Select(property => property.Name).ToArray();
         if (names.Length != fields.Length || !names.ToHashSet(StringComparer.Ordinal).SetEquals(fields))
             throw new InvalidDataException("unexpected_or_duplicate_file_manifest_fields");
     }
-    private static string Text(JsonElement value, string field) => value.GetProperty(field).ValueKind == JsonValueKind.String
+    internal static string Text(JsonElement value, string field) => value.GetProperty(field).ValueKind == JsonValueKind.String
         ? value.GetProperty(field).GetString()! : throw new InvalidDataException("file_manifest_string_required");
-    private static long Integer(JsonElement value, string field) => value.GetProperty(field).ValueKind == JsonValueKind.Number &&
+    internal static long Integer(JsonElement value, string field) => value.GetProperty(field).ValueKind == JsonValueKind.Number &&
         value.GetProperty(field).TryGetInt64(out var number) && number >= 0 ? number : throw new InvalidDataException("file_manifest_integer_required");
 
     internal static DeviceFileManifest Parse(JsonElement root)

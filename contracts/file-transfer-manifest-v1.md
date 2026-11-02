@@ -1,7 +1,7 @@
 # Device-file manifest and native resume ledger v1 (#329)
 
 Status: **source groundwork, not a negotiated or advertised capability**.
-The Python ledger and Python/Windows/Kotlin manifest implementations are not a
+The Python/Windows/Kotlin ledger and manifest implementations are not a
 working Android photo-folder sync, Windows resume implementation or accepted
 native transfer feature. There is no
 new message handler, listener, grant default or automatic filesystem action.
@@ -57,9 +57,13 @@ The accompanying vectors are synthetic and include a Unicode path.
 
 ## Native binding and actual readback
 
-The native owner supplies the authenticated sender/receiver IDs and certificate
-fingerprints, a permission epoch and a destination-owner token, all independent
-of wire or checkpoint claims. Fingerprints/epoch/token are 64 lowercase hex
+The native owner supplies the authenticated sender/receiver IDs and identity
+fingerprints (`sender_identity_sha256`, `receiver_identity_sha256`), a permission
+epoch and a destination-owner token, all independent of wire or checkpoint
+claims. For magnolie-phone/1 these are the already authenticated static public
+key fingerprints, not invented TLS certificates. A separately negotiated TLS
+transport would have to supply its genuine pinned identity. No new identity is
+created by constructing a ledger. Fingerprints/epoch/token are 64 lowercase hex
 characters. The native current-binding callback must also enforce live consent,
 source/owner validity and deadline; a persisted binding is never authority.
 Reconnection may keep a ledger only when this exact binding and the manifest
@@ -82,10 +86,10 @@ all chunk witnesses and the complete file SHA-256 plus exact EOF are checked
 again. Final zero-byte files also require a real owned read/EOF observation.
 This result is a verified staged member, **not** a saved destination receipt.
 
-The initial ledger serializes its operations, does no I/O on import and does
+The ledger implementations serialize their operations, do no I/O on import and do
 not itself persist metadata, open peer stores, create a destination, select an
 Android folder, announce capabilities or publish files. Native ownership-safe
-storage, Windows/Kotlin ledger ports and negotiation, SAF opt-in, UI and
-end-to-end recovery remain active work in #329. The three manifest validators
-have matching shared UTF-8 hash-vector tests; bounded Windows source-host and
-Kotlin unit tests are not physical-device acceptance.
+storage and negotiation, SAF opt-in, UI and end-to-end recovery remain active
+work in #329. The three implementations have matching shared UTF-8 manifest and
+checkpoint-vector tests plus actual owned-staging readback tests. Bounded
+Windows source-host and Kotlin unit tests are not physical-device acceptance.

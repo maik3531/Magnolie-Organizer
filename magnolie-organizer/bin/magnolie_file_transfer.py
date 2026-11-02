@@ -153,15 +153,15 @@ class FileManifest:
 class NativeTransferBinding:
     sender_id: str
     receiver_id: str
-    sender_certificate: str
-    receiver_certificate: str
+    sender_identity_sha256: str
+    receiver_identity_sha256: str
     permission_epoch: str
     destination_token: str
 
     def __post_init__(self):
         _text(self.sender_id, _DEVICE)
         _text(self.receiver_id, _DEVICE)
-        for value in (self.sender_certificate, self.receiver_certificate, self.permission_epoch, self.destination_token):
+        for value in (self.sender_identity_sha256, self.receiver_identity_sha256, self.permission_epoch, self.destination_token):
             _text(value, _HEX)
 
 

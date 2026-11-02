@@ -191,6 +191,7 @@
     <Compile Include="..\KdeIncomingFileBatch.cs" Link="KdeIncomingFileBatch.cs" />
     <Compile Include="..\KdeIncomingFileOffer.cs" Link="KdeIncomingFileOffer.cs" />
     <Compile Include="..\DeviceFileManifest.cs" Link="DeviceFileManifest.cs" />
+    <Compile Include="..\DeviceFileResumeLedger.cs" Link="DeviceFileResumeLedger.cs" />
     <Compile Include="..\KdeConnectIdentityStore.cs" Link="KdeConnectIdentityStore.cs" />
     <Compile Include="..\KdeConnectDirectBackend.cs" Link="KdeConnectDirectBackend.cs" />
     <Compile Include="..\KdeConnectSms.cs" Link="KdeConnectSms.cs" />

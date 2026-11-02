@@ -21,7 +21,26 @@
         ]
       },
       "manifest_sha256": "1d54543aefd4422070765d5421cf647a805103d0c5d3ecbc438c973f4216a559",
-      "file_bytes_hex": "68656c6c6f"
+      "file_bytes_hex": "68656c6c6f",
+      "resume_checkpoint": {
+        "format": 1,
+        "manifest_sha256": "1d54543aefd4422070765d5421cf647a805103d0c5d3ecbc438c973f4216a559",
+        "binding": {
+          "sender_id": "sender_fixture_01",
+          "receiver_id": "receiver_fixture_01",
+          "sender_identity_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "receiver_identity_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "permission_epoch": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "destination_token": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "chunks": [
+          {
+            "file_id": "cccccccccccccccccccccccccccccccc",
+            "index": 0,
+            "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+          }
+        ]
+      }
     }
   ]
 }

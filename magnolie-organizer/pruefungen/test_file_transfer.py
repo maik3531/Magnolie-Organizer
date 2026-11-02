@@ -63,12 +63,19 @@ def test_manifest_is_immutable_and_binds_every_member_and_native_receiver():
         original.source_id = "2" * 32
 
 
-def test_shared_utf8_manifest_vector_has_exact_framing_and_digest():
+def test_shared_utf8_manifest_vector_has_exact_framing_and_digest(tmp_path):
     vectors = json.loads((Path(__file__).resolve().parents[2] / "contracts/file-transfer-manifest-v1-vectors.json").read_text())
     for vector in vectors["vectors"]:
         description = FileManifest.parse(vector["manifest"])
         assert description.fingerprint == vector["manifest_sha256"]
         assert sha256(bytes.fromhex(vector["file_bytes_hex"])).hexdigest() == description.files[0].sha256
+        owned = OwnedFiles(tmp_path)
+        native = binding()
+        ledger = ResumeLedger(description, native, lambda: native)
+        ledger.record(description.files[0].id, 0, bytes.fromhex(vector["file_bytes_hex"]), owned.write, owned.read)
+        assert ledger.checkpoint() == vector["resume_checkpoint"]
+        restored = ResumeLedger.restore(description, native, lambda: native, vector["resume_checkpoint"], owned.read)
+        assert restored.verified_file(description.files[0].id, owned.read) == description.files[0]
 
 
 @pytest.mark.parametrize("path", ["../x", "/absolute", "a//b", "a/./b", "a/../b", "C:drive", "a\\b",
@@ -143,7 +150,7 @@ def test_destination_permission_peer_or_source_change_never_inherits_persisted_a
     ledger = ResumeLedger(description, native, lambda: native)
     ledger.record(description.files[0].id, 0, b"hello", owned.write, owned.read)
     checkpoint = ledger.checkpoint()
-    for changed in (replace(native, sender_certificate="1" * 64), replace(native, receiver_certificate="1" * 64),
+    for changed in (replace(native, sender_identity_sha256="1" * 64), replace(native, receiver_identity_sha256="1" * 64),
                     replace(native, permission_epoch="1" * 64), replace(native, destination_token="1" * 64)):
         with pytest.raises(TransferError):
             ResumeLedger.restore(description, changed, lambda: changed, checkpoint, owned.read)
