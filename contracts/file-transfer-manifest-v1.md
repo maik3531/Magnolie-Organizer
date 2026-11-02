@@ -441,7 +441,37 @@ acceptance or proof of an end-to-end transfer.
 
 ## Linux physical no-replace publication (not a durable saved receipt)
 
-### Native protected checkpoint-head index
+### Protected accepted-job discovery and conservative reservations
+
+`ProtectedTransferJobCatalog` now provides bounded authenticated discovery of
+complete accepted operations without a live peer, destination or prior manifest
+in memory. Its immutable original-inode-bound records use existing native
+protection and a separate receiver/key-bound AAD namespace. Explicit exclusive
+creation is distinct from reopen; missing/corrupt/unknown files are held, never
+replaced with defaults. A fresh native random job owner is reserved locally,
+not taken from the peer's transfer ID. Catalog discovery can supply the actual
+manifest, mapping and owner needed to reopen the per-operation head index.
+
+Private native limits (initially 32 jobs/1 GiB reserved cache) are protected and
+retained across restart. Reservations conservatively account for encrypted
+staging, bounded checkpoint histories, index/catalog/journal metadata and **all**
+potentially retained publication temporaries, not just the largest member.
+Native root gates plus OS locks serialize count/byte checks and immutable record
+publication. Nested inspection is allowed; nested reservations are rejected.
+An existing peer/transfer-ID operation cannot silently receive a second owner.
+Interrupted/uncertain writes fence further mutation and retain physical evidence.
+
+Twenty-four focused catalog cases pass, including separate-process discovery,
+actual existing-key → catalog → per-job index integration, count/byte limits,
+two-instance quota races, readonly inspection with an unavailable destination,
+original/key/identity faults and failed seal/write/fsync/readback/revocation.
+Discovery is not execution permission or a saved receipt. No worker is started.
+Quota release/retirement and repair deliberately remain unavailable until actual
+cache absence and exact worker-end ownership can be proven; no shortcut releases
+pending reservations or deletes their metadata. Receipt heads, native receive
+controller/handlers, Organizer controls and end-to-end acceptance remain open.
+
+### Persisted per-operation acceptance and checkpoint heads
 
 New native operations can now persist a `NativeAcceptedTransfer` in owner-record
 context format 2: the complete ordered manifest, exact complete target mapping,
@@ -466,7 +496,7 @@ journal/recovery tests pass together (132 cases). They cover a complete
 128-member Unicode mapping, immutable roundtrips, native root/ancestor changes,
 partial/reordered/aliased mappings, unavailable destinations and legacy no-default
 reopen, followed by actual restored-index → publisher → journal readback. This
-does not add a global discovery/quota catalog, durable receipt heads, handlers,
+does not by itself add durable receipt heads, handlers,
 Organizer controls or native end-to-end acceptance.
 
 `ProtectedTransferJobIndex` is now an actual per-operation private SQLite head
@@ -503,8 +533,8 @@ adapter → stage → durable head → reopen integration. They cover one CAS wi
 across two native instances, nested cross-instance inspection, actual old-stage
 checkpoint retirement, separate-process inspection, revoke/corrupt/identity
 failures, uncertain readback, sidecar preservation and rejected durability
-weakening. Global accepted-job discovery, publication/receipt heads,
-recovery ownership, quota/retirement, common baselines and actual
+weakening. Publication/receipt heads, recovery ownership, proven quota release/
+retirement, common baselines and actual
 application handlers/controls still require integration. This is not native
 end-to-end photo synchronization acceptance.
 
