@@ -20,13 +20,14 @@ internal static class PersonalActorLocalRestoreSourceTests
             await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), fault);
     }
 
-    private static async Task<JsonArray> LoadGuiFixturesAsync()
+    internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false)
     {
         var root = TestSource.Root("magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js");
         var script = Path.Combine(root, "magnolie-organizer-windows", "tests", "mcp-notes-historical-source-fixture.js");
         var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("NODE") ?? "node") {
             RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         start.ArgumentList.Add(script);
+        if (candidates) start.ArgumentList.Add("--candidate");
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Existing Node runtime required for source parity.");
         var output = process.StandardOutput.ReadToEndAsync(); var errors = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));

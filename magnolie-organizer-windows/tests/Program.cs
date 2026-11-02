@@ -121,6 +121,7 @@ runner.Add("Notes actor completion metadata / closed data / native guards", Pers
 runner.Add("Notes actor historical writer gate / volatile retirement / fresh save guard", PersonalActorCompletionTests.HistoricalWriterGateAsync);
 runner.Add("Notes actor current local restore source / actual GUI projection parity", PersonalActorLocalRestoreSourceTests.RunAsync);
 runner.Add("Notes actor historical source review / authenticated origin / no save", PersonalActorLocalRestoreSourceTests.HistoricalReviewAsync);
+runner.Add("Notes actor exact historical candidate delta / no caller hash authority", PersonalActorRestoreCandidateTests.RunAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
