@@ -439,6 +439,38 @@ corrupt or newly out-of-scope state is preserved, not adopted as a new baseline.
 This is reconstructed native storage, not yet an integrated restart/phone-service
 acceptance or proof of an end-to-end transfer.
 
+## Linux physical no-replace publication (not a durable saved receipt)
+
+`magnolie_file_publish.NativeFilePublisher` now has 35 focused real-filesystem
+tests with the existing AES-GCM stage and resume ledger. A native accepted
+operation supplies an immutable complete target mapping, current transfer
+binding, serialized publication gate and a separately reserved private owner.
+Construction never adopts an existing publication directory. Destination and
+parent directory descriptors, original inode witnesses, bounded alias checks,
+full staged/temp/destination byte readback and exclusive destination linking
+protect this primitive's no-replace boundary. Linux publication links the held
+source descriptor through `/proc/self/fd`, without a source-path fallback.
+Full-file hashing stays outside the native permission gate. Equal existing
+files, aliases, linked parents, unknown cache entries and changed witnesses are
+not adopted, overwritten or blindly deleted.
+
+After an actual link, failures retain an uncertain state in this native instance;
+retries cannot silently choose another filename or report a new save. Explicit
+cache cleanup can operate after permission revocation using original local
+witnesses, including successfully written partial/empty temporary files, but
+never removes a destination photo. Closing only releases descriptors.
+
+The returned `NativePublishedFile` is **physical readback evidence only**:
+`is_saved_receipt=false` and `grants_write_authority=false`. The current
+implementation deliberately has no durable publication journal, protected PC
+job/receipt index, restart adoption/repair, shared photo baseline or transfer ACK
+integration. Those are required before actual transport/UI use. Tests cover
+Unicode/nested/empty/multichunk saves, duplicate calls, immutable mapping,
+existing/concurrently created targets, aliases/symlinks, permission gates,
+revocation, path swaps, post-link fsync/readback failures and conservative
+partial-cache cleanup. They do not constitute physical phone or end-to-end sync
+acceptance; no handler, capability or automatic background work is enabled.
+
 ## Three-way photo comparison proposals (not execution authority)
 
 Linux `magnolie_photo_plan` and Windows `PhotoSyncPlan` compare immutable native
