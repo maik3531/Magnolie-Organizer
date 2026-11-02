@@ -1330,13 +1330,48 @@ def test_share_parser_rejects_unsafe_names(name):
 def test_share_parser_limits_exact_integers_ports_and_known_metadata():
     parsed = kde.parse_share_packet(share_packet(size=kde.MAX_FILE_BYTES, port=1764,
         open=False, numberOfFiles=2, totalPayloadSize=10))
-    assert parsed == {"name": "foto.jpg", "size": kde.MAX_FILE_BYTES, "port": 1764}
+    assert parsed == {"name": "foto.jpg", "size": kde.MAX_FILE_BYTES, "port": 1764,
+                      "number_of_files": 2, "total_payload_size": 10}
     invalid = [share_packet(size=True), share_packet(size=-1),
         share_packet(size=kde.MAX_FILE_BYTES + 1), share_packet(port=True),
         share_packet(port=1715), share_packet(port=1765), share_packet(open="yes")]
     for packet in invalid:
         with pytest.raises(kde.ProtocolError):
             kde.parse_share_packet(packet)
+
+
+def test_share_aggregate_hints_are_optional_exact_and_never_batch_authorization():
+    legacy = kde.parse_share_packet(share_packet())
+    assert set(legacy) == {"name", "size", "port"}
+    for wire, field in (("numberOfFiles", "number_of_files"),
+                        ("totalPayloadSize", "total_payload_size")):
+        for value in (0, 1, 2 ** 63 - 1):
+            parsed = kde.parse_share_packet(share_packet(**{wire: value}))
+            assert parsed == dict(legacy, **{field: value})
+        for value in (True, False, -1, 2 ** 63, "2", 2.0, None):
+            with pytest.raises(kde.ProtocolError):
+                kde.parse_share_packet(share_packet(**{wire: value}))
+
+
+def test_file_aggregate_hints_reach_task_without_granting_automatic_acceptance():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_ensure_transfer_worker"):
+                backend._handle_receive_packet(worker, share_packet(
+                    numberOfFiles=2, totalPayloadSize=8))
+            task = backend._transfer_queue.get_nowait()
+            assert task["number_of_files"] == 2 and task["total_payload_size"] == 8
+            assert task["mode"] == "confirm"
+            assert not events and not backend._receive_pending
+        finally:
+            backend._release_receive()
+            backend.stop()
 
 
 class PayloadStream:

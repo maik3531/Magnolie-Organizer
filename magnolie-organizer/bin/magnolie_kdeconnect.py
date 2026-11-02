@@ -1015,7 +1015,15 @@ def parse_share_packet(packet):
     if (not isinstance(port, int) or isinstance(port, bool)
             or not MIN_TCP_PORT <= port <= MAX_TCP_PORT):
         raise ProtocolError("invalid share payload port")
-    return {"name": _safe_basename(body["filename"]), "size": size, "port": port}
+    result = {"name": _safe_basename(body["filename"]), "size": size, "port": port}
+    # Aggregate hints are not a manifest or an authorization token. Preserve
+    # them for a future connection-bound batch contract, never auto-accept
+    # subsequent files merely because these numbers happen to match.
+    for source, target in (("numberOfFiles", "number_of_files"),
+                           ("totalPayloadSize", "total_payload_size")):
+        if source in body:
+            result[target] = body[source]
+    return result
 
 
 def _canonical_integer(value, minimum, maximum):
