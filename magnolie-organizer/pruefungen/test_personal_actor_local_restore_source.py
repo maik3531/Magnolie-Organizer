@@ -55,13 +55,14 @@ def test_real_gui_note_task_and_format_sources_match_native_projection_without_c
         assert value['book'] == before and state['scope']['members'] == fixture['members']
 
 
-@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'foreign', 'changed', 'hash', 'clock', 'live', 'child', 'scope', 'save', 'source', 'owner'])
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'foreign', 'changed', 'hash', 'clock', 'live', 'child', 'scope', 'save', 'source', 'owner', 'trash-id-collision'])
 def test_local_restore_sources_are_exact_and_stale_or_remote_substitutes_never_become_evidence(gui_sources, fault):
     for fixture in gui_sources:
         def change(book, target):
             piece = book['papierkorb'][0]
             if fault == 'missing': book['papierkorb'] = []
             elif fault == 'duplicate': book['papierkorb'].append(copy.deepcopy(piece))
+            elif fault == 'trash-id-collision': book['papierkorb'].append(dict(copy.deepcopy(piece), art='appointment', eintrag={'id': 'unrelated-trash'}))
             elif fault == 'foreign': piece['eintrag']['baumQuelle' if target['kind'] == 'note' else 'delegiertAn'] = 'foreign'
             elif fault == 'changed': piece['eintrag']['titel'] = 'Changed source'
             elif fault == 'hash': target['prior_hash'] = 'f' * 64

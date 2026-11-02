@@ -39,11 +39,13 @@ class PersonalHistoricalRestoreClaimTest {
     }
 
     @Test fun missingAmbiguousForeignOrChangedLocalTrashCannotBecomeAnAcceptedBatchFallback() {
-        for (kind in listOf("note", "task")) for (fault in listOf("missing", "duplicate", "foreign", "changed")) {
+        for (kind in listOf("note", "task")) for (fault in listOf("missing", "duplicate", "foreign", "changed", "id-collision")) {
             val f = fixture(kind); val source = f.book.papierkorb.single()
             val changed = when (fault) {
                 "missing" -> emptyList()
                 "duplicate" -> listOf(source, source.copy(id = UUID.randomUUID().toString()))
+                "id-collision" -> listOf(source, if (kind == "note") source.copy(art = "task", notiz = null, aufgabe = Aufgabe("unrelated-trash"))
+                    else source.copy(art = "note", aufgabe = null, notiz = Notiz("unrelated-trash")))
                 else -> listOf(if (kind == "note") source.copy(notiz = source.notiz!!.copy(
                     text = if (fault == "changed") "Substituted source" else source.notiz.text,
                     baumQuelle = if (fault == "foreign") "foreign" else ""))

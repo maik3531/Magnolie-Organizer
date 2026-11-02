@@ -40,7 +40,7 @@ internal static class PersonalActorLocalRestoreSourceTests
 
     private static void VerifySources(JsonArray fixtures)
     {
-        foreach (var raw in fixtures) foreach (var fault in new[] { "none", "missing", "duplicate", "foreign", "changed", "hash", "clock", "live", "child", "scope", "save", "source", "owner" })
+        foreach (var raw in fixtures) foreach (var fault in new[] { "none", "missing", "duplicate", "foreign", "changed", "hash", "clock", "live", "child", "scope", "save", "source", "owner", "trash-id-collision" })
         {
             var fixture = raw!.DeepClone().AsObject(); var book = fixture["book"]!.AsObject(); var target = fixture["target"]!.AsObject();
             var kind = target["kind"]!.GetValue<string>(); var id = target["id"]!.GetValue<string>();
@@ -48,6 +48,11 @@ internal static class PersonalActorLocalRestoreSourceTests
             var trash = book["papierkorb"]!.AsArray(); var piece = trash[0]!.AsObject();
             if (fault == "missing") trash.Clear();
             if (fault == "duplicate") trash.Add(piece.DeepClone());
+            if (fault == "trash-id-collision")
+            {
+                var unrelated = piece.DeepClone().AsObject(); unrelated["art"] = "appointment";
+                unrelated["eintrag"] = new JsonObject { ["id"] = "unrelated-trash" }; trash.Add(unrelated);
+            }
             if (fault == "foreign") piece["eintrag"]![kind == "note" ? "baumQuelle" : "delegiertAn"] = "foreign";
             if (fault == "changed") piece["eintrag"]!["titel"] = "Changed source";
             if (fault == "hash") target["prior_hash"] = new string('f', 64);

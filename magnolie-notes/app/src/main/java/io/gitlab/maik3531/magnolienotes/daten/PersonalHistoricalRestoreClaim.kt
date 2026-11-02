@@ -58,6 +58,7 @@ internal class PersonalHistoricalRestoreClaim private constructor(
                     else -> item.aufgabe?.id == proposal.id
                 } }
                 val source = checkNotNull(sources.singleOrNull()) { "restore_unavailable" }
+                check(source.id.isNotBlank() && book.papierkorb.count { it.id == source.id } == 1) { "restore_unavailable" }
                 check(if (proposal.kind == "note") PersonalSync.ownNote(requireNotNull(source.notiz)) else PersonalSync.ownTask(requireNotNull(source.aufgabe))) {
                     "restore_unavailable"
                 }

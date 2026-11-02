@@ -86,6 +86,7 @@ class NativeHistoricalRestoreSourceObservation(NativeIncomingLiveTargetObservati
             raise PermissionError('restore_unavailable')
         piece = pieces[0]; entry = piece['eintrag']
         if (not isinstance(piece.get('id'), str) or not piece['id'] or
+                sum(value.get('id') == piece['id'] for value in book.get('papierkorb', [])) != 1 or
                 (bool(entry.get('baumQuelle')) and entry.get('persoenlichVerknuepft') is not True if kind == 'note' else
                  any(entry.get(field) for field in ('vonZweig', 'fremdId', 'delegiertAn', 'herkunft')))):
             raise PermissionError('restore_unavailable')

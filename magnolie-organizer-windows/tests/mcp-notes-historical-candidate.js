@@ -10,7 +10,7 @@ const watchdog = setTimeout(() => { console.error("Historical candidate test tim
   let passed = 0;
   for (const web of harness.exports.roots) for (const format of [3, 14]) for (const kind of ["note", "task"])
     for (const fault of ["none", "missing", "duplicate", "foreign", "changed", "clock", "hash", "confirmation", "delete", "data-member", "present", "resolved",
-      "async-change", "caller-copy", "old-local-clock", "foreign-peer", "duplicate-target", ...(kind === "note" ? ["alias-duplicate", "pending-child"] : [])]) {
+      "async-change", "caller-copy", "trash-id-collision", "old-local-clock", "foreign-peer", "duplicate-target", ...(kind === "note" ? ["alias-duplicate", "pending-child"] : [])]) {
       const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
         notizen: [{ id: "restore-note", titel: "Synthetic", text: "Preserve Grüße 🌸", ursprungApp: "notes" }, { id: "private-note", text: "Keep private" }],
         aufgaben: [{ id: "restore-task", titel: "Synthetic task", erledigt: false }] });
@@ -40,6 +40,7 @@ const watchdog = setTimeout(() => { console.error("Historical candidate test tim
         if (fault === "data-member") selection[kind === "note" ? "notes" : "tasks"].add(live.id);
         if (fault === "present") data[list].push(plain(original));
         if (fault === "resolved") data.personalSync.entities[key].status = "resolved";
+        if (fault === "trash-id-collision") data.papierkorb.push({ ...plain(data.papierkorb[0]), art: "appointment", eintrag: { id: "unrelated-trash" } });
         if (fault === "old-local-clock") data.personalSync.counter = 0;
         if (fault === "foreign-peer") proposal.source_device = run;
         if (fault === "alias-duplicate") {

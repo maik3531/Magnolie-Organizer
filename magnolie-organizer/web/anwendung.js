@@ -1323,6 +1323,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (kind === "note" ? personalSyncNotizWireId(value.eintrag.id, "note", book) === id : value.eintrag.id === id));
       if (sources.length !== 1 || book[list].some(value => kind === "note" ? personalSyncNotizWireId(value.id, "note", book) === id : value.id === id)) fail();
       const source = sources[0], entry = source.eintrag;
+      if (typeof source.id !== "string" || !source.id || book.papierkorb.filter(value => value.id === source.id).length !== 1) fail();
       const localId = entry.id;
       if (kind === "note" ? !personalSyncEigeneNotiz(entry) : entry.vonZweig || entry.fremdId || entry.delegiertAn || entry.herkunft) fail();
       if (kind === "note" && Object.entries(ps.entities).some(([entity, value]) => entity.startsWith("attachment\u0000" + id + "\u0000") && value.state === "deleted")) fail();

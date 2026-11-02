@@ -74,7 +74,8 @@ internal sealed class PersonalActorHistoricalRestoreSourceObservation : Personal
             piece["eintrag"] is JsonObject entry && (kind == "task" ? Text(entry, "id") == id : PersonalActorOutgoingProducer.NoteWireId(Text(entry, "id"), state) == id)).ToArray();
         if (sources.Length != 1) throw new InvalidOperationException("restore_unavailable");
         var source = sources[0]; var content = source["eintrag"]!.AsObject();
-        if (Text(source, "id").Length == 0 || (kind == "note" ? Text(content, "baumQuelle").Length != 0 && !Flag(content, "persoenlichVerknuepft") :
+        if (Text(source, "id").Length == 0 || book["papierkorb"]!.AsArray().OfType<JsonObject>().Count(piece => Text(piece, "id") == Text(source, "id")) != 1 ||
+            (kind == "note" ? Text(content, "baumQuelle").Length != 0 && !Flag(content, "persoenlichVerknuepft") :
             new[] { "vonZweig", "fremdId", "delegiertAn", "herkunft" }.Any(field => Text(content, field).Length != 0)))
             throw new InvalidOperationException("restore_unavailable");
         if (kind == "note" && state["entities"]!.AsObject().Any(pair => pair.Key.StartsWith("attachment\0" + id + "\0", StringComparison.Ordinal) &&

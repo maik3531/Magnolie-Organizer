@@ -18,6 +18,41 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class PersonalHistoricalRestoreWriterTest {
+    @Test fun aCollidingTrashIdCannotRemoveAnUnrelatedEncryptedTrashEntryThroughAHistoricalClaim() {
+        val directory = Files.createTempDirectory("notes-historical-trash-collision-").toFile()
+        val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+            override fun getApplicationContext(): Context = this
+            override fun getFilesDir(): File = directory
+        }
+        val peer = "22222222-2222-4222-8222-222222222222"; val run = UUID.randomUUID().toString()
+        val key = SecretKeySpec(ByteArray(32) { 19 }, "AES")
+        try {
+            val storage = Ablage.fuerTest(context) { key }
+            storage.setzeNotiz(Notiz("restore-note", text = "Synthetic protected source"))
+            storage.personalSyncSnapshot(setOf("notes"), 3); storage.personalSyncAcknowledge(peer)
+            storage.loescheNotiz("restore-note"); storage.personalSyncSnapshot(setOf("notes"), 3)
+            val source = storage.bestand.value.papierkorb.single()
+            val collision = source.copy(art = "task", notiz = null, aufgabe = Aufgabe("unrelated-trash", titel = "Keep this trash"))
+            val seeded = storage.bestand.value.copy(papierkorb = listOf(source, collision))
+            synchronized(Ablage.SCHREIBSPERRE) {
+                Ablage::class.java.getDeclaredMethod("schreibeBestand", Bestand::class.java).apply { isAccessible = true }.invoke(storage, seeded)
+            }
+            val before = storage.bestand.value; val saved = requireNotNull(storage.personalActorSavedBookState())
+            val bytes = File(directory, "notizen.json").readBytes()
+            val meta = before.personalSync.entities.getValue("note\u0000restore-note")
+            val proposal = PersonalDeletionProposal(run, UUID.randomUUID().toString(), "note", "restore-note", "", meta.clock,
+                meta.prior_hash, meta.deleted_ms, "Synthetic", peer)
+            val decision = AppliedPersonalDecision(proposal.proposal_id, "restore", meta.clock, UUID.randomUUID().toString())
+            assertTrue(runCatching { PersonalHistoricalRestoreClaim.prepare(peer, run, before, saved, PersonalSync.livePersonalContent(before),
+                listOf(proposal), listOf(decision)) }.isFailure)
+            assertSame(before, storage.bestand.value); assertEquals(saved, storage.personalActorSavedBookState())
+            assertArrayEquals(bytes, File(directory, "notizen.json").readBytes()); assertNull(storage.notiz("restore-note"))
+            val reopened = Ablage.fuerTest(context) { key }
+            assertEquals(listOf(source, collision), reopened.bestand.value.papierkorb)
+            assertEquals("Keep this trash", reopened.bestand.value.papierkorb.single { it.art == "task" }.aufgabe?.titel)
+        } finally { directory.deleteRecursively() }
+    }
+
     @Test fun theDedicatedWriterNeedsItsClosedNativeClaimAndExactlyItsBeforeBookAndSaveWitness() {
         val directory = Files.createTempDirectory("notes-historical-restore-").toFile()
         val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
