@@ -160,6 +160,16 @@ install -Dpm 0644 bin/magnolie_content_scope.py %{buildroot}%{_bindir}/magnolie_
 install -Dpm 0644 bin/magnolie_personal_actor.py %{buildroot}%{_bindir}/magnolie_personal_actor.py
 install -Dpm 0644 bin/magnolie_personal_actor_store.py %{buildroot}%{_bindir}/magnolie_personal_actor_store.py
 install -Dpm 0644 bin/magnolie_personal_actor_completion.py %{buildroot}%{_bindir}/magnolie_personal_actor_completion.py
+install -Dpm 0644 bin/magnolie_native_book_json.py %{buildroot}%{_bindir}/magnolie_native_book_json.py
+install -Dpm 0644 bin/magnolie_personal_actor_decision_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_decision_review.py
+install -Dpm 0644 bin/magnolie_personal_actor_producer.py %{buildroot}%{_bindir}/magnolie_personal_actor_producer.py
+install -Dpm 0644 bin/magnolie_personal_actor_projection.py %{buildroot}%{_bindir}/magnolie_personal_actor_projection.py
+install -Dpm 0644 bin/magnolie_personal_actor_report_owner.py %{buildroot}%{_bindir}/magnolie_personal_actor_report_owner.py
+install -Dpm 0644 bin/magnolie_personal_actor_restore_candidate.py %{buildroot}%{_bindir}/magnolie_personal_actor_restore_candidate.py
+install -Dpm 0644 bin/magnolie_personal_actor_restore_source.py %{buildroot}%{_bindir}/magnolie_personal_actor_restore_source.py
+install -Dpm 0644 bin/magnolie_personal_actor_target_evidence.py %{buildroot}%{_bindir}/magnolie_personal_actor_target_evidence.py
+install -Dpm 0644 bin/magnolie_personal_actor_target_review.py %{buildroot}%{_bindir}/magnolie_personal_actor_target_review.py
+install -Dpm 0644 bin/magnolie_personal_actor_writer.py %{buildroot}%{_bindir}/magnolie_personal_actor_writer.py
 install -Dpm 0644 bin/magnolie_phone_ack.py %{buildroot}%{_bindir}/magnolie_phone_ack.py
 install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_drawing_svg.py
 install -Dpm 0644 bin/magnolie_versand.py %{buildroot}%{_bindir}/magnolie_versand.py
@@ -304,6 +314,16 @@ done
 %{_bindir}/magnolie_personal_actor.py
 %{_bindir}/magnolie_personal_actor_store.py
 %{_bindir}/magnolie_personal_actor_completion.py
+%{_bindir}/magnolie_native_book_json.py
+%{_bindir}/magnolie_personal_actor_decision_review.py
+%{_bindir}/magnolie_personal_actor_producer.py
+%{_bindir}/magnolie_personal_actor_projection.py
+%{_bindir}/magnolie_personal_actor_report_owner.py
+%{_bindir}/magnolie_personal_actor_restore_candidate.py
+%{_bindir}/magnolie_personal_actor_restore_source.py
+%{_bindir}/magnolie_personal_actor_target_evidence.py
+%{_bindir}/magnolie_personal_actor_target_review.py
+%{_bindir}/magnolie_personal_actor_writer.py
 %{_bindir}/magnolie_phone_ack.py
 %{_bindir}/magnolie_drawing_svg.py
 %{_bindir}/magnolie_versand.py

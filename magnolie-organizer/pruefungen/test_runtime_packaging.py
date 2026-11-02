@@ -145,6 +145,8 @@ sys.path.insert(0, str(bindir))
 for name in sys.argv[2:]:
     module = importlib.import_module(pathlib.Path(name).stem)
     assert pathlib.Path(module.__file__) == bindir / name
+from magnolie_telefon import PhoneService
+assert PhoneService._actor_mixed_ready is False, 'Installing helpers must not enable the historical/mixed actor runtime'
 '''
     result = subprocess.run([sys.executable, "-I", "-B", "-c", imports, str(bindir), *sorted(modules)],
                             cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
