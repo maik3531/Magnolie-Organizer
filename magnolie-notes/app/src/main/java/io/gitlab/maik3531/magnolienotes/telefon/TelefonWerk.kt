@@ -133,6 +133,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
+    private var galleryFileConnection: NativeGalleryFileConnection? = null
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -637,6 +638,64 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = currentNativeFileTransportPeer(peerId, publicKey, channel, generation) ?: return null
         if (peer.state != "paired" || !peer.own_device || !peer.remote_own_device) return null
         return fileChannelIdentities[channel]
+    }
+
+    /** Explicit native controller entry, not a registered remote handler. Never
+     * construct/close a runtime while holding this Werk's monitor: its native
+     * authority callbacks acquire that same monitor from runtime/session locks.
+     */
+    internal fun openNativeGalleryFileConnection(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long, handlersReady: () -> Boolean): NativeGalleryFileConnection {
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper())
+            DeviceFileControl.fail("gallery_permission_ui_thread_required")
+        val identity: NativeFileControlIdentity
+        val peer: NativeFileControlPeer
+        val connection: NativeGalleryFileConnection
+        synchronized(this) {
+            if (galleryFileConnection != null) DeviceFileControl.fail("gallery_file_connection_busy")
+            identity = currentNativeFileIdentity(peerId, publicKey, channel, generation)
+                ?: DeviceFileControl.fail("file_control_native_identity_unavailable")
+            peer = currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady())
+                ?: DeviceFileControl.fail("file_control_native_channel_changed")
+            connection = NativeGalleryFileConnection(channel) { released ->
+                synchronized(this) { if (galleryFileConnection === released) galleryFileConnection = null }
+            }
+            galleryFileConnection = connection
+        }
+        try {
+            val protection = DeviceTransferProtection.fromExistingAndroidPhoneKey()
+            // Prove existing-key availability before creating dedicated paths.
+            protection.seal(byteArrayOf(1), "native-gallery-runtime-preflight-v1").fill(0)
+            val name = DeviceFileControl.digest("magnolie-native-gallery-directory-v1\u0000",
+                kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive(identity.deviceId), JsonPrimitive(identity.identitySha256),
+                    JsonPrimitive(peer.peerId), JsonPrimitive(peer.identitySha256))))
+            val root = context.filesDir.toPath()
+            if (root.toFile().canonicalFile.toPath() != root) DeviceFileControl.fail("gallery_file_unsafe_native_directory")
+            fun directory(parent: java.nio.file.Path, child: String): java.nio.file.Path {
+                val path = parent.resolve(child)
+                try { java.nio.file.Files.createDirectory(path, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"))) }
+                catch (_: java.nio.file.FileAlreadyExistsException) { }
+                val attributes = java.nio.file.Files.readAttributes(path, java.nio.file.attribute.BasicFileAttributes::class.java,
+                    java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                if (!attributes.isDirectory || attributes.fileKey() == null || path.toFile().canonicalFile.toPath() != path)
+                    DeviceFileControl.fail("gallery_file_unsafe_native_directory")
+                return path
+            }
+            val directory = directory(directory(root, "native-file-sources-v1"), name).toFile()
+            val runtime = NativeGalleryFileRuntime(context, directory, identity, protection, channel,
+                { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }, handlersReady)
+            connection.bind(runtime)
+            if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
+                currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)
+                DeviceFileControl.fail("file_control_native_channel_changed")
+            return connection
+        } catch (error: Exception) { connection.close(); throw error }
+    }
+
+    internal fun nativeGalleryFileTransportEnded(channel: TelefonSecureChannel) {
+        val connection = synchronized(this) { galleryFileConnection?.takeIf { it.channel === channel } }
+        connection?.transportEnded() // Deliberately outside the Werk monitor.
     }
 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
@@ -2178,11 +2237,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
             TelefonPaarungsRoehre(pipe, 15_000) else null
         _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.AUTHENTICATING, error = "")
         developerDiagnostics.ereignis("authenticating", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
+        var fileCleanupChannel: TelefonSecureChannel? = null
         try {
             val secrets = TelefonSession.start(identity, peer, staticPrivate)
             TelefonRahmen.schreiben(pipe.output, secrets.start)
             TelefonSession.finish(secrets, TelefonRahmen.lesen(pipe.input), identity, peer,
-                 pipe.input, pipe.output).use { channel ->
+                 pipe.input, pipe.output).also { fileCleanupChannel = it }.use { channel ->
                 val noteSession = PersonalNoteSession()
                 synchronized(this) { noteSessions[channel] = noteSession }
                 try {
@@ -2319,6 +2379,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             authenticationDeadline?.close()
             developerDiagnostics.ereignis("closed", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
             staticPrivate.fill(0); runCatching { pipe.close() }
+            fileCleanupChannel?.let { nativeGalleryFileTransportEnded(it) }
             if (generation == pairingGeneration && serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
         }
     }

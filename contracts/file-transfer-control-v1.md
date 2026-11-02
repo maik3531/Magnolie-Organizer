@@ -312,6 +312,20 @@ lookup while the synthetic identity file is temporarily absent and stale-channel
 generation rejection. These are source/synthetic-channel checks, not physical
 authentication acceptance.
 
+`TelefonWerk.openNativeGalleryFileConnection` now constructs a dedicated gallery
+runtime only from the current cached authenticated identity, pinned native peer,
+existing Android phone key and a private native-derived directory. No path or
+identity comes from a request body. A single ownership slot stays occupied until
+actual UI cleanup; another channel cannot overwrite it. Construction and cleanup
+run outside the Werk monitor to avoid callback lock inversion. Actual transport
+finally cleanup revokes control after I/O ends and schedules the required UI
+close, retaining ownership until it completes. Two new targeted synthetic native
+factory cases pass: missing identity/disabled handlers, identity-file absence,
+initial OFF actual encrypted write, competing connection rejection, unrelated
+channel end isolation, bounded worker-thread end/UI cleanup and preserved metadata
+reopen. The factory is not yet invoked by a registered remote source dispatcher;
+discovery 21 and data workers remain inactive.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

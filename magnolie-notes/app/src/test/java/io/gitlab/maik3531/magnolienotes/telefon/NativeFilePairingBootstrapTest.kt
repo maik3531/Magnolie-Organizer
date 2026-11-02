@@ -165,4 +165,75 @@ class NativeFilePairingBootstrapTest {
             } finally { java.nio.file.Files.move(held.toPath(), identity.toPath()) }
         }
     }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun captureFileIdentity(work: TelefonWerk, channel: TelefonSecureChannel) {
+        val cache = field(TelefonWerk::class.java, "fileChannelIdentities").get(work) as MutableMap<TelefonSecureChannel, NativeFileControlIdentity>
+        cache[channel] = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+    }
+
+    @Test fun nativeFactoryUsesCapturedIdentityExistingKeyAndRetainsOwnershipUntilActualUiClose() {
+        withNativeTransport { work, channel, generation ->
+            var peer = storage.fileAuthorityPeers().peer!!
+            assertThrows(PhotoFolderScopeError::class.java) {
+                work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }
+            }
+            captureFileIdentity(work, channel)
+            peer = work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            val identityFile = field(TelefonAblage::class.java, "identityFile").get(storage) as java.io.File
+            val held = java.io.File(identityFile.parentFile, identityFile.name + ".factory-test-held")
+            java.nio.file.Files.move(identityFile.toPath(), held.toPath())
+            var opened: NativeGalleryFileConnection? = null
+            try {
+                val connection = work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }
+                opened = connection
+                assertNull(connection.runtime.savedPolicy().policy)
+                assertNull(connection.runtime.currentRequest())
+                assertFalse(identityFile.exists())
+                assertTrue(connection.runtime.sendControls()) // Actual encrypted frame write, still initial OFF.
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }
+                }
+                val unrelated = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), ByteArrayOutputStream(),
+                    ByteArray(16), ByteArray(32), ByteArray(4), ByteArray(32), ByteArray(4))
+                try { work.nativeGalleryFileTransportEnded(unrelated) } finally { unrelated.close() }
+                assertFalse(connection.isEnded)
+                field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                val ended = java.util.concurrent.CountDownLatch(1)
+                val failed = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+                val worker = Thread {
+                    try { work.nativeGalleryFileTransportEnded(channel) } catch (error: Throwable) { failed.set(error) }
+                    finally { ended.countDown() }
+                }
+                worker.start(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); worker.join(5000)
+                assertNull(failed.get()); assertTrue(connection.isEnded)
+                assertThrows(PhotoFolderScopeError::class.java) { connection.runtime }
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertFalse(identityFile.exists())
+            } finally {
+                opened?.close()
+                java.nio.file.Files.move(held.toPath(), identityFile.toPath())
+            }
+        }
+    }
+
+    @Test fun nativeFactoryRejectsDisabledHandlersAndCanReopenPreservedMetadataOnlyAfterClose() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val peer = storage.fileAuthorityPeers().peer!!
+            work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { false }
+            }
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { first ->
+                assertNull(first.runtime.savedPolicy().policy)
+            }
+            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { reopened ->
+                assertNull(reopened.runtime.savedPolicy().policy)
+                assertNull(reopened.runtime.currentRequest())
+            }
+        }
+    }
 }
