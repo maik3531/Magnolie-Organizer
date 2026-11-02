@@ -940,6 +940,17 @@ channel cases are included. This is not installed/native-dialog or physical phon
 acceptance. No frontend activation, data worker, scheduler, new package, automatic
 run or discovery 21 advertisement is enabled.
 
+The bounded authenticated socketpair fixture additionally exercises this actual
+reserved control route, not only an in-memory channel double: real session MAC,
+directional AEAD Ready, explicit native owner attachment, encrypted outbound
+control, encrypted inbound peer control through `_session`/`_payload`, actual
+encrypted echo output and native resource cleanup at channel end. All three
+fixture modes (normal, generation changed, file control) pass; the added mode is
+one new case, not three new feature checks. No photo policy directory or data
+grant is created. Unrelated personal outbox producers remain inert in the fixture;
+no physical device, installed GUI or complete source/data/recovery handshake is
+claimed.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

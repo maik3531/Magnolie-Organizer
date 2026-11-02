@@ -118,7 +118,7 @@ def test_native_revocation_does_not_wait_for_peer_io_or_return_late_authority(na
     finally:
         release.set();assert ended.wait(5);worker.join(5);authority.close()
 
-@pytest.mark.parametrize('mode',['normal','generation-change'])
+@pytest.mark.parametrize('mode',['normal','generation-change','file-control'])
 def test_actual_crypto_session_captures_its_authenticated_public_identity_and_removes_it_at_transport_end(native,monkeypatch,mode):
     service,peer,private=native
     # Leave unrelated personal outbox producers inert in this focused crypto /
@@ -174,10 +174,39 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
             native_identity=service.current_native_file_identity(peer['device_id'],peer['static_public'],server_channel,service._generation)
             assert native_identity.receiver_id==identity['device_id']
             assert native_identity.receiver_identity_sha256==hashlib.sha256(phone.unb64(identity['static_public'],32)).hexdigest()
+            native_connection = None
+            if mode == 'file-control':
+                from magnolie_file_control import KIND, FileControlPacket, FileGrantState
+                native_connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], server_channel, service._generation)
+                observed = threading.Event()
+                dispatch = native_connection.receive
+                def receive_native(message):
+                    try: return dispatch(message)
+                    finally: observed.set()
+                monkeypatch.setattr(native_connection, 'receive', receive_native)
+                assert native_connection.send_controls()
+                first = receive()
+                assert first['kind'] == KIND
+                local = FileControlPacket.parse(first['body'])
+                remote = FileControlPacket(FileGrantState(1, 'a'*64, False, True), 'b'*64, 1, local.challenge)
+                at = phone.now_ms()
+                send(dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=KIND,
+                          created_ms=at, expires_ms=at+60_000, body=remote.wire()))
+                echo = receive()
+                assert echo['kind'] == KIND and observed.wait(5)
+                echoed = FileControlPacket.parse(echo['body'])
+                assert echoed.echo == remote.challenge
+                assert not echoed.grants.send_files and not echoed.grants.receive_files
+                assert native_connection._controls._sent_grants == echoed.grants
+                assert native_connection.read_preferences().policy is None
+                assert not list(Path(service.store.root).glob('photo-preferences-v1-*'))
             send(dict(type='close',reason='normal'));worker.join(5)
             assert not worker.is_alive() and not failed
             assert server_channel not in service._file_channel_bindings
             assert service.current_native_file_identity(peer['device_id'],peer['static_public'],server_channel,service._generation) is None
+            if native_connection is not None:
+                assert server_channel not in service._native_file_connections
+                assert native_connection._authority.protection._closed
     finally:
         service.enabled=False;left.close();right.close();worker.join(5)
         assert not worker.is_alive()
