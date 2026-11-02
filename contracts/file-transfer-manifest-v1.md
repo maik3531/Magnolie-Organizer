@@ -439,6 +439,34 @@ corrupt or newly out-of-scope state is preserved, not adopted as a new baseline.
 This is reconstructed native storage, not yet an integrated restart/phone-service
 acceptance or proof of an end-to-end transfer.
 
+## Three-way photo comparison proposals (not execution authority)
+
+Linux `magnolie_photo_plan` and Windows `PhotoSyncPlan` compare immutable native
+content observations against an authenticated-receipt baseline association.
+The association binds native peer identities, transfer binding, source epoch,
+photo correlation and target-mapping token; a changed scope pauses rather than
+reinterpreting the old baseline. Same-content convergence is distinct from a
+simultaneous binary edit. Edit/edit and edit/delete remain conflicts. One-way
+mode retains local PC edits and local tombstones instead of copying unchanged
+phone bytes back over them. Unknown/unconfirmed absence is never deletion, and
+an equal unmanaged target is not silently adopted as a managed photo.
+
+Both deletion directions default off. Reverse writes/deletions and native
+desktop create/replace/trash support are not inferred from user toggles; native
+support defaults unavailable. Weak source insertion identity cannot authorize
+an automatic replacement proposal. Every result explicitly grants **no write
+authority** and is **not a saved receipt or accepted new baseline**. Native
+execution still needs fresh consent/identity/ownership/content CAS, no-loss
+publication and actual readback. There is no apply function or I/O here.
+
+The shared `photo-sync-plan-v1-vectors.json` contains 26 synthetic cases; Linux's
+29-case suite and the Windows source-host group pass. These are proposal-only
+tests, not file operations or physical synchronization. In particular, the
+current gallery adapter does not produce authoritative deletion observations;
+a native deletion state cannot be manufactured from an invisible album,
+partial scan, Android READ flag or merely a missing row. Durable common-receipt
+storage, mutation/publication adapters, handlers and UI remain open.
+
 ## User-required photo sync policy (open integration criteria)
 
 All additional configuration belongs **only in Organizer → KDE Connect →

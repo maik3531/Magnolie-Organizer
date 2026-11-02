@@ -1,0 +1,39 @@
+{
+  "format": 1,
+  "note": "Synthetic comparison proposals only; not native readbacks, mutation authority or saved receipts.",
+  "default_support": ["create_desktop", "replace_desktop", "trash_desktop"],
+  "contents": {
+    "old": {"sha256": "1111111111111111111111111111111111111111111111111111111111111111", "size": 5},
+    "phone": {"sha256": "2222222222222222222222222222222222222222222222222222222222222222", "size": 3},
+    "desktop": {"sha256": "3333333333333333333333333333333333333333333333333333333333333333", "size": 4},
+    "same": {"sha256": "4444444444444444444444444444444444444444444444444444444444444444", "size": 6}
+  },
+  "cases": [
+    {"name": "unchanged", "baseline": "old", "phone": "old", "desktop": "old", "expected": "unchanged"},
+    {"name": "new_no_replace", "baseline": null, "phone": "old", "desktop": "missing", "expected": "copy_phone_new"},
+    {"name": "equal_unmanaged_is_not_adopted", "baseline": null, "phone": "old", "desktop": "old", "managed": false, "expected": "conflict_unmanaged_target"},
+    {"name": "phone_crop", "baseline": "old", "phone": "phone", "desktop": "old", "expected": "replace_managed_desktop"},
+    {"name": "crop_unmanaged_target", "baseline": "old", "phone": "phone", "desktop": "old", "managed": false, "expected": "conflict_unmanaged_target"},
+    {"name": "same_independent_edit", "baseline": "old", "phone": "same", "desktop": "same", "expected": "confirm_equal_content"},
+    {"name": "both_edited", "baseline": "old", "phone": "phone", "desktop": "desktop", "expected": "conflict_edit_edit"},
+    {"name": "keep_pc_crop_in_one_way_mode", "baseline": "old", "phone": "old", "desktop": "desktop", "expected": "keep_local_edit"},
+    {"name": "native_reverse_adapter", "baseline": "old", "phone": "old", "desktop": "desktop", "direction": "bidirectional", "support": ["replace_phone"], "expected": "replace_phone"},
+    {"name": "no_reverse_adapter", "baseline": "old", "phone": "old", "desktop": "desktop", "direction": "bidirectional", "expected": "unsupported_phone_replace"},
+    {"name": "gallery_absence_is_not_deletion", "baseline": "old", "phone": "missing", "desktop": "old", "phone_delete": true, "expected": "pause_unconfirmed_absence"},
+    {"name": "phone_delete_default_off", "baseline": "old", "phone": "deleted", "desktop": "old", "expected": "keep_desktop_copy"},
+    {"name": "phone_delete_opt_in", "baseline": "old", "phone": "deleted", "desktop": "old", "phone_delete": true, "expected": "trash_managed_desktop"},
+    {"name": "phone_delete_pc_edit", "baseline": "old", "phone": "deleted", "desktop": "desktop", "phone_delete": true, "expected": "conflict_edit_delete"},
+    {"name": "pc_delete_phone_edit", "baseline": "old", "phone": "phone", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "conflict_edit_delete"},
+    {"name": "pc_delete_default_off_no_resurrection", "baseline": "old", "phone": "old", "desktop": "deleted", "expected": "keep_phone_copy"},
+    {"name": "pc_delete_no_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "expected": "unsupported_phone_delete"},
+    {"name": "pc_delete_native_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "delete_phone"},
+    {"name": "both_deleted", "baseline": "old", "phone": "deleted", "desktop": "deleted", "expected": "both_deleted"},
+    {"name": "permission_visibility_unknown", "baseline": "old", "phone": "unknown", "desktop": "old", "phone_delete": true, "expected": "pause_unknown"},
+    {"name": "coarse_identity_not_replacement_proof", "baseline": "old", "phone": "phone", "desktop": "old", "insertion": false, "expected": "conflict_unproven_source_identity"},
+    {"name": "no_desktop_replace_adapter", "baseline": "old", "phone": "phone", "desktop": "old", "support": [], "expected": "unsupported_desktop_replace"},
+    {"name": "no_desktop_create_adapter", "baseline": null, "phone": "old", "desktop": "missing", "support": [], "expected": "unsupported_desktop_create"},
+    {"name": "no_desktop_trash_adapter", "baseline": "old", "phone": "deleted", "desktop": "old", "phone_delete": true, "support": [], "expected": "unsupported_desktop_trash"},
+    {"name": "one_way_cannot_enable_reverse_delete", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "support": ["delete_phone"], "expected": "unsupported_phone_delete"},
+    {"name": "pc_absence_is_not_deletion", "baseline": "old", "phone": "old", "desktop": "missing", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "pause_unconfirmed_absence"}
+  ]
+}
