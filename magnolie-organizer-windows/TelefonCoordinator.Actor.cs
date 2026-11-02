@@ -493,7 +493,7 @@ internal sealed partial class TelefonCoordinator
                 if (!confirming) foreach (var frame in frames) registry.ValidateHistoricalTargetEnvelope(handle, frame);
                 var snapshot = NativeProducerBook(); var saved = NativeSavedBook();
                 if (snapshot is null || saved is null) return null;
-                var contentHash = PersonalSyncContract.ProjectionHash(JsonNode.Parse(snapshot.Text)!.AsObject());
+                var contentHash = NativeBookJson.Hash(JsonNode.Parse(snapshot.Text)!.AsObject());
                 if (confirming)
                     return saved == plan.ConfirmingSavedBook && saved == snapshot.SavedBook && saved.BookSource == proof.BeforeSavedBook.BookSource &&
                         saved.Sequence == proof.BeforeSavedBook.Sequence + 1 && saved.Sha256 == proof.AfterSha256 && contentHash == proof.AfterContentSha256 &&
@@ -557,7 +557,7 @@ internal sealed partial class TelefonCoordinator
         var proof = plan.Proof; var snapshot = NativeProducerBook(); var saved = NativeSavedBook();
         if (snapshot is null || saved is null || saved != snapshot.SavedBook || saved.BookSource != proof.BeforeSavedBook.BookSource ||
             saved.Sequence != proof.BeforeSavedBook.Sequence + 1 || saved.Sha256 != proof.AfterSha256 ||
-            PersonalSyncContract.ProjectionHash(JsonNode.Parse(snapshot.Text)!.AsObject()) != proof.AfterContentSha256)
+            NativeBookJson.Hash(JsonNode.Parse(snapshot.Text)!.AsObject()) != proof.AfterContentSha256)
             throw new InvalidOperationException("actor_historical_actual_save_proof_missing");
         if (!JsonNode.DeepEquals(NativeHistoricalRestoreCandidateProof.Live(JsonNode.Parse(snapshot.Text)!.AsObject()), JsonNode.Parse(proof.AfterLiveJson)))
             throw new InvalidOperationException("actor_historical_saved_live_delta_changed");

@@ -16,6 +16,21 @@ const watchdog = setTimeout(() => { console.error("Historical source fixture tim
       aufgaben: [{ id: "restore-task", titel: "Synthetic task", notiz: "Only synthetic", prio: 1, faellig: "2026-11-01", erledigt: false }] });
     try {
       if (b.saves().length) b.ack();
+      if (process.argv.includes("--drawing")) {
+        b.w.HTMLCanvasElement.prototype.getContext = () => ({ save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {}, bezierCurveTo() {}, createLinearGradient() { return { addColorStop() {} }; } });
+        b.t.daten().einstellungen.allgemein.customTab.enabled = true;
+        b.t.daten().customOrganizer.modules = [];
+        await b.t.wechsel("custom");
+        [...b.w.document.querySelectorAll("#kopf-links button")].find(button => button.textContent === "Customize").click();
+        const designer = b.w.document.querySelector("#custom-designer-schleier");
+        designer.querySelector(".custom-designer-werkzeuge select").value = "drawing";
+        [...designer.querySelectorAll(".custom-designer-werkzeuge button")].find(button => button.textContent === "Add").click();
+        designer.querySelector('[aria-label="Close"]').click();
+        const module = b.t.daten().customOrganizer.modules[0];
+        module.drawing.strokes.push({ tool: "pen", color: "#123456", width: 1.5, points: [[0.1, 0.2, 0.3], [0.5, 0.6, 0.9]], renderVersion: 4 });
+        if (JSON.stringify(b.t.normalisiere(b.t.daten()).customOrganizer.modules[0].drawing) !== JSON.stringify(module.drawing))
+          throw new Error("Synthetic legitimate fractional drawing failed actual normalization");
+      }
       b.w.Date.now = () => 1793505600000;
       const data = b.t.daten(), records = await b.t.personalSyncSnapshot(["notes", "tasks"], format, peer);
       const record = records.find(value => value.kind === kind), list = kind === "note" ? "notizen" : "aufgaben";

@@ -7,6 +7,30 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PersonalActorRestoreCandidateTests
 {
+    internal static async Task FractionalDrawingAsync()
+    {
+        TestAssert.Throws<InvalidDataException>(() => TelefonCrypto.Canonical(new JsonObject { ["point"] = 0.1 }), "Local drawings relaxed telephone wire integers.");
+        TestAssert.That(!NativeBookJson.Same(new JsonObject { ["enabled"] = false }, new JsonObject { ["enabled"] = 0 }), "Local drawing comparison conflated bool and number.");
+        var fixtures = await PersonalActorLocalRestoreSourceTests.LoadGuiFixturesAsync(candidates: true, drawing: true);
+        foreach (var raw in fixtures) foreach (var fault in new[] { "none", "coordinate", "boolean-type" })
+        {
+            var fixture = raw!.DeepClone().AsObject(); var book = fixture["book"]!.AsObject(); var candidate = JsonNode.Parse(fixture["candidate_text"]!.GetValue<string>())!.AsObject();
+            var drawing = candidate["customOrganizer"]!["modules"]![0]!["drawing"]!;
+            TestAssert.That(drawing["strokes"]![0]!["points"]![0]![0]!.GetValue<double>() == 0.1 && drawing["strokes"]![0]!["width"]!.GetValue<double>() == 1.5, "Actual GUI drawing fixture lost legitimate fractions.");
+            if (fault == "coordinate") drawing["strokes"]![0]!["points"]![0]![0] = 0.1001;
+            if (fault == "boolean-type") drawing["autoSize"] = 1;
+            var owner = new NativeBookOwnerScope(); owner.SetReady(true); owner.Current("drawing-candidate", true);
+            var text = book.ToJsonString(); owner.RecordSaved("drawing-candidate", true, BaumSyncSnapshot.Hash(text));
+            var snapshot = NativeActorBookSnapshot.Capture(() => owner.SaveState("drawing-candidate", true), () => text)!;
+            var scope = PhoneContentScope.Create(fixture["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()), fixture["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()));
+            NativeHistoricalRestoreCandidateProof Prepare() => NativeHistoricalRestoreCandidateProof.Prepare(fixture["peer"]!.GetValue<string>(), fixture["run"]!.GetValue<string>(), fixture["format"]!.GetValue<int>(),
+                [fixture["target"]!.AsObject()], [fixture["choice"]!.AsObject()], candidate.ToJsonString(), () => true, () => new string('a', 64), () => snapshot, () => scope);
+            if (fault == "none") TestAssert.That(Prepare().AfterContentSha256 == NativeBookJson.Hash(candidate), "Unrelated drawing changed native after-content witness.");
+            else TestAssert.Throws<InvalidOperationException>(() => Prepare(), "Changed unrelated drawing passed exact native delta.");
+            TestAssert.That(text == book.ToJsonString() && owner.SaveState("drawing-candidate", true) == snapshot.SavedBook, "Drawing comparison mutated its native input.");
+        }
+    }
+
     internal static async Task RunAsync()
     {
         var fixtures = await PersonalActorLocalRestoreSourceTests.LoadGuiFixturesAsync(candidates: true);
@@ -44,7 +68,7 @@ internal static class PersonalActorRestoreCandidateTests
                 var proof = Prepare();
                 TestAssert.That(proof.BeforeSavedBook == snapshot.SavedBook && proof.AfterSha256 == Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(originalText))).ToLowerInvariant(),
                     "Native delta proof lost its actual before/after byte witnesses.");
-                TestAssert.That(proof.AfterContentSha256 == PersonalSyncContract.ProjectionHash(JsonNode.Parse(originalText)!.AsObject()), "Native proof lost exact after-content binding.");
+                TestAssert.That(proof.AfterContentSha256 == NativeBookJson.Hash(JsonNode.Parse(originalText)!.AsObject()), "Native proof lost exact after-content binding.");
                 TestAssert.That(JsonNode.DeepEquals(JsonNode.Parse(proof.BeforeLiveJson), fixture["members"]) &&
                     JsonNode.Parse(proof.AfterLiveJson)![kind == "note" ? "notes" : "tasks"]!.AsArray().Any(value => value!.GetValue<string>() == id), "Native delta proof changed expected live membership.");
                 TestAssert.That(!proof.ToString().Contains("Protected", StringComparison.Ordinal) && JsonNode.DeepEquals(JsonNode.Parse(proof.BeforeScopeJson), PhoneContentScope.Reference(scope)),

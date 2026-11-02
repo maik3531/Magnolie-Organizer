@@ -15,11 +15,20 @@ from test_personal_actor_producer import native
 
 @pytest.fixture(scope='module')
 def gui_candidates():
+    return load_gui_candidates()
+
+
+@pytest.fixture(scope='module')
+def gui_drawing_candidates():
+    return load_gui_candidates(drawing=True)
+
+
+def load_gui_candidates(drawing=False):
     node = os.environ.get('NODE') or shutil.which('node') or shutil.which('nodejs')
     if not node:
         pytest.skip('Existing Node runtime required for actual GUI candidate parity')
     root = Path(__file__).resolve().parents[2]
-    result = subprocess.run([node, str(root / 'magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js'), '--candidate'],
+    result = subprocess.run([node, str(root / 'magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js'), '--candidate'] + (['--drawing'] if drawing else []),
         check=True, capture_output=True, text=True, timeout=40)
     fixtures = json.loads(result.stdout); assert len(fixtures) == 8
     return fixtures
@@ -74,3 +83,28 @@ def test_a_claimed_afterhash_cannot_replace_exact_native_delta_and_explicit_choi
         with pytest.raises((PermissionError, ValueError)):
             prepare(fixture, text, choices)
         assert fixture == before
+
+
+@pytest.mark.parametrize('fault', ['none', 'coordinate', 'boolean-type'])
+def test_unrelated_actual_gui_fractional_drawing_is_preserved_exactly_and_never_becomes_wire_content(gui_drawing_candidates, fault):
+    for fixture in gui_drawing_candidates:
+        original = copy.deepcopy(fixture); candidate = json.loads(fixture['candidate_text'])
+        drawing = candidate['customOrganizer']['modules'][0]['drawing']
+        assert drawing['strokes'][0]['points'][0][0] == 0.1 and drawing['strokes'][0]['width'] == 1.5
+        if fault == 'coordinate': drawing['strokes'][0]['points'][0][0] = 0.1001
+        elif fault == 'boolean-type': drawing['autoSize'] = 1
+        if fault == 'none':
+            proof, book, snapshot = prepare(fixture)
+            assert book == fixture['book'] and len(proof.after_content_sha256) == 64
+        else:
+            with pytest.raises(PermissionError, match='delta_changed'):
+                prepare(fixture, json.dumps(candidate, ensure_ascii=False))
+        assert fixture == original
+
+
+def test_local_drawing_comparison_does_not_relax_telephone_canonical_numbers_or_boolean_types():
+    import magnolie_personal_sync as personal
+    from magnolie_native_book_json import same_book
+    assert same_book({'point': 0.1}, {'point': 0.1}) and not same_book({'enabled': False}, {'enabled': 0})
+    with pytest.raises(ValueError): personal.canonical({'point': 0.1})
+    with pytest.raises(ValueError): same_book({'point': float('nan')}, {'point': float('nan')})

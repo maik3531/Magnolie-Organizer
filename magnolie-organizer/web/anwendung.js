@@ -1362,7 +1362,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     untouched.aufgaben = untouched.aufgaben.filter(t => !prepared.some(p => p.list === "aufgaben" && p.localId === t.id));
     untouched.papierkorb = kopie(original.papierkorb); untouched.personalSync = kopie(original.personalSync);
     if (!same(after, expected)) throw new Error("historical_live_delta_changed");
-    if (!same(untouched, original) || !same(kopie(input), original)) throw new Error("historical_non_target_changed");
+    if (kanonischerEntwurf(untouched) !== kanonischerEntwurf(original) || kanonischerEntwurf(kopie(input)) !== kanonischerEntwurf(original)) throw new Error("historical_non_target_changed");
     if (!same(Object.fromEntries(Object.entries(ps.entities).filter(([key]) => !keys.has(key))),
         Object.fromEntries(Object.entries(original.personalSync.entities).filter(([key]) => !keys.has(key))))) fail();
     return { book, before_live: before, after_live: after, action_authorized: false };

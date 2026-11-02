@@ -83,7 +83,7 @@ internal sealed class PersonalActorHistoricalRestoreSourceObservation : Personal
         if (PersonalSyncContract.ProjectionHash(Projection(state, kind, id, content, meta)) != Text(meta, "prior_hash"))
             throw new InvalidOperationException("restore_unavailable");
         var result = observation.DeepClone().AsObject();
-        result["local_restore_source"] = new JsonObject { ["trash_id"] = Text(source, "id"), ["sha256"] = PersonalSyncContract.ProjectionHash(source) };
+        result["local_restore_source"] = new JsonObject { ["trash_id"] = Text(source, "id"), ["sha256"] = NativeBookJson.Hash(source) };
         result["action_authorized"] = false;
         return result;
     }

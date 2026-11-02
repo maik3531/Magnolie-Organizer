@@ -50,6 +50,13 @@ internal static class PersonalActorLocalRestoreSourceTests
         await PersonalActorNativeSaveHost.VerifyOrdinaryAsync(fixtures[0]!["book"]!.ToJsonString(), fixtures[0]!["candidate_text"]!.GetValue<string>());
     }
 
+    internal static async Task HistoricalBridgeDrawingSaveAsync()
+    {
+        var fixtures = await LoadGuiFixturesAsync(candidates: true, drawing: true);
+        foreach (var raw in fixtures)
+            await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(raw!.AsObject(), "prepare-bridge-none");
+    }
+
     internal static async Task HistoricalBridgeSaveAsync()
     {
         var fixtures = await LoadGuiFixturesAsync(candidates: true);
@@ -68,7 +75,7 @@ internal static class PersonalActorLocalRestoreSourceTests
             await PersonalActorTargetObserverRuntimeTests.RunHistoricalSourceAsync(fixtures[0]!.AsObject(), "prepare-confirm-" + fault);
     }
 
-    internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false)
+    internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false, bool drawing = false)
     {
         var root = TestSource.Root("magnolie-organizer-windows/tests/mcp-notes-historical-source-fixture.js");
         var script = Path.Combine(root, "magnolie-organizer-windows", "tests", "mcp-notes-historical-source-fixture.js");
@@ -76,6 +83,7 @@ internal static class PersonalActorLocalRestoreSourceTests
             RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         start.ArgumentList.Add(script);
         if (candidates) start.ArgumentList.Add("--candidate");
+        if (drawing) start.ArgumentList.Add("--drawing");
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Existing Node runtime required for source parity.");
         var output = process.StandardOutput.ReadToEndAsync(); var errors = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));
@@ -128,7 +136,7 @@ internal static class PersonalActorLocalRestoreSourceTests
                 TestAssert.That(result["local_state"]!.GetValue<string>() == "deleted" && result["metadata_matches"]!.GetValue<bool>() &&
                     !result["action_authorized"]!.GetValue<bool>() && result["requires_conflict_choice"]!.GetValue<bool>(), "Local source proof acquired action rights.");
                 TestAssert.That(result["local_restore_source"]!["trash_id"]!.GetValue<string>() == piece["id"]!.GetValue<string>() &&
-                    result["local_restore_source"]!["sha256"]!.GetValue<string>() == PersonalSyncContract.ProjectionHash(piece), "Local source proof changed its original trash binding.");
+                    result["local_restore_source"]!["sha256"]!.GetValue<string>() == NativeBookJson.Hash(piece), "Local source proof changed its original trash binding.");
                 TestAssert.That(!result.ToJsonString().Contains("Synthetic", StringComparison.Ordinal) && !result.ToJsonString().Contains("data:", StringComparison.Ordinal), "Source observation leaked source content.");
             }
             else

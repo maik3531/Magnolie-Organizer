@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import magnolie_personal_actor as actor
 from magnolie_personal_actor_store import NativeProducerBookSnapshot
-from test_personal_actor_restore_candidate import gui_candidates
+from test_personal_actor_restore_candidate import gui_candidates, gui_drawing_candidates
 from test_personal_actor_historical_prepare import prepared, durable_queue
 from test_personal_actor_transport import frame
 
@@ -96,10 +96,11 @@ def test_historical_native_writer_encrypts_once_then_only_exact_peer_receipt_com
         with pytest.raises(PermissionError): registry.require_current(handle)
 
 
-@pytest.mark.parametrize('fault', ['none', 'grant', 'payload', 'impostor', 'busy-queue', 'busy-running'])
-def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates, fault):
+@pytest.mark.parametrize('fault', ['none', 'drawing', 'grant', 'payload', 'impostor', 'busy-queue', 'busy-running'])
+def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_to_historical_confirm(tmp_path, monkeypatch, gui_candidates, gui_drawing_candidates, fault):
     native = native_store(tmp_path, monkeypatch)
-    for index, fixture in enumerate(gui_candidates if fault == 'none' else gui_candidates[:1]):
+    fixtures = gui_drawing_candidates if fault == 'drawing' else gui_candidates if fault == 'none' else gui_candidates[:1]
+    for index, fixture in enumerate(fixtures):
         service, peer, channel, book, owner, read, registry, handle, view, choices, text = prepared(tmp_path / str(index), monkeypatch, fixture)
         path = tmp_path / str(index) / 'actual-worker-book.json'
         monkeypatch.setattr(native, 'daten_datei', lambda: str(path))
@@ -149,7 +150,7 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
         worker.start(); worker.join(timeout=15)
         assert not worker.is_alive(), 'Bounded native writer did not finish'
         saved_responses = [value for callback, value in responses if callback == 'App.gespeichert']
-        if fault != 'none':
+        if fault not in ('none', 'drawing'):
             assert len(saved_responses) == 1 and saved_responses[0]['ok'] is False
             assert path.read_bytes() == original_bytes and probe._telefon_actor_buchnachweis() == before and not snapshots
             assert durable_queue(service) == queued_rows and not channel.sent
@@ -160,6 +161,8 @@ def test_actual_linux_save_worker_supplies_its_own_fresh_saved_content_witness_t
             fresh = probe._telefon_actor_buchnachweis()
             assert fresh['sequence'] == before['sequence'] + 1 and fresh['sha256'] == hashlib.sha256(text.encode()).hexdigest()
             assert native.daten_entschluesseln(path.read_text(), password) == text and probe._aktuelle_daten == json.loads(text)
+            if fault == 'drawing':
+                assert probe._aktuelle_daten['customOrganizer'] == fixture['book']['customOrganizer']
             actual_bytes = path.read_bytes()
             result = service.confirm_personal_actor_historical_restore_save(registry, handle, claim['claim_token'])
             assert result['historical_book_persisted'] is True and result['phone_data_persisted'] is False

@@ -7,6 +7,7 @@ are returned. No accepted batch or peer attachment lookup is available here.
 import copy
 
 import magnolie_personal_sync as personal
+from magnolie_native_book_json import book_hash
 from magnolie_personal_actor_producer import _note_wire_id, _attachment_id
 from magnolie_personal_actor_target_evidence import NativeIncomingLiveTargetObservation
 
@@ -96,5 +97,5 @@ class NativeHistoricalRestoreSourceObservation(NativeIncomingLiveTargetObservati
         if personal.projection_hash(_projection(book, kind, identifier, entry, meta, self._wire_format)) != meta['prior_hash']:
             raise PermissionError('restore_unavailable')
         result = copy.deepcopy(observation)
-        result.update(local_restore_source={'trash_id': piece['id'], 'sha256': personal.projection_hash(piece)}, action_authorized=False)
+        result.update(local_restore_source={'trash_id': piece['id'], 'sha256': book_hash(piece)}, action_authorized=False)
         return result

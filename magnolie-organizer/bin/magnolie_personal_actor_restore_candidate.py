@@ -10,6 +10,7 @@ import hashlib
 import json
 
 import magnolie_personal_sync as personal
+from magnolie_native_book_json import same_book
 from magnolie_personal_actor_producer import _note_wire_id
 from magnolie_personal_actor_restore_source import NativeHistoricalRestoreSourceObservation
 
@@ -110,7 +111,7 @@ class NativeHistoricalRestoreCandidateProof:
             parse_constant=lambda _: (_ for _ in ()).throw(ValueError('actor_historical_candidate_nonfinite')))
         # Exact JSON structure, including every unrelated entity/config/trash
         # field. A caller-selected hash alone cannot satisfy this comparison.
-        if personal.canonical(candidate) != personal.canonical(expected):
+        if not same_book(candidate, expected):
             raise PermissionError('actor_historical_candidate_delta_changed')
         after_live = _live(candidate)
         wanted = {name: sorted(before_live[name] + [target['id'] for target in targets if target['kind'] == kind])

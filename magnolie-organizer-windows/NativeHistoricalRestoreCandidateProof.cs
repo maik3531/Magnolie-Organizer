@@ -114,14 +114,14 @@ internal sealed class NativeHistoricalRestoreCandidateProof
         if (candidateText.Length > 256L * 1024 * 1024 || Encoding.UTF8.GetByteCount(candidateText) > 256L * 1024 * 1024) throw new InvalidDataException("actor_historical_candidate_capacity");
         using (var document = JsonDocument.Parse(candidateText)) UniqueKeys(document.RootElement);
         var candidate = JsonNode.Parse(candidateText)!.AsObject();
-        if (!Same(candidate, expected)) throw new InvalidOperationException("actor_historical_candidate_delta_changed");
+        if (!NativeBookJson.Same(candidate, expected)) throw new InvalidOperationException("actor_historical_candidate_delta_changed");
         var afterLive = Live(candidate);
         var wanted = PhoneContentScope.Create(beforeLive["notes"]!.AsArray().Select(value => value!.GetValue<string>()).Concat(targets.Where(value => Text(value, "kind") == "note").Select(value => Text(value, "id"))),
             beforeLive["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).Concat(targets.Where(value => Text(value, "kind") == "task").Select(value => Text(value, "id"))))["members"]!;
         if (!Same(afterLive, wanted)) throw new InvalidOperationException("actor_historical_live_delta_changed");
         Current();
-        return new(sourceRevision, snapshot.SavedBook, PersonalSyncContract.ProjectionHash(before),
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidateText))).ToLowerInvariant(), PersonalSyncContract.ProjectionHash(candidate), scope, beforeLive, afterLive,
+        return new(sourceRevision, snapshot.SavedBook, NativeBookJson.Hash(before),
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidateText))).ToLowerInvariant(), NativeBookJson.Hash(candidate), scope, beforeLive, afterLive,
             PersonalSyncContract.ProjectionHash(new JsonObject { ["targets"] = Array(targets), ["choices"] = Array(choices) }),
             PersonalSyncContract.ProjectionHash(new JsonObject { ["sources"] = Array(sources) }));
     }
