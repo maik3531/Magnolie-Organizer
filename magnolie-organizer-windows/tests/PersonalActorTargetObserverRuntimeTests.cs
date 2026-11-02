@@ -172,6 +172,70 @@ internal static class PersonalActorTargetObserverRuntimeTests
         }
     }
 
+    // Native writer ACK is deliberately synthetic here, not GUI/file/E2E proof.
+    private static async Task HistoricalConfirmAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
+        TelefonConnection connection, PersonalActorHandle handle, NativeBookOwnerScope owner, JsonObject scope, string candidateText, string token, MemoryStream transport)
+    {
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Confirm skipped the writer invocation.");
+        await coordinator.CheckPersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText);
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token), "Invocation marker became a successful SaveACK.");
+        if (scenario.EndsWith("-bytes", StringComparison.Ordinal))
+        {
+            var changed = JsonNode.Parse(candidateText)!.AsObject(); changed["einstellungen"]!["unrelated_synthetic_change"] = true;
+            candidateText = changed.ToJsonString();
+        }
+        owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(candidateText));
+        if (scenario.EndsWith("-sequence", StringComparison.Ordinal)) owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(candidateText));
+        var captured = NativeActorBookSnapshot.Capture(() => owner.SaveState("target-observer", true), () => candidateText)!;
+        coordinator.NativeProducerBook = () => captured;
+        if (scenario.EndsWith("-scope", StringComparison.Ordinal))
+        {
+            var changed = PhoneContentScope.Create(["foreign"], []);
+            foreach (var part in PhoneContentScope.Chunks(changed)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
+        }
+        if (scenario.EndsWith("-grant", StringComparison.Ordinal)) store.SetLocalGrant("personal_deletions_sync", false);
+        var beforeWire = transport.Length; var saved = owner.SaveState("target-observer", true);
+        long Rows()
+        {
+            using var db = store.OpenDatabase(); db.Open(); using var query = db.CreateCommand(); query.CommandText = "SELECT COUNT(*) FROM outbox";
+            return Convert.ToInt64(query.ExecuteScalar());
+        }
+        var rows = Rows();
+        var positive = scenario.EndsWith("-none", StringComparison.Ordinal) || scenario.EndsWith("-later-save", StringComparison.Ordinal);
+        if (!positive)
+        {
+            await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle,
+                scenario.EndsWith("-token", StringComparison.Ordinal) ? new string('f', 64) : token), "Mismatched native SaveACK minted a terminal receipt.");
+            var status = await coordinator.PersonalActorStatusAsync(handle);
+            TestAssert.That(!status["historical_book_persisted"]!.GetValue<bool>() && !status["phone_persisted"]!.GetValue<bool>() && Rows() == rows && transport.Length == beforeWire,
+                "Rejected confirmation changed queue/wire/persistence claims.");
+        }
+        else
+        {
+            var status = await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
+            TestAssert.That(status["historical_book_persisted"]!.GetValue<bool>() && !status["book_persisted"]!.GetValue<bool>() && !status["phone_data_persisted"]!.GetValue<bool>() &&
+                !status["phone_persisted"]!.GetValue<bool>() && status["phase"]!.GetValue<string>() == "completion", "Historical confirmation fabricated an ordinary data receipt.");
+            TestAssert.That(JsonNode.DeepEquals(connection.CurrentContentScope(PhoneContentScope.Reference(scope)), scope), "Confirm changed original data membership.");
+            rows = Rows();
+            TestAssert.That(JsonNode.DeepEquals(status, await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token)) && Rows() == rows && owner.SaveState("target-observer", true) == saved,
+                "Confirm retry wrote twice or duplicated the decision queue.");
+            var queued = store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Where(item => item.Message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                item.Message["body"]?["run_id"]?.GetValue<string>() == handle.ActorId).ToArray();
+            TestAssert.That(queued.Length == 1 && PersonalSyncActorContract.Unwrap(queued[0].Message["body"]!.AsObject()).Kind == "personal_sync.deletion_decision", "Historical receipt union included unrelated frames.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            TestAssert.That(transport.Length > beforeWire, "Historical terminal decision was never dispatched.");
+            if (scenario.EndsWith("-later-save", StringComparison.Ordinal)) owner.RecordSaved("target-observer", true, saved!.Sha256);
+            var afterWire = transport.Length;
+            await coordinator.ReceivePersonalActorAsync(connection, peer, Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, queued[0].Id)));
+            var done = await coordinator.PersonalActorStatusAsync(handle);
+            var lost = scenario.EndsWith("-later-save", StringComparison.Ordinal);
+            TestAssert.That(done["phase"]!.GetValue<string>() == (lost ? "cancelled" : "completed") && done["phone_persisted"]!.GetValue<bool>() == !lost &&
+                !done["phone_data_persisted"]!.GetValue<bool>() && transport.Length == afterWire, "Exact historical receipt lost saved-book or data-closed boundary.");
+        }
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Confirm reopened ordinary data.");
+        TestAssert.That(captured.Text == candidateText && owner.SaveState("target-observer", true)?.Sha256 == BaumSyncSnapshot.Hash(candidateText), "Confirmation rolled back saved local content.");
+    }
+
     private static async Task OriginAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
         TelefonConnection connection, PersonalActorHandle handle, JsonObject target, JsonObject grants, NativeBookOwnerScope owner,
         NativeActorBookSnapshot snapshot, JsonObject scope, MemoryStream transport, Func<int> emitted, Func<int> captures, int wireFormat = 3, JsonObject? sourceFixture = null)
@@ -217,6 +281,11 @@ internal static class PersonalActorTargetObserverRuntimeTests
                     TestAssert.That(claim["data_closed"]!.GetValue<bool>() && !claim["book_persisted"]!.GetValue<bool>() && !claim["phone_persisted"]!.GetValue<bool>(), "Prepare manufactured a saved/peer receipt.");
                     await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Prepared owner retained data access.");
                     var token = claim["claim_token"]!.GetValue<string>();
+                    if (scenario.Contains("-prepare-confirm-", StringComparison.Ordinal))
+                    {
+                        await HistoricalConfirmAsync(scenario, coordinator, store, peer, connection, handle, owner, scope, candidateText, token, transport);
+                        return;
+                    }
                     if (scenario.EndsWith("-token", StringComparison.Ordinal)) token = new string('f', 64);
                     if (scenario.EndsWith("-payload", StringComparison.Ordinal)) candidateText += " ";
                     if (scenario.EndsWith("-save", StringComparison.Ordinal)) owner.RecordSaved("target-observer", true, snapshot.SavedBook.Sha256);

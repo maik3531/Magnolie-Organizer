@@ -31,7 +31,7 @@ internal sealed class NativeHistoricalRestoreCandidateProof
     private static string Text(JsonObject value, string key) => value[key]?.GetValue<string>() ?? "";
     private static bool Same(JsonNode? left, JsonNode? right) => TelefonCrypto.Canonical(left!).AsSpan().SequenceEqual(TelefonCrypto.Canonical(right!));
     private static JsonArray Array(IEnumerable<JsonObject> values) => new(values.Select(value => (JsonNode)value.DeepClone()).ToArray());
-    private static JsonObject Live(JsonObject book)
+    internal static JsonObject Live(JsonObject book)
     {
         var state = book["personalSync"]!.AsObject();
         var notes = (book["notizen"]?.AsArray() ?? []).OfType<JsonObject>().Where(value => Text(value, "baumQuelle").Length == 0 || value["persoenlichVerknuepft"]?.GetValue<bool>() == true)

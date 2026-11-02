@@ -373,6 +373,15 @@ internal sealed class PersonalSyncActorStore
         return true;
     });
 
+    internal void CheckHistoricalConfirm(PersonalActorHandle handle) => CompletionOperation(handle, (db, transaction) => {
+        var value = Require(db, handle, transaction, active: false, source: false);
+        if (Text(value, "phase") != "completion" || !dataRetired.Contains(handle.ActorId))
+            throw new InvalidOperationException("actor_data_owner_not_retired");
+        RequireCompletion(db, transaction, handle, "confirm");
+        RequireCompletion(db, transaction, handle, "confirm");
+        return true;
+    });
+
     private JsonObject RequireCompletion(SqliteConnection db, SqliteTransaction transaction, PersonalActorHandle handle, string operation, JsonObject? wire = null)
     {
         var value = Require(db, handle, transaction, active: false, source: false);

@@ -18,6 +18,7 @@ internal sealed partial class TelefonCoordinator
         internal readonly Dictionary<string, string> OriginalHashes = frameHashes;
         internal bool WriterGateChecked;
         internal NativeBookSaveState? SavedReceipt = null;
+        internal NativeBookSaveState? ConfirmingSavedBook;
         internal PersonalActorDecisionCompletion? Completion = null;
     }
     // Volatile authenticated-origin quarantine, never normal data/save/ACK authority.
@@ -477,21 +478,27 @@ internal sealed partial class TelefonCoordinator
             bool? NativeGuard(string operation, JsonObject? wire)
             {
                 if (plan.Completion is { } terminal) return operation == "save" ? false : terminal.Validator(operation == "maintain" ? "read" : operation, wire);
-                if (operation is not ("begin" or "save")) return null;
+                var confirming = operation == "confirm" && plan.ConfirmingSavedBook is not null && plan.WriterGateChecked;
+                if (operation is not ("begin" or "save") && !confirming) return null;
                 if (!ReferenceEquals(actorAdmissions.GetValueOrDefault(handle.ActorId), admission) || !ReferenceEquals(admission.HistoricalSaveClaim, plan) ||
                     online.GetValueOrDefault(admission.PeerId) != admission.Connection || !ReferenceEquals(admission.IncomingTargetOrigin, origin)) return false;
                 var source = CurrentActorSource(admission.PeerId, fingerprint);
                 if (source is null) return null;
                 if (source != initial.Source) return false;
                 var scope = admission.Connection.CurrentContentScope(admission.Scope);
-                CheckPersonalActorTargetOrigin(origin, source, scope);
+                if (!confirming) CheckPersonalActorTargetOrigin(origin, source, scope);
                 if (!JsonNode.DeepEquals(scope, initial.Scope)) return false;
                 var frames = origin.Frames.Values.Select(clear => JsonNode.Parse(clear)!.AsObject()).ToArray();
                 if (frames.Length != hashes.Count || frames.Any(frame => hashes.GetValueOrDefault(frame["message_id"]!.GetValue<string>()) != PersonalSyncContract.ProjectionHash(frame))) return false;
-                foreach (var frame in frames) registry.ValidateHistoricalTargetEnvelope(handle, frame);
+                if (!confirming) foreach (var frame in frames) registry.ValidateHistoricalTargetEnvelope(handle, frame);
                 var snapshot = NativeProducerBook(); var saved = NativeSavedBook();
                 if (snapshot is null || saved is null) return null;
-                return snapshot.SavedBook == proof.BeforeSavedBook && saved == snapshot.SavedBook;
+                var contentHash = PersonalSyncContract.ProjectionHash(JsonNode.Parse(snapshot.Text)!.AsObject());
+                if (confirming)
+                    return saved == plan.ConfirmingSavedBook && saved == snapshot.SavedBook && saved.BookSource == proof.BeforeSavedBook.BookSource &&
+                        saved.Sequence == proof.BeforeSavedBook.Sequence + 1 && saved.Sha256 == proof.AfterSha256 && contentHash == proof.AfterContentSha256 &&
+                        CurrentActorCompletionAuthority(admission.PeerId, fingerprint) == plan.CompletionAuthority;
+                return snapshot.SavedBook == proof.BeforeSavedBook && saved == snapshot.SavedBook && contentHash == proof.BeforeContentSha256;
             }
             admission.HistoricalSaveClaim = plan;
             try { registry.BeginCompletion(handle, NativeGuard); registry.CheckHistoricalSave(handle); }
@@ -518,6 +525,70 @@ internal sealed partial class TelefonCoordinator
             throw new InvalidOperationException("actor_historical_writer_payload_changed");
         registry.CheckHistoricalSave(handle); plan.WriterGateChecked = true;
         return new JsonObject { ["writer_invocation_checked"] = true, ["book_persisted"] = false };
+    }, cancellation);
+
+    // Actual native SaveACK -> metadata-only exact historical receipt handoff.
+    // Still private: no GUI/private-IPC writer route is enabled by this method.
+    internal Task<JsonObject> ConfirmPersonalActorHistoricalRestoreSaveAsync(PersonalActorHandle handle, string claimToken,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.HistoricalSaveClaim is not { } plan || claimToken != plan.Token)
+            throw new InvalidOperationException("actor_historical_save_claim_unavailable");
+        if (plan.Completion is not null) { registry.ReadCompletionControls(handle); return ActorStatus(registry, handle); }
+        if (!plan.WriterGateChecked) throw new InvalidOperationException("actor_historical_writer_not_invoked");
+        var proof = plan.Proof; var snapshot = NativeProducerBook(); var saved = NativeSavedBook();
+        if (snapshot is null || saved is null || saved != snapshot.SavedBook || saved.BookSource != proof.BeforeSavedBook.BookSource ||
+            saved.Sequence != proof.BeforeSavedBook.Sequence + 1 || saved.Sha256 != proof.AfterSha256 ||
+            PersonalSyncContract.ProjectionHash(JsonNode.Parse(snapshot.Text)!.AsObject()) != proof.AfterContentSha256)
+            throw new InvalidOperationException("actor_historical_actual_save_proof_missing");
+        if (!JsonNode.DeepEquals(NativeHistoricalRestoreCandidateProof.Live(JsonNode.Parse(snapshot.Text)!.AsObject()), JsonNode.Parse(proof.AfterLiveJson)))
+            throw new InvalidOperationException("actor_historical_saved_live_delta_changed");
+        plan.ConfirmingSavedBook = saved;
+        registry.CheckHistoricalConfirm(handle);
+        var manifest = admission.Connection.CurrentContentScope(admission.Scope);
+        var fingerprint = registry.Status(handle)["fingerprint"]!.GetValue<string>();
+        var decisions = new JsonArray(plan.Choices.OfType<JsonObject>().Select(choice => (JsonNode)new JsonObject {
+            ["proposal_id"] = choice["proposal_id"]!.DeepClone(), ["decision"] = choice["decision"]!.DeepClone(), ["expected_clock"] = choice["expected_clock"]!.DeepClone() }).ToArray());
+        PersonalSyncActorContract.HistoricalCompletionMembers(handle.ActorId, manifest, plan.Targets, decisions, plan.Targets);
+        var queued = new List<JsonObject>();
+        try
+        {
+            foreach (var chunk in decisions.OfType<JsonObject>().Chunk(32))
+            {
+                var body = new JsonObject { ["format"] = 1, ["run_id"] = handle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                    ["decisions"] = new JsonArray(chunk.Select(value => (JsonNode)value.DeepClone()).ToArray()) };
+                var id = store.Enqueue(admission.PeerId, "personal_sync.deletion_decision", body, 86400000, Now(), actorRunId: handle.ActorId);
+                queued.Add(store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing"));
+            }
+            JsonObject? Scope()
+            {
+                if (CurrentActorCompletionAuthority(admission.PeerId, fingerprint) is null) return null;
+                return admission.Connection.CurrentContentScope(admission.Connection.ActorSourceSnapshot()["scope"]!.AsObject());
+            }
+            var terminal = new PersonalActorDecisionCompletion(handle.ActorId, plan.Targets, queued,
+                () => CurrentActorCompletionAuthority(admission.PeerId, fingerprint), Scope, () => NativeSavedBook(),
+                () => registry.ReadCompletionControls(handle), beforeScope: manifest, nativeHistoricalTargets: plan.Targets);
+            if (CurrentActorCompletionAuthority(admission.PeerId, fingerprint) != plan.CompletionAuthority)
+                throw new InvalidOperationException("actor_historical_completion_source_changed");
+            foreach (var identity in admission.Outbound)
+            {
+                var old = store.OutboxMessage(admission.PeerId, identity);
+                if (old?["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind && old["body"]?["run_id"]?.GetValue<string>() == handle.ActorId)
+                    store.CompleteOutbox(admission.PeerId, identity);
+            }
+            plan.Completion = terminal; admission.Completion = terminal;
+            admission.CompletionIds.Clear(); admission.CompletionIds.UnionWith(queued.Select(value => value["message_id"]!.GetValue<string>()));
+            admission.Outbound.Clear(); admission.Outbound.UnionWith(admission.CompletionIds);
+            admission.NativeAcknowledgments.Clear(); admission.CompletionDeferredControls.Clear();
+            plan.SavedReceipt = saved; admission.PhonePersisted = false;
+            admission.IncomingTargetOrigin?.Frames.Clear(); admission.IncomingTargetOrigin = null;
+            registry.ReadCompletionControls(handle);
+        }
+        catch
+        {
+            if (plan.Completion is null) foreach (var wire in queued) store.CompleteOutbox(admission.PeerId, wire["message_id"]!.GetValue<string>());
+            throw; // Never roll back or repeat an already acknowledged document save.
+        }
+        return ActorStatus(registry, handle);
     }, cancellation);
 
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)

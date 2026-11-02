@@ -123,6 +123,7 @@ runner.Add("Notes actor current local restore source / actual GUI projection par
 runner.Add("Notes actor historical source review / authenticated origin / no save", PersonalActorLocalRestoreSourceTests.HistoricalReviewAsync);
 runner.Add("Notes actor exact historical candidate delta / no caller hash authority", PersonalActorRestoreCandidateTests.RunAsync);
 runner.Add("Notes actor historical native prepare / closed data / exact writer payload", PersonalActorLocalRestoreSourceTests.HistoricalPrepareAsync);
+runner.Add("Notes actor historical native confirm / exact SaveACK / terminal receipt", PersonalActorLocalRestoreSourceTests.HistoricalConfirmAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);
