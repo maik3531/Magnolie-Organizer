@@ -508,10 +508,10 @@ Unexpected preparation errors remain held failures, not successful snapshots.
 published destination, retired quota, saved receipt or complete synchronization
 END. The desktop's whole-run coordinator must remain active through actual data
 transport/worker completion, independently of this source-preparation slot.
-Source-index/runtime cleanup must wait for actual preparation quiescence. This
-worker is not yet connected to runtime-close ownership or a remote run command;
-no timer, retry, implicit scan, quota cleanup or discovery advertisement is
-activated by the class.
+Source-index/runtime cleanup must wait for actual preparation quiescence. The
+worker now connects to native runtime preparation and quiescent close ownership,
+but not a remote run command. No timer, retry, implicit scan, quota cleanup or
+discovery advertisement is activated by the class.
 
 Five distinct focused cases pass: four ownership/error/cancellation cases and
 one actual native workflow/provider/read-only-PFD/encrypted-index integration
@@ -519,7 +519,38 @@ case. The real preparation runs off the main thread; after its I/O end the
 protected cache job remains held until explicit native retirement, and changing
 the live source does not alter the frozen chunk. No permission prompt or source
 mutation is introduced. These are synthetic/Robolectric checks, not a physical
-phone, runtime-close integration or end-to-end transfer acceptance.
+phone or end-to-end transfer acceptance. Runtime-close evidence is recorded below.
+
+### Nonblocking revocation and quiescent native cleanup (#332)
+
+Two focused regressions first confirmed that UI close waited behind an actual
+album-provider query and a blocked encrypted control-frame write. Both used
+bounded, unchanged 500-ms guards and released their native I/O cleanly afterwards.
+Runtime operations now use a separate nonwaiting single-operation gate, not the
+short ownership monitor used by UI cleanup. Native revocation flags are permanent
+and checked before/after lookups and actual writes; close does not wait on an
+adapter's frame-write monitor or the session's native lookup monitor.
+
+Native configuration tickets remain bounded in memory for exact finally cleanup
+under their ordinary monitor. Closing does not clear that map concurrently; a
+revoked ticket authorizes nothing and still cannot be consumed twice. No further
+native metadata/key lookup is needed to reject closed authority.
+
+The runtime retains its source index, permission workflow and exact connection
+owner until both command/provider/control I/O and source preparation are truly
+quiescent. It then posts final UI cleanup and reports native ownership release
+once. Actual worker end is serialized with callback registration to avoid losing
+the completion race. Cancellation does not retire reserved/sealed cache quota or
+claim complete synchronization END.
+
+All 28 affected control/session/channel/runtime/native-provider/reconnect cases
+pass. They include the unchanged UI responsiveness guards, blocked native lookup,
+blocked PFD source preparation, direct/connection pending close, normal completion,
+exact one-shot cleanup, held cache evidence and unchanged source bytes. These are
+synthetic/Robolectric/source-host checks, not physical phone, native installed UI,
+power-loss or complete file-transfer acceptance. #330's remote run/data handlers,
+desktop activation/preferences/UI and full recovery/baseline integration remain
+open, with discovery 21 unadvertised and no package publication.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

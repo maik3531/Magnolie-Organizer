@@ -11,6 +11,7 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
     private val released: (NativeGalleryFileConnection) -> Unit) : AutoCloseable {
     private val ended = AtomicBoolean(false)
     private val permissionQueued = AtomicBoolean(false)
+    private val cleanupReported = AtomicBoolean(false)
     @Volatile private var bound: NativeGalleryFileRuntime? = null
     val runtime: NativeGalleryFileRuntime get() = bound?.takeUnless { ended.get() }
         ?: DeviceFileControl.fail("gallery_file_connection_ended")
@@ -48,8 +49,8 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         ended.set(true)
         bound?.revokeControl()
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
-        bound?.close()
+        if (bound?.closeWhenQuiescent { close() } == false) return
         bound = null
-        released(this)
+        if (cleanupReported.compareAndSet(false, true)) released(this)
     }
 }

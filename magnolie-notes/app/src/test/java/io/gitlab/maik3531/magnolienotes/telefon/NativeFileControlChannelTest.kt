@@ -82,4 +82,38 @@ class NativeFileControlChannelTest {
             assertThrows(Exception::class.java) { DeviceFileControlEnvelope.validate(JsonObject(valid + (name to value)), now) }
         }
     }
+
+    @Test fun closingFileControlDoesNotWaitForBlockedFrameIoOrCompleteItsSendTicket() {
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val closeReturned = java.util.concurrent.CountDownLatch(1); val ended = java.util.concurrent.CountDownLatch(1)
+        val blocked = java.util.concurrent.atomic.AtomicBoolean(false)
+        val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val output = object : OutputStream() {
+            override fun write(value: Int) { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        }
+        val channel = channel(output); val native = peer(channel); val local = state()
+        val adapter = NativeFileControlChannel(localId, channel, { native }, { local })
+        val sender = Thread {
+            try { adapter.sendIfNeeded(now) } catch (error: Throwable) { failure.set(error) } finally { ended.countDown() }
+        }
+        var guard: Thread? = null
+        try {
+            sender.start(); assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            guard = Thread {
+                try { blocked.set(!closeReturned.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)) }
+                finally { release.countDown() }
+            }.also { it.start() }
+            adapter.close(); closeReturned.countDown()
+            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); sender.join(5000); guard.join(5000)
+            assertFalse("File control close waited for blocked native frame output", blocked.get())
+            assertTrue(failure.get() is PhotoFolderScopeError)
+            assertNull(adapter.session.photoReceiver()); assertFalse(adapter.session.needsPacket())
+            val sendKey = TelefonSecureChannel::class.java.getDeclaredField("sendKey").also { it.isAccessible = true }
+            assertArrayEquals(key, sendKey.get(channel) as ByteArray) // Shared transport not closed by the file adapter.
+        } finally {
+            release.countDown(); closeReturned.countDown()
+            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); sender.join(5000); guard?.join(5000)
+            adapter.close(); channel.close()
+        }
+    }
 }

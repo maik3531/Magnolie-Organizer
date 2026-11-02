@@ -331,6 +331,170 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun runtimeAndConnectionKeepSourceIndexOwnershipUntilBlockedProviderIoActuallyEnds() {
+        for (mode in listOf("connection_pending", "runtime_pending", "completed")) {
+            Fixture().use { f ->
+                val now = 1_800_000_000_000L
+                val root = Files.createTempDirectory(f.root.toPath(), "runtime-worker-").toFile()
+                val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+                val output = ByteArrayOutputStream(); val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+                val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
+                val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+                val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64))
+                val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
+                val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+                val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
+                val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
+                val released = java.util.concurrent.atomic.AtomicInteger()
+                val connection = if (mode != "runtime_pending") NativeGalleryFileConnection(channel) { released.incrementAndGet() }.also { it.bind(runtime) } else null
+                val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+                val host = GalleryPhotoPermissionHost(activity.get())
+                val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+                val completed = java.util.concurrent.CountDownLatch(1)
+                var run: NativeGallerySourceRun? = null
+                var catalog: NativeGalleryAlbumCatalog? = null
+                try {
+                    // Observe completion without replacing the actual runtime's
+                    // native I/O-end/final-close callback behavior.
+                    val workerField = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }
+                    val worker = workerField.get(runtime) as NativeGallerySourceWorker
+                    val endedField = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
+                    @Suppress("UNCHECKED_CAST") val original = endedField.get(worker) as (NativeGallerySourceRun) -> Unit
+                    endedField.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { completed.countDown() } })
+                    runtime.attachPermissionHost(host) { throw AssertionError("Preparation cannot prompt") }
+                    activity.start().resume()
+                    fun toDesktop() {
+                        if (!runtime.sendControls(now)) return
+                        val frame = TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray())); output.reset()
+                        val header = JsonObject(frame - "ciphertext")
+                        val clear = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")),
+                            java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                        desktop.observeRemote(DeviceFileControlEnvelope.validate(Json.parseToJsonElement(clear.decodeToString()).jsonObject, now), pcPeer)
+                    }
+                    fun echo() {
+                        toDesktop(); val packet = desktop.packet(); desktop.markSent(packet)
+                        runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now); toDesktop()
+                    }
+                    echo(); runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                    val discovered = runtime.discoverSelectable(); catalog = discovered
+                    val page = discovered.page()
+                    val selected = discovered.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                    f.provider.onOpen = {
+                        entered.countDown()
+                        if (mode != "completed") check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    }
+                    val started = runtime.prepareSource(selected); run = started
+                    assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    if (mode != "completed") {
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.prepareSource(selected) }
+                        started.cancellation.setOnCancelListener {
+                            assertFalse("Native cancellation ran under runtime ownership", Thread.holdsLock(runtime))
+                        }
+                        if (connection != null) connection.close()
+                        else assertEquals("gallery_source_worker_io_pending", assertThrows(PhotoFolderScopeError::class.java) { runtime.close() }.code)
+                        assertFalse(started.ioEnded); assertTrue(started.cancelRequested)
+                        assertEquals(0, released.get())
+                        assertNotNull(runtime.savedPolicy().policy) // Source DB is still owned/open.
+                        assertNull(runtime.currentRequest())
+                        release.countDown()
+                    }
+                    assertTrue(completed.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    assertTrue(started.ioEnded)
+                    if (mode == "completed") {
+                        assertEquals("snapshot_ready", started.phase); assertNotNull(started.snapshotJob())
+                        assertNotNull(runtime.savedPolicy().policy); assertEquals(0, released.get())
+                        connection!!.close()
+                    } else {
+                        assertEquals("canceled_held", started.phase); assertNull(started.snapshotJob())
+                    }
+                    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    assertThrows(PhotoFolderScopeError::class.java) { runtime.savedPolicy() }
+                    assertEquals(if (connection == null) 0 else 1, released.get())
+                    connection?.close()
+                    assertEquals(if (connection == null) 0 else 1, released.get())
+                    PhotoSourceJobIndex(root, protection).use { held ->
+                        assertEquals(1, held.jobs().size) // Closing I/O ownership does not retire cache quota.
+                        assertEquals(if (mode == "completed") "sealed" else "reserved", held.jobs().single().phase)
+                    }
+                    assertEquals("hello", File(f.root, "source.bin").readText())
+                } finally {
+                    release.countDown(); runtime.revokeControl()
+                    if (run != null) assertTrue(completed.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    connection?.close(); runtime.close(); catalog?.close(); host.close()
+                    activity.pause().stop().destroy(); desktop.close(); channel.close()
+                }
+            }
+        }
+    }
+
+    @Test fun closingNativeConnectionDoesNotBlockTheUiBehindAnInFlightAlbumProviderQuery() {
+        Fixture().use { f ->
+            val now = 1_800_000_000_000L
+            val root = Files.createTempDirectory(f.root.toPath(), "runtime-query-close-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val output = ByteArrayOutputStream(); val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+            val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
+            val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+            val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64))
+            val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
+            val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+            val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
+            val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
+            val released = java.util.concurrent.atomic.AtomicInteger()
+            val connection = NativeGalleryFileConnection(channel) { released.incrementAndGet() }.also { it.bind(runtime) }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create(); val host = GalleryPhotoPermissionHost(activity.get())
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+            val closeReturned = java.util.concurrent.CountDownLatch(1); val queryEnded = java.util.concurrent.CountDownLatch(1)
+            val uiBlocked = java.util.concurrent.atomic.AtomicBoolean(false); val replies = java.util.concurrent.atomic.AtomicInteger()
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            var query: Thread? = null; var guard: Thread? = null
+            try {
+                runtime.attachPermissionHost(host) { throw AssertionError("Metadata cannot prompt") }; activity.start().resume()
+                fun toDesktop() {
+                    if (!runtime.sendControls(now)) return
+                    val frame = TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray())); output.reset()
+                    val header = JsonObject(frame - "ciphertext")
+                    val clear = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")),
+                        java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                    desktop.observeRemote(DeviceFileControlEnvelope.validate(Json.parseToJsonElement(clear.decodeToString()).jsonObject, now), pcPeer)
+                }
+                fun echo() {
+                    toDesktop(); val packet = desktop.packet(); desktop.markSent(packet)
+                    runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now); toDesktop()
+                }
+                echo(); runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                val version = runtime.savedPolicy().version
+                val request = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "discover"); put("expected_version", version)
+                }, 60_000, now)
+                f.provider.onQuery = { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                query = Thread {
+                    try { runtime.receiveSourceCommand(request, { replies.incrementAndGet() }, { now }) }
+                    catch (error: Throwable) { failure.set(error) }
+                    finally { queryEnded.countDown() }
+                }.also { it.start() }
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                guard = Thread {
+                    try { uiBlocked.set(!closeReturned.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)) }
+                    finally { release.countDown() }
+                }.also { it.start() }
+                connection.close(); closeReturned.countDown()
+                assertTrue(queryEnded.await(5, java.util.concurrent.TimeUnit.SECONDS)); guard.join(5000); query.join(5000)
+                assertFalse("UI close waited behind the blocked album provider query", uiBlocked.get())
+                assertEquals(0, replies.get()); assertTrue(failure.get() is PhotoFolderScopeError)
+                Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertEquals(1, released.get()); assertThrows(PhotoFolderScopeError::class.java) { runtime.savedPolicy() }
+                assertTrue(f.provider.opens.isEmpty())
+            } finally {
+                release.countDown(); closeReturned.countDown()
+                query?.let { assertTrue(queryEnded.await(5, java.util.concurrent.TimeUnit.SECONDS)); it.join(5000) }; guard?.join(5000)
+                Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                connection.close(); runtime.close(); host.close(); activity.pause().stop().destroy(); desktop.close(); channel.close()
+            }
+        }
+    }
+
     @Test fun nativeWorkflowRejectsCatalogCapturedBeforeResumeWithoutOpeningContentsOrReservingQuota() {
         Fixture().use { f ->
             val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()

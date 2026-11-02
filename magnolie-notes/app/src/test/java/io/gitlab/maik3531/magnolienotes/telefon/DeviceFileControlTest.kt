@@ -31,6 +31,48 @@ class DeviceFileControlTest {
     }
     private fun vector() = Json.parseToJsonElement(File("../contracts/file-transfer-control-v1-vectors.json").readText()).jsonObject
 
+    @Test fun revocationDoesNotWaitForNativeLookupAndExactTicketCleanupStillCannotRestoreAuthority() {
+        val (first, second) = pair()
+        val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+        val closeReturned = java.util.concurrent.CountDownLatch(1); val ended = java.util.concurrent.CountDownLatch(1)
+        val blocking = java.util.concurrent.atomic.AtomicBoolean(false); val blocked = java.util.concurrent.atomic.AtomicBoolean(false)
+        val reads = java.util.concurrent.atomic.AtomicInteger(); val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val observed = java.util.concurrent.atomic.AtomicReference<NativePhotoReceiver?>()
+        val session = NativeFileControlSession(first.identity, { first.peer }, {
+            reads.incrementAndGet()
+            if (blocking.get()) { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            first.local
+        })
+        first.session = session; handshake(first, second)
+        val ticket = session.configurationTicket()
+        blocking.set(true)
+        val reader = Thread {
+            try { observed.set(session.photoReceiver()) } catch (error: Throwable) { failure.set(error) }
+            finally { ended.countDown() }
+        }
+        var guard: Thread? = null
+        try {
+            reader.start(); assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            guard = Thread {
+                try { blocked.set(!closeReturned.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)) }
+                finally { release.countDown() }
+            }.also { it.start() }
+            session.close(); closeReturned.countDown()
+            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); reader.join(5000); guard.join(5000)
+            assertFalse("Revocation waited behind the native permission lookup", blocked.get())
+            assertNull(failure.get()); assertNull(observed.get())
+            val before = reads.get()
+            assertNull(session.photoReceiver()); assertNull(session.configurationAuthority(ticket)); assertFalse(session.needsPacket())
+            assertThrows(PhotoFolderScopeError::class.java) { session.packet() }
+            session.finishConfiguration(ticket)
+            assertThrows(PhotoFolderScopeError::class.java) { session.finishConfiguration(ticket) }
+            assertEquals(before, reads.get()) // Closed authority never reopens metadata/key readers.
+        } finally {
+            release.countDown(); closeReturned.countDown()
+            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); reader.join(5000); guard?.join(5000); session.close()
+        }
+    }
+
     @Test fun sharedCanonicalChallengeAndPermissionEpochMatchDesktop() {
         val vector = vector(); val packet = DeviceFileControlPacket.parse(vector["packet"]!!.jsonObject)
         val bytes = TelefonKanonisch.bytes(packet.wire())

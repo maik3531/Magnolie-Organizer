@@ -6,6 +6,7 @@ import java.security.SecureRandom
 import java.util.Collections
 import java.util.Locale
 import java.util.IdentityHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Dedicated file controls, not contacts/personal-sync grants or Android READ.
  * Discovery version is reserved, NOT advertised until actual handlers are ready.
@@ -97,6 +98,7 @@ internal class NativeFileConfigurationTicket internal constructor()
 internal class NativeFileControlSession(private val identity: NativeFileControlIdentity,
     private val currentPeer: () -> NativeFileControlPeer?, private val currentLocal: () -> NativeLocalFileGrant?,
     private val monotonicMs: () -> Long = { DeviceFileControl.monotonicMs() }) : AutoCloseable {
+    private val revoked = AtomicBoolean(false)
     private val peer = currentPeer()?.takeIf { it.allowed && it.peerId != identity.deviceId }
         ?: DeviceFileControl.fail("file_control_native_scope_required")
     private var local = currentLocal() ?: DeviceFileControl.fail("file_control_native_scope_required")
@@ -113,11 +115,12 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
     private val configurations = IdentityHashMap<NativeFileConfigurationTicket, ConfigurationScope>()
 
     private fun scope(): Pair<NativeFileControlPeer, NativeLocalFileGrant>? {
+        if (revoked.get()) return null
         val nextPeer = currentPeer(); val nextLocal = currentLocal()
         if (nextPeer != null && (nextPeer.owner !== peer.owner || nextPeer.peerId != peer.peerId || nextPeer.identitySha256 != peer.identitySha256 ||
                 nextPeer.pairingEpoch != peer.pairingEpoch) ||
             nextLocal != null && nextLocal.owner !== local.owner) faulted = true
-        if (faulted || nextPeer == null || !nextPeer.allowed || nextLocal == null) return null
+        if (revoked.get() || faulted || nextPeer == null || !nextPeer.allowed || nextLocal == null) return null
         if (nextLocal.grants.revision < local.grants.revision || nextLocal.grants.revision == local.grants.revision &&
             nextLocal.grants.permissionWire() != local.grants.permissionWire()) { faulted = true; return null }
         local = nextLocal
@@ -236,5 +239,11 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
             current.ownDevice, current.remoteOwnDevice, local.grants.sendFiles, remote!!.grants.receiveFiles, 1, current.pairingEpoch)
     }
 
-    @Synchronized override fun close() { faulted = true; remote = null; pending = null; configurations.clear() }
+    override fun close() {
+        // Revocation must not wait behind a native metadata lookup. Keep the
+        // bounded in-memory ticket map intact for exact finally-cleanup under
+        // its ordinary monitor; none of these tickets can authorize after this
+        // permanent flag, and no map is mutated concurrently from close().
+        revoked.set(true)
+    }
 }

@@ -18,17 +18,22 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
     handlersReady: () -> Boolean) : AutoCloseable {
     private val closed = AtomicBoolean(false)
+    private val revoked = AtomicBoolean(false)
+    private val operationGate = java.util.concurrent.locks.ReentrantLock()
+    private var operationActive = false // Guarded by the short-lived runtime monitor.
     private val app = context.applicationContext
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
-    private val nativePeer = { if (closed.get()) null else currentPeer() }
+    private val nativePeer = { if (closed.get() || revoked.get()) null else currentPeer() }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
     private val controls: NativeFileControlChannel
     private val workflow: NativeGalleryPhotoWorkflow
+    private val sourceWorker: NativeGallerySourceWorker
+    private var closeCompletion: (() -> Unit)? = null // Guarded by this runtime monitor.
 
     init {
         var prepared: NativeFileControlChannel? = null
@@ -36,20 +41,26 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() })
             controls = prepared
             workflow = NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(context, directory, identity.deviceId, protection,
-                { if (closed.get()) null else controls.session.photoReceiver() },
+                { if (closed.get() || revoked.get()) null else controls.session.photoReceiver() },
                 { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } })
+            sourceWorker = NativeGallerySourceWorker({ selected, cancellation -> workflow.freeze(selected, cancellation) }, { sourceIoEnded() })
         } catch (error: Exception) {
             closed.set(true); prepared?.close(); index.close()
             throw error // Dedicated metadata/cache is preserved, not reset.
         }
     }
 
-    fun sendControls(now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.sendIfNeeded(now) }
-    fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean { ready(); return controls.observe(message, now) }
+    fun sendControls(now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.sendIfNeeded(now) }
+    fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.observe(message, now) }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(): NativeGalleryRequest? { ready(); return workflow.currentRequest() }
-    fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): NativeGalleryAlbumCatalog {
-        ready(); return workflow.discoverSelectable(cancellation)
+    fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): NativeGalleryAlbumCatalog = withOperation {
+        workflow.discoverSelectable(cancellation)
+    }
+    fun prepareSource(selection: NativeGalleryAlbumSelection): NativeGallerySourceRun = withOperation {
+        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        workflow.validateSelection(selection)
+        sourceWorker.start(selection)
     }
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         ready(); workflow.attachPermissionHost(host, onResult)
@@ -59,12 +70,13 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         ready(); return NativeGalleryForeground.attach(this, onResult)
     }
 
-    /** Real source command execution, using a fresh native metadata ticket even
-     * while initial local send consent is OFF. This never scans, requests OS
-     * permissions or schedules a transfer. Replies are metadata, not SaveACKs.
+    /** Guarded source commands. Status/configuration work while initial send is
+     * OFF; discovery needs current send authority, and request_read reaches only
+     * the explicitly queued native UI path. No transfer/publication is scheduled.
+     * Replies are metadata, never SaveACKs or OS READ grants.
      */
-    @Synchronized fun receiveSourceCommand(message: JsonObject, send: (JsonObject) -> Unit,
-        now: () -> Long = { System.currentTimeMillis() }, permissionCommands: NativeGalleryPermissionCommands = localPermissionCommands) {
+    fun receiveSourceCommand(message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = { System.currentTimeMillis() }, permissionCommands: NativeGalleryPermissionCommands = localPermissionCommands): Unit = withOperation {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
         if (command.operation == "request_read" && Looper.myLooper() != Looper.getMainLooper())
@@ -114,7 +126,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 }
                 send(TelefonNachrichten.message(DeviceFileSourceCommand.PERMISSION_RESULT, body, ttl, at))
                 authority()
-                return
+                return@withOperation
             }
             if (command.operation in setOf("discover", "catalog_page")) {
                 if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
@@ -136,7 +148,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 authority(); catalog.page(command.catalogId, command.after) // Actual metadata freshness at send.
                 send(reply)
                 authority()
-                return
+                return@withOperation
             }
             val saved = if (command.operation == "configure") {
                 authority()
@@ -163,43 +175,91 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             send(reply) // Actual caller's secure send, never the personal queue.
             authority()
         } finally { commandLive.set(null); ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
+        Unit
     }
 
-    @Synchronized fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
-        kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
+    fun configureFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean,
+        kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot = withOperation {
         ready()
         val issued = controls.session.configurationTicket()
         if (!ticket.compareAndSet(null, issued)) {
             controls.session.finishConfiguration(issued)
             DeviceFileControl.fail("file_control_configuration_busy")
         }
-        try { return workflow.configure(expected, enabled, kinds) }
+        try { workflow.configure(expected, enabled, kinds) }
         finally { ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
     }
 
-    @Synchronized fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot {
-        ready(); return workflow.disableLocally(expected)
+    fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = withOperation {
+        workflow.disableLocally(expected)
     }
 
     /** Native channel-end path can revoke file authority synchronously on any
      * thread. Metadata/permission-host ownership remains held until actual UI
      * cleanup; this is not a worker-END or quota-retirement receipt.
      */
-    @Synchronized fun revokeControl() { controls.close() }
+    fun revokeControl() {
+        revoked.set(true)
+        controls.close()
+        sourceWorker.close() // Native cancellation must run outside our ownership monitor.
+    }
 
-    @Synchronized override fun close() {
-        if (closed.get()) return
+    internal fun closeWhenQuiescent(completed: () -> Unit): Boolean {
+        if (closed.get()) return true
         revokeControl()
         // The workflow owns ActivityResult/lifecycle registration. Reject a
         // wrong-thread final close BEFORE claiming completed cleanup or closing
         // only half of the native resources. The native owner must then finish
         // close on the UI thread; authority is already synchronously revoked.
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
-        if (!closed.compareAndSet(false, true)) return
-        ticket.set(null)
-        wireCatalog.getAndSet(null)?.close()
-        NativeGalleryForeground.detach(this)
-        try { workflow.close() } finally { index.close() }
+        synchronized(this) {
+            if (closed.get()) return true
+            if (operationActive || !sourceWorker.isQuiescent) {
+                closeCompletion = completed
+                return false // Source index and native owner remain held until actual I/O end.
+            }
+            if (!closed.compareAndSet(false, true)) return true
+            closeCompletion = null
+            ticket.set(null)
+            wireCatalog.getAndSet(null)?.close()
+            NativeGalleryForeground.detach(this)
+            try { workflow.close() } finally { index.close() }
+            return true
+        }
+    }
+
+    override fun close() {
+        if (!closeWhenQuiescent { close() }) DeviceFileControl.fail("gallery_source_worker_io_pending")
+    }
+
+    private fun sourceIoEnded() {
+        // Serialize with the quiescence check/registration to avoid losing a
+        // completion between that check and installing the native close callback.
+        val completion = synchronized(this) {
+            if (operationActive || !sourceWorker.isQuiescent) null
+            else closeCompletion.also { closeCompletion = null }
+        }
+        completion?.let { android.os.Handler(Looper.getMainLooper()).post { it() } }
+    }
+
+    private inline fun <T> withOperation(operation: () -> T): T {
+        if (!operationGate.tryLock()) DeviceFileControl.fail("file_control_configuration_busy")
+        var owned = false
+        try {
+            synchronized(this) {
+                ready()
+                if (revoked.get()) DeviceFileControl.fail("gallery_file_runtime_revoked")
+                if (operationActive) DeviceFileControl.fail("file_control_configuration_busy")
+                operationActive = true; owned = true
+            }
+            // No provider, transport write, native cancellation or policy CAS
+            // runs under the UI/cleanup ownership monitor.
+            return operation()
+        } finally {
+            if (owned) synchronized(this) { operationActive = false }
+            operationGate.unlock()
+            if (owned) sourceIoEnded()
+        }
     }
 
     private fun ready() { if (closed.get()) DeviceFileControl.fail("gallery_file_runtime_closed") }

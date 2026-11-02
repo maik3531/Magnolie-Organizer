@@ -110,6 +110,10 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         return freeze(selection.catalog.source, album, selection.desktopChoice, cancellation)
     }
 
+    internal fun validateSelection(selection: NativeGalleryAlbumSelection) {
+        ready(); selection.catalog.resolve(this, selection)
+    }
+
     /** Blocking bounded IO: run off the main UI thread in the real coordinator.
      * No partial source or manifest is offered on any failure; reservation and
      * exact native in-process cleanup witnesses remain held for explicit repair.
