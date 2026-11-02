@@ -95,7 +95,11 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             fail("gallery_policy_receiver_changed")
         val peer = old?.receiverId ?: receiver!!.peerId
         val identity = old?.receiverIdentitySha256 ?: receiver!!.identitySha256
-        fun allowed() = !enabled || receiver != null && sameConfigurer(receiver, configurer())
+        // A remote disable is still an authenticated command throughout its
+        // transaction. Only the explicit native decrease-only path may proceed
+        // without a live remote configurer.
+        fun allowed() = if (currentConfigurer != null || enabled)
+            receiver != null && sameConfigurer(receiver, configurer()) else true
         if (old != null && old.enabled == enabled && old.kinds == kinds) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             return expected // Same policy/mode-only traffic never rekeys data consent.

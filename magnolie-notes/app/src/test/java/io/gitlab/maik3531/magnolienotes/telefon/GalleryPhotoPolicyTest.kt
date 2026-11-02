@@ -132,6 +132,31 @@ class GalleryPhotoPolicyTest {
             assertThrows(PhotoFolderScopeError::class.java) { GalleryPhotoPolicy.parse(value) }
     }
 
+    @Test fun remoteDisableRequiresItsExactConfigurerThroughoutPolicyCasWhileLocalRevocationStaysAvailable() {
+        for (boundary in listOf("gallery-policy-fenced", "gallery-policy-published")) {
+            Fixture().use { f ->
+                var configured: NativeGalleryConfigurer? = NativeGalleryConfigurer("receiver_fixture_01", "e".repeat(64),
+                    Any(), "b".repeat(64), true, true, true, true)
+                var revokeAt: String? = null
+                f.open { if (it == revokeAt) configured = null }.use { index ->
+                    val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { f.receiver }, { configured })
+                    val enabled = controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                    revokeAt = boundary
+                    assertThrows(PhotoFolderScopeError::class.java) { controller.configure(enabled, false, emptySet()) }
+                    assertTrue(index.galleryPolicy().repairPending)
+                    assertNull(controller.currentRequest())
+                    revokeAt = null
+                    index.acknowledgeGalleryPolicyRepair(index.inspectGalleryPolicyRepair()) { true }
+                    val saved = index.galleryPolicy()
+                    val local = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { null }, { null })
+                    val disabled = local.disableLocally(saved)
+                    assertFalse(disabled.policy!!.enabled)
+                    assertFalse(disabled.repairPending)
+                }
+            }
+        }
+    }
+
     @Test fun actualPolicyBackedGalleryAuthorityCanFreezePublishOfferAndRetireUnderTheSameNativeIndexGate() {
         Fixture().use { f -> f.open().use { index ->
             val controller = GalleryPhotoPolicyController(index) { f.receiver }

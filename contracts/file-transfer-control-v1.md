@@ -102,6 +102,12 @@ configuration authority separate from source READ/send authority. Missing
 configuration authority never falls back to an unrelated data receiver.
 `disableLocally` is an explicit native decrease-only operation, not a remote
 bypass, implicit default creation or Android URI-permission release.
+Remote disable commands retain their exact live configurer checks throughout
+policy CAS and readback, just like enable commands. Revocation at either the
+fenced or published boundary leaves repair pending; it is not treated as an
+authorized local decrease. The affected policy class passes all 15 cases,
+including both injected revocation boundaries and subsequent explicit local
+disable after authenticated repair.
 
 Gallery policy inner format 2 adds a positive safe-integer revision. Legacy
 format 1/revision 1 and its original protection namespace remain readable. The
