@@ -220,8 +220,15 @@ permission plus album metadata proves any file deletion. Permission/source/
 owner changes or malformed/unbounded pages discard the whole result. The media
 read permissions are declared, but no startup permission request, new phone
 settings screen, background discovery or automatic synchronization is started.
-Concrete gallery-item source leases/readers, desktop policy control, native OS
-permission launchers and full inventory/receipt integration remain outstanding.
+Gallery source leases bind exact native catalog membership, the active policy,
+receiver ownership and permission epoch, actual read coverage, mounted volume and
+its opaque MediaStore version (per-volume API29+). Legacy platforms without a
+reliable volume namespace and selected-only visibility additionally bind a
+runtime nonce: old runtime proofs cannot authorize restored source jobs. A source
+lease never proves file deletion. Its permission-access epoch still requires a
+real native permission controller; no remote packet supplies that authority.
+Concrete gallery-item readers, desktop policy control, native OS permission
+launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
