@@ -49,3 +49,23 @@ claim that general resume protocol, Windows parity, an Android SAF photo-folder
 selection or completed physical-device acceptance. Those remain in #246.
 
 This source change is not an installed test package or a public release.
+
+## Windows source groundwork
+
+`KdeShareProtocol` now reads strictly bounded standard file payload envelopes
+and metadata-only growth updates. Extra envelope fields remain forbidden for
+other packet types. Windows file-name validation also rejects device names,
+alternate streams, path separators and unsafe Unicode controls.
+
+`KdeIncomingFileBatch` supplies the corresponding native, connection-bound
+staging/manifest object. It requires fresh device/certificate/generation/clock
+observations, an exact private staging directory, actual size/SHA-256 reads,
+and a complete sealed list before review or handoff. Returning a preview does
+not expose staging paths or widen the internal list. Cleanup touches only
+staging files adopted by that object, not files handed to an accepted offer.
+
+These objects do not start a listener, construct a personal store, advertise a
+receive capability, ask a user for consent or publish destination files. Backend,
+bridge and native destination publication still have to be connected and tested
+before Windows receiving can be described as available. In particular, the
+source-only tests are not evidence of a Windows GUI or physical phone transfer.
