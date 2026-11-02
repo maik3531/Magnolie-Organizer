@@ -83,18 +83,42 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     internal fun sendSyncRunOffer(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,
         now: Long = System.currentTimeMillis()) = withOperation {
         if (syncRun !== run || run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
+        if (run.acceptance.get() != null) DeviceFileControl.fail("file_accept_already_bound")
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
         val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
         val selected = run.selection
         val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
         val offer = source.offerMessage(now)
-        val fingerprint = source.manifest.fingerprint
+        val manifest = source.manifest
+        val fingerprint = manifest.fingerprint
         if (workflow.currentRequest() == null || run.cancelRequested) DeviceFileControl.fail("gallery_source_not_activated")
         send(offer)
         // Revalidate actual protected source authority after output as well.
         if (source.manifest.fingerprint != fingerprint || workflow.currentRequest() == null || run.cancelRequested)
             DeviceFileControl.fail("gallery_source_not_activated")
         run.offered.set(fingerprint)
+        run.offerOutput.set(NativeGalleryOfferOutput(offer.string("message_id"), manifest.transferId, fingerprint, offer.long("expires_ms")))
+    }
+
+    internal fun observeAcceptance(message: JsonObject, now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        val accepted = DeviceFileAcceptanceEnvelope.parse(message, now())
+        val run = syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+        val offer = run.offerOutput.get() ?: DeviceFileControl.fail("file_accept_offer_not_sent")
+        if (now() >= offer.expires || accepted.offerId != offer.messageId || accepted.transferId != offer.transferId ||
+            accepted.manifestSha256 != offer.manifestSha256) DeviceFileControl.fail("file_accept_offer_changed")
+        val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+        if (request.receiver.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_accept_permission_changed")
+        val prior = run.acceptance.get()
+        if (prior != null && prior != accepted) DeviceFileControl.fail("file_accept_already_bound")
+        // Actual protected source validation is independent of the remote token.
+        val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        val selected = run.selection
+        val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
+        if (source.manifest.fingerprint != accepted.manifestSha256 || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+            DeviceFileControl.fail("file_accept_permission_changed")
+        val checked = now()
+        if (checked >= accepted.expires || checked >= offer.expires) DeviceFileControl.fail("file_accept_offer_changed")
+        run.acceptance.set(accepted)
     }
 
     internal fun cancelSyncRun(run: NativeGallerySyncRun) = withOperation {

@@ -480,11 +480,34 @@ class AndroidGalleryPhotoSourceTest {
                             java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
                         assertEquals(manifest!!.fingerprint, DeviceFileOfferEnvelope.validate(
                             Json.parseToJsonElement(clear.decodeToString()).jsonObject, identity.deviceId, peer.peerId, now).fingerprint)
+                        val actualOffer=whole.offerOutput.get()!!
+                        val acceptance=TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                            put("format",1); put("offer_id",actualOffer.messageId); put("transfer_id",manifest!!.transferId)
+                            put("manifest_sha256",manifest!!.fingerprint); put("acceptance_sha256","c".repeat(64))
+                            put("permission_epoch",runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token","e".repeat(64))
+                        },60_000,now)
+                        for ((field,value) in listOf("offer_id" to JsonPrimitive(java.util.UUID.randomUUID().toString()),
+                            "manifest_sha256" to JsonPrimitive("a".repeat(64)),"permission_epoch" to JsonPrimitive("a".repeat(64)))) {
+                            val invalid=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+(field to value))))
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(invalid,{now}) }
+                            assertNull(whole.acceptance.get())
+                        }
+                        var acceptanceTicks=0
+                        assertThrows(PhotoFolderScopeError::class.java) {
+                            runtime.observeAcceptance(acceptance,{if (++acceptanceTicks>=3) now+60_000 else now})
+                        }
+                        assertNull(whole.acceptance.get())
+                        runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
+                        assertEquals("e".repeat(64),whole.acceptance.get()!!.destinationToken)
+                        val replacement=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+("destination_token" to JsonPrimitive("f".repeat(64))))))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(replacement,{now}) }
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole,{},now) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(selected) }
                         val foreign = NativeGallerySyncRun(selected, started)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.cancelSyncRun(foreign) }
                         runtime.cancelSyncRun(whole)
                         assertTrue(whole.cancelRequested)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(acceptance,{now}) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole, {}, now) }
                         runtime.endStoppedSyncRun(whole)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }

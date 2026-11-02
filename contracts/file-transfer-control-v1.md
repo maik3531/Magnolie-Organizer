@@ -653,6 +653,44 @@ They include the original future-command replay failure, rollback after pruning,
 capacity held beyond sixty seconds and safe capacity reuse only after both bounds.
 No physical phone/UI or completed synchronization acceptance is implied.
 
+### Exact offer acceptance, distinct from local destination receipt
+
+`file_transfer.accept` uses the strict ordinary envelope with maximum 8192 bytes,
+60-second TTL and strict expiry. Inner format 1 has exactly `offer_id` (UUID-v4),
+`transfer_id` (32 lowercase hex), `manifest_sha256`, `acceptance_sha256`,
+`permission_epoch`, `destination_token` (each hash/token 64 lowercase hex).
+There are no target paths, per-file partial acceptances, OS READ assertions or
+saved-destination claims. The acceptance fingerprint binds the receiver's native
+immutable accepted description; the opaque destination token identifies its
+native destination binding, not a path supplied to the phone.
+
+The phone records exact offer output only after actual secure output and source
+revalidation. The actual message dispatcher reserves acceptance frames before
+personal staging. A current noncancelled native run must already have output the
+exact offer ID/transfer/full-manifest hash, and current native permission epoch
+must match. The protected frozen source is restored and validated independently;
+offer/acceptance deadlines are checked again after that native work before binding.
+An identical acceptance replay is harmless; replacement bytes or another target
+token cannot silently rebind it. No new offer replaces an accepted run.
+
+On Linux `NativeFileReceiveOperation.acceptance_message` exports this metadata
+only after actual native catalog reservation, exclusive receive lease and staging
+admission, in receiving phase and with fresh original destination/binding checks.
+Building a message is not send completion or publication. Windows currently has
+only the strict acceptance decoder, not native receiver admission/transport.
+Neither parsed acceptance nor a destination token substitutes for native grants
+on either endpoint; it is not a file/book SaveACK or cache-retirement receipt.
+
+Five distinct Android cases pass (strict codec two, shared golden one, actual
+provider/runtime/offer/acceptance lifecycle one, actual-Werk reconnect one).
+Fourteen Python cases pass, including actual receiver admission, binding/expiry
+fences and the golden. The Windows acceptance source-host group passes. The
+shared canonical acceptance vector is 624 bytes, SHA-256
+`ac032b156bba0bd7ba63602d5d27dd72563dfaa2901c3f1b6fe5f1234c119c1d`.
+This does not yet activate chunk/resume/receipt data handlers, desktop UI or a
+published capability. Physical phone/installed UI/full synchronization acceptance
+remain outstanding, with discovery 21 unadvertised.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

@@ -226,6 +226,7 @@ runner.Add("Photo sync schedule / manual default / explicit automatic / no overl
 runner.Add("Photo sync plan / shared three-way cases / preserve edits and missing-photo uncertainty", PhotoSyncPlanTests.RunAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Device file source settings / strict metadata codecs", DeviceFileSourcesTests.RunAsync);
+runner.Add("Device file acceptance / exact offer metadata", DeviceFileAcceptanceEnvelopeTests.RunAsync);
 runner.Add("Device file resume / native binding / actual readback / checkpoint rejection", DeviceFileResumeLedgerTests.RunAsync);
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);

@@ -156,6 +156,19 @@ class NativeFileReceiveOperation:
             return NativeReceiveProgress(self.job.owner, self._verified_bytes, self._checkpoint_bytes,
                 self._accepted.manifest.total_bytes, self._phase, self._cleanup_pending)
 
+    def acceptance_message(self, offer, *, now=None, message_id=None):
+        """After actual reservation/lease/stage admission, not from wire paths.
+        Building metadata is not secure-send completion or a saved receipt.
+        """
+        from magnolie_file_accept_message import create_acceptance
+        with self._gate:
+            self._require()
+            if self._phase != 'receiving':
+                raise TransferError('file_accept_receive_phase_changed')
+            reply=create_acceptance(self._accepted,offer,self._current,now=now,message_id=message_id)
+            self._require()
+            return reply
+
     def receive_chunk(self, file_id, index, data):
         with self._gate:
             self._require()
