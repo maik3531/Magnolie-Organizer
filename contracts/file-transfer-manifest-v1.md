@@ -532,6 +532,30 @@ records, original-root changes, failed seal/write/fsync/readback, actual
 publisher ordering and journal faults on both sides of the real link. This is
 not power-loss, physical-phone or native end-to-end acceptance.
 
+### Read-only native destination recovery observations
+
+`inspect_publication_destination` authenticates the exact journal context and
+re-reads the actual original target inode/parent chain and complete bytes after
+restart. It does not reopen the source/cache, create directories, modify the
+journal, adopt files, retry a link, or delete anything. Both an original linked
+file still sharing the private cache inode and an original file after explicit
+cache cleanup can be observed. Native live binding is checked before and after
+observation; revocation cannot return a stale success.
+
+The result distinguishes `original_present`, `unconfirmed_absence`,
+`conflict_preserved` and `no_record`. Missing roots/parents/targets and incomplete
+journal phases never prove deletion or permit republishing. Equal bytes in a
+different inode, changed content, swapped parents, symlinks and unexpected hard
+links are preserved as conflicts. Even an original target observed against a
+`verified` journal remains **not a saved receipt or write authority**. Durable
+PC receipt/head integration, recovery ownership and common-baseline acceptance
+still need implementation.
+
+Fifteen recovery tests, the 31 journal/integration cases and 35 publisher cases
+pass (81 cases across the focused runs). They include original target reads
+after source cleanup, both sides of interrupted journal transitions, independent
+cache cleanup, missing/changed targets and native revocation during readback.
+
 ## Three-way photo comparison proposals (not execution authority)
 
 Linux `magnolie_photo_plan` and Windows `PhotoSyncPlan` compare immutable native

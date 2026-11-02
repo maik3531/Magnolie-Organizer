@@ -277,6 +277,15 @@ class ProtectedPublicationJournal:
             if any(self.inspect(file_id) is not None for file_id in self._context["targets"]):
                 raise TransferError("publication_journal_operation_already_started")
 
+    def require_context(self, manifest, binding, targets):
+        """Authenticate inspection scope, without granting any operation."""
+        with self._gate:
+            self._entries()
+            if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
+                    or self._context["manifest_sha256"] != manifest.fingerprint
+                    or self._context["binding"] != vars(binding) or self._context["targets"] != dict(targets)):
+                raise TransferError("publication_journal_context_mismatch")
+
     def close(self):
         with self._gate:
             if not self._closed:

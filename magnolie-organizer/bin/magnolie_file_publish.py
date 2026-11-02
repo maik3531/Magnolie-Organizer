@@ -22,6 +22,31 @@ from magnolie_file_transfer import (CHUNK_BYTES, FileManifest, ManifestFile, Nat
 from magnolie_publication_journal import ProtectedPublicationJournal, PublicationWitness
 
 
+def _read_original_data(check_directories, parent, name, key, file, *, links):
+    check_directories()
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=parent)
+    with os.fdopen(fd, "rb") as source:
+        before = os.fstat(source.fileno())
+        if (not stat.S_ISREG(before.st_mode) or (before.st_dev, before.st_ino) != key or before.st_uid != os.geteuid()
+                or before.st_mode & 0o077 or before.st_nlink not in links or before.st_size != file.size):
+            raise TransferError("native_publication_original_changed")
+        digest = sha256(); remaining = file.size
+        while remaining:
+            part = source.read(min(CHUNK_BYTES, remaining))
+            if not part:
+                raise TransferError("native_publication_readback_truncated")
+            digest.update(part); remaining -= len(part)
+        if source.read(1) or digest.hexdigest() != file.sha256:
+            raise TransferError("native_publication_readback_mismatch")
+        after = os.fstat(source.fileno())
+        current = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        signature = NativeFilePublisher._signature
+        if signature(before) != signature(after) or signature(current) != signature(after):
+            raise TransferError("native_publication_original_changed")
+    check_directories()
+    return signature(after)
+
+
 @dataclass(frozen=True)
 class NativePublishedFile:
     file_id: str
@@ -227,32 +252,7 @@ class NativeFilePublisher:
             self._directory(fds[index + 1], private=False)
 
     def _data(self, parent, name, key, file, *, links):
-        self._directories()
-        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=parent)
-        with os.fdopen(fd, "rb") as source:
-            before = os.fstat(source.fileno())
-            if (not stat.S_ISREG(before.st_mode) or self._key(before) != key or before.st_uid != os.geteuid()
-                    or before.st_mode & 0o077 or before.st_nlink not in links or before.st_size != file.size):
-                raise TransferError("native_publication_original_changed")
-            digest = sha256(); remaining = file.size
-            while remaining:
-                part = source.read(min(CHUNK_BYTES, remaining))
-                if not part:
-                    raise TransferError("native_publication_readback_truncated")
-                digest.update(part); remaining -= len(part)
-            if source.read(1) or digest.hexdigest() != file.sha256:
-                raise TransferError("native_publication_readback_mismatch")
-            after = os.fstat(source.fileno())
-            current = os.stat(name, dir_fd=parent, follow_symlinks=False)
-            if (self._key(current) != key or before.st_size != after.st_size or before.st_mtime_ns != after.st_mtime_ns
-                    or current.st_size != file.size or current.st_mtime_ns != after.st_mtime_ns
-                    or (before.st_mode, before.st_uid, before.st_gid, before.st_nlink, before.st_ctime_ns) !=
-                       (after.st_mode, after.st_uid, after.st_gid, after.st_nlink, after.st_ctime_ns)
-                    or (current.st_mode, current.st_uid, current.st_gid, current.st_nlink, current.st_ctime_ns) !=
-                       (after.st_mode, after.st_uid, after.st_gid, after.st_nlink, after.st_ctime_ns)):
-                raise TransferError("native_publication_original_changed")
-        self._directories()
-        return self._signature(after)
+        return _read_original_data(self._directories, parent, name, key, file, links=links)
 
     def publish(self, file_id, ledger, read_chunk):
         with self._gate:
@@ -403,3 +403,99 @@ class NativeFilePublisher:
 
     def __exit__(self, *_):
         self.close()
+
+
+@dataclass(frozen=True)
+class NativePublicationObservation:
+    file_id: str
+    relative_path: str
+    journal_phase: str | None
+    state: str
+    reason: str = ""
+
+    @property
+    def is_saved_receipt(self):
+        return False
+
+    @property
+    def grants_write_authority(self):
+        return False
+
+
+def inspect_publication_destination(destination, manifest, binding, targets, journal, file_id, current_binding):
+    """Read-only native restart observation. No cache opens, mkdir, link,
+    rename, delete, record appends or implicit resumption. Absence stays HOLD.
+    Even matching original bytes require separate durable receipt integration.
+    """
+    if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
+            or type(journal) is not ProtectedPublicationJournal or not callable(current_binding)):
+        raise TransferError("native_publication_context_required")
+    targets = dict(targets)
+    journal.require_context(manifest, binding, targets)
+    if file_id not in targets:
+        raise TransferError("native_publication_unknown_member")
+    evidence = journal.inspect(file_id)
+    def result(state, reason=""):
+        return NativePublicationObservation(file_id, targets[file_id], evidence.phase if evidence else None, state, reason)
+    def fresh():
+        if current_binding() != binding:
+            raise TransferError("native_publication_binding_revoked")
+    fresh()
+    if evidence is None:
+        return result("no_record")  # Not evidence of never having published.
+    root = Path(destination)
+    if not root.is_absolute():
+        raise TransferError("native_publication_canonical_destination_required")
+    try:
+        resolved = root.resolve(strict=True)
+    except FileNotFoundError:
+        fresh()
+        return result("unconfirmed_absence")
+    if resolved != root:
+        raise TransferError("native_publication_canonical_destination_required")
+    ancestors = [(path, NativeFilePublisher._key(os.lstat(path))) for path in (root, *root.parents)]
+    fds = []
+    names = targets[file_id].split("/")
+    def directories():
+        fresh()
+        for path, key in ancestors:
+            value = os.lstat(path)
+            if not stat.S_ISDIR(value.st_mode) or NativeFilePublisher._key(value) != key:
+                raise TransferError("native_publication_destination_changed")
+        for index, fd in enumerate(fds):
+            NativeFilePublisher._directory(fd, private=False)
+            if NativeFilePublisher._key(os.fstat(fd)) != evidence.witness.parent_keys[index]:
+                raise TransferError("native_publication_parent_changed")
+            if index:
+                value = os.stat(names[index - 1], dir_fd=fds[index - 1], follow_symlinks=False)
+                if not stat.S_ISDIR(value.st_mode) or NativeFilePublisher._key(value) != evidence.witness.parent_keys[index]:
+                    raise TransferError("native_publication_parent_changed")
+    try:
+        fds.append(os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC))
+        directories()
+        for name in names[:-1]:
+            fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fds[-1])
+            fds.append(fd)
+            directories()
+        file = next(value for value in manifest.files if value.id == file_id)
+        _read_original_data(directories, fds[-1], names[-1],
+            (evidence.witness.source_device, evidence.witness.source_inode), file, links={1, 2})
+    except FileNotFoundError:
+        fresh()
+        return result("unconfirmed_absence")
+    except TransferError as error:
+        fresh()  # Revocation never becomes an apparently valid conflict report.
+        if str(error) in {"native_publication_binding_revoked", "native_publication_journal_changed"}:
+            raise
+        return result("conflict_preserved", str(error))
+    except OSError as error:
+        fresh()
+        return result("conflict_preserved", "native_publication_os_error_" + str(error.errno))
+    finally:
+        for fd in reversed(fds):
+            os.close(fd)
+    journal.require_context(manifest, binding, targets)
+    if journal.inspect(file_id) != evidence:
+        raise TransferError("native_publication_journal_changed")
+    fresh()
+    return result("original_present")
