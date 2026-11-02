@@ -307,6 +307,24 @@ permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
+Private gallery-origin records passed 62 focused origin/compatibility/index/
+workflow cases. The format-2 native snapshot record adds member-to-provider correlation
+inside the existing authenticated index row, without changing chunk/manifest
+AAD, wire manifests or cache-file layout. Format-1 snapshots must retain their
+original byte/identity checks and expose no inferred origin mapping. Correlation
+of row ID/insertion time is explicitly not a unique mutation identity, Android
+permission, completed destination receipt or a bidirectional baseline; coarse
+provider timestamps alone cannot prove that a deleted/reinserted row is the
+same photo object.
+
+The opaque correlation ID binds the native sender, album source key, actual
+volume namespace and native member witness. Edits/renames/access refresh do not
+rekey known-namespace members; unknown legacy namespaces retain runtime binding.
+Restored origin entries must exactly match ordered manifest IDs and recompute
+against the current native lease. Legacy format-1 records expose `null` origins,
+never guessed IDs. The original chunk/manifest AAD and cache-file quota/layout
+remain unchanged; private cleanup accepts both authenticated record formats.
+
 `NativeGalleryPhotoWorkflow` now joins the explicit native protected-policy,
 ActivityResult permission lifecycle, targeted album discovery, bounded actual
 image/PFD reads, durable reservation, encrypted freeze/publish, cached restore,
@@ -419,6 +437,18 @@ confirmation dialogs remain necessary; they cannot be accepted remotely or
 pretended to be granted. The desktop must display pending/unsupported permissions
 and actual support status. Placement under KDE Connect does not turn a KDE
 device ID/name into a Magnolie identity or grant.
+
+Photo synchronization must offer **Automatic** or **Manual**, plus **Sync now**,
+in this same Organizer-only section. The conservative initial mode is Manual;
+pairing, OS gallery permission or source selection alone must not start a new
+background job. Automatic operation requires explicit activation and fresh
+authenticated source/destination consent. Manual starts obey exactly the same
+permission, identity, conflict and deletion safeguards. A running job is not
+duplicated by Sync now: show its progress or coalesce a later request. Changing
+Automatic to Manual stops scheduled repeats without resetting accepted members,
+receipts, baselines or Android rights. Offline/revocation/lock/source changes
+pause rather than prove deletions. Scheduler/UI/native automatic acceptance
+remain open integration work, not an already active background service.
 
 The requested default desktop destination is the native **Pictures** folder
 with a safely generated `<phone-name>-Fotos` child, with an optional different

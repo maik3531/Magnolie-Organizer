@@ -28,6 +28,7 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
     val job: PhotoSourceJob, private val scope: NativePhotoSourceAuthority, private val lease: NativePhotoSourceLease,
     private val snapshot: ProtectedPhotoSourceSnapshot) {
     val manifest: DeviceFileManifest get() = index.withSealedHead(job, scope, lease) { snapshot.manifest }
+    val galleryOrigins: GalleryPhotoOrigins? get() = index.withSealedHead(job, scope, lease) { snapshot.galleryOrigins }
     fun readChunk(fileId: String, chunk: Int): ByteArray = index.withSealedHead(job, scope, lease) { snapshot.readChunk(fileId, chunk) }
     /** Preflight only; the actual send handler must recheck live negotiated
      * authority. Returning an envelope does not preserve consent after revoke.

@@ -142,6 +142,8 @@ class AndroidGalleryPhotoSourceTest {
                 val job = workflow.freeze(catalog, album)
                 assertEquals("sealed", job.phase); assertEquals(2, f.provider.opens.size)
                 val source = workflow.source(job, catalog, album)
+                assertEquals("1:90", source.galleryOrigins!!.entries.single().nativeMember)
+                assertEquals(source.manifest.files.single().id, source.galleryOrigins!!.entries.single().fileId)
                 assertEquals(source.manifest.fingerprint, DeviceFileOfferEnvelope.validate(source.offerMessage(), "sender_fixture_01", f.receiver.peerId).fingerprint)
                 File(f.root, "source.bin").writeText("changed live photo")
                 assertArrayEquals("hello".toByteArray(), source.readChunk(source.manifest.files.single().id, 0))

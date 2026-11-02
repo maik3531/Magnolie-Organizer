@@ -26,10 +26,13 @@ internal object ProtectedPhotoCacheCleanup {
         val record = job.snapshot ?: fail("photo_cache_snapshot_missing")
         fun text(value: JsonObject, name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content
             ?: fail("photo_cache_invalid_record")
-        if (record.keys != setOf("format", "owner", "source_domain", "root_key", "cipher_bytes", "manifest", "files") ||
-            record["format"] != JsonPrimitive(1) || text(record, "root_key") != job.rootKey ||
+        val hasOrigins = record["format"] == JsonPrimitive(2)
+        if (record.keys != setOf("format", "owner", "source_domain", "root_key", "cipher_bytes", "manifest", "files") +
+            (if (hasOrigins) setOf("source_origins") else emptySet()) ||
+            !hasOrigins && record["format"] != JsonPrimitive(1) || text(record, "root_key") != job.rootKey ||
             !Regex("[0-9a-f]{64}").matches(text(record, "source_domain"))) fail("photo_cache_invalid_record")
         val manifest = DeviceFileManifest.parse(record["manifest"] as? JsonObject ?: fail("photo_cache_invalid_record"))
+        if (hasOrigins) GalleryPhotoOrigins.parse(record["source_origins"] as? JsonObject ?: fail("photo_cache_invalid_record"), manifest)
         if (text(record, "owner") != manifest.sourceId || manifest.totalBytes != job.plainBytes) fail("photo_cache_invalid_record")
         val names = mutableSetOf("owner.enc", "manifest.enc")
         manifest.files.forEach { member ->

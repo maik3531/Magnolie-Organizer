@@ -14,6 +14,8 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.nio.file.Files
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -111,7 +113,7 @@ class GalleryPhotoSourceScopeTest {
         val f = Fixture(); val lease = f.lease()
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-snapshot329-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
-        val inventory = PhotoSourceInventory(lease, listOf(PhotoInventoryEntry("content://media/external/images/media/1", "1", "image.jpg", 5, 100)))
+        val inventory = PhotoSourceInventory(lease, listOf(PhotoInventoryEntry("content://media/external/images/media/1", "1:90", "image.jpg", 5, 100)))
         val source = object : PhotoSourceAccess {
             override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) { check(f.scope.isCurrent(lease)) }
             override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) = ByteArrayInputStream("hello".toByteArray())
@@ -129,7 +131,18 @@ class GalleryPhotoSourceScopeTest {
             PhotoSourceJobIndex(root, protection).use { index ->
                 val restored = index.restore(job, "sender_fixture_01", recreated, fresh)
                 assertArrayEquals("hello".toByteArray(), restored.readChunk(restored.manifest.files.single().id, 0))
+                assertEquals(JsonPrimitive(2), job.snapshot!!["format"])
+                val origins = restored.galleryOrigins!!
+                assertEquals(restored.manifest.files.single().id, origins.entries.single().fileId)
+                assertEquals("1:90", origins.entries.single().nativeMember)
+                val legacyRecord = JsonObject(job.snapshot.minus("source_origins") + ("format" to JsonPrimitive(1)))
+                val legacy = ProtectedPhotoSourceSnapshot.restore(index.rootFile(job), legacyRecord, "sender_fixture_01", recreated,
+                    fresh, protection, CancellationSignal())
+                assertNull(legacy.galleryOrigins) // Never invent legacy photo identities from filenames.
+                assertEquals(JsonPrimitive(1), legacy.nativeRecord()["format"])
+                assertArrayEquals("hello".toByteArray(), legacy.readChunk(legacy.manifest.files.single().id, 0))
                 restored.retireAndDiscard(); assertTrue(index.jobs().isEmpty())
+                assertThrows(PhotoFolderScopeError::class.java) { restored.galleryOrigins }
             }
         } finally { root.deleteRecursively() }
     }

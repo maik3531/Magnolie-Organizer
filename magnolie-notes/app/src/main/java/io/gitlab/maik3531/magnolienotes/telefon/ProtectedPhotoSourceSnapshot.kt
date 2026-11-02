@@ -35,6 +35,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     private data class Witness(val key: String, val digest: String)
     private val owned = linkedMapOf<String, Witness>()
     private var sealedManifest: DeviceFileManifest? = null
+    private var origins: GalleryPhotoOrigins? = null
     private var retired = false
     private val sourceDomain = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
         "tree" to JsonPrimitive(lease.sourceKey), "source_version" to JsonPrimitive(lease.version),
@@ -44,6 +45,10 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
     private val domain = "photo-source-snapshot-v1/$owner/$sourceDomain/"
     val manifest: DeviceFileManifest get() = synchronized(this) {
         fresh(); sealedManifest ?: fail("photo_snapshot_not_sealed")
+    }
+    val galleryOrigins: GalleryPhotoOrigins? get() = synchronized(this) {
+        manifest // Requires a current sealed native source, not just metadata.
+        origins
     }
 
     private fun fresh() {
@@ -139,8 +144,9 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             JsonObject(mapOf("name" to JsonPrimitive(name), "key" to JsonPrimitive(witness.key.toString()), "sha256" to JsonPrimitive(witness.digest)))
         }
         fresh()
-        return JsonObject(mapOf("format" to JsonPrimitive(1), "owner" to JsonPrimitive(owner), "source_domain" to JsonPrimitive(sourceDomain),
-            "root_key" to JsonPrimitive(rootKey.toString()), "cipher_bytes" to JsonPrimitive(bytes), "manifest" to sealed.wire(), "files" to JsonArray(files)))
+        val fields = mapOf("format" to JsonPrimitive(if (origins == null) 1 else 2), "owner" to JsonPrimitive(owner), "source_domain" to JsonPrimitive(sourceDomain),
+            "root_key" to JsonPrimitive(rootKey.toString()), "cipher_bytes" to JsonPrimitive(bytes), "manifest" to sealed.wire(), "files" to JsonArray(files))
+        return JsonObject(fields + (origins?.let { mapOf("source_origins" to it.wire()) } ?: emptyMap()))
     }
 
     /** Explicit exact-owned-cache cleanup also works after revocation/cancel.
@@ -156,7 +162,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             cipher(it, MAX_METADATA); Files.delete(File(root, it).toPath()); owned.remove(it)
             boundary("discarded-entry")
         }
-        owned.clear(); sealedManifest = null
+        owned.clear(); sealedManifest = null; origins = null
         synchronisiereOrdner(root)
         Files.delete(root.toPath())
         synchronisiereOrdner(root.parentFile)
@@ -189,8 +195,10 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             protection: DeviceTransferProtection, cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot {
             fun text(value: JsonObject, field: String): String = (value[field] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 ?: fail("photo_snapshot_invalid_record")
-            if (record.keys != setOf("format", "owner", "source_domain", "root_key", "cipher_bytes", "manifest", "files") ||
-                record["format"] != JsonPrimitive(1)) fail("photo_snapshot_invalid_record")
+            val hasOrigins = record["format"] == JsonPrimitive(2)
+            if (record.keys != setOf("format", "owner", "source_domain", "root_key", "cipher_bytes", "manifest", "files") +
+                (if (hasOrigins) setOf("source_origins") else emptySet()) ||
+                !hasOrigins && record["format"] != JsonPrimitive(1)) fail("photo_snapshot_invalid_record")
             val manifest = DeviceFileManifest.parse(record["manifest"] as? JsonObject ?: fail("photo_snapshot_invalid_record"))
             val owner = text(record, "owner")
             if (!Regex("[0-9a-f]{32}").matches(owner) || owner != manifest.sourceId || manifest.senderId != senderId ||
@@ -200,6 +208,10 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             val snapshot = ProtectedPhotoSourceSnapshot(root, protection, scope, lease, cancellation, owner,
                 actual.fileKey() ?: fail("photo_snapshot_directory_changed"), {})
             if (snapshot.sourceDomain != text(record, "source_domain")) fail("photo_snapshot_source_context_changed")
+            val origins = if (hasOrigins) {
+                if (lease !is GalleryPhotoSourceLease) fail("photo_snapshot_wrong_source_kind")
+                GalleryPhotoOrigins.parse(record["source_origins"] as? JsonObject ?: fail("photo_snapshot_invalid_record"), manifest, lease)
+            } else null // Legacy records must never infer photo identities from names.
             snapshot.fresh()
             val names = mutableSetOf("owner.enc", "manifest.enc")
             manifest.files.forEach { member ->
@@ -241,7 +253,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
                 if (member.size == 0L && !snapshot.read("empty-${member.id}.enc", 1).contentEquals(byteArrayOf(1))) fail("photo_snapshot_empty_marker_missing")
                 if (hex(digest.digest()) != member.sha256) fail("photo_snapshot_final_digest_changed")
             }
-            snapshot.fresh(); snapshot.sealedManifest = manifest
+            snapshot.fresh(); snapshot.sealedManifest = manifest; snapshot.origins = origins
             return snapshot
         }
 
@@ -267,6 +279,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
                 "files" to JsonArray(files.map { JsonObject(mapOf("id" to JsonPrimitive(it.id), "path" to JsonPrimitive(it.path),
                     "size" to JsonPrimitive(it.size), "sha256" to JsonPrimitive(it.sha256))) }))))
             val plan = manifest(planned)
+            val origins = (inventory.lease as? GalleryPhotoSourceLease)?.let { GalleryPhotoOrigins.capture(it, inventory.entries, plan) }
             val snapshot = ProtectedPhotoSourceSnapshot(root, protection, scope, inventory.lease, cancellation, sourceId, metadata.fileKey()!!, boundary)
             try {
                 snapshot.fresh()
@@ -299,6 +312,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
                 }
                 snapshot.fresh()
                 snapshot.sealedManifest = readback
+                snapshot.origins = origins
                 return snapshot
             } catch (error: Exception) { throw PhotoSnapshotBuildFailure(snapshot, error) }
         }
