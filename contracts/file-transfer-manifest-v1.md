@@ -118,10 +118,20 @@ A synthetic fresh-process test opens an actual encrypted checkpoint and checks
 actual chunk bytes again, without sharing an in-memory proof ledger. Missing
 owned zero-byte markers are not treated as successful empty files.
 
-This is not yet a native durable job-index/retention coordinator: committing the
-selected checkpoint head, safe version retirement, retired-context quota and
-restart cleanup after revoked grants still need integration. Protected Windows/
-Android staging adapters, protocol negotiation/handlers, SAF source consent and
+`commit_checkpoint` connects immutable versions to native durable-index
+callbacks. The head must actually commit and read back before noncurrent
+versions can be retired under the same native head/scope gate. A failed write,
+post-commit acknowledgement failure, no-op gate or concurrent head/permission
+change cannot manufacture retirement. A committed head with a later retirement
+failure is distinguished from an uncommitted write; changed original witnesses
+are preserved with cleanup pending. The explicit recovery path can retire
+noncurrent versions without creating another version when bounded slots filled
+during earlier failed attempts. A real encrypted SQLite fixture verifies these
+boundaries and preserves unrelated rows; it is not the application's job index.
+
+This is not yet an integrated native job coordinator: its protected index,
+retired-context quota and restart cleanup after revoked grants still need
+integration. Protected Windows/Android staging adapters, protocol handlers, SAF source consent and
 end-to-end/native acceptance also remain open. No capability is advertised by
 these classes, and no user data or installed test package is changed by their
 source tests.

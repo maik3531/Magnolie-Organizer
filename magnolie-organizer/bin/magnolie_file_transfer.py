@@ -308,6 +308,14 @@ class TransferStageHandle:
         _text(self.checkpoint, _ID)
 
 
+@dataclass(frozen=True)
+class NativeCheckpointCommit:
+    handle: TransferStageHandle
+    retired_versions: int
+    cleanup_pending: bool
+    cleanup_error: str = ""
+
+
 class EncryptedTransferStage:
     """Linux native, directory-fd-bound encrypted staging and immutable checkpoints.
 
@@ -549,6 +557,74 @@ class EncryptedTransferStage:
         checkpoint = json.loads(raw, object_pairs_hook=strict_pairs,
                                 parse_constant=lambda _: (_ for _ in ()).throw(TransferError("nonfinite_checkpoint_value")))
         return ResumeLedger.restore(self.manifest, self.binding, self._current_binding, checkpoint, self.read_chunk)
+
+    def commit_checkpoint(self, ledger, publish_head, read_head, head_gate):
+        """Publish through a native durable job index, then retire old versions.
+
+        Callbacks are existing native storage/serialization authority, never
+        received IPC objects. publish_head must durably finish; read_head must
+        read back that scoped protected job, not echo its argument. head_gate
+        serializes retirement with all native changes to that job's head/scope.
+        A head commit is NOT a saved destination or a Notes/Organizer SaveACK.
+        """
+        handle = self.save_checkpoint(ledger)
+        self._fresh()
+        publish_head(handle)
+        self._fresh()
+        observed = read_head()
+        if type(observed) is not TransferStageHandle or observed != handle:
+            raise TransferError("native_checkpoint_head_readback_failed")
+        return self.retire_checkpoint_versions(handle, read_head, head_gate)
+
+    def retire_checkpoint_versions(self, handle, read_head, head_gate):
+        """Retire only noncurrent versions of an actually observed native head.
+
+        This recovery path also works when previous failed head publications
+        have filled the bounded version slots. It never creates a new head or
+        discards chunks. Native head changes must share the supplied gate.
+        """
+        self._fresh()
+        if type(handle) is not TransferStageHandle or handle.owner != self.owner or read_head() != handle:
+            raise TransferError("native_checkpoint_head_not_current")
+        retired = 0
+        executed = False
+        def retire():
+            nonlocal retired, executed
+            if executed:
+                raise TransferError("duplicate_native_head_gate_invocation")
+            executed = True
+            with self._gate:
+                self._fresh()
+                if read_head() != handle:
+                    raise TransferError("native_checkpoint_head_changed_before_retirement")
+                self._read("checkpoint-" + handle.checkpoint + ".enc", self.MAX_CHECKPOINT_BYTES)
+                names = [name for name in self._entry_names() if name.startswith("checkpoint-")
+                         and name != "checkpoint-" + handle.checkpoint + ".enc"]
+                # Authenticate/preflight ALL old versions first. A changed
+                # original witness remains a failed baseline, not a replacement.
+                for name in names:
+                    self._read(name, self.MAX_CHECKPOINT_BYTES)
+                for name in names:
+                    self._fresh()
+                    if read_head() != handle:
+                        raise TransferError("native_checkpoint_head_changed_during_retirement")
+                    blob, metadata = self._read_cipher(name, self.MAX_CHECKPOINT_BYTES + self.MAX_PROTECTION_OVERHEAD)
+                    proof = metadata.st_dev, metadata.st_ino, sha256(blob).hexdigest()
+                    if self._owned.get(name) != proof:
+                        raise TransferError("checkpoint_version_changed_before_retirement")
+                    os.unlink(name, dir_fd=self._root_fd)
+                    self._owned.pop(name)
+                    retired += 1
+                os.fsync(self._root_fd)
+        try:
+            head_gate(handle, retire)
+            if not executed:
+                raise TransferError("native_head_gate_did_not_execute")
+        except Exception as error:
+            # The durable head already committed. Preserve that distinction
+            # and retain real metadata/quota for any failed retirement.
+            return NativeCheckpointCommit(handle, retired, True, type(error).__name__)
+        return NativeCheckpointCommit(handle, retired, False)
 
     @_serialized
     def cleanup(self):
