@@ -2,8 +2,9 @@
 
 Blocking native I/O-lane methods only: no worker/thread/timer or PhoneStore is
 constructed. Actual own-peer permission and serialized publication authority
-must be supplied by the native controller. Physical saves remain unreceipted;
-restart publication is explicitly repair-pending, never silently repeated.
+must be supplied by the native controller. Physical publication alone remains
+unreceipted; explicit original readback plus protected receipt commit confirms
+a local save. Restart publication is repair-pending, never silently repeated.
 """
 from dataclasses import dataclass
 import threading
@@ -53,6 +54,21 @@ class NativeFileReceiveOperation:
     def resume(cls, catalog, job, current_binding, seal, unseal, publication_gate):
         return cls(catalog, job, current_binding, seal, unseal, publication_gate, create=False)
 
+    @classmethod
+    def read_saved_receipts(cls, catalog, job, current_binding, seal, unseal):
+        """Fresh native authority around historical protected file receipts.
+        No source/cache/journal reopen or repeated publication is necessary.
+        """
+        if type(catalog) is not ProtectedTransferJobCatalog:
+            raise TransferError("file_receive_native_controller_required")
+        parent = catalog.require_reserved(job)
+        job.accepted.verify(current_binding)
+        with ProtectedTransferJobIndex(parent, job.accepted.manifest, job.accepted.binding, current_binding,
+                seal, unseal, owner=job.owner, accepted=job.accepted) as index:
+            result = index.saved_receipts()
+        job.accepted.verify(current_binding)
+        return result
+
     def __init__(self, catalog, job, current_binding, seal, unseal, publication_gate, *, create):
         if (type(catalog) is not ProtectedTransferJobCatalog or type(create) is not bool
                 or not all(callable(value) for value in (current_binding, seal, unseal, publication_gate))):
@@ -71,6 +87,7 @@ class NativeFileReceiveOperation:
         self._cleanup_pending = False
         self._chunks_since_checkpoint = 0
         self._published = None
+        self._receipts = None
         try:
             self._index = ProtectedTransferJobIndex(parent, self._accepted.manifest, self._accepted.binding,
                 current_binding, seal, unseal, owner=job.owner, create=create, accepted=self._accepted)
@@ -142,7 +159,7 @@ class NativeFileReceiveOperation:
     def receive_chunk(self, file_id, index, data):
         with self._gate:
             self._require()
-            if self._published is not None:
+            if self._published is not None or self._receipts is not None:
                 raise TransferError("file_receive_already_physically_published")
             try:
                 missing = index in self._ledger.missing(file_id)
@@ -173,6 +190,8 @@ class NativeFileReceiveOperation:
     def publish_completed(self):
         with self._gate:
             self._require()
+            if self._receipts is not None:
+                raise TransferError("file_receive_already_saved")
             if self._publisher is None:
                 raise TransferError("file_receive_publication_repair_required")
             if self._published is not None:
@@ -197,6 +216,22 @@ class NativeFileReceiveOperation:
             self._require()
             return inspect_publication_destination(self._accepted.destination.path, self._accepted.manifest,
                 self._accepted.binding, dict(self._accepted.targets), self._journal, file_id, self._current)
+
+    def commit_saved_receipts(self):
+        """Explicit local save/recovery step, not a transport or book ACK.
+        May recover actual original files without adopting/repeating publication.
+        """
+        with self._gate:
+            self._require()
+            try:
+                result = tuple(self._index.commit_saved_file(self._journal, file.id, self._lease)
+                    for file in self._accepted.manifest.files)
+                self._receipts = result
+                self._phase = "saved_locally"
+                return result
+            except Exception:
+                self._failed = True
+                raise
 
     def close(self):
         with self._gate:

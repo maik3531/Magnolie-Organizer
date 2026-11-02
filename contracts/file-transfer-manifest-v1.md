@@ -508,8 +508,48 @@ including multichunk/empty/Unicode saves, real partial chunk restart, an existin
 equal target, failed startup, corrupted duplicates, a 130-chunk checkpoint run
 and real concurrent native I/O/end ownership. These are private native filesystem
 integration tests, not a physical telephone/system-dialog/end-to-end acceptance.
-Durable saved receipt heads/recovery, proven quota retirement, actual own-peer
-transport handlers and Organizer-only controls still remain to connect.
+The separate explicit durable receipt/recovery step is described below. Proven
+quota retirement, actual own-peer transport handlers and Organizer-only controls
+still remain to connect.
+
+### Explicit durable local saved-file receipts and recovery
+
+`commit_saved_receipts` now connects native receive operations to immutable,
+encrypted `NativeSavedFileReceipt` rows in the same owned per-operation index.
+It requires the exact active native worker lease, full accepted context/current
+binding, authenticated original journal witnesses and actual original target
+inode/parent-chain/full-byte readback. A journal phase or complete stage alone
+cannot produce a saved receipt. Explicit recovery can confirm an actual original
+link even when interruption left only `prepared`/`linked` journal evidence;
+it performs no destination/cache/journal writes or repeated publication.
+
+The first receipt uses an explicit owned SQLite schema-1→2 transaction, preserving
+the original owner cipher/AAD, all checkpoint rows and existing private files.
+Commit/readback checks FULL/DELETE durability, fsyncs the containing directory,
+and fences uncertain writes. Reopened historical receipt reads authenticate all
+scope/original witnesses and re-establish DB/directory durability before exposing
+saved evidence. Open transactions and failed receipt readbacks are not certified.
+Unknown schemas, sidecars or corrupt records remain failures, not empty defaults.
+
+A durable saved-file receipt is **not a Notes/Organizer book SaveACK**, a new
+write/deletion grant or an automatically accepted shared photo baseline. It
+records a historical local save. Existing receipts are returned idempotently
+without re-copying unchanged phone bytes over a later PC crop or recreating a
+user-deleted file. Historical receipt lookup does not need the source cache or
+journal; the native controller still checks current authority before replying
+to a peer. A saved receipt does not promise that the user never edited/deleted
+the destination afterwards. Source/photo-origin/baseline and actual wire receipt
+integration remain separate work.
+
+Twenty-five new saved-receipt cases and the affected acceptance/catalog/index/
+receive/key integration cases pass together (117 cases). They cover actual
+existing-key→catalog→stage→publication→SQL receipt reopen, empty files, old head/
+owner preservation, explicit interrupted-link recovery, post-commit directory/
+readback faults, transactional schema rollback on revoke, corrupt or scope-wrong
+authenticated records, open transactions and later PC edits/tombstones. These
+are native private filesystem integration checks, not phone/GUI/end-to-end or
+power-loss acceptance. No transport handler/capability or background sync is
+activated, and no package is delivered by these commits.
 
 ### Per-operation persistence details
 

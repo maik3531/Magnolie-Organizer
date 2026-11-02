@@ -1,9 +1,11 @@
-"""Protected native checkpoint heads, never destination receipts or SaveACKs.
+"""Protected native checkpoint heads and separate local file-save receipts.
 
 Explicitly reserved per-operation private SQLite index. No personal database,
 key generation, wire dispatcher, destination publication or automatic restore.
 SQLite FULL commits and native CAS serialize checkpoint heads; source bytes
 must still be re-read by EncryptedTransferStage.open_checkpoint on restart.
+Only explicit original-destination readback can create a saved file receipt;
+neither checkpoint heads nor file receipts are Notes/Organizer book SaveACKs.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -20,6 +22,9 @@ import weakref
 
 from magnolie_file_transfer import FileManifest, NativeTransferBinding, TransferError, TransferStageHandle
 from magnolie_file_acceptance import NativeAcceptedTransfer
+from magnolie_file_receipt import NativeSavedFileReceipt
+from magnolie_file_publish import inspect_publication_destination
+from magnolie_publication_journal import ProtectedPublicationJournal
 
 
 _ROOT_GATES = weakref.WeakValueDictionary()
@@ -55,8 +60,10 @@ class ProtectedTransferJobIndex:
     MAX_DATABASE_BYTES = 4 * 1024 * 1024
     MAX_RECORD_BYTES = 4096
     MAX_OWNER_BYTES = 2 * 1024 * 1024
+    MAX_RECEIPT_BYTES = 16 * 1024
     _SCHEMA = {"meta": "CREATE TABLE meta(id INTEGER PRIMARY KEY CHECK(id=1),payload BLOB NOT NULL)",
         "heads": "CREATE TABLE heads(revision INTEGER PRIMARY KEY,payload BLOB NOT NULL)"}
+    _RECEIPT_SCHEMA = "CREATE TABLE receipts(file_id TEXT PRIMARY KEY,payload BLOB NOT NULL)"
 
     def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False, accepted=None):
         if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
@@ -220,7 +227,7 @@ class ProtectedTransferJobIndex:
 
     def _protect(self, value, suffix):
         plain = self._json(value)
-        maximum = self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECORD_BYTES
+        maximum = self._record_limit(suffix)
         if len(plain) > maximum:
             raise TransferError("transfer_job_index_record_size")
         blob = self._seal(plain, self._domain + suffix)
@@ -229,7 +236,7 @@ class ProtectedTransferJobIndex:
         return blob
 
     def _open(self, blob, suffix):
-        maximum = self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECORD_BYTES
+        maximum = self._record_limit(suffix)
         if type(blob) is not bytes or not 1 <= len(blob) <= maximum + 128:
             raise TransferError("transfer_job_index_invalid_record")
         plain = self._unseal(blob, self._domain + suffix)
@@ -240,13 +247,19 @@ class ProtectedTransferJobIndex:
             raise TransferError("transfer_job_index_noncanonical_record")
         return value
 
+    def _record_limit(self, suffix):
+        return self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECEIPT_BYTES if suffix.startswith("receipt/") else self.MAX_RECORD_BYTES
+
     def _schema(self):
         actual = dict(self._db.execute("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"))
-        if actual != self._SCHEMA or self._db.execute("PRAGMA user_version").fetchone() != (1,):
+        version = self._db.execute("PRAGMA user_version").fetchone()[0]
+        wanted = self._SCHEMA if version == 1 else dict(self._SCHEMA, receipts=self._RECEIPT_SCHEMA) if version == 2 else None
+        if wanted is None or actual != wanted:
             raise TransferError("transfer_job_index_unknown_schema")
         if (self._db.execute("PRAGMA journal_mode").fetchone() != ("delete",)
                 or self._db.execute("PRAGMA synchronous").fetchone() != (2,)):
             raise TransferError("transfer_job_index_unsupported_journal")
+        self._schema_version = version
 
     def _owner(self):
         rows = self._db.execute("SELECT id,payload FROM meta LIMIT 2").fetchall()
@@ -291,6 +304,7 @@ class ProtectedTransferJobIndex:
             raise TransferError("transfer_job_index_revision_limit")
         latest = None
         previous = ""
+        hashes = set()
         for expected, (revision, blob) in enumerate(rows, 1):
             value = self._open(blob, "head/" + str(revision))
             if (type(value) is not dict or set(value) != {"format", "revision", "previous", "owner", "checkpoint"}
@@ -301,11 +315,13 @@ class ProtectedTransferJobIndex:
             if handle.owner != self._context["owner"]:
                 raise TransferError("transfer_job_index_wrong_stage_owner")
             previous = sha256(blob).hexdigest()
+            hashes.add(previous)
             latest = NativeCheckpointHead(revision, handle, previous)
         if self._last is not None and (latest is None or latest.revision < self._last.revision
                 or latest.revision == self._last.revision and latest != self._last):
             raise TransferError("transfer_job_index_head_rollback")
         self._last = latest
+        self._head_hashes = frozenset(hashes)
         return latest
 
     def snapshot(self):
@@ -340,6 +356,7 @@ class ProtectedTransferJobIndex:
             with self._db:
                 self._db.execute("INSERT INTO heads VALUES(?,?)", (revision, blob))
                 self._fresh()
+            os.fsync(self._root_fd)
             self._fresh()
             result = self._snapshot()
             if result != NativeCheckpointHead(revision, handle, sha256(blob).hexdigest()):
@@ -381,6 +398,108 @@ class ProtectedTransferJobIndex:
             self._operation_lease = object()
             _ACTIVE_OPERATIONS[self._root_key] = self
             return self._operation_lease
+
+    def _require_receipt_worker(self, lease):
+        if (lease is None or lease is not self._operation_lease or _ACTIVE_OPERATIONS.get(self._root_key) is not self
+                or self._accepted is None):
+            raise TransferError("transfer_job_index_receipt_worker_required")
+        if self._uncertain:
+            raise TransferError("transfer_job_index_repair_pending")
+        self._fresh()
+
+    def _enable_receipts(self):
+        self._snapshot()
+        if self._schema_version == 2:
+            return
+        self._uncertain = True
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            self._db.execute(self._RECEIPT_SCHEMA)
+            self._db.execute("PRAGMA user_version=2")
+            self._fresh()
+        os.fsync(self._root_fd)
+        self._fresh()
+        self._snapshot()
+        self._uncertain = False
+
+    def saved_receipts(self):
+        """Authenticated historical saves only, not current presence/grants."""
+        with self._locked():
+            if self._uncertain or self._db.in_transaction:
+                raise TransferError("transfer_job_index_repair_pending")
+            self._snapshot()
+            if self._schema_version == 1:
+                return ()
+            if self._accepted is None:
+                raise TransferError("transfer_job_index_receipt_context_required")
+            rows = self._db.execute("SELECT file_id,payload FROM receipts ORDER BY file_id LIMIT 129").fetchall()
+            if len(rows) > len(self._accepted.manifest.files):
+                raise TransferError("transfer_job_index_receipt_count_mismatch")
+            result = []
+            for file_id, blob in rows:
+                if type(file_id) is not str or re.fullmatch(r"[0-9a-f]{32}", file_id) is None:
+                    raise TransferError("transfer_job_index_invalid_receipt_member")
+                value = self._open(blob, "receipt/" + file_id)
+                result.append(NativeSavedFileReceipt.parse(value, self._accepted, self._context["owner"], file_id,
+                    sha256(blob).hexdigest(), self._head_hashes))
+            if result:
+                # A reopened receipt may follow a lost post-commit directory
+                # sync/ACK. Re-establish physical DB+directory durability before
+                # exposing saved evidence; never certify an open transaction.
+                os.fsync(self._database_fd)
+                os.fsync(self._root_fd)
+            return tuple(result)
+
+    def commit_saved_file(self, journal, file_id, lease):
+        """Explicit native save/recovery: authenticate original journal and
+        freshly read actual original destination bytes before durable receipt.
+        No file or journal write is performed and no unknown target is adopted.
+        """
+        with self._locked():
+            self._require_receipt_worker(lease)
+            if type(journal) is not ProtectedPublicationJournal:
+                raise TransferError("transfer_job_index_native_journal_required")
+            file = next((file for file in self._accepted.manifest.files if file.id == file_id), None)
+            if file is None:
+                raise TransferError("transfer_job_index_unknown_receipt_member")
+            for existing in self.saved_receipts():
+                if existing.file_id == file_id:
+                    return existing  # Keep later PC edits/deletions; never re-save.
+            journal.require_context(self._accepted.manifest, self._binding, dict(self._accepted.targets))
+            evidence = journal.inspect(file_id)
+            if evidence is None:
+                raise TransferError("transfer_job_index_missing_publication_evidence")
+            observed = inspect_publication_destination(self._accepted.destination.path, self._accepted.manifest, self._binding,
+                dict(self._accepted.targets), journal, file_id, self._current)
+            if observed.state != "original_present" or journal.inspect(file_id) != evidence:
+                raise TransferError("transfer_job_index_original_destination_unconfirmed")
+            head = self._snapshot()
+            if head is None:
+                raise TransferError("transfer_job_index_missing_source_checkpoint")
+            self._require_receipt_worker(lease)
+            self._enable_receipts()  # Explicit owned transactional schema 1→2.
+            receipt = NativeSavedFileReceipt(self._context["owner"], self._accepted.manifest.fingerprint,
+                self._accepted.fingerprint, file_id, dict(self._accepted.targets)[file_id], file.size, file.sha256,
+                (evidence.witness.source_device, evidence.witness.source_inode), evidence.witness.parent_keys,
+                evidence.phase, evidence.protected_record_sha256, head.protected_sha256, "")
+            blob = self._protect(receipt.wire(), "receipt/" + file_id)
+            self._fresh()
+            self._uncertain = True
+            with self._db:
+                self._db.execute("INSERT INTO receipts VALUES(?,?)", (file_id, blob))
+                self._fresh()
+            os.fsync(self._root_fd)
+            self._fresh()
+            self._snapshot()
+            row = self._db.execute("SELECT payload FROM receipts WHERE file_id=?", (file_id,)).fetchone()
+            if row is None or row[0] != blob:
+                raise TransferError("transfer_job_index_receipt_readback_failed")
+            value = self._open(row[0], "receipt/" + file_id)
+            result = NativeSavedFileReceipt.parse(value, self._accepted, self._context["owner"], file_id,
+                sha256(row[0]).hexdigest(), self._head_hashes)
+            self._fresh()
+            self._uncertain = False
+            return result
 
     def release_operation(self, lease):
         """Actual native worker END only; cancellation/transport ACK is not END."""
