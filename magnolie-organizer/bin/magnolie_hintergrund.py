@@ -3229,6 +3229,11 @@ class DaemonEvents:
             name = _safe_text(payload.get("name"), 180) or _("File")
             size = payload.get("size") if isinstance(payload.get("size"), int) else 0
             title, body = _("Incoming KDE Connect file"), "%s (%d bytes)" % (name, size)
+            if isinstance(payload.get("files"), list) and payload["files"]:
+                title = _("Receive files")
+                body = "\n".join("%s (%d bytes)" % (
+                    _safe_text(member.get("name"), 255), member.get("size", 0))
+                    for member in payload["files"])
             choose_directory = self.settings.get("kde_choose_directory") is True
             def accept_file(accepted):
                 if not accepted:

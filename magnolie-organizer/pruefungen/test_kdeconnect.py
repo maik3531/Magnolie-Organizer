@@ -1252,7 +1252,8 @@ def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict(mon
             kde.CLIPBOARD_TYPE, kde.CLIPBOARD_CONNECT_TYPE]
         backend.configure_receive(file_enabled=True, device_id="a" * 32,
             file_mode="confirm", download_directory=downloads)
-        assert backend.identity_packet()["body"]["incomingCapabilities"] == base + [kde.SHARE_TYPE]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == base + [
+            kde.SHARE_TYPE, kde.SHARE_UPDATE_TYPE]
         with pytest.raises(ValueError):
             backend.configure_receive(clipboard_enabled=1, device_id="a" * 32)
         with pytest.raises(ValueError):
@@ -1380,6 +1381,384 @@ class PayloadStream:
     def recv(self, _size):
         return self.parts.pop(0) if self.parts else b""
     def close(self): self.closed = True
+
+
+def wait_for_receive(events, kind, count=1):
+    deadline = time.monotonic() + 3
+    while sum(event == kind for event, _ in events) < count and time.monotonic() < deadline:
+        time.sleep(.01)
+    result = [value for event, value in events if event == kind]
+    assert len(result) >= count, events
+    return result
+
+
+def test_file_batch_one_complete_offer_one_destination_and_no_later_authorization():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads, \
+            tempfile.TemporaryDirectory() as selected:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            streams = [PayloadStream([b"one", b""]), PayloadStream([b"two", b""]),
+                       PayloadStream([b"later", b""])]
+            with mock.patch.object(backend, "_payload_tls_connection", side_effect=streams):
+                first = share_packet(name="one.txt", size=3, numberOfFiles=2, totalPayloadSize=6)
+                second = share_packet(name="two.txt", size=3, numberOfFiles=2, totalPayloadSize=6)
+                # Equal timestamp packet IDs can legitimately occur in KDE.
+                second["id"] = first["id"]
+                backend._handle_receive_packet(worker, first)
+                backend._handle_receive_packet(worker, second)
+                offer = wait_for_receive(events, "file_proposal")[0]
+                assert offer["files"] == [{"name": "one.txt", "size": 3},
+                                          {"name": "two.txt", "size": 3}]
+                assert os.listdir(selected) == []
+                assert "staged" not in json.dumps(offer)
+                result = backend.accept_receive(offer["id"], selected)
+                assert result["kind"] == "file" and len(result["files"]) == 2
+                assert open(os.path.join(selected, "one.txt"), "rb").read() == b"one"
+                assert open(os.path.join(selected, "two.txt"), "rb").read() == b"two"
+                assert backend._receive_slots == 0
+                backend._handle_receive_packet(worker, share_packet(name="later.txt", size=5))
+                later = wait_for_receive(events, "file_proposal", 2)[1]
+                assert later["id"] != offer["id"]
+                assert not os.path.exists(os.path.join(selected, "later.txt"))
+                backend.reject_receive(later["id"])
+        finally:
+            backend.stop()
+
+
+def test_file_batch_partial_publication_retry_never_duplicates_saved_files():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"a", b""]), PayloadStream([b"b", b""])]):
+                for _ in range(2):
+                    backend._handle_receive_packet(worker, share_packet(name="same.txt", size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                offer = wait_for_receive(events, "file_proposal")[0]
+            original = backend._accept_file
+            calls = []
+            def fail_second(member, directory):
+                calls.append(member["name"])
+                if len(calls) == 2:
+                    raise OSError("synthetic destination failure")
+                return original(member, directory)
+            with mock.patch.object(backend, "_accept_file", side_effect=fail_second):
+                with pytest.raises(OSError):
+                    backend.accept_receive(offer["id"])
+            assert open(os.path.join(downloads, "same.txt"), "rb").read() == b"a"
+            assert len(backend._receive_pending[offer["id"]]["files"]) == 1
+            result = backend.accept_receive(offer["id"])
+            assert len(result["files"]) == 2
+            assert open(os.path.join(downloads, "same (1).txt"), "rb").read() == b"b"
+            assert not os.path.exists(os.path.join(downloads, "same (2).txt"))
+            assert backend._receive_slots == 0
+        finally:
+            backend.stop()
+
+
+def test_file_batch_keeps_staging_quota_reserved_during_destination_publication():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"a", b""]), PayloadStream([b"b", b""])]):
+                for name in ("first", "second"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                offer = wait_for_receive(events, "file_proposal")[0]
+            original = backend._accept_file
+            def check_reservation(member, directory):
+                assert offer["id"] in backend._receive_inflight
+                candidate = kde.IncomingFileBatch("a" * 32, worker, 128,
+                    kde.IncomingFileBatch.MAX_BYTES, backend.clock() + 60)
+                with pytest.raises(kde.BatchError):
+                    backend._update_receive_batch(candidate, 128, kde.IncomingFileBatch.MAX_BYTES)
+                return original(member, directory)
+            with mock.patch.object(backend, "_accept_file", side_effect=check_reservation):
+                assert len(backend.accept_receive(offer["id"])["files"]) == 2
+            assert not backend._receive_inflight and backend._receive_slots == 0
+        finally:
+            backend.stop()
+
+
+def test_file_batch_incomplete_expires_without_an_offer_and_cleans_staging():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_ensure_transfer_worker"):
+                backend._handle_receive_packet(worker, share_packet(size=4,
+                    numberOfFiles=2, totalPayloadSize=8))
+            task = backend._transfer_queue.get_nowait()
+            path = os.path.join(backend._staging_directory, "synthetic-part")
+            with open(path, "wb") as output:
+                output.write(b"part")
+            backend._stage_receive_batch(task, path)
+            backend._expire_state(backend.clock() + kde.RECEIVE_PROPOSAL_SECONDS + 1)
+            assert not os.path.exists(path)
+            assert not backend._receive_batches and not backend._receive_pending
+            assert backend._receive_slots == 0
+            assert not any(event == "file_proposal" for event, _ in events)
+        finally:
+            backend.stop()
+
+
+def test_file_batch_reconnection_cannot_append_to_or_accept_previous_connection():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        first = receive_worker(backend)
+        second = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": first, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_ensure_transfer_worker"):
+                backend._handle_receive_packet(first, share_packet(name="old", size=1,
+                    numberOfFiles=2, totalPayloadSize=2))
+                backend._connections["a" * 32] = {"worker": second, "address": "127.0.0.1"}
+                backend._handle_receive_packet(second, share_packet(name="new", size=1,
+                    numberOfFiles=2, totalPayloadSize=2))
+            old_task = backend._transfer_queue.get_nowait()
+            new_task = backend._transfer_queue.get_nowait()
+            assert old_task["batch_id"] != new_task["batch_id"]
+            backend._handle_receive_packet(first, share_packet(name="stale", size=1,
+                numberOfFiles=2, totalPayloadSize=2))
+            assert backend._transfer_queue.empty()
+        finally:
+            backend.stop()
+
+
+def test_file_batch_two_queued_send_operations_stay_separate_even_with_equal_totals():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_ensure_transfer_worker"):
+                for name in ("first-a", "first-b", "second-a", "second-b"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+            tasks = [backend._transfer_queue.get_nowait() for _ in range(4)]
+            assert tasks[0]["batch_id"] == tasks[1]["batch_id"]
+            assert tasks[2]["batch_id"] == tasks[3]["batch_id"] != tasks[0]["batch_id"]
+            assert backend._receive_slots == 2
+        finally:
+            backend.stop()
+
+
+def test_file_batch_update_is_bounded_and_invalid_update_cancels_collection():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_ensure_transfer_worker"):
+                backend._handle_receive_packet(worker, share_packet(size=4,
+                    numberOfFiles=2, totalPayloadSize=8))
+                backend._handle_receive_packet(worker, kde.network_packet(kde.SHARE_UPDATE_TYPE,
+                    {"numberOfFiles": 3, "totalPayloadSize": 12}))
+            assert next(iter(backend._receive_batches.values())).reserved_bytes == 12
+            with pytest.raises(kde.ProtocolError):
+                backend._handle_receive_packet(worker, kde.network_packet(kde.SHARE_UPDATE_TYPE,
+                    {"numberOfFiles": True, "totalPayloadSize": 12}))
+            assert not backend._receive_batches and backend._receive_slots == 0
+        finally:
+            backend.stop()
+
+
+def test_file_batch_truncated_member_cancels_whole_unreviewed_list():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"abc", b""]), PayloadStream([b"x", b""])]):
+                for name in ("complete", "truncated"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=3,
+                        numberOfFiles=2, totalPayloadSize=6))
+                wait_for_receive(events, "receive_error")
+            assert not any(event == "file_proposal" for event, _ in events)
+            assert not backend._receive_pending and not backend._receive_batches
+            assert backend._receive_slots == 0
+            assert os.listdir(backend._staging_directory) == []
+        finally:
+            backend.stop()
+
+
+def test_file_batch_disconnect_during_download_never_offers_old_connection_files():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        calls = []
+        def reconnect(*_args):
+            calls.append(True)
+            if len(calls) == 2:
+                backend._connections["a" * 32]["worker"] = receive_worker(backend)
+            return PayloadStream([b"x", b""])
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection", side_effect=reconnect):
+                for name in ("first", "second"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                wait_for_receive(events, "receive_error")
+            assert not any(event == "file_proposal" for event, _ in events)
+            assert not backend._receive_batches and backend._receive_slots == 0
+            assert os.listdir(backend._staging_directory) == []
+        finally:
+            backend.stop()
+
+
+def test_file_batch_changed_connection_refuses_publication_and_removes_only_staging():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"a", b""]), PayloadStream([b"b", b""])]):
+                for name in ("first", "second"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                offer = wait_for_receive(events, "file_proposal")[0]
+            backend._connections["a" * 32]["worker"] = receive_worker(backend)
+            with pytest.raises(kde.ProtocolError):
+                backend.accept_receive(offer["id"])
+            assert backend._receive_slots == 0 and not backend._receive_pending
+            assert os.listdir(backend._staging_directory) == []
+            assert not os.path.exists(os.path.join(downloads, "first"))
+        finally:
+            backend.stop()
+
+
+def test_file_batch_same_size_staging_tamper_is_not_published():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"a", b""]), PayloadStream([b"b", b""])]):
+                for name in ("first", "second"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                offer = wait_for_receive(events, "file_proposal")[0]
+            member = backend._receive_pending[offer["id"]]["files"][0]
+            with open(member["staged"], "wb") as output:
+                output.write(b"x")
+            with pytest.raises(kde.ProtocolError):
+                backend.accept_receive(offer["id"])
+            assert not os.path.exists(os.path.join(downloads, "first"))
+            assert any(event == "receive_error" for event, _ in events)
+            backend.reject_receive(offer["id"])
+            assert os.listdir(backend._staging_directory) == []
+        finally:
+            backend.stop()
+
+
+def test_selected_destination_on_another_filesystem_is_atomic_and_collision_safe():
+    if not os.path.isdir("/dev/shm") or os.stat(tempfile.gettempdir()).st_dev == os.stat("/dev/shm").st_dev:
+        pytest.skip("second writable temporary filesystem is not available")
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads, \
+            tempfile.TemporaryDirectory(prefix="magnolie-transfer246-", dir="/dev/shm") as selected:
+        backend = paired_backend(root)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        try:
+            existing = os.path.join(selected, "same.txt")
+            with open(existing, "wb") as output:
+                output.write(b"keep")
+            staged = os.path.join(backend._staging_directory, "synthetic")
+            with open(staged, "wb") as output:
+                output.write(b"new")
+            pending = {"name": "same.txt", "size": 3, "staged": staged,
+                       "sha256": kde.staged_digest(staged, 3)}
+            destination = backend._accept_file(pending, selected)
+            assert os.path.basename(destination) == "same (1).txt"
+            assert open(existing, "rb").read() == b"keep"
+            assert open(destination, "rb").read() == b"new"
+            assert os.stat(destination).st_mode & 0o777 == 0o600
+            assert not os.path.exists(staged)
+            assert not any(name.startswith(".magnolie-incoming-") for name in os.listdir(selected))
+        finally:
+            backend.stop()
+
+
+@pytest.mark.parametrize("change", ["permissions", "certificate", "connection", "deadline"])
+def test_batch_revocation_during_integrity_read_blocks_the_actual_publish(change):
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                                  download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        try:
+            with mock.patch.object(backend, "_payload_tls_connection",
+                    side_effect=[PayloadStream([b"a", b""]), PayloadStream([b"b", b""])]):
+                for name in ("first", "second"):
+                    backend._handle_receive_packet(worker, share_packet(name=name, size=1,
+                        numberOfFiles=2, totalPayloadSize=2))
+                offer = wait_for_receive(events, "file_proposal")[0]
+            original = kde.staged_digest
+            def revoke_after_read(path, size):
+                digest = original(path, size)
+                if change == "permissions":
+                    backend.configure_receive()
+                elif change == "certificate":
+                    backend.store.peers["a" * 32]["certificate"] = "changed-identity"
+                elif change == "connection":
+                    backend._connections["a" * 32]["worker"] = receive_worker(backend)
+                else:
+                    backend.clock = lambda: 10 ** 15
+                return digest
+            with mock.patch.object(kde, "staged_digest", side_effect=revoke_after_read):
+                with pytest.raises((kde.ProtocolError, OSError)):
+                    backend.accept_receive(offer["id"])
+            assert not os.path.exists(os.path.join(downloads, "first"))
+            assert not backend._receive_pending and backend._receive_slots == 0
+            assert os.listdir(os.path.join(downloads, ".magnolie-kdeconnect-staging")) == []
+        finally:
+            backend.stop()
 
 
 def test_file_exact_payload_confirm_collision_accept_reject_and_cleanup():

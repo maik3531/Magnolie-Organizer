@@ -344,6 +344,12 @@ body {
 .verborgen { display: none !important; }
 
 .dialog-hinweis { display: block; margin-top: 12px; }
+.dialog-hinweis.kde-dateiliste {
+  max-height: 35vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
 
 :focus-visible { outline: none; }
 

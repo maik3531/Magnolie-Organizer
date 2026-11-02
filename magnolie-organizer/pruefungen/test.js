@@ -7615,6 +7615,23 @@ function knopfMit(text, wurzel) {
   assert.ok(baumNachrichten.some((nachricht) =>
     nachricht.cmd === "kde_receive_ziel_waehlen" && nachricht.id === "f".repeat(32)),
   "angenommene KDE-Datei öffnet nicht die einmalige Speicherortwahl");
+  const batchZielVorher = baumNachrichten.filter((nachricht) =>
+    nachricht.cmd === "kde_receive_ziel_waehlen").length;
+  bw.App.kdeEmpfangAngebot({ id: "e".repeat(32), device_id: "b".repeat(32),
+    name: "Nicht als Freigabe verwenden", size: 7,
+    files: [{ name: "Erstes.txt", size: 3 }, { name: "Zweites.txt", size: 4 }] });
+  const batchHinweis = bd.querySelector("#dialog-hinweis").textContent;
+  assert.ok(batchHinweis.includes("Erstes.txt") && batchHinweis.includes("Zweites.txt") &&
+    !batchHinweis.includes("Nicht als Freigabe verwenden") &&
+    bd.querySelector("#dialog-hinweis").classList.contains("kde-dateiliste"),
+    "Sammelannahme zeigt nicht die vollständige gebundene Dateiliste");
+  bd.querySelector("#dialog-ja").click();
+  await Promise.resolve();
+  assert.strictEqual(baumNachrichten.filter((nachricht) =>
+    nachricht.cmd === "kde_receive_ziel_waehlen").length, batchZielVorher + 1,
+    "Sammelannahme öffnet nicht genau eine Zielordnerwahl");
+  assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_ziel_waehlen" &&
+    nachricht.id === "e".repeat(32)), "Sammel-Zielwahl verliert ihre Angebotsbindung");
   bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.dateien = false;
   bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.zwischenablage = false;
   bw.App.kdeEmpfangsordnerGewaehlt({ pfad: "/home/test/KDE-Aus" });
@@ -7624,7 +7641,8 @@ function knopfMit(text, wurzel) {
   bw.App.kdeEmpfangAngebot({ id: "a".repeat(32), device_id: "b".repeat(32),
     text: "Text vom Telefon" });
   assert.ok(!bd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
-    bd.querySelector("#dialog-hinweis").textContent === "Text vom Telefon",
+    bd.querySelector("#dialog-hinweis").textContent === "Text vom Telefon" &&
+    !bd.querySelector("#dialog-hinweis").classList.contains("kde-dateiliste"),
   "KDE-Zwischenablagetext wird nicht vor dem Kopieren sichtbar bestätigt");
   bd.querySelector("#dialog-ja").click();
   await Promise.resolve();

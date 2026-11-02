@@ -25274,13 +25274,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       coffeeHint: _("Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you."),
       target: Bruecke.vorhanden ? "_self" : "_blank", register: registriereModal, unregister: beendeModal });
   }
-  function frage(text, jaText, neinText, hinweis) {
+  function frage(text, jaText, neinText, hinweis, dateiliste = false) {
     if (dialogAufloeser) dialogAntwort(false);
     return new Promise((aufloesen) => {
       dialogAufloeser = aufloesen;
       $("#dialog-text").textContent = text;
       $("#dialog-hinweis").textContent = hinweis || "";
       $("#dialog-hinweis").classList.toggle("verborgen", !hinweis);
+      $("#dialog-hinweis").classList.toggle("kde-dateiliste", dateiliste);
       $("#dialog-ja").textContent = jaText || _("Delete");
       $("#dialog-nein").textContent = neinText || _("Cancel");
       $("#dialog-schleier").classList.remove("verborgen");
@@ -33480,12 +33481,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kdeEmpfangFrageAktiv = true;
     const angebot = kdeEmpfangAngebote.shift();
     const zwischenablage = Object.prototype.hasOwnProperty.call(angebot, "text");
+    const sammlung = !zwischenablage && Array.isArray(angebot.files) && angebot.files.length > 0;
     const vorschau = zwischenablage ? String(angebot.text || "").slice(0, 500)
+      : sammlung ? angebot.files.map((datei) =>
+        String(datei.name || _("Unknown file")) + " · " + geraeteGroesse(datei.size)).join("\n")
       : String(angebot.name || _("Unknown file")) + " · " + geraeteGroesse(angebot.size);
     frage(zwischenablage ? _("Copy this KDE Connect text to the clipboard?")
-      : (DATEN.einstellungen.sync.kdeEmpfang.ordnerBeiAnnahme
+      : sammlung ? _("Receive files") : (DATEN.einstellungen.sync.kdeEmpfang.ordnerBeiAnnahme
         ? _("Accept this KDE Connect file?") : _("Keep this KDE Connect file in Downloads?")),
-      _("Accept"), _("Reject"), vorschau)
+      _("Accept"), _("Reject"), vorschau, sammlung)
       .then((ja) => {
         if (ja && !zwischenablage && DATEN.einstellungen.sync.kdeEmpfang.ordnerBeiAnnahme) {
           Bruecke.sende({ cmd: "kde_receive_ziel_waehlen", id: angebot.id,

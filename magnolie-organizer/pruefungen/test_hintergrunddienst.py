@@ -734,6 +734,30 @@ def test_file_destination_cancel_rejects_without_starting_main_gui():
     assert notifications.opened == 0
 
 
+def test_file_batch_shows_entire_list_and_chooses_one_destination_once():
+    backend = FakeBackend()
+    notifications = RecordedNotifications()
+    choices = []
+    def choose():
+        choices.append(True)
+        return "/tmp/synthetic-batch-destination"
+    notifications.choose_directory = choose
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_incoming_files": True}, "kde_device_id": "a" * 32,
+        "kde_download_directory": "/tmp", "kde_file_enabled": True,
+        "kde_choose_directory": True}, notifications, ImmediateGLib)
+    events("file_proposal", {"id": "d" * 32, "name": "summary", "size": 7,
+        "files": [{"name": "first.txt", "size": 3}, {"name": "second.txt", "size": 4}]})
+    assert len(notifications.items) == 1 and not choices and not backend.calls
+    title, body, actions, close = notifications.items[0]
+    assert "first.txt" in body and "second.txt" in body and "summary" not in body
+    actions[0][2]()
+    actions[0][2]()
+    close()
+    assert len(choices) == 1
+    assert backend.calls == [("accept_receive", "d" * 32, "/tmp/synthetic-batch-destination")]
+
+
 def test_actionless_folder_choice_without_gui_rejects_instead_of_orphaning_proposal():
     backend = FakeBackend()
     notifications = ActionlessNotifications()

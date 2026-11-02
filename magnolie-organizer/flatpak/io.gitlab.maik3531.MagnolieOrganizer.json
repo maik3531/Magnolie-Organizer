@@ -34,6 +34,7 @@
         "install -m 0644 bin/magnolie_personal_sync.py /app/lib/magnolie-organizer/magnolie_personal_sync.py",
         "install -m 0644 bin/magnolie_personal_actor_completion.py /app/bin/",
         "install -m 0644 bin/magnolie_timezone.py /app/bin/",
+        "install -m 0644 bin/magnolie_kde_transfer.py /app/bin/",
         "install -m 0644 bin/magnolie_appimage_lifecycle.py /app/bin/",
         "cp -a web/. /app/share/magnolie-organizer/web/",
         "python3 -c 'import json,re,pathlib; v=re.search(r\"^[^(]+\\(([^)]+)\\)\",pathlib.Path(\"debian/changelog\").read_text()).group(1); pathlib.Path(\"/app/share/magnolie-organizer/version.json\").write_text(json.dumps({\"version\":v})+\"\\n\")'",

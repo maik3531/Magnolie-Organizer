@@ -23,6 +23,7 @@ from magnolie_kde_mpris import DesktopMpris
 from magnolie_kde_volume import DesktopVolume, VOLUME_PACKET, VOLUME_REQUEST
 from magnolie_kde_input import InputTarget, input_body, INPUT_PACKET, KEYBOARD_STATE
 from magnolie_kde_input_x11 import X11Input
+from magnolie_kde_transfer import IncomingFileBatch, BatchError, staged_digest
 from magnolie_kde_filesystem import SshfsBrowser, FilesystemError, description as filesystem_description, PACKET as FILESYSTEM_PACKET, REQUEST as FILESYSTEM_REQUEST
 import uuid
 from collections import deque
@@ -68,6 +69,7 @@ SMS_TYPE = SMS_REQUEST_TYPE
 CLIPBOARD_TYPE = "kdeconnect.clipboard"
 CLIPBOARD_CONNECT_TYPE = "kdeconnect.clipboard.connect"
 SHARE_TYPE = "kdeconnect.share.request"
+SHARE_UPDATE_TYPE = "kdeconnect.share.request.update"
 MAX_CLIPBOARD_BYTES = 64 * 1024
 MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_RECEIVE_PENDING = 8
@@ -1686,7 +1688,7 @@ class _ConnectionWorker:
                     self.backend._digitizer_packet(self, packet)
                     continue
                 if packet.get("type") in (CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE,
-                                           SHARE_TYPE):
+                                           SHARE_TYPE, SHARE_UPDATE_TYPE):
                     self.backend._handle_receive_packet(self, packet)
                     continue
                 if packet.get("type") != SMS_MESSAGES_TYPE or not self.sms_started:
@@ -1920,6 +1922,9 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             "device_id": "", "clipboard_mode": "confirm", "file_mode": "confirm",
             "download_directory": ""}
         self._receive_pending = {}
+        self._receive_batches = {}
+        self._receive_inflight = {}
+        self._receive_generation = 0
         self._receive_slots = 0
         self._clipboard_connect_seen = {}
         self._transfer_queue = queue.Queue()
@@ -2190,21 +2195,115 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                         "deadline": self.clock() + RECEIVE_PROPOSAL_SECONDS}
                 self._emit("clipboard_proposal", value)
             return
-        if kind != SHARE_TYPE or not settings["file_enabled"]:
+        if kind not in (SHARE_TYPE, SHARE_UPDATE_TYPE) or not settings["file_enabled"]:
+            return
+        if kind == SHARE_UPDATE_TYPE:
+            body = _receive_envelope(packet, SHARE_UPDATE_TYPE)
+            if set(body) != {"numberOfFiles", "totalPayloadSize"}:
+                raise ProtocolError("invalid share batch update")
+            with self._state_lock:
+                current = next(((key, value) for key, value in reversed(tuple(self._receive_batches.items()))
+                                if value.connection is worker), None)
+                if current is not None:
+                    receive_id, batch = current
+                    try:
+                        self._update_receive_batch(batch, body["numberOfFiles"], body["totalPayloadSize"])
+                    except BatchError as error:
+                        self._receive_batches.pop(receive_id, None)
+                        batch.discard()
+                        self._release_receive()
+                        raise ProtocolError("invalid incoming batch update") from error
             return
         parsed = parse_share_packet(packet)
-        if not self._reserve_receive():
-            return
         with self._connection_lock:
             entry = self._connections.get(device_id)
             address = entry.get("address") if entry and entry.get("worker") is worker else None
         if not address:
-            self._release_receive()
             return
+        batch_id = None
+        # KDE packet IDs are millisecond timestamps, not unique file identities.
+        # Give each received announcement its own local staging token.
+        member_id = uuid.uuid4().int
+        with self._state_lock:
+            current = next(((key, value) for key, value in self._receive_batches.items()
+                            if value.connection is worker and value.accepting_announcements), None)
+            if current or parsed.get("number_of_files", 1) > 1:
+                if not current:
+                    if not self._reserve_receive():
+                        return
+                    batch_id = self._new_receive_id()
+                    try:
+                        batch = IncomingFileBatch(device_id, worker,
+                            parsed.get("number_of_files"), parsed.get("total_payload_size"),
+                            self.clock() + RECEIVE_PROPOSAL_SECONDS,
+                            self.store.peers.get(device_id, {}).get("certificate"))
+                        self._update_receive_batch(batch, parsed.get("number_of_files"),
+                                                   parsed.get("total_payload_size"))
+                        self._receive_batches[batch_id] = batch
+                    except (BatchError, TypeError):
+                        self._release_receive()
+                        raise ProtocolError("invalid incoming batch bounds")
+                else:
+                    batch_id, batch = current
+                try:
+                    self._update_receive_batch(batch, parsed.get("number_of_files"),
+                                               parsed.get("total_payload_size"))
+                    batch.announce(worker, member_id, parsed["name"], parsed["size"],
+                                   parsed.get("number_of_files"), parsed.get("total_payload_size"))
+                except BatchError as error:
+                    self._receive_batches.pop(batch_id, None)
+                    batch.discard()
+                    self._release_receive()
+                    raise ProtocolError("inconsistent incoming batch") from error
+            elif not self._reserve_receive():
+                return
         task = dict(parsed, device_id=device_id, address=address,
                     mode=settings["file_mode"], id=self._new_receive_id())
+        if batch_id:
+            task.update(batch_id=batch_id, connection=worker, packet_id=member_id)
         self._transfer_queue.put(task)
         self._ensure_transfer_worker()
+
+    def _update_receive_batch(self, batch, count, total):
+        # Aggregate staging remains bounded across all open offers, not merely
+        # per file. No matching number grants permission for another payload.
+        pending_bytes = sum(value.get("size", 0) for value in (
+                            *self._receive_pending.values(), *self._receive_inflight.values())
+                            if value.get("files"))
+        other_bytes = sum(value.reserved_bytes for value in self._receive_batches.values()
+                          if value is not batch)
+        if type(total) is not int or pending_bytes + other_bytes + total > IncomingFileBatch.MAX_BYTES:
+            raise BatchError("aggregate staging quota exceeded")
+        batch.update(batch.connection, count, total)
+
+    def _stage_receive_batch(self, task, staged):
+        with self._state_lock:
+            batch = self._receive_batches.get(task["batch_id"])
+            if batch is None:
+                raise ProtocolError("incoming batch is no longer active")
+            if not self._receive_batch_allowed({"device_id": batch.device_id,
+                    "connection": batch.connection, "peer_certificate": batch.peer_certificate,
+                    "generation": self._receive_generation, "deadline": batch.deadline}):
+                raise ProtocolError("incoming batch source changed while staging")
+            complete = batch.stage(task["connection"], task["packet_id"], staged)
+            if not complete:
+                return
+            files = batch.take()
+            self._receive_batches.pop(task["batch_id"])
+            # Consent is for this sealed list only, even when the old single-file
+            # automatic policy is enabled. No authorization outlives this offer.
+            pending = {"id": task["batch_id"], "kind": "file", "device_id": batch.device_id,
+                       "connection": batch.connection, "files": list(files),
+                       "peer_certificate": batch.peer_certificate,
+                       "generation": self._receive_generation,
+                       "name": ", ".join(value["name"] for value in files),
+                       "size": sum(value["size"] for value in files),
+                       "deadline": batch.deadline}
+            self._receive_pending[task["batch_id"]] = pending
+            public = {"id": task["batch_id"], "device_id": batch.device_id,
+                      "name": pending["name"], "size": pending["size"],
+                      "files": [{"name": f["name"], "size": f["size"]} for f in files]}
+        self._emit("file_proposal", public)
 
     def _ensure_transfer_worker(self):
         with self._state_lock:
@@ -2231,9 +2330,17 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 continue
             staged = None
             try:
+                if task.get("batch_id"):
+                    with self._state_lock:
+                        if task["batch_id"] not in self._receive_batches:
+                            continue
                 staged = self._download_payload(task)
                 if self._transfer_stop.is_set():
                     raise ProtocolError("receive service stopped")
+                if task.get("batch_id"):
+                    self._stage_receive_batch(task, staged)
+                    staged = None
+                    continue
                 pending = dict(task, kind="file", staged=staged,
                                deadline=self.clock() + RECEIVE_PROPOSAL_SECONDS)
                 if task["mode"] == "automatic":
@@ -2250,7 +2357,14 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                         "size": task["size"]})
                     staged = None
             except Exception:
-                self._release_receive()
+                if task.get("batch_id"):
+                    with self._state_lock:
+                        batch = self._receive_batches.pop(task["batch_id"], None)
+                    if batch is not None:
+                        batch.discard()
+                        self._release_receive()
+                else:
+                    self._release_receive()
                 self._emit("receive_error", {"id": task["id"], "kind": "file",
                     "device_id": task["device_id"], "name": task["name"]})
             finally:
@@ -2356,34 +2470,121 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 or not os.path.isdir(directory)
                 or os.path.realpath(directory) != directory):
             raise ProtocolError("file receive destination is invalid")
-        stem, suffix = os.path.splitext(pending["name"])
-        for number in range(10000):
-            name = pending["name"] if number == 0 else "%s (%d)%s" % (stem, number, suffix)
-            destination = os.path.join(directory, name)
+        if "sha256" in pending and (os.path.islink(pending["staged"]) or
+                staged_digest(pending["staged"], pending["size"]) != pending["sha256"]):
+            raise ProtocolError("reviewed incoming file changed before publication")
+        staged = pending["staged"]
+        copied = None
+        if os.stat(staged).st_dev != os.stat(directory).st_dev:
+            # A chosen destination can be on another filesystem. Copy into a
+            # private temporary file there, then publish with the same no-replace
+            # link operation. Never copy directly over an existing user file.
+            fd, copied = tempfile.mkstemp(prefix=".magnolie-incoming-", dir=directory)
             try:
-                os.link(pending["staged"], destination)
-                os.unlink(pending["staged"])
-                os.chmod(destination, 0o600)
+                with os.fdopen(fd, "wb") as output, open(staged, "rb") as source:
+                    remaining = pending["size"]
+                    while remaining:
+                        part = source.read(min(65536, remaining))
+                        if not part:
+                            raise ProtocolError("staged file shortened before publication")
+                        output.write(part)
+                        remaining -= len(part)
+                    if source.read(1):
+                        raise ProtocolError("staged file grew before publication")
+                    output.flush()
+                    os.fsync(output.fileno())
+                if "sha256" in pending and staged_digest(copied, pending["size"]) != pending["sha256"]:
+                    raise ProtocolError("staged copy does not match reviewed file")
+            except Exception:
+                os.unlink(copied)
+                raise
+        source = copied or staged
+        stem, suffix = os.path.splitext(pending["name"])
+        try:
+            os.chmod(source, 0o600)
+            for number in range(10000):
+                name = pending["name"] if number == 0 else "%s (%d)%s" % (stem, number, suffix)
+                destination = os.path.join(directory, name)
+                try:
+                    with self._state_lock, self._connection_lock:
+                        if pending.get("receive_guard") is not None and not self._receive_batch_allowed(pending["receive_guard"]):
+                            raise ProtocolError("incoming batch permission changed before publication")
+                        os.link(source, destination)
+                except FileExistsError:
+                    continue
+                # Publication succeeded. A staging-cleanup failure must not turn
+                # it into a failed/retried save and create a duplicate target.
+                try:
+                    os.unlink(staged)
+                except OSError:
+                    pass
                 return destination
-            except FileExistsError:
-                continue
-        raise ProtocolError("no collision-safe download filename is available")
+            raise ProtocolError("no collision-safe download filename is available")
+        finally:
+            if copied:
+                try:
+                    os.unlink(copied)
+                except OSError:
+                    pass
+
+    def _receive_batch_allowed(self, pending):
+        with self._connection_lock:
+            entry = self._connections.get(pending["device_id"])
+            same_connection = entry and entry.get("worker") is pending["connection"]
+        settings = self._receive_settings
+        return (same_connection and pending["generation"] == self._receive_generation
+                and pending["deadline"] > self.clock()
+                and self._is_confirmed(pending["device_id"])
+                and self.store.peers.get(pending["device_id"], {}).get("certificate") == pending["peer_certificate"]
+                and settings["file_enabled"] and settings["device_id"] == pending["device_id"])
 
     def accept_receive(self, receive_id, directory=None):
         if not isinstance(receive_id, str) or not re.fullmatch(r"[0-9a-f]{32}", receive_id):
             raise ValueError("invalid receive id")
         with self._state_lock:
             pending = self._receive_pending.pop(receive_id, None)
+            if pending is not None and "files" in pending:
+                self._receive_inflight[receive_id] = pending
         if pending is None:
             raise ProtocolError("receive proposal does not exist")
         completed = False
         try:
+            if pending.get("deadline", self.clock() + 1) <= self.clock():
+                self._discard_receive_files(pending)
+                completed = True
+                raise ProtocolError("receive proposal has expired")
             if pending["kind"] == "clipboard":
                 value = {"id": receive_id, "device_id": pending["device_id"],
                          "text": pending["text"]}
                 self._emit("clipboard_apply", value)
                 completed = True
                 return dict(value, kind="clipboard")
+            if pending.get("files") is not None:
+                with self._state_lock:
+                    allowed = self._receive_batch_allowed(pending)
+                    settings = dict(self._receive_settings)
+                if not allowed:
+                    self._discard_receive_files(pending)
+                    completed = True
+                    raise ProtocolError("incoming batch source or permission changed")
+                target = directory or settings["download_directory"]
+                if pending.get("destination", target) != target:
+                    raise ProtocolError("partially accepted batch destination cannot change")
+                saved = pending.setdefault("saved", [])
+                while pending["files"]:
+                    member = pending["files"][0]
+                    member["receive_guard"] = {key: pending[key] for key in (
+                        "device_id", "connection", "peer_certificate", "generation", "deadline")}
+                    path = self._accept_file(member, target)
+                    pending["destination"] = target
+                    value = {"id": receive_id, "device_id": pending["device_id"],
+                             "name": os.path.basename(path), "size": member["size"], "path": path}
+                    pending["files"].pop(0)
+                    saved.append(value)
+                    self._emit("file_ready", value)
+                completed = True
+                return {"id": receive_id, "kind": "file", "files": list(saved),
+                        "device_id": pending["device_id"]}
             path = self._accept_file(pending, directory)
             value = {"id": receive_id, "device_id": pending["device_id"],
                 "name": os.path.basename(path), "size": pending["size"], "path": path}
@@ -2391,11 +2592,19 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             completed = True
             return dict(value, kind="file")
         finally:
+            with self._state_lock:
+                self._receive_inflight.pop(receive_id, None)
             if completed:
                 self._release_receive()
             else:
                 with self._state_lock:
-                    self._receive_pending[receive_id] = pending
+                    if "files" in pending and not self._receive_batch_allowed(pending):
+                        self._discard_receive_files(pending)
+                        self._release_receive()
+                    else:
+                        self._receive_pending[receive_id] = pending
+                self._emit("receive_error", {"id": receive_id, "kind": pending["kind"],
+                                            "device_id": pending["device_id"]})
 
     def reject_receive(self, receive_id):
         if not isinstance(receive_id, str) or not re.fullmatch(r"[0-9a-f]{32}", receive_id):
@@ -2404,13 +2613,19 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             pending = self._receive_pending.pop(receive_id, None)
         if pending is None:
             raise ProtocolError("receive proposal does not exist")
-        if pending.get("staged"):
-            try:
-                os.unlink(pending["staged"])
-            except FileNotFoundError:
-                pass
+        self._discard_receive_files(pending)
         self._release_receive()
         return {"id": receive_id, "state": "rejected", "kind": pending["kind"]}
+
+    @staticmethod
+    def _discard_receive_files(pending):
+        members = pending.get("files", (pending,))
+        for member in members:
+            if member.get("staged"):
+                try:
+                    os.unlink(member["staged"])
+                except FileNotFoundError:
+                    pass
 
     def start(self):
         with self._state_lock:
@@ -2524,6 +2739,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
     def _stop_receive(self):
         self._transfer_stop.set()
         with self._state_lock:
+            self._receive_generation += 1
             active = self._payload_active
         if active is not None:
             active.close()
@@ -2531,9 +2747,11 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if thread is not None and thread is not threading.current_thread():
             thread.join(10)
         with self._state_lock:
-            staged = [item.get("staged") for item in self._receive_pending.values()]
+            pending = list(self._receive_pending.values())
+            batches = list(self._receive_batches.values())
             self._receive_pending.clear()
-            self._receive_slots = 0
+            self._receive_batches.clear()
+            self._receive_slots = len(self._receive_inflight)
             self._transfer_thread = None
             self._payload_active = None
             while True:
@@ -2541,12 +2759,10 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                     self._transfer_queue.get_nowait()
                 except queue.Empty:
                     break
-        for path in staged:
-            if path:
-                try:
-                    os.unlink(path)
-                except FileNotFoundError:
-                    pass
+        for item in pending:
+            self._discard_receive_files(item)
+        for batch in batches:
+            batch.discard()
         self._cleanup_staging()
 
     def _wake(self):
@@ -2591,6 +2807,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
     def _expire_state(self, now):
         expired_pairing = None
         expired_receive = []
+        expired_batches = []
         with self._state_lock:
             for raw, value in list(self._pending.items()):
                 if value[2] <= now:
@@ -2613,12 +2830,17 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                     expired_receive.append((receive_id, pending))
                     self._receive_pending.pop(receive_id, None)
                     self._receive_slots = max(0, self._receive_slots - 1)
+            for receive_id, batch in list(self._receive_batches.items()):
+                if batch.deadline <= now:
+                    expired_batches.append((receive_id, batch))
+                    self._receive_batches.pop(receive_id, None)
+                    self._receive_slots = max(0, self._receive_slots - 1)
+        for receive_id, batch in expired_batches:
+            batch.discard()
+            self._emit("receive_expired", {"id": receive_id,
+                       "kind": "file", "device_id": batch.device_id})
         for receive_id, pending in expired_receive:
-            if pending.get("staged"):
-                try:
-                    os.unlink(pending["staged"])
-                except FileNotFoundError:
-                    pass
+            self._discard_receive_files(pending)
             self._emit("receive_expired", {"id": receive_id,
                 "kind": pending["kind"], "device_id": pending["device_id"]})
         if expired_pairing:
@@ -2877,6 +3099,11 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 removed = True
         if removed:
             with self._state_lock:
+                for receive_id, batch in list(self._receive_batches.items()):
+                    if batch.connection is worker:
+                        self._receive_batches.pop(receive_id, None)
+                        batch.discard()
+                        self._release_receive()
                 if self.pairing and self.pairing.get("worker") is worker:
                     self.pairing = None
                 if not self._is_confirmed(device_id) and entry is not None:
@@ -3576,7 +3803,7 @@ class KDEConnectSMSBackend(_KdeMcpControl):
             if self._receive_settings["clipboard_enabled"]:
                 incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))
             if self._receive_settings["file_enabled"]:
-                incoming.append(SHARE_TYPE)
+                incoming.extend((SHARE_TYPE, SHARE_UPDATE_TYPE))
         body = {"deviceId": self.store.device_id, "deviceName": self.store.device_name,
                 "deviceType": "desktop", "protocolVersion": 8,
                 "incomingCapabilities": incoming,
@@ -3706,7 +3933,9 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 settings = dict(self._receive_settings)
                 pending_receive = [{"id": key, "kind": value["kind"],
                     "device_id": value["device_id"],
-                    **({"name": value["name"], "size": value["size"]}
+                    **({"name": value["name"], "size": value["size"],
+                        **({"files": [{"name": f["name"], "size": f["size"]}
+                                      for f in value["files"]]} if "files" in value else {})}
                        if value["kind"] == "file" else {})}
                     for key, value in self._receive_pending.items()]
                 receive_slots = self._receive_slots
