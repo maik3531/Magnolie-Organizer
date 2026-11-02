@@ -516,7 +516,10 @@ internal sealed partial class TelefonCoordinator
     // Called under the retained native writer/source guard immediately before
     // writing exactly candidateText. Invocation is single-use, not a SaveACK.
     internal Task<JsonObject> CheckPersonalActorHistoricalRestoreSaveAsync(PersonalActorHandle handle, string claimToken, string candidateText,
-        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => CheckPersonalActorHistoricalRestoreSave(registry, handle, claimToken, candidateText), cancellation);
+
+    private JsonObject CheckPersonalActorHistoricalRestoreSave(PersonalSyncActorStore registry, PersonalActorHandle handle, string claimToken, string candidateText)
+    {
         if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.HistoricalSaveClaim is not { } plan ||
             claimToken != plan.Token) throw new InvalidOperationException("actor_historical_save_claim_unavailable");
         if (plan.WriterGateChecked) throw new InvalidOperationException("actor_historical_writer_claim_already_used");
@@ -525,6 +528,22 @@ internal sealed partial class TelefonCoordinator
             throw new InvalidOperationException("actor_historical_writer_payload_changed");
         registry.CheckHistoricalSave(handle); plan.WriterGateChecked = true;
         return new JsonObject { ["writer_invocation_checked"] = true, ["book_persisted"] = false };
+    }
+
+    // Native-only writer invocation under the SAME source/owner gate as its
+    // single-use precheck. Caller must also retain the native document writer
+    // lock; never expose the callback through MCP/IPC or perform wire I/O here.
+    internal Task<JsonObject> WritePersonalActorHistoricalRestoreSaveAsync(PersonalActorHandle handle, string claimToken, string candidateText,
+        Action<string> nativeWriter, CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        ArgumentNullException.ThrowIfNull(nativeWriter);
+        CheckPersonalActorHistoricalRestoreSave(registry, handle, claimToken, candidateText);
+        try { nativeWriter(candidateText); }
+        catch
+        {
+            registry.Cancel(handle); // Unknown/failed I/O never authorizes replay or local rollback.
+            throw;
+        }
+        return ActorStatus(registry, handle); // Only Confirm can assert the saved historical receipt.
     }, cancellation);
 
     // Actual native SaveACK -> metadata-only exact historical receipt handoff.

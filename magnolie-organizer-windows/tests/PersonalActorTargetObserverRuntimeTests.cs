@@ -172,6 +172,55 @@ internal static class PersonalActorTargetObserverRuntimeTests
         }
     }
 
+    // Actual product AES/atomic file writer, but not WinForms/physical phone E2E.
+    private static async Task HistoricalFileWriterAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
+        TelefonConnection connection, PersonalActorHandle handle, NativeBookOwnerScope owner, JsonObject scope, string beforeText, string candidateText, string token, MemoryStream transport)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "magnolie-historical-writer-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "book.json"); var atomic = new AtomicStore(); var encryption = new EncryptionService();
+            const string password = "synthetic-only-historical-writer";
+            atomic.WriteRecoverableJson(path, encryption.Enable(beforeText, password));
+            var beforeBytes = File.ReadAllBytes(path); var saved = owner.SaveState("target-observer", true); var writes = 0;
+            var wireBefore = transport.Length;
+            Action<string> writer = text => {
+                writes++;
+                if (scenario.EndsWith("-failure", StringComparison.Ordinal)) throw new IOException("Synthetic pre-write failure");
+                atomic.WriteRecoverableJson(path, encryption.EncryptData(text));
+                owner.RecordSaved("target-observer", true, BaumSyncSnapshot.Hash(text));
+                coordinator.NativeProducerBook = () => NativeActorBookSnapshot.Capture(() => owner.SaveState("target-observer", true), () => text);
+            };
+            if (scenario.EndsWith("-failure", StringComparison.Ordinal))
+                await TestAssert.ThrowsAsync<IOException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Writer failure was promoted to persistence.");
+            else if (scenario.EndsWith("-payload", StringComparison.Ordinal))
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText + " ", writer), "Changed payload reached the encrypted writer.");
+            else
+            {
+                var awaitingConfirm = await coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer);
+                TestAssert.That(!awaitingConfirm["historical_book_persisted"]!.GetValue<bool>(), "Writer invocation manufactured a confirmed receipt.");
+                TestAssert.That(new EncryptionService().Unlock(File.ReadAllText(path), password) == candidateText && EncryptionService.IsEncrypted(File.ReadAllText(path)), "Actual encrypted file lost the exact prepared candidate.");
+                TestAssert.That(owner.SaveState("target-observer", true)?.Sequence == saved!.Sequence + 1, "Actual writer did not record exactly one save.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WritePersonalActorHistoricalRestoreSaveAsync(handle, token, candidateText, writer), "Actual encrypted writer was replayed.");
+                var bytes = File.ReadAllBytes(path);
+                var confirmed = await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
+                await coordinator.ConfirmPersonalActorHistoricalRestoreSaveAsync(handle, token);
+                TestAssert.That(confirmed["historical_book_persisted"]!.GetValue<bool>() && writes == 1 && bytes.AsSpan().SequenceEqual(File.ReadAllBytes(path)), "Confirm repeated the encrypted save.");
+                var queued = store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Single(item => item.Message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind && item.Message["body"]?["run_id"]?.GetValue<string>() == handle.ActorId);
+                await coordinator.PumpPersonalActorAsync(connection);
+                await coordinator.ReceivePersonalActorAsync(connection, peer, Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(handle.ActorId, queued.Id)));
+                var done = await coordinator.PersonalActorStatusAsync(handle);
+                TestAssert.That(done["phase"]!.GetValue<string>() == "completed" && done["phone_persisted"]!.GetValue<bool>() && !done["phone_data_persisted"]!.GetValue<bool>(), "Real encrypted save did not bind exact historical receipt.");
+                TestAssert.That(JsonNode.DeepEquals(connection.CurrentContentScope(PhoneContentScope.Reference(scope)), scope) && bytes.AsSpan().SequenceEqual(File.ReadAllBytes(path)), "Receipt changed original scope or encrypted bytes.");
+                return;
+            }
+            TestAssert.That(writes == (scenario.EndsWith("-failure", StringComparison.Ordinal) ? 1 : 0) && beforeBytes.AsSpan().SequenceEqual(File.ReadAllBytes(path)) && owner.SaveState("target-observer", true) == saved && transport.Length == wireBefore,
+                "Denied/failed writer changed encrypted file/save/wire.");
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
     // Native writer ACK is deliberately synthetic here, not GUI/file/E2E proof.
     private static async Task HistoricalConfirmAsync(string scenario, TelefonCoordinator coordinator, TelefonStore store, TelefonPeer peer,
         TelefonConnection connection, PersonalActorHandle handle, NativeBookOwnerScope owner, JsonObject scope, string candidateText, string token, MemoryStream transport)
@@ -281,6 +330,11 @@ internal static class PersonalActorTargetObserverRuntimeTests
                     TestAssert.That(claim["data_closed"]!.GetValue<bool>() && !claim["book_persisted"]!.GetValue<bool>() && !claim["phone_persisted"]!.GetValue<bool>(), "Prepare manufactured a saved/peer receipt.");
                     await TestAssert.ThrowsAsync<InvalidOperationException>(() => coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; }), "Prepared owner retained data access.");
                     var token = claim["claim_token"]!.GetValue<string>();
+                    if (scenario.Contains("-prepare-file-", StringComparison.Ordinal))
+                    {
+                        await HistoricalFileWriterAsync(scenario, coordinator, store, peer, connection, handle, owner, scope, snapshot.Text, candidateText, token, transport);
+                        return;
+                    }
                     if (scenario.Contains("-prepare-confirm-", StringComparison.Ordinal))
                     {
                         await HistoricalConfirmAsync(scenario, coordinator, store, peer, connection, handle, owner, scope, candidateText, token, transport);
