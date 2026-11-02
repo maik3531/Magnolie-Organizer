@@ -9,10 +9,12 @@ internal class PhotoFolderScopeError(val code: String) : IOException(code)
 /** Native observations only. Deliberately not serializable or a wire grant. */
 internal data class NativePhotoReceiver(val peerId: String, val identitySha256: String, val owner: Any,
     val permissionEpoch: String, val ready: Boolean, val paired: Boolean, val ownDevice: Boolean,
-    val remoteOwnDevice: Boolean, val sendGranted: Boolean, val receiveGranted: Boolean, val manifestVersion: Int) {
+    val remoteOwnDevice: Boolean, val sendGranted: Boolean, val receiveGranted: Boolean, val manifestVersion: Int,
+    val pairingEpoch: String? = null) {
     init {
         require(Regex("[A-Za-z0-9_-]{16,160}").matches(peerId))
         require(Regex("[0-9a-f]{64}").matches(identitySha256) && Regex("[0-9a-f]{64}").matches(permissionEpoch))
+        require(pairingEpoch == null || Regex("[0-9a-f]{64}").matches(pairingEpoch))
     }
     val allowed: Boolean get() = ready && paired && ownDevice && remoteOwnDevice && sendGranted && receiveGranted && manifestVersion == 1
 }

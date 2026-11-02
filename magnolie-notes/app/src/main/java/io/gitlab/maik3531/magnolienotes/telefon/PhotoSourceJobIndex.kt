@@ -134,6 +134,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         if (expected.repairPending || meta(GALLERY_FENCE) != null) fail("gallery_policy_repair_pending")
         if (readGalleryPolicy() != expected) fail("gallery_policy_cas_conflict")
         val oldPolicy = expected.policy
+        if (oldPolicy?.pairingEpoch != null && next.pairingEpoch == null) fail("gallery_policy_pairing_downgrade")
         if (next != oldPolicy && ((oldPolicy?.revision ?: 1L) > 1 && next.revision == 1L ||
                 next.revision > 1 && next.revision != (oldPolicy?.revision ?: 1L) + 1))
             fail("gallery_policy_revision_conflict")

@@ -94,6 +94,46 @@ codec/native-state cases pass. This is relationship identity only, not file
 consent: protected file-policy association and legacy explicit authorization must
 still be connected before the epoch can govern real transfer handlers.
 
+### Pairing-associated native grant projection (not transport activation)
+
+Linux likewise records its native file relationship epoch only in the actual
+confirmed pairing path. Protected peer validation accepts the optional strictly
+typed local field; old peer records stay absent, while a corrupt present field
+fails instead of resetting. The read-only current-epoch helper requires paired
+bilateral own-device state and does not construct a `PhoneStore`. Eighteen
+focused Python cases pass, including existing pending-finish restart and known
+legacy-key migration checks. This local metadata is not a new global wire grant.
+
+Gallery inner format 3 adds `pairing_epoch` alongside its monotonic revision;
+formats 1/2 and their original protection namespace remain readable unchanged.
+An explicit authenticated configure action can associate/reassociate existing
+selected sources with the current native pairing generation. This is a real CAS
+change with a new revision/permission epoch, even if source settings are equal.
+Loading a legacy policy does not migrate or enable it. The index rejects removal
+of a previously stored pairing association.
+
+`NativeGalleryFileGrantPolicy` projects the actual protected policy reader into
+native send-only file grants. A missing native pairing generation yields no
+authority; absent, legacy or mismatched policies yield closed initial consent
+without saving fabricated defaults. Repair fences retain confirmed grant bytes
+while blocking ordinary data/control I/O. Protected-read uncertainty or observed
+pairing replacement fences the adapter; a new native owner must explicitly
+reauthorize a mismatched policy. Source requests require the same native pairing
+association. This is neither an Android READ grant nor automatic synchronization.
+Actual channel/peer builders and handler registration are still separate work.
+
+The affected pairing-associated control/policy/source/index/snapshot suites pass
+89 cases. This includes actual protected-index legacy association/reassociation,
+same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
+retention and protected-read failure. It is not physical pairing/phone acceptance
+or activation of handlers. A restarted adapter with no pre-CAS confirmed grant
+must remain unavailable while repair is pending, rather than fabricating an off
+grant at the pending policy's revision.
+The three affected factory methods and this additional pending-restart method
+also pass in a targeted four-case run (90 distinct associated-scope cases across
+the retained evidence). No unrelated passing methods were repeated for this
+adapter-only correction.
+
 `policyReady` is native-only state, never a packet field. Pending policy CAS or
 repair blocks ordinary control packet production/send completion and data
 bindings without rewriting previously confirmed grants. A temporary fence does

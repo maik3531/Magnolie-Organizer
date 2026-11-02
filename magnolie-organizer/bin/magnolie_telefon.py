@@ -97,6 +97,29 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
     return {"revision": revision, "items": items}
 
 
+def native_file_pairing_epoch(transcript):
+    """Local code-confirmed relationship identity, never file consent.
+
+    Called by the actual pairing path only, not peer loading or migration.
+    Fresh pairing material prevents old file-policy reuse for the same ID/key.
+    """
+    if type(transcript) is not bytes or len(transcript) != 32:
+        raise ValueError("invalid native file pairing transcript")
+    return hashlib.sha256(b"magnolie-native-file-pairing-v1\0" + canonical(b64(transcript))).hexdigest()
+
+
+def current_native_file_pairing_epoch(peer):
+    if type(peer) is not dict or peer.get("state") != "paired":
+        return None
+    personal = peer.get("personal_sync")
+    epoch = peer.get("file_pairing_epoch")
+    if (type(personal) is not dict or personal.get("own_device") is not True
+            or personal.get("remote_own_device") is not True or type(epoch) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", epoch) is None):
+        return None
+    return epoch
+
+
 def desktop_grants(revision=1):
     return {"revision": revision,
             "grants": {name: name in {"device_status", "dial_request"}
@@ -431,6 +454,11 @@ class PhoneStore:
         common = {"device_id", "display_name", "static_public", "state", "grants",
                   "local_grants", "capabilities", "last_contact_ms", "bluetooth",
                   "personal_sync"}
+        if isinstance(peer, dict) and "file_pairing_epoch" in peer:
+            common.add("file_pairing_epoch")
+            if (type(peer["file_pairing_epoch"]) is not str
+                    or re.fullmatch(r"[0-9a-f]{64}", peer["file_pairing_epoch"]) is None):
+                raise RuntimeError("Invalid native file pairing epoch.")
         if isinstance(peer, dict) and "call_audio" in peer:
             common.add("call_audio")
             if (not isinstance(peer["call_audio"], dict)
@@ -7844,7 +7872,8 @@ class PhoneService:
                           "personal_sync": {"own_device": own, "remote_own_device": False,
                                             "auto_wifi": auto_wifi,
                                            "last_report": {}},
-                         "pending_transcript": b64(transcript),
+                          "file_pairing_epoch": native_file_pairing_epoch(transcript),
+                          "pending_transcript": b64(transcript),
                          "pending_phone_finish_proof": b64(proof(
                              key, b"magnolie-phone-pair-v1/finish\0", "phone", transcript)),
                          "pending_desktop_finish_proof": b64(proof(

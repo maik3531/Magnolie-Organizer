@@ -13,28 +13,30 @@ import java.util.Locale
  */
 internal class GalleryPhotoPolicy(val receiverId: String, val receiverIdentitySha256: String,
     val epoch: String, val enabled: Boolean, kinds: Set<GallerySourceKind>, val revision: Long = 1,
-    private val recordFormat: Int = 1) {
+    private val recordFormat: Int = 1, val pairingEpoch: String? = null) {
     val kinds: Set<GallerySourceKind> = Collections.unmodifiableSet(kinds.toSet())
     init {
         require(Regex("[A-Za-z0-9_-]{16,160}").matches(receiverId))
         require(Regex("[0-9a-f]{64}").matches(receiverIdentitySha256) && Regex("[0-9a-f]{64}").matches(epoch))
         require(!enabled || kinds.isNotEmpty())
-        require(recordFormat in 1..2 && revision in 1..DeviceFileControl.MAX_REVISION && (recordFormat == 2 || revision == 1L))
+        require(recordFormat in 1..3 && revision in 1..DeviceFileControl.MAX_REVISION && (recordFormat != 1 || revision == 1L))
+        require(if (recordFormat == 3) pairingEpoch != null && DeviceFileControl.hash(pairingEpoch) else pairingEpoch == null)
     }
     override fun equals(other: Any?): Boolean = other is GalleryPhotoPolicy && wire() == other.wire()
     override fun hashCode(): Int = wire().hashCode()
     internal fun wire() = JsonObject(mapOf("format" to JsonPrimitive(recordFormat), "receiver_id" to JsonPrimitive(receiverId),
         "receiver_identity_sha256" to JsonPrimitive(receiverIdentitySha256), "epoch" to JsonPrimitive(epoch),
         "enabled" to JsonPrimitive(enabled), "kinds" to JsonArray(kinds.sortedBy { it.ordinal }.map { JsonPrimitive(it.name) })) +
-        (if (recordFormat == 2) mapOf("revision" to JsonPrimitive(revision)) else emptyMap()))
+        (if (recordFormat >= 2) mapOf("revision" to JsonPrimitive(revision)) else emptyMap()) +
+        (if (recordFormat == 3) mapOf("pairing_epoch" to JsonPrimitive(pairingEpoch)) else emptyMap()))
 
     companion object {
         internal fun parse(value: JsonObject): GalleryPhotoPolicy {
             fun fail(): Nothing = throw PhotoFolderScopeError("gallery_policy_invalid_record")
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
-            val format = when (value["format"]) { JsonPrimitive(1) -> 1; JsonPrimitive(2) -> 2; else -> fail() }
+            val format = when (value["format"]) { JsonPrimitive(1) -> 1; JsonPrimitive(2) -> 2; JsonPrimitive(3) -> 3; else -> fail() }
             if (value.keys != setOf("format", "receiver_id", "receiver_identity_sha256", "epoch", "enabled", "kinds") +
-                (if (format == 2) setOf("revision") else emptySet())) fail()
+                (if (format >= 2) setOf("revision") else emptySet()) + (if (format == 3) setOf("pairing_epoch") else emptySet())) fail()
             val revision = if (format == 1) 1L else (value["revision"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail()
             val enabled = (value["enabled"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
             val rawKinds = value["kinds"] as? JsonArray ?: fail()
@@ -44,7 +46,8 @@ internal class GalleryPhotoPolicy(val receiverId: String, val receiverIdentitySh
                 GallerySourceKind.entries.singleOrNull { it.name == name } ?: fail()
             }
             if (kinds.distinct().size != kinds.size) fail()
-            return try { GalleryPhotoPolicy(text("receiver_id"), text("receiver_identity_sha256"), text("epoch"), enabled, kinds.toSet(), revision, format) }
+            return try { GalleryPhotoPolicy(text("receiver_id"), text("receiver_identity_sha256"), text("epoch"), enabled, kinds.toSet(), revision, format,
+                if (format == 3) text("pairing_epoch") else null) }
             catch (_: IllegalArgumentException) { fail() }
         }
     }
@@ -59,8 +62,10 @@ internal data class GalleryPhotoPolicyRepair internal constructor(val fenceVersi
  * Android media permission exist. There is no wire parser for this type.
  */
 internal data class NativeGalleryConfigurer(val peerId: String, val identitySha256: String, val owner: Any,
-    val permissionEpoch: String, val ready: Boolean, val paired: Boolean, val ownDevice: Boolean, val remoteOwnDevice: Boolean) {
-    init { require(DeviceFileControl.id(peerId) && DeviceFileControl.hash(identitySha256) && DeviceFileControl.hash(permissionEpoch)) }
+    val permissionEpoch: String, val ready: Boolean, val paired: Boolean, val ownDevice: Boolean, val remoteOwnDevice: Boolean,
+    val pairingEpoch: String? = null) {
+    init { require(DeviceFileControl.id(peerId) && DeviceFileControl.hash(identitySha256) && DeviceFileControl.hash(permissionEpoch) &&
+        (pairingEpoch == null || DeviceFileControl.hash(pairingEpoch))) }
     val allowed: Boolean get() = ready && paired && ownDevice && remoteOwnDevice
 }
 
@@ -81,7 +86,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         if (currentConfigurer != null) return currentConfigurer.invoke()
         val receiver = currentReceiver()?.takeIf { it.allowed } ?: return null
         return NativeGalleryConfigurer(receiver.peerId, receiver.identitySha256, receiver.owner, receiver.permissionEpoch,
-            receiver.ready, receiver.paired, receiver.ownDevice, receiver.remoteOwnDevice)
+            receiver.ready, receiver.paired, receiver.ownDevice, receiver.remoteOwnDevice, receiver.pairingEpoch)
     }
 
     @Synchronized fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
@@ -100,13 +105,15 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         // without a live remote configurer.
         fun allowed() = if (currentConfigurer != null || enabled)
             receiver != null && sameConfigurer(receiver, configurer()) else true
-        if (old != null && old.enabled == enabled && old.kinds == kinds) {
+        val pairingEpoch = receiver?.pairingEpoch ?: old?.pairingEpoch
+        if (old != null && old.enabled == enabled && old.kinds == kinds && old.pairingEpoch == pairingEpoch) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             return expected // Same policy/mode-only traffic never rekeys data consent.
         }
         if ((old?.revision ?: 1L) >= DeviceFileControl.MAX_REVISION) fail("gallery_policy_revision_exhausted")
         val epoch = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-        val next = GalleryPhotoPolicy(peer, identity, epoch, enabled, kinds, (old?.revision ?: 1L) + 1, 2)
+        val next = GalleryPhotoPolicy(peer, identity, epoch, enabled, kinds, (old?.revision ?: 1L) + 1,
+            if (pairingEpoch == null) 2 else 3, pairingEpoch)
         try {
             val saved = index.compareAndSetGalleryPolicy(expected, next, ::allowed)
             if (saved.repairPending || saved.policy != next || index.galleryPolicy() != saved || !allowed())
@@ -120,7 +127,8 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         val receiver = currentReceiver()?.takeIf { it.allowed } ?: return null
         val saved = index.galleryPolicy()
         val policy = saved.policy ?: return null
-        if (saved.repairPending || !policy.enabled || policy.receiverId != receiver.peerId || policy.receiverIdentitySha256 != receiver.identitySha256)
+        if (saved.repairPending || !policy.enabled || policy.receiverId != receiver.peerId || policy.receiverIdentitySha256 != receiver.identitySha256 ||
+            policy.pairingEpoch != receiver.pairingEpoch)
             return null
         if (!same(receiver, currentReceiver()) || index.galleryPolicy() != saved) return null
         return NativeGalleryRequest(receiver, policy.epoch, policy.kinds)
@@ -139,8 +147,9 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
 
     private fun same(first: NativePhotoReceiver, second: NativePhotoReceiver?): Boolean = second != null && first.allowed && second.allowed &&
         first.peerId == second.peerId && first.identitySha256 == second.identitySha256 && first.permissionEpoch == second.permissionEpoch &&
-        first.owner === second.owner
+        first.owner === second.owner && first.pairingEpoch == second.pairingEpoch
     private fun sameConfigurer(first: NativeGalleryConfigurer, second: NativeGalleryConfigurer?): Boolean = second != null && first.allowed && second.allowed &&
-        first.peerId == second.peerId && first.identitySha256 == second.identitySha256 && first.permissionEpoch == second.permissionEpoch && first.owner === second.owner
+        first.peerId == second.peerId && first.identitySha256 == second.identitySha256 && first.permissionEpoch == second.permissionEpoch &&
+        first.owner === second.owner && first.pairingEpoch == second.pairingEpoch
     private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
 }

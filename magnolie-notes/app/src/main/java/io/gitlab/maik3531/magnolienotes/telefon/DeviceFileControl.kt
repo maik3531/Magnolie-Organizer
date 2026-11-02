@@ -85,8 +85,10 @@ internal class NativeLocalFileGrant(val grants: DeviceFileGrantState, val owner:
 }
 
 internal data class NativeFileControlPeer(val peerId: String, val identitySha256: String, val owner: Any,
-    val ready: Boolean, val paired: Boolean, val ownDevice: Boolean, val remoteOwnDevice: Boolean, val controlSupported: Boolean) {
-    init { require(DeviceFileControl.id(peerId) && DeviceFileControl.hash(identitySha256)) }
+    val ready: Boolean, val paired: Boolean, val ownDevice: Boolean, val remoteOwnDevice: Boolean, val controlSupported: Boolean,
+    val pairingEpoch: String? = null) {
+    init { require(DeviceFileControl.id(peerId) && DeviceFileControl.hash(identitySha256) &&
+        (pairingEpoch == null || DeviceFileControl.hash(pairingEpoch))) }
     val allowed: Boolean get() = ready && paired && ownDevice && remoteOwnDevice && controlSupported
 }
 
@@ -112,7 +114,8 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
 
     private fun scope(): Pair<NativeFileControlPeer, NativeLocalFileGrant>? {
         val nextPeer = currentPeer(); val nextLocal = currentLocal()
-        if (nextPeer != null && (nextPeer.owner !== peer.owner || nextPeer.peerId != peer.peerId || nextPeer.identitySha256 != peer.identitySha256) ||
+        if (nextPeer != null && (nextPeer.owner !== peer.owner || nextPeer.peerId != peer.peerId || nextPeer.identitySha256 != peer.identitySha256 ||
+                nextPeer.pairingEpoch != peer.pairingEpoch) ||
             nextLocal != null && nextLocal.owner !== local.owner) faulted = true
         if (faulted || nextPeer == null || !nextPeer.allowed || nextLocal == null) return null
         if (nextLocal.grants.revision < local.grants.revision || nextLocal.grants.revision == local.grants.revision &&
@@ -210,7 +213,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
             "peer_id" to JsonPrimitive(current.peerId), "peer_identity" to JsonPrimitive(current.identitySha256),
             "remote_permission" to configured.permission)))
         return NativeGalleryConfigurer(current.peerId, current.identitySha256, ticket, epoch, true,
-            current.paired, current.ownDevice, current.remoteOwnDevice)
+            current.paired, current.ownDevice, current.remoteOwnDevice, current.pairingEpoch)
     }
 
     @Synchronized fun finishConfiguration(ticket: NativeFileConfigurationTicket) {
@@ -230,7 +233,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
     @Synchronized fun photoReceiver(): NativePhotoReceiver? {
         val (current, epoch) = permitted(true) ?: return null
         return NativePhotoReceiver(current.peerId, current.identitySha256, this, epoch, true, current.paired,
-            current.ownDevice, current.remoteOwnDevice, local.grants.sendFiles, remote!!.grants.receiveFiles, 1)
+            current.ownDevice, current.remoteOwnDevice, local.grants.sendFiles, remote!!.grants.receiveFiles, 1, current.pairingEpoch)
     }
 
     @Synchronized override fun close() { faulted = true; remote = null; pending = null; configurations.clear() }

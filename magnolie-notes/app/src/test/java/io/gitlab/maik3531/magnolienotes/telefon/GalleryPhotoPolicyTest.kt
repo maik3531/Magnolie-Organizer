@@ -157,6 +157,113 @@ class GalleryPhotoPolicyTest {
         }
     }
 
+    @Test fun protectedGrantFactoryRequiresExplicitCurrentPairingAssociationAndDoesNotRewriteLegacyPolicy() {
+        Fixture().use { f -> f.open().use { index ->
+            val peer = NativeFileControlPeer("receiver_fixture_01", "e".repeat(64), Any(), true, true, true, true, true, "1".repeat(64))
+            val factory = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
+            assertFalse(factory.current()!!.grants.sendFiles)
+            assertNull(index.galleryPolicy().policy) // No saved off default from reading.
+            val legacy = index.compareAndSetGalleryPolicy(index.galleryPolicy(), f.policy()) { true }
+            val native = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
+            assertFalse(native.current()!!.grants.sendFiles)
+            assertEquals(legacy, index.galleryPolicy())
+            val configured = NativeGalleryConfigurer(peer.peerId, peer.identitySha256, Any(), "b".repeat(64), true, true, true, true, peer.pairingEpoch)
+            val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { f.receiver }, { configured })
+            val associated = controller.configure(legacy, true, legacy.policy!!.kinds)
+            assertEquals(JsonPrimitive(3), associated.policy!!.wire()["format"])
+            assertEquals(peer.pairingEpoch, associated.policy!!.pairingEpoch)
+            assertEquals(2L, associated.policy!!.revision)
+            assertTrue(native.current()!!.grants.sendFiles)
+            assertFalse(native.current()!!.grants.receiveFiles)
+            assertEquals(associated, controller.configure(associated, true, associated.policy!!.kinds))
+            assertEquals(associated.policy!!.epoch, native.current()!!.grants.epoch)
+            assertEquals(associated.policy!!.wire(), GalleryPhotoPolicy.parse(associated.policy!!.wire()).wire())
+            assertNull(controller.currentRequest()) // Old unassociated source receiver is not adopted.
+            f.receiver = f.receiver!!.copy(pairingEpoch = peer.pairingEpoch)
+            assertNotNull(controller.currentRequest())
+        } }
+    }
+
+    @Test fun pairingAssociatedGrantFactoryFencesPolicyCasAndNeverReactivatesOnRePairWithSameIdAndKey() {
+        Fixture().use { f ->
+            var peer = NativeFileControlPeer("receiver_fixture_01", "e".repeat(64), Any(), true, true, true, true, true, "1".repeat(64))
+            lateinit var factory: NativeGalleryFileGrantPolicy
+            var observeFence = false
+            var sawFence = false
+            f.open { if (observeFence && it == "gallery-policy-fenced") {
+                val blocked = factory.current()!!
+                assertFalse(blocked.policyReady); assertTrue(blocked.grants.sendFiles)
+                sawFence = true
+            } }.use { index ->
+                fun configurer() = NativeGalleryConfigurer(peer.peerId, peer.identitySha256, Any(), "b".repeat(64), true, true, true, true, peer.pairingEpoch)
+                var authority = configurer()
+                val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { null }, { authority })
+                val first = controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                factory = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
+                val confirmed = factory.current()!!
+                assertTrue(confirmed.grants.sendFiles)
+                observeFence = true
+                val second = controller.configure(first, true, setOf(GallerySourceKind.SCREENSHOTS))
+                assertTrue(sawFence); assertTrue(factory.current()!!.policyReady)
+                assertNotEquals(confirmed.grants.epoch, factory.current()!!.grants.epoch)
+                observeFence = false
+                peer = peer.copy(pairingEpoch = "2".repeat(64))
+                assertNull(factory.current()) // Old owner cannot adopt a new relationship.
+                val replacement = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
+                assertFalse(replacement.current()!!.grants.sendFiles)
+                assertEquals(second, index.galleryPolicy())
+                authority = configurer()
+                val reauthorized = controller.configure(second, true, second.policy!!.kinds)
+                assertEquals(4L, reauthorized.policy!!.revision)
+                assertTrue(replacement.current()!!.grants.sendFiles)
+                assertNotEquals(second.policy!!.epoch, replacement.current()!!.grants.epoch)
+                val downgrade = GalleryPhotoPolicy(peer.peerId, peer.identitySha256, "c".repeat(64), false,
+                    emptySet(), reauthorized.policy!!.revision + 1, 2)
+                assertEquals("gallery_policy_pairing_downgrade", assertThrows(PhotoFolderScopeError::class.java) {
+                    index.compareAndSetGalleryPolicy(reauthorized, downgrade) { true } }.code)
+            }
+        }
+    }
+
+    @Test fun nativeGrantFactoryNeverInventsPairingEpochOrRecoversFromAnUncertainProtectedRead() {
+        Fixture().use { f -> f.open().use { index ->
+            var peer = NativeFileControlPeer("receiver_fixture_01", "e".repeat(64), Any(), true, true, true, true, true)
+            var reads = 0
+            val factory = NativeGalleryFileGrantPolicy({ peer }, { reads++; index.galleryPolicy() }, { true })
+            assertNull(factory.current()); assertEquals(0, reads)
+            peer = peer.copy(pairingEpoch = "1".repeat(64))
+            assertFalse(factory.current()!!.grants.sendFiles)
+            var fail = true
+            val uncertain = NativeGalleryFileGrantPolicy({ peer }, { if (fail) throw IOException("protected read failed") else index.galleryPolicy() }, { true })
+            assertThrows(IOException::class.java) { uncertain.current() }
+            fail = false
+            assertNull(uncertain.current())
+            assertNull(index.galleryPolicy().policy)
+        } }
+    }
+
+    @Test fun restartedGrantFactoryDoesNotInventConfirmedGrantFromPendingPolicyRevision() {
+        Fixture().use { f ->
+            var fault = true
+            val peer = NativeFileControlPeer("receiver_fixture_01", "e".repeat(64), Any(), true, true, true, true, true, "1".repeat(64))
+            val authority = NativeGalleryConfigurer(peer.peerId, peer.identitySha256, Any(), "b".repeat(64), true, true, true, true, peer.pairingEpoch)
+            f.open { if (fault && it == "gallery-policy-published") throw IOException("interrupted associated policy") }.use { index ->
+                val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { null }, { authority })
+                assertThrows(IOException::class.java) { controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA)) }
+                fault = false
+                val restarted = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
+                assertNull(restarted.current())
+                val pending = index.galleryPolicy()
+                assertTrue(pending.repairPending)
+                index.acknowledgeGalleryPolicyRepair(index.inspectGalleryPolicyRepair()) { true }
+                val confirmed = restarted.current()!!
+                assertTrue(confirmed.policyReady); assertTrue(confirmed.grants.sendFiles)
+                assertEquals(pending.policy!!.revision, confirmed.grants.revision)
+                assertEquals(pending.policy!!.epoch, confirmed.grants.epoch)
+            }
+        }
+    }
+
     @Test fun actualPolicyBackedGalleryAuthorityCanFreezePublishOfferAndRetireUnderTheSameNativeIndexGate() {
         Fixture().use { f -> f.open().use { index ->
             val controller = GalleryPhotoPolicyController(index) { f.receiver }
