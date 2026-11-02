@@ -34,6 +34,110 @@ class PhotoSourceJobIndexTest {
         override fun close() { directory.deleteRecursively(); original.delete() }
     }
 
+    @Test fun revokedSourceCacheCanBeRetiredAfterRestartWithoutRestoringOrOpeningLivePhotos() {
+        Fixture().use { f ->
+            val job: PhotoSourceJob
+            f.open().use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            }
+            val opens = f.native.provider.opened
+            f.native.receiver = f.native.receiver.copy(receiveGranted = false)
+            f.key = null
+            assertThrows(DeviceTransferKeyUnavailable::class.java) { f.open().close() }
+            f.key = SecretKeySpec(ByteArray(32) { it.toByte() }, "AES")
+            f.open().use { index ->
+                index.retireCachedSnapshot(job)
+                assertTrue(index.jobs().isEmpty()); assertFalse(index.rootFile(job).exists())
+            }
+            assertEquals(opens, f.native.provider.opened); assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun partialCachedCleanupSurvivesProcessRestartRetainsQuotaAndFencesOldReaders() {
+        Fixture().use { f ->
+            var failCleanup = false
+            val job: PhotoSourceJob
+            f.open { if (failCleanup && it == "cached-entry-discarded") throw IOException("synthetic interrupted unlink acknowledgement") }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val reader = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val member = reader.manifest.files.single()
+                val before = index.rootFile(job).listFiles()!!.size
+                failCleanup = true
+                assertThrows(IOException::class.java) { index.retireCachedSnapshot(job) }
+                assertEquals(before - 1, index.rootFile(job).listFiles()!!.size)
+                val retained = index.jobs().single()
+                assertEquals("retired", retained.phase); assertEquals(job.cipherBudget, retained.cipherBudget)
+                assertEquals(job.snapshot, retained.snapshot)
+                assertEquals("photo_jobs_sealed_head_changed", assertThrows(PhotoFolderScopeError::class.java) { reader.readChunk(member.id, 0) }.code)
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireCachedSnapshot(job) }
+            }
+            f.open().use { index ->
+                index.retireCachedSnapshot(index.jobs().single())
+                assertTrue(index.jobs().isEmpty()); assertFalse(index.rootFile(job).exists())
+            }
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun cachedCleanupPreflightsAllUnknownChangedAndLinkedOriginalsBeforeAnyUnlink() {
+        for (change in listOf("unknown", "cipher", "hardlink", "root")) Fixture().use { f ->
+            val job: PhotoSourceJob
+            f.open().use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            }
+            val root = File(f.directory, "photo-source-" + job.id)
+            when (change) {
+                "unknown" -> File(root, "unfamiliar-user-work").writeText("keep")
+                "cipher" -> File(root, "manifest.enc").let { file -> file.writeBytes(file.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }) }
+                "hardlink" -> Files.createLink(File(f.directory, "held-manifest-link").toPath(), File(root, "manifest.enc").toPath())
+                else -> {
+                    assertTrue(root.renameTo(File(f.directory, "held-original-root")))
+                    Files.createDirectory(root.toPath(), java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                        java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
+                    File(root, "foreign-work").writeText("keep")
+                }
+            }
+            val before = root.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            f.open().use { index ->
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireCachedSnapshot(job) }
+                assertEquals("retired", index.jobs().single().phase)
+                assertEquals(job.cipherBudget, index.jobs().single().cipherBudget)
+                assertEquals(before, root.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            }
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun cachedCleanupAcknowledgementLossKeepsRetiredHeadUntilActualAbsenceIsRechecked() {
+        Fixture().use { f ->
+            var failAck = false
+            f.open { if (failAck && it == "cleanup-proven") throw IOException("synthetic cleanup acknowledgement loss") }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                failAck = true
+                assertThrows(IOException::class.java) { index.retireCachedSnapshot(job) }
+                assertFalse(index.rootFile(job).exists())
+                val retained = index.jobs().single(); assertEquals("retired", retained.phase); assertEquals(job.cipherBudget, retained.cipherBudget)
+                failAck = false
+                index.retireCachedSnapshot(retained)
+                assertTrue(index.jobs().isEmpty())
+            }
+        }
+    }
+
+    @Test fun partialReservationsWithoutAuthenticatedSnapshotWitnessesAreNotGuessedOrDiscarded() {
+        Fixture().use { f -> f.open().use { index ->
+            val job = index.reserve(f.inventory(), f.native.scope)
+            File(index.rootFile(job), "unknown-partial-original").writeText("preserve")
+            assertEquals("photo_cache_snapshot_missing", assertThrows(PhotoFolderScopeError::class.java) { index.retireCachedSnapshot(job) }.code)
+            assertEquals(job, index.jobs().single())
+            assertEquals("preserve", File(index.rootFile(job), "unknown-partial-original").readText())
+        } }
+    }
+
     @Test fun actualProtectedSqliteReservationPrecedesRootCreationAndSealedReadbackSurvivesReopen() {
         Fixture().use { f ->
             val inventory = f.inventory()

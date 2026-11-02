@@ -243,6 +243,19 @@ permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
+`PhotoSourceJobIndex.retireCachedSnapshot` can explicitly retire a previously
+sealed private cache after a source is disabled, revoked or no longer resumable.
+It first durably retires/CAS-checks the actual existing-key-authenticated index
+head, then preflights all remaining original root/file identities, ciphertext
+digests, private permissions, link counts, exact known names and budgets. It does
+not restore source authority, expose manifest/chunk access or open live photos.
+Unknown/changed entries are preserved before any unlink. An interrupted cleanup
+can resume from the retired authenticated record after restart, accepting only
+missing originals rather than adopting replacements. Quota remains reserved
+until actual root absence, parent sync and index-row removal/readback. Partial
+reservations lacking authenticated sealed witnesses still require separate
+native repair and are not guessed or automatically deleted.
+
 The protected snapshot/index pipeline consumes typed native source leases and
 authorities. SAF leases remain actual canonical tree/grant observations; gallery
 albums must use their own native source/access observations, never synthetic

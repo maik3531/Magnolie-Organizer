@@ -149,6 +149,29 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun obsoleteGalleryScopeCanCleanOnlyItsAuthenticatedPrivateSnapshotWithoutLivePhotoAccess() {
+        Fixture().use { f ->
+            val lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val cache = Files.createTempDirectory(f.root.toPath(), "cache-").toFile()
+            val job: PhotoSourceJob
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                val reserved = index.reserve(inventory, f.scope)
+                val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, f.reader, protection)
+                job = index.publishSnapshot(reserved, snapshot, f.scope, lease)
+            }
+            val opens = f.provider.opens.size
+            Shadows.shadowOf(f.context as Application).denyPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+            f.request = null
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                assertThrows(PhotoFolderScopeError::class.java) { index.restore(job, "sender_fixture_01", f.scope, lease) }
+                index.retireCachedSnapshot(job)
+                assertTrue(index.jobs().isEmpty()); assertFalse(index.rootFile(job).exists())
+            }
+            assertEquals(opens, f.provider.opens.size); assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
     @Test fun foreignMembershipUnsafeNamesPendingAndMalformedMetadataRejectTheWholeInventory() {
         val bad = listOf(Row(bucket = "other"), Row(label = "Private"), Row(path = "Pictures/Private/"), Row(pending = 1),
             Row(name = "../escape.jpg"), Row(bytes = -1), Row(mime = "text/plain"), Row(modified = "100"),

@@ -161,6 +161,18 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         update(expected, expected.copy(phase = "sealed", snapshot = record), ::allowed)
     }
 
+    /** Explicit local-cache retirement, including obsolete/revoked gallery
+     * scopes. Does not restore source access or accept a remote cleanup record.
+     * Reserved/partial jobs without authenticated original witnesses stay held.
+     */
+    fun retireCachedSnapshot(expected: PhotoSourceJob) {
+        if (expected.snapshot == null) fail("photo_cache_snapshot_missing")
+        retireAndClean(expected) {
+            val retired = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+            ProtectedPhotoCacheCleanup.discard(rootFile(retired), retired, boundary)
+        }
+    }
+
     /** Commit retirement first; retain quota on ANY cleanup failure.
      * A retry uses the actually re-read retired head, not a stale caller head.
      */
