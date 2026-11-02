@@ -217,6 +217,7 @@ runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConn
 runner.Add("KDE share / strict payload envelope / safe incoming filenames", KdeShareTests.RunAsync);
 runner.Add("KDE incoming batch / immutable manifest / source revocation / private staging", KdeIncomingFileBatchTests.RunAsync);
 runner.Add("KDE incoming payload / pinned TLS / byte witness / cancellation", KdeReceiveTransportTests.RunAsync);
+runner.Add("KDE incoming offer / guarded destination / partial retry / no overwrite", KdeIncomingFileOfferTests.RunAsync);
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
 runner.Add("KDE media / player lifetime / bounded metadata / commands", KdeMediaTests.RunAsync);

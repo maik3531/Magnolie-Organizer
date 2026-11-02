@@ -53,7 +53,7 @@ internal sealed class KdeIncomingFileBatch : IDisposable
         Update(count, total);
     }
 
-    private static bool RealDirectoryChain(string directory)
+    internal static bool RealDirectoryChain(string directory)
     {
         for (var item = new DirectoryInfo(directory); item is not null; item = item.Parent)
             if (!item.Exists || (item.Attributes & FileAttributes.ReparsePoint) != 0) return false;
@@ -160,6 +160,19 @@ internal sealed class KdeIncomingFileBatch : IDisposable
             closed = true;
             members.Clear();
             return result;
+        }
+    }
+
+    internal KdeIncomingFileOffer CreateOffer(Action<KdeReceiveSource, Action> publicationGate)
+    {
+        lock (gate)
+        {
+            Proposal();
+            var offer = new KdeIncomingFileOffer(source, currentSource, clock, deadline, OwnStagingPath,
+                members.Select(value => value.Staged!).ToArray(), publicationGate);
+            closed = true;
+            members.Clear();
+            return offer;
         }
     }
 

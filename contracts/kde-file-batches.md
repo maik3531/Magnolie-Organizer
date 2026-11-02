@@ -76,3 +76,14 @@ an already-owned staging stream, checks the exact advertised byte count and
 EOF, reports actual written-byte progress, and returns a size/SHA-256 witness.
 Source revocation, cancellation, extra or missing bytes produce no successful
 receipt. A payload receipt is neither consent nor a completed destination save.
+
+`KdeIncomingFileOffer` then owns exactly the handed-off staging list. Its
+destination publisher checks the copied byte witness and executes each atomic
+no-overwrite move through a native publication gate, rechecking source and
+cancellation inside that gate. The backend must serialize the gate with source
+and permission changes; IPC cannot provide that callback or invent a staging
+list. Saved members are recorded at the actual move, before later cleanup or
+acknowledgement can fail. Retrying a partial operation retains the same target
+directory and does not republish completed members. Cleanup never removes saved
+destination files. This publisher is still not wired to a Windows receive UI or
+advertised capability.
