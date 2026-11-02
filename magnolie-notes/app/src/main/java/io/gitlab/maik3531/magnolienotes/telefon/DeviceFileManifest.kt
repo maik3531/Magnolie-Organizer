@@ -59,7 +59,7 @@ class DeviceFileManifest private constructor(
             (value[name] as? JsonPrimitive)?.takeIf { !it.isString && integer.matches(it.content) }
                 ?.content?.toLongOrNull() ?: fail()
 
-        private fun path(value: String): Boolean {
+        internal fun portablePath(value: String): Boolean {
             val parts = value.split('/')
             if (value.isEmpty() || value.codePointCount(0, value.length) > 1024 ||
                 !Normalizer.isNormalized(value, Normalizer.Form.NFC) || value.toByteArray(Charsets.UTF_8).size > 4096 ||
@@ -87,7 +87,7 @@ class DeviceFileManifest private constructor(
                 val file = entry as? JsonObject ?: fail()
                 exact(file, setOf("id", "path", "size", "sha256"))
                 DeviceManifestFile(text(file, "id"), text(file, "path"), number(file, "size"), text(file, "sha256")).also {
-                    if (!id.matches(it.id) || !sha.matches(it.sha256) || !path(it.path) || it.size !in 0..MAX_FILE_BYTES) fail()
+                    if (!id.matches(it.id) || !sha.matches(it.sha256) || !portablePath(it.path) || it.size !in 0..MAX_FILE_BYTES) fail()
                 }
             }
             if (files.map { it.id }.distinct().size != files.size) fail()

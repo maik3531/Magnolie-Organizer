@@ -176,7 +176,31 @@ or wanted ciphertext. Acknowledgement rechecks the inspected state and fence
 under the publication gate; unknown concurrent states and invalid fences stay
 blocked and preserved. Repair does not choose a new source or enable permission
 by itself. This storage boundary is not yet wired to the native picker/controller
-or repair UI. Bounded SAF enumeration/frozen source snapshots and transfer
-handlers also remain outstanding.
+or repair UI. Frozen source snapshots and transfer handlers also remain outstanding.
 These source classes alone do not expose a photo-sync UI, scan photos, schedule
 work, change existing permissions or advertise a feature.
+
+`AndroidPhotoFolderInventory` supplies a separate, explicitly invoked read-only
+metadata enumeration. It revalidates the native source lease and cancellation
+around provider/cursor operations and verifies each document is a child of the
+selected tree. Traversal is limited to 512 visited entries, 32 directories and
+16 path components, with the manifest's image count/size/total bounds. Duplicate
+IDs, cycles, portable path aliases, virtual documents, unknown sizes and invalid
+metadata fail without returning a partial list. Ignored non-image entries still
+consume the traversal budget; every opened cursor is closed on success/failure.
+
+The immutable result is explicitly **advertised provider metadata**, not a
+frozen source, file hash, offer, permission receipt or resumable identity. The
+future native sender must still freeze actual bounded bytes into owned protected
+storage, read them back and form the manifest from those actual bytes. Inventory
+does not open file contents, mutate the provider, release grants or start itself.
+Resolver/provider tests use synthetic documents, not personal photo folders or
+physical SAF acceptance.
+
+The inventory uses the API26+ bundle query form. API26–28 descendant checks
+use the same read-only provider call as the
+[Android 8 framework](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-8.0.0_r1/core/java/android/provider/DocumentsContract.java),
+through public `ContentResolver.call`; the public resolver-based
+`DocumentsContract.isChildDocument` convenience method is guarded to API29+.
+There is no hidden-API reflection, path-prefix trust fallback or minimum-Android
+version increase. Missing/invalid provider descendant results fail closed.
