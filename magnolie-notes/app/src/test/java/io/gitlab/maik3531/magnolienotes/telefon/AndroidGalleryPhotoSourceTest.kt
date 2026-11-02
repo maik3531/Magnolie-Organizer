@@ -149,6 +149,27 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun nativeControllerLifecycleRotatesActualGalleryLeasesEvenWithUnchangedOsReadFlags() {
+        Fixture().use { f ->
+            val controller = GalleryPhotoAccessController(f.context, { f.request })
+            controller.onResume()
+            val scope = GalleryPhotoSourceScope({ f.request }, controller.environment)
+            val catalog = GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(f.album), f.request)
+            val lease = scope.capture(catalog, f.album)
+            assertTrue(scope.isCurrent(lease))
+            controller.onPause(); controller.onResume()
+            assertFalse(scope.isCurrent(lease))
+            val resumed = scope.capture(catalog, f.album)
+            assertNotEquals(lease.readGrantToken, resumed.readGrantToken)
+            assertTrue(scope.isCurrent(resumed))
+            controller.onAccessChanged(); assertFalse(scope.isCurrent(resumed))
+            val refreshed = scope.capture(catalog, f.album)
+            controller.close(); assertFalse(scope.isCurrent(refreshed))
+            assertTrue(f.provider.opens.isEmpty())
+            assertEquals(GalleryReadCoverage.FULL_IMAGES, AndroidGalleryReadPermissions.observe(f.context))
+        }
+    }
+
     @Test fun obsoleteGalleryScopeCanCleanOnlyItsAuthenticatedPrivateSnapshotWithoutLivePhotoAccess() {
         Fixture().use { f ->
             val lease = f.lease(); val inventory = f.reader.enumerate(lease)

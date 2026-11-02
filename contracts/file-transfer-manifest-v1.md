@@ -225,8 +225,16 @@ receiver ownership and permission epoch, actual read coverage, mounted volume an
 its opaque MediaStore version (per-volume API29+). Legacy platforms without a
 reliable volume namespace and selected-only visibility additionally bind a
 runtime nonce: old runtime proofs cannot authorize restored source jobs. A source
-lease never proves file deletion. Its permission-access epoch still requires a
-real native permission controller; no remote packet supplies that authority.
+lease never proves file deletion. `GalleryPhotoAccessController` owns a random
+native access epoch and rotates it for permission operations, access-change
+notifications and native background/resume transitions even if coarse OS flags
+remain unchanged. Exact one-shot foreground prompt tickets bind policy, enabled
+categories, receiver owner/key/permission epoch and a 120-second monotonic limit.
+Results read actual OS permissions rather than trusting callback Booleans;
+stale results never migrate to another source or revoke app-wide rights. No
+remote packet supplies that authority. Its real activity lifecycle/permission
+launcher and authenticated desktop-policy adapters are still to be connected;
+this controller does not start UI or request permissions on construction.
 `AndroidGalleryPhotoSource` now inventories only the selected native image album
 using bounded keyset pages (32 rows, at most 128 images/400 MiB, 30-second scan
 deadline). Every returned member must match its bucket, label and modern relative
