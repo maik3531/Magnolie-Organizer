@@ -317,6 +317,18 @@ internal sealed class PersonalSyncActorStore
         }
     }
 
+    // Native writer gate only, NOT source/restore/save authority. The native
+    // controller must bind exact local sources and saved-book/choice witnesses
+    // under its retained book/source guard. No document I/O in this transaction.
+    internal void CheckHistoricalSave(PersonalActorHandle handle) => CompletionOperation(handle, (db, transaction) => {
+        var value = Require(db, handle, transaction, active: false, source: false);
+        if (Text(value, "phase") != "completion" || !dataRetired.Contains(handle.ActorId))
+            throw new InvalidOperationException("actor_data_owner_not_retired");
+        RequireCompletion(db, transaction, handle, "save");
+        RequireCompletion(db, transaction, handle, "save");
+        return true;
+    });
+
     private JsonObject RequireCompletion(SqliteConnection db, SqliteTransaction transaction, PersonalActorHandle handle, string operation, JsonObject? wire = null)
     {
         var value = Require(db, handle, transaction, active: false, source: false);

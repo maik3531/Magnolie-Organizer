@@ -67,6 +67,49 @@ internal static class PersonalActorCompletionTests
         public void Dispose() { SqliteConnection.ClearAllPools(); if (Directory.Exists(Root)) Directory.Delete(Root, true); }
     }
 
+    internal static Task HistoricalWriterGateAsync()
+    {
+        using (var f = new Fixture())
+        {
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.CheckHistoricalSave(f.Handle), "Active data owner acquired historical write gate.");
+            f.Registry.RequireCurrent(f.Handle);
+            f.Registry.BeginCompletion(f.Handle, f.Guard);
+            var before = f.Registry.Status(f.Handle);
+            f.Registry.CheckHistoricalSave(f.Handle);
+            TestAssert.That(JsonNode.DeepEquals(before, f.Registry.Status(f.Handle)), "Writer gate changed sealed status.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.RequireCurrent(f.Handle), "Writer gate reopened data.");
+            var reopened = f.NewRegistry(f.Registry.Epoch);
+            // A callback plus a sealed completion phase cannot replace the
+            // genuine native owner's volatile data-retired evidence.
+            var guards = (Dictionary<string, Func<string, JsonObject?, bool?>>)typeof(PersonalSyncActorStore)
+                .GetField("completionGuards", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(reopened)!;
+            guards[f.Handle.ActorId] = f.Guard;
+            TestAssert.Throws<InvalidOperationException>(() => reopened.CheckHistoricalSave(f.Handle), "Reopened sealed phase manufactured volatile retirement.");
+            f.Saved = true; f.Registry.FinishCompletion(f.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.CheckHistoricalSave(f.Handle), "Completed claim allowed another write gate.");
+        }
+        foreach (var fault in new[] { "unready", "lost-before", "lost-after", "wall", "mono", "cancelled" })
+        {
+            using var f = new Fixture(); var calls = 0;
+            bool? Native(string operation, JsonObject? wire)
+            {
+                if (operation == "save" && ++calls == 2 && fault == "lost-after") return false;
+                return f.Guard(operation, wire);
+            }
+            f.Registry.BeginCompletion(f.Handle, Native);
+            if (fault == "unready") f.Ready = false;
+            if (fault == "lost-before") f.Lost = true;
+            if (fault == "wall") f.Now = long.MaxValue;
+            if (fault == "mono") f.Mono = long.MaxValue;
+            if (fault == "cancelled") f.Registry.Cancel(f.Handle);
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.CheckHistoricalSave(f.Handle), "Invalid native save gate passed: " + fault);
+            TestAssert.That(f.Registry.Status(f.Handle)["phase"]!.GetValue<string>() == (fault == "unready" ? "completion" : "cancelled"), "Writer gate lost lifecycle state: " + fault);
+            if (fault == "lost-after") TestAssert.That(calls == 2, "Writer gate omitted fresh native post-check.");
+            TestAssert.Throws<InvalidOperationException>(() => f.Registry.RequireCurrent(f.Handle), "Invalid gate revived data.");
+        }
+        return Task.CompletedTask;
+    }
+
     internal static Task RunAsync()
     {
         using (var f = new Fixture())

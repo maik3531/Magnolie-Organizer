@@ -118,6 +118,7 @@ runner.Add("Notes actor start / shared strict contract vectors", PersonalSyncAct
 runner.Add("Personal batch byte boundaries / shared UTF-8 / actor envelope", PersonalBatchBoundaryTests.RunAsync);
 runner.Add("Notes actor atomic batch and deletion-intent core commit", PersonalActorCommitTests.RunAsync);
 runner.Add("Notes actor completion metadata / closed data / native guards", PersonalActorCompletionTests.RunAsync);
+runner.Add("Notes actor historical writer gate / volatile retirement / fresh save guard", PersonalActorCompletionTests.HistoricalWriterGateAsync);
 runner.Add("Notes actor post-data review / separate SaveACK claim / native handoff", PersonalActorPostDataReviewTests.RunAsync);
 runner.Add("Notes actor mixed late review / fixed choices / scope union", PersonalActorMixedLateReviewTests.RunAsync);
 runner.Add("Notes actor fixed decision groups / atomic native claim / protected replay", PersonalActorFixedDecisionGroupTests.RunAsync);

@@ -415,6 +415,20 @@ class ActorStore:
                     pass  # The volatile capability is already irreversibly gone.
                 raise PermissionError(str(error)) from None
 
+    def check_historical_save(self, handle):
+        """Native writer gate only, NOT save/origin/restore authority.
+
+        An actual native controller must separately bind its exact local source,
+        book/save witnesses and explicit choices. No document I/O in this SQL
+        transaction; the caller retains the native book/source guard for writing.
+        """
+        with self._completion_database(handle) as db:
+            value = self._require(db, handle, active=False, source=False)
+            if value['phase'] != 'completion' or handle.actor_id not in self.data_retired:
+                raise PermissionError('actor_data_owner_not_retired')
+            self._require_completion(db, handle, 'save')
+            self._require_completion(db, handle, 'save')
+
     def _require_completion(self, db, handle, operation, wire=None):
         value = self._require(db, handle, active=False, source=False)
         if not self.source_owned(value["actor_id"]):
