@@ -21,6 +21,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private val revoked = AtomicBoolean(false)
     private val operationGate = java.util.concurrent.locks.ReentrantLock()
     private var operationActive = false // Guarded by the short-lived runtime monitor.
+    private var syncRun: NativeGallerySyncRun? = null // Access only through operationGate.
     private val app = context.applicationContext
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
@@ -58,9 +59,50 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         workflow.discoverSelectable(cancellation)
     }
     fun prepareSource(selection: NativeGalleryAlbumSelection): NativeGallerySourceRun = withOperation {
+        if (syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         sourceWorker.start(selection)
+    }
+
+    internal fun beginSyncRun(selection: NativeGalleryAlbumSelection): NativeGallerySyncRun = withOperation {
+        if (syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        workflow.validateSelection(selection)
+        NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
+    }
+
+    /** Native-only offer path. An output receipt is not acceptance/publication.
+     * Whole-run ownership remains held after source preparation and this write. */
+    internal fun sendSyncRunOffer(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,
+        now: Long = System.currentTimeMillis()) = withOperation {
+        if (syncRun !== run || run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
+        if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        val selected = run.selection
+        val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
+        val offer = source.offerMessage(now)
+        val fingerprint = source.manifest.fingerprint
+        if (workflow.currentRequest() == null || run.cancelRequested) DeviceFileControl.fail("gallery_source_not_activated")
+        send(offer)
+        // Revalidate actual protected source authority after output as well.
+        if (source.manifest.fingerprint != fingerprint || workflow.currentRequest() == null || run.cancelRequested)
+            DeviceFileControl.fail("gallery_source_not_activated")
+        run.offered.set(fingerprint)
+    }
+
+    internal fun cancelSyncRun(run: NativeGallerySyncRun) = withOperation {
+        if (syncRun !== run) DeviceFileControl.fail("gallery_sync_run_not_current")
+        run.stopped.set(true)
+        run.preparation.cancel() // Cancellation does not release whole-run ownership.
+    }
+
+    /** Only an explicitly stopped run can end here. This neither reports sync
+     * success nor retires source quota; data/publication receipts remain separate. */
+    internal fun endStoppedSyncRun(run: NativeGallerySyncRun) = withOperation {
+        if (syncRun !== run || !run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
+        if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        syncRun = null
     }
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         ready(); workflow.attachPermissionHost(host, onResult)

@@ -383,13 +383,16 @@ class AndroidGalleryPhotoSourceTest {
                         entered.countDown()
                         if (mode != "completed") check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
                     }
-                    val started = runtime.prepareSource(selected); run = started
+                    val sync = runtime.beginSyncRun(selected)
+                    val started = sync.preparation; run = started
                     assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
                     if (mode != "completed") {
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.prepareSource(selected) }
                         started.cancellation.setOnCancelListener {
                             assertFalse("Native cancellation ran under runtime ownership", Thread.holdsLock(runtime))
                         }
+                        runtime.cancelSyncRun(sync)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(sync) }
                         if (connection != null) connection.close()
                         else assertEquals("gallery_source_worker_io_pending", assertThrows(PhotoFolderScopeError::class.java) { runtime.close() }.code)
                         assertFalse(started.ioEnded); assertTrue(started.cancelRequested)
@@ -402,6 +405,37 @@ class AndroidGalleryPhotoSourceTest {
                     assertTrue(started.ioEnded)
                     if (mode == "completed") {
                         assertEquals("snapshot_ready", started.phase); assertNotNull(started.snapshotJob())
+                        val whole = sync
+                        assertNotEquals(whole.id, started.id)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(selected) }
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.prepareSource(selected) }
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }
+                        assertNull(whole.offeredManifestSha256)
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.sendSyncRunOffer(whole, { throw java.io.IOException("offer output failed") }, now)
+                        }
+                        assertNull(whole.offeredManifestSha256)
+                        var manifest: DeviceFileManifest? = null
+                        runtime.sendSyncRunOffer(whole, {
+                            manifest = DeviceFileOfferEnvelope.validate(it, identity.deviceId, peer.peerId, now)
+                            assertNull(whole.offeredManifestSha256) // Write callback has not completed yet.
+                            channel.send(it)
+                        }, now)
+                        assertEquals(manifest!!.fingerprint, whole.offeredManifestSha256)
+                        val frame = TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray())); output.reset()
+                        val header = JsonObject(frame - "ciphertext")
+                        val clear = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")),
+                            java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                        assertEquals(manifest!!.fingerprint, DeviceFileOfferEnvelope.validate(
+                            Json.parseToJsonElement(clear.decodeToString()).jsonObject, identity.deviceId, peer.peerId, now).fingerprint)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(selected) }
+                        val foreign = NativeGallerySyncRun(selected, started)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.cancelSyncRun(foreign) }
+                        runtime.cancelSyncRun(whole)
+                        assertTrue(whole.cancelRequested)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole, {}, now) }
+                        runtime.endStoppedSyncRun(whole)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }
                         assertNotNull(runtime.savedPolicy().policy); assertEquals(0, released.get())
                         connection!!.close()
                     } else {

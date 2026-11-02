@@ -572,6 +572,29 @@ native send authority. Existing unchanged permission-ledger evidence is retained
 This is synthetic/Robolectric evidence, not physical phone acceptance or completed
 synchronization. No package, discovery advertisement or automatic run is enabled.
 
+### Native whole-run identity and offer output (not remote-activated)
+
+The native runtime now retains one whole-run handle separately from its source
+preparation slot. `snapshot_ready`, source I/O end and successful offer output do
+not release it. A second whole run or separate preparation is rejected while it
+is held. Native handle identity, not a supplied ID string, selects the run.
+
+Offer output restores the actual protected frozen source under current native
+authority, builds the complete immutable offer and rechecks source authority
+after actual output. Failed output does not create an output receipt. A stored
+offered-manifest hash is only historical output evidence, not remote acceptance,
+publication or synchronization success. Explicit cancellation holds the slot
+until preparation I/O really ends; native stopped-run end does not retire quota
+and cannot report successful synchronization. No success/end-from-totals API or
+remote run/data handler is introduced.
+
+The extended actual provider/runtime test passes for blocked direct/connection
+close and normal completion, including frozen source restoration, failed offer
+output, a real encrypted offer frame with native manifest readback, rejected
+overlap/foreign handles, cancellation and one-shot stopped-run end. Reserved or
+sealed quota and source bytes remain preserved. This is one targeted method with
+three native modes, not three separate tests or physical/end-to-end acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
