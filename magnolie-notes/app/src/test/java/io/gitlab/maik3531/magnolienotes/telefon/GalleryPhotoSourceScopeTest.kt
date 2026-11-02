@@ -32,6 +32,14 @@ class GalleryPhotoSourceScopeTest {
         fun lease() = scope.capture(catalog(), album)
     }
 
+    @Test fun aCatalogBoundToAnOlderNativeAccessEpochCannotAuthorizeNewPhotoSelection() {
+        val f = Fixture()
+        val catalog = GalleryAlbumCatalog(f.environment.value.coverage, listOf(f.album), f.request, f.environment.value.accessEpoch)
+        assertTrue(f.scope.isCurrent(f.scope.capture(catalog, f.album)))
+        f.environment.value = f.environment.value.copy(accessEpoch = "c".repeat(64))
+        assertEquals("gallery_source_visibility_changed", assertThrows(PhotoFolderScopeError::class.java) { f.scope.capture(catalog, f.album) }.code)
+    }
+
     @Test fun onlyAnActualActivatedCatalogMemberCanBecomeANativeGalleryLease() {
         val f = Fixture(); val catalog = f.catalog()
         val lease = f.scope.capture(catalog, f.album)

@@ -69,7 +69,8 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
             fail("gallery_source_invalid_album")
         val observed = environment.observe(album.volume)
         validate(observed)
-        if (!observed.volumeMounted || observed.coverage == GalleryReadCoverage.NONE || observed.coverage != catalog.coverage)
+        if (!observed.volumeMounted || observed.coverage == GalleryReadCoverage.NONE || observed.coverage != catalog.coverage ||
+            catalog.accessEpoch?.let { it != observed.accessEpoch } == true)
             fail("gallery_source_visibility_changed")
         val sourceKey = "gallery-album-v1:" + digest(mapOf("kind" to album.kind.name, "volume" to album.volume,
             "bucket" to album.bucketId, "path" to (album.relativePath?.lowercase(Locale.ROOT) ?: "")))

@@ -74,6 +74,16 @@ class AndroidGalleryAlbumDiscoveryTest {
         fun assertClosed() { assertTrue(provider.cursors.all { it.isClosed }) }
     }
 
+    @Test fun nativeAccessEpochChangesInvalidateDiscoveryEvenWhenCoarseReadFlagsStayTheSame() {
+        val f = Fixture(); f.provider.rows = listOf(Row(1, "bucket", "WhatsApp Images"))
+        var epoch = "a".repeat(64)
+        val discovery = AndroidGalleryAlbumDiscovery(f.context, { f.request }, accessEpoch = { epoch })
+        assertEquals(epoch, discovery.discover().accessEpoch)
+        f.provider.onQuery = { epoch = "b".repeat(64) }
+        assertEquals("gallery_source_scope_changed", assertThrows(PhotoFolderScopeError::class.java) { discovery.discover() }.code)
+        f.assertClosed()
+    }
+
     @Test fun noActivationOrNoActualOsPhotoPermissionNeverQueriesTheGallery() {
         val f = Fixture()
         f.request = null

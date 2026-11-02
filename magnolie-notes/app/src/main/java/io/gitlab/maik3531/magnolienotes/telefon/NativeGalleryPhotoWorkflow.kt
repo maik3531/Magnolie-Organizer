@@ -1,0 +1,120 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.content.Context
+import android.os.CancellationSignal
+import android.os.Looper
+import androidx.activity.ComponentActivity
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+
+internal class GalleryPhotoBuildFailure internal constructor(val reservationId: String, cause: Exception) :
+    IOException("Native gallery snapshot not completed; its reserved cache remains held.", cause)
+
+/** Explicit native source operation joining actual protected policy, Android
+ * permission lifecycle, selected album inventory/PFDs and encrypted job storage.
+ * Not a service/worker/remote handler: callers must supply the authenticated
+ * native receiver and existing local sender identity/key/private directory.
+ */
+internal class NativeGalleryPhotoWorkflow(context: Context, directory: File, private val senderId: String,
+    private val protection: DeviceTransferProtection, currentReceiver: () -> NativePhotoReceiver?) : AutoCloseable {
+    private val app = context.applicationContext
+    init { require(Regex("[A-Za-z0-9_-]{16,160}").matches(senderId)) }
+    private val index = PhotoSourceJobIndex(directory, protection)
+    private val policy = GalleryPhotoPolicyController(index, currentReceiver)
+    private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope)
+    private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
+    private val binding = AtomicReference<Binding?>()
+    private val pending = ConcurrentHashMap<String, Pending>()
+    private val closed = AtomicBoolean(false)
+
+    fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return index.galleryPolicy() }
+    fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
+        ready()
+        return policy.configure(expected, enabled, kinds)
+    }
+    fun currentRequest(): NativeGalleryRequest? { ready(); return policy.currentRequest() }
+    fun jobs(): List<PhotoSourceJob> { ready(); return index.jobs() }
+
+    /** Called from native onCreate before STARTED, not from a wire/UI path.
+     * Binding only registers an OS launcher; it never prompts on construction.
+     */
+    fun bindActivity(activity: ComponentActivity, onResult: (Result<GalleryReadCoverage>) -> Unit) {
+        uiThread(); ready()
+        if (activity.applicationContext !== app) fail("gallery_workflow_foreign_application")
+        binding.getAndSet(null)?.launcher?.close()
+        val launcher = GalleryPhotoPermissionLauncher(activity, { if (closed.get()) null else policy.currentRequest() }, onResult)
+        binding.set(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() }, launcher.access.environment)))
+    }
+
+    fun requestReadPermission() { ready(); bound().launcher.request() }
+
+    fun discover(cancellation: CancellationSignal = CancellationSignal()): GalleryAlbumCatalog {
+        ready()
+        if (policy.currentRequest() == null) return GalleryAlbumCatalog(GalleryReadCoverage.NONE, emptyList())
+        val observed = bound()
+        return AndroidGalleryAlbumDiscovery(app, { policy.currentRequest() },
+            accessEpoch = { observed.launcher.access.accessEpoch() }).discover(cancellation)
+    }
+
+    /** Blocking bounded IO: run off the main UI thread in the real coordinator.
+     * No partial source or manifest is offered on any failure; reservation and
+     * exact native in-process cleanup witnesses remain held for explicit repair.
+     */
+    fun freeze(catalog: GalleryAlbumCatalog, album: GalleryAlbumCandidate, desktopAlbumChoice: Boolean = false,
+        cancellation: CancellationSignal = CancellationSignal()): PhotoSourceJob {
+        ready()
+        val observed = bound()
+        val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
+        val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        val inventory = reader.enumerate(lease, cancellation)
+        val reserved = index.reserve(inventory, observed.scope)
+        var snapshot: ProtectedPhotoSourceSnapshot? = null
+        try {
+            snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, senderId, observed.scope,
+                reader, protection, cancellation)
+            return index.publishSnapshot(reserved, snapshot, observed.scope, lease)
+        } catch (error: Exception) {
+            val failure = GalleryPhotoBuildFailure(reserved.id, error)
+            pending[reserved.id] = Pending(failure, (error as? PhotoSnapshotBuildFailure)?.pending ?: snapshot)
+            throw failure
+        }
+    }
+
+    fun source(job: PhotoSourceJob, catalog: GalleryAlbumCatalog, album: GalleryAlbumCandidate,
+        desktopAlbumChoice: Boolean = false, cancellation: CancellationSignal = CancellationSignal()): IndexedPhotoSource {
+        ready()
+        val observed = bound()
+        val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
+        return index.restore(job, senderId, observed.scope, lease, cancellation)
+    }
+
+    /** Only an exact failure handle created by this native workflow, never an
+     * IPC cleanup payload. Restart without partial witnesses remains held.
+     */
+    fun discardFailedBuild(error: GalleryPhotoBuildFailure) {
+        ready()
+        val held = pending[error.reservationId]?.takeIf { it.error === error } ?: fail("gallery_workflow_unknown_failure")
+        val actual = index.jobs().singleOrNull { it.id == error.reservationId } ?: fail("photo_jobs_missing_job")
+        if (actual.snapshot != null) index.retireCachedSnapshot(actual)
+        else {
+            val snapshot = held.snapshot ?: fail("gallery_workflow_partial_witness_missing")
+            index.retireAndClean(actual) { snapshot.discard() }
+        }
+        pending.remove(error.reservationId, held)
+    }
+
+    fun retireCached(job: PhotoSourceJob) { ready(); index.retireCachedSnapshot(job) }
+    private fun bound(): Binding = binding.get()?.also { it.launcher.access.accessEpoch() }
+        ?: fail("gallery_workflow_permission_host_missing")
+    private fun ready() { if (closed.get()) fail("gallery_workflow_closed") }
+    override fun close() {
+        uiThread()
+        if (!closed.compareAndSet(false, true)) return
+        try { binding.getAndSet(null)?.launcher?.close() } finally { index.close() }
+    }
+    private fun uiThread() { if (Looper.myLooper() != Looper.getMainLooper()) fail("gallery_permission_ui_thread_required") }
+    private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
+}

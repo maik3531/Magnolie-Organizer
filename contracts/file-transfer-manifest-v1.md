@@ -307,6 +307,28 @@ permission launchers and full inventory/receipt integration remain outstanding.
 
 ## Protected Android source snapshots
 
+`NativeGalleryPhotoWorkflow` now joins the explicit native protected-policy,
+ActivityResult permission lifecycle, targeted album discovery, bounded actual
+image/PFD reads, durable reservation, encrypted freeze/publish, cached restore,
+complete offer preflight and explicit retirement paths. Construction opens only
+the supplied private source index; it does not start scans, prompts, workers or
+network activity. Enabling categories never implies Android permission. Native
+receiver identity/grants and existing local sender ID/key still come from the
+future authenticated service coordinator, not from a wire request.
+
+Workflow catalogs bind the actual native access epoch through every discovery
+boundary. A catalog captured before resume/selected-access changes cannot later
+authorize an album merely because coarse permission flags still match. Failed
+builds hold their reservations and exact native cleanup handles; a copied/forged
+failure ID cannot discard cache, and restart without partial original witnesses
+remains repair-held. Source disable prevents offers but does not delete live
+images. Thirteen image/workflow, eight discovery and seven scope cases pass,
+including actual synthetic provider/PFD/Activity/SQLite integration. These are not
+physical phone/end-to-end acceptance. MainActivity/service/PC-command instantiation,
+dedicated file-grant negotiation, receiver handlers and Organizer-only controls
+remain outstanding. Frozen manifests also do not yet carry durable per-photo
+origin/receipt baselines for bidirectional edit/delete synchronization.
+
 `PhotoSourceJobIndex.retireCachedSnapshot` can explicitly retire a previously
 sealed private cache after a source is disabled, revoked or no longer resumable.
 It first durably retires/CAS-checks the actual existing-key-authenticated index

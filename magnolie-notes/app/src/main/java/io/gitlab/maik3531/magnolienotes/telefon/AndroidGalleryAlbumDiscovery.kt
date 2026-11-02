@@ -27,7 +27,7 @@ internal data class GalleryAlbumCandidate(val kind: GallerySourceKind, val volum
     val displayName: String, val relativePath: String?, val visibleImageCount: Long, val needsAlbumChoice: Boolean)
 
 internal class GalleryAlbumCatalog(val coverage: GalleryReadCoverage, entries: List<GalleryAlbumCandidate>,
-    internal val activation: NativeGalleryRequest? = null) {
+    internal val activation: NativeGalleryRequest? = null, internal val accessEpoch: String? = null) {
     val albums: List<GalleryAlbumCandidate> = Collections.unmodifiableList(entries.toList())
     val policyEpoch: String? get() = activation?.policyEpoch
     // Even full photo permission + an album list is NOT a complete file inventory.
@@ -69,6 +69,7 @@ internal object AndroidGalleryReadPermissions {
  * crawl, no photo-content opens/writes, no phone settings panel or permission prompt.
  */
 internal class AndroidGalleryAlbumDiscovery(context: Context, private val current: () -> NativeGalleryRequest?,
+    private val accessEpoch: () -> String? = { null },
     private val readCoverage: () -> GalleryReadCoverage = { AndroidGalleryReadPermissions.observe(context.applicationContext) }) {
     private val app = context.applicationContext
     private val resolver = app.contentResolver
@@ -79,6 +80,8 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
         if (!request.receiver.allowed) throw PhotoFolderScopeError("gallery_receiver_not_ready")
         val coverage = readCoverage()
         if (coverage == GalleryReadCoverage.NONE) return GalleryAlbumCatalog(coverage, emptyList(), request)
+        val permissionEpoch = accessEpoch()
+        if (permissionEpoch != null && !Regex("[0-9a-f]{64}").matches(permissionEpoch)) throw PhotoFolderScopeError("gallery_invalid_access_epoch")
         val started = SystemClock.elapsedRealtime()
         fun fresh() {
             cancellation.throwIfCanceled()
@@ -86,7 +89,7 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
             if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.kinds != request.kinds ||
                 now.receiver.owner !== request.receiver.owner || now.receiver.peerId != request.receiver.peerId ||
                 now.receiver.identitySha256 != request.receiver.identitySha256 || now.receiver.permissionEpoch != request.receiver.permissionEpoch ||
-                readCoverage() != coverage) throw PhotoFolderScopeError("gallery_source_scope_changed")
+                readCoverage() != coverage || accessEpoch() != permissionEpoch) throw PhotoFolderScopeError("gallery_source_scope_changed")
             if (SystemClock.elapsedRealtime() - started > MAX_ELAPSED_MS) throw PhotoFolderScopeError("gallery_discovery_deadline")
         }
         fresh()
@@ -160,7 +163,7 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
                 it.kind == candidate.kind && it.displayName.equals(candidate.displayName, ignoreCase = true) } > 1)
         }
         fresh()
-        return GalleryAlbumCatalog(coverage, candidates, request)
+        return GalleryAlbumCatalog(coverage, candidates, request, permissionEpoch)
     }
     companion object {
         const val PAGE_SIZE = 256

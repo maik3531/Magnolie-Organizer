@@ -15,10 +15,12 @@ import android.os.Build
 import android.os.CancellationSignal
 import android.os.OperationCanceledException
 import android.os.ParcelFileDescriptor
+import androidx.activity.ComponentActivity
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Robolectric
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
@@ -54,18 +56,25 @@ class AndroidGalleryPhotoSourceTest {
             val columns = requireNotNull(projection)
             check("_data" !in columns)
             val volume = if (Build.VERSION.SDK_INT >= 29) "external_primary" else "external"
-            check(uri.toString().startsWith("content://media/$volume/images/media"))
+            check(uri.toString().startsWith("content://media/$volume/images/media") ||
+                uri.toString() == "content://media/1234-5678/images/media")
             val args = requireNotNull(queryArgs)
             var selected = rows
             if (uri.pathSegments.size == 3) {
                 requests += Bundle(args)
-                check(args.getString(ContentResolver.QUERY_ARG_SQL_SELECTION) == "_id > ? AND bucket_id = ?" +
-                    (if (Build.VERSION.SDK_INT >= 29) " AND is_pending = 0" else "") +
-                    (if (Build.VERSION.SDK_INT >= 30) " AND is_trashed = 0" else ""))
                 check(args.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER) == "_id ASC")
                 val values = requireNotNull(args.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS))
-                if (!ignoreSelection) selected = selected.filter { it.id > values[0].toLong() && it.bucket == values[1] &&
-                    (Build.VERSION.SDK_INT < 29 || it.pending == 0L) && (Build.VERSION.SDK_INT < 30 || it.trashed == 0L) }
+                if ("_display_name" !in columns) {
+                    check(args.getString(ContentResolver.QUERY_ARG_SQL_SELECTION)!!.startsWith("_id > ? AND LOWER(relative_path) IN ("))
+                    selected = selected.filter { it.id > values[0].toLong() && it.path.lowercase(java.util.Locale.ROOT) in values.drop(1) }
+                } else {
+                    check(args.getString(ContentResolver.QUERY_ARG_SQL_SELECTION) == "_id > ? AND bucket_id = ?" +
+                        (if (Build.VERSION.SDK_INT >= 29) " AND is_pending = 0" else "") +
+                        (if (Build.VERSION.SDK_INT >= 30) " AND is_trashed = 0" else ""))
+                    if (!ignoreSelection) selected = selected.filter { it.id > values[0].toLong() && it.bucket == values[1] &&
+                        (Build.VERSION.SDK_INT < 29 || it.pending == 0L) && (Build.VERSION.SDK_INT < 30 || it.trashed == 0L) }
+                }
+                if (uri.pathSegments.first() == "1234-5678") selected = emptyList()
                 selected = selected.sortedBy { it.id }
                 if (reverse) selected = selected.reversed()
                 if (!ignoreLimit) selected = selected.take(args.getInt(ContentResolver.QUERY_ARG_LIMIT))
@@ -113,6 +122,81 @@ class AndroidGalleryPhotoSourceTest {
         fun lease() = scope.capture(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(album), request), album)
         fun assertClosed() = assertTrue(provider.cursors.all { it.isClosed })
         override fun close() { assertClosed(); root.deleteRecursively() }
+    }
+
+    @Test fun nativeWorkflowJoinsProtectedPolicyActualDiscoveryPfdSnapshotOfferAndRevokedCacheCleanup() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                assertNull(workflow.savedPolicy().policy)
+                assertTrue(workflow.discover().albums.isEmpty()); assertTrue(f.provider.requests.isEmpty())
+                val saved = workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { throw AssertionError("No startup permission prompt expected") }
+                activity.start().resume()
+                assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
+                val catalog = workflow.discover(); val album = catalog.albums.single()
+                assertEquals("external_primary", album.volume); assertNotNull(catalog.accessEpoch)
+                val job = workflow.freeze(catalog, album)
+                assertEquals("sealed", job.phase); assertEquals(2, f.provider.opens.size)
+                val source = workflow.source(job, catalog, album)
+                assertEquals(source.manifest.fingerprint, DeviceFileOfferEnvelope.validate(source.offerMessage(), "sender_fixture_01", f.receiver.peerId).fingerprint)
+                File(f.root, "source.bin").writeText("changed live photo")
+                assertArrayEquals("hello".toByteArray(), source.readChunk(source.manifest.files.single().id, 0))
+                assertEquals(2, f.provider.opens.size)
+                workflow.configure(saved, false, emptySet())
+                assertThrows(PhotoFolderScopeError::class.java) { source.offerMessage() }
+                workflow.retireCached(job)
+                assertTrue(workflow.jobs().isEmpty()); assertEquals("changed live photo", File(f.root, "source.bin").readText())
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun nativeWorkflowHoldsFailedReservationAndOnlyItsExactFailureCanDiscardOwnedPrivateCache() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { }
+                activity.start().resume()
+                val catalog = workflow.discover(); val album = catalog.albums.single()
+                File(f.root, "source.bin").writeText("bad")
+                val error = assertThrows(GalleryPhotoBuildFailure::class.java) { workflow.freeze(catalog, album) }
+                val held = workflow.jobs().single()
+                assertEquals(error.reservationId, held.id); assertEquals("reserved", held.phase); assertEquals(5L, held.plainBytes)
+                assertThrows(PhotoFolderScopeError::class.java) { workflow.source(held, catalog, album) }
+                val forged = GalleryPhotoBuildFailure(error.reservationId, java.io.IOException("foreign failure"))
+                assertThrows(PhotoFolderScopeError::class.java) { workflow.discardFailedBuild(forged) }
+                assertEquals(held, workflow.jobs().single())
+                workflow.discardFailedBuild(error)
+                assertTrue(workflow.jobs().isEmpty()); assertEquals("bad", File(f.root, "source.bin").readText())
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun nativeWorkflowRejectsCatalogCapturedBeforeResumeWithoutOpeningContentsOrReservingQuota() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { }
+                activity.start().resume()
+                val catalog = workflow.discover(); val album = catalog.albums.single()
+                activity.pause().stop().restart().start().resume()
+                assertEquals("gallery_source_visibility_changed", assertThrows(PhotoFolderScopeError::class.java) { workflow.freeze(catalog, album) }.code)
+                assertTrue(workflow.jobs().isEmpty()); assertTrue(f.provider.opens.isEmpty())
+                val fresh = workflow.discover()
+                assertNotEquals(catalog.accessEpoch, fresh.accessEpoch)
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
     }
 
     @Test fun boundedPagesEnumerateOnlyTheSelectedAlbumWithoutOpeningContents() {
