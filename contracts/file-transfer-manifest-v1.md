@@ -441,6 +441,29 @@ acceptance or proof of an end-to-end transfer.
 
 ## Linux physical no-replace publication (not a durable saved receipt)
 
+### Existing native key access without personal-store construction
+
+`ExistingFileTransferProtection` reads only an already present native telephone
+directory's `storage.key`. It never constructs `PhoneStore`, whose ordinary
+initialization may create keys/defaults, change identities or perform cleanup.
+The adapter does not create, chmod, replace or migrate any existing directory,
+key, identity, pairing, settings or database. Missing/corrupt/linked/non-private
+keys fail closed. Every seal/unseal rechecks the original directory/key inode
+and key bytes before and after AES-GCM. A detected root/key change fences that
+instance, even if old bytes later return; a native reopen is required.
+
+Transfer protection uses the separately length-framed
+`magnolie-file-transfer-protection-v1` AAD domain, not personal-store object AAD.
+The only generated randomness is a per-record nonce, never a storage key.
+There is no permission or destination authority in this adapter. Its 22 focused
+tests include actual stage checkpoint restore and publication-journal reopen,
+empty/chunk-size payloads, exact AAD framing, missing/corrupt/linked keys, root
+swaps/modes, mid-crypto rotation and unchanged opaque personal-file sentinels.
+Actual application-controller wiring and the protected PC job index remain
+required; merely constructing this adapter does not activate any transfer.
+
+### Descriptor-bound physical publication
+
 `magnolie_file_publish.NativeFilePublisher` now has 35 focused real-filesystem
 tests with the existing AES-GCM stage and resume ledger. A native accepted
 operation supplies an immutable complete target mapping, current transfer
