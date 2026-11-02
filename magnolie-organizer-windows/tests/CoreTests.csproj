@@ -29,6 +29,7 @@
     <Compile Include="..\PersonalActorOutgoingProducer.cs" Link="PersonalActorOutgoingProducer.cs" />
     <Compile Include="..\PersonalActorOutgoingTargetEvidence.cs" Link="PersonalActorOutgoingTargetEvidence.cs" />
     <Compile Include="..\PersonalActorIncomingLiveTargetObservation.cs" Link="PersonalActorIncomingLiveTargetObservation.cs" />
+    <Compile Include="..\PersonalActorHistoricalRestoreSourceObservation.cs" Link="PersonalActorHistoricalRestoreSourceObservation.cs" />
     <Compile Include="..\PersonalActorIncomingTargetChoiceReview.cs" Link="PersonalActorIncomingTargetChoiceReview.cs" />
     <Compile Include="..\TelefonStore.ActorProducer.cs" Link="TelefonStore.ActorProducer.cs" />
     <Compile Include="..\TelefonStore.ActorFixedDecisions.cs" Link="TelefonStore.ActorFixedDecisions.cs" />

@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows;
 // Private native controller observation only. NOT incoming admission, typed
 // action permission, content selection, packet/ACK/queue/transport authority.
 // Native caller must hold source/writer guards and use operation-live observers.
-internal sealed class PersonalActorIncomingLiveTargetObservation
+internal class PersonalActorIncomingLiveTargetObservation
 {
     private readonly string peerId, runId, sourceRevision;
     private readonly NativeBookSaveState saved;
@@ -77,7 +77,7 @@ internal sealed class PersonalActorIncomingLiveTargetObservation
         return result;
     }
 
-    private JsonObject ObserveTarget(string expectedRunId, JsonObject target, JsonObject book)
+    protected virtual JsonObject ObserveTarget(string expectedRunId, JsonObject target, JsonObject book)
     {
         if (expectedRunId != runId || target.Count != 6 || !new HashSet<string>(target.Select(value => value.Key), StringComparer.Ordinal)
             .SetEquals(["proposal_id", "kind", "id", "parent_id", "prior_hash", "clock"])) throw new InvalidOperationException("actor_target_proof_changed");
