@@ -870,6 +870,42 @@ protected photo preferences, desktop activation/controller integration and the
 Organizer advanced-controls caller remain open. No background synchronization,
 consent defaults, deletion propagation or discovery advertisement is introduced.
 
+### Protected native photo preferences (controller/UI join pending)
+
+Linux now has a separate existing-key-encrypted photo-policy store under the
+captured native telephone root. Its constructor and absent reads create no
+directory/database, identity, key, pairing or personal-store defaults. An absent
+policy is manual, receive/send off and both deletion directions off. Only an
+exact owner-bound one-shot native action can configure it. A native destination
+choice is still not consent; enabled receive additionally needs an associated
+saved policy, a currently available original destination and ready native handlers.
+Send permission is always off. Reverse deletion is explicitly unavailable.
+
+The dedicated SQLite owner/policy records bind native root/database/lock inode
+witnesses, exact public identity scope, persistent pairing generation, revision,
+destination witness/token and policy ciphertext hash. Ciphertext compare-and-swap
+rejects stale settings; each explicit update creates a fresh consent epoch.
+Re-pairing the same ID/key leaves the old policy preserved but unassociated/off.
+Schema, protected-record, missing-owner/policy and observed revision rollback
+fail closed without resetting data. A lost destination closes receive permission
+but does not prevent an explicit disable while preserving its historical witness.
+
+Nonwaiting operation/flock gates distinguish a competing live transaction from
+corrupt metadata. Native action deadlines are checked before commit and readback;
+transaction failure rolls back, while uncertain commit/durability/readback never
+reports success and requires reopening. Close immediately blocks new lookups,
+retains descriptors through actual active work, then releases them at I/O end.
+Interrupted initialization stays preserved and closed rather than being defaulted.
+
+Twenty-five targeted native Python cases pass, covering actual existing-key AEAD
+policy/readback, defaults, pairing isolation, CAS/action replay, unavailable target,
+missing key, partial-open lock retry, concurrent transaction, crypto/expiry failure,
+post-commit durability uncertainty, corrupt/missing metadata and close during
+blocked encryption. These fixture/source-host checks are not real power-loss,
+native dialog, installed GUI or physical synchronization acceptance. No scheduler,
+worker, desktop dispatcher or advanced-controls caller is connected by this
+store; discovery 21, automatic runs and package publication remain disabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

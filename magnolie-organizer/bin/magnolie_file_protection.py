@@ -150,6 +150,10 @@ class ExistingFileTransferProtection:
     def native_directory(self):
         return str(self._root) # Existing canonical native root, never a wire path.
 
+    @property
+    def native_directory_identity(self):
+        return self._ancestors[0][1] # Captured native inode witness, not authority.
+
     def close(self):
         with self._gate:
             if not self._closed:
