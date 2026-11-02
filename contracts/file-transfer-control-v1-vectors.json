@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "note": "Dedicated file-control metadata only, not OS permission or an accepted destination. Discovery 21 is reserved, not advertised yet.",
+  "packet": {
+    "format": 1,
+    "grant_revision": 3,
+    "grant_epoch": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "send_files": true,
+    "receive_files": false,
+    "manifest_versions": [1],
+    "session_epoch": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sequence": 1,
+    "echo": null
+  },
+  "canonical_bytes": 284,
+  "canonical_sha256": "4a607be40c5d2fc917158a1007334416882ecc14a0ea18ce1681cd4a9a5c633d",
+  "challenge_sha256": "3f919e84648c52122aa9946d27a6cd265077739a41d19f6d9395934325e2c8a4",
+  "sender": {"device_id": "sender_fixture_01", "identity_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+  "receiver": {"device_id": "receiver_fixture_01", "identity_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+  "receiver_grants": {
+    "grant_revision": 7,
+    "grant_epoch": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "send_files": false,
+    "receive_files": true,
+    "manifest_versions": [1]
+  },
+  "permission_epoch": "8cdc2f824872a22de57b19374617d1e94770eca5ca921ad79c8469556dfa5150"
+}

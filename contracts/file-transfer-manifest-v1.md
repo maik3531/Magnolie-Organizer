@@ -768,6 +768,11 @@ durable destination/receipt ownership, Organizer controls and end-to-end
 acceptance continue in #330. Archiving the groundwork is not completion of
 photo synchronization or permission to deliver/publish a new package.
 
+Dedicated own-peer control negotiation is specified in
+`file-transfer-control-v1.md`, with a shared cross-platform codec/epoch vector.
+It does not extend the legacy exact global capability/grant key sets, reuse
+contacts/notes grants, advertise discovery 21 prematurely or itself start sync.
+
 All additional configuration belongs **only in Organizer → KDE Connect →
 Advanced functions**, grouped in expandable sections. Detailed photo options
 should appear only when photo synchronization is enabled. There are no additional

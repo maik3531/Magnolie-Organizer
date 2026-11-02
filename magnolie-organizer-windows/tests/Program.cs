@@ -224,6 +224,7 @@ runner.Add("Device file manifest / immutable members / shared hash / portable pa
 runner.Add("Device file offer / complete envelope / native peer binding / exact byte budget", DeviceFileOfferEnvelopeTests.RunAsync);
 runner.Add("Photo sync schedule / manual default / explicit automatic / no overlapping native work", PhotoSyncScheduleTests.RunAsync);
 runner.Add("Photo sync plan / shared three-way cases / preserve edits and missing-photo uncertainty", PhotoSyncPlanTests.RunAsync);
+runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Device file resume / native binding / actual readback / checkpoint rejection", DeviceFileResumeLedgerTests.RunAsync);
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
