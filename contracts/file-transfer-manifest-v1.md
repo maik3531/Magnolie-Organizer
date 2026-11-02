@@ -57,7 +57,7 @@ The accompanying vectors are synthetic and include a Unicode path.
 
 ## Complete offer-envelope preflight (not registered yet)
 
-The Android source preflight prepares kind `file_transfer.offer`, with exact body
+The Android and desktop preflights prepare kind `file_transfer.offer`, with exact body
 `{version:1,manifest:<complete immutable manifest>,manifest_sha256:<fingerprint>}`
 and the existing exact `TelefonNachrichten` application header. TTL is at most
 60 seconds. The entire canonical UTF-8 application message must fit the unchanged
@@ -71,7 +71,13 @@ checked; none is permission inferred from the offer itself.
 sealed native index head and source lease. A returned message grants no enduring
 send authority; actual send/receive handlers must recheck negotiated consent.
 The kind is deliberately still rejected by the application dispatcher and is not
-advertised. Desktop counterpart/handler/acceptance integration remains pending.
+advertised. Linux `magnolie_file_offer` and Windows `DeviceFileOfferEnvelope`
+check the same complete encoding and native peer bindings. The separate shared
+`file-transfer-offer-v1-vectors.json` binds the existing Unicode manifest vector
+to an exact complete canonical application byte count and SHA-256 on all three
+platforms. Each platform tests exact maximum/+1-byte behavior independently.
+Actual handler/acceptance integration remains pending; Windows source-host
+checks are not native GUI/installed-package acceptance.
 
 ## Native binding and actual readback
 

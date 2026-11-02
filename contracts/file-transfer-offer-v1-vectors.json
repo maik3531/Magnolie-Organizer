@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "manifest_vector_index": 0,
+  "message_id": "00000000-0000-4000-8000-000000000001",
+  "created_ms": 1800000000000,
+  "ttl_ms": 60000,
+  "canonical_bytes": 653,
+  "canonical_sha256": "5e2e02be6b88b404c58efb7c9feb9b6e022a848a1b26e76abcee76e1a451e07c"
+}

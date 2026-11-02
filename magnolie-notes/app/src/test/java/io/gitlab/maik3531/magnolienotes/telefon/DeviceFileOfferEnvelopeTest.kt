@@ -46,6 +46,18 @@ class DeviceFileOfferEnvelopeTest {
         return largeManifest(low, difference).also { assertEquals(target, TelefonKanonisch.bytes(raw(it)).size) }
     }
 
+    @Test fun sharedCompleteUnicodeOfferEncodingMatchesDesktopVector() {
+        val vector = Json.parseToJsonElement(File("../contracts/file-transfer-offer-v1-vectors.json").readText()).jsonObject
+        val manifest = DeviceFileManifest.parse(fixture())
+        val message = DeviceFileOfferEnvelope.create(manifest, (vector["created_ms"] as JsonPrimitive).content.toLong(),
+            (vector["message_id"] as JsonPrimitive).content, (vector["ttl_ms"] as JsonPrimitive).content.toLong())
+        val bytes = TelefonKanonisch.bytes(message)
+        assertEquals((vector["canonical_bytes"] as JsonPrimitive).content.toInt(), bytes.size)
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
+        assertEquals((vector["canonical_sha256"] as JsonPrimitive).content, digest)
+    }
+
     @Test fun exactCompleteUtf8ApplicationLimitIsAcceptedButOneExtraByteIsNotSplitOrOffered() {
         val manifest = manifestForEnvelopeBytes(TelefonParameter.ANWENDUNG_MAX)
         val message = DeviceFileOfferEnvelope.create(manifest, now, messageId)
