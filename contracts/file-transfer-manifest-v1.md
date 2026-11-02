@@ -1,8 +1,9 @@
 # Device-file manifest and native resume ledger v1 (#329)
 
 Status: **source groundwork, not a negotiated or advertised capability**.
-The initial Python implementation is not a working Android photo-folder sync,
-Windows resume implementation or accepted native transfer feature. There is no
+The Python ledger and Python/Windows/Kotlin manifest implementations are not a
+working Android photo-folder sync, Windows resume implementation or accepted
+native transfer feature. There is no
 new message handler, listener, grant default or automatic filesystem action.
 
 This contract is separate from personal note/task/book transactions. Neither
@@ -35,6 +36,9 @@ collisions are rejected conservatively. Native destination planning must still
 check the actual target filesystem, choose collision-safe paths and prevent
 symlink/reparse traversal. A manifest path is not an OS path or a destination
 grant. Platform ports must pass shared vectors before any negotiation is enabled.
+Receivers may conservatively reject additional filesystem-equivalent names;
+the Windows preflight also rejects invariant case/diacritic aliases rather than
+risk binding two manifest members to the same target.
 
 ### Manifest SHA-256 framing
 
@@ -81,5 +85,7 @@ This result is a verified staged member, **not** a saved destination receipt.
 The initial ledger serializes its operations, does no I/O on import and does
 not itself persist metadata, open peer stores, create a destination, select an
 Android folder, announce capabilities or publish files. Native ownership-safe
-storage, cross-platform ports/negotiation, SAF opt-in, UI and end-to-end recovery
-remain active work in #329.
+storage, Windows/Kotlin ledger ports and negotiation, SAF opt-in, UI and
+end-to-end recovery remain active work in #329. The three manifest validators
+have matching shared UTF-8 hash-vector tests; bounded Windows source-host and
+Kotlin unit tests are not physical-device acceptance.

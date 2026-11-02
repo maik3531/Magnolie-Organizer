@@ -220,6 +220,7 @@ runner.Add("KDE incoming payload / pinned TLS / byte witness / cancellation", Kd
 runner.Add("KDE incoming offer / guarded destination / partial retry / no overwrite", KdeIncomingFileOfferTests.RunAsync);
 runner.Add("KDE receive backend / real control-payload TLS / one offer / cleanup", KdeReceiveIntegrationTests.RunAsync);
 runner.Add("KDE receive bridge / actual commands / owner lease / one native chooser", KdeReceiveBridgeTests.RunAsync);
+runner.Add("Device file manifest / immutable members / shared hash / portable paths", DeviceFileManifestTests.RunAsync);
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
 runner.Add("KDE media / player lifetime / bounded metadata / commands", KdeMediaTests.RunAsync);
