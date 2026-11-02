@@ -50,4 +50,62 @@ class NativeGalleryPermissionCommandsTest {
         clock = 100_000
         assertThrows(PhotoFolderScopeError::class.java) { ledger.execute("b".repeat(64), command, extra) { "requested" } }
     }
+
+    @Test fun aFutureDatedCommandCannotOutliveTheNativeReplayFenceAndPromptTwice() {
+        var elapsed = 100L
+        var wall = now
+        val ledger = NativeGalleryPermissionCommands(wallMs = { wall }) { elapsed }
+        val future = JsonObject(message() + mapOf("created_ms" to JsonPrimitive(now + 300_000), "expires_ms" to JsonPrimitive(now + 360_000)))
+        var prompts = 0
+        fun attempt(at: Long) {
+            wall = at
+            try {
+                val command = DeviceFileSourceCommand.parse(future, at)
+                ledger.execute("b".repeat(64), command, future) { prompts++; "requested" }
+            } catch (_: PhotoFolderScopeError) { /* Rejecting the command is safe. */ }
+        }
+        attempt(now)
+        elapsed += 60_001
+        attempt(now + 60_001)
+        assertTrue("Future-dated source command prompted twice after its native replay fence expired", prompts <= 1)
+    }
+
+    @Test fun wallRollbackAfterPruningCannotReviveAnExpiredCommandOrRecoverTheLedger() {
+        var elapsed = 100L; var wall = now
+        val ledger = NativeGalleryPermissionCommands(wallMs = { wall }) { elapsed }
+        val original = message(); var prompts = 0
+        ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(original, wall), original) { prompts++; "requested" }
+        elapsed += 60_001; wall += 60_001
+        val fresh = JsonObject(message() + mapOf("created_ms" to JsonPrimitive(wall), "expires_ms" to JsonPrimitive(wall + 60_000)))
+        ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(fresh, wall), fresh) { prompts++; "requested" }
+        elapsed++; wall = now + 1_000
+        assertThrows(PhotoFolderScopeError::class.java) {
+            ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(original, wall), original) { prompts++; "requested" }
+        }
+        wall = now + 62_000
+        assertThrows(PhotoFolderScopeError::class.java) {
+            ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(fresh, wall), fresh) { prompts++; "requested" }
+        }
+        assertEquals(2, prompts)
+    }
+
+    @Test fun liveFutureCommandsHoldCapacityUntilBothReplayAndEnvelopeDeadlinesEnd() {
+        var elapsed = 100L; var wall = now; var prompts = 0
+        val ledger = NativeGalleryPermissionCommands(wallMs = { wall }) { elapsed }
+        fun future() = JsonObject(message() + mapOf("created_ms" to JsonPrimitive(now + 300_000), "expires_ms" to JsonPrimitive(now + 360_000)))
+        repeat(64) {
+            val message = future()
+            ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(message, wall), message) { prompts++; "requested" }
+        }
+        elapsed += 60_001; wall += 60_001
+        val extra = future()
+        assertThrows(PhotoFolderScopeError::class.java) {
+            ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(extra, wall), extra) { prompts++; "requested" }
+        }
+        assertEquals(64, prompts)
+        elapsed += 300_000; wall += 300_000
+        val fresh = JsonObject(message() + mapOf("created_ms" to JsonPrimitive(wall), "expires_ms" to JsonPrimitive(wall + 60_000)))
+        ledger.execute("b".repeat(64), DeviceFileSourceCommand.parse(fresh, wall), fresh) { prompts++; "requested" }
+        assertEquals(65, prompts)
+    }
 }

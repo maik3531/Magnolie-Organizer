@@ -474,9 +474,10 @@ request ID, not resurrection of an old native owner.
 A bounded process-local command ledger is shared by the actual native transport
 owner across file-runtime reconnects. Its key is authenticated local/peer identity
 and pairing scope plus request ID; exact canonical command bytes must match.
-Up to 64 receipts are held for a monotonic 60 seconds. Failure evidence is recorded
+Up to 64 receipts are held for at least a monotonic 60 seconds and until their
+original command envelope has expired. Failure evidence is recorded
 before the UI call, so lost replies/native UI exceptions cannot cause the same
-command to prompt again. Clock rollback fences the ledger. No personal store or
+command to prompt again. Monotonic or observed wall-clock rollback fences the ledger. No personal store or
 persistent OS ticket is created. UI-queue failure closes only the file route
 without inventing success or crashing the Activity; unrelated phone transport is
 not deliberately closed by that callback. Desktop request/result codecs remain
@@ -613,7 +614,8 @@ Neither successful preparation nor cancellation conveys complete sync END,
 destination publication, saved receipt or quota retirement. A stopped run remains
 held; no remote success/retire/end command is introduced.
 
-A bounded 64-entry/monotonic-60-second process-local start ledger is shared by
+A bounded 64-entry process-local start ledger with a minimum monotonic-60-second
+retention and an original-envelope-expiry guard is shared by
 the actual transport owner. Exact repeats on the same native runtime return the
 same native handle without another scan. Modified bytes with the same request ID,
 failed attempts and adoption by a new runtime fail closed. It is not a restart
@@ -632,6 +634,24 @@ errors. These remain source-host/Robolectric/synthetic-channel checks. Desktop
 activation/UI, accepted-offer/chunk/resume/receipt handlers and full recovery/photo
 baseline integration remain open. Discovery 21 stays unadvertised; no automatic
 synchronization or package publication is enabled.
+
+### Replay retention across clock skew/rollback (#334)
+
+A focused parser/native-ledger regression confirmed that a future-dated command
+allowed by the existing general header clock-skew tolerance could outlive a
+receipt retained for only sixty seconds after receipt and prompt twice. Dedicated
+permission/run start histories now prune an entry only after **both** its minimum
+monotonic retention and original wall-clock envelope deadline have passed.
+Capacity stays bounded at 64; live fences are not evicted to make space. Observed
+wall-clock rollback permanently fences that process-local history, including
+after an earlier pruning, rather than allowing an expired command to revive.
+The general message clock-skew rules, wire codecs and grant defaults are unchanged.
+
+Fourteen affected Android cases pass: permission history seven, run history five,
+actual permission-dispatch/reconnect one and actual encrypted source-run one.
+They include the original future-command replay failure, rollback after pruning,
+capacity held beyond sixty seconds and safe capacity reuse only after both bounds.
+No physical phone/UI or completed synchronization acceptance is implied.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

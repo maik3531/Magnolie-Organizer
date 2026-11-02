@@ -57,4 +57,23 @@ class NativeGalleryRunCommandsTest {
         clock = 100_000
         assertThrows(PhotoFolderScopeError::class.java) { ledger.start("b".repeat(64), owner, command, message) { native } }
     }
+
+    @Test fun futureEnvelopeExpiryKeepsItsRunFenceBeyondSixtySecondsAndWallRollbackIsPermanent() {
+        var elapsed = 100L; var wall = now
+        val ledger = NativeGalleryRunCommands(wallMs = { wall }) { elapsed }
+        val owner = Any(); val native = run(); var starts = 0
+        val future = JsonObject(message() + mapOf("created_ms" to JsonPrimitive(now + 300_000), "expires_ms" to JsonPrimitive(now + 360_000)))
+        ledger.start("b".repeat(64), owner, DeviceFileSourceCommand.parse(future, wall), future) { starts++; native }
+        elapsed += 60_001; wall += 60_001
+        assertSame(native, ledger.start("b".repeat(64), owner, DeviceFileSourceCommand.parse(future, wall), future) { starts++; native })
+        elapsed++; wall--
+        assertThrows(PhotoFolderScopeError::class.java) {
+            ledger.start("b".repeat(64), owner, DeviceFileSourceCommand.parse(future, wall), future) { starts++; native }
+        }
+        wall += 2_000
+        assertThrows(PhotoFolderScopeError::class.java) {
+            ledger.start("b".repeat(64), owner, DeviceFileSourceCommand.parse(future, wall), future) { starts++; native }
+        }
+        assertEquals(1, starts)
+    }
 }
