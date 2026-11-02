@@ -4817,6 +4817,96 @@ class PhoneService:
                 'choice_revision': draft['choice_revision'], 'saved_book': captured.saved_book, 'sources': result['local_restore_sources']})
             return result
 
+    def prepare_personal_actor_historical_restore_save(self, registry, handle, expected_revision, choices, candidate_text):
+        """Private GUI-writer preparation only; no public/native RPC route yet.
+
+        The native exact delta validator, not a caller-selected hash, establishes
+        the candidate. Data is retired before issuing the writer token. No save,
+        queued decision, successful receipt or retained book/provider is created.
+        A separate actual SaveACK confirmation/terminal handoff is still needed.
+        """
+        from magnolie_personal_actor_restore_candidate import NativeHistoricalRestoreCandidateProof
+        with self.lock:
+            choices = copy.deepcopy(choices)
+            admission, source, manifest = self._personal_actor_target_origin_current(registry, handle)
+            if admission.get('historical_save_claim') is not None:
+                raise PermissionError('actor_historical_save_already_prepared')
+            private = personal_actor_contract.storage_peer(handle.actor_id)
+            if (any(owner == private and value['body']['run_id'] == handle.actor_id for owner, value in self.store.ready_personal_domains()) or
+                    admission.get('producer_bodies') or admission.get('commit_plan') or
+                    admission.get('completion') is not None):
+                raise PermissionError('actor_historical_mixed_group_not_ready')
+            reviewed = self.review_personal_actor_historical_restore(registry, handle, expected_revision, choices)
+            targets = [value['target'] for value in reviewed['local_restore_sources']]
+            request = self.store.personal_run(private, handle.actor_id)
+            proof = NativeHistoricalRestoreCandidateProof.prepare(admission['peer'], handle.actor_id, request['format'], targets, choices, candidate_text,
+                current_owner=lambda: self._personal_actor_target_origin_current(registry, handle)[0] is admission,
+                current_source=lambda: self._personal_actor_target_origin_current(registry, handle)[1],
+                current_snapshot=self.native_actor_producer_book,
+                current_scope=lambda: self.current_content_scope(admission['peer'], admission['key'], admission['scope']))
+            fingerprint = registry.status(handle)['fingerprint']
+            origin = admission['incoming_target_origin']
+            original = {wire['message_id']: personal_sync_contract.projection_hash(wire)
+                for wire in self.read_personal_actor_incoming_target_frames(registry, handle)}
+            plan = {'token': secrets.token_hex(32), 'proof': proof, 'review_revision': expected_revision,
+                'choice_revision': reviewed['choice_revision'], 'restore_source_revision': reviewed['restore_source_revision'],
+                'targets': copy.deepcopy(targets), 'choices': copy.deepcopy(choices), 'original_hashes': original}
+
+            def native_guard(operation, wire):
+                if operation not in ('begin', 'save'):
+                    return None  # No mutation/send/receipt authority before a genuine SaveACK handoff.
+                if (self.personal_actor_admissions.get(handle.actor_id) is not admission or admission.get('historical_save_claim') is not plan or
+                        self.connections.get(admission['peer']) is not admission['channel'] or
+                        admission.get('incoming_target_origin') is not origin):
+                    return False
+                current_source = registry.current_source(admission['peer'], fingerprint)
+                if current_source is None:
+                    return None
+                if current_source != source:
+                    return False
+                actual_scope = self.current_content_scope(admission['peer'], admission['key'], admission['scope'])
+                self._check_personal_actor_target_origin(registry, origin, source, actual_scope)
+                if actual_scope != manifest:
+                    return False
+                frames = {json.loads(clear)['message_id']: personal_sync_contract.projection_hash(json.loads(clear)) for clear in origin['frames'].values()}
+                if frames != original:
+                    return False
+                for clear in origin['frames'].values():
+                    registry._wire_payload(handle, json.loads(clear))
+                actual = self.native_actor_producer_book()
+                actual_saved = self.native_actor_saved_book()
+                if actual is None or actual_saved is None:
+                    return None
+                return (actual.book_source == proof.book_source and actual.sequence == proof.before_sequence and
+                    actual.saved_sha256 == proof.before_sha256 and actual.content_sha256 == proof.before_content_sha256 and
+                    actual_saved == actual.saved_book)
+
+            admission['historical_save_claim'] = plan
+            try:
+                registry.begin_completion(handle, native_guard)
+                registry.check_historical_save(handle)
+            except BaseException:
+                admission.pop('historical_save_claim', None)
+                registry.cancel(handle)
+                raise
+            return {'claim_token': plan['token'], 'after_sha256': proof.after_sha256, 'before_sequence': proof.before_sequence,
+                'book_source': proof.book_source, 'data_closed': True, 'book_persisted': False, 'phone_persisted': False}
+
+    def check_personal_actor_historical_restore_save(self, registry, handle, claim_token, candidate_text):
+        """Native writer calls this immediately before its actual write, under
+        the same retained writer/source guard. No public/IPC/wire caller exists.
+        """
+        with self.lock:
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            plan = admission.get('historical_save_claim') if admission is not None else None
+            if (admission is None or admission.get('registry') is not registry or admission.get('handle') != handle or plan is None or
+                    not isinstance(claim_token, str) or not secrets.compare_digest(plan['token'], claim_token)):
+                raise PermissionError('actor_historical_save_claim_unavailable')
+            if (not isinstance(candidate_text, str) or len(candidate_text) > 256 * 1024 * 1024 or
+                    hashlib.sha256(candidate_text.encode('utf-8')).hexdigest() != plan['proof'].after_sha256):
+                raise PermissionError('actor_historical_writer_payload_changed')
+            registry.check_historical_save(handle)
+
     def start_personal_actor(self, registry, handle):
         """Claim with native authority; the potentially blocking write is outside all guards."""
         with self.lock:

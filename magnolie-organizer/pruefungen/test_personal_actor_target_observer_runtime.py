@@ -14,7 +14,7 @@ from test_personal_actor_incoming_target_evidence import live_fixture
 from test_shared_sync_transport import message
 
 
-def observation_runtime(tmp_path, monkeypatch, kind, pending=False, source_fixture=None):
+def observation_runtime(tmp_path, monkeypatch, kind, pending=False, source_fixture=None, full_live_scope=False):
     service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
     for side in ('local_grants', 'grants'):
         peer[side]['grants']['personal_deletions_sync'] = True
@@ -42,6 +42,13 @@ def observation_runtime(tmp_path, monkeypatch, kind, pending=False, source_fixtu
     service.native_actor_book_source = lambda: owner.current('native-producer-fixture', True)
     service.native_actor_saved_book = read
     service.native_actor_producer_book = lambda: snapshot
+    if full_live_scope:
+        manifest = scope.create(source_fixture['members']['notes'], source_fixture['members']['tasks'])
+        binding = (peer['device_id'], peer['static_public'], id(channel))
+        session = scope.ScopeSession(binding)
+        for part in scope.chunks(manifest):
+            session.receive(binding, part)
+        service.content_scope_sessions[channel] = session
     registry = service.personal_actor_registry()
     handle = registry.create(peer['device_id'], fingerprint, service.current_actor_source(peer['device_id'], fingerprint))
     return service, peer, channel, manifest, book, target, owner, read, snapshot, registry, handle
