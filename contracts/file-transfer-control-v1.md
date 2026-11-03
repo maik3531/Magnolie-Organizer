@@ -1,5 +1,23 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Linux resume source metadata codecs and shared vectors (Refs #362, #337)
+
+Linux source codecs now encode/decode the same four explicit resume commands and
+strictly correlated run results as Android. Exact original job ID/version and opaque
+catalog/album or run identities remain metadata, not READ/Chunk/Saved grants. Extra
+authority/path fields, wrong types, unused builder options, cross-normal/resume
+operation responses, stale results and inconsistent I/O states reject. The shared
+four canonical command/hash vectors are verified by both Linux and Android.
+
+99 distinct host cases pass (34 new, 65 affected): strict codec vectors/type/expiry/
+correlation cases, actual existing Linux source runtime compatibility and explicit
+refusal to emit unfinished native resume commands, plus Android shared-vector
+validation. NativeDesktopFileConnection and its readiness gate are unchanged; this
+codec step does NOT implement desktop receiver resume/acceptance/reconciliation,
+Windows parity, UI or physical acceptance. A separate general Python UUID None-type
+validation concern is tracked in #363; new resume fields are locally type-checked.
+Production/automatic/UI/releases remain OFF.
+
 ### Current-owner native transfer dispatch (Refs #361, #337)
 
 The existing authenticated TelefonWerk file lane now forwards acceptance/Chunk/

@@ -5,6 +5,7 @@ created here. A decoded result describes saved settings, never media READ or a
 saved-destination receipt.
 """
 from dataclasses import dataclass
+import re
 import uuid
 
 from magnolie_file_control import MAX_REVISION, MAX_TTL_MS, MAX_WIRE_BYTES, _hex
@@ -57,6 +58,8 @@ class SourceCommand:
     album_id: str | None = None
     desktop_choice: bool | None = None
     run_id: str | None = None
+    original_job_id: str | None = None
+    original_job_version: str | None = None
 
 
 def parse_command(message, *, now=None):
@@ -69,6 +72,23 @@ def parse_command(message, *, now=None):
                 or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], 'media_page', body['expected_version'], after=body['after'], run_id=body['run_id'])
+    if body.get('operation') in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
+        starting = body['operation'] == 'resume_run'
+        fields = {'catalog_id', 'album_id', 'desktop_choice', 'original_job_id', 'original_job_version'} if starting else {'run_id'}
+        if set(body) != base | {'expected_version'} | fields or not _hex(body['expected_version']):
+            raise TransferError('file_sources_invalid_command')
+        if starting:
+            if (type(body['catalog_id']) is not str or not valid_uuid(body['catalog_id'], version=4)
+                    or type(body['album_id']) is not str or not valid_uuid(body['album_id'], version=4)
+                    or type(body['desktop_choice']) is not bool or type(body['original_job_id']) is not str
+                    or re.fullmatch(r'[0-9a-f]{32}', body['original_job_id']) is None or not _hex(body['original_job_version'])):
+                raise TransferError('file_sources_invalid_command')
+            return SourceCommand(message['message_id'], body['operation'], body['expected_version'], catalog_id=body['catalog_id'],
+                                 album_id=body['album_id'], desktop_choice=body['desktop_choice'],
+                                 original_job_id=body['original_job_id'], original_job_version=body['original_job_version'])
+        if type(body['run_id']) is not str or not valid_uuid(body['run_id'], version=4):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], body['operation'], body['expected_version'], run_id=body['run_id'])
     if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run'):
         starting = body['operation'] == 'run'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
@@ -101,14 +121,30 @@ def parse_command(message, *, now=None):
 
 
 def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
-                   album_id=None, desktop_choice=None, run_id=None, now=None, message_id=None):
+                   album_id=None, desktop_choice=None, run_id=None, original_job_id=None, original_job_version=None,
+                   now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation != 'resume_run' and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation == 'media_page':
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+        raise TransferError('file_sources_invalid_command')
+    if operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
+        if enabled is not None or kinds != () or after is not None:
+            raise TransferError('file_sources_invalid_command')
+        body['expected_version'] = expected_version
+        if operation == 'resume_run':
+            if run_id is not None:
+                raise TransferError('file_sources_invalid_command')
+            body.update(catalog_id=catalog_id, album_id=album_id, desktop_choice=desktop_choice,
+                        original_job_id=original_job_id, original_job_version=original_job_version)
+        else:
+            if any(value is not None for value in (catalog_id, album_id, desktop_choice)):
+                raise TransferError('file_sources_invalid_command')
+            body['run_id'] = run_id
+    elif operation == 'media_page':
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, album_id, desktop_choice)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, run_id=run_id, after=after)
@@ -260,18 +296,23 @@ class SourceRunResult:
 def parse_run_result(message, *, expected_request_id, expected_operation, expected_version,
                      expected_run_id=None, now=None):
     body = _body(message, RUN_RESULT, now_ms() if now is None else now)
-    offering = body.get('operation') == 'offer_run'
+    if body.get('operation') in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
+        if (any(type(body.get(key)) is not str for key in ('request_id', 'run_id'))
+                or body['operation'] == 'offer_resume' and type(body.get('offer_id')) is not str
+                or body['operation'] != 'resume_run' and type(expected_run_id) is not str):
+            raise TransferError('file_sources_invalid_run_result')
+    offering = body.get('operation') in ('offer_run', 'offer_resume')
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'} |
             ({'offer_id', 'manifest_sha256'} if offering else set())
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run') or body['operation'] != expected_operation
+            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume') or body['operation'] != expected_operation
             or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
-            or body['operation'] != 'run' and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
-            or body['operation'] == 'run' and expected_run_id is not None and body['run_id'] != expected_run_id
+            or body['operation'] not in ('run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
+            or body['operation'] in ('run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id
             or type(body['source_io_ended']) is not bool
             or body['state'] not in ('preparing', 'snapshot_ready', 'cancel_pending', 'canceled_held', 'failed_held')
             or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'canceled_held', 'failed_held'))
-            or body['operation'] == 'cancel_run' and body['state'] not in ('cancel_pending', 'canceled_held')
+            or body['operation'] in ('cancel_run', 'cancel_resume') and body['state'] not in ('cancel_pending', 'canceled_held')
             or offering and (body['state'] != 'snapshot_ready' or not valid_uuid(body['offer_id'], version=4)
                              or not _hex(body['manifest_sha256']))):
         raise TransferError('file_sources_invalid_run_result')

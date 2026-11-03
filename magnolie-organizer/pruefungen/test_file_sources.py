@@ -36,6 +36,59 @@ def test_strict_status_and_configure_roundtrip_is_metadata_only():
     assert sources.parse_command(sources.create_command("status", now=NOW), now=NOW).operation == "status"
 
 
+def resume_vector():
+    return json.loads((Path(__file__).resolve().parents[2] / 'contracts/file-transfer-resume-sources-v1-vectors.json').read_text())
+
+
+@pytest.mark.parametrize('index', range(4))
+def test_shared_resume_command_goldens_roundtrip_without_native_authority(index):
+    vector = resume_vector(); message = vector['commands'][index]; before = deepcopy(message)
+    command = sources.parse_command(message, now=vector['now_ms'])
+    assert hashlib.sha256(sources.canonical(message)).hexdigest() == vector['canonical_sha256'][index]
+    options = dict(message['body']); operation = options.pop('operation'); options.pop('format')
+    assert sources.create_command(operation, **options, now=NOW, message_id=message['message_id']) == message
+    assert command.operation == operation and message == before
+    assert not hasattr(command, 'read_granted') and not hasattr(command, 'allows_chunk_output')
+
+
+@pytest.mark.parametrize('field,value', [('original_job_id', True), ('original_job_id', 'b' * 31),
+    ('original_job_id', 'B' * 32), ('original_job_version', True), ('original_job_version', 'c' * 63),
+    ('desktop_choice', 1), ('desktop_choice', 'true'), ('album_id', '/private'), ('catalog_id', None), ('album_id', None), ('run_id', ID),
+    ('read_granted', True), ('quota_retired', True), ('path', 'DCIM/Camera')])
+def test_resume_command_rejects_wrong_original_context_types_and_authority_fields(field, value):
+    message = deepcopy(resume_vector()['commands'][0]); message['body'][field] = value
+    with pytest.raises(TransferError): sources.parse_command(message, now=NOW)
+
+
+@pytest.mark.parametrize('operation', ['status', 'run', 'run_status', 'offer_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+def test_resume_original_context_cannot_be_silently_ignored_by_other_command_builders(operation):
+    with pytest.raises(TransferError):
+        sources.create_command(operation, expected_version='a' * 64, run_id=ID,
+                               original_job_id='b' * 32, original_job_version='c' * 64, now=NOW)
+
+
+@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+def test_resume_results_correlate_exact_operation_owner_and_metadata_only_state(operation):
+    message = sources.create_command('status', now=NOW, message_id=ID)
+    message['kind'] = sources.RUN_RESULT
+    body = dict(format=1, request_id=ID, operation=operation, version='a' * 64, run_id=ID,
+                state='canceled_held' if operation == 'cancel_resume' else 'snapshot_ready', source_io_ended=True)
+    if operation == 'offer_resume': body.update(offer_id=ID, manifest_sha256='b' * 64)
+    message['body'] = body
+    options = dict(expected_request_id=ID, expected_operation=operation, expected_version='a' * 64, now=NOW)
+    if operation != 'resume_run': options['expected_run_id'] = ID
+    parsed = sources.parse_run_result(message, **options)
+    assert parsed.operation == operation and parsed.source_io_ended
+    for key, value in [('operation', 'run' if operation == 'resume_run' else 'offer_run'), ('run_id', '22222222-2222-4222-8222-222222222222'),
+                       ('request_id', None), ('run_id', None), ('source_io_ended', 1), ('state', 'synchronized'), ('saved', True), ('quota_retired', True)]:
+        changed = deepcopy(message); changed['body'][key] = value
+        if operation == 'resume_run' and key == 'run_id':
+            with pytest.raises(TransferError): sources.parse_run_result(changed, **dict(options, expected_run_id=ID))
+        else:
+            with pytest.raises(TransferError): sources.parse_run_result(changed, **options)
+    with pytest.raises(TransferError): sources.parse_run_result(message, **dict(options, now=NOW + 60_000))
+
+
 @pytest.mark.parametrize('key,value', [('enabled', 1), ('enabled', 'true'), ('format', True),
     ('expected_version', 'absent'), ('kinds', ['camera', 'camera']), ('kinds', ['screenshots', 'camera']),
     ('kinds', ['CAMERA']), ('kinds', []), ('send_files', True), ('read_granted', True), ('automatic', True), ('path', '/personal')])

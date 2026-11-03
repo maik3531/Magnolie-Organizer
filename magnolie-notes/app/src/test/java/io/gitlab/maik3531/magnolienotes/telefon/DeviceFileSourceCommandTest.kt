@@ -55,6 +55,24 @@ class DeviceFileSourceCommandTest {
         assertEquals(setOf(GallerySourceKind.CAMERA, GallerySourceKind.SCREENSHOTS), command.kinds)
     }
 
+    @Test fun sharedResumeSourceGoldensMatchLinuxWithoutGrantingNativeAuthority() {
+        val vector = Json.parseToJsonElement(java.io.File("../contracts/file-transfer-resume-sources-v1-vectors.json").readText()).jsonObject
+        val at = vector["now_ms"]!!.jsonPrimitive.long
+        val commands = vector["commands"]!!.jsonArray
+        val hashes = vector["canonical_sha256"]!!.jsonArray
+        assertEquals(4, commands.size); assertEquals(commands.size, hashes.size)
+        commands.forEachIndexed { index, item ->
+            val message = item.jsonObject; val parsed = DeviceFileSourceCommand.parse(message, at)
+            assertEquals(message["body"]!!.jsonObject.string("operation"), parsed.operation)
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(message))
+                .joinToString("") { "%02x".format(it.toInt() and 255) }
+            assertEquals(hashes[index].jsonPrimitive.content, digest)
+            if (index == 0) { assertEquals("b".repeat(32), parsed.originalJobId); assertEquals("c".repeat(64), parsed.originalJobVersion) }
+            else { assertNull(parsed.originalJobId); assertNull(parsed.originalJobVersion) }
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message, at + 60_000) }
+        }
+    }
+
     @Test fun discoveryAndPagingRequireTheExactPolicyVersionAndCanonicalOpaqueCatalogCursor() {
         val discover = buildJsonObject { put("format", 1); put("operation", "discover"); put("expected_version", "a".repeat(64)) }
         assertEquals("discover", DeviceFileSourceCommand.parse(message(discover), now).operation)

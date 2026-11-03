@@ -63,6 +63,18 @@ def updated_control(fixture):
         created_ms=at, expires_ms=at+60_000, body=packet.wire()))
 
 
+@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+def test_new_resume_codecs_do_not_silently_enable_unfinished_native_receiver_commands(receiving, operation):
+    status(receiving)
+    connection = receiving[3]; count = receiving[2].send.call_count
+    with pytest.raises(TransferError):
+        connection.request_source(connection.issue_receive_action(), operation)
+    assert receiving[2].send.call_count == count
+    assert connection._source_pending is None and connection._source_run is None
+    assert connection._run is None and connection._catalog is None
+    assert not list(receiving[4].iterdir())
+
+
 @pytest.mark.parametrize('receiving', [False], indirect=True)
 def test_own_receive_consent_bootstraps_actual_status_route_while_source_send_stays_off(receiving, monkeypatch):
     service, peer, channel, connection, destination = receiving
