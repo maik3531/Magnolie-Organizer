@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Whole native resume preparation ownership (Refs #355, #337)
+
+An explicit native resume run now owns the actual original-job preparation through
+the SAME single source worker used by normal freezes. The worker can return an
+actual renewed local source without reserving/freezing a new job. Pending I/O never
+publishes that handle. Cancel/close requests do not clear its slot; only real prepare
+return with descriptor cleanup marks I/O END and releases worker ownership.
+
+Normal sync, resume and standalone preparation are mutually excluded by the native
+runtime. Whole resume ownership remains held after worker completion until the exact
+run is explicitly stopped and its real I/O is quiescent. Foreign/stale owners and
+historical recovery while a run is held reject. Exit/revocation retains source index
+ownership until blocked provider I/O actually ends; no late readable handle appears.
+Failed preparation neither finishes a sync nor removes originals/proofs/quota.
+
+33 distinct host cases pass (two new, 31 affected), including real blocked PFD worker
+renewal/close, actual native runtime cancellation, completion-held ownership, failed
+live-byte validation, foreign/invalid original job, both overlap directions, stopped
+END checks and deferred connection release during blocked resume. Normal worker,
+runtime/control/offer fixtures also pass. No resume offer/acceptance/Chunk/Saved or
+source-command/wire/UI handoff is added by this owner component. Those integrations,
+pending-attempt repair and global convergence/physical acceptance remain unfinished;
+all production/UI/automatic/release gates remain OFF.
+
 ### Durable bounded resume-attempt phases (Refs #354, #337)
 
 The native metadata attempt now MUST prepare a protected immutable offer head

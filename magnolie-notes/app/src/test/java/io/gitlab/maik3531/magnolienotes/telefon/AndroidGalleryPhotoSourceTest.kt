@@ -870,6 +870,58 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun renewedPreparationUsesSameWorkerSlotAndPublishesOnlyAfterRealPfdEnd() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            h.restoreCache(); val inputs = resumeInputs(h)
+            val catalog = NativeGalleryAlbumCatalog(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(h.f.album), h.f.request), Any(), { true })
+            val page = catalog.page(); val selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1); val ended = java.util.concurrent.CountDownLatch(1)
+            val worker = NativeGallerySourceWorker({ _, _ -> throw AssertionError("Renewal must not allocate/freeze a new job") }, { ended.countDown() })
+            h.f.provider.onOpen = { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            try {
+                val run = worker.startRenewed(selected) { _, cancellation -> index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, cancellation, {}, {}) }
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertFalse(run.ioEnded); assertFalse(worker.isQuiescent)
+                assertThrows(PhotoFolderScopeError::class.java) { run.renewedSource() }
+                assertThrows(PhotoFolderScopeError::class.java) { worker.start(selected) }
+                assertThrows(PhotoFolderScopeError::class.java) { worker.startRenewed(selected) { _, _ -> throw AssertionError("No overlap") } }
+                assertEquals(listOf(h.job), index.jobs())
+                release.countDown(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertTrue(run.ioEnded); assertTrue(worker.isQuiescent); assertEquals("snapshot_ready", run.phase)
+                assertEquals(h.job, run.snapshotJob())
+                val source = run.renewedSource()!!; val file = source.manifest.files.single()
+                assertArrayEquals("hello".toByteArray(), source.readChunk(file.id, 0))
+                run.cancel(); assertNull(run.renewedSource())
+                assertThrows(android.os.OperationCanceledException::class.java) { source.readChunk(file.id, 0).fill(0) }
+                assertEquals(listOf(h.job), index.jobs())
+            } finally { release.countDown(); worker.close(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); catalog.close() }
+        } }
+    }
+
+    @Test fun closingRenewedWorkerRetainsBlockedPfdOwnershipAndRejectsLateSourcePublication() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            h.restoreCache(); val inputs = resumeInputs(h)
+            val catalog = NativeGalleryAlbumCatalog(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(h.f.album), h.f.request), Any(), { true })
+            val page = catalog.page(); val selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1); val ended = java.util.concurrent.CountDownLatch(1)
+            val worker = NativeGallerySourceWorker({ _, _ -> throw AssertionError("No new reservation") }, { ended.countDown() })
+            h.f.provider.onOpen = { entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            try {
+                val run = worker.startRenewed(selected) { _, cancellation -> index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, cancellation, {}, {}) }
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                worker.close()
+                assertTrue(run.cancelRequested); assertFalse(run.ioEnded); assertFalse(worker.isQuiescent)
+                assertThrows(PhotoFolderScopeError::class.java) { run.renewedSource() }
+                assertEquals(listOf(h.job), index.jobs())
+                release.countDown(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertTrue(run.ioEnded); assertTrue(worker.isQuiescent); assertEquals("canceled_held", run.phase)
+                assertNull(run.snapshotJob()); assertNull(run.renewedSource())
+                assertThrows(PhotoFolderScopeError::class.java) { worker.start(selected) }
+                assertEquals(listOf(h.job), index.jobs()); assertEquals("hello", File(h.f.root, "source.bin").readText())
+            } finally { release.countDown(); worker.close(); assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)); catalog.close() }
+        } }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
@@ -1474,6 +1526,7 @@ class AndroidGalleryPhotoSourceTest {
                         acceptance=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+
                             ("offer_id" to JsonPrimitive(offeredWire[0].string("message_id"))))))
                         runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.beginResumeRun(selected, started.snapshotJob()!!) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.issueHistoricalSavedAction(started.snapshotJob()!!) }
                         PhotoSourceJobIndex(root, protection).use { inspected ->
                             val originalJob = inspected.jobs().single()
@@ -1551,9 +1604,81 @@ class AndroidGalleryPhotoSourceTest {
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.sendSyncRunOffer(whole, {}, now) }
                         runtime.endStoppedSyncRun(whole)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }
-                        assertNotNull(runtime.savedPolicy().policy); assertEquals(0, released.get())
-                        connection!!.close()
                         val originalJob = PhotoSourceJobIndex(root, protection).use { it.jobs().single() }
+                        runtime.discoverSelectable().use { resumeCatalog ->
+                            val resumePage = resumeCatalog.page()
+                            val resumeSelected = resumeCatalog.select(resumePage.string("catalog_id"), resumePage["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                            val beforeResumeOpens = f.provider.opens.toList()
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.beginResumeRun(resumeSelected, originalJob.copy(version = "9".repeat(64))) }
+                            assertEquals(beforeResumeOpens, f.provider.opens)
+                            val resumeEntered = java.util.concurrent.CountDownLatch(1); val resumeRelease = java.util.concurrent.CountDownLatch(1)
+                            val resumeEnded = java.util.concurrent.CountDownLatch(1)
+                            endedField.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { resumeEnded.countDown() } })
+                            f.provider.onOpen = { resumeEntered.countDown(); check(resumeRelease.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                            try {
+                                val resuming = runtime.beginResumeRun(resumeSelected, originalJob)
+                                assertTrue(resumeEntered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                                assertFalse(resuming.preparation.ioEnded)
+                                assertThrows(PhotoFolderScopeError::class.java) { resuming.source() }
+                                assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(resumeSelected) }
+                                assertThrows(PhotoFolderScopeError::class.java) { runtime.prepareSource(resumeSelected) }
+                                assertThrows(PhotoFolderScopeError::class.java) { runtime.beginResumeRun(resumeSelected, originalJob) }
+                                assertThrows(PhotoFolderScopeError::class.java) { runtime.issueHistoricalSavedAction(originalJob) }
+                                runtime.cancelResumeRun(resuming)
+                                assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedResumeRun(resuming) }
+                                resumeRelease.countDown(); assertTrue(resumeEnded.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                                assertNull(resuming.preparation.renewedSource()); runtime.endStoppedResumeRun(resuming)
+                            } finally { resumeRelease.countDown(); assertTrue(resumeEnded.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                            f.provider.onOpen = null
+                            val ready = java.util.concurrent.CountDownLatch(1)
+                            endedField.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { ready.countDown() } })
+                            val resumed = runtime.beginResumeRun(resumeSelected, originalJob)
+                            assertTrue(ready.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                            val local = resumed.source(); val resumedFile = local.manifest.files.single()
+                            assertArrayEquals("hello".toByteArray(), local.readChunk(resumedFile.id, 0))
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedResumeRun(resumed) }
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(resumeSelected) }
+                            val foreignResume = NativeGalleryResumeRun(resumeSelected, originalJob, resumed.preparation)
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.cancelResumeRun(foreignResume) }
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedResumeRun(foreignResume) }
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.issueHistoricalSavedAction(originalJob) }
+                            runtime.cancelResumeRun(resumed)
+                            assertThrows(android.os.OperationCanceledException::class.java) { local.readChunk(resumedFile.id, 0).fill(0) }
+                            runtime.endStoppedResumeRun(resumed)
+                            File(f.root, "source.bin").writeText("HELLO")
+                            val failedEnd = java.util.concurrent.CountDownLatch(1)
+                            endedField.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { failedEnd.countDown() } })
+                            val failedResume = runtime.beginResumeRun(resumeSelected, originalJob)
+                            assertTrue(failedEnd.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                            assertEquals("failed_held", failedResume.preparation.phase)
+                            assertThrows(PhotoFolderScopeError::class.java) { failedResume.source() }
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedResumeRun(failedResume) }
+                            runtime.cancelResumeRun(failedResume); runtime.endStoppedResumeRun(failedResume)
+                            assertEquals("HELLO", File(f.root, "source.bin").readText())
+                            assertEquals(listOf(originalJob), runtime.historicalSourceJobs())
+                        }
+                        assertNotNull(runtime.savedPolicy().policy); assertEquals(0, released.get())
+                        // Explicit fixture user edit back to the original bytes for
+                        // the separate blocked-close scenario, never app repair.
+                        File(f.root, "source.bin").writeText("hello")
+                        runtime.discoverSelectable().use { closingCatalog ->
+                            val closingPage = closingCatalog.page()
+                            val selectedClosing = closingCatalog.select(closingPage.string("catalog_id"), closingPage["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                            val enteredClose = java.util.concurrent.CountDownLatch(1); val releaseClose = java.util.concurrent.CountDownLatch(1)
+                            val endedClose = java.util.concurrent.CountDownLatch(1)
+                            endedField.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { endedClose.countDown() } })
+                            f.provider.onOpen = { enteredClose.countDown(); check(releaseClose.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                            try {
+                                val closingRun = runtime.beginResumeRun(selectedClosing, originalJob)
+                                assertTrue(enteredClose.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                                connection!!.close()
+                                assertFalse(closingRun.preparation.ioEnded); assertEquals(0, released.get())
+                                assertNotNull(runtime.savedPolicy().policy); assertNull(runtime.currentRequest())
+                                releaseClose.countDown(); assertTrue(endedClose.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                                assertNull(closingRun.preparation.renewedSource())
+                            } finally { releaseClose.countDown(); assertTrue(endedClose.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                        }
+                        connection!!.close()
                         val originalCache = File(root, "photo-source-" + originalJob.id)
                         val heldCache = File(root.parentFile, root.name + "-held-cache")
                         assertTrue(originalCache.renameTo(heldCache))

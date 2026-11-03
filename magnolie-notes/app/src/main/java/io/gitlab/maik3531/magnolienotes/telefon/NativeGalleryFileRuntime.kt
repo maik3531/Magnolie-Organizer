@@ -22,6 +22,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private val operationGate = java.util.concurrent.locks.ReentrantLock()
     private var operationActive = false // Guarded by the short-lived runtime monitor.
     private var syncRun: NativeGallerySyncRun? = null // Access only through operationGate.
+    private var resumeRun: NativeGalleryResumeRun? = null // Same whole-run owner, not disk metadata.
     private val app = context.applicationContext
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
@@ -60,7 +61,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         workflow.discoverSelectable(cancellation)
     }
     fun prepareSource(selection: NativeGalleryAlbumSelection): NativeGallerySourceRun = withOperation {
-        if (syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (syncRun != null || resumeRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         sourceWorker.start(selection)
@@ -71,11 +72,31 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     private fun beginSyncRunOwned(selection: NativeGalleryAlbumSelection, checkCommand: () -> Unit = {}): NativeGallerySyncRun {
-        if (syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (syncRun != null || resumeRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         checkCommand()
         return NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
+    }
+
+    internal fun beginResumeRun(selection: NativeGalleryAlbumSelection, original: PhotoSourceJob): NativeGalleryResumeRun = withOperation {
+        if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        index.requireGalleryResumeOriginal(original)
+        workflow.validateSelection(selection)
+        val preparing = sourceWorker.startRenewed(selection) { selected, cancellation -> workflow.renewSource(selected, original, cancellation) }
+        NativeGalleryResumeRun(selection, original, preparing).also { resumeRun = it }
+    }
+
+    internal fun cancelResumeRun(run: NativeGalleryResumeRun) = withOperation {
+        if (resumeRun !== run) DeviceFileControl.fail("gallery_resume_run_not_current")
+        run.cancel()
+    }
+
+    internal fun endStoppedResumeRun(run: NativeGalleryResumeRun) = withOperation {
+        if (resumeRun !== run || !run.cancelRequested) DeviceFileControl.fail("gallery_resume_run_not_current")
+        if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        resumeRun = null // No cache/proof/quota cleanup or successful sync assertion.
     }
 
     /** Native-only offer path. An output receipt is not acceptance/publication.
@@ -236,13 +257,13 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     internal fun historicalSourceJobs(): List<PhotoSourceJob> = withOperation { index.jobs() }
 
     internal fun issueHistoricalSavedAction(expected: PhotoSourceJob): NativeHistoricalSavedAction = withOperation {
-        if (syncRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
+        if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
         index.issueHistoricalSavedAction(expected, { workflow.currentRequest()?.receiver })
     }
 
     internal fun recoverHistoricalSaved(action: NativeHistoricalSavedAction, message: JsonObject,
         now: () -> Long = { System.currentTimeMillis() }): PhotoSourceRemoteSaved = withOperation {
-        if (syncRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
+        if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
         index.commitHistoricalRemoteSaved(action, message, now)
     }
 
