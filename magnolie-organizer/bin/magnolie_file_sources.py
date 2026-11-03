@@ -18,6 +18,7 @@ CATALOG = "file_transfer.sources.catalog"
 PERMISSION_RESULT = "file_transfer.sources.permission_result"
 RUN_RESULT = "file_transfer.sources.run_result"
 MEDIA = "file_transfer.sources.media"
+RESUME = "file_transfer.sources.resume"
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
 
 
@@ -60,6 +61,9 @@ class SourceCommand:
     run_id: str | None = None
     original_job_id: str | None = None
     original_job_version: str | None = None
+    source_id: str | None = None
+    transfer_id: str | None = None
+    manifest_sha256: str | None = None
 
 
 def parse_command(message, *, now=None):
@@ -72,6 +76,13 @@ def parse_command(message, *, now=None):
                 or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], 'media_page', body['expected_version'], after=body['after'], run_id=body['run_id'])
+    if body.get('operation') == 'resume_lookup':
+        if (set(body) != base | {'expected_version', 'source_id', 'transfer_id', 'manifest_sha256'}
+                or not _hex(body['expected_version']) or not _hex(body['manifest_sha256'])
+                or any(type(body[key]) is not str or re.fullmatch(r'[0-9a-f]{32}', body[key]) is None for key in ('source_id', 'transfer_id'))):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], 'resume_lookup', body['expected_version'],
+                             source_id=body['source_id'], transfer_id=body['transfer_id'], manifest_sha256=body['manifest_sha256'])
     if body.get('operation') in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
         starting = body['operation'] == 'resume_run'
         fields = {'catalog_id', 'album_id', 'desktop_choice', 'original_job_id', 'original_job_version'} if starting else {'run_id'}
@@ -122,16 +133,22 @@ def parse_command(message, *, now=None):
 
 def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
                    album_id=None, desktop_choice=None, run_id=None, original_job_id=None, original_job_version=None,
-                   now=None, message_id=None):
+                   source_id=None, transfer_id=None, manifest_sha256=None, now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
+    if operation != 'resume_lookup' and any(value is not None for value in (source_id, transfer_id, manifest_sha256)):
+        raise TransferError('file_sources_invalid_command')
     if operation != 'resume_run' and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
     if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
-    if operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
+    if operation == 'resume_lookup':
+        if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice, run_id)):
+            raise TransferError('file_sources_invalid_command')
+        body.update(expected_version=expected_version, source_id=source_id, transfer_id=transfer_id, manifest_sha256=manifest_sha256)
+    elif operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
         if enabled is not None or kinds != () or after is not None:
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
@@ -291,6 +308,40 @@ class SourceRunResult:
     source_io_ended: bool
     offer_id: str | None = None
     manifest_sha256: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceResumeHistory:
+    request_id: str
+    version: str
+    job_id: str
+    job_version: str
+    phase: str
+    source_id: str
+    transfer_id: str
+    manifest_sha256: str
+    remote_saved_history: bool
+    attempt_phase: str | None
+
+
+def parse_resume_history(message, *, expected_request_id, expected_version, expected_source_id,
+                         expected_transfer_id, expected_manifest_sha256, now=None):
+    """Historical hints only: never receiver/source readiness or a resume grant."""
+    body = _body(message, RESUME, now_ms() if now is None else now)
+    if (set(body) != {'format', 'request_id', 'operation', 'version', 'history'}
+            or body['operation'] != 'resume_lookup' or not valid_uuid(body['request_id'], version=4)
+            or body['request_id'] != expected_request_id or not _hex(body['version']) or body['version'] != expected_version
+            or type(body['history']) is not dict):
+        raise TransferError('file_sources_invalid_resume_history')
+    value = body['history']
+    if (set(value) != {'job_id', 'job_version', 'phase', 'source_id', 'transfer_id', 'manifest_sha256', 'remote_saved_history', 'attempt_phase'}
+            or any(type(value[key]) is not str or re.fullmatch(r'[0-9a-f]{32}', value[key]) is None for key in ('job_id', 'source_id', 'transfer_id'))
+            or not _hex(value['job_version']) or not _hex(value['manifest_sha256']) or value['phase'] not in ('sealed', 'retired')
+            or value['source_id'] != expected_source_id or value['transfer_id'] != expected_transfer_id
+            or value['manifest_sha256'] != expected_manifest_sha256 or type(value['remote_saved_history']) is not bool
+            or value['attempt_phase'] not in (None, 'prepared', 'sent', 'accepted')):
+        raise TransferError('file_sources_invalid_resume_history')
+    return SourceResumeHistory(body['request_id'], body['version'], **value)
 
 
 def parse_run_result(message, *, expected_request_id, expected_operation, expected_version,

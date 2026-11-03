@@ -504,6 +504,20 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "resume_lookup") {
+                val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+                val history = index.lookupGalleryResume(localIdentity.deviceId, command.lookupSourceId!!, command.lookupTransferId!!, command.lookupManifestSha256!!,
+                    request.receiver, request.policyEpoch)
+                authority()
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                    put("version", JsonPrimitive(before.version)); put("history", history)
+                }
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                authority(); send(TelefonNachrichten.message(DeviceFileSourceCommand.RESUME, body, ttl, at)); authority()
+                return@withOperation // Historical metadata only, not readiness or a native owner.
+            }
             if (command.operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume")) {
                 val run = if (command.operation == "resume_run") {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")

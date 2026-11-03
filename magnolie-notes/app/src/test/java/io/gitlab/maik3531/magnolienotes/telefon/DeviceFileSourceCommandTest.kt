@@ -60,7 +60,7 @@ class DeviceFileSourceCommandTest {
         val at = vector["now_ms"]!!.jsonPrimitive.long
         val commands = vector["commands"]!!.jsonArray
         val hashes = vector["canonical_sha256"]!!.jsonArray
-        assertEquals(4, commands.size); assertEquals(commands.size, hashes.size)
+        assertEquals(5, commands.size); assertEquals(commands.size, hashes.size)
         commands.forEachIndexed { index, item ->
             val message = item.jsonObject; val parsed = DeviceFileSourceCommand.parse(message, at)
             assertEquals(message["body"]!!.jsonObject.string("operation"), parsed.operation)
@@ -69,6 +69,10 @@ class DeviceFileSourceCommandTest {
             assertEquals(hashes[index].jsonPrimitive.content, digest)
             if (index == 0) { assertEquals("b".repeat(32), parsed.originalJobId); assertEquals("c".repeat(64), parsed.originalJobVersion) }
             else { assertNull(parsed.originalJobId); assertNull(parsed.originalJobVersion) }
+            if (index == 4) {
+                assertEquals("d".repeat(32), parsed.lookupSourceId); assertEquals("e".repeat(32), parsed.lookupTransferId)
+                assertEquals("f".repeat(64), parsed.lookupManifestSha256)
+            }
             assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message, at + 60_000) }
         }
     }

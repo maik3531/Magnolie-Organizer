@@ -63,7 +63,7 @@ def updated_control(fixture):
         created_ms=at, expires_ms=at+60_000, body=packet.wire()))
 
 
-@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_lookup'])
 def test_new_resume_codecs_do_not_silently_enable_unfinished_native_receiver_commands(receiving, operation):
     status(receiving)
     connection = receiving[3]; count = receiving[2].send.call_count

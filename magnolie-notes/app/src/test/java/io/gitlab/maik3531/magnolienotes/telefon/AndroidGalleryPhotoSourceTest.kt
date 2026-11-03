@@ -1058,6 +1058,13 @@ class AndroidGalleryPhotoSourceTest {
             TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
                 put("format", 1); put("operation", operation); put("expected_version", runtime.savedPolicy().version); put("run_id", run.id)
             }, 60_000, at)
+        fun lookup(): JsonObject {
+            val manifest = DeviceFileManifest.parse(job.snapshot!!["manifest"]!!.jsonObject)
+            return TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "resume_lookup"); put("expected_version", runtime.savedPolicy().version)
+                put("source_id", manifest.sourceId); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+            }, 60_000, now)
+        }
         override fun close() {
             release.countDown(); runtime.revokeControl()
             if (!worker.isQuiescent) awaitEnd()
@@ -1667,6 +1674,82 @@ class AndroidGalleryPhotoSourceTest {
                 assertEquals(0, h.output.size())
             } finally { h.release.countDown(); h.awaitEnd() }
             h.assertOriginal()
+        }
+    }
+
+    @Test fun historicalResumeLookupUsesExactOriginalManifestWithoutHostCacheOrOsPhotoRead() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.lookup(); val child = File(h.root, "photo-source-" + h.job.id); val held = File(h.f.root, "held-lookup364")
+            assertTrue(child.renameTo(held)); h.host.close()
+            Shadows.shadowOf(h.f.context as Application).denyPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
+            h.f.provider.onQuery = { throw AssertionError("Historical lookup must not query MediaStore") }
+            h.f.provider.onOpen = { throw AssertionError("Historical lookup must not open a PFD") }
+            try {
+                h.runtime.receiveSourceCommand(message, h.channel::send, { h.now })
+                val result = h.drain().single(); assertEquals(DeviceFileSourceCommand.RESUME, result.string("kind"))
+                val history = result["body"]!!.jsonObject["history"]!!.jsonObject
+                assertEquals(setOf("job_id", "job_version", "phase", "source_id", "transfer_id", "manifest_sha256", "remote_saved_history", "attempt_phase"), history.keys)
+                assertEquals(h.job.id, history.string("job_id")); assertEquals(h.job.version, history.string("job_version"))
+                assertEquals(JsonPrimitive(false), history["remote_saved_history"]); assertEquals(JsonNull, history["attempt_phase"])
+                h.inspect { assertNull(it.resumeAttempt(h.job)) }
+                assertFalse(child.exists()); assertEquals(0, h.output.size())
+            } finally { assertTrue(held.renameTo(child)) }
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeLookupUnknownManifestOrChangedOriginalNativePeerPolicyRemainsHold() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.lookup(); val body = message["body"]!!.jsonObject
+            for ((field, value) in listOf("source_id" to JsonPrimitive("9".repeat(32)), "transfer_id" to JsonPrimitive("9".repeat(32)),
+                "manifest_sha256" to JsonPrimitive("9".repeat(64)), "source_id" to JsonPrimitive(true), "path" to JsonPrimitive("DCIM/Camera"))) {
+                val changed = JsonObject(message + ("body" to JsonObject(body + (field to value))))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(changed, h.channel::send, { h.now }) }
+            }
+            val receiver = h.runtime.currentRequest()!!.receiver; val manifest = DeviceFileManifest.parse(h.job.snapshot!!["manifest"]!!.jsonObject)
+            h.inspect { index ->
+                for (wrong in listOf(receiver.copy(identitySha256 = "9".repeat(64)), receiver.copy(permissionEpoch = "9".repeat(64)),
+                    receiver.copy(pairingEpoch = "9".repeat(64)), receiver.copy(pairingEpoch = null))) assertThrows(PhotoFolderScopeError::class.java) {
+                    index.lookupGalleryResume(h.identity.deviceId, manifest.sourceId, manifest.transferId, manifest.fingerprint, wrong, h.runtime.currentRequest()!!.policyEpoch)
+                }
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    index.lookupGalleryResume(h.identity.deviceId, manifest.sourceId, manifest.transferId, manifest.fingerprint, receiver, "9".repeat(64))
+                }
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    index.lookupGalleryResume("foreign_sender_01", manifest.sourceId, manifest.transferId, manifest.fingerprint, receiver, h.runtime.currentRequest()!!.policyEpoch)
+                }
+            }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeLookupReportsAcceptedHeadOnlyAsHistoricalHintWithoutRestoringRun() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val lookup = h.lookup()
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+            h.runtime.receiveSourceCommand(lookup, h.channel::send, { h.now })
+            val history = h.drain().single()["body"]!!.jsonObject["history"]!!.jsonObject
+            assertEquals(JsonPrimitive("accepted"), history["attempt_phase"])
+            assertEquals(JsonPrimitive(false), history["remote_saved_history"])
+            assertFalse(history.containsKey("ready")); assertFalse(history.containsKey("resumable"))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveTransferMessage(h.acceptance(run), h.channel::send, { h.now + 120_000 }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeLookupRetiredOriginalRemainsHistoricalAndCannotBecomeAResumeRun() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.lookup(); lateinit var retired: PhotoSourceJob
+            h.inspect { index ->
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireAndClean(h.job) { } }
+                retired = index.jobs().single(); assertEquals("retired", retired.phase)
+            }
+            h.runtime.receiveSourceCommand(message, h.channel::send, { h.now })
+            val history = h.drain().single()["body"]!!.jsonObject["history"]!!.jsonObject
+            assertEquals(JsonPrimitive("retired"), history["phase"]); assertEquals(retired.version, history.string("job_version"))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginResumeRun(h.selected, retired) }
+            assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+            assertEquals("hello", File(h.f.root, "source.bin").readText())
         }
     }
 

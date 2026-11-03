@@ -8,6 +8,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -206,6 +208,36 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
         if (actual != expected) fail("photo_jobs_cas_conflict")
         readResumeAttempt(actual)
+    }
+
+    /** Exact historical metadata lookup, never a cache/OS READ or run grant. */
+    internal fun lookupGalleryResume(senderId: String, sourceId: String, transferId: String, manifestSha256: String,
+        receiver: NativePhotoReceiver, policyEpoch: String): JsonObject = gated {
+        writableMembership()
+        if (!receiver.allowed || receiver.pairingEpoch == null) fail("photo_jobs_historical_authority_changed")
+        val matches = readAll().filter { job ->
+            job.snapshot?.get("manifest")?.let { value ->
+                val manifest = DeviceFileManifest.parse(value as? JsonObject ?: fail("photo_jobs_snapshot_missing"))
+                manifest.senderId == senderId && manifest.sourceId == sourceId && manifest.transferId == transferId && manifest.fingerprint == manifestSha256
+            } == true
+        }
+        val job = matches.singleOrNull() ?: fail("photo_jobs_historical_original_job_required")
+        if (job.phase !in setOf("sealed", "retired")) fail("photo_jobs_historical_original_job_required")
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        val authority = original.originalAuthority ?: fail("photo_jobs_remote_acceptance_repair_required")
+        val tree = authority.record["tree"] as JsonPrimitive
+        if (authority.receiverId != receiver.peerId || authority.receiverIdentitySha256 != receiver.identitySha256 ||
+            authority.pairingEpoch != receiver.pairingEpoch || authority.permissionEpoch != receiver.permissionEpoch ||
+            authority.record["epoch"] != JsonPrimitive(policyEpoch) ||
+            !(tree.content.startsWith("gallery-album-v1:") || tree.content.startsWith("gallery-video-album-v1:")))
+            fail("photo_jobs_historical_authority_changed")
+        val attempt = readResumeAttempt(job)
+        buildJsonObject {
+            put("job_id", job.id); put("job_version", job.version); put("phase", job.phase)
+            put("source_id", sourceId); put("transfer_id", transferId); put("manifest_sha256", manifestSha256)
+            put("remote_saved_history", readRemoteSaved(job) != null)
+            put("attempt_phase", attempt?.phase?.let(::JsonPrimitive) ?: JsonNull)
+        }
     }
 
     private fun readResumeAttempt(job: PhotoSourceJob): PhotoSourceResumeAttempt? = meta("resume-attempt-v1/" + job.id)?.let {

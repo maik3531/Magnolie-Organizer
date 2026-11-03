@@ -10,7 +10,8 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
     val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long,
     val catalogId: String? = null, val after: Int = 0,
     val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null,
-    val originalJobId: String? = null, val originalJobVersion: String? = null) {
+    val originalJobId: String? = null, val originalJobVersion: String? = null,
+    val lookupSourceId: String? = null, val lookupTransferId: String? = null, val lookupManifestSha256: String? = null) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
@@ -18,6 +19,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
         const val PERMISSION_RESULT = "file_transfer.sources.permission_result"
         const val RUN_RESULT = "file_transfer.sources.run_result"
         const val MEDIA = "file_transfer.sources.media"
+        const val RESUME = "file_transfer.sources.resume"
         fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
             fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
             if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
@@ -32,6 +34,14 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
+            if (operation == "resume_lookup") {
+                if (body.keys != base + setOf("expected_version", "source_id", "transfer_id", "manifest_sha256")) fail()
+                fun id(name: String) = text(name).takeIf { Regex("[0-9a-f]{32}").matches(it) } ?: fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val manifest = text("manifest_sha256").takeIf(DeviceFileControl::hash) ?: fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
+                    lookupSourceId = id("source_id"), lookupTransferId = id("transfer_id"), lookupManifestSha256 = manifest)
+            }
             if (operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume")) {
                 val starting = operation == "resume_run"
                 if (body.keys != base + setOf("expected_version") + (if (starting)

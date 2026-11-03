@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Exact original-manifest historical lookup (Refs #364, #337)
+
+Android's private source-job ID is independently generated, not the manifest source
+ID. A guarded resume_lookup can now correlate the exact original source/transfer/
+manifest hashes to one authenticated historical job/version under the current native
+sender, receiver identity, nonmissing pairing, permission and policy epoch. Unknown,
+ambiguous, legacy or foreign bindings HOLD. Lookup opens no cache, MediaStore/PFD or
+permission host and creates no reservation/run/attempt/READ authority.
+
+Its bounded reply carries only original job/version/phase and historical saved/
+attempt-phase hints. Even accepted/retired metadata is NOT readiness or adoption
+authority. Private paths, read tokens, keys and cipher witnesses are not transmitted.
+Linux strict lookup/result codecs correlate those fields; a fifth shared canonical
+Android/Linux vector covers lookup. NativeDesktopFileConnection remains unjoined
+and refuses incomplete native lookup/resume emission rather than granting rights.
+
+142 distinct host cases pass (25 new, 117 affected): actual authenticated Android
+lookup without photo READ/host/cache, foreign original/source/peer/pairing/permission/
+policy rejection, accepted-head and retired-history no-adoption, shared vectors,
+Linux strict history/extra-authority rejection and source runtime/parser compatibility.
+This is not desktop receiver/source-run reconciliation or safe pending-head repair.
+UI, Windows parity, global convergence and physical acceptance remain unfinished;
+production/automatic/UI/releases remain OFF.
+
 ### Linux resume source metadata codecs and shared vectors (Refs #362, #337)
 
 Linux source codecs now encode/decode the same four explicit resume commands and

@@ -40,7 +40,7 @@ def resume_vector():
     return json.loads((Path(__file__).resolve().parents[2] / 'contracts/file-transfer-resume-sources-v1-vectors.json').read_text())
 
 
-@pytest.mark.parametrize('index', range(4))
+@pytest.mark.parametrize('index', range(5))
 def test_shared_resume_command_goldens_roundtrip_without_native_authority(index):
     vector = resume_vector(); message = vector['commands'][index]; before = deepcopy(message)
     command = sources.parse_command(message, now=vector['now_ms'])
@@ -87,6 +87,43 @@ def test_resume_results_correlate_exact_operation_owner_and_metadata_only_state(
         else:
             with pytest.raises(TransferError): sources.parse_run_result(changed, **options)
     with pytest.raises(TransferError): sources.parse_run_result(message, **dict(options, now=NOW + 60_000))
+
+
+def resume_history():
+    command = deepcopy(resume_vector()['commands'][4]); command['kind'] = sources.RESUME
+    command['body'] = dict(format=1, request_id=command['message_id'], operation='resume_lookup', version='a' * 64,
+        history=dict(job_id='b' * 32, job_version='c' * 64, phase='sealed', source_id='d' * 32, transfer_id='e' * 32,
+                     manifest_sha256='f' * 64, remote_saved_history=False, attempt_phase='prepared'))
+    return command
+
+
+def history_options():
+    return dict(expected_request_id=resume_vector()['commands'][4]['message_id'], expected_version='a' * 64,
+                expected_source_id='d' * 32, expected_transfer_id='e' * 32, expected_manifest_sha256='f' * 64, now=NOW)
+
+
+@pytest.mark.parametrize('phase', [None, 'prepared', 'sent', 'accepted'])
+def test_resume_lookup_history_is_only_a_correlated_hint_not_read_or_run_readiness(phase):
+    message = resume_history(); message['body']['history']['attempt_phase'] = phase
+    before = deepcopy(message); history = sources.parse_resume_history(message, **history_options())
+    assert history.job_id == 'b' * 32 and history.attempt_phase == phase
+    assert not hasattr(history, 'ready') and not hasattr(history, 'resumable') and not hasattr(history, 'allows_chunk_output')
+    assert before == message
+    with pytest.raises(TransferError): sources.parse_resume_history(message, **dict(history_options(), now=NOW + 60_000))
+
+
+@pytest.mark.parametrize('field,value', [('job_id', True), ('job_version', 'c' * 63), ('phase', 'reserved'),
+    ('source_id', '9' * 32), ('transfer_id', '9' * 32), ('manifest_sha256', '9' * 64), ('remote_saved_history', 1),
+    ('attempt_phase', 'ready'), ('ready', True), ('path', '/personal'), ('read_granted', True)])
+def test_resume_lookup_rejects_foreign_manifest_or_fabricated_authority_and_history_fields(field, value):
+    message = resume_history(); message['body']['history'][field] = value
+    with pytest.raises(TransferError): sources.parse_resume_history(message, **history_options())
+
+
+@pytest.mark.parametrize('operation', ['status', 'run', 'resume_run', 'offer_resume'])
+def test_resume_lookup_context_cannot_be_injected_into_other_command_builders(operation):
+    with pytest.raises(TransferError): sources.create_command(operation, expected_version='a' * 64,
+        source_id='d' * 32, transfer_id='e' * 32, manifest_sha256='f' * 64, now=NOW)
 
 
 @pytest.mark.parametrize('key,value', [('enabled', 1), ('enabled', 'true'), ('format', True),
