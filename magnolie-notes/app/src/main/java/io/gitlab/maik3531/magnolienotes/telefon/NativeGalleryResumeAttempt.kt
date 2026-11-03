@@ -25,6 +25,7 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
     private val deadline: Long
     private var sent = false
     private var accepted: NativeResumeAcceptanceProjection? = null
+    private var storage: NativeResumeAttemptStorage? = null
     init {
         if (lastElapsed < 0 || lastElapsed > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS)
             DeviceFileControl.fail("gallery_resume_attempt_not_current")
@@ -32,6 +33,12 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
     }
 
     fun cancel() { canceled.set(true) } // Never waits behind an actual output.
+
+    fun prepareStorage(index: PhotoSourceJobIndex, now: () -> Long = System::currentTimeMillis): Unit = owned {
+        current(now())
+        storage = index.prepareResumeAttempt(this, source.job, source.originalAcceptance(), offer) { current(now()) }
+        current(now())
+    }
 
     private fun current(wall: Long) {
         try {
@@ -53,18 +60,22 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
     fun sendOffer(send: (JsonObject) -> Unit, now: () -> Long = System::currentTimeMillis): Unit = owned {
         current(now())
         if (accepted != null) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
+        val durable = storage ?: DeviceFileControl.fail("gallery_resume_attempt_storage_required")
+        durable.requireOutput(this); current(now())
         try { send(offer) } catch (error: Exception) {
             // Keep the exact original envelope for retry, but an observed native
             // revocation/expiry remains sticky even if the transport also failed.
             try { current(now()) } catch (_: Exception) { }
             throw error
         }
-        current(now()); sent = true
+        current(now()); durable.sent(this) { current(now()) }; current(now()); sent = true
     }
 
     fun observeAcceptance(message: JsonObject, now: () -> Long = System::currentTimeMillis): NativeResumeAcceptanceProjection = owned {
         val at = now(); current(at)
         if (!sent) DeviceFileControl.fail("gallery_resume_offer_not_sent")
+        val durable = storage ?: DeviceFileControl.fail("gallery_resume_attempt_storage_required")
+        durable.requireSent(this)
         val remote = DeviceFileAcceptanceEnvelope.parse(message, at)
         if (remote.offerId != offerId || remote.transferId != expected.transferId || remote.manifestSha256 != expected.manifestSha256 ||
             remote.acceptanceSha256 != expected.acceptanceSha256 || remote.permissionEpoch != expected.permissionEpoch ||
@@ -73,6 +84,11 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
         if (checked >= remote.expires) DeviceFileControl.fail("gallery_resume_attempt_not_current")
         val prior = accepted
         if (prior != null && prior.accepted != remote) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
+        durable.accepted(this, message, checked) {
+            val currentWall = now(); current(currentWall)
+            if (currentWall >= remote.expires) DeviceFileControl.fail("gallery_resume_attempt_not_current")
+        }
+        current(now())
         prior ?: NativeResumeAcceptanceProjection(id, message, remote, minOf(remote.expires, offer.long("expires_ms"))).also { accepted = it }
     }
 

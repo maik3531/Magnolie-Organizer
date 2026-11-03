@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Durable bounded resume-attempt phases (Refs #354, #337)
+
+The native metadata attempt now MUST prepare a protected immutable offer head
+before any output. Separate prepared/sent/accepted phases mean respectively no
+output proof, actual callback completion plus revalidation, and a fresh correlated
+acceptance. Each stage commits with aggregate membership in the same SQL transaction
+and sync/readback before its RAM success. No original job/acceptance/cipher/consent
+or quota is rewritten. One bounded attempt row per actual original job is allowed.
+
+Same live native attempt/base is idempotent. Another generated attempt identity
+cannot adopt a persisted head, even after expiry; historical JSON read creates no
+live owner/clock/READ/Chunk grant. A pending/uncertain old attempt remains HOLD for
+separate explicit repair. Missing/damaged rows remain integrity failures. Proven
+final cache retirement deletes original proofs, resume head and job together;
+rollback preserves them and the retired quota reservation together.
+
+184 distinct host cases pass (eight new, 176 affected), including all three phases'
+SQL/Sync failure and permission/expiry boundaries, fresh historical inspection with
+no adoption, output prohibition without durable preparation, immutable retry,
+typed/context/phase-bypass rejection, and final retirement rollback. Earlier native
+offer fixtures now explicitly perform real native durable preparation, not a guard
+override. Accepted proof/projection still explicitly grants NO Chunk output. Whole
+resume-run/worker/Chunk/Saved ownership and runtime/wire/UI integration remain
+unfinished, as do global convergence and physical acceptance. Production gates OFF.
+
 ### Separate bounded resume-offer metadata attempt (Refs #353, #337)
 
 A new explicit native component prepares ONE immutable fresh offer from an actual
@@ -12,9 +37,9 @@ bytes already handed to transport cannot be retracted.
 A fresh acceptance must correlate to the new offer while retaining EXACT original
 transfer/manifest/acceptance-hash/permission/destination bindings. Changed fields,
 historical offer IDs and alternative acceptance envelopes cannot silently rebind.
-The returned projection explicitly grants NO Chunk output. This component has no
-durable resume-attempt CAS/run ownership, Chunk/Saved/baseline/retirement handler,
-runtime/wire/UI registration or automatic output. Those steps remain mandatory
+The returned projection explicitly grants NO Chunk output. Durable attempt CAS is
+now enforced as described above; whole run ownership, Chunk/Saved/baseline handling,
+runtime/wire/UI registration and automatic scheduling remain absent and mandatory
 before production use. It never writes original job/proof/ciphertext/quota.
 
 Nine distinct host cases pass (eight new, one affected workflow): actual native

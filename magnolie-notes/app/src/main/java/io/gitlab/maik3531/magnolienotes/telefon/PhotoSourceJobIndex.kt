@@ -202,6 +202,76 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         PhotoSourceRemoteAcceptance.parse(parse(protection.open(it, "photo-source-jobs-v1/remote-acceptance/" + job.id)), job)
     }
 
+    fun resumeAttempt(expected: PhotoSourceJob): PhotoSourceResumeAttempt? = gated {
+        val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+        if (actual != expected) fail("photo_jobs_cas_conflict")
+        readResumeAttempt(actual)
+    }
+
+    private fun readResumeAttempt(job: PhotoSourceJob): PhotoSourceResumeAttempt? = meta("resume-attempt-v1/" + job.id)?.let {
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        PhotoSourceResumeAttempt.parse(parse(protection.open(it, "photo-source-jobs-v1/resume-attempt/" + job.id)), job, original)
+    }
+
+    internal fun prepareResumeAttempt(owner: NativeGalleryResumeAttempt, job: PhotoSourceJob, original: PhotoSourceRemoteAcceptance,
+        offer: JsonObject, permitted: () -> Unit): NativeResumeAttemptStorage = gated {
+        writableMembership(); permitted()
+        if (job.phase != "sealed" || readOne(job.id) != job || readRemoteAcceptance(job)?.record != original.record)
+            fail("photo_jobs_historical_original_job_required")
+        val next = PhotoSourceResumeAttempt.prepare(job, original, owner.id, offer)
+        val existing = readResumeAttempt(job)
+        if (existing != null) {
+            if (existing.base != next.base) fail("photo_jobs_resume_original_attempt_held")
+        } else {
+            val cipher = protection.seal(frame(next.record), "photo-source-jobs-v1/resume-attempt/" + job.id)
+            permitted()
+            transaction {
+                if (readOne(job.id) != job || meta("resume-attempt-v1/" + job.id) != null) fail("photo_jobs_cas_conflict")
+                permitted()
+                db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "resume-attempt-v1/" + job.id); put("sealed", cipher) })
+                membership!!.advance(); permitted()
+            }
+            if (readResumeAttempt(job)?.record != next.record) fail("photo_jobs_resume_attempt_readback_failed")
+        }
+        permitted()
+        NativeResumeAttemptStorage(this, owner, job, next.base)
+    }
+
+    internal fun requireResumeAttempt(job: PhotoSourceJob, base: JsonObject): PhotoSourceResumeAttempt = gated {
+        writableMembership()
+        if (job.phase != "sealed" || readOne(job.id) != job) fail("photo_jobs_historical_original_job_required")
+        val state = readResumeAttempt(job) ?: fail("photo_jobs_resume_attempt_missing")
+        if (state.base != base) fail("photo_jobs_resume_attempt_changed")
+        state
+    }
+
+    internal fun advanceResumeAttempt(job: PhotoSourceJob, base: JsonObject, phase: String, message: JsonObject?, observedAt: Long?,
+        permitted: () -> Unit): Unit = gated {
+        val prior = requireResumeAttempt(job, base); permitted()
+        if (phase == "sent" && prior.phase == "sent") return@gated
+        if (phase == "accepted" && prior.phase == "accepted") {
+            if (prior.record["acceptance"] != message) fail("photo_jobs_resume_acceptance_changed")
+            permitted(); return@gated
+        }
+        if (phase == "sent" && prior.phase != "prepared" || phase == "accepted" && prior.phase != "sent" || phase !in setOf("sent", "accepted"))
+            fail("photo_jobs_resume_attempt_phase_conflict")
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        val next = PhotoSourceResumeAttempt.advance(prior, phase, job, original, message, observedAt)
+        val name = "resume-attempt-v1/" + job.id
+        val before = meta(name) ?: fail("photo_jobs_resume_attempt_missing")
+        val cipher = protection.seal(frame(next.record), "photo-source-jobs-v1/resume-attempt/" + job.id)
+        permitted()
+        transaction {
+            if (readOne(job.id) != job || meta(name)?.contentEquals(before) != true) fail("photo_jobs_cas_conflict")
+            permitted()
+            if (db.update("source_meta", ContentValues().apply { put("sealed", cipher) }, "name=?", arrayOf(name)) != 1)
+                fail("photo_jobs_resume_attempt_missing")
+            membership!!.advance(); permitted()
+        }
+        permitted()
+        if (readResumeAttempt(job)?.record != next.record) fail("photo_jobs_resume_attempt_readback_failed")
+    }
+
     internal fun requireGalleryResumeOriginal(expected: PhotoSourceJob): PhotoSourceRemoteAcceptance = gated {
         writableMembership()
         if (expected.phase != "sealed" || readOne(expected.id) != expected) fail("photo_jobs_historical_original_job_required")
@@ -533,6 +603,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             if (current.version != retired.version) fail("photo_jobs_cas_conflict")
             db.delete("source_meta", "name=?", arrayOf("remote-saved-v1/" + retired.id))
             db.delete("source_meta", "name=?", arrayOf("remote-acceptance-v1/" + retired.id))
+            db.delete("source_meta", "name=?", arrayOf("resume-attempt-v1/" + retired.id))
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
             membership!!.advance()
         }
