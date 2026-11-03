@@ -19,6 +19,12 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <InvariantGlobalization>false</InvariantGlobalization>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <MagnoliePhotoSync Condition="'$(MagnoliePhotoSync)' == '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(MAGNOLIE_CONTRIBUTOR_HASH)', '^[0-9a-fA-F]{64}$'))">true</MagnoliePhotoSync>
+    <MagnoliePhoneCamera Condition="'$(MagnoliePhoneCamera)' == '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(MAGNOLIE_CONTRIBUTOR_HASH)', '^[0-9a-fA-F]{64}$'))">true</MagnoliePhoneCamera>
+    <MagnoliePhotoSync Condition="'$(MagnoliePhotoSync)' == ''">false</MagnoliePhotoSync>
+    <MagnoliePhoneCamera Condition="'$(MagnoliePhoneCamera)' == ''">false</MagnoliePhoneCamera>
+    <DefineConstants Condition="'$(MagnoliePhotoSync)' == 'true'">$(DefineConstants);MAGNOLIE_PHOTO_SYNC</DefineConstants>
+    <DefineConstants Condition="'$(MagnoliePhoneCamera)' == 'true'">$(DefineConstants);MAGNOLIE_PHONE_CAMERA</DefineConstants>
     <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('..\magnolie-handbuch\web\index.html')">..\magnolie-handbuch\web</MagnolieHandbookWeb>
     <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('shared\magnolie-handbuch\web\index.html')">shared\magnolie-handbuch\web</MagnolieHandbookWeb>
   </PropertyGroup>
@@ -36,6 +42,18 @@
     <EmbeddedResource Remove="tests\**\*" />
     <None Remove="tests\bin\**\*;tests\obj\**\*" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(MagnoliePhotoSync)' != 'true'">
+    <Compile Remove="DeviceFile*.cs;PhotoDestinationPaths.cs;PhotoSyncPlan.cs;PhotoSyncSchedule.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MagnoliePhoneCamera)' != 'true'">
+    <Compile Remove="PhoneCamera*.cs;PhoneWebcam*.cs" />
+  </ItemGroup>
+
+  <Target Name="ValidateDesktopPhoneComposition" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(MagnoliePhotoSync)' != 'true' and '$(MagnoliePhotoSync)' != 'false'" Text="Invalid desktop phone composition." />
+    <Error Condition="'$(MagnoliePhoneCamera)' != 'true' and '$(MagnoliePhoneCamera)' != 'false'" Text="Invalid desktop phone composition." />
+  </Target>
 
   <ItemGroup>
     <EmbeddedResource Include="app\filesystem-runtime.json" LogicalName="Magnolie.FilesystemPrerequisites.json" />

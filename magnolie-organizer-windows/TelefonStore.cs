@@ -587,7 +587,7 @@ internal sealed partial class TelefonStore
         if (transcript.Length != 32 || phoneProof.Length != 32 || desktopProof.Length != 32) throw new InvalidDataException();
         var pending = peer with { State = "pair_commit_pending", PendingTranscript = transcript.ToArray(),
             PendingPhoneProof = phoneProof.ToArray(), PendingDesktopProof = desktopProof.ToArray(), PendingExpiresMs = expiresMs,
-            FilePairingEpoch = DeviceFileControl.PairingEpoch(transcript) };
+            FilePairingEpoch = NativeFilePairingIdentity.Epoch(transcript) };
         var existing = LoadPeers();
         if (existing.Any(value => value.Id != peer.Id)) throw new InvalidOperationException("binding_conflict");
         var peers = existing.Where(value => value.Id != peer.Id).Append(pending).ToArray();
@@ -1298,7 +1298,7 @@ internal sealed partial class TelefonStore
         if (value.ContainsKey("file_pairing_epoch"))
         {
             if (value["file_pairing_epoch"] is not JsonValue field || !field.TryGetValue<string>(out filePairingEpoch) ||
-                !DeviceFileControl.Hash(filePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
+                !NativeFilePairingIdentity.Hash(filePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
         }
         return new TelefonPeer(value["device_id"]!.GetValue<string>(), value["display_name"]!.GetValue<string>(), ReadBase64(value, "static_public", 32), state,
             value["last_seen_ms"]?.GetValue<long>() ?? 0, value["capability_revision"]?.GetValue<long>() ?? 0, capabilities.DeepClone().AsObject(),
@@ -1320,7 +1320,7 @@ internal sealed partial class TelefonStore
         };
         if (peer.FilePairingEpoch is not null)
         {
-            if (!DeviceFileControl.Hash(peer.FilePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
+            if (!NativeFilePairingIdentity.Hash(peer.FilePairingEpoch)) throw new InvalidDataException("Invalid native file pairing epoch.");
             value["file_pairing_epoch"] = peer.FilePairingEpoch;
         }
         return value;

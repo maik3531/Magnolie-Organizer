@@ -31,8 +31,17 @@ OR6 readers, prefix-local resources and service paths, prepared/default/explicit
 Flatpak manifest ordering, source-archive replay, unknown-code preservation,
 reserved-message isolation and affected native authenticated photo workers.
 These checks use actual staged source bytes, not a newly installed native package.
-Windows conditional-compilation parity and final native package/GUI/physical-phone
-acceptance remain separate work. No production/automatic/UI/release gate is enabled.
+Windows now also excludes its dedicated file/photo sources by default in an
+unconfigured application build. Four actual MSBuild composition evaluations pass,
+including malformed-profile rejection. The existing native Core host builds with
+zero warnings/errors and passes eight dedicated-file, two photo-plan/schedule and
+one destination test groups. Relationship-identity hashing is retained separately
+and remains byte-compatible, so omitting optional implementations does not discard
+stored pairing metadata. Compile-time camera selection is separate; it grants no
+capture readiness or microphone permission. This is source-selection/Core-host
+evidence, not a newly built/installed Windows application or native GUI result.
+Final package/GUI/physical-phone acceptance remains separate work. No production,
+automatic/UI/release gate is enabled.
 
 References: Debian Python Policy, Programs Shipping Private Modules (§5.3),
 https://www.debian.org/doc/packaging-manuals/python-policy/ ; dh_python3 private-dir
