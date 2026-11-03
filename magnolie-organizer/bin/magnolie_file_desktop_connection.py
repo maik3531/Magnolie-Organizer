@@ -69,6 +69,8 @@ class NativeDesktopFileConnection:
         self._stopped_receive_run = None
         self._resume_end_confirmation = self._resume_abandonment = None
         self._selected_preview = self._selected_source_id = None
+        self._ended_batch = self._ended_batch_policy = None
+        self._album_media_scope = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -277,6 +279,10 @@ class NativeDesktopFileConnection:
                     or pending.command.selected_file_ids != selected.file_ids
                     or self._mappings.read() != selected.mapping_snapshot):
                 raise TransferError('file_desktop_photo_selection_not_current')
+        elif pending.command.operation in ('next_batch', 'end_album'):
+            ended = self._require_ended_batch()
+            if pending.command.run_id != ended.run_id or pending.command.expected_version != ended.version:
+                raise TransferError('file_desktop_batch_continuation_not_current')
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
             self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=pending.command.operation == 'cancel_resume')
 
@@ -383,6 +389,17 @@ class NativeDesktopFileConnection:
             action.validate(self)
         pending.sent = True
 
+    def _require_ended_batch(self):
+        ended = self._ended_batch
+        policy = self._receiving_policy()
+        if (ended is None or not ended.batched or ended.batch_end is not False or ended.state != 'canceled_held'
+                or not ended.source_io_ended or self._run is not None or self._source_run is not None
+                or self._selected_preview is not None or self._source_status is None
+                or not self._source_status.enabled or not self._source_status.associated
+                or self._source_status.version != ended.version or policy.version != self._ended_batch_policy):
+            raise TransferError('file_desktop_batch_continuation_not_current')
+        return ended
+
     def request_source(self, action, operation, *, enabled=None, kinds=(), album_id=None, desktop_choice=None, clock=now_ms):
         """One explicit native source command, not a personal queue or scheduler.
         Native receive consent/actual control echo may bootstrap source send-OFF.
@@ -405,20 +422,22 @@ class NativeDesktopFileConnection:
                 options['expected_version'] = self._source_status.version
             if operation != 'configure' and (enabled is not None or kinds != ()):
                 raise TransferError('file_desktop_source_invalid_options')
-            if operation not in ('run', 'resume_run') and (album_id is not None or desktop_choice is not None):
+            if operation not in ('run', 'batch_run', 'resume_run') and (album_id is not None or desktop_choice is not None):
                 raise TransferError('file_desktop_source_invalid_options')
             if operation == 'configure':
                 if self._run is not None or self._source_run is not None:
                     raise TransferError('file_desktop_receive_run_held')
                 options.update(enabled=enabled, kinds=kinds)
-            elif operation in ('discover', 'request_read', 'run', 'resume_run', 'catalog_page'):
+            elif operation in ('next_batch', 'end_album'):
+                options['run_id'] = self._require_ended_batch().run_id
+            elif operation in ('discover', 'request_read', 'run', 'batch_run', 'resume_run', 'catalog_page'):
                 if not self._source_status.enabled or not self._source_status.associated:
                     raise TransferError('file_desktop_source_not_configured')
                 if operation == 'catalog_page':
                     if self._source_catalog is None or self._source_catalog.next_cursor is None:
                         raise TransferError('file_desktop_source_catalog_not_current')
                     options.update(catalog_id=self._source_catalog.catalog_id, after=self._source_catalog.next_cursor)
-                elif operation in ('run', 'resume_run'):
+                elif operation in ('run', 'batch_run', 'resume_run'):
                     if self._run is not None or self._source_run is not None:
                         raise TransferError('file_desktop_receive_run_held')
                     album = self._source_albums.get(album_id)
@@ -534,6 +553,9 @@ class NativeDesktopFileConnection:
             if first is not None and (result.media_type, result.insertion_witness, result.total_files) != (
                     first.media_type, first.insertion_witness, first.total_files):
                 raise TransferError('file_desktop_source_media_scope_changed')
+            if self._source_run.batched and self._album_media_scope is not None and (
+                    result.source_epoch, result.media_type, result.insertion_witness) != self._album_media_scope:
+                raise TransferError('file_desktop_source_batch_scope_changed')
             known_files = {entry.file_id for page in self._source_media_pages for entry in page.entries}
             known_photos = {entry.photo_id for page in self._source_media_pages for entry in page.entries}
             if any(entry.file_id in known_files or entry.photo_id in known_photos for entry in result.entries):
@@ -547,14 +569,17 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_photo_selection_changed')
         else:
             result = source_messages.parse_run_result(message, expected_request_id=command.request_id, expected_operation=command.operation,
-                expected_version=command.expected_version, expected_run_id=None if command.operation == 'select_run' else command.run_id, now=at)
-            if command.operation == 'select_run' and result.run_id == command.run_id:
+                expected_version=command.expected_version, expected_run_id=None if command.operation in ('select_run', 'next_batch') else command.run_id, now=at)
+            if command.operation in ('select_run', 'next_batch') and result.run_id == command.run_id:
                 raise TransferError('file_desktop_photo_selection_owner_reused')
             old = self._source_run
+            if old is not None and command.operation != 'end_run' and (
+                    old.batched != result.batched or old.batched and old.batch_end is not None and old.batch_end != result.batch_end):
+                raise TransferError('file_desktop_source_batch_scope_changed')
             if old is not None and old.run_id == result.run_id and (
                     old.source_io_ended and not result.source_io_ended
                     or old.state in ('cancel_pending', 'canceled_held') and result.state not in ('cancel_pending', 'canceled_held')
-                    or old.state == 'failed_held' and result.state not in ('failed_held', 'canceled_held')):
+                    or old.state in ('failed_held', 'empty_ready') and result.state not in (old.state, 'canceled_held')):
                 raise TransferError('file_desktop_source_run_state_rollback')
             if command.operation in ('offer_run', 'offer_resume'):
                 self._correlate_source_offer(result, clock)
@@ -573,6 +598,8 @@ class NativeDesktopFileConnection:
                 self._source_media_pages = ()
                 self._source_media_entries = None
                 self._resume_lookup_selection = self._resume_history = None
+                self._ended_batch = self._ended_batch_policy = None
+                self._album_media_scope = None
             self._source_status = result
             if command.operation == 'configure':
                 # The phone changes native send state in this transaction and
@@ -585,10 +612,14 @@ class NativeDesktopFileConnection:
             self._source_catalog = result
             self._source_albums.update((album.album_id, album) for album in result.albums)
         elif command.operation == 'end_run':
+            self._ended_batch = self._source_run if self._source_run.batched else None
+            self._ended_batch_policy = self._receiving_policy().version if self._ended_batch is not None else None
             self._source_run = self._source_offer = None
             self._offer = self._offer_binding = self._offer_policy_version = None
             self._source_media_pages = (); self._source_media_entries = None
             self._selected_preview = self._selected_source_id = None
+        elif command.operation == 'end_album':
+            self._ended_batch = self._ended_batch_policy = self._album_media_scope = None
         elif command.operation == 'end_resume':
             self._resume_end_confirmation = (self._resume_lookup_selection.job, result)
             self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
@@ -601,8 +632,12 @@ class NativeDesktopFileConnection:
             self._selected_source_id = result.run_id
             self._offer = self._offer_binding = self._offer_policy_version = self._source_offer = None
             self._source_media_pages = (); self._source_media_entries = None
-        elif command.operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
+        elif command.operation in ('run', 'batch_run', 'next_batch', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
+            if command.operation in ('run', 'batch_run', 'next_batch', 'resume_run'):
+                self._ended_batch = self._ended_batch_policy = None
+                if command.operation != 'next_batch':
+                    self._album_media_scope = None
             if command.operation == 'resume_run': self._resume_source_id = result.run_id
             if (command.operation == 'cancel_resume' and result.state == 'canceled_held' and result.source_io_ended
                     and self._run is not None and self._run.stop_requested.is_set()):
@@ -615,6 +650,8 @@ class NativeDesktopFileConnection:
                 self._source_media_entries = None
         elif command.operation in ('media_page', 'resume_media_page'):
             self._source_media_pages += (result,)
+            if self._source_run.batched:
+                self._album_media_scope = (result.source_epoch, result.media_type, result.insertion_witness)
         elif command.operation == 'resume_lookup':
             self._resume_history = result  # Historical hint only; no receive/run/READ authority.
         elif command.operation == 'abandon_resume':

@@ -87,11 +87,11 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
                     message.long("expires_ms"), after = after, runId = opaque("run_id"))
             }
-            if (operation in setOf("run", "run_status", "cancel_run", "offer_run", "end_run")) {
+            if (operation in setOf("run", "batch_run", "next_batch", "run_status", "cancel_run", "offer_run", "end_run", "end_album")) {
                 if (body.keys != base + setOf("expected_version") +
-                    (if (operation == "run") setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()
+                    (if (operation in setOf("run", "batch_run")) setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
-                if (operation == "run") {
+                if (operation in setOf("run", "batch_run")) {
                     val choice = (body["desktop_choice"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
                     return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
                         message.long("expires_ms"), catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice)

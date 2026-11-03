@@ -18,7 +18,7 @@ internal class NativeGalleryRunCommands(private val wallMs: () -> Long = { Syste
         launch: () -> NativeGallerySyncRun): NativeGallerySyncRun {
         val now = monotonicMs()
         val wall = wallMs()
-        if (faulted || !DeviceFileControl.hash(scope) || command.operation !in setOf("run", "select_run") || now < 0 || now < last || wall < 0 || wall < lastWall ||
+        if (faulted || !DeviceFileControl.hash(scope) || command.operation !in setOf("run", "select_run", "batch_run", "next_batch") || now < 0 || now < last || wall < 0 || wall < lastWall ||
             now > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS) {
             faulted = true; DeviceFileControl.fail("gallery_sync_run_command_not_current")
         }

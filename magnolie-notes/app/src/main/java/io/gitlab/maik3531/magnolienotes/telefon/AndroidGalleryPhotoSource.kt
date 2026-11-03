@@ -45,11 +45,12 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
     }
 
     fun enumerateBatch(lease: GalleryPhotoSourceLease, continuation: Continuation? = null,
-        cancellation: CancellationSignal = CancellationSignal()): Batch {
+        cancellation: CancellationSignal = CancellationSignal(), maxFiles: Int = DeviceFileManifest.MAX_FILES): Batch {
         fresh(lease, cancellation)
+        if (maxFiles !in 1..DeviceFileManifest.MAX_FILES) fail("gallery_inventory_file_limit")
         if (continuation != null && (continuation.reader !== this || continuation.lease !== lease || continuation.after <= 0))
             fail("gallery_inventory_continuation_changed")
-        return enumerateBounded(lease, cancellation, continuation?.after ?: 0L, true)
+        return enumerateBounded(lease, cancellation, continuation?.after ?: 0L, true, maxFiles)
     }
 
     fun enumerate(lease: GalleryPhotoSourceLease, cancellation: CancellationSignal = CancellationSignal()): PhotoSourceInventory {
@@ -57,7 +58,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
     }
 
     private fun enumerateBounded(lease: GalleryPhotoSourceLease, cancellation: CancellationSignal,
-        initialAfter: Long, batching: Boolean): Batch {
+        initialAfter: Long, batching: Boolean, maxFiles: Int = DeviceFileManifest.MAX_FILES): Batch {
         val started = SystemClock.elapsedRealtime()
         fun ready() {
             fresh(lease, cancellation)
@@ -91,7 +92,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
                     val entry = member(lease, it)
                     val id = entry.documentId.substringBefore(':').toLong()
                     if (id <= after) fail("gallery_inventory_page_order")
-                    if (batching && (entries.size >= DeviceFileManifest.MAX_FILES ||
+                    if (batching && (entries.size >= maxFiles ||
                             total + entry.advertisedBytes > DeviceFileManifest.MAX_TOTAL_BYTES)) {
                         // Look ahead without consuming this member. The next batch
                         // queries after the last INCLUDED row, never after this row.

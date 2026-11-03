@@ -161,7 +161,8 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
      * read-back source, not a partial manifest or a metadata-only success.
      * The caller must finish/retire its previous source before requesting more.
      */
-    internal inner class AlbumBatches internal constructor(private val selection: NativeGalleryAlbumSelection) : AutoCloseable {
+    internal inner class AlbumBatches internal constructor(private val selection: NativeGalleryAlbumSelection,
+        private val maxFiles: Int) : AutoCloseable {
         private val observed = bound()
         private val album = selection.catalog.resolve(this@NativeGalleryPhotoWorkflow, selection)
         private val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
@@ -186,7 +187,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
             activeCancellation.set(cancellation)
             try {
                 current()
-                val batch = reader.enumerateBatch(lease, continuation, cancellation)
+                val batch = reader.enumerateBatch(lease, continuation, cancellation, maxFiles)
                 current()
                 val job = if (batch.inventory.entries.isEmpty()) null else
                     freezeInventory(batch.inventory, observed, reader, cancellation)
@@ -207,9 +208,10 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         }
     }
 
-    internal fun albumBatches(selection: NativeGalleryAlbumSelection): AlbumBatches {
+    internal fun albumBatches(selection: NativeGalleryAlbumSelection, maxFiles: Int = DeviceFileManifest.MAX_FILES): AlbumBatches {
         ready(); index.requireMembershipReady(); validateSelection(selection)
-        return AlbumBatches(selection)
+        if (maxFiles !in 1..DeviceFileManifest.MAX_FILES) fail("gallery_inventory_file_limit")
+        return AlbumBatches(selection, maxFiles)
     }
 
     /** Blocking bounded IO: run off the main UI thread in the real coordinator.

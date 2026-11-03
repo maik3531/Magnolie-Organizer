@@ -1,5 +1,40 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native whole-album batch ownership and desktop continuation (Refs #330)
+
+The explicit batch source path now uses the actual existing single source worker.
+It prepares smaller 16-member working batches within the unchanged 128-file/
+400-MiB manifest limits, retaining a native scan position across separately frozen
+source/transfer/run identities. A correlated batch_end field distinguishes a
+current-end observation from an incomplete batch; neither is deletion evidence.
+An empty batch creates no fake manifest, stage or Saved receipt.
+
+Continuation requires the exact preceding native run's real stopped-I/O END and
+actual source-cache retirement. An accepted-but-unsaved batch remains held;
+metadata END alone cannot advance it. Explicit new-photo subset selection retains
+the same album position, and only the selected source's complete authenticated
+Saved/END permits the next batch. Lost command/output retries retain the same
+new source worker owner. Separate source/resume starts cannot interleave while
+the batch scan is owned. Explicit album stop releases only the ended scan, never
+unconfirmed caches, original photos or save history; its held reply can be retried
+without stopping a newer scan.
+
+The desktop now preserves batch identity and source namespace across confirmed
+END/continuation, requires a fresh native action/current policy for continuation,
+and rejects reused owners, missing batch metadata or substituted media scopes.
+Actual native download/publication/mapping/cache-retirement paths are reused for
+new files; known photos and PC edits remain at their historical mapped targets.
+
+196 distinct host cases pass (12 new, 184 affected), including real 16/1 native
+sources, selected-source offer/acceptance/Chunk/Saved/END and next source, unsaved
+cache hold, empty source, explicit stop and lost-output replay, actual desktop
+known/mixed/new batches with immutable old PC edits and zero completed-cache
+reservation, plus affected source/worker/runtime/review/selection/history tests.
+These are native host integration results, NOT installed GUI or physical-phone
+acceptance. Production registration, the UI-driven whole-album worker, complete
+changed-photo handling and platform acceptance remain unfinished. Production,
+automatic/UI and release gates are unchanged OFF.
+
 ### Explicit bounded native album inventory batches (Refs #330)
 
 The Gallery reader offers an explicit in-process batch API in addition to its

@@ -25,6 +25,13 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private var resumeRun: NativeGalleryResumeRun? = null // Same whole-run owner, not disk metadata.
     private var resumeEnd: ResumeEndOutput? = null // Bounded metadata retry, never a live source owner.
     private var normalEnd: Pair<NativeGalleryWireOfferAttempt, JsonObject>? = null
+    private class AlbumBatchOwner(val selection: NativeGalleryAlbumSelection,
+        val scan: NativeGalleryPhotoWorkflow.AlbumBatches) {
+        val prepared = AtomicReference<NativeGalleryPhotoWorkflow.FrozenBatch?>()
+        var run: NativeGallerySyncRun? = null // operationGate only
+    }
+    private var albumBatchOwner: AlbumBatchOwner? = null
+    private var albumEnd: Pair<NativeGalleryWireOfferAttempt, JsonObject>? = null
     private class ResumeEndOutput(val command: JsonObject, val reply: JsonObject, issuedWall: Long,
         val job: PhotoSourceJob, val headId: String?, val headSha256: String?) {
         var abandonmentCommand: NativeGalleryWireOfferAttempt? = null
@@ -81,7 +88,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         workflow.discoverSelectable(cancellation)
     }
     fun prepareSource(selection: NativeGalleryAlbumSelection): NativeGallerySourceRun = withOperation {
-        if (syncRun != null || resumeRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         sourceWorker.start(selection)
@@ -92,11 +99,47 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     private fun beginSyncRunOwned(selection: NativeGalleryAlbumSelection, checkCommand: () -> Unit = {}): NativeGallerySyncRun {
-        if (syncRun != null || resumeRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         checkCommand()
         return NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
+    }
+
+    private fun beginAlbumBatchOwned(selection: NativeGalleryAlbumSelection, checkCommand: () -> Unit): NativeGallerySyncRun {
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        checkCommand(); workflow.validateSelection(selection)
+        // Keep live authority validation within ordinary control deadlines.
+        // This is a smaller working batch, never a relaxed manifest/quota limit.
+        val owner = AlbumBatchOwner(selection, workflow.albumBatches(selection, maxFiles = 16))
+        albumBatchOwner = owner
+        return prepareAlbumBatchOwned(owner, checkCommand)
+    }
+
+    private fun nextAlbumBatchOwned(command: DeviceFileSourceCommand, checkCommand: () -> Unit): NativeGallerySyncRun {
+        val owner = albumBatchOwner ?: DeviceFileControl.fail("gallery_album_batch_not_current")
+        val previous = owner.run ?: DeviceFileControl.fail("gallery_album_batch_not_current")
+        val endedId = normalEnd?.second?.get("body")?.let { it as? JsonObject }?.get("run_id")
+        if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent || !previous.preparation.ioEnded ||
+            !previous.cancelRequested || previous.id != command.runId || endedId != JsonPrimitive(previous.id) ||
+            owner.prepared.get()?.reachedCurrentEnd != false)
+            DeviceFileControl.fail("gallery_album_batch_not_current")
+        val job = previous.preparation.completedNativeJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        // END alone is not Saved. Unconfirmed accepted sources retain their
+        // cache and prevent continuation, also after explicit subset selection.
+        if (index.jobs().any { it.id == job.id }) DeviceFileControl.fail("gallery_album_previous_batch_held")
+        checkCommand(); workflow.validateSelection(owner.selection)
+        return prepareAlbumBatchOwned(owner, checkCommand)
+    }
+
+    private fun prepareAlbumBatchOwned(owner: AlbumBatchOwner, checkCommand: () -> Unit): NativeGallerySyncRun {
+        checkCommand()
+        owner.prepared.set(null)
+        val preparing = sourceWorker.startBatch(owner.selection) { cancellation ->
+            ready()
+            owner.scan.next(cancellation).also { owner.prepared.set(it) }.job
+        }
+        return NativeGallerySyncRun(owner.selection, preparing).also { owner.run = it; syncRun = it }
     }
 
     internal fun beginResumeRun(selection: NativeGalleryAlbumSelection, original: PhotoSourceJob): NativeGalleryResumeRun = withOperation {
@@ -138,12 +181,15 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             permitted()
             selected
         }
-        return NativeGallerySyncRun(selection, preparing).also { syncRun = it }
+        return NativeGallerySyncRun(selection, preparing).also {
+            syncRun = it
+            albumBatchOwner?.takeIf { owner -> owner.run === previous }?.run = it
+        }
     }
 
     private fun beginResumeRunOwned(selection: NativeGalleryAlbumSelection, original: PhotoSourceJob,
         checkCommand: () -> Unit = {}): NativeGalleryResumeRun {
-        if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_busy")
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_busy")
         if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
         index.requireGalleryResumeOriginal(original)
         workflow.validateSelection(selection)
@@ -533,6 +579,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         if (syncRun !== run || !run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
         syncRun = null
+        albumBatchOwner?.takeIf { it.run === run && it.prepared.get()?.reachedCurrentEnd == true }?.let {
+            it.scan.close(); albumBatchOwner = null
+        }
     }
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         ready(); workflow.attachPermissionHost(host, onResult)
@@ -569,6 +618,35 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "end_album") {
+                val prior = albumEnd
+                val output = if (prior != null && prior.first.requestId == command.requestId) {
+                    if (prior.first.message != message) DeviceFileControl.fail("gallery_sync_end_command_changed")
+                    prior
+                } else {
+                    val batch = albumBatchOwner ?: DeviceFileControl.fail("gallery_album_batch_not_current")
+                    val run = batch.run ?: DeviceFileControl.fail("gallery_album_batch_not_current")
+                    val endedId = normalEnd?.second?.get("body")?.let { it as? JsonObject }?.get("run_id")
+                    if (run.id != command.runId || syncRun != null || resumeRun != null || !sourceWorker.isQuiescent ||
+                        !run.cancelRequested || !run.preparation.ioEnded || endedId != JsonPrimitive(run.id))
+                        DeviceFileControl.fail("gallery_album_batch_not_current")
+                    val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                    if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                    val guard = NativeGalleryWireOfferAttempt(command.requestId,
+                        DeviceFileControl.digest("magnolie-gallery-album-end-v1\u0000", message), message, at)
+                    val body = kotlinx.serialization.json.buildJsonObject {
+                        put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                        put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
+                        put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
+                    }
+                    guard.checkCurrent(now()); authority()
+                    batch.scan.close(); albumBatchOwner = null // No cache deletion, Saved or full-album success.
+                    (guard to TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)).also { albumEnd = it }
+                }
+                output.first.checkCurrent(now()); authority(); send(output.second)
+                output.first.checkCurrent(now()); authority()
+                return@withOperation
+            }
             if (command.operation == "end_run") {
                 val prior = normalEnd
                 val output = if (prior != null && prior.first.requestId == command.requestId) {
@@ -789,8 +867,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 mediaAuthority(); send(reply); mediaAuthority()
                 return@withOperation
             }
-            if (command.operation in setOf("run", "run_status", "cancel_run", "offer_run", "select_run")) {
-                val run = if (command.operation in setOf("run", "select_run")) {
+            if (command.operation in setOf("run", "batch_run", "next_batch", "run_status", "cancel_run", "offer_run", "select_run")) {
+                val run = if (command.operation in setOf("run", "batch_run", "next_batch", "select_run")) {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                     val scope = DeviceFileControl.digest("magnolie-gallery-run-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
                         JsonPrimitive(localIdentity.deviceId), JsonPrimitive(localIdentity.identitySha256), JsonPrimitive(owner.peerId),
@@ -798,8 +876,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     runCommands.start(scope, this, command, message) {
                         authority()
                         if (command.operation == "select_run") return@start selectSyncRunOwned(command) { authority(); Unit }
+                        if (command.operation == "next_batch") return@start nextAlbumBatchOwned(command) { authority(); Unit }
                         val catalog = wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                         val selection = catalog.select(command.catalogId!!, command.albumId!!, command.desktopChoice!!)
+                        if (command.operation == "batch_run") return@start beginAlbumBatchOwned(selection) { authority(); Unit }
                         beginSyncRunOwned(selection) { authority(); Unit }
                     }
                 } else syncRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
@@ -817,6 +897,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                     put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ioEnded))
+                    albumBatchOwner?.takeIf { it.run === run }?.let { batch ->
+                        put("batch_end", batch.prepared.get()?.let { JsonPrimitive(it.reachedCurrentEnd) } ?: kotlinx.serialization.json.JsonNull)
+                    }
                     if (output != null) {
                         put("offer_id", JsonPrimitive(output.messageId)); put("manifest_sha256", JsonPrimitive(output.manifestSha256))
                     }

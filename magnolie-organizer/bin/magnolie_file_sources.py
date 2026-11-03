@@ -124,8 +124,8 @@ def parse_command(message, *, now=None):
         if type(body['run_id']) is not str or not valid_uuid(body['run_id'], version=4):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], body['operation'], body['expected_version'], run_id=body['run_id'])
-    if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run'):
-        starting = body['operation'] == 'run'
+    if body.get('operation') in ('run', 'batch_run', 'next_batch', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'end_album'):
+        starting = body['operation'] in ('run', 'batch_run')
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
                 or not _hex(body['expected_version'])):
             raise TransferError('file_sources_invalid_command')
@@ -133,7 +133,7 @@ def parse_command(message, *, now=None):
             if (not valid_uuid(body['catalog_id'], version=4) or not valid_uuid(body['album_id'], version=4)
                     or type(body['desktop_choice']) is not bool):
                 raise TransferError('file_sources_invalid_command')
-            return SourceCommand(message['message_id'], 'run', body['expected_version'], catalog_id=body['catalog_id'],
+            return SourceCommand(message['message_id'], body['operation'], body['expected_version'], catalog_id=body['catalog_id'],
                                  album_id=body['album_id'], desktop_choice=body['desktop_choice'])
         if not valid_uuid(body['run_id'], version=4):
             raise TransferError('file_sources_invalid_command')
@@ -171,7 +171,7 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
         raise TransferError('file_sources_invalid_command')
     if operation not in ('resume_run', 'abandon_resume') and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'select_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'batch_run', 'next_batch', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'end_album', 'select_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
     if operation == 'select_run':
         if enabled is not None or kinds != () or any(value is not None for value in (source_id, transfer_id, catalog_id, after, album_id, desktop_choice)):
@@ -203,11 +203,11 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, album_id, desktop_choice)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, run_id=run_id, after=after)
-    elif operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run'):
+    elif operation in ('run', 'batch_run', 'next_batch', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'end_album'):
         if enabled is not None or kinds != () or after is not None:
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
-        if operation == 'run':
+        if operation in ('run', 'batch_run'):
             if run_id is not None: raise TransferError('file_sources_invalid_command')
             body.update(catalog_id=catalog_id, album_id=album_id, desktop_choice=desktop_choice)
         else:
@@ -347,6 +347,8 @@ class SourceRunResult:
     offer_id: str | None = None
     manifest_sha256: str | None = None
     run_ended: bool = False
+    batched: bool = False
+    batch_end: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -427,21 +429,29 @@ def parse_run_result(message, *, expected_request_id, expected_operation, expect
                 or body['operation'] != 'resume_run' and type(expected_run_id) is not str):
             raise TransferError('file_sources_invalid_run_result')
     offering = body.get('operation') in ('offer_run', 'offer_resume')
-    ending = body.get('operation') in ('end_run', 'end_resume')
+    ending = body.get('operation') in ('end_run', 'end_album', 'end_resume')
+    batched = 'batch_end' in body
+    if (body.get('operation') in ('batch_run', 'next_batch') and not batched
+            or batched and (body.get('operation') not in ('batch_run', 'next_batch', 'select_run', 'run_status', 'cancel_run', 'offer_run')
+                or body['batch_end'] is not None and type(body['batch_end']) is not bool
+                or body.get('state') in ('snapshot_ready', 'empty_ready') and type(body['batch_end']) is not bool)):
+        raise TransferError('file_sources_invalid_run_result')
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'} |
-            ({'offer_id', 'manifest_sha256'} if offering else {'run_ended'} if ending else set())
+            ({'offer_id', 'manifest_sha256'} if offering else {'run_ended'} if ending else set()) | ({'batch_end'} if batched else set())
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] not in ('run', 'select_run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
+            or body['operation'] not in ('run', 'batch_run', 'next_batch', 'select_run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'end_album', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
             or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
-            or body['operation'] not in ('run', 'select_run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
-            or body['operation'] in ('run', 'select_run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id
+            or body['operation'] not in ('run', 'batch_run', 'next_batch', 'select_run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
+            or body['operation'] in ('run', 'batch_run', 'next_batch', 'select_run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id
             or type(body['source_io_ended']) is not bool
-            or body['state'] not in ('preparing', 'snapshot_ready', 'cancel_pending', 'canceled_held', 'failed_held')
-            or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'canceled_held', 'failed_held'))
+            or body['state'] not in ('preparing', 'snapshot_ready', 'empty_ready', 'cancel_pending', 'canceled_held', 'failed_held')
+            or body['state'] == 'empty_ready' and (not batched or body['batch_end'] is not True)
+            or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'empty_ready', 'canceled_held', 'failed_held'))
             or body['operation'] in ('cancel_run', 'cancel_resume') and body['state'] not in ('cancel_pending', 'canceled_held')
             or ending and (body['state'] != 'canceled_held' or body.get('run_ended') is not True)
             or offering and (body['state'] != 'snapshot_ready' or not valid_uuid(body['offer_id'], version=4)
                              or not _hex(body['manifest_sha256']))):
         raise TransferError('file_sources_invalid_run_result')
     return SourceRunResult(body['request_id'], body['operation'], body['version'], body['run_id'], body['state'],
-                           body['source_io_ended'], body.get('offer_id'), body.get('manifest_sha256'), body.get('run_ended', False))
+                           body['source_io_ended'], body.get('offer_id'), body.get('manifest_sha256'), body.get('run_ended', False),
+                           batched, body.get('batch_end'))

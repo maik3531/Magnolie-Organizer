@@ -23,7 +23,8 @@ internal class NativeGallerySourceRun internal constructor() {
     fun cancel() { cancellation.cancel() } // Never releases an I/O ownership slot.
     internal fun finish(prepared: PhotoSourceJob?, error: Throwable?, reopened: NativeGalleryRenewedSource? = null) {
         job.set(prepared); renewed.set(reopened); failure.set(error)
-        state.set(if (cancellation.isCanceled) "canceled_held" else if (error != null) "failed_held" else "snapshot_ready")
+        state.set(if (cancellation.isCanceled) "canceled_held" else if (error != null) "failed_held"
+            else if (prepared == null) "empty_ready" else "snapshot_ready")
         ended.set(true)
     }
     internal fun snapshotJob(): PhotoSourceJob? {
@@ -69,15 +70,19 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         copy: (CancellationSignal) -> PhotoSourceJob): NativeGallerySourceRun =
         startOwned(selection) { _, cancellation -> copy(cancellation) to null }
 
+    fun startBatch(selection: NativeGalleryAlbumSelection,
+        prepareBatch: (CancellationSignal) -> PhotoSourceJob?): NativeGallerySourceRun =
+        startOwned(selection) { _, cancellation -> prepareBatch(cancellation) to null }
+
     private fun startOwned(selection: NativeGalleryAlbumSelection,
-        action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob, NativeGalleryRenewedSource?>): NativeGallerySourceRun {
+        action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>): NativeGallerySourceRun {
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_source_worker_closed")
             if (active != null) DeviceFileControl.fail("gallery_source_worker_busy")
             NativeGallerySourceRun().also { active = it }
         }
         val thread = Thread({
-            var prepared: Pair<PhotoSourceJob, NativeGalleryRenewedSource?>? = null
+            var prepared: Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>? = null
             var error: Throwable? = null
             try {
                 run.cancellation.throwIfCanceled()

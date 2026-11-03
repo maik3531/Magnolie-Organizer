@@ -2086,6 +2086,143 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun actualBatchCommandsContinueOnlyAfterEndedSourceAndRetryTheSameNewOwner() = batchCommandCase(false)
+
+    @Test fun actualAcceptedUnsavedBatchEndCannotAuthorizeAnotherBatchOrInterleavedSource() = batchCommandCase(true)
+
+    @Test fun actualEmptyBatchHasNoSourceJobOrOfferAndEndsWithoutSavedOrDeletionClaim() = batchCommandCase(false, true)
+
+    @Test fun actualSelectedBatchKeepsScanPositionAndContinuesOnlyAfterSelectedNativeSavedEnd() = batchCommandCase(false, selectMember = true)
+
+    private fun batchCommandCase(holdAccepted: Boolean, empty: Boolean = false, selectMember: Boolean = false) {
+        ResumeRuntimeCase().use { h ->
+            val at = h.now + 120_000
+            h.f.provider.rows = (1..17).map { Row(id = it.toLong(), name = "$it.jpg") }
+            val discover = h.resumeCommand(at) // Real command discovery also binds the native wire catalog.
+            val body = discover["body"]!!.jsonObject
+            val begin = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, JsonObject(body.filterKeys {
+                it !in setOf("original_job_id", "original_job_version")
+            } + ("operation" to JsonPrimitive("batch_run"))), 60_000, at)
+            fun current() = NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }
+                .get(h.runtime) as NativeGallerySyncRun
+            fun command(operation: String, run: NativeGallerySyncRun) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", operation); put("expected_version", h.runtime.savedPolicy().version); put("run_id", run.id)
+            }, 60_000, at)
+            if (empty) h.f.provider.rows = emptyList() // Live album disappeared AFTER discovery.
+            h.watchEnd(); h.runtime.receiveSourceCommand(begin, h.channel::send, { at }); h.drain()
+            // Bounded multi-photo wait; the original one-photo helper is unchanged.
+            if (!h.ended.await(60, java.util.concurrent.TimeUnit.SECONDS)) {
+                val active = Thread.getAllStackTraces().filterKeys { it.name == "magnolie-photo-source" }
+                throw AssertionError(active.entries.joinToString("\n") { (thread, stack) ->
+                    thread.state.toString() + "\n" + stack.joinToString("\n")
+                })
+            }
+            var first = current()
+            h.runtime.receiveSourceCommand(command("run_status", first), h.channel::send, { at })
+            val status = h.drain().single()["body"]!!.jsonObject
+            if (empty) {
+                assertEquals(JsonPrimitive(true), status["batch_end"]); assertEquals("empty_ready", status.string("state"))
+                assertNull(first.preparation.completedNativeJob())
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendSyncRunOffer(first, h.channel::send, at) }
+                h.runtime.receiveSourceCommand(command("cancel_run", first), h.channel::send, { at }); h.drain()
+                h.runtime.receiveSourceCommand(command("end_run", first), h.channel::send, { at }); h.drain()
+                h.assertOriginal()
+                return@use
+            }
+            assertEquals(JsonPrimitive(false), status["batch_end"])
+            h.runtime.sendSyncRunOffer(first, h.channel::send, at)
+            var offered = h.drain().single()
+            var manifest = DeviceFileOfferEnvelope.validate(offered, h.identity.deviceId, h.peer.peerId, at)
+            assertEquals(16, manifest.files.size)
+            if (selectMember) {
+                val preview = first
+                val choose = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "select_run"); put("expected_version", h.runtime.savedPolicy().version)
+                    put("run_id", first.id); put("manifest_sha256", manifest.fingerprint)
+                    put("file_ids", JsonArray(listOf(JsonPrimitive(manifest.files.first().id))))
+                }, 60_000, at)
+                h.watchEnd(); h.runtime.receiveSourceCommand(choose, h.channel::send, { at }); h.drain(); h.awaitEnd()
+                first = current(); assertNotEquals(preview.id, first.id)
+                h.runtime.sendSyncRunOffer(first, h.channel::send, at); offered = h.drain().single()
+                manifest = DeviceFileOfferEnvelope.validate(offered, h.identity.deviceId, h.peer.peerId, at)
+                assertEquals(1, manifest.files.size)
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command("next_batch", first), h.channel::send, { at }) }
+            if (holdAccepted || selectMember) {
+                h.runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                    put("format", 1); put("offer_id", offered.string("message_id")); put("transfer_id", manifest.transferId)
+                    put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
+                    put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token", "e".repeat(64))
+                }, 60_000, at), { at })
+            }
+            if (selectMember) {
+                h.runtime.receiveChunkRequest(TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                    put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                    put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch)
+                    put("destination_token", "e".repeat(64)); put("file_id", manifest.files.single().id); put("chunk_index", 0)
+                }, 60_000, at), h.channel::send, { at })
+                assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(h.drain().single()["body"]!!.jsonObject.string("data_base64")))
+                h.runtime.observeRemoteSaved(TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                    put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                    put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch)
+                    put("destination_token", "e".repeat(64)); put("receipts", JsonArray(manifest.files.map { buildJsonObject {
+                        put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
+                    } }))
+                }, 60_000, at), { at })
+            }
+            h.runtime.receiveSourceCommand(command("cancel_run", first), h.channel::send, { at }); h.drain()
+            h.runtime.receiveSourceCommand(command("end_run", first), h.channel::send, { at }); h.drain()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.prepareSource(h.selected) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginResumeRun(h.selected, h.job) }
+            if (holdAccepted) {
+                assertEquals("gallery_album_previous_batch_held", assertThrows(PhotoFolderScopeError::class.java) {
+                    h.runtime.receiveSourceCommand(command("next_batch", first), h.channel::send, { at })
+                }.code)
+                val held = first.preparation.completedNativeJob()!!
+                h.inspect { assertEquals(2, it.jobs().size); assertNotNull(it.remoteAcceptance(held)); assertNull(it.remoteSaved(held)) }
+                assertTrue(File(h.root, "photo-source-" + held.id).exists())
+                val abort = command("end_album", first)
+                assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(abort, {
+                    h.channel.send(it); throw java.io.IOException("fixture end-album output lost")
+                }, { at }) }
+                val ended = h.drain().single()
+                assertEquals(JsonPrimitive(true), ended["body"]!!.jsonObject["run_ended"])
+                assertFalse(ended["body"]!!.jsonObject.containsKey("saved"))
+                h.f.provider.rows = listOf(Row())
+                h.watchEnd()
+                h.runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, begin["body"]!!.jsonObject, 60_000, at), h.channel::send, { at })
+                h.drain(); h.awaitEnd(); val fresh = current()
+                h.runtime.receiveSourceCommand(abort, h.channel::send, { at })
+                assertEquals(ended, h.drain().single()); assertSame(fresh, current()); assertFalse(fresh.cancelRequested)
+                h.runtime.receiveSourceCommand(command("cancel_run", fresh), h.channel::send, { at }); h.drain()
+                h.runtime.receiveSourceCommand(command("end_run", fresh), h.channel::send, { at }); h.drain()
+                h.inspect { assertEquals(2, it.jobs().size); assertNotNull(it.remoteAcceptance(held)); assertNull(it.remoteSaved(held)) }
+                assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+                assertEquals("hello", File(h.f.root, "source.bin").readText())
+                return@use
+            }
+            val next = command("next_batch", first)
+            h.watchEnd()
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(next, {
+                h.channel.send(it); throw java.io.IOException("fixture batch reply lost")
+            }, { at }) }
+            h.drain(); h.awaitEnd()
+            val second = current(); assertNotEquals(first.id, second.id)
+            val opened = h.f.provider.opens.size
+            h.runtime.receiveSourceCommand(next, h.channel::send, { at }); h.drain()
+            assertSame(second, current()); assertEquals(opened, h.f.provider.opens.size)
+            h.runtime.receiveSourceCommand(command("run_status", second), h.channel::send, { at })
+            assertEquals(JsonPrimitive(true), h.drain().single()["body"]!!.jsonObject["batch_end"])
+            h.runtime.sendSyncRunOffer(second, h.channel::send, at)
+            val remaining = DeviceFileOfferEnvelope.validate(h.drain().single(), h.identity.deviceId, h.peer.peerId, at)
+            assertEquals(1, remaining.files.size); assertEquals("17.jpg", remaining.files.single().path)
+            h.runtime.receiveSourceCommand(command("cancel_run", second), h.channel::send, { at }); h.drain()
+            h.runtime.receiveSourceCommand(command("end_run", second), h.channel::send, { at }); h.drain()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command("next_batch", second), h.channel::send, { at }) }
+            h.assertOriginal()
+        }
+    }
+
     @Test fun ordinaryNoDownloadRunEndsActualOwnerAndDiscardsOnlyItsNeverAcceptedCache() {
         ResumeRuntimeCase().use { h ->
             val at = h.now + 120_000
