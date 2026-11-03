@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Actual native resume-run offer/acceptance handoff (Refs #356, #337)
+
+The exact active resume run now keeps one native attempt before durable preparation
+or output. Actual renewed source ownership, original index identity, completed I/O
+and worker quiescence are required; known complete remote-saved history rejects
+before allocating an attempt. Failed preparation/output retries that same attempt
+and envelope, never a stored or newly generated replacement. Native preparation,
+sent and accepted commits precede their corresponding runtime projections.
+
+Acceptance is stored on the exact run only after durable accepted commit and
+post-I/O native source/lifecycle/expiry revalidation. Foreign, preparing, stopped,
+expired and exited runs cannot publish success. A durable accepted head left after
+exit/expiry remains historical and non-granting, not an automatically adopted run.
+Normal acceptance/Chunk/Saved routes still require normal sync ownership; no packet
+silently creates or selects a resume run. Original jobs/proofs/ciphertext/consent,
+historical TTLs and quotas remain unchanged.
+
+40 distinct host cases pass (seven new, 33 affected), including actual native
+configuration/control/permission host, original encrypted offer and acceptance then
+stop BEFORE Saved, genuine PFD/cache renewal, encrypted resume output and exact lost
+output retry, transaction rollback, postcommit exit/expiry with no run projection,
+foreign/preparing/canceled owners, known-saved HOLD and normal runtime/worker paths.
+The projection still explicitly allows NO Chunk output. Resume Chunk/Saved ownership,
+source-command/wire/UI registration, pending-head repair, global convergence and
+physical acceptance remain unfinished. Production/UI/automatic/release gates OFF.
+
 ### Whole native resume preparation ownership (Refs #355, #337)
 
 An explicit native resume run now owns the actual original-job preparation through

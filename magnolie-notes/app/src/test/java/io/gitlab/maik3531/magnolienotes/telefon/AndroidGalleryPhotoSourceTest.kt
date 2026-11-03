@@ -922,6 +922,227 @@ class AndroidGalleryPhotoSourceTest {
         } }
     }
 
+    /** Original acceptance is established through actual controls/OS host and
+     * encrypted output, then stopped BEFORE Saved. No consent is fabricated. */
+    private class ResumeRuntimeCase : AutoCloseable {
+        val f = Fixture()
+        val root = Files.createTempDirectory(f.root.toPath(), "resume-runtime356-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val now = 1_800_000_000_000L
+        val output = ByteArrayOutputStream(); val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+        val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
+        val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+        val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64))
+        val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
+        val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+        val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
+        val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
+        val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+        val host = GalleryPhotoPermissionHost(activity.get())
+        val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime) as NativeGallerySourceWorker
+        val endedField = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
+        @Suppress("UNCHECKED_CAST") val originalEnd = endedField.get(worker) as (NativeGallerySourceRun) -> Unit
+        var ended = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        lateinit var catalog: NativeGalleryAlbumCatalog
+        lateinit var selected: NativeGalleryAlbumSelection
+        lateinit var job: PhotoSourceJob
+        lateinit var originalAcceptance: JsonObject
+        lateinit var cipher: Map<String, List<Byte>>
+        init {
+            try {
+                runtime.attachPermissionHost(host) { throw AssertionError("No implicit permission request") }; activity.start().resume()
+                fun echo() {
+                    if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
+                    val packet = desktop.packet(); desktop.markSent(packet)
+                    runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                    if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
+                }
+                echo(); runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                catalog = runtime.discoverSelectable()
+                val page = catalog.page()
+                selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                watchEnd()
+                val normal = runtime.beginSyncRun(selected); awaitEnd()
+                job = normal.preparation.snapshotJob()!!
+                runtime.sendSyncRunOffer(normal, channel::send, now)
+                val offer = drain().single(); val manifest = DeviceFileOfferEnvelope.validate(offer, identity.deviceId, peer.peerId, now)
+                runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                    put("format", 1); put("offer_id", offer.string("message_id")); put("transfer_id", manifest.transferId)
+                    put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
+                    put("permission_epoch", runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token", "e".repeat(64))
+                }, 60_000, now), { now })
+                inspect { originalAcceptance = it.remoteAcceptance(job)!!.record; assertNull(it.remoteSaved(job)) }
+                cipher = File(root, "photo-source-" + job.id).listFiles()!!.associate { it.name to it.readBytes().toList() }
+                runtime.cancelSyncRun(normal); runtime.endStoppedSyncRun(normal)
+            } catch (error: Throwable) { close(); throw error }
+        }
+        fun watchEnd() {
+            ended = java.util.concurrent.CountDownLatch(1)
+            val signal = ended
+            endedField.set(worker, { run: NativeGallerySourceRun -> try { originalEnd(run) } finally { signal.countDown() } })
+        }
+        fun awaitEnd() { assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        fun start(): NativeGalleryResumeRun { watchEnd(); return runtime.beginResumeRun(selected, job) }
+        fun drain(): List<JsonObject> {
+            val input = ByteArrayInputStream(output.toByteArray()); output.reset(); val result = mutableListOf<JsonObject>()
+            while (input.available() > 0) {
+                val frame = TelefonRahmen.lesen(input); val header = JsonObject(frame - "ciphertext")
+                result += Json.parseToJsonElement(TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")),
+                    java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header)).decodeToString()).jsonObject
+            }
+            return result
+        }
+        fun inspect(action: (PhotoSourceJobIndex) -> Unit) { PhotoSourceJobIndex(root, protection).use(action) }
+        fun indexHook(hook: (String) -> Unit) {
+            val index = NativeGalleryFileRuntime::class.java.getDeclaredField("index").also { it.isAccessible = true }.get(runtime)
+            PhotoSourceJobIndex::class.java.getDeclaredField("boundary").also { it.isAccessible = true }.set(index, hook)
+        }
+        fun acceptance(run: NativeGalleryResumeRun, at: Long = now + 120_000): JsonObject {
+            lateinit var original: DeviceFileRemoteAcceptance
+            inspect { original = it.remoteAcceptance(job)!!.historicalAcceptance() }
+            return TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("offer_id", run.attempt.get()!!.offerId); put("transfer_id", original.transferId)
+                put("manifest_sha256", original.manifestSha256); put("acceptance_sha256", original.acceptanceSha256)
+                put("permission_epoch", original.permissionEpoch); put("destination_token", original.destinationToken)
+            }, 60_000, at)
+        }
+        fun assertOriginal() {
+            inspect { assertEquals(listOf(job), it.jobs()); assertEquals(originalAcceptance, it.remoteAcceptance(job)!!.record); assertNull(it.remoteSaved(job)) }
+            assertEquals(cipher, File(root, "photo-source-" + job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+            assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+        override fun close() {
+            release.countDown(); runtime.revokeControl()
+            if (!worker.isQuiescent) awaitEnd()
+            runtime.close(); host.close(); if (::catalog.isInitialized) catalog.close()
+            activity.pause().stop().destroy(); desktop.close(); channel.close(); f.close()
+        }
+    }
+
+    @Test fun actualResumeRunCommitsOfferAndAcceptanceBeforeProjectionWithoutNormalHandlerFallback() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            val foreign = NativeGalleryResumeRun(h.selected, h.job, run.preparation)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(foreign, h.channel::send, { at }) }
+            h.runtime.sendResumeRunOffer(run, { message ->
+                h.inspect { assertEquals("prepared", it.resumeAttempt(h.job)!!.phase) }
+                assertNull(run.acceptance.get()); h.channel.send(message)
+            }, { at })
+            val wire = h.drain().single()
+            assertEquals(run.attempt.get()!!.offerId, wire.string("message_id"))
+            h.inspect { assertEquals("sent", it.resumeAttempt(h.job)!!.phase) }
+            val message = h.acceptance(run)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunAcceptance(foreign, message, { at }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeAcceptance(message, { at }) }
+            val projection = h.runtime.observeResumeRunAcceptance(run, message, { at })
+            assertSame(projection, run.acceptance.get()); assertFalse(projection.allowsChunkOutput)
+            h.inspect { assertEquals("accepted", it.resumeAttempt(h.job)!!.phase) }
+            assertSame(projection, h.runtime.observeResumeRunAcceptance(run, message, { at }))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunAcceptance(run, message, { at }) }
+        }
+    }
+
+    @Test fun actualResumeRunRetainsSameAttemptAndEncryptedEnvelopeAfterLostOutput() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            assertThrows(java.io.IOException::class.java) { h.runtime.sendResumeRunOffer(run, {
+                h.channel.send(it); throw java.io.IOException("fixture lost encrypted output acknowledgement")
+            }, { at }) }
+            val first = h.drain().single(); val held = run.attempt.get()!!
+            h.inspect { assertEquals("prepared", it.resumeAttempt(h.job)!!.phase) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunAcceptance(run, h.acceptance(run), { at }) }
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { at + 1 })
+            assertSame(held, run.attempt.get()); assertEquals(first, h.drain().single())
+            assertFalse(h.runtime.observeResumeRunAcceptance(run, h.acceptance(run), { at + 1 }).allowsChunkOutput)
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun actualResumeRunPreparingOrCanceledCannotPrepareDurableOfferOrWriteOutput() {
+        ResumeRuntimeCase().use { h ->
+            val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); check(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, h.channel::send, { h.now }) }
+                assertNull(run.attempt.get()); h.inspect { assertNull(it.resumeAttempt(h.job)) }
+                h.runtime.cancelResumeRun(run)
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, h.channel::send, { h.now }) }
+            } finally { h.release.countDown(); h.awaitEnd() }
+            h.runtime.endStoppedResumeRun(run)
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun actualResumeOfferCancelExitOrExpiryDuringEncryptedOutputCannotPublishSentSuccess() {
+        for (change in listOf("cancel", "exit", "expired")) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; var wall = at
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, { message ->
+                h.channel.send(message)
+                when (change) { "cancel" -> run.cancel(); "exit" -> h.runtime.revokeControl(); else -> wall += 60_000 }
+            }, { wall }) }
+            assertEquals(1, h.drain().size)
+            h.inspect { assertEquals("prepared", it.resumeAttempt(h.job)!!.phase) }
+            assertNull(run.acceptance.get())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun actualResumeAcceptanceExpiryBeforeProjectionNeverPublishesRunGrant() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { at }); h.drain()
+            val message = h.acceptance(run); var ticks = 0
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.observeResumeRunAcceptance(run, message, { if (++ticks >= 3) at + 60_000 else at })
+            }
+            assertNull(run.acceptance.get()); h.assertOriginal()
+        }
+    }
+
+    @Test fun actualResumePreparationOrAcceptanceRollbackRetriesSameLiveRunAttempt() {
+        for (phase in listOf("prepared", "accepted")) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            if (phase == "accepted") { h.runtime.sendResumeRunOffer(run, h.channel::send, { at }); h.drain() }
+            h.indexHook { if (it == "membership-protect") throw java.io.IOException("fixture runtime attempt phase rollback") }
+            assertThrows(java.io.IOException::class.java) {
+                if (phase == "prepared") h.runtime.sendResumeRunOffer(run, h.channel::send, { at })
+                else h.runtime.observeResumeRunAcceptance(run, h.acceptance(run), { at })
+            }
+            val held = run.attempt.get()!!
+            h.inspect { assertEquals(if (phase == "prepared") null else "sent", it.resumeAttempt(h.job)?.phase) }
+            assertNull(run.acceptance.get()); assertEquals(0, h.output.size())
+            h.indexHook { }
+            if (phase == "prepared") {
+                h.runtime.sendResumeRunOffer(run, h.channel::send, { at })
+                assertEquals(held.offerId, h.drain().single().string("message_id"))
+            } else {
+                assertFalse(h.runtime.observeResumeRunAcceptance(run, h.acceptance(run), { at }).allowsChunkOutput)
+            }
+            assertSame(held, run.attempt.get()); h.assertOriginal()
+        }
+    }
+
+    @Test fun actualResumeAcceptedCommitFollowedByExitOrExpiryCannotPublishRunProjection() {
+        for (change in listOf("exit", "expired")) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; var wall = at
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { wall }); h.drain()
+            h.indexHook { if (it == "membership-committed") {
+                if (change == "exit") h.runtime.revokeControl() else wall += 60_000
+            } }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunAcceptance(run, h.acceptance(run), { wall }) }
+            assertNull(run.acceptance.get())
+            h.inspect { assertEquals("accepted", it.resumeAttempt(h.job)!!.phase); assertFalse(it.resumeAttempt(h.job)!!.allowsChunkOutput) }
+            h.assertOriginal(); assertEquals(0, h.output.size())
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
@@ -1636,6 +1857,11 @@ class AndroidGalleryPhotoSourceTest {
                             assertTrue(ready.await(5, java.util.concurrent.TimeUnit.SECONDS))
                             val local = resumed.source(); val resumedFile = local.manifest.files.single()
                             assertArrayEquals("hello".toByteArray(), local.readChunk(resumedFile.id, 0))
+                            assertEquals("gallery_resume_original_already_saved", assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.sendResumeRunOffer(resumed, channel::send, { now })
+                            }.code)
+                            assertNull(resumed.attempt.get())
+                            PhotoSourceJobIndex(root, protection).use { assertNull(it.resumeAttempt(originalJob)) }
                             assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedResumeRun(resumed) }
                             assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(resumeSelected) }
                             val foreignResume = NativeGalleryResumeRun(resumeSelected, originalJob, resumed.preparation)

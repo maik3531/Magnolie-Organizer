@@ -99,6 +99,48 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         resumeRun = null // No cache/proof/quota cleanup or successful sync assertion.
     }
 
+    private fun resumeSourceOwned(run: NativeGalleryResumeRun): NativeGalleryRenewedSource {
+        ready()
+        if (resumeRun !== run || run.cancelRequested || syncRun != null) DeviceFileControl.fail("gallery_resume_run_not_current")
+        if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        if (index.remoteSaved(run.originalJob) != null) DeviceFileControl.fail("gallery_resume_original_already_saved")
+        val source = run.source()
+        source.manifest // Recheck actual fresh native READ/peer/index ownership.
+        return source
+    }
+
+    /** Native-only handoff. No incoming packet or persisted head creates a run. */
+    internal fun sendResumeRunOffer(run: NativeGalleryResumeRun, send: (JsonObject) -> Unit,
+        now: () -> Long = System::currentTimeMillis): Unit = withOperation {
+        val source = resumeSourceOwned(run)
+        if (run.acceptance.get() != null) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
+        val attempt = run.attempt.get() ?: NativeGalleryResumeAttempt.begin(source, now()).also {
+            // Keep this exact envelope even when preparation or output fails.
+            run.attempt.set(it)
+        }
+        attempt.prepareStorage(index, now)
+        if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+        attempt.sendOffer({ message ->
+            if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+            send(message)
+            if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+        }, now)
+        if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+    }
+
+    internal fun observeResumeRunAcceptance(run: NativeGalleryResumeRun, message: JsonObject,
+        now: () -> Long = System::currentTimeMillis): NativeResumeAcceptanceProjection = withOperation {
+        val source = resumeSourceOwned(run)
+        val attempt = run.attempt.get() ?: DeviceFileControl.fail("gallery_resume_offer_not_sent")
+        val projection = attempt.observeAcceptance(message, now)
+        if (resumeSourceOwned(run) !== source || now() >= projection.validUntil)
+            DeviceFileControl.fail("gallery_resume_run_not_current")
+        val prior = run.acceptance.get()
+        if (prior != null && prior !== projection) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
+        run.acceptance.set(projection) // Durable accepted head precedes this projection.
+        projection // Still explicitly allows NO Chunk output.
+    }
+
     /** Native-only offer path. An output receipt is not acceptance/publication.
      * Whole-run ownership remains held after source preparation and this write. */
     internal fun sendSyncRunOffer(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,
