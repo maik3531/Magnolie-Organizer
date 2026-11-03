@@ -18,7 +18,9 @@ import magnolie_telefon as phone
 
 @pytest.fixture
 def mappings(receiving):
-    owner=ProtectedPhotoMappings(receiving[3]._authority)
+    # Use the actual coordinator owner so its held-I/O validation lease is the
+    # same native object that projects the now-mandatory original-root policy.
+    owner=receiving[3]._mappings
     try:yield receiving,owner
     finally:owner.close()
 
@@ -79,7 +81,7 @@ def test_reopened_mapping_keeps_original_location_after_pc_edit_without_claiming
     saved,records=owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
     target=fixture[4]/records[0].relative_path
     target.write_bytes(b'PC crop kept at original target')
-    owner.close();reopened=ProtectedPhotoMappings(fixture[3]._authority)
+    owner.close();reopened=ProtectedPhotoMappings(fixture[3]._authority);fixture[3]._mappings=reopened
     try:
         assert reopened.lookup((association,))==(saved,records)
         assert target.read_bytes()==b'PC crop kept at original target'
@@ -90,9 +92,10 @@ def test_reopened_mapping_keeps_original_location_after_pc_edit_without_claiming
 def test_no_saved_receipt_or_incomplete_actual_receipt_set_cannot_create_mappings(mappings):
     fixture,owner=mappings
     receiver,pages,_=save(fixture,count=2,publish=False)
+    original=owner.read()
     with pytest.raises(TransferError,match='complete_saved_receipts_required'):
         owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
-    assert not (Path(fixture[0].store.root)/owner._name).exists()
+    assert owner.read()==original and original.count==0
     connection=fixture[3];action=connection.issue_receive_action();connection._take_action(action)
     connection._mutation_action=action
     try:receiver.publish_completed();receiver.commit_saved_receipts()
@@ -101,7 +104,7 @@ def test_no_saved_receipt_or_incomplete_actual_receipt_set_cannot_create_mapping
     with receiver._index._db:receiver._index._db.execute('DELETE FROM receipts WHERE file_id=?',(receipts[1].file_id,))
     with pytest.raises(TransferError,match='complete_saved_receipts_required'):
         owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
-    assert not (Path(fixture[0].store.root)/owner._name).exists()
+    assert owner.read()==original
     assert all((fixture[4]/receipt.relative_path).read_bytes()==b'hello' for receipt in receipts)
 
 
@@ -165,13 +168,14 @@ def test_post_commit_sync_failure_reports_no_success_and_reopen_authenticates_th
     sync=owner._sync;calls=[]
     def fail_after_commit():
         calls.append(1)
-        if len(calls)==2:raise OSError('fixture lost post-commit mapping directory sync')
+        if not owner._db.in_transaction and owner._db.execute('SELECT count(*) FROM mappings').fetchone()==(1,):
+            raise OSError('fixture lost post-commit mapping directory sync')
         sync()
     monkeypatch.setattr(owner,'_sync',fail_after_commit)
     with pytest.raises(OSError,match='post-commit'):
         owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
     assert owner._uncertain
-    owner.close();reopened=ProtectedPhotoMappings(fixture[3]._authority)
+    owner.close();reopened=ProtectedPhotoMappings(fixture[3]._authority);fixture[3]._mappings=reopened
     try:
         recovered,records=reopened.lookup((association,))
         assert recovered.count==1 and recovered.revision==2 and records[0] is not None
@@ -255,7 +259,7 @@ def test_same_key_repairing_preserves_old_mapping_without_normalizing_its_owner_
 def test_observed_mapping_owner_rollback_is_sticky_and_keeps_all_actual_files(mappings,monkeypatch):
     fixture,owner=mappings
     receiver,pages,association=save(fixture)
-    protect=owner._protect;owners=[]
+    protect=owner._protect;owners=[owner._db.execute('SELECT payload FROM owner').fetchone()[0]]
     def capture(value,label):
         blob=protect(value,label)
         if label=='owner':owners.append(blob)

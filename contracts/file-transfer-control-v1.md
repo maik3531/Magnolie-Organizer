@@ -1758,8 +1758,8 @@ Fourteen new source-host cases pass: initial/default and existing-setting
 preservation, stale snapshot, action expiry/close/revocation, missing and valid
 replacement roots, legacy preservation, transaction rollback/retry, lost sync,
 and actual native media save plus receipt-only recovery after fresh reconnect.
-This explicit native API is not yet joined to the advanced UI or made a production
-admission prerequisite. Legacy completeness/repair, full recovery/convergence and
+This explicit native API is not yet joined to the advanced UI. Both original-root
+bindings are required by the media admission fence described below. Legacy completeness/repair, full recovery/convergence and
 installed/physical acceptance remain in #337; production/UI/automatic gates stay OFF.
 
 ### Separate explicit repair of missing post-mapping evidence (Refs #341, #337)
@@ -1786,6 +1786,32 @@ save and legacy history; wrong job/receipt/target context; original action expir
 exit/revocation during protection; lost post-commit sync with no returned success
 and actual complete evidence on authenticated reopen. This is not full source
 restart/READ renewal, arbitrary missing-metadata repair or platform/phone acceptance.
+
+### Mandatory original storage bindings for media admission (Refs #342, #337)
+
+Three actual native offers reproduced admission with no storage binding or only
+one bound original root. The media admission/resume preflight now rejects those
+states before mapping/history lookup, catalog opening or a new reservation. Both
+protected original witnesses must already exist in the current native policy;
+incoming media or source commands never invoke bootstrap or renew consent.
+
+Positive media fixtures now explicitly prepare both roots through the actual
+native bootstrap API and renew native control agreement BEFORE source commands.
+The older generic non-media offer fixture remains explicitly separate; it does
+not prove production media readiness. Standalone mapping tests use the actual
+coordinator's held-I/O owner/lease and explicit original-owner reopens rather than
+a competing writer hidden from native availability validation. Expectations now
+require the real prepublication root checkpoint and preserve empty authenticated
+stores, not an absent default. Missing/corrupt bound roots fence native availability
+even before historical admission and remain preserved, without new jobs or copies.
+
+199 distinct scoped cases pass after the change (three new, 196 affected), including
+unbound/half-bound accept and resume, actual protected source/offer/save ownership,
+original history and root loss/corruption, post-mapping commit/repair and fresh
+historical recovery. Earlier failed reproductions/fixture adaptations remain
+separate evidence and are not counted as extra passing cases. Advanced UI, automatic
+runs, production handlers and releases remain OFF pending the remaining complete
+recovery/conflict/migration/source/platform acceptance in #337.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

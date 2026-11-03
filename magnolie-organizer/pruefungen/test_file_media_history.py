@@ -37,7 +37,9 @@ def unpublished(fixture,receiver):
 def test_native_index_contains_encrypted_history_before_first_chunk_and_recovers_original_anchor(receiving,supply_accepted):
     connection=receiving[3];receiver=admit(receiving,count=9)
     index=receiver._index;history=index.media_history
-    assert history==NativeMediaHistory.capture(receiver._accepted,connection._source_media_pages)
+    checkpoint=connection._mappings.checkpoint(connection.read_preferences().policy.mapping_store)
+    assert history.mapping_store==checkpoint
+    assert history==NativeMediaHistory.capture(receiver._accepted,connection._source_media_pages,mapping_store=checkpoint)
     assert len(history.entries)==9 and tuple(count for _,count in history.attempts)==(8,1)
     assert not history.grants_write_authority and not history.is_saved_receipt
     assert not index.saved_receipts()

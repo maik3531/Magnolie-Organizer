@@ -66,9 +66,11 @@ def test_new_media_pages_do_not_invent_an_anchor_for_existing_legacy_job(receivi
     receiver=connection._run.receiver;job=receiver.job
     assert receiver._index.media_history is None
     receiver.close();connection._run=None;connection._offer=None
-    ready_source(receiving);collect(receiving,full)
+    ready_source(receiving,prepare_storage=False);collect(receiving,full)
     offered,result=send_offer(receiving,full);dispatch(receiving,result)
-    with pytest.raises(TransferError,match='resume_media_history_required'):
+    # The mandatory storage fence now rejects this unmarked legacy job even
+    # before attempting history/stage resume; no policy epoch is renewed here.
+    with pytest.raises(TransferError,match='media_storage_bootstrap_required'):
         connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
     assert connection._run is None and len(connection._catalog.jobs())==1
     unpublished(receiving,receiver)

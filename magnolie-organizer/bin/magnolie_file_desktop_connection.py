@@ -443,6 +443,10 @@ class NativeDesktopFileConnection:
         This only fences new admission. It neither proves first use after lost
         restart metadata nor implements reconciliation or mapping recovery.
         """
+        if self._source_media_pages:
+            policy=self._receiving_policy().policy
+            if policy.mapping_store is None or policy.job_catalog is None:
+                raise TransferError('file_desktop_media_storage_bootstrap_required')
         self._verify_expected_mapping_store()
         before, _ = self._mappings.lookup(())
         if before.revision and not before.associated:

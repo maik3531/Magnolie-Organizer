@@ -62,6 +62,10 @@ def test_mapping_corruption_blocks_admission_without_erasing_metadata_or_creatin
     broken=blob[:-1]+bytes([blob[-1]^1])
     with owner._db:owner._db.execute('UPDATE mappings SET payload=?',(broken,))
     with pytest.raises(TransferError,match='photo_mappings_members_changed'):
+        owner.lookup(())
+    # With mandatory original-root binding, native availability fences this
+    # observed corruption before a new acceptance can reach historical lookup.
+    with pytest.raises(TransferError,match='receive_controls_not_agreed'):
         connection.accept_pending_offer(connection.issue_receive_action(),connection._offer['message_id'])
     assert connection._run is None and owner._uncertain
     assert owner._db.execute('SELECT payload FROM mappings').fetchone()[0]==broken

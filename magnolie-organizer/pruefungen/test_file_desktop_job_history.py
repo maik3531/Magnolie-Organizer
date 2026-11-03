@@ -36,12 +36,16 @@ def test_actual_job_anchor_prevents_new_admission_when_mapping_is_not_yet_commit
     receiver.close();connection._run=None
     before=target.read_bytes() if target.exists() else None;jobs=connection._catalog.jobs()
     try:
-        assert connection._mappings.read().revision==0
-        with pytest.raises(TransferError,match='photo_job_requires_reconcile'):
+        mapping=connection._mappings.read()
+        assert mapping.count==0 and mapping.revision==(0 if phase=='map-missing' else 1)
+        # Missing previously bound roots now fence current native availability
+        # before history inspection; uncommitted mappings still hit job history.
+        error='receive_controls_not_agreed' if phase=='map-missing' else 'photo_job_requires_reconcile'
+        with pytest.raises(TransferError,match=error):
             connection.accept_pending_offer(connection.issue_receive_action(),connection._offer['message_id'])
         assert connection._run is None and connection._catalog.jobs()==jobs
         assert (target.read_bytes() if target.exists() else None)==before
-        assert not (Path(receiving[0].store.root)/connection._mappings._name).exists()
+        assert (Path(receiving[0].store.root)/connection._mappings._name).exists()==(phase!='map-missing')
     finally:
         if held is not None:held.rename(root)
 

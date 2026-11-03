@@ -302,7 +302,18 @@ def test_failed_native_source_run_can_be_canceled_but_never_revived_as_a_ready_s
     assert connection._run is None and connection._catalog is None
 
 
-def ready_source(fixture, *, state='snapshot_ready', ended=True):
+def ready_source(fixture, *, state='snapshot_ready', ended=True,prepare_storage=True):
+    # Explicit native setup in positive fixtures, BEFORE any source command.
+    # This never runs in the product's packet/command path and renews no source
+    # run. Negative storage-admission fixtures intentionally use raw commands.
+    from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+    from test_file_desktop_receive import negotiate
+    connection=fixture[3];expected=connection._preferences.read()
+    if prepare_storage and (expected.policy.mapping_store is None or expected.policy.job_catalog is None):
+        controller=NativeMediaStorageBootstrap(connection._authority)
+        try:controller.prepare(controller.issue_action(),expected)
+        finally:controller.close()
+        negotiate(*fixture[:4])
     status(fixture); catalog(fixture)
     start = request(fixture, 'run', album_id=ALBUM, desktop_choice=True)
     fixture[0]._payload(fixture[1], fixture[2], response(start, sources.RUN_RESULT,
@@ -319,7 +330,7 @@ def offer_output(fixture, req, message, manifest, **fields):
 
 def test_offer_trigger_joins_exact_native_ready_run_actual_offer_and_result_before_acceptance(receiving):
     service, peer, channel, connection, _ = receiving
-    ready_source(receiving)
+    ready_source(receiving,prepare_storage=False) # Limited generic-file fixture, no media history.
     req = request(receiving, 'offer_run')
     assert req['body']['run_id'] == RUN and req['body']['expected_version'] == 'b'*64
     message, manifest = offer(receiving)
