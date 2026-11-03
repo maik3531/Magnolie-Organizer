@@ -3,13 +3,14 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import kotlinx.serialization.json.*
 import java.util.Locale
 
-/** Metadata/configuration only. No paths, OS permission claims, file grants,
- * run scheduling or album READ authority can be supplied in this body.
+/** Explicit metadata/configuration/run requests only. No paths, OS permission
+ * claims, file grants or album READ authority can be supplied in this body.
  */
 internal class DeviceFileSourceCommand private constructor(val requestId: String, val operation: String,
     val expectedVersion: String?, val enabled: Boolean?, val kinds: Set<GallerySourceKind>, val expires: Long,
     val catalogId: String? = null, val after: Int = 0,
-    val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null) {
+    val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null,
+    val originalJobId: String? = null, val originalJobVersion: String? = null) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
@@ -31,6 +32,20 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
+            if (operation in setOf("resume_run", "resume_status", "cancel_resume")) {
+                val starting = operation == "resume_run"
+                if (body.keys != base + setOf("expected_version") + (if (starting)
+                    setOf("catalog_id", "album_id", "desktop_choice", "original_job_id", "original_job_version") else setOf("run_id"))) fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                if (!starting) return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
+                    message.long("expires_ms"), runId = opaque("run_id"))
+                val choice = (body["desktop_choice"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
+                val jobId = text("original_job_id").takeIf { Regex("[0-9a-f]{32}").matches(it) } ?: fail()
+                val jobVersion = text("original_job_version").takeIf(DeviceFileControl::hash) ?: fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
+                    catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice,
+                    originalJobId = jobId, originalJobVersion = jobVersion)
+            }
             if (operation == "media_page") {
                 if (body.keys != base + setOf("expected_version", "run_id", "after")) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

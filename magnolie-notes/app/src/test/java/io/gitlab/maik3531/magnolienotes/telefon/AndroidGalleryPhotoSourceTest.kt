@@ -1041,6 +1041,23 @@ class AndroidGalleryPhotoSourceTest {
                 } }))
             }, 60_000, at)
         }
+        fun resumeCommand(at: Long = now): JsonObject {
+            runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "discover"); put("expected_version", runtime.savedPolicy().version)
+            }, 60_000, at), channel::send, { at })
+            val page = drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
+            return TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "resume_run"); put("expected_version", runtime.savedPolicy().version)
+                put("catalog_id", page.string("catalog_id")); put("album_id", page["albums"]!!.jsonArray.single().jsonObject.string("album_id"))
+                put("desktop_choice", true); put("original_job_id", job.id); put("original_job_version", job.version)
+            }, 60_000, at)
+        }
+        fun currentResume(): NativeGalleryResumeRun = NativeGalleryFileRuntime::class.java.getDeclaredField("resumeRun").also { it.isAccessible = true }
+            .get(runtime) as NativeGalleryResumeRun
+        fun resumeStatus(operation: String, run: NativeGalleryResumeRun, at: Long = now): JsonObject =
+            TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", operation); put("expected_version", runtime.savedPolicy().version); put("run_id", run.id)
+            }, 60_000, at)
         override fun close() {
             release.countDown(); runtime.revokeControl()
             if (!worker.isQuiescent) awaitEnd()
@@ -1386,6 +1403,131 @@ class AndroidGalleryPhotoSourceTest {
             assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { wall }) }
             assertNull(run.remoteSaved.get()); h.assertOriginal(saved = boundary == "membership-committed")
             assertEquals(0, h.output.size())
+        }
+    }
+
+    @Test fun resumeSourceCommandsStartOnceAfterLostReplyAndKeepActualRunUntilStoppedEnd() {
+        ResumeRuntimeCase().use { h ->
+            val command = h.resumeCommand(); h.watchEnd()
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, {
+                h.channel.send(it); throw java.io.IOException("fixture resume start reply lost")
+            }, { h.now }) }
+            val first = h.drain().single(); val run = h.currentResume(); h.awaitEnd()
+            val opens = h.f.provider.opens.toList()
+            h.runtime.receiveSourceCommand(command, h.channel::send, { h.now })
+            val repeated = h.drain().single()
+            assertSame(run, h.currentResume()); assertEquals(first["body"]!!.jsonObject.string("run_id"), repeated["body"]!!.jsonObject.string("run_id"))
+            assertEquals(opens, h.f.provider.opens); assertNull(run.attempt.get())
+            h.runtime.receiveSourceCommand(h.resumeStatus("resume_status", run), h.channel::send, { h.now })
+            val status = h.drain().single()["body"]!!.jsonObject
+            assertEquals("snapshot_ready", status.string("state")); assertEquals(JsonPrimitive(true), status["source_io_ended"])
+            val changed = JsonObject(command + ("created_ms" to JsonPrimitive(h.now + 1)))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(changed, h.channel::send, { h.now }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            h.runtime.receiveSourceCommand(h.resumeStatus("cancel_resume", run), h.channel::send, { h.now })
+            assertEquals("canceled_held", h.drain().single()["body"]!!.jsonObject.string("state"))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            h.runtime.endStoppedResumeRun(run)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { h.now }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeSourceCommandCancelDoesNotReleaseWorkerWhileRealProviderIoIsBlocked() {
+        ResumeRuntimeCase().use { h ->
+            val command = h.resumeCommand(); val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); check(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            h.watchEnd()
+            h.runtime.receiveSourceCommand(command, h.channel::send, { h.now }); h.drain()
+            val run = h.currentResume()
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                h.runtime.receiveSourceCommand(h.resumeStatus("cancel_resume", run), h.channel::send, { h.now })
+                assertEquals("cancel_pending", h.drain().single()["body"]!!.jsonObject.string("state"))
+                assertFalse(run.preparation.ioEnded)
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.endStoppedResumeRun(run) }
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            } finally { h.release.countDown(); h.awaitEnd() }
+            h.runtime.endStoppedResumeRun(run); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeSourceCommandUnknownOriginalOrMalformedFieldsCannotOpenAnyPfd() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.resumeCommand(); val body = message["body"]!!.jsonObject; val opens = h.f.provider.opens.toList()
+            for ((field, value) in listOf("original_job_id" to JsonPrimitive("9".repeat(32)), "original_job_version" to JsonPrimitive("9".repeat(64)),
+                "original_job_version" to JsonPrimitive(true), "desktop_choice" to JsonPrimitive("true"), "path" to JsonPrimitive("DCIM/Camera"))) {
+                val changed = JsonObject(message + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())) +
+                    ("body" to JsonObject(body + (field to value))))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(changed, h.channel::send, { h.now }) }
+            }
+            assertEquals(opens, h.f.provider.opens); assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeSourceCommandReplyExpiryOrExitNeverAdoptsAnotherWorkerOnRetry() {
+        for (change in listOf("expired", "exit")) ResumeRuntimeCase().use { h ->
+            val message = h.resumeCommand(); var wall = h.now; h.watchEnd()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(message, {
+                h.channel.send(it)
+                if (change == "exit") h.runtime.revokeControl() else wall += 60_000
+            }, { wall }) }
+            h.awaitEnd(); val run = h.currentResume(); val opens = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(message, h.channel::send, { wall }) }
+            assertSame(run, h.currentResume()); assertEquals(opens, h.f.provider.opens)
+            assertEquals(1, h.drain().size); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeSourceCommandReplayLedgerRejectsForeignRuntimeOwnerAndFailedStartRetry() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.resumeCommand(); val command = DeviceFileSourceCommand.parse(message, h.now)
+            val scope = "9".repeat(64); val owner = Any()
+            val ledger = NativeGalleryResumeCommands({ h.now }, { 1000L })
+            h.watchEnd()
+            val run = ledger.start(scope, owner, command, message) { h.runtime.beginResumeRun(h.selected, h.job) }; h.awaitEnd()
+            assertSame(run, ledger.start(scope, owner, command, message) { throw AssertionError("No second worker") })
+            assertThrows(PhotoFolderScopeError::class.java) { ledger.start(scope, Any(), command, message) { throw AssertionError("Foreign owner") } }
+            val failed = NativeGalleryResumeCommands({ h.now }, { 1000L }); var launches = 0
+            assertThrows(java.io.IOException::class.java) { failed.start(scope, owner, command, message) { launches++; throw java.io.IOException("fixture start failed") } }
+            assertThrows(PhotoFolderScopeError::class.java) { failed.start(scope, owner, command, message) { launches++; run } }
+            assertEquals(1, launches); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeCommandLedgerBoundsReplayMemoryAndFencesInvalidClocksWithoutNewLaunch() {
+        ResumeRuntimeCase().use { h ->
+            val message = h.resumeCommand(); val command = DeviceFileSourceCommand.parse(message, h.now)
+            val run = h.start(); h.awaitEnd(); val scope = "9".repeat(64); val owner = Any()
+            for (change in listOf("wall", "elapsed", "expired", "negative", "overflow")) {
+                var wall = h.now; var tick = 1000L; var launches = 0
+                val ledger = NativeGalleryResumeCommands({ wall }, { tick })
+                ledger.start(scope, owner, command, message) { launches++; run }
+                when (change) { "wall" -> wall--; "elapsed" -> tick--; "expired" -> wall += 60_000; "negative" -> tick = -1L; else -> tick = Long.MAX_VALUE }
+                assertThrows(PhotoFolderScopeError::class.java) { ledger.start(scope, owner, command, message) { launches++; run } }
+                wall = h.now; tick = 1000L
+                assertThrows(PhotoFolderScopeError::class.java) { ledger.start(scope, owner, command, message) { launches++; run } }
+                assertEquals(1, launches)
+            }
+            val ledger = NativeGalleryResumeCommands({ h.now }, { 1000L }); var launches = 0
+            repeat(64) {
+                val unique = JsonObject(message + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())))
+                ledger.start(scope, owner, DeviceFileSourceCommand.parse(unique, h.now), unique) { launches++; run }
+            }
+            val extra = JsonObject(message + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())))
+            assertEquals("gallery_resume_commands_held", assertThrows(PhotoFolderScopeError::class.java) {
+                ledger.start(scope, owner, DeviceFileSourceCommand.parse(extra, h.now), extra) { launches++; run }
+            }.code)
+            assertEquals(64, launches); h.assertOriginal()
+            var wall = h.now
+            val expiry = NativeGalleryResumeCommands({ wall }, { 1000L })
+            expiry.start(scope, owner, command, message) { run }
+            wall += 60_000
+            assertThrows(PhotoFolderScopeError::class.java) { expiry.start(scope, owner, command, message) { throw AssertionError("Expired request") } }
+            val fresh = JsonObject(message + mapOf("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString()),
+                "created_ms" to JsonPrimitive(wall), "expires_ms" to JsonPrimitive(wall + 60_000)))
+            assertSame(run, expiry.start(scope, owner, DeviceFileSourceCommand.parse(fresh, wall), fresh) { run })
+            // An expired request must not poison unrelated valid future commands.
         }
     }
 

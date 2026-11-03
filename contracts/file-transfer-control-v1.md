@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit resume source start/status/cancel commands (Refs #359, #337)
+
+The guarded source-command parser/runtime now accepts resume_run with exact
+original_job_id/version plus a current native catalog/album selection, and
+resume_status/cancel_resume with exact active run ID. Configuration ticket,
+protected policy CAS, current peer/pairing and command expiry guard actual responses.
+Unknown original jobs, saved history and untyped/path/READ-claim fields cannot launch
+provider work. The existing single worker still performs real native source checks.
+
+A separate bounded process-local replay ledger records start intent before launch;
+lost replies repeat the same runtime-owned run, not a new worker/job. Changed request
+contents, foreign owners, failed prior starts and clock rollback reject. Expired
+requests do not poison independent valid future commands. Cancel reports pending
+versus real I/O-ended held state; neither response releases quota or claims whole
+sync success. An ended/stopped run cannot be silently recreated by replay.
+
+30 distinct host cases pass (six new, 24 affected), including actual protected
+controls/native discovery/encrypted replies, lost reply/replay, blocked-PFD cancel,
+invalid original/type/path fields, reply expiry/exit, foreign/failed starts, bounded
+64-entry ledger/clock fences, parser/normal-run compatibility and native direct
+offer/ownership fixtures. Resume offer/acceptance/Chunk/Saved are NOT dispatched by
+these commands; source-command transport registration, desktop/UI, pending-head
+repair, convergence and physical acceptance remain separate unfinished work.
+Production/automatic/UI/releases remain OFF.
+
 ### Durable native resume Saved observation (Refs #358, #337)
 
 An explicit native Saved API now validates the actual accepted resume run/source,
