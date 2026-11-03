@@ -58,6 +58,7 @@ class PhotoPreferences:
     videos: VideoPreferences | None = None
     separate_animations: bool | None = None
     separate_own_recordings: bool | None = None
+    direction: str | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -66,15 +67,17 @@ class PhotoPreferences:
         if self.videos is not None:value['videos']=self.videos.wire()
         if self.separate_animations is not None:value['separate_animations']=self.separate_animations
         if self.separate_own_recordings is not None:value['separate_own_recordings']=self.separate_own_recordings
+        if self.direction is not None:value['direction']=self.direction
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
+                or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
                 or type(value['format']) is not int or value['format']!=1
                 or type(value['revision']) is not int or not 2<=value['revision']<=MAX_REVISION
                 or not _hex(value['permission_epoch']) or not _hex(value['pairing_epoch'])
@@ -89,7 +92,7 @@ class PhotoPreferences:
         videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
-            value.get('separate_animations'),value.get('separate_own_recordings'))
+            value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'))
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -112,6 +115,9 @@ class PhotoPreferencesSnapshot:
     def separate_own_recordings(self):
         return bool(self.associated and self.policy is not None and self.policy.enabled
             and self.policy.separate_own_recordings is True)
+    @property
+    def direction(self):
+        return self.policy.direction if self.associated and self.policy is not None and self.policy.direction is not None else 'phone_to_desktop'
 
 class ProtectedPhotoPreferences:
     MAX_DATABASE_BYTES=512*1024
@@ -302,7 +308,7 @@ class ProtectedPhotoPreferences:
             raise
 
     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
-            include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None):
+            include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
@@ -311,6 +317,8 @@ class ProtectedPhotoPreferences:
         if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')
         if separate_animations is not None and type(separate_animations) is not bool:raise TransferError('animation_preferences_invalid_settings')
         if separate_own_recordings is not None and type(separate_own_recordings) is not bool:raise TransferError('capture_preferences_invalid_settings')
+        if direction is not None and (type(direction) is not str or direction not in ('phone_to_desktop','bidirectional')):
+            raise TransferError('photo_preferences_invalid_direction')
         if enabled and destination_choice is None and (expected.policy is None or expected.policy.destination is None):
             raise TransferError('photo_preferences_destination_required')
         with self._operation():
@@ -330,10 +338,13 @@ class ProtectedPhotoPreferences:
                 videos=current.policy.videos if current.policy is not None else None
                 animations=current.policy.separate_animations if current.policy is not None else None
                 recordings=current.policy.separate_own_recordings if current.policy is not None else None
+                selected_direction=current.policy.direction if current.policy is not None else None
                 if animations is not None and not current.associated:animations=False
                 if recordings is not None and not current.associated:recordings=False
+                if selected_direction is not None and not current.associated:selected_direction='phone_to_desktop'
                 if separate_animations is not None:animations=separate_animations
                 if separate_own_recordings is not None:recordings=separate_own_recordings
+                if direction is not None:selected_direction=direction
                 if videos is not None and not current.associated:
                     # Re-pairing preserves destination metadata, never silently
                     # re-enables the separately selected video scope.
@@ -356,7 +367,7 @@ class ProtectedPhotoPreferences:
                 revision=(current.policy.revision if current.policy is not None else 1)+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
                 policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,
-                    destination,token,videos,animations,recordings)
+                    destination,token,videos,animations,recordings,selected_direction)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
@@ -376,7 +387,10 @@ class ProtectedPhotoPreferences:
     def local_grant(self,handlers_ready):
         if type(handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
         snapshot=self.read();peer=self._peer();policy=snapshot.policy
-        enabled=handlers_ready and policy is not None and policy.enabled and snapshot.associated and snapshot.destination_available
+        # A requested bidirectional mode is not a half-ready one-way grant.
+        # Reverse source/target handlers are not released in this implementation.
+        enabled=(handlers_ready and policy is not None and policy.enabled and snapshot.associated and snapshot.destination_available
+            and snapshot.direction=='phone_to_desktop')
         revision=policy.revision if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
         return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready)

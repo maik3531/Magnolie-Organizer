@@ -41,7 +41,7 @@ def receiving(native, tmp_path, monkeypatch, request):
         chooser.close(); service._end_native_file_connection(channel)
 
 
-def negotiate(service, peer, channel, connection, *, source_send=True):
+def negotiate(service, peer, channel, connection, *, source_send=True, receive_enabled=True):
     local = connection._authority.identity
     remote_peer = NativeFilePeer(local.receiver_id, local.receiver_identity_sha256, object(), True, True, True, True, True)
     remote_local = NativeLocalFileGrant(FileGrantState(1, 'a'*64, source_send, False), object(), True)
@@ -56,7 +56,8 @@ def negotiate(service, peer, channel, connection, *, source_send=True):
     remote.mark_sent(packet)
     remote.observe_remote(FileControlPacket.parse(channel.send.call_args.args[0]['body']), remote_peer)
     token = connection._preferences.read().policy.destination_token
-    if source_send:
+    assert connection._controls._sent_grants.receive_files is receive_enabled
+    if source_send and receive_enabled:
         assert connection._receive_binding() == remote.binding(token, sender_is_local=True)
     else:
         assert connection._controls.binding(token) is None and remote.binding(token, sender_is_local=True) is None

@@ -384,6 +384,8 @@ class NativeDesktopFileConnection:
 
     def _require_source_offer(self, clock):
         snapshot = self._receiving_policy()
+        if snapshot.direction != 'phone_to_desktop':
+            raise TransferError('file_desktop_reverse_handlers_unavailable')
         if snapshot.include_videos or snapshot.separate_animations or snapshot.separate_own_recordings:
             if self._source_media_entries is None:
                 raise TransferError('file_desktop_source_media_not_correlated')

@@ -1359,6 +1359,30 @@ directory may be removed. Persistent mappings and restart-safe migration journal
 are prerequisites, not an inference from current settings. These concrete migration
 paths are not implemented by the prepared Boolean.
 
+### Media direction preference (Refs #338)
+
+Protected media preferences now retain an optional direction independently of the
+manual/automatic schedule. Absent and legacy records mean `phone_to_desktop`;
+their original wire shape is preserved without a passive migration. Explicit
+`bidirectional` selection uses the existing native action/CAS/encrypted readback,
+but is not a reverse write grant or deletion consent. Re-pairing does not renew
+the old bidirectional choice. Both native file grants stay OFF for this currently
+unsupported mode, rather than silently performing half of the requested sync.
+The coordinator also rejects unavailable reverse handlers before offer admission.
+
+The requested eventual UI is a direction dropdown like Notes, default caption
+“Nur den Bestand auf dem Handy abgleichen”, with a separate schedule dropdown
+(initially manual). Do not reuse the Notes-specific English gettext message
+“Only the Notes collection” for media. No direction control is exposed until the
+native feature availability and safe reverse handlers genuinely support it.
+
+Evidence: 16 new direction cases and 73 existing protected settings cases passed.
+The first joined run additionally exposed a test-fixture remote-grant equivocation:
+it changed send consent at the same revision. The fixture now explicitly checks
+local receive state without changing the original remote grant. Three affected
+native negotiation/admission cases then passed, including the corrected OFF clamp.
+This is not full-sync, GUI or physical-phone acceptance. Readiness stays OFF.
+
 ### Protected historical photo mapping index (Refs #337)
 
 A separate existing-key SQLite/AEAD store now retains opaque source association →

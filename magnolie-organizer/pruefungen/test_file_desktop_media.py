@@ -177,3 +177,15 @@ def test_animation_folder_selection_is_not_silently_ignored_by_unjoined_target_m
     with pytest.raises(TransferError,match='routing_unavailable'):
         connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
     assert connection._catalog is None and connection._run is None
+
+
+def test_bidirectional_choice_is_not_silently_run_as_one_way_without_reverse_handlers(receiving):
+    service,peer,channel,connection,_=receiving
+    prefs=connection._preferences
+    prefs.configure(prefs.issue_action(),prefs.read(),enabled=True,mode='manual',direction='bidirectional')
+    negotiate(service,peer,channel,connection,receive_enabled=False)
+    with pytest.raises(TransferError,match='not_ready'):request(receiving,'status')
+    assert connection._catalog is None and connection._run is None
+    assert not connection._preferences.local_grant(True).grants.send_files
+    assert not connection._preferences.local_grant(True).grants.receive_files
+    channel.send.assert_not_called()
