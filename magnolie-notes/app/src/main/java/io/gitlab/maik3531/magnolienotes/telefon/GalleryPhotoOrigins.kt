@@ -40,7 +40,7 @@ internal class GalleryPhotoOrigins private constructor(entries: List<GalleryPhot
             val entries = inventory.zip(manifest.files).map { (entry, file) ->
                 if (!validMember(entry.documentId) || !validRevision(entry.documentId, entry.nativeRevision) ||
                     entry.relativePath != file.path || entry.advertisedBytes != file.size ||
-                    entry.documentUri != "content://media/${lease.album.volume}/images/media/${entry.documentId.substringBefore(':')}") fail()
+                    entry.documentUri != "content://media/${lease.album.volume}/${lease.activation.mediaType.uriSegment}/media/${entry.documentId.substringBefore(':')}") fail()
                 GalleryPhotoOrigin(file.id, entry.documentId, photoId(lease, manifest.senderId, entry.documentId), entry.nativeRevision)
             }
             return parse(GalleryPhotoOrigins(entries, 2, false).wire(), manifest, lease)

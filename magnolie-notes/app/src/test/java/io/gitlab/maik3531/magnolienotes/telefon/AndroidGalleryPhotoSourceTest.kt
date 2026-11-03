@@ -39,7 +39,7 @@ class AndroidGalleryPhotoSourceTest {
         val name: String = "image.jpg", val bytes: Long = 5, val modified: Any = 100L, val added: Long = 90,
         val mime: String = "image/jpeg", val path: String = "DCIM/Camera/", val pending: Long = 0, val trashed: Long = 0,
         val generationAdded: Any = 1L, val generationModified: Any = 1L)
-    private class Provider(val root: File) : ContentProvider() {
+    private class Provider(val root: File, val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : ContentProvider() {
         var rows = listOf(Row())
         var ignoreSelection = false
         var ignoreLimit = false
@@ -60,8 +60,8 @@ class AndroidGalleryPhotoSourceTest {
             val columns = requireNotNull(projection)
             check("_data" !in columns)
             val volume = if (Build.VERSION.SDK_INT >= 29) "external_primary" else "external"
-            check(uri.toString().startsWith("content://media/$volume/images/media") ||
-                uri.toString() == "content://media/1234-5678/images/media")
+            check(uri.toString().startsWith("content://media/$volume/${mediaType.uriSegment}/media") ||
+                uri.toString() == "content://media/1234-5678/${mediaType.uriSegment}/media")
             val args = requireNotNull(queryArgs)
             var selected = rows
             if (uri.pathSegments.size == 3) {
@@ -106,26 +106,145 @@ class AndroidGalleryPhotoSourceTest {
         override fun update(uri: Uri, values: ContentValues?, where: String?, args: Array<out String>?): Int = throw AssertionError("Unexpected photo write")
         override fun delete(uri: Uri, where: String?, args: Array<out String>?): Int = throw AssertionError("Unexpected photo delete")
     }
-    private class Fixture : AutoCloseable {
+    private class Fixture(val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : AutoCloseable {
         val context = RuntimeEnvironment.getApplication()
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-pfd329-").toFile()
-        val provider = Provider(root)
+        val provider = Provider(root, mediaType)
         val receiver = NativePhotoReceiver("receiver_fixture_01", "e".repeat(64), Any(), "f".repeat(64), true, true, true, true, true, true, 1)
-        var request: NativeGalleryRequest? = NativeGalleryRequest(receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
+        var request: NativeGalleryRequest? = NativeGalleryRequest(receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), mediaType)
         val album = GalleryAlbumCandidate(GallerySourceKind.CAMERA, if (Build.VERSION.SDK_INT >= 29) "external_primary" else "external",
             "camera", "Camera", if (Build.VERSION.SDK_INT >= 29) "DCIM/Camera/" else null, 1, false)
-        val scope = GalleryPhotoSourceScope({ request }, AndroidGalleryAccessEnvironment(context) { "a".repeat(64) })
+        val scope = GalleryPhotoSourceScope({ request }, AndroidGalleryAccessEnvironment(context, mediaType) { "a".repeat(64) })
         val reader = AndroidGalleryPhotoSource(context, scope)
         init {
             File(root, "source.bin").writeText("hello")
+            if (mediaType == GalleryMediaType.VIDEO) provider.rows = listOf(Row(name = "clip.mp4", mime = "video/mp4"))
             Shadows.shadowOf(context as Application).grantPermissions(if (Build.VERSION.SDK_INT >= 33)
-                Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE)
+                (if (mediaType == GalleryMediaType.IMAGES) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_MEDIA_VIDEO)
+                else Manifest.permission.READ_EXTERNAL_STORAGE)
             provider.attachInfo(context, ProviderInfo().apply { authority = "media"; exported = true })
             ShadowContentResolver.registerProviderInternal("media", provider)
         }
-        fun lease() = scope.capture(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(album), request), album)
+        fun lease() = scope.capture(GalleryAlbumCatalog(if (mediaType == GalleryMediaType.IMAGES) GalleryReadCoverage.FULL_IMAGES
+            else GalleryReadCoverage.FULL_VIDEOS, listOf(album), request), album)
         fun assertClosed() = assertTrue(provider.cursors.all { it.isClosed })
         override fun close() { assertClosed(); root.deleteRecursively() }
+    }
+
+    @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
+            assertEquals(GalleryReadCoverage.FULL_VIDEOS, catalog.coverage)
+            assertFalse(catalog.provesFileDeletion); assertEquals(1, catalog.albums.size)
+            assertTrue(f.provider.opens.isEmpty())
+            val lease = f.scope.capture(catalog, catalog.albums.single())
+            assertTrue(lease.sourceKey.startsWith("gallery-video-album-v1:"))
+            val inventory = f.reader.enumerate(lease)
+            assertEquals("clip.mp4", inventory.entries.single().relativePath)
+            assertTrue(inventory.entries.single().documentUri.contains("/video/media/"))
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val cache = Files.createTempDirectory(f.root.toPath(), "native-video-cache-").toFile()
+            val job: PhotoSourceJob
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                val reserved = index.reserve(inventory, f.scope)
+                val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, f.reader, protection)
+                job = index.publishSnapshot(reserved, snapshot, f.scope, lease)
+            }
+            val opens = f.provider.opens.size
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                val restored = index.restore(job, "sender_fixture_01", f.scope, lease)
+                assertNotNull(restored.galleryOrigins)
+                assertArrayEquals("hello".toByteArray(), restored.readChunk(restored.manifest.files.single().id, 0))
+                assertEquals(opens, f.provider.opens.size)
+                f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
+                assertFalse(f.scope.isCurrent(lease))
+                assertThrows(PhotoFolderScopeError::class.java) { restored.readChunk(restored.manifest.files.single().id, 0) }
+                assertEquals(opens, f.provider.opens.size)
+            }
+        }
+    }
+
+    @Test fun videoInventoryRejectsImageMimeAndForgedImageUrisBeforeOpeningAnyBytes() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val lease = f.lease()
+            val entry = f.reader.enumerate(lease).entries.single()
+            val forged = entry.copy(documentUri = entry.documentUri.replace("/video/", "/images/"))
+            assertThrows(PhotoFolderScopeError::class.java) { f.reader.openRead(lease, forged, CancellationSignal()) }
+            f.provider.rows = listOf(Row(mime = "image/jpeg"))
+            assertThrows(PhotoFolderScopeError::class.java) { f.reader.enumerate(lease) }
+            assertTrue(f.provider.opens.isEmpty())
+            val wrong = GalleryPhotoSourceScope({ f.request }, AndroidGalleryAccessEnvironment(f.context) { "a".repeat(64) })
+            assertThrows(PhotoFolderScopeError::class.java) { wrong.capture(GalleryAlbumCatalog(GalleryReadCoverage.FULL_VIDEOS, listOf(f.album), f.request), f.album) }
+        }
+    }
+
+    @Test @Config(sdk = [33]) fun grantedImagesAreNotNativeVideoReadPermissionOrAReasonToScanVideos() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val app = Shadows.shadowOf(f.context as Application)
+            app.denyPermissions(Manifest.permission.READ_MEDIA_VIDEO)
+            app.grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+            assertEquals(GalleryReadCoverage.FULL_IMAGES, AndroidGalleryReadPermissions.observe(f.context))
+            assertEquals(GalleryReadCoverage.NONE, AndroidGalleryReadPermissions.observe(f.context, GalleryMediaType.VIDEO))
+            val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
+            assertEquals(GalleryReadCoverage.NONE, catalog.coverage)
+            assertTrue(catalog.albums.isEmpty() && f.provider.requests.isEmpty() && f.provider.opens.isEmpty())
+            assertThrows(PhotoFolderScopeError::class.java) { f.lease() }
+        }
+    }
+
+    @Test fun inactiveOrImageOnlyNativePolicyCannotReachVideoQueriesEvenWithOsMediaPermission() {
+        Fixture().use { f ->
+            assertThrows(PhotoFolderScopeError::class.java) {
+                AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
+            }
+            assertTrue(f.provider.requests.isEmpty())
+            f.request = null
+            val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO,
+                readCoverage = { throw AssertionError("Inactive video source inspected OS permissions") }).discover()
+            assertTrue(catalog.albums.isEmpty())
+        }
+    }
+
+    @Test @Config(sdk = [33]) fun nativeGifImageStaysInPhotoDomainWithoutAnyVideoPermission() {
+        Fixture().use { f ->
+            Shadows.shadowOf(f.context as Application).denyPermissions(Manifest.permission.READ_MEDIA_VIDEO)
+            val gif = java.util.Base64.getDecoder().decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+            File(f.root, "source.bin").writeBytes(gif)
+            f.provider.rows = listOf(Row(name = "animation.gif", mime = "image/gif", bytes = gif.size.toLong()))
+            val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }).discover()
+            assertEquals(GalleryReadCoverage.FULL_IMAGES, catalog.coverage)
+            val lease = f.scope.capture(catalog, catalog.albums.single())
+            val inventory = f.reader.enumerate(lease)
+            assertEquals("animation.gif", inventory.entries.single().relativePath)
+            assertTrue(inventory.entries.single().documentUri.contains("/images/media/"))
+            assertEquals(GalleryReadCoverage.NONE, AndroidGalleryReadPermissions.observe(f.context, GalleryMediaType.VIDEO))
+            f.reader.openRead(lease, inventory.entries.single(), CancellationSignal()).use { assertArrayEquals(gif, it.readBytes()) }
+            assertTrue(f.provider.opens.all { it.contains("/images/media/") })
+        }
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            f.provider.rows = listOf(Row(name = "animation.gif", mime = "image/gif"))
+            val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
+            assertTrue(catalog.albums.isEmpty() && f.provider.opens.isEmpty())
+            assertFalse(catalog.provesFileDeletion)
+        }
+    }
+
+    @Test @Config(sdk = [34]) fun selectedVideoVisibilityNeverBecomesFullVideoCoverageOrRevivesAnOldReadLease() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val original = f.lease()
+            val app = Shadows.shadowOf(f.context as Application)
+            app.denyPermissions(Manifest.permission.READ_MEDIA_VIDEO)
+            app.grantPermissions(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            assertEquals(GalleryReadCoverage.SELECTED_ONLY, AndroidGalleryReadPermissions.observe(f.context, GalleryMediaType.VIDEO))
+            assertFalse(f.scope.isCurrent(original))
+            val limited = GalleryAlbumCatalog(GalleryReadCoverage.SELECTED_ONLY, listOf(f.album), f.request)
+            val selected = f.scope.capture(limited, f.album)
+            assertNotEquals(original.readGrantToken, selected.readGrantToken)
+            assertFalse(selected.provesFileDeletion)
+            app.denyPermissions(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            assertFalse(f.scope.isCurrent(selected))
+            assertTrue(f.provider.opens.isEmpty())
+        }
     }
 
     @Test fun nativeWorkflowJoinsProtectedPolicyActualDiscoveryPfdSnapshotOfferAndRevokedCacheCleanup() {

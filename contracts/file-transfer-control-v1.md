@@ -1213,6 +1213,34 @@ No permission, APK, submission, scanner or F-Droid acceptance is implied by this
 text correction; native animation routing and supported video activation remain
 unimplemented behind the existing closed production gates.
 
+### Native Android media-domain isolation (Refs #335, #336)
+
+The native Gallery adapter now distinguishes IMAGE/VIDEO requests, access
+observations, full/selected coverage, MediaStore collections, MIME predicates,
+album selectors and source lease identity. Existing policy/workflow construction
+still defaults to images; a photo-only or absent native request cannot query video
+collections. READ_MEDIA_IMAGES never grants video reads. Legacy Android's broader
+storage permission does not bypass the separate native video request. Selected
+video access stays limited and invalidates an older full-read lease when changed.
+
+Video scope uses its own source-key prefix/access stamp, read-only PFD validation,
+generation/member checks and actual protected frozen snapshot/index lifecycle.
+Image source keys/stamps retain their previous representation. Both inventory and
+content reads reject cross-domain URIs/MIME and stale native scope. The private
+Gallery origin mapping validates the matching media collection; raw IDs remain
+private and no deletion/mutation identity is granted. Existing bounded file and
+whole-inventory limits remain unchanged; oversized video inventories fail closed,
+not as a silently successful subset.
+
+Forty-five affected Android source-host/Robolectric cases pass, followed by two
+additional cases (47 distinct): actual GIF PFD stays photo-side with no video
+permission, and Android 14 selected-video visibility cannot revive full access.
+The GIF case proves media-domain placement, not animation-frame detection. The
+video provider bytes are a fixture, not a physical camera recording/codec or
+Android OS permission-dialog acceptance. No production native video-policy path,
+desktop video command, video permission request/manifest addition, video capability,
+automatic worker, UI readiness or package release is enabled by this adapter unit.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

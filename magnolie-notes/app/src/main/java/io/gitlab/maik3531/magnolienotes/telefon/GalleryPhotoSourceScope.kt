@@ -11,7 +11,7 @@ import java.util.Locale
 
 /** Actual native observations, never deserialized grants. */
 internal data class GalleryAccessObservation(val coverage: GalleryReadCoverage, val accessEpoch: String,
-    val mediaStoreVersion: String?, val volumeMounted: Boolean)
+    val mediaStoreVersion: String?, val volumeMounted: Boolean, val mediaType: GalleryMediaType = GalleryMediaType.IMAGES)
 
 internal interface GalleryAccessEnvironment {
     fun observe(volume: String): GalleryAccessObservation
@@ -21,13 +21,14 @@ internal interface GalleryAccessEnvironment {
  * It must rotate on permission/selected-photo access changes and selected-only
  * refresh when resuming the native permission UI. No permission is requested here.
  */
-internal class AndroidGalleryAccessEnvironment(context: Context, private val accessEpoch: () -> String) : GalleryAccessEnvironment {
+internal class AndroidGalleryAccessEnvironment(context: Context, private val mediaType: GalleryMediaType = GalleryMediaType.IMAGES,
+    private val accessEpoch: () -> String) : GalleryAccessEnvironment {
     private val app = context.applicationContext
     override fun observe(volume: String): GalleryAccessObservation {
         val before = accessEpoch()
         require(Regex("[0-9a-f]{64}").matches(before) && Regex("[A-Za-z0-9_-]{1,128}").matches(volume))
-        val coverage = AndroidGalleryReadPermissions.observe(app)
-        if (coverage == GalleryReadCoverage.NONE) return GalleryAccessObservation(coverage, before, null, false)
+        val coverage = AndroidGalleryReadPermissions.observe(app, mediaType)
+        if (coverage == GalleryReadCoverage.NONE) return GalleryAccessObservation(coverage, before, null, false, mediaType)
         val mounted = if (Build.VERSION.SDK_INT >= 29) volume in MediaStore.getExternalVolumeNames(app) else volume == "external"
         val version = when {
             !mounted -> null
@@ -36,9 +37,9 @@ internal class AndroidGalleryAccessEnvironment(context: Context, private val acc
             // Android, not a reliable rebuilt-volume namespace (AOSP Android8).
             else -> null
         }
-        if (before != accessEpoch() || coverage != AndroidGalleryReadPermissions.observe(app))
+        if (before != accessEpoch() || coverage != AndroidGalleryReadPermissions.observe(app, mediaType))
             throw PhotoFolderScopeError("gallery_access_observation_changed")
-        return GalleryAccessObservation(coverage, before, version, mounted)
+        return GalleryAccessObservation(coverage, before, version, mounted, mediaType)
     }
 }
 
@@ -68,7 +69,7 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
         if (!same(activation, current()) || catalog.albums.any { it.kind !in activation.kinds }) return false
         for (volume in catalog.albums.map { it.volume }.distinct()) {
             val observed = environment.observe(volume)
-            validate(observed)
+            validate(observed, activation.mediaType)
             if (!observed.volumeMounted || observed.coverage == GalleryReadCoverage.NONE || observed.coverage != catalog.coverage ||
                 catalog.accessEpoch?.let { it != observed.accessEpoch } == true) return false
         }
@@ -83,11 +84,11 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
         if (!Regex("[A-Za-z0-9_-]{1,128}").matches(album.volume) || !Regex("[A-Za-z0-9_-]{1,128}").matches(album.bucketId))
             fail("gallery_source_invalid_album")
         val observed = environment.observe(album.volume)
-        validate(observed)
+        validate(observed, activation.mediaType)
         if (!observed.volumeMounted || observed.coverage == GalleryReadCoverage.NONE || observed.coverage != catalog.coverage ||
             catalog.accessEpoch?.let { it != observed.accessEpoch } == true)
             fail("gallery_source_visibility_changed")
-        val sourceKey = "gallery-album-v1:" + digest(mapOf("kind" to album.kind.name, "volume" to album.volume,
+        val sourceKey = (if (activation.mediaType == GalleryMediaType.IMAGES) "gallery-album-v1:" else "gallery-video-album-v1:") + digest(mapOf("kind" to album.kind.name, "volume" to album.volume,
             "bucket" to album.bucketId, "path" to (album.relativePath?.lowercase(Locale.ROOT) ?: "")))
         val stamp = stamp(observed)
         val version = digest(mapOf("source" to sourceKey, "policy" to activation.policyEpoch, "access" to stamp,
@@ -102,13 +103,13 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
         return runCatching {
             if (!same(lease.activation, current())) return false
             val observed = environment.observe(lease.album.volume)
-            validate(observed)
+            validate(observed, lease.activation.mediaType)
             observed.volumeMounted && observed == lease.access && observed.coverage != GalleryReadCoverage.NONE &&
                 stamp(observed) == lease.readGrantToken && same(lease.activation, current())
         }.getOrDefault(false)
     }
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
-        first.receiver.allowed && second.receiver.allowed && first.policyEpoch == second.policyEpoch && first.kinds == second.kinds &&
+        first.receiver.allowed && second.receiver.allowed && first.policyEpoch == second.policyEpoch && first.kinds == second.kinds && first.mediaType == second.mediaType &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
         first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
         first.receiver.pairingEpoch == second.receiver.pairingEpoch
@@ -118,10 +119,12 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
         "media_namespace" to (observation.mediaStoreVersion ?: "unknown"),
         // No reliable persistent namespace on legacy Android, or stable complete
         // visibility with selected-only access: do not resume old runtime proofs.
-        "runtime" to if (observation.mediaStoreVersion == null || observation.coverage == GalleryReadCoverage.SELECTED_ONLY) runtimeNamespace else ""))
+        "runtime" to if (observation.mediaStoreVersion == null || observation.coverage == GalleryReadCoverage.SELECTED_ONLY) runtimeNamespace else "") +
+        (if (observation.mediaType == GalleryMediaType.VIDEO) mapOf("media_type" to "video") else emptyMap()))
 
-    private fun validate(observation: GalleryAccessObservation) {
-        if (!Regex("[0-9a-f]{64}").matches(observation.accessEpoch) || observation.mediaStoreVersion?.let {
+    private fun validate(observation: GalleryAccessObservation, mediaType: GalleryMediaType) {
+        if (observation.mediaType != mediaType || !mediaType.acceptsCoverage(observation.coverage) ||
+            !Regex("[0-9a-f]{64}").matches(observation.accessEpoch) || observation.mediaStoreVersion?.let {
                 it.length !in 1..1024 || it.any { character -> character.code < 32 || character.code == 127 } } == true)
             fail("gallery_source_invalid_access_observation")
     }

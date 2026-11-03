@@ -16,7 +16,7 @@ import java.io.InputStream
 import java.text.Normalizer
 import java.util.Locale
 
-/** Only the selected native image album. Metadata is not a frozen byte proof,
+/** Only the selected native media domain/album. Metadata is not a frozen byte proof,
  * authoritative deletion inventory or permission to mutate phone photos.
  */
 internal class AndroidGalleryPhotoSource(context: Context, private val scope: GalleryPhotoSourceScope) : PhotoSourceAccess {
@@ -26,8 +26,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         cancellation.throwIfCanceled()
         if (!scope.isCurrent(lease)) fail("gallery_inventory_source_revoked")
     }
-    private fun collection(lease: GalleryPhotoSourceLease): Uri = if (modern)
-        MediaStore.Images.Media.getContentUri(lease.album.volume) else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    private fun collection(lease: GalleryPhotoSourceLease): Uri = lease.activation.mediaType.collection(lease.album.volume, modern)
     private fun projection(): Array<String> = arrayOf("_id", "bucket_id", "bucket_display_name", "_display_name",
         "mime_type", "_size", "date_modified", "date_added") +
         (if (modern) arrayOf("relative_path", "is_pending") else emptyArray()) +
@@ -107,7 +106,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         val added = number("date_added")
         val insertionGeneration = if (Build.VERSION.SDK_INT >= 30) number("generation_added") else null
         val revision = if (Build.VERSION.SDK_INT >= 30) number("generation_modified") else null
-        if (id <= 0 || !Regex("image/[a-z0-9][a-z0-9.+-]{0,126}").matches(text("mime_type")) ||
+        if (id <= 0 || !lease.activation.mediaType.acceptsMime(text("mime_type")) ||
             '/' in name || !DeviceFileManifest.portablePath(name) || bytes !in 0..DeviceFileManifest.MAX_FILE_BYTES ||
             modified !in 0..Long.MAX_VALUE / 1000 || added < 0 ||
             insertionGeneration != null && (insertionGeneration < 0 || revision == null || revision < insertionGeneration))

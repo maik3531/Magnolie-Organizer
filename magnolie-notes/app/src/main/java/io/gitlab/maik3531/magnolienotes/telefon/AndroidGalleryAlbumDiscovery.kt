@@ -15,10 +15,11 @@ import java.util.Collections
 import java.util.Locale
 
 internal enum class GallerySourceKind { CAMERA, WHATSAPP_RECEIVED, SCREENSHOTS, DOWNLOADS }
-internal enum class GalleryReadCoverage { NONE, SELECTED_ONLY, FULL_IMAGES }
+internal enum class GalleryReadCoverage { NONE, SELECTED_ONLY, FULL_IMAGES, FULL_VIDEOS }
 
 /** Supplied by authenticated desktop policy, never inferred from a device name. */
-internal class NativeGalleryRequest(val receiver: NativePhotoReceiver, val policyEpoch: String, kinds: Set<GallerySourceKind>) {
+internal class NativeGalleryRequest(val receiver: NativePhotoReceiver, val policyEpoch: String, kinds: Set<GallerySourceKind>,
+    val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) {
     val kinds: Set<GallerySourceKind> = Collections.unmodifiableSet(kinds.toSet())
     init { require(Regex("[0-9a-f]{64}").matches(policyEpoch)) }
 }
@@ -45,21 +46,34 @@ internal object GallerySourceRules {
     private val labels = mapOf(GallerySourceKind.CAMERA to listOf("Camera", "100ANDRO", "100MEDIA"),
         GallerySourceKind.WHATSAPP_RECEIVED to listOf("WhatsApp Images", "WhatsApp Business Images"),
         GallerySourceKind.SCREENSHOTS to listOf("Screenshots"), GallerySourceKind.DOWNLOADS to listOf("Download", "Downloads"))
-    fun selectors(kinds: Set<GallerySourceKind>, modern: Boolean): List<String> = kinds.sortedBy { it.ordinal }
-        .flatMap { (if (modern) folders else labels).getValue(it) }.map { it.lowercase(Locale.ROOT) }.distinct()
-    fun classify(kinds: Set<GallerySourceKind>, label: String, relativePath: String?, modern: Boolean): GallerySourceKind? {
+    private val videoFolders = mapOf(
+        GallerySourceKind.CAMERA to listOf("DCIM/Camera/", "Movies/Camera/", "DCIM/100ANDRO/", "DCIM/100MEDIA/"),
+        GallerySourceKind.WHATSAPP_RECEIVED to listOf("WhatsApp/Media/WhatsApp Video/", "WhatsApp Business/Media/WhatsApp Business Video/",
+            "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Video/", "Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Video/"),
+        GallerySourceKind.SCREENSHOTS to listOf("Movies/Screen recordings/", "Movies/ScreenRecorder/", "DCIM/Screen recordings/"),
+        GallerySourceKind.DOWNLOADS to listOf("Download/", "Downloads/"))
+    private val videoLabels = labels + mapOf(GallerySourceKind.WHATSAPP_RECEIVED to listOf("WhatsApp Video", "WhatsApp Business Video"),
+        GallerySourceKind.SCREENSHOTS to listOf("Screen recordings", "ScreenRecorder"))
+    fun selectors(kinds: Set<GallerySourceKind>, modern: Boolean, mediaType: GalleryMediaType = GalleryMediaType.IMAGES): List<String> = kinds.sortedBy { it.ordinal }
+        .flatMap { (if (mediaType == GalleryMediaType.IMAGES) { if (modern) folders else labels }
+            else { if (modern) videoFolders else videoLabels }).getValue(it) }.map { it.lowercase(Locale.ROOT) }.distinct()
+    fun classify(kinds: Set<GallerySourceKind>, label: String, relativePath: String?, modern: Boolean,
+        mediaType: GalleryMediaType = GalleryMediaType.IMAGES): GallerySourceKind? {
         val key = (if (modern) relativePath ?: return null else label).lowercase(Locale.ROOT)
-        return kinds.singleOrNull { key in selectors(setOf(it), modern) }
+        return kinds.singleOrNull { key in selectors(setOf(it), modern, mediaType) }
     }
 }
 
 internal object AndroidGalleryReadPermissions {
-    fun observe(context: Context): GalleryReadCoverage {
+    fun observe(context: Context, mediaType: GalleryMediaType = GalleryMediaType.IMAGES): GalleryReadCoverage {
         fun granted(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
         return when {
-            Build.VERSION.SDK_INT >= 33 && granted(Manifest.permission.READ_MEDIA_IMAGES) -> GalleryReadCoverage.FULL_IMAGES
+            Build.VERSION.SDK_INT >= 33 && granted(if (mediaType == GalleryMediaType.IMAGES)
+                Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_MEDIA_VIDEO) ->
+                    if (mediaType == GalleryMediaType.IMAGES) GalleryReadCoverage.FULL_IMAGES else GalleryReadCoverage.FULL_VIDEOS
             Build.VERSION.SDK_INT >= 34 && granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> GalleryReadCoverage.SELECTED_ONLY
-            Build.VERSION.SDK_INT <= 32 && granted(Manifest.permission.READ_EXTERNAL_STORAGE) -> GalleryReadCoverage.FULL_IMAGES
+            Build.VERSION.SDK_INT <= 32 && granted(Manifest.permission.READ_EXTERNAL_STORAGE) ->
+                if (mediaType == GalleryMediaType.IMAGES) GalleryReadCoverage.FULL_IMAGES else GalleryReadCoverage.FULL_VIDEOS
             else -> GalleryReadCoverage.NONE
         }
     }
@@ -70,15 +84,18 @@ internal object AndroidGalleryReadPermissions {
  */
 internal class AndroidGalleryAlbumDiscovery(context: Context, private val current: () -> NativeGalleryRequest?,
     private val accessEpoch: () -> String? = { null },
-    private val readCoverage: () -> GalleryReadCoverage = { AndroidGalleryReadPermissions.observe(context.applicationContext) }) {
+    private val mediaType: GalleryMediaType = GalleryMediaType.IMAGES,
+    private val readCoverage: () -> GalleryReadCoverage = { AndroidGalleryReadPermissions.observe(context.applicationContext, mediaType) }) {
     private val app = context.applicationContext
     private val resolver = app.contentResolver
 
     fun discover(cancellation: CancellationSignal = CancellationSignal()): GalleryAlbumCatalog {
         val request = current() ?: return GalleryAlbumCatalog(GalleryReadCoverage.NONE, emptyList())
         if (request.kinds.isEmpty()) return GalleryAlbumCatalog(GalleryReadCoverage.NONE, emptyList())
+        if (request.mediaType != mediaType) throw PhotoFolderScopeError("gallery_media_scope_changed")
         if (!request.receiver.allowed) throw PhotoFolderScopeError("gallery_receiver_not_ready")
         val coverage = readCoverage()
+        if (!mediaType.acceptsCoverage(coverage)) throw PhotoFolderScopeError("gallery_media_permission_mismatch")
         if (coverage == GalleryReadCoverage.NONE) return GalleryAlbumCatalog(coverage, emptyList(), request)
         val permissionEpoch = accessEpoch()
         if (permissionEpoch != null && !Regex("[0-9a-f]{64}").matches(permissionEpoch)) throw PhotoFolderScopeError("gallery_invalid_access_epoch")
@@ -86,7 +103,7 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
         fun fresh() {
             cancellation.throwIfCanceled()
             val now = current()
-            if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.kinds != request.kinds ||
+            if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.kinds != request.kinds || now.mediaType != mediaType ||
                 now.receiver.owner !== request.receiver.owner || now.receiver.peerId != request.receiver.peerId ||
                  now.receiver.identitySha256 != request.receiver.identitySha256 || now.receiver.permissionEpoch != request.receiver.permissionEpoch ||
                  now.receiver.pairingEpoch != request.receiver.pairingEpoch ||
@@ -103,8 +120,8 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
         var pages = 0
         for (volume in volumes) {
             fresh()
-            val collection = if (modern) MediaStore.Images.Media.getContentUri(volume) else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            val selectors = GallerySourceRules.selectors(request.kinds, modern)
+            val collection = mediaType.collection(volume, modern)
+            val selectors = GallerySourceRules.selectors(request.kinds, modern, mediaType)
             val filterColumn = if (modern) "relative_path" else "bucket_display_name"
             val projection = arrayOf("_id", "bucket_id", "bucket_display_name", "mime_type") + if (modern) arrayOf("relative_path") else emptyArray()
             var after = 0L
@@ -140,8 +157,8 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
                         if (!Regex("[A-Za-z0-9_-]{1,128}").matches(bucket) || label.length !in 1..256 ||
                             label.any { character -> character.code < 32 || character.code == 127 } || path != null && path.length > 4096)
                             throw PhotoFolderScopeError("gallery_invalid_album_metadata")
-                        if (!Regex("image/[a-z0-9][a-z0-9.+-]{0,126}").matches(it.getString(mimeColumn))) continue
-                        val kind = GallerySourceRules.classify(request.kinds, label, path, modern) ?: continue
+                        if (!mediaType.acceptsMime(it.getString(mimeColumn))) continue
+                        val kind = GallerySourceRules.classify(request.kinds, label, path, modern, mediaType) ?: continue
                         val key = volume to bucket
                         val previous = albums[key]
                         if (previous != null && (previous.kind != kind || previous.displayName != label || previous.relativePath != path))
