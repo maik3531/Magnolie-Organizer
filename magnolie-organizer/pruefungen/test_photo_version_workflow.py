@@ -15,6 +15,7 @@ from test_file_desktop_receive import receiving,reconnect,chunk
 from test_file_desktop_album_worker import prepared,phone_batches,ALBUM
 from test_file_desktop_sources import ready_source,request
 from test_file_desktop_media import media,dispatch,send_offer
+from test_file_desktop_photo_review import end_normal_source
 
 
 def cycle(fixture,full,data=b'hello',**options):
@@ -81,7 +82,7 @@ def test_changed_phone_versions_publish_without_replacement_and_preserve_all_rec
     assert (original_target.stat().st_ino,original_target.read_bytes())==before
 
 
-def test_version_stop_resumes_exact_verified_job_but_unknown_publication_stays_held(receiving):
+def test_version_clean_stop_resumes_exact_verified_job_and_publishes_once_from_native_end_proof(receiving):
     connection=receiving[3];full=prepared(receiving)[0]
     assert cycle(receiving,full)[0]['state']=='complete'
     original=receiving[4]/full.files[0].path;before=(original.stat().st_ino,original.read_bytes())
@@ -96,6 +97,8 @@ def test_version_stop_resumes_exact_verified_job_but_unknown_publication_stays_h
         assert not saved and not errors and worker.progress()['state']=='canceled',worker.progress()
     assert (original.stat().st_ino,original.read_bytes())==before
     assert connection._run is None and job.owner in {item.owner for item in connection._catalog.jobs()}
+    events=connection._catalog._registry.attempts(connection._catalog.jobs())
+    assert [(value['operation'],value['owner']) for value,_ in events]==[('closed',job.owner)]
     ready_source(receiving)
     req=request(receiving,'media_page');reply=media(req,job.accepted.manifest)
     reply['body']['page']['insertion_witness']=True
@@ -104,20 +107,21 @@ def test_version_stop_resumes_exact_verified_job_but_unknown_publication_stays_h
     offered,result=send_offer(receiving,job.accepted.manifest);dispatch(receiving,result)
     connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
     assert connection._run.job.owner==job.owner and connection._run.receiver._index.media_history==history
+    assert connection._run.receiver._publisher is not None
+    events=connection._catalog._registry.attempts(connection._catalog.jobs())
+    assert [value['operation'] for value,_ in events]==['closed','consumed']
     while True:
         req=connection.request_next_chunk()
         if req is None:break
         dispatch(receiving,chunk(req,b'world'))
-    # Existing restart safety deliberately has no proof that publication never
-    # began. Verified source bytes are not permission to recreate a publisher.
-    before_send=receiving[2].send.call_count
-    with pytest.raises(TransferError,match='publication_repair_required'):
-        connection.publish_received(connection.issue_receive_action())
-    assert receiving[2].send.call_count==before_send
+    connection.publish_received(connection.issue_receive_action())
+    connection.finish_saved_receive(connection.issue_receive_action(),retire_cache=True)
+    end_normal_source(receiving)
+    association=PhotoMappingAssociation(history.source_epoch,history.entries[0].photo_id,history.media_type)
+    _,(current,)=connection._mappings.lookup((association,))
+    assert (receiving[4]/current.relative_path).read_bytes()==b'world'
     assert (original.stat().st_ino,original.read_bytes())==before
-    assert connection._run.job.owner==job.owner and connection._run.receiver._index.media_history==history
-    assert len(connection._catalog.jobs())==2
-    assert next(item for item in connection._catalog.jobs() if item.owner==job.owner).reserved_bytes>0
+    assert len(connection._catalog.jobs())==2 and all(job.reserved_bytes==0 for job in connection._catalog.jobs())
 
 
 def test_existing_version_target_is_not_adopted_or_overwritten_and_original_head_stays_unchanged(receiving):

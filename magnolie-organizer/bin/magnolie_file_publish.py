@@ -73,7 +73,7 @@ class NativeFilePublisher:
     MAX_DIRECTORY_ENTRIES = 10_000
 
     def __init__(self, destination, manifest, binding, current_binding, publication_gate, *, owner, targets=None,
-            boundary=lambda _: None, journal=None, accepted=None):
+            boundary=lambda _: None, journal=None, accepted=None, _renewal=None):
         if sys.platform != "linux" or not hasattr(os, "O_NOFOLLOW") or not os.path.isdir("/proc/self/fd"):
             raise TransferError("native_descriptor_publication_platform_required")
         if type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding:
@@ -119,11 +119,26 @@ class NativeFilePublisher:
         self._owned = {}
         self._published = {}
         self._uncertain = set()
+        self._attempted = False
         try:
             self._directory(self._root_fd, private=False)
-            self._mutate(lambda: os.mkdir(self._cache_name, mode=0o700, dir_fd=self._root_fd))
+            if _renewal is None:
+                self._mutate(lambda: os.mkdir(self._cache_name, mode=0o700, dir_fd=self._root_fd))
+            else:
+                from magnolie_file_receive import NativeFileReceiveOperation
+                from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
+                receiver,catalog,permit,expected_key=_renewal
+                if type(receiver) is not NativeFileReceiveOperation or type(catalog) is not ProtectedTransferJobCatalog:
+                    raise TransferError('native_publication_unpublished_end_changed')
+                catalog._validate_publication_renewal(receiver,permit)
+                if receiver._accepted!=accepted or receiver._journal is not journal:
+                    raise TransferError('native_publication_unpublished_end_changed')
             self._cache_fd = os.open(self._cache_name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=self._root_fd)
             self._cache_key = self._key(os.fstat(self._cache_fd))
+            if _renewal is not None:
+                if self._cache_key!=tuple(expected_key) or self._cache_entries():
+                    raise TransferError('native_publication_unpublished_end_changed')
+                catalog._validate_publication_renewal(receiver,permit)
             os.fsync(self._root_fd)
             self._fresh()
         except BaseException:
@@ -265,6 +280,7 @@ class NativeFilePublisher:
 
     def publish(self, file_id, ledger, read_chunk):
         with self._gate:
+            self._attempted=True # Set BEFORE any preflight, staging or target mutation.
             self._fresh()
             self._cache_entries()
             if (type(ledger) is not ResumeLedger or ledger.manifest != self.manifest or ledger.binding != self.binding):

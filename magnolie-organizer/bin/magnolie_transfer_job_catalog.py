@@ -94,6 +94,7 @@ class ProtectedTransferJobCatalog:
         self._failed = False
         self._known = {}
         self._registry=None;self._registry_key=None
+        self._publication_renewals={}
         try:
             self._private(os.fstat(self._parent_fd), directory=True)
             if create:
@@ -398,6 +399,104 @@ class ProtectedTransferJobCatalog:
             if type(job) is not NativeReservedTransferJob or job.cache_retirement_sha256 is not None or not any(value == job for value in self._jobs()):
                 raise TransferError("file_job_catalog_unknown_native_reservation")
             return self._parent
+
+    def record_unpublished_end(self,receiver,evidence):
+        """Positive native END, not absence of a later journal phase.
+
+        The actual original publisher and source stage have closed. Its index
+        lease remains owned until this bounded, authenticated metadata commits.
+        """
+        from magnolie_file_receive import NativeFileReceiveOperation
+        if type(receiver) is not NativeFileReceiveOperation:raise TransferError('file_job_catalog_native_publication_end_required')
+        with receiver._gate,self._locked():
+            if (self._failed or self._registry is None or receiver._catalog is not self
+                    or not receiver._closed or receiver._unpublished_end is not evidence
+                    or any(value is None or not value._closed for value in (receiver._publisher,receiver._journal,receiver._stage))
+                    or receiver._publisher._attempted or self._root_key in getattr(_LOCAL,'inspecting',set())):
+                raise TransferError('file_job_catalog_native_publication_end_required')
+            jobs=self._jobs();job=receiver.job
+            if job not in jobs or job.cache_retirement_sha256 is not None:
+                raise TransferError('file_job_catalog_unknown_native_reservation')
+            CatalogMembership.validate_end(evidence,job)
+            def current():
+                receiver._index._require_end_worker(receiver._lease)
+                if (receiver._index.snapshot().protected_sha256!=evidence['checkpoint_sha256']
+                        or list(receiver._index._root_key)!=evidence['index_key']
+                        or list(receiver._index._database_key)!=evidence['database_key']):
+                    raise TransferError('file_job_catalog_unpublished_end_changed')
+            current();self._failed=True
+            result=self._registry.append_attempt(jobs,job,'closed',evidence,validate=current)
+            self._jobs();self._failed=False
+            return result
+
+    def _validate_publication_renewal(self,receiver,permit):
+        import threading
+        issued=self._publication_renewals.get(receiver.job.owner)
+        if (issued is None or issued[0] is not receiver or issued[1] is not permit
+                or issued[3]!=threading.get_ident() or self._failed):
+            raise TransferError('file_job_catalog_native_publication_renewal_required')
+        receiver._require();receiver._index._require_receipt_worker(receiver._lease)
+        jobs=self._jobs()
+        records=self._registry.attempts(jobs)
+        last=next((item for item in reversed(records) if item[0]['owner']==receiver.job.owner),None)
+        if last is None or last[0]['operation']!='consumed' or last[1]!=issued[2]:
+            raise TransferError('file_job_catalog_publication_renewal_consumed')
+
+    def renew_unpublished_publication(self,receiver,publication_gate):
+        """Explicit exact-job resume only; never creates a missing END proof."""
+        from magnolie_file_receive import NativeFileReceiveOperation
+        from magnolie_file_publish import NativeFilePublisher
+        import threading
+        if type(receiver) is not NativeFileReceiveOperation:raise TransferError('file_job_catalog_native_publication_renewal_required')
+        with receiver._gate,self._locked():
+            if (self._failed or self._registry is None or receiver._catalog is not self or receiver._publisher is not None
+                    or self._root_key in getattr(_LOCAL,'inspecting',set())):
+                raise TransferError('file_job_catalog_native_publication_renewal_required')
+            receiver._require();jobs=self._jobs();job=receiver.job
+            if job not in jobs or job.cache_retirement_sha256 is not None:
+                raise TransferError('file_job_catalog_unknown_native_reservation')
+            records=self._registry.attempts(jobs)
+            last=next((item for item in reversed(records) if item[0]['owner']==job.owner),None)
+            if last is None or last[0]['operation']!='closed':return None
+            evidence=last[0]['evidence']
+            def current():
+                receiver._require();receiver._index._require_receipt_worker(receiver._lease)
+                head=receiver._index.snapshot()
+                if (head is None or head.protected_sha256!=evidence['checkpoint_sha256']
+                        or list(receiver._index._root_key)!=evidence['index_key']
+                        or list(receiver._index._database_key)!=evidence['database_key']
+                        or list(self._key(os.fstat(receiver._stage._root_fd)))!=evidence['stage_key']
+                        or list(receiver._journal._root_key)!=evidence['journal_key']
+                        or receiver._journal._failed or receiver._journal._entries()!={'owner.enc'}):
+                    raise TransferError('file_job_catalog_unpublished_end_changed')
+            current()
+            # Check the original pinned empty cache, not target absence. Consume
+            # the positive proof durably before any writable journal/publisher.
+            job.accepted.destination.verify()
+            root=os.open(job.accepted.destination.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            try:
+                if self._key(os.fstat(root))!=job.accepted.destination.ancestor_keys[0]:
+                    raise TransferError('file_job_catalog_unpublished_end_changed')
+                cache=os.open(NativeFilePublisher.PREFIX+job.owner,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=root)
+                try:
+                    self._private(os.fstat(cache),directory=True)
+                    if list(self._key(os.fstat(cache)))!=evidence['publication_key']:
+                        raise TransferError('file_job_catalog_unpublished_end_changed')
+                    with os.scandir(cache) as entries:
+                        if next(entries,None) is not None:raise TransferError('file_job_catalog_unknown_publication_cache_preserved')
+                finally:os.close(cache)
+            finally:os.close(root)
+            current();self._failed=True
+            digest=self._registry.append_attempt(jobs,job,'consumed',dict(accepted_sha256=job.accepted.fingerprint,
+                closed_sha256=last[1]),validate=current)
+            self._jobs();self._failed=False
+            permit=object();self._publication_renewals[job.owner]=(receiver,permit,digest,threading.get_ident())
+            try:
+                receiver._journal._renew_unpublished(receiver,self,permit,evidence['journal_key'])
+                return NativeFilePublisher(job.accepted.destination.path,job.accepted.manifest,job.accepted.binding,
+                    receiver._current,publication_gate,owner=job.owner,targets=dict(job.accepted.targets),
+                    journal=receiver._journal,accepted=job.accepted,_renewal=(receiver,self,permit,evidence['publication_key']))
+            finally:self._publication_renewals.pop(job.owner,None)
 
     def reserve(self, accepted, current_binding, *, expected_jobs=None):
         if self._owner_only:raise TransferError('file_job_catalog_owner_only')

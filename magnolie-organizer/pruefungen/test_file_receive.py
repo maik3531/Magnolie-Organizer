@@ -92,7 +92,7 @@ def test_incomplete_batch_never_publishes_but_can_keep_receiving(fixture):
     assert operation.publish_completed()[0].size == len(data)
 
 
-def test_native_chunk_resume_restores_actual_checkpoint_and_holds_publication_for_repair(fixture):
+def test_native_clean_end_resume_restores_checkpoint_and_consumes_proof_before_publication(fixture):
     f = fixture
     data = b"a" * CHUNK_BYTES + b"tail"
     operation = f.accept(data)
@@ -106,9 +106,13 @@ def test_native_chunk_resume_restores_actual_checkpoint_and_holds_publication_fo
     assert resumed.progress().checkpoint_verified_bytes == CHUNK_BYTES
     resumed.receive_chunk(file.id, 1, b"tail")
     assert resumed.progress().checkpoint_verified_bytes == len(data)
-    with pytest.raises(TransferError, match="publication_repair_required"):
-        resumed.publish_completed()
-    assert not (f.destination / file.path).exists()
+    records=f.catalog._registry.attempts(f.catalog.jobs())
+    assert [value['operation'] for value,_ in records]==['closed','consumed']
+    assert records[1][0]['evidence']['closed_sha256']==records[0][1]
+    assert resumed._publisher is not None
+    assert resumed.publish_completed()[0].size==len(data)
+    assert (f.destination / file.path).read_bytes()==data
+    assert len(f.catalog.jobs())==1 and f.catalog.jobs()[0].reserved_bytes==job.reserved_bytes
 
 
 def test_restart_of_physically_published_batch_only_observes_original_target(fixture):

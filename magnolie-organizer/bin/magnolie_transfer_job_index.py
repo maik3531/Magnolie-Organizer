@@ -449,6 +449,17 @@ class ProtectedTransferJobIndex:
             raise TransferError("transfer_job_index_repair_pending")
         self._fresh()
 
+    def _require_end_worker(self,lease):
+        """Exact still-owned metadata lease after I/O END, even after revocation.
+
+        This does not renew a source, target, checkpoint-write or receipt grant.
+        A native closed-owner proof must be recordable during orderly teardown.
+        """
+        if (lease is None or lease is not self._operation_lease or _ACTIVE_OPERATIONS.get(self._root_key) is not self
+                or self._accepted is None or self._uncertain):
+            raise TransferError('transfer_job_index_end_worker_required')
+        self._directories();self._owner()
+
     def _enable_receipts(self):
         self._snapshot()
         if self._schema_version >= 2:

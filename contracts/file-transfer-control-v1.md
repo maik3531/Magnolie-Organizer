@@ -1,5 +1,45 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native clean-END proof and one-use publication renewal (Refs #330)
+
+A native receiver which actually closes before its publisher ever entered a
+publication attempt can now record a positive unpublished-END proof. Publisher,
+journal and stage I/O end first; the exact owned index lease closes last. The
+proof pins the original acceptance, checkpoint hash and index/database/stage/
+journal/publication-cache identities. Orderly teardown may record this metadata
+after revocation; doing so grants no READ, file write, Saved acknowledgement or
+new consent. Corruption/uncertainty never creates a substitute proof and must not
+prevent resource closure.
+
+The existing bounded catalog-membership database atomically records protected
+`closed`/`consumed` chains alongside its authenticated job membership. Its optional
+schema is upgraded only while recording an actual native END, never from missing
+history during resume. Original reservations, receipts and earlier attempts stay
+intact. The existing database/page, allocation and historical-job limits are not
+enlarged. New END entries reserve room for consumption; exhausted history holds
+rather than discarding a consumed proof. Exact head-cipher CAS protects concurrent
+membership changes.
+
+Explicit resume revalidates current native consent, the verified original stage,
+the exact END/checkpoint and the pinned, empty original publication cache. It
+durably consumes the proof before enabling the original journal and reopening
+that cache. A transient native owner/thread permit is not serializable and cannot
+be replayed after the factory returns. A second clean owner END needs a new proof.
+Abrupt death after consumption, failed/attempted publication, missing consumed
+records, replaced roots and uncertain durability remain HOLD. Target absence or
+an empty journal alone still cannot recreate a deleted PC file.
+
+Actual source-host tests cover a stopped version job through verified resume,
+publication, Saved and cache retirement; fresh native channel ownership;
+missing-byte-only continuation; repeated clean stops; both sides of the link
+boundary and a deleted target; abrupt descriptor termination; consumed-proof
+replay; root replacement; revocation; postcommit failure; concurrent metadata CAS;
+history exhaustion; forged permits; and corrupted-index teardown. These native
+adapter tests do not yet constitute the Organizer's automatic pending-job
+continuation lane or an installed/physical-device acceptance. Those joins remain
+under #330. Production readiness and installed/physical-device acceptance remain
+separate gates; no package or capture readiness follows from these checks.
+
 ### Changed phone versions without replacing earlier files (Refs #330)
 
 The real album worker may now transfer a changed phone version when the native

@@ -356,7 +356,7 @@ def test_existing_job_discovery_without_catalog_never_creates_one(receiving):
     assert not (Path(service.store.root)/ProtectedTransferJobCatalog.NAME).exists()
 
 
-def test_reconnect_resume_selects_only_actual_missing_checkpoint_bytes_and_does_not_republish(receiving):
+def test_reconnect_resume_selects_missing_bytes_and_publishes_once_after_native_clean_end(receiving):
     service, peer, channel, connection, destination = receiving
     data = b'a'*CHUNK_BYTES+b'tail'
     accept(receiving, data)
@@ -368,16 +368,20 @@ def test_reconnect_resume_selects_only_actual_missing_checkpoint_bytes_and_does_
         assert resumed.native_receive_jobs() == (job,)
         message, _ = offer(new, data)
         progress = resumed.resume_pending_offer(resumed.issue_receive_action(), message['message_id'], job.owner)
-        assert progress.verified_bytes == CHUNK_BYTES and progress.phase == 'receiving_publication_repair_pending'
+        assert progress.verified_bytes == CHUNK_BYTES and progress.phase == 'receiving'
+        events=resumed._catalog._registry.attempts(resumed._catalog.jobs())
+        assert [event['operation'] for event,_ in events]==['closed','consumed']
         next_request = resumed.request_next_chunk()
         assert next_request['body']['chunk_index'] == 1 and next_request['body']['file_id'] == first['body']['file_id']
         new[0]._payload(new[1], new[2], chunk(next_request, b'tail'))
         assert resumed.request_next_chunk() is None
         assert resumed.receive_progress().checkpoint_verified_bytes == len(data)
-        with pytest.raises(TransferError, match='publication_repair_required'):
-            resumed.publish_received(resumed.issue_receive_action())
-        with pytest.raises(TransferError): resumed.send_saved_confirmation()
-        assert len(resumed._catalog.jobs()) == 1 and not (destination/'Camera/photo.jpg').exists()
+        resumed.publish_received(resumed.issue_receive_action())
+        target=destination/'Camera/photo.jpg';before=(target.stat().st_ino,target.read_bytes())
+        assert before[1]==data
+        resumed.send_saved_confirmation()
+        assert (target.stat().st_ino,target.read_bytes())==before
+        assert len(resumed._catalog.jobs()) == 1 and resumed._catalog.jobs()[0].reserved_bytes>0
 
 
 def test_corrupt_actual_staged_bytes_fence_resume_without_replacement_or_new_reservation(receiving):

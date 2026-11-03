@@ -4,9 +4,11 @@ Blocking native I/O-lane methods only: no worker/thread/timer or PhoneStore is
 constructed. Actual own-peer permission and serialized publication authority
 must be supplied by the native controller. Physical publication alone remains
 unreceipted; explicit original readback plus protected receipt commit confirms
-a local save. Restart publication is repair-pending, never silently repeated.
+a local save. Restart publication requires a positive native unpublished-END
+proof consumed by the catalog; otherwise it remains repair-pending.
 """
 from dataclasses import dataclass
+import os
 import threading
 
 from magnolie_file_transfer import EncryptedTransferStage, ResumeLedger, TransferError
@@ -93,6 +95,7 @@ class NativeFileReceiveOperation:
         parent = catalog.require_reserved(job)
         job.accepted.verify(current_binding)
         self._job = job
+        self._catalog = catalog
         self._accepted = job.accepted
         self._current = current_binding
         self._gate = threading.RLock()
@@ -105,6 +108,7 @@ class NativeFileReceiveOperation:
         self._chunks_since_checkpoint = 0
         self._published = None
         self._receipts = None
+        self._unpublished_end = None
         try:
             self._index = ProtectedTransferJobIndex(parent, self._accepted.manifest, self._accepted.binding,
                 current_binding, seal, unseal, owner=job.owner, create=create, accepted=self._accepted,media_history=media_history)
@@ -130,6 +134,9 @@ class NativeFileReceiveOperation:
                 self._publisher = NativeFilePublisher(self._accepted.destination.path, self._accepted.manifest,
                     self._accepted.binding, current_binding, publication_gate, owner=job.owner,
                     targets=dict(self._accepted.targets), journal=self._journal, accepted=self._accepted)
+            else:
+                self._publisher=catalog.renew_unpublished_publication(self,publication_gate)
+                if self._publisher is not None:self._phase='receiving'
             self._set_checkpoint_batch()
         except Exception as error:
             self.close()  # Descriptors/worker lease only. All data/quota stay held.
@@ -330,16 +337,42 @@ class NativeFileReceiveOperation:
         with self._gate:
             if self._closed:
                 return
+            evidence=None
+            if not self._failed and self._publisher is not None and not self._publisher._attempted:
+                try:
+                    self._index._require_end_worker(self._lease)
+                    self._publisher._directories()
+                    self._journal.require_new_operation(self._accepted.manifest,self._accepted.binding,
+                        dict(self._accepted.targets),self.job.owner)
+                    head=self._index.snapshot()
+                    if head is not None and not self._publisher._cache_entries() and self._journal._entries()=={'owner.enc'}:
+                        evidence=dict(accepted_sha256=self._accepted.fingerprint,checkpoint_sha256=head.protected_sha256,
+                            index_key=list(self._index._root_key),database_key=list(self._index._database_key),
+                            stage_key=list(ProtectedTransferJobCatalog._key(os.fstat(self._stage._root_fd))),
+                            journal_key=list(self._journal._root_key),publication_key=list(self._publisher._cache_key))
+                except Exception:
+                    pass # Revocation/uncertainty closes resources, never mints END evidence.
             self._closed = True
             # Index/lease closes last, after all actual native I/O objects ended.
             failure = None
-            for value in (self._publisher, self._journal, self._stage, self._index):
+            for value in (self._publisher, self._journal, self._stage):
                 if value is not None:
                     try:
                         value.close()
                     except Exception as error:
                         if failure is None:
                             failure = error
+            try:
+                if evidence is not None and failure is None:
+                    self._unpublished_end=evidence
+                    self._catalog.record_unpublished_end(self,evidence)
+            except Exception as error:
+                failure=error
+            finally:
+                if self._index is not None:
+                    try:self._index.close()
+                    except Exception as error:
+                        if failure is None:failure=error
             if failure is not None:
                 raise failure
 

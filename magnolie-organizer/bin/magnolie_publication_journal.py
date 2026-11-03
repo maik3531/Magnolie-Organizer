@@ -1,9 +1,9 @@
 """Private immutable publication evidence, separate from transfer checkpoints.
 
 No key generation, personal store, destination writes, transport ACKs or consent.
-Restart inspection is deliberately read-only: an absent later record does not
-prove that a link never happened. Native recovery/readback must resolve that
-uncertainty before a coordinator may resume any operation.
+Restart inspection defaults to read-only: an absent later record does not prove
+that a link never happened. Only the catalog's durably consumed positive native
+unpublished-END permit can renew an original journal before any publication.
 """
 from dataclasses import dataclass
 from hashlib import sha256
@@ -56,6 +56,17 @@ class ProtectedPublicationJournal:
     PHASES = ("prepared", "linked", "verified")
     MAX_RECORD_BYTES = 1024 * 1024
     MAX_PROTECTION_OVERHEAD = 128
+
+    def _renew_unpublished(self,receiver,catalog,permit,expected_key):
+        """Only the catalog's currently owned, durably consumed native permit."""
+        with self._gate:
+            catalog._validate_publication_renewal(receiver,permit)
+            if (receiver._journal is not self or self._root_key!=tuple(expected_key)
+                    or self._failed or self._entries()!={'owner.enc'}):
+                raise TransferError('publication_journal_unpublished_end_changed')
+            self._writable=True
+            self.require_new_operation(receiver._accepted.manifest,receiver._accepted.binding,
+                dict(receiver._accepted.targets),receiver.job.owner)
 
     def __init__(self, parent, manifest, binding, targets, seal, unseal, *, owner, create=False):
         if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
