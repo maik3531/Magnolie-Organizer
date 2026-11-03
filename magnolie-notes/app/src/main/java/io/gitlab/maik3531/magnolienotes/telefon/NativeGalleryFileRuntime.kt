@@ -708,6 +708,13 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     val prepared = ResumeEndOutput(message, TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at), at,
                         run.originalJob, head?.id, head?.version)
                     prepared.check(now()); authority()
+                    if (index.remoteSaved(run.originalJob) != null) {
+                        // Only the exact original's authenticated Saved proof,
+                        // after actual quiescent source END, permits cache retirement.
+                        // An END or a historical hint alone never frees quota.
+                        workflow.retireCached(run.originalJob)
+                        prepared.check(now()); authority()
+                    }
                     resumeEnd = prepared // Exact bounded result survives uncertain output.
                     endStoppedResumeRunOwned(run)
                     prepared
@@ -717,7 +724,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     try { endAuthority() } catch (_: Exception) { }
                     throw error
                 }
-                return@withOperation // Owner END only, never job/proof/quota retirement.
+                return@withOperation // No Saved assertion or original phone-media deletion.
             }
             if (command.operation == "abandon_resume") {
                 val ended = resumeEnd ?: DeviceFileControl.fail("gallery_resume_end_proof_required")

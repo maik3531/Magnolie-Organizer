@@ -260,6 +260,35 @@ def test_activation_preserves_unknown_staging_files_instead_of_cleaning_or_overw
     assert Path(service.store.peers_path).read_bytes()==original
 
 
+def test_real_gtk_ipc_stop_then_sync_resumes_same_native_job_and_saved_end(receiving,request):
+    service,peer,channel,connection,target=receiving
+    converge_controls(service,peer,channel)
+    batches=prepared(receiving)[:1];session=connection.desktop_session();session._local_enabled(True)
+    action=native_ui(service,peer,request)
+    def metadata(message):
+        assert message['body']['operation']=='discover'
+        service._payload(peer,channel,response(message,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+            after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
+            albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
+    with phone_batches(receiving,batches,block_chunk=True,metadata_handler=metadata) as (_,saved,entered,release,_):
+        action(dict(action='discover'));assert session.join(10),session.snapshot()
+        action(dict(action='sync',album_id=ALBUM));assert entered.wait(10),session.snapshot()
+        receiver=connection._run.receiver;job=receiver.job;history=receiver._index.media_history
+        action(dict(action='stop'))
+        assert session.snapshot()['busy'] and service._native_media_activity()['synchronizing']
+        release.set();assert session.join(30),session.snapshot()
+        assert session.snapshot()['state']=='canceled' and not saved,session.snapshot()
+    with phone_batches(receiving,batches,resume_job=job,resume_media=history) as (chunks,saved,_,_,errors):
+        action(dict(action='sync',album_id=ALBUM))
+        assert session.join(45),session.snapshot()
+        assert session.snapshot()['state']=='complete',session.snapshot()
+        assert not errors and not chunks and len(saved)==1
+        assert connection._catalog.jobs()[0].owner==job.owner
+        assert connection._catalog.jobs()[0].reserved_bytes==0
+        assert not service._native_media_activity()['synchronizing']
+        assert (target/batches[0].files[0].path).read_bytes()==b'hello'
+
+
 def test_native_session_keeps_existing_custom_destination_and_never_guesses_native_pictures(receiving,monkeypatch):
     service,peer,channel,connection,target=receiving
     from gi.repository import GLib

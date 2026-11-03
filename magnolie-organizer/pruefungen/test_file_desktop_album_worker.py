@@ -20,17 +20,20 @@ from test_file_desktop_sources import ready_source, ALBUM
 from test_file_desktop_media import manifest, media, dispatch
 from test_file_desktop_photo_batches import result
 from test_file_desktop_photo_review import end_normal_source
+from test_file_desktop_sources import response
+from test_file_desktop_resume_lookup import history as resume_history
+from test_file_desktop_resume_abandonment import receipt as abandonment_receipt
 
 
 @contextmanager
 def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None,
-        insertion_witness=False, content=b'hello', photo_ids=None):
+        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None):
     queue = Queue(); errors = []; chunks = []; saved = []
     saved_targets={}
     entered = threading.Event(); release = threading.Event()
     run_ids = [str(uuid.uuid4()) for _ in batches]
     def phone():
-        index = 0; canceled = False; selected={}
+        index = 0; canceled = False; selected={};resume_id=str(uuid.uuid4());resume_canceled=False;resume_attempted=False
         try:
             while True:
                 message = queue.get()
@@ -38,6 +41,30 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                 kind = message['kind']; body = message['body']
                 if kind == sources.REQUEST:
                     operation = body['operation']
+                    if operation=='resume_lookup' and resume_job is not None:
+                        dispatch(fixture,resume_history(message,resume_job,attempt_phase='accepted' if resume_attempted else None));continue
+                    if operation=='abandon_resume' and resume_job is not None:
+                        dispatch(fixture,abandonment_receipt(message));resume_attempted=False;continue
+                    if operation in ('resume_run','resume_status','resume_media_page','offer_resume','cancel_resume','end_resume') and resume_job is not None:
+                        original=resume_job.accepted.manifest
+                        if operation=='cancel_resume':resume_canceled=True
+                        if operation=='resume_media_page':
+                            value=media(message,original,body['after']);value['body']['run_id']=resume_id
+                            value['body']['page']['source_epoch']=resume_media.source_epoch
+                            value['body']['page']['insertion_witness']=resume_media.insertion_witness
+                            for entry in value['body']['page']['entries']:
+                                entry['photo_id']=next(item.photo_id for item in resume_media.entries if item.file_id==entry['file_id'])
+                            dispatch(fixture,value);continue
+                        options={}
+                        if operation=='end_resume':options['run_ended']=True
+                        if operation=='offer_resume':
+                            resume_attempted=True
+                            offered=create_offer(original);offered['expires_ms']=min(offered['expires_ms'],message['expires_ms'])
+                            dispatch(fixture,offered);options=dict(offer_id=offered['message_id'],manifest_sha256=original.fingerprint)
+                        value=response(message,sources.RUN_RESULT,version='b'*64,run_id=resume_id,
+                            state='canceled_held' if resume_canceled else 'snapshot_ready',source_io_ended=True,**options)
+                        value['expires_ms']=min(value['expires_ms'],message['expires_ms'])
+                        dispatch(fixture,value);continue
                     if metadata_handler is not None and operation in ('status','configure','discover','catalog_page','request_read'):
                         metadata_handler(message);continue
                     if operation=='batch_run':
@@ -170,6 +197,124 @@ def test_album_worker_cancel_waits_for_real_chunk_drain_and_close_without_publis
         assert native_activity == [{'synchronizing': True, 'camera': False},
                                    {'synchronizing': False, 'camera': False}]
         assert finishing_threads and threading.current_thread() not in finishing_threads
+
+
+def test_actual_worker_resumes_original_stopped_job_ends_saved_source_then_repeats_without_download(receiving):
+    connection=receiving[3];batches=prepared(receiving)[:1]
+    with phone_batches(receiving,batches,block_chunk=True) as (_,_,entered,release,_):
+        first=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert entered.wait(10)
+        receiver=connection._run.receiver;job=receiver.job;history=receiver._index.media_history
+        first.stop();release.set();assert first.join(30),first.progress()
+        assert first.progress()['state']=='canceled',first.progress()
+    assert not (receiving[4]/'Camera/0.jpg').exists()
+    # Original first chunk was durably drained at stop; continuation must not
+    # allocate a replacement job or download that chunk again.
+    with phone_batches(receiving,batches,resume_job=job,resume_media=history) as (chunks,saved,_,_,errors):
+        second=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert second.join(45),second.progress()
+        assert not errors and second.progress()['state']=='complete',second.progress()
+        assert second.progress()['saved_files']==1
+        assert not chunks and len(saved)==1
+        assert (receiving[4]/'Camera/0.jpg').read_bytes()==b'hello'
+        jobs=connection._catalog.jobs()
+        assert len(jobs)==1 and jobs[0].owner==job.owner and jobs[0].reserved_bytes==0
+        assert connection._run is None and connection._resume_source_id is None
+        events=connection._catalog._registry.attempts(jobs)
+        assert [event['operation'] for event,_ in events]==['closed','consumed']
+    with phone_batches(receiving,batches) as (chunks,saved,_,_,errors):
+        repeat=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert repeat.join(30) and repeat.progress()['state']=='complete',repeat.progress()
+        assert not errors and not chunks and not saved
+
+
+def test_stop_during_original_resume_drains_missing_chunk_and_abandons_only_ended_attempt(receiving,monkeypatch):
+    connection=receiving[3];base=prepared(receiving)[0]
+    files=(base.files[0],replace(base.files[0],id='d'*32,path='Camera/second.jpg'))
+    batches=[replace(base,files=files,total_bytes=sum(file.size for file in files))]
+    photos={file.path:sha256(file.path.encode()).hexdigest() for file in files}
+    with phone_batches(receiving,batches,block_chunk=True,photo_ids=photos) as (_,_,entered,release,_):
+        first=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert entered.wait(10)
+        receiver=connection._run.receiver;job=receiver.job;history=receiver._index.media_history
+        first.stop();release.set();assert first.join(30),first.progress()
+        assert first.progress()['state']=='canceled',first.progress()
+    finishing=[];finish=connection._finish_receive_stop
+    def observed():
+        finishing.append(threading.current_thread());return finish()
+    monkeypatch.setattr(connection,'_finish_receive_stop',observed)
+    with phone_batches(receiving,batches,block_chunk=True,photo_ids=photos,resume_job=job,resume_media=history) as (chunks,saved,entered,release,errors):
+        second=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert entered.wait(15),second.progress()
+        assert connection._resume_source_id is not None
+        state=connection.source_state;busy=[]
+        def dispatch_still_owns_gate():
+            if second._stop.is_set() and not busy:
+                busy.append(True);raise TransferError('file_desktop_connection_busy')
+            return state()
+        monkeypatch.setattr(connection,'source_state',dispatch_still_owns_gate)
+        second.stop()
+        assert threading.current_thread() not in finishing and not second.io_ended
+        release.set();assert second.join(30),second.progress()
+        assert not errors and second.progress()['state']=='canceled',second.progress()
+        assert busy
+        assert chunks==[files[1].id] and not saved
+        assert connection._resume_abandonment is not None
+        assert connection.receive_stop_state().resources_closed
+        assert connection._catalog.jobs()==(job,)
+        events=connection._catalog._registry.attempts((job,))
+        assert [event['operation'] for event,_ in events]==['closed','consumed','closed']
+        assert not list(receiving[4].glob('**/*.jpg'))
+
+
+@pytest.mark.parametrize('change',['content','partial','proof'])
+def test_fresh_album_cannot_resume_changed_partial_or_unproven_original(receiving,change):
+    connection=receiving[3];batches=prepared(receiving)[:1]
+    base=batches[0];files=(base.files[0],replace(base.files[0],id='d'*32,path='Camera/second.jpg'))
+    batches=[replace(base,files=files,total_bytes=sum(file.size for file in files))]
+    photos={file.path:sha256(file.path.encode()).hexdigest() for file in files}
+    with phone_batches(receiving,batches,block_chunk=True,photo_ids=photos) as (_,_,entered,release,_):
+        first=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert entered.wait(10)
+        receiver=connection._run.receiver;job=receiver.job
+        if change=='proof':
+            # An actual attempted publication (even one rejected as incomplete)
+            # cannot earn a positive unpublished END proof.
+            with pytest.raises(TransferError):
+                receiver._publisher.publish(files[1].id,receiver._ledger,receiver._stage.read_chunk)
+        first.stop();release.set();assert first.join(30),first.progress()
+        assert first.progress()['state']=='canceled',first.progress()
+    if change=='content':
+        files=(replace(files[0],sha256=sha256(b'other').hexdigest()),files[1])
+    elif change=='partial':files=files[:1]
+    fresh=[replace(base,files=files,total_bytes=sum(file.size for file in files))]
+    with phone_batches(receiving,fresh,photo_ids=photos) as (chunks,saved,_,_,errors):
+        worker=connection.start_album_worker(connection.issue_receive_action(),ALBUM,True)
+        assert worker.join(30),worker.progress()
+        assert not errors and worker.progress()['state']=='held',worker.progress()
+        expected={'content':'source_changed','partial':'membership_unproven','proof':'publication_repair_required'}[change]
+        assert expected in worker.progress()['error']
+        assert not chunks and not saved and connection._catalog.jobs()==(job,)
+        assert not list(receiving[4].glob('**/*.jpg'))
+
+
+def test_resume_ending_needs_real_saved_receipt_not_a_cached_flag_or_stop_request(receiving):
+    from test_file_desktop_receive_stop import resumed
+    from test_file_desktop_resume_sources import cancel
+    with resumed(receiving) as (fresh,job,history):
+        connection=fresh[3];run=connection._run
+        run.saved_mapping_ready=True
+        count=fresh[2].send.call_count
+        for operation in ('resume_status','end_resume','offer_resume','resume_media_page'):
+            with pytest.raises(TransferError):connection.request_source(connection.issue_receive_action(),operation)
+        assert fresh[2].send.call_count==count
+        run.saved_mapping_ready=False
+        connection.request_receive_stop(connection.issue_receive_action(),finish=False)
+        cancel(fresh)
+        # A source's cancel barrier does not close the desktop stage/index.
+        if connection._run is not None:
+            with pytest.raises(TransferError):connection.request_source(connection.issue_receive_action(),'end_resume')
+        assert connection._catalog.jobs()==(job,)
 
 
 def test_empty_actual_worker_allocates_no_receiver_or_file_and_finishes_only_after_source_end(receiving):

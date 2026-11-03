@@ -1911,6 +1911,28 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun resumeEndRetiresOnlyActuallySavedOriginalCacheAndRetriesLostEndReply() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            h.runtime.receiveTransferMessage(h.saved(run), h.channel::send, { at })
+            h.inspect { assertNotNull(it.remoteSaved(h.job)); assertEquals(listOf(h.job), it.jobs()) }
+            assertTrue(File(h.root, "photo-source-" + h.job.id).isDirectory)
+            h.runtime.cancelResumeRun(run)
+            val command = h.resumeStatus("end_resume", run, at)
+            assertThrows(java.io.IOException::class.java) {
+                h.runtime.receiveSourceCommand(command, { h.channel.send(it); throw java.io.IOException("fixture Saved END reply lost") }, { at })
+            }
+            val first = h.drain().single()
+            assertEquals(JsonPrimitive(true), first["body"]!!.jsonObject["run_ended"])
+            h.inspect { assertTrue(it.jobs().isEmpty()) }
+            assertFalse(File(h.root, "photo-source-" + h.job.id).exists())
+            assertEquals("hello", File(h.f.root, "source.bin").readText())
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at + 1 })
+            assertEquals(first, h.drain().single())
+            h.inspect { assertTrue(it.jobs().isEmpty()) }
+        }
+    }
+
     @Test fun resumeEndLostReplyRetriesExactReceiptWithoutEndingAnotherActiveOwnerOrDroppingQuota() {
         ResumeRuntimeCase().use { h ->
             val run = h.start(); h.awaitEnd(); val at = h.now + 120_000

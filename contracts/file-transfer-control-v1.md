@@ -35,9 +35,24 @@ missing-byte-only continuation; repeated clean stops; both sides of the link
 boundary and a deleted target; abrupt descriptor termination; consumed-proof
 replay; root replacement; revocation; postcommit failure; concurrent metadata CAS;
 history exhaustion; forged permits; and corrupted-index teardown. These native
-adapter tests do not yet constitute the Organizer's automatic pending-job
-continuation lane or an installed/physical-device acceptance. Those joins remain
-under #330. Production readiness and installed/physical-device acceptance remain
+adapter tests are now joined to the Organizer's actual album worker: a fresh
+complete matching album offer selects at most one original pending job, releases
+the never-accepted preview/scan, performs the source's original-job lookup and
+renewal, validates fresh original media, and resumes only missing chunks. Changed,
+partial, ambiguous or unproven membership remains HOLD. Selection metadata itself
+grants no READ or publication authority.
+
+Successful resume ends the source while the exact original receiver still owns
+its durable Saved mapping receipt; only then may local cache retirement change
+the catalog job. Unsaved stop requests perform no caller-thread I/O: the worker
+drains, checkpoints and actually closes before source END and guarded attempt
+abandonment. Only a genuine Saved original and actual quiescent END allow Notes
+to reuse its existing guarded cache-retirement path; END alone never does.
+Transient dispatcher gate contention is retried only at the pre-entry busy
+boundary, not after failed or uncertain I/O. Actual GTK/IPC stop/restart, source
+END, repeat without downloads, stop during resume and negative proof cases are
+covered by source-host tests. They are not an installed/physical-device
+acceptance. Production readiness and installed/physical-device acceptance remain
 separate gates; no package or capture readiness follows from these checks.
 
 ### Changed phone versions without replacing earlier files (Refs #330)

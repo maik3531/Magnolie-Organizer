@@ -208,7 +208,8 @@ class NativeDesktopFileConnection:
         with self._receive_stop_gate:
             return self._receive_stop
 
-    def request_receive_stop(self, action):
+    def request_receive_stop(self, action, *, finish=True):
+        if type(finish) is not bool:raise TransferError('file_desktop_native_stop_choice_required')
         self._take_action(action)
         with self._receive_stop_gate:
             self._ready()
@@ -220,7 +221,8 @@ class NativeDesktopFileConnection:
             if not run.stop_requested.is_set():
                 self._receive_stop = NativeReceiveStop(run.job.owner, self._resume_source_id, 'pending')
                 run.stop_requested.set()  # Never waits behind actual stage/socket I/O.
-        self._finish_receive_stop()
+        if finish:self._finish_receive_stop()
+        self._wake_album_worker()
         return self.receive_stop_state()
 
     def _finish_receive_stop(self):
@@ -358,15 +360,23 @@ class NativeDesktopFileConnection:
             if pending.command.run_id != ended.run_id or pending.command.expected_version != ended.version:
                 raise TransferError('file_desktop_batch_continuation_not_current')
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
-            self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=pending.command.operation == 'cancel_resume')
+            ending=pending.command.operation in ('cancel_resume','resume_status','end_resume')
+            self._require_resume_lookup_selection(allow_source_run=True,
+                allow_stopping_receiver=pending.command.operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending)
 
-    def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False):
+    def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False, allow_saved_receiver=False):
         selected = self._resume_lookup_selection
         snapshot = self._receiving_policy()
         receiver = self._run
         stopping = (allow_stopping_receiver and receiver is not None and receiver.stop_requested.is_set()
-                    and selected is not None and receiver.job == selected.job)
-        if (selected is None or snapshot.version != selected.policy_version or receiver is not None and not stopping
+                     and selected is not None and receiver.job == selected.job)
+        saved=False
+        if (allow_saved_receiver and receiver is not None and selected is not None and receiver.job==selected.job
+                and receiver.saved_mapping_ready and receiver.request is None and receiver.receiver is not None):
+            native=receiver.receiver
+            native._require();native._index._require_receipt_worker(native._lease)
+            saved=native._phase=='saved_locally' and native._index.saved_mapping_receipt() is not None
+        if (selected is None or snapshot.version != selected.policy_version or receiver is not None and not (stopping or saved)
                 or self._source_run is not None and (not allow_source_run or self._source_run.run_id != self._resume_source_id)
                 or (self._source_run is None) != (self._resume_source_id is None)
                 or self._source_status is None or self._source_status.version != selected.source_version
@@ -543,7 +553,9 @@ class NativeDesktopFileConnection:
                 if resumed != (self._resume_source_id is not None and self._source_run.run_id == self._resume_source_id):
                     raise TransferError('file_desktop_resume_source_owner_changed')
                 if resumed:
-                    self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=operation == 'cancel_resume')
+                    ending=operation in ('cancel_resume','resume_status','end_resume')
+                    self._require_resume_lookup_selection(allow_source_run=True,
+                        allow_stopping_receiver=operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending)
                 stopped = self._receive_stop
                 if (resumed and stopped is not None and stopped.source_run_id == self._resume_source_id
                         and operation in ('offer_resume', 'resume_media_page')):
@@ -975,6 +987,51 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_offer_expired')
             return NativePhotoReview(manifest.fingerprint, tuple(items))
 
+    def pending_photo_resume_candidate(self,action,*,clock=now_ms):
+        """One exact pending original whose entire membership is in this scan.
+
+        Fresh album metadata is a filter, NOT a READ or stage-reopen grant. The
+        source must still perform its real original-job lookup and renewal.
+        """
+        self._take_action(action)
+        with self._operation():
+            self._require_source_offer(clock)
+            if self._run is not None or not self._source_media_pages or self._source_media_entries is None:
+                raise TransferError('file_desktop_photo_resume_not_current')
+            if not self._open_catalog(allow_create=False):return None
+            binding=self._receive_binding();first=self._source_media_pages[0]
+            manifest=validate_offer(self._offer,binding.sender_id,binding.receiver_id,now=clock())
+            current={entry.photo_id:(entry,file) for entry,file in zip(self._source_media_entries,manifest.files)}
+            protection=self._authority.protection
+            candidates=[]
+            with self._catalog.inspect_jobs() as (parent,jobs):
+                events=self._catalog._registry.attempts(jobs) if self._catalog._registry is not None else ()
+                for job in jobs:
+                    if job.cache_retirement_sha256 is not None or job.accepted.binding!=binding:continue
+                    with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,self._receive_binding,
+                            protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                        history=index.media_history
+                        if history is None:raise TransferError('file_desktop_photo_job_history_required')
+                        if (history.source_epoch,history.media_type)!=(first.source_epoch,first.media_type):continue
+                        overlap=set(current)&{entry.photo_id for entry in history.entries}
+                        if not overlap:continue
+                        if index.saved_mapping_receipt() is not None:continue
+                        if len(overlap)!=len(history.entries):
+                            raise TransferError('file_desktop_photo_resume_album_membership_unproven')
+                        for entry,file in zip(history.entries,job.accepted.manifest.files):
+                            live,now=current[entry.photo_id]
+                            if (live.media_kind,now.sha256,now.size)!=(entry.media_kind,file.sha256,file.size):
+                                raise TransferError('file_desktop_photo_resume_source_changed')
+                        last=next((value for value,_ in reversed(events) if value['owner']==job.owner),None)
+                        if last is None or last['operation']!='closed':
+                            raise TransferError('file_receive_publication_repair_required')
+                        if job.accepted.destination!=self._receiving_policy().policy.destination:
+                            raise TransferError('file_desktop_photo_resume_destination_changed')
+                        candidates.append(job)
+            if len(candidates)>1:raise TransferError('file_desktop_photo_resume_ambiguous')
+            action.validate(self);self._receive_binding()
+            return candidates[0] if candidates else None
+
     def select_pending_new_photos(self, action, *, clock=now_ms, include_versions=False):
         """Select fresh native downloads, optionally preserving changed versions.
         Known photos retain their individual historical targets and local edits;
@@ -1375,6 +1432,7 @@ class NativeDesktopFileConnection:
                 self._receive_binding(); action.validate(self)
                 run.receiver.commit_saved_receipts()
                 self._commit_saved_media(run, action=action)
+                run.saved_mapping_ready=run.receiver._index.saved_mapping_receipt() is not None
                 confirmation = run.receiver.saved_receipt_message(now=clock())
                 action.validate(self)
                 self._send_data(confirmation, clock, action=action)
@@ -1636,6 +1694,7 @@ class _NativeDesktopReceiveRun:
     stop_requested: threading.Event = field(default_factory=threading.Event)
     request_output_started: bool = False
     stop_barrier_confirmed: bool = False
+    saved_mapping_ready: bool = False
 
 
 @dataclass(frozen=True)
@@ -1699,7 +1758,9 @@ class NativePhotoAlbumWorker:
     def stop(self):
         self._stop.set()
         try:
-            self._connection.request_normal_receive_stop(self._connection.issue_receive_action(), finish=False)
+            connection=self._connection
+            stop=connection.request_receive_stop if connection._resume_source_id is not None else connection.request_normal_receive_stop
+            stop(connection.issue_receive_action(), finish=False)
         except TransferError:
             pass # No receiver/offline is not proof of an END; _run still performs cleanup or reports held.
         self._connection._wake_album_worker()
@@ -1740,44 +1801,100 @@ class NativePhotoAlbumWorker:
             return result if not state['pending'] and getattr(result, 'request_id', None) == request_id else None
         return self._wait(received)
 
-    def _prepared(self, result):
+    def _call(self, operation):
+        # Dispatch can still own the nonblocking connection gate immediately
+        # after waking us. Busy means the operation has NOT begun; retry only
+        # that pre-entry boundary, never a failed/uncertain I/O operation.
+        return self._wait(lambda:(operation(),))[0]
+
+    def _prepared(self, result, *, resumed=False):
         deadline = time.monotonic() + MAX_TTL_MS/1000
         while result.state == 'preparing':
             if self._stop.wait(0.25): raise TransferError('file_desktop_album_stop_requested')
             if time.monotonic() >= deadline: raise TransferError('file_desktop_album_prepare_timeout')
-            result = self._command('run_status')
+            result = self._command('resume_status' if resumed else 'run_status')
         if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
         if result.state not in ('snapshot_ready', 'empty_ready'):
             raise TransferError('file_desktop_album_source_held')
         return result
 
-    def _offer(self):
+    def _offer(self, *, resumed=False):
         while True:
-            page = self._command('media_page')
+            page = self._command('resume_media_page' if resumed else 'media_page')
             if page.next_cursor is None: break
-        return self._command('offer_run')
+        return self._command('offer_resume' if resumed else 'offer_run')
 
     def _end_source(self):
-        result = self._command('cancel_run')
+        resumed=self._connection._resume_source_id is not None
+        result = self._command('cancel_resume' if resumed else 'cancel_run')
         deadline = time.monotonic() + MAX_TTL_MS/1000
         while not result.source_io_ended:
             if time.monotonic() >= deadline: raise TransferError('file_desktop_album_stop_timeout')
             with self._connection._update_condition:
                 self._connection._update_condition.wait(0.25)
-            result = self._command('run_status')
-        return self._command('end_run')
+            result = self._command('resume_status' if resumed else 'run_status')
+        return self._command('end_resume' if resumed else 'end_run')
+
+    def _lookup(self, job):
+        connection=self._connection
+        request_id=self._wait(lambda:connection.request_resume_lookup(connection.issue_receive_action(),job.owner))
+        return self._wait(lambda: self._reply(request_id))
+
+    def _reply(self, request_id):
+        state=self._connection.source_state();result=state['result']
+        return result if not state['pending'] and getattr(result,'request_id',None)==request_id else None
+
+    def _receive(self):
+        connection=self._connection
+        while True:
+            if self._stop.is_set():raise TransferError('file_desktop_album_stop_requested')
+            requested=self._call(connection.request_next_chunk)
+            if requested is None:break
+            def chunk_arrived():
+                with connection._operation():
+                    return connection._require_receiver().request is None
+            self._wait(chunk_arrived)
+        self._call(lambda:connection.publish_received(connection.issue_receive_action()))
+
+    def _resume(self, job):
+        connection=self._connection
+        # The fresh preview was never accepted. Release its real scan before
+        # asking the source to open the original immutable cache/attempt.
+        self._end_source()
+        if connection._ended_batch is not None and connection._ended_batch.batch_end is not True:
+            self._command('end_album')
+        self._lookup(job)
+        self._prepared(self._command('resume_run',album_id=self._album_id,
+            desktop_choice=self._desktop_choice),resumed=True)
+        offered=self._offer(resumed=True)
+        if self._stop.is_set():raise TransferError('file_desktop_album_stop_requested')
+        self._call(lambda:connection.resume_pending_offer(connection.issue_receive_action(),offered.offer_id,job.owner))
+        self._receive()
+        # Exact Saved receipt + live original receiver authorize END. Retiring
+        # locally first would change the selected catalog job and invalidate it.
+        self._end_source()
+        self._call(lambda:connection.finish_saved_receive(connection.issue_receive_action(),retire_cache=True))
+        with self._state_gate:self._saved+=len(job.accepted.manifest.files)
 
     def _cleanup(self):
         connection = self._connection
-        state = connection.source_state()
+        state = self._call(connection.source_state)
         if state['pending']: raise TransferError('file_desktop_album_command_held')
-        try: connection.request_normal_receive_stop(connection.issue_receive_action())
+        resumed=connection._resume_source_id is not None
+        job=connection._resume_lookup_selection.job if resumed else None
+        stop=connection.request_receive_stop if resumed else connection.request_normal_receive_stop
+        try: self._call(lambda:stop(connection.issue_receive_action()))
         except TransferError as error:
-            if str(error) != 'file_desktop_normal_receiver_required': raise
+            if str(error) != ('file_desktop_resumed_receiver_required' if resumed else 'file_desktop_normal_receiver_required'): raise
         if state['run'] is not None:
             self._end_source()
         if connection._ended_batch is not None and connection._ended_batch.batch_end is not True:
             self._command('end_album')
+        stopped=connection.receive_stop_state()
+        if resumed and stopped is not None and stopped.owner==job.owner and stopped.state=='stopped':
+            self._lookup(job)
+            request_id=self._call(lambda:connection.request_resume_abandonment(connection.issue_receive_action()))
+            self._wait(lambda:self._reply(request_id))
 
     def _run(self):
         connection = self._connection
@@ -1789,32 +1906,31 @@ class NativePhotoAlbumWorker:
             while True:
                 if result.state != 'empty_ready':
                     offered = self._offer()
-                    review = connection.review_pending_photos(connection.issue_receive_action())
+                    pending=self._call(lambda:connection.pending_photo_resume_candidate(connection.issue_receive_action()))
+                    if pending is not None:
+                        self._resume(pending)
+                        if self._stop.is_set():raise TransferError('file_desktop_album_stop_requested')
+                        result=self._prepared(self._command('batch_run',album_id=self._album_id,
+                            desktop_choice=self._desktop_choice))
+                        continue
+                    review = self._call(lambda:connection.review_pending_photos(connection.issue_receive_action()))
                     new = [item for item in review.items if item.decision in ('new_photo','copy_phone_version')]
                     with self._state_gate:
                         self._known += sum(item.decision in ('unchanged', 'keep_local_edit') for item in review.items)
                         self._conflicts.extend(item for item in review.items if item.decision not in ('new_photo','copy_phone_version','unchanged','keep_local_edit'))
                     if new:
                         if len(new) != len(review.items) or any(item.decision=='copy_phone_version' for item in new):
-                            request_id = connection.select_pending_new_photos(connection.issue_receive_action(),include_versions=True)
+                            request_id = self._call(lambda:connection.select_pending_new_photos(connection.issue_receive_action(),include_versions=True))
                             def selected():
                                 state = connection.source_state(); value = state['result']
                                 return value if not state['pending'] and getattr(value, 'request_id', None) == request_id else None
                             self._prepared(self._wait(selected)); offered = self._offer()
                         if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
-                        connection.accept_pending_offer(connection.issue_receive_action(), offered.offer_id)
-                        while True:
-                            if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
-                            requested = connection.request_next_chunk()
-                            if requested is None: break
-                            def chunk_arrived():
-                                with connection._operation():
-                                    return connection._require_receiver().request is None
-                            self._wait(chunk_arrived)
-                        connection.publish_received(connection.issue_receive_action())
-                        connection.finish_saved_receive(connection.issue_receive_action(), retire_cache=True)
+                        self._call(lambda:connection.accept_pending_offer(connection.issue_receive_action(), offered.offer_id))
+                        self._receive()
+                        self._call(lambda:connection.finish_saved_receive(connection.issue_receive_action(), retire_cache=True))
                         with self._state_gate: self._saved += len(new)
-                final = connection.source_state()['run'].batch_end
+                final = self._call(connection.source_state)['run'].batch_end
                 self._end_source()
                 if self._stop.is_set():
                     if final is False: self._command('end_album')
