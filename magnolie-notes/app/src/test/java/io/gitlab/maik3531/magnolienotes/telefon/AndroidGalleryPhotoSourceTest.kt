@@ -924,7 +924,7 @@ class AndroidGalleryPhotoSourceTest {
 
     /** Original acceptance is established through actual controls/OS host and
      * encrypted output, then stopped BEFORE Saved. No consent is fabricated. */
-    private class ResumeRuntimeCase : AutoCloseable {
+    private class ResumeRuntimeCase(fileCount: Int = 1) : AutoCloseable {
         val f = Fixture()
         val root = Files.createTempDirectory(f.root.toPath(), "resume-runtime356-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -948,9 +948,11 @@ class AndroidGalleryPhotoSourceTest {
         lateinit var selected: NativeGalleryAlbumSelection
         lateinit var job: PhotoSourceJob
         lateinit var originalAcceptance: JsonObject
+        lateinit var originalMedia: JsonObject
         lateinit var cipher: Map<String, List<Byte>>
         init {
             try {
+                if (fileCount != 1) f.provider.rows = (1..fileCount).map { Row(id = it.toLong(), name = "image-$it.jpg") }
                 runtime.attachPermissionHost(host) { throw AssertionError("No implicit permission request") }; activity.start().resume()
                 fun echo() {
                     if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
@@ -965,6 +967,11 @@ class AndroidGalleryPhotoSourceTest {
                 watchEnd()
                 val normal = runtime.beginSyncRun(selected); awaitEnd()
                 job = normal.preparation.snapshotJob()!!
+                runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "media_page"); put("expected_version", runtime.savedPolicy().version)
+                    put("run_id", normal.id); put("after", 0)
+                }, 60_000, now), channel::send, { now })
+                originalMedia = drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
                 runtime.sendSyncRunOffer(normal, channel::send, now)
                 val offer = drain().single(); val manifest = DeviceFileOfferEnvelope.validate(offer, identity.deviceId, peer.peerId, now)
                 runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
@@ -1065,6 +1072,11 @@ class AndroidGalleryPhotoSourceTest {
                 put("source_id", manifest.sourceId); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
             }, 60_000, now)
         }
+        fun media(run: NativeGalleryResumeRun, after: Int = 0, at: Long = now + 120_000): JsonObject =
+            TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "resume_media_page"); put("expected_version", runtime.savedPolicy().version)
+                put("run_id", run.id); put("after", after)
+            }, 60_000, at)
         override fun close() {
             release.countDown(); runtime.revokeControl()
             if (!worker.isQuiescent) awaitEnd()
@@ -1750,6 +1762,76 @@ class AndroidGalleryPhotoSourceTest {
             assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginResumeRun(h.selected, retired) }
             assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
             assertEquals("hello", File(h.f.root, "source.bin").readText())
+        }
+    }
+
+    @Test fun resumeMediaPagePreservesOriginalFrozenAssociationsWithoutNewScanOfferOrRunGrant() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val command = h.media(run); val at = h.now + 120_000
+            val opens = h.f.provider.opens.toList()
+            h.f.provider.onQuery = { throw AssertionError("Media metadata must not rescan live source") }
+            h.f.provider.onOpen = { throw AssertionError("Media metadata must read only original protected cache") }
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at })
+            val reply = h.drain().single(); val body = reply["body"]!!.jsonObject
+            assertEquals("resume_media_page", body.string("operation")); assertEquals(command.string("message_id"), body.string("request_id"))
+            assertEquals(run.id, body.string("run_id")); assertEquals(h.originalMedia, body["page"])
+            assertEquals(opens, h.f.provider.opens); assertNull(run.attempt.get()); assertNull(run.acceptance.get())
+            h.inspect { assertNull(it.resumeAttempt(h.job)) }; h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeMediaPagesStayBoundedAndLostOutputRetriesExactOriginalPage() {
+        ResumeRuntimeCase(9).use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.media(run)
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, { throw java.io.IOException("fixture resume media reply lost") }, { at }) }
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at })
+            val first = h.drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
+            assertEquals(h.originalMedia, first); assertEquals(8, first["entries"]!!.jsonArray.size)
+            assertEquals(JsonPrimitive(8), first["next_cursor"])
+            val all = first["entries"]!!.jsonArray.toMutableList()
+            for (after in listOf(8)) {
+                h.runtime.receiveSourceCommand(h.media(run, after), h.channel::send, { at })
+                val page = h.drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
+                assertEquals(first["source_epoch"], page["source_epoch"]); assertEquals(first["manifest_sha256"], page["manifest_sha256"])
+                assertTrue(page["entries"]!!.jsonArray.size <= 8); all.addAll(page["entries"]!!.jsonArray)
+                assertEquals(JsonNull, page["next_cursor"])
+            }
+            assertEquals(9, all.size); assertEquals(9, all.map { it.jsonObject.string("photo_id") }.distinct().size)
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeMediaPageRejectsChangedRequestForeignOwnerAndInvalidCursorWithoutFallback() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.media(run)
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at }); h.drain()
+            val body = command["body"]!!.jsonObject
+            val changed = JsonObject(command + ("created_ms" to JsonPrimitive(at + 1)))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(changed, h.channel::send, { at + 1 }) }
+            for ((field, value) in listOf("run_id" to JsonPrimitive(java.util.UUID.randomUUID().toString()), "after" to JsonPrimitive(true),
+                "after" to JsonPrimitive(129), "operation" to JsonPrimitive("media_page"))) {
+                val message = JsonObject(command + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())) +
+                    ("body" to JsonObject(body + (field to value))))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(message, h.channel::send, { at + 1 }) }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(h.media(run, 2), h.channel::send, { at + 1 }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeMediaPageRevocationOrExpiryDuringReplyCannotReturnLateSuccessOrReviveRetry() {
+        for (change in listOf("exit", "expired", "lost-expired")) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.media(run); var wall = at
+            assertThrows(java.io.IOException::class.java) {
+                h.runtime.receiveSourceCommand(command, { message ->
+                    h.channel.send(message)
+                    if (change == "exit") h.runtime.revokeControl() else wall += 60_000
+                    if (change == "lost-expired") throw java.io.IOException("fixture output failed while expired")
+                }, { wall })
+            }
+            assertEquals(1, h.drain().size)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
         }
     }
 

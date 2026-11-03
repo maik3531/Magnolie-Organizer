@@ -1,5 +1,26 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Current native resume media pages (Refs #366, #337)
+
+resume_media_page now requires the exact active native resume owner, real completed
+source renewal and current READ/index/control authority. A shared normal/renewed
+projection reads only frozen original manifest/origins and protected animation bytes;
+stable photo/source namespace and media kinds are unchanged. No MediaStore/PFD scan,
+new source job or source/destination mutation is performed. Pages hold at most eight
+entries and exact run/cursor/request correlation; failed output retains its metadata
+attempt, while observed clock/expiry/revocation prevents late success or revival.
+
+Linux command/result codecs require explicit expected resume operation and reject
+cross-normal replies. A sixth canonical shared vector covers the request. This is
+metadata for original-association reconciliation, not camera/semantic classification,
+READ authority, stage resume, Saved or deletion proof.
+224 distinct host cases pass (14 new, 210 affected): exact original-versus-renewed
+page comparison, no new provider access, nine original files across bounded pages,
+lost-reply retry, changed/foreign/cursor/lifecycle rejection, shared codecs and normal
+native video/animation/source/offer/data behavior. Desktop source-resume/history/
+receiver join, pending-head repair, UI/platform/physical acceptance remain open.
+Production/automatic/UI/releases remain OFF.
+
 ### Linux native original-job lookup action (Refs #365, #337)
 
 A separate explicit native lookup action now selects an existing protected receiver

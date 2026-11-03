@@ -40,7 +40,7 @@ def resume_vector():
     return json.loads((Path(__file__).resolve().parents[2] / 'contracts/file-transfer-resume-sources-v1-vectors.json').read_text())
 
 
-@pytest.mark.parametrize('index', range(5))
+@pytest.mark.parametrize('index', range(6))
 def test_shared_resume_command_goldens_roundtrip_without_native_authority(index):
     vector = resume_vector(); message = vector['commands'][index]; before = deepcopy(message)
     command = sources.parse_command(message, now=vector['now_ms'])

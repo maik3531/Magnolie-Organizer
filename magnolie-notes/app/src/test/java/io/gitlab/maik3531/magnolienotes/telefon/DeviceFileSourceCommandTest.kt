@@ -60,7 +60,7 @@ class DeviceFileSourceCommandTest {
         val at = vector["now_ms"]!!.jsonPrimitive.long
         val commands = vector["commands"]!!.jsonArray
         val hashes = vector["canonical_sha256"]!!.jsonArray
-        assertEquals(5, commands.size); assertEquals(commands.size, hashes.size)
+        assertEquals(6, commands.size); assertEquals(commands.size, hashes.size)
         commands.forEachIndexed { index, item ->
             val message = item.jsonObject; val parsed = DeviceFileSourceCommand.parse(message, at)
             assertEquals(message["body"]!!.jsonObject.string("operation"), parsed.operation)

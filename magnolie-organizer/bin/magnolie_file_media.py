@@ -39,15 +39,15 @@ class SourceMediaPage:
 
 
 def parse_media_page(message, *, expected_request_id, expected_version, expected_run_id,
-        expected_after=0, expected_manifest_sha256=None, expected_source_epoch=None, now=None):
+        expected_after=0, expected_manifest_sha256=None, expected_source_epoch=None, expected_operation='media_page', now=None):
     def fail():
         raise TransferError('file_sources_invalid_media_page')
-    if type(expected_after) is not int or not 0 <= expected_after <= 128:
+    if type(expected_after) is not int or not 0 <= expected_after <= 128 or expected_operation not in ('media_page', 'resume_media_page'):
         fail()
     body = _body(message, MEDIA, now_ms() if now is None else now)
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'page'}
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] != 'media_page' or not _hex(body['version']) or body['version'] != expected_version
+            or body['operation'] != expected_operation or not _hex(body['version']) or body['version'] != expected_version
             or not valid_uuid(body['run_id'], version=4) or body['run_id'] != expected_run_id or type(body['page']) is not dict):
         fail()
     page = body['page']

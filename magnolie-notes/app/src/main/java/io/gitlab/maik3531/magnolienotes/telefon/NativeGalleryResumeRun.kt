@@ -14,6 +14,7 @@ internal class NativeGalleryResumeRun internal constructor(internal val selectio
     internal val wireOfferCommand = AtomicReference<NativeGalleryWireOfferAttempt?>()
     internal val acceptance = AtomicReference<NativeResumeAcceptanceProjection?>()
     internal val remoteSaved = AtomicReference<RemoteSavedConfirmation?>()
+    internal val mediaAttempts = NativeGalleryMediaAttempts()
     val cancelRequested: Boolean get() = stopped.get() || preparation.cancelRequested
     internal fun cancel() { stopped.set(true); attempt.get()?.cancel(); preparation.cancel() }
     internal fun source(): NativeGalleryRenewedSource {

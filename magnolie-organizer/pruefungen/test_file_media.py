@@ -48,6 +48,27 @@ def test_exact_page_command_and_complete_media_projection_are_metadata_not_grant
     assert correlate_media_pages((page,),manifest())==page.entries
 
 
+@pytest.mark.parametrize('media', ['images', 'video'])
+def test_resume_media_requires_explicit_operation_and_preserves_original_association(media):
+    command = sources.create_command('resume_media_page', expected_version='a' * 64, run_id=RUN, after=0, now=NOW)
+    assert sources.parse_command(command, now=NOW).operation == 'resume_media_page'
+    value = message(media=media); before = deepcopy(value)
+    value['body']['operation'] = 'resume_media_page'
+    with pytest.raises(TransferError): parse(value)
+    resumed = parse(value, expected_operation='resume_media_page')
+    ordinary = parse(before)
+    assert resumed == ordinary and not resumed.grants_write_authority and not resumed.is_saved_receipt
+    with pytest.raises(TransferError): parse(before, expected_operation='resume_media_page')
+
+
+@pytest.mark.parametrize('key,value', [('after', True), ('after', -1), ('after', 129), ('run_id', None),
+    ('read_granted', True), ('path', '/private'), ('source_epoch', 'b' * 64)])
+def test_resume_media_command_never_supplies_a_native_scope_or_forged_cursor(key, value):
+    command = sources.create_command('resume_media_page', expected_version='a' * 64, run_id=RUN, after=0, now=NOW)
+    command['body'][key] = value
+    with pytest.raises(TransferError): sources.parse_command(command, now=NOW)
+
+
 @pytest.mark.parametrize('key,value',[('after',True),('after','0'),('after',-1),('after',129),
     ('run_id','foreign'),('expected_version','bad'),('read_granted',True),('path','/personal'),('media_kind','animation')])
 def test_media_request_cannot_supply_paths_authority_or_invalid_native_cursor(key,value):

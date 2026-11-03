@@ -15,6 +15,8 @@ internal class NativeGalleryRenewedSource internal constructor(val job: PhotoSou
     private val snapshot: ProtectedPhotoSourceSnapshot, private val original: PhotoSourceRemoteAcceptance) {
     val manifest: DeviceFileManifest get() = snapshot.manifest
     fun readChunk(fileId: String, chunk: Int): ByteArray = snapshot.readChunk(fileId, chunk)
+    fun mediaPage(after: Int, ensureNative: () -> Unit = {}): kotlinx.serialization.json.JsonObject =
+        NativeGalleryMediaProjection.page(snapshot, snapshot.lease, after, ::readChunk, ensureNative)
     val allowsOfferOutput: Boolean get() = false
     internal fun originalAcceptance(): PhotoSourceRemoteAcceptance { snapshot.manifest; return original }
 }

@@ -71,11 +71,11 @@ def parse_command(message, *, now=None):
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
         return SourceCommand(message["message_id"], "status")
-    if body.get('operation') == 'media_page':
+    if body.get('operation') in ('media_page', 'resume_media_page'):
         if (set(body) != base | {'expected_version', 'run_id', 'after'} or not _hex(body['expected_version'])
                 or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
             raise TransferError('file_sources_invalid_command')
-        return SourceCommand(message['message_id'], 'media_page', body['expected_version'], after=body['after'], run_id=body['run_id'])
+        return SourceCommand(message['message_id'], body['operation'], body['expected_version'], after=body['after'], run_id=body['run_id'])
     if body.get('operation') == 'resume_lookup':
         if (set(body) != base | {'expected_version', 'source_id', 'transfer_id', 'manifest_sha256'}
                 or not _hex(body['expected_version']) or not _hex(body['manifest_sha256'])
@@ -142,7 +142,7 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
         raise TransferError('file_sources_invalid_command')
     if operation != 'resume_run' and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
     if operation == 'resume_lookup':
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice, run_id)):
@@ -161,7 +161,7 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
             if any(value is not None for value in (catalog_id, album_id, desktop_choice)):
                 raise TransferError('file_sources_invalid_command')
             body['run_id'] = run_id
-    elif operation == 'media_page':
+    elif operation in ('media_page', 'resume_media_page'):
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, album_id, desktop_choice)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, run_id=run_id, after=after)

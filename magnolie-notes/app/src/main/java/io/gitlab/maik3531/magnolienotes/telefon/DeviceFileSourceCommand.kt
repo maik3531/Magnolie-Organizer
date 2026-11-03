@@ -56,7 +56,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                     catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice,
                     originalJobId = jobId, originalJobVersion = jobVersion)
             }
-            if (operation == "media_page") {
+            if (operation in setOf("media_page", "resume_media_page")) {
                 if (body.keys != base + setOf("expected_version", "run_id", "after")) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
                 val after = (body["after"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()

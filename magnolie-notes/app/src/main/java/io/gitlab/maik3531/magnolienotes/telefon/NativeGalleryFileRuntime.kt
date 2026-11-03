@@ -564,6 +564,30 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 }
                 return@withOperation
             }
+            if (command.operation == "resume_media_page") {
+                val run = resumeRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_resume_run_not_current")
+                val source = resumeSourceOwned(run)
+                fun mediaAuthority() {
+                    run.mediaAttempts.check(command, message, now()); authority()
+                    if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+                }
+                mediaAuthority()
+                val page = source.mediaPage(command.after, ::mediaAuthority)
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
+                    put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version))
+                    put("run_id", JsonPrimitive(run.id)); put("page", page)
+                }
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                val reply = TelefonNachrichten.message(DeviceFileSourceCommand.MEDIA, body, ttl, at)
+                if (TelefonKanonisch.bytes(reply).size > DeviceFileControl.MAX_WIRE_BYTES) DeviceFileControl.fail("gallery_media_page_budget")
+                try { mediaAuthority(); send(reply); mediaAuthority() } catch (error: Exception) {
+                    try { mediaAuthority() } catch (_: Exception) { }
+                    throw error
+                }
+                return@withOperation
+            }
             if (command.operation == "media_page") {
                 val run = syncRun?.takeIf { it.id == command.runId && !it.cancelRequested }
                     ?: DeviceFileControl.fail("gallery_sync_run_not_current")
