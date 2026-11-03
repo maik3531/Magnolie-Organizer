@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Durable Android historical remote-saved evidence (Refs #347, #337)
+
+The actual native `observeRemoteSaved` path now commits a protected historical
+record before publishing its RAM result. Original sealed job identity/hash,
+source context/root, manifest, validated acceptance fields/command digest and
+the original complete saved envelope are bound. The receipt row and aggregate
+membership head commit in one existing SQLite transaction, with sync/readback.
+Same acceptance/result repeats are immutable; changed receipt/context stays HOLD.
+No incoming packet can replace missing source ownership or recreate lost proof.
+
+Fresh index inspection reads historical evidence without source/cache/live media
+access or renewed READ/acceptance grants. It does not report current PC presence,
+baseline convergence, whole-run success or quota retirement. Failed cleanup keeps
+the original proof and retired job/quota; final proven retirement removes the proof
+and job together under the membership transaction. Deleted proof rows do not become
+absence/defaults under an unchanged membership head.
+
+136 distinct source-host cases pass (eight new, 128 affected): metadata-only fresh
+inspection with the source cache temporarily unavailable, actual runtime persistence
+before its RAM result, immutable conflicts, missing proof, typed/context corruption,
+transaction rollback, permission loss during head protection, postcommit sync loss
+with no returned success, and atomic final retirement rollback/retry. This is not
+acceptance persistence before chunk output, restart READ renewal, post-restart
+incoming confirmation handling, baseline/conflict convergence or physical acceptance.
+Those remaining #337 boundaries and all production/UI/automatic/release gates stay
+unfinished/OFF; full consistent private-backup rollback needs monotonic anchoring.
+
 ### Android source membership integrity (Refs #345, #337)
 
 The native source index now requires an authenticated aggregate for new header-v2

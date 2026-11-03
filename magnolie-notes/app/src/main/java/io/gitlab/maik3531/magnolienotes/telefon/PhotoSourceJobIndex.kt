@@ -75,6 +75,9 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
     fun offerMessage(now: Long = System.currentTimeMillis(), messageId: String = UUID.randomUUID().toString()): JsonObject =
         index.withSealedHead(job, scope, lease) { DeviceFileOfferEnvelope.create(snapshot.manifest, now, messageId) }
     fun retireAndDiscard() = index.retireAndClean(job) { snapshot.discard() }
+
+    fun commitRemoteSaved(accepted: DeviceFileRemoteAcceptance, message: JsonObject, permitted: () -> Unit): PhotoSourceRemoteSaved =
+        index.commitRemoteSaved(job, scope, lease, accepted, message, permitted)
 }
 
 /** Dedicated source-job DB only. Never opens/migrates the personal phone DB.
@@ -168,6 +171,46 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
 
     /** Native preflight before enumerating live media, not a READ grant. */
     fun requireMembershipReady(): Unit = gated { writableMembership(); Unit }
+
+    /** Metadata-only historical inspection; never renews a source lease. */
+    fun remoteSaved(expected: PhotoSourceJob): PhotoSourceRemoteSaved? = gated {
+        val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+        if (actual != expected) fail("photo_jobs_cas_conflict")
+        readRemoteSaved(actual)
+    }
+
+    private fun readRemoteSaved(job: PhotoSourceJob): PhotoSourceRemoteSaved? = meta("remote-saved-v1/" + job.id)?.let {
+        PhotoSourceRemoteSaved.parse(parse(protection.open(it, "photo-source-jobs-v1/remote-saved/" + job.id)), job)
+    }
+
+    internal fun commitRemoteSaved(expected: PhotoSourceJob, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
+        accepted: DeviceFileRemoteAcceptance, message: JsonObject, permitted: () -> Unit): PhotoSourceRemoteSaved =
+        withSealedHead(expected, scope, lease) {
+            permitted()
+            if (accepted.permissionEpoch != lease.receiver.permissionEpoch) fail("photo_jobs_remote_saved_authority_changed")
+            val next = PhotoSourceRemoteSaved.capture(expected, accepted, message)
+            val original = readRemoteSaved(expected)
+            if (original != null) {
+                if (original.confirmation.fingerprint != next.confirmation.fingerprint ||
+                    original.record["acceptance"] != next.record["acceptance"]) fail("photo_jobs_remote_saved_changed")
+                permitted()
+                original
+            } else {
+                val cipher = protection.seal(frame(next.record), "photo-source-jobs-v1/remote-saved/" + expected.id)
+                permitted()
+                transaction {
+                    if (readOne(expected.id) != expected || meta("remote-saved-v1/" + expected.id) != null) fail("photo_jobs_cas_conflict")
+                    permitted()
+                    db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "remote-saved-v1/" + expected.id); put("sealed", cipher) })
+                    membership!!.advance()
+                    permitted()
+                }
+                permitted()
+                val result = readRemoteSaved(expected) ?: fail("photo_jobs_remote_saved_readback_failed")
+                if (result.record != next.record) fail("photo_jobs_remote_saved_readback_failed")
+                result
+            }
+        }
 
     /** Dedicated encrypted gallery policy rows in this private source DB, never
      * personal sync settings. Absence is off; corrupt/missing keys never reset.
@@ -362,6 +405,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             if (cleanupAttributes(child) != null) fail("photo_jobs_cleanup_not_proven")
             val current = readOne(retired.id) ?: fail("photo_jobs_missing_job")
             if (current.version != retired.version) fail("photo_jobs_cas_conflict")
+            db.delete("source_meta", "name=?", arrayOf("remote-saved-v1/" + retired.id))
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
             membership!!.advance()
         }

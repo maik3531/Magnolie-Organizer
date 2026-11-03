@@ -38,6 +38,198 @@ class PhotoSourceJobIndexTest {
         override fun close() { directory.deleteRecursively(); original.delete() }
     }
 
+    private fun remoteSaved(source: IndexedPhotoSource): Pair<DeviceFileRemoteAcceptance, JsonObject> {
+        val manifest = source.manifest
+        val now = 1_800_000_000_000L
+        val accepted = DeviceFileRemoteAcceptance(java.util.UUID.randomUUID().toString(), manifest.fingerprint,
+            manifest.transferId, "c".repeat(64), "f".repeat(64), "e".repeat(64), now + 60_000, "d".repeat(64))
+        val message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, kotlinx.serialization.json.buildJsonObject {
+            put("format", JsonPrimitive(1)); put("transfer_id", JsonPrimitive(manifest.transferId)); put("manifest_sha256", JsonPrimitive(manifest.fingerprint))
+            put("acceptance_sha256", JsonPrimitive(accepted.acceptanceSha256)); put("permission_epoch", JsonPrimitive(accepted.permissionEpoch))
+            put("destination_token", JsonPrimitive(accepted.destinationToken)); put("receipts", kotlinx.serialization.json.JsonArray(manifest.files.map {
+                JsonObject(mapOf("file_id" to JsonPrimitive(it.id), "size" to JsonPrimitive(it.size), "sha256" to JsonPrimitive(it.sha256), "receipt_sha256" to JsonPrimitive("0".repeat(64))))
+            }))
+        }, 60_000, now)
+        return accepted to message
+    }
+
+    @Test fun remoteSavedIsDurableHistoricalMetadataWithoutSourceReopenOrQuotaRelease() {
+        Fixture().use { f ->
+            val inventory = f.inventory(); lateinit var job: PhotoSourceJob; lateinit var record: JsonObject
+            f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source)
+                val saved = source.commitRemoteSaved(accepted, message) { }
+                record = saved.record
+                assertEquals(record, source.commitRemoteSaved(accepted, message) { }.record)
+                assertEquals(listOf(job), index.jobs()); assertEquals(record, index.remoteSaved(job)!!.record)
+            }
+            val child = File(f.directory, "photo-source-" + job.id)
+            val held = File(f.directory.parentFile, f.directory.name + "-held-cache")
+            assertTrue(child.renameTo(held))
+            val opened = f.native.provider.opened
+            try { f.open().use { index ->
+                assertEquals(record, index.remoteSaved(index.jobs().single())!!.record)
+                assertEquals(listOf(job), index.jobs())
+            } } finally { assertTrue(held.renameTo(child)) }
+            assertEquals(opened, f.native.provider.opened); assertEquals("hello", f.original.readText())
+            f.open().use { index ->
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireAndClean(job) { } }
+                val retired = index.jobs().single()
+                assertEquals("retired", retired.phase)
+                assertEquals(record, index.remoteSaved(retired)!!.record)
+                index.retireCachedSnapshot(retired)
+                assertTrue(index.jobs().isEmpty())
+            }
+            f.open().use { assertTrue(it.jobs().isEmpty()) }
+        }
+    }
+
+    @Test fun missingRemoteSavedRowCannotBeRecreatedAsAbsentUnderOriginalMembership() {
+        Fixture().use { f ->
+            val inventory = f.inventory()
+            val job = f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source)
+                source.commitRemoteSaved(accepted, message) { }; job
+            }
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                assertEquals(1, it.delete("source_meta", "name=?", arrayOf("remote-saved-v1/" + job.id)))
+            }
+            assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            assertTrue(File(f.directory, "photo-source-" + job.id).isDirectory)
+        }
+    }
+
+    @Test fun changedRemoteReceiptOrAcceptanceCannotOverwriteDurableOriginal() {
+        Fixture().use { f -> f.open().use { index ->
+            val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+            val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+            val (accepted, message) = remoteSaved(source)
+            val original = source.commitRemoteSaved(accepted, message) { }.record
+            val body = message["body"] as JsonObject
+            val changedReceipts = (body["receipts"] as kotlinx.serialization.json.JsonArray).map {
+                JsonObject((it as JsonObject) + ("receipt_sha256" to JsonPrimitive("1".repeat(64))))
+            }
+            val changed = JsonObject(message + ("body" to JsonObject(body + ("receipts" to kotlinx.serialization.json.JsonArray(changedReceipts)))))
+            assertEquals("photo_jobs_remote_saved_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                source.commitRemoteSaved(accepted, changed) { }
+            }.code)
+            assertThrows(PhotoFolderScopeError::class.java) {
+                source.commitRemoteSaved(accepted.copy(commandDigest = "2".repeat(64)), message) { }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                source.commitRemoteSaved(accepted.copy(permissionEpoch = "3".repeat(64)), message) { }
+            }
+            assertEquals(original, index.remoteSaved(job)!!.record); assertEquals(listOf(job), index.jobs())
+        } }
+    }
+
+    @Test fun historicalRemoteSavedCodecRejectsWrongNativeContextAndTypedFields() {
+        Fixture().use { f -> f.open().use { index ->
+            val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+            val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+            val (accepted, message) = remoteSaved(source)
+            val valid = PhotoSourceRemoteSaved.capture(job, accepted, message).record
+            for ((field, value) in listOf("job_id" to JsonPrimitive("e".repeat(32)), "source_job_sha256" to JsonPrimitive("e".repeat(64)),
+                    "source_context" to JsonPrimitive("e".repeat(64)), "root_key" to JsonPrimitive("foreign-original"), "format" to JsonPrimitive(true))) {
+                assertThrows(PhotoFolderScopeError::class.java) { PhotoSourceRemoteSaved.parse(JsonObject(valid + (field to value)), job) }
+            }
+            val acceptance = valid["acceptance"] as JsonObject
+            for ((field, value) in listOf("expires" to JsonPrimitive(true), "command_digest" to JsonPrimitive(false),
+                    "offer_id" to JsonPrimitive("not-native-offer"), "destination_token" to JsonPrimitive("e".repeat(63)))) {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    PhotoSourceRemoteSaved.parse(JsonObject(valid + ("acceptance" to JsonObject(acceptance + (field to value)))), job)
+                }
+            }
+            assertNull(index.remoteSaved(job)); assertEquals(listOf(job), index.jobs())
+        } }
+    }
+
+    @Test fun remoteSavedMembershipProtectionFailureRollsBackBothRowAndHead() {
+        Fixture().use { f ->
+            var interrupt = false
+            f.open { if (interrupt && it == "membership-protect") throw IOException("fixture remote-saved protection loss") }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source)
+                interrupt = true
+                assertThrows(IOException::class.java) { source.commitRemoteSaved(accepted, message) { } }
+                assertNull(index.remoteSaved(job)); assertEquals(listOf(job), index.jobs())
+                interrupt = false
+                assertNotNull(source.commitRemoteSaved(accepted, message) { })
+            }
+        }
+    }
+
+    @Test fun remoteSavedPermissionLossInsideMembershipTransactionCannotPublishHistoricalSuccess() {
+        Fixture().use { f ->
+            var interrupt = false; var permitted = true
+            f.open { if (interrupt && it == "membership-protect") permitted = false }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source)
+                interrupt = true
+                assertThrows(IOException::class.java) { source.commitRemoteSaved(accepted, message) {
+                    if (!permitted) throw IOException("fixture remote saved permission expired")
+                } }
+                assertNull(index.remoteSaved(job)); assertEquals(listOf(job), index.jobs())
+            }
+        }
+    }
+
+    @Test fun remoteSavedPostcommitSyncFailureReturnsNoSuccessButFreshInspectionReadsActualOriginal() {
+        Fixture().use { f ->
+            var interrupt = false; lateinit var job: PhotoSourceJob; lateinit var wanted: JsonObject
+            f.open { if (interrupt && it == "membership-sync") throw IOException("fixture remote saved sync lost") }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source); wanted = PhotoSourceRemoteSaved.capture(job, accepted, message).record
+                interrupt = true
+                assertThrows(IOException::class.java) { source.commitRemoteSaved(accepted, message) { } }
+                assertEquals(wanted, index.remoteSaved(job)!!.record)
+                assertThrows(PhotoFolderScopeError::class.java) { source.commitRemoteSaved(accepted, message) { } }
+                assertEquals(listOf(job), index.jobs())
+            }
+            f.open().use { index -> assertEquals(wanted, index.remoteSaved(job)!!.record); assertEquals(listOf(job), index.jobs()) }
+        }
+    }
+
+    @Test fun failedFinalRetirementTransactionPreservesRemoteSavedAndRetiredJobTogether() {
+        Fixture().use { f ->
+            var interrupt = false
+            f.open { if (interrupt && it == "membership-protect") throw IOException("fixture final retirement head loss") }.use { index ->
+                val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+                val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val (accepted, message) = remoteSaved(source)
+                val original = source.commitRemoteSaved(accepted, message) { }.record
+                assertThrows(IOException::class.java) {
+                    index.retireAndClean(job) {
+                        index.rootFile(job).deleteRecursively() // Only this fixture's authenticated cache.
+                        interrupt = true
+                    }
+                }
+                val retired = index.jobs().single()
+                assertEquals("retired", retired.phase); assertEquals(job.cipherBudget, retired.cipherBudget)
+                assertEquals(original, index.remoteSaved(retired)!!.record)
+                interrupt = false
+                index.retireAndClean(retired) { fail("Cache is already proven absent") }
+                assertTrue(index.jobs().isEmpty())
+            }
+            f.open().use { assertTrue(it.jobs().isEmpty()) }
+        }
+    }
+
     @Test fun lostParentSearchPermissionAfterRetirementCannotProveCacheAbsenceOrReleaseQuota() {
         Fixture().use { f ->
             var interrupt = false

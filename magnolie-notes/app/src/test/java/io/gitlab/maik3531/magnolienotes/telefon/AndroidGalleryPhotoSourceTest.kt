@@ -777,6 +777,12 @@ class AndroidGalleryPhotoSourceTest {
                         assertNull(whole.remoteSaved.get())
                         runtime.observeRemoteSaved(savedMessage,{now})
                         val historical=whole.remoteSaved.get()!!
+                        PhotoSourceJobIndex(root, protection).use { inspected ->
+                            val originalJob = inspected.jobs().single()
+                            assertEquals(started.snapshotJob()!!.id, originalJob.id)
+                            assertEquals(historical.fingerprint, inspected.remoteSaved(originalJob)!!.confirmation.fingerprint)
+                            assertEquals("sealed", originalJob.phase)
+                        }
                         runtime.observeRemoteSaved(savedMessage,{now});assertSame(historical,whole.remoteSaved.get())
                         assertEquals(manifest!!.files.single().id,historical.members.single().fileId)
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.beginSyncRun(selected) }

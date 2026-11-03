@@ -210,7 +210,13 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         authority()
         if (source.manifest.fingerprint != confirmation.manifestSha256 || now() >= confirmation.expires)
             DeviceFileControl.fail("file_saved_authority_changed")
-        run.remoteSaved.set(prior ?: confirmation)
+        val durable = source.commitRemoteSaved(accepted, message) {
+            authority()
+            if (now() >= confirmation.expires) DeviceFileControl.fail("file_saved_authority_changed")
+        }
+        authority()
+        if (now() >= confirmation.expires) DeviceFileControl.fail("file_saved_authority_changed")
+        run.remoteSaved.set(prior ?: durable.confirmation)
         // Do not retire source quota, commit photo baselines or report whole-run
         // success from a remote historical assertion. Those native steps differ.
     }
