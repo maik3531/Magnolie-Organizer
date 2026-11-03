@@ -870,6 +870,20 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun nativeShortResumeOfferExpiresMonotonicallyWhenWallClockStopsBeforeAnyOutput() {
+        withRenewedResumeSource { _, index, source, now ->
+            var elapsed = 1000L; var outputs = 0
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { elapsed }, ttlMs = 1000L)
+            attempt.prepareStorage(index, { now })
+            assertEquals("prepared", index.resumeAttempt(source.job)!!.phase)
+            elapsed = 2000L
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({ outputs++ }, { now }) }
+            elapsed = 1000L
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({ outputs++ }, { now }) }
+            assertEquals(0, outputs); assertEquals("prepared", index.resumeAttempt(source.job)!!.phase)
+        }
+    }
+
     @Test fun renewedPreparationUsesSameWorkerSlotAndPublishesOnlyAfterRealPfdEnd() {
         HistoricalCase().use { h -> h.open().use { index ->
             h.restoreCache(); val inputs = resumeInputs(h)

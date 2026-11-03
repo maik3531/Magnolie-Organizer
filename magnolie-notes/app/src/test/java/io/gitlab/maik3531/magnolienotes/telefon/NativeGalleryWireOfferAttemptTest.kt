@@ -35,4 +35,19 @@ class NativeGalleryWireOfferAttemptTest {
             }
         }
     }
+
+    @Test fun shortOrPartlyElapsedEnvelopeUsesOnlyRemainingMonotonicLifetimeUnderFrozenWall() {
+        for ((wall, expires, ttl) in listOf(Triple(1000L, 2000L, 1000L), Triple(60_500L, 61_000L, 500L))) {
+            val held = NativeGalleryWireOfferAttempt("request", "digest", buildJsonObject { put("expires_ms", expires) }, wall, 100L)
+            held.checkCurrent(wall, 100L + ttl - 1)
+            assertThrows(PhotoFolderScopeError::class.java) { held.checkCurrent(wall, 100L + ttl) }
+            assertThrows(PhotoFolderScopeError::class.java) { held.checkCurrent(wall, 100L + ttl - 1) }
+        }
+    }
+
+    @Test fun negativeOrExhaustedWallOriginCannotMintAnotherRemainingLifetime() {
+        for (wall in listOf(-1L, 61_000L, 61_001L)) assertThrows(PhotoFolderScopeError::class.java) {
+            NativeGalleryWireOfferAttempt("request", "digest", buildJsonObject { put("expires_ms", 61_000L) }, wall, 100L)
+        }
+    }
 }

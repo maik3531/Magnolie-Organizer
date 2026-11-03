@@ -46,4 +46,16 @@ class NativeGalleryMediaAttemptsTest {
         assertThrows(PhotoFolderScopeError::class.java) { check(attempts, message(), now, 228) }
         check(attempts, first, now, 229)
     }
+
+    @Test fun shortOrPartlyElapsedMediaCommandCannotGainSixtySecondsOnFrozenWallRetry() {
+        for ((wall, ttl) in listOf(now to 1000L, now + 59_500L to 500L)) {
+            val attempts = NativeGalleryMediaAttempts()
+            val original = message()
+            val first = if (wall == now) JsonObject(original + ("expires_ms" to JsonPrimitive(now + ttl))) else original
+            check(attempts, first, wall, 100L)
+            check(attempts, first, wall, 100L + ttl - 1)
+            assertThrows(PhotoFolderScopeError::class.java) { check(attempts, first, wall, 100L + ttl) }
+            assertThrows(PhotoFolderScopeError::class.java) { check(attempts, first, wall, 100L + ttl - 1) }
+        }
+    }
 }

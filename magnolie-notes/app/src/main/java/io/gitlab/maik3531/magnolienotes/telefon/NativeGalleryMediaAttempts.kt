@@ -21,7 +21,9 @@ internal class NativeGalleryMediaAttempts {
         val held = attempts[command.requestId] ?: run {
             if (attempts.size >= 128 || elapsed > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS)
                 DeviceFileControl.fail("gallery_media_attempt_limit")
-            Attempt(digest, command.expires, elapsed + DeviceFileControl.MAX_TTL_MS).also { attempts[command.requestId] = it }
+            val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - wall)
+            if (ttl <= 0) DeviceFileControl.fail("gallery_media_attempt_expired")
+            Attempt(digest, command.expires, elapsed + ttl).also { attempts[command.requestId] = it }
         }
         if (held.digest != digest) DeviceFileControl.fail("gallery_media_attempt_changed")
         if (held.invalid || wall >= held.expiresWall || elapsed >= held.expiresElapsed) {

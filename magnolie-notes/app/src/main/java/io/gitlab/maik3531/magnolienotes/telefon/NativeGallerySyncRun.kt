@@ -15,7 +15,9 @@ internal class NativeGalleryWireOfferAttempt(val requestId: String, val commandS
     init {
         if (issuedElapsed < 0 || issuedElapsed > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS)
             DeviceFileControl.fail("gallery_sync_offer_attempt_not_current")
-        expiresElapsed = issuedElapsed + DeviceFileControl.MAX_TTL_MS
+        val expiresWall = message.long("expires_ms")
+        if (initialWall < 0 || expiresWall <= initialWall) DeviceFileControl.fail("gallery_sync_offer_attempt_not_current")
+        expiresElapsed = issuedElapsed + minOf(DeviceFileControl.MAX_TTL_MS, expiresWall - initialWall)
     }
     /** The run monitor serializes this bounded attempt. Even fresh configuration
      * tickets cannot revive an expired offer after an observed clock rollback. */

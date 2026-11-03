@@ -1,5 +1,24 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Exact remaining monotonic negotiation/media TTL (Refs #369, #337)
+
+Three native reproductions confirmed that short or partly elapsed offer/media
+lifetimes retained a full 60-second monotonic window if wall time stopped. This
+included an actual renewed native source with durable prepared head allowing short
+offer output past its intended monotonic expiry. No file-data disclosure or loss
+claim is established by the offer/metadata reproduction.
+
+Resume attempt, wire attempt and media attempt now bind only the first remaining
+message lifetime, capped at the existing maximum. Retries cannot extend that deadline;
+expiry/rollback stays sticky. Negative/exhausted wall origins reject. Original
+acceptance/offer records are not rewritten, and accepted data runs still use fresh
+request lifetimes instead of an expired negotiation message as their authority.
+82 distinct host cases pass (four new, 78 affected), including actual protected
+native output prohibition, short/partly elapsed frozen-wall boundaries, immutable
+retry, default TTLs, wire/media/native source/offer/data/END ownership compatibility.
+Pending-head repair and overall UI/platform/physical acceptance remain unfinished;
+all production/automatic/UI/release gates remain OFF.
+
 ### Explicit stopped resume-source END, not job retirement (Refs #368, #337)
 
 end_resume now releases only the exact stopped native source owner after actual

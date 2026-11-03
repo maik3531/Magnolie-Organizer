@@ -30,7 +30,9 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
     init {
         if (lastElapsed < 0 || lastElapsed > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS)
             DeviceFileControl.fail("gallery_resume_attempt_not_current")
-        deadline = lastElapsed + DeviceFileControl.MAX_TTL_MS
+        val ttl = minOf(DeviceFileControl.MAX_TTL_MS, offer.long("expires_ms") - issuedWall)
+        if (ttl <= 0) DeviceFileControl.fail("gallery_resume_attempt_not_current")
+        deadline = lastElapsed + ttl
     }
 
     fun cancel() { canceled.set(true) } // Never waits behind an actual output.
