@@ -35,6 +35,33 @@ Ohne `-PmagnolieFdroid=true` bleibt der bestehende offizielle Signierweg
 erhalten. Der offizielle Releaseprüfer kontrolliert zusätzlich das
 Produktionszertifikat und die Update-Kompatibilität.
 
+## Paketbeschreibung und optionale Telefonfunktionen
+
+Die Fastlane-Paketbeschreibungen liegen unter
+[`../fastlane/metadata/android/de-DE/`](../fastlane/metadata/android/de-DE/)
+und [`../fastlane/metadata/android/en-US/`](../fastlane/metadata/android/en-US/).
+Sie beschreiben neben lokalen Notizen und Aufgaben ausdrücklich die optionale
+**Magnolie Notes-Telefonverbindung** zum eigenen Organizer. Diese Verbindung
+benötigt weder KDE Connect noch einen eingeschalteten Notizabgleich.
+KDE-Connect-Funktionen verwenden eine andere Android-App und bleiben getrennt.
+
+Die Langtexte erläutern die optionalen Netzwerk-, Bluetooth-, Telefon-, Kontakt-,
+Benachrichtigungs- und Standortzugriffe mit ihrem jeweiligen Zweck. Die vorbereiteten
+Bild-Leseberechtigungen `READ_EXTERNAL_STORAGE` (bis API 32),
+`READ_MEDIA_IMAGES` und `READ_MEDIA_VISUAL_USER_SELECTED` gehören zum getrennten
+Fotoquellenpfad. Sie werden nicht beim Start des Notizbuchs angefordert; die
+vollständige Fotosynchronisation ist noch nicht freigeschaltet. Ein Fotozugriff
+setzt die gesonderte eigene Organizer-Freigabe und eine aktuelle Android-Lesefreigabe
+voraus, nicht bloß Kopplung oder Kontaktzugriff. Kamera-/Mikrofonaufnahme und
+Bildschirmspiegelung werden nicht als bereits verfügbare APK-Funktionen beworben.
+
+Vor jeder Einreichung müssen Beschreibung, Quellmanifest, tatsächlich gebaute APK,
+aktivierte Funktionspfade und Berechtigungsabfragen zusammenpassen. Hinzugefügte
+oder aktivierte Funktionen benötigen gleichzeitig eine passende Beschreibung und
+native Abnahme; ein Beschreibungstext allein ersetzt weder F-Droids Prüfung noch
+einen Scanner- oder Reproduzierbarkeitsnachweis. Hierdurch wird keine neue APK
+gebaut, eingereicht oder veröffentlicht.
+
 ## Signaturen und bestehende Installationen
 
 Android akzeptiert ein Update unter derselben Anwendungskennung nur mit einer

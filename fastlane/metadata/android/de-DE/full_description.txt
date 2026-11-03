@@ -1,25 +1,27 @@
-Magnolie Notes ist ein lokales Notizbuch mit Aufgabenliste für Android. Notizen lassen sich in Notizbüchern ordnen, mit Bildern oder PDF-Dateien ergänzen und aus anderen Apps übernehmen.
+Magnolie Notes ist ein lokales Notizbuch mit Aufgabenliste für Android. Notizen lassen sich ordnen, mit Bildern oder PDF-Dateien ergänzen und aus anderen Apps übernehmen.
 
 Funktionen:
-* Notizen mit Erstellungs- und Änderungsdatum, Notizbüchern und Anhängen.
+* Notizbücher, Anhänge sowie Erstellungs- und Änderungsdatum.
 * Aufgaben mit Fälligkeit, Dringlichkeit und optionalen Erinnerungen.
-* Optionale Zeiterfassung mit festen und manuellen Pausen, Weckern, verschlüsseltem Verlauf und Monatsdruck. Zeitabgleich mit dem eigenen Organizer nach Freigabe auf beiden Geräten; lokale Notes-Entfernungen löschen keine Organizer-Einträge. Region und Feiertage werden vom Organizer übernommen.
-* Übernahme geteilter Texte und unterstützter Notizexporte.
-* Lokal verschlüsselte Speicherung und selbst verwaltete Sicherungen.
-* Optionaler verschlüsselter Austausch mit gekoppelten Magnolie-Organizer-Installationen unter Linux und Windows.
+* Optionale Zeiterfassung mit festen/manuellen Pausen, Weckern, verschlüsseltem Verlauf und Monatsdruck. Abgleich mit dem eigenen Organizer nach beidseitiger Freigabe; lokale Notes-Entfernungen löschen dort keine Einträge. Region und Feiertage kommen vom Organizer.
+* Import geteilter Texte und unterstützter Notizexporte; lokal verschlüsselte Speicherung und eigene Sicherungen.
+* Optionaler verschlüsselter Austausch mit Magnolie Organizer unter Linux und Windows.
 * Zwanzig Oberflächensprachen.
 
-Das Notizbuch benötigt weder ein Konto noch einen Cloud-Dienst. Magnolie Organizer ist eine separate, freie Desktop-Anwendung.
+Lokale Notizen benötigen weder Konto noch Cloud-Dienst. Magnolie Organizer ist eine separate, freie Desktop-Anwendung.
+
+Notes dient optional als Telefon-Gegenstelle des Organizers, unabhängig vom Notizabgleich und ohne KDE Connect. Notes-abhängige Zusatzfunktionen gehören dort unter „Magnolie Notes-Telefonverbindung → Erweiterte Funktionen“. KDE-Connect-Funktionen verwenden dagegen die separate KDE Connect-App. Beide Verbindungen sind unabhängig und für lokale Notizen nicht nötig.
 
 Optionale Verbindungen und Berechtigungen:
-* Organizer- und Magnolienbaum-Geräte im lokalen Netz über UDP-Broadcast und Android-Diensterkennung (NSD/mDNS) finden. Die Suche kündigt Verbindungsdaten an und erlaubt anderen Geräten noch keinen Zugriff auf Notizen. Eine Kopplung muss bestätigt werden.
-* Ausgewählte Notizen und Aufgaben über verschlüsselte Verbindungen mit gekoppelten Geräten teilen und abgleichen. Bluetooth/RFCOMM lässt sich bei entsprechender System- und Geräteunterstützung als Datenrückfallweg einschalten; automatischer Personal Sync bleibt auf WLAN beschränkt.
-* Einem gekoppelten Desktop erlauben, ausgehende Anrufe auf diesem Telefon anzufordern, Informationen über eingehende Anrufe anzuzeigen sowie Annehmen oder Beenden eines Gesprächs anzufordern. Android-Berechtigungen und Systemgrenzen gelten weiterhin. Dafür können Telefonstatus, Telefonnummernzugriff und – soweit Android dies für die Anruferkennung verlangt – Zugriff auf die Anrufliste erforderlich sein.
-* Android-Kontakte und vorhandene Fotos lesen, geprüfte Kontaktkarten importieren oder Kontakte mit einem freigegebenen Zweig abgleichen. Das Schreiben von Kontakten benötigt eine eigene Android-Berechtigung. Der reine Desktop-Lesezugriff verändert keine Telefonkontakte.
-* Optional Titel und Text der Benachrichtigungen selbst ausgewählter Apps an den gekoppelten Desktop weitergeben. Dazu müssen Magnolie Notes in Androids Benachrichtigungszugriff und die gewünschten Apps freigegeben werden. Das gewährt keinen allgemeinen Zugriff auf private Daten dieser Apps.
-* Optionaler Zeiterfassungsstart bei sichtbarer gewählter WLAN-SSID, ohne Verbindung oder Anmeldung. Android benötigt dafür genauen Standortzugriff und aktivierte Standortdienste. Notes liest WLAN-Beobachtungen, keine GPS-Koordinaten. Eine dauerhafte Benachrichtigung zeigt die Bereitschaft; Android kann Suchläufe verzögern. Nach einem Geräteneustart die App zur erneuten Aktivierung öffnen.
-* Ein freigegebener eigener Desktop kann bei eingeschalteter Zeiterfassung lokale Timer lesen, starten, pausieren, fortsetzen oder beenden. Entwickleroptionen erlauben getrennt maskierte technische Verbindungs- und Absturzdiagnosen über die bestätigte eigene WLAN-Verbindung.
+* Netzsuche über UDP-Broadcast und Android-Diensterkennung (NSD/mDNS) kündigt Verbindungsdaten an, gewährt aber keinen Notizzugriff. Kopplungen müssen bestätigt werden.
+* Ausgewählte Notizen/Aufgaben verschlüsselt teilen und abgleichen. Bluetooth/RFCOMM ist bei System-/Geräteunterstützung als Datenrückfallweg zuschaltbar; automatischer Personal Sync bleibt WLAN-beschränkt.
+* Der gekoppelte Desktop kann Anrufe anfordern, eingehende Anrufinformationen anzeigen sowie Annehmen/Beenden anfordern. Android-Berechtigungen und Systemgrenzen gelten: Telefonstatus, Telefonnummernzugriff und bei entsprechender Android-Anruferkennung auch Anruflistenzugriff.
+* Android-Kontakte und Kontaktfotos lesen, geprüfte Kontaktkarten importieren oder Kontakte mit einem freigegebenen Zweig abgleichen. Schreiben braucht eine eigene Berechtigung; reiner Desktop-Lesezugriff verändert keine Telefonkontakte.
+* Fotoquellenpfad in Entwicklung, noch nicht freigeschaltet: Vorbereitete Bild-Leseberechtigungen werden nicht beim App-Start angefordert. Vorgesehen sind eine ausdrückliche eigene Organizer-Freigabe und Android-Fotofreigabe für ausgewählte Bilder oder die erlaubte Bildsammlung, je nach Android-Version; kein allgemeiner Schreib-/Löschzugriff. Vollständiger Fotoabgleich ist noch keine verfügbare Funktion.
+* Titel und Text selbst gewählter App-Benachrichtigungen weitergeben: eigener Android-Benachrichtigungszugriff und App-Auswahl, kein allgemeiner Zugriff auf private App-Daten.
+* Zeiterfassungsstart bei sichtbarer gewählter WLAN-SSID ohne Verbindung/Anmeldung: Android verlangt genauen Standortzugriff und aktive Standortdienste. Notes liest WLAN-Beobachtungen, keine GPS-Koordinaten. Eine dauerhafte Benachrichtigung zeigt die Bereitschaft; Android kann Scans verzögern. Nach Neustart die App erneut öffnen.
+* Eigene freigegebene Desktops können bei aktiver Zeiterfassung Timer lesen/starten/pausieren/fortsetzen/beenden. Entwickleroptionen erlauben getrennt maskierte Verbindungs-/Absturzdiagnosen über bestätigtes eigenes WLAN.
 
-Diese Integrationen werden durch Kopplung, Funktionsauswahl und die jeweiligen Android-Berechtigungs- oder Zugriffsabfragen freigegeben. Für lokale Notizen sind sie nicht erforderlich. Funktionen und Berechtigungen lassen sich abschalten oder Kopplungen entfernen. Bluetooth-Datenübertragung ist von einer systemverwalteten Freisprech-Audioverbindung getrennt. Magnolie Notes bietet keinen eigenen SMS- oder RCS-Nachrichtendienst.
+Alle Integrationen sind optional: Kopplung, Funktionsauswahl und Android-Abfragen erteilen getrennte Freigaben. Funktionen/Berechtigungen lassen sich abschalten und Kopplungen entfernen. Bluetooth-Daten sind von systemverwaltetem Freisprech-Audio getrennt. Notes bietet keinen eigenen SMS-/RCS-Dienst.
 
-Versionshinweis: Beim Öffnen der Über-Seite fragt Notes öffentliche GitHub-Veröffentlichungsinfos ab. Der Vergleich bleibt lokal, ohne Notizinhalte oder Kontozugangsdaten zu senden. Ein Link öffnet den Browser; Notes lädt oder installiert selbst keine APK-Updates.
+Versionshinweis: Die Über-Seite fragt öffentliche GitHub-Veröffentlichungsinfos ab; der Vergleich bleibt lokal, ohne Notizinhalte oder Kontozugangsdaten zu senden. Ein Link öffnet den Browser; Notes lädt/installiert keine APK-Updates selbst.

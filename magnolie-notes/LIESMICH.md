@@ -3,6 +3,19 @@
 Der öffentliche Releasebau für F-Droid benötigt keinen privaten Signierschlüssel:
 [`F-DROID.md`](F-DROID.md) beschreibt Bauparameter, Voraussetzungen und Signaturen.
 
+## Optionale Telefon-Gegenstelle zum Organizer
+
+Magnolie Notes ist zusätzlich die Android-Gegenstelle für die eigene verschlüsselte
+**Magnolie Notes-Telefonverbindung**. Diese kann unabhängig vom Notizabgleich
+und ohne KDE Connect verwendet werden. KDE Connect benutzt seine eigene App und
+ist eine getrennte Verbindung. Notes-abhängige Zusatzfunktionen gehören im
+Organizer unter **Magnolie Notes-Telefonverbindung → Erweiterte Funktionen**.
+
+Die Paketbeschreibungen für F-Droid nennen diese Rolle und die optionalen Zugriffe.
+Der vollständige Fotoabgleich sowie Webcam/Mikrofon und Bildschirmspiegelung sind
+noch keine freigegebenen APK-Funktionen. Vorbereitung im Quellcode oder im Manifest
+ist keine Veröffentlichungsabnahme; siehe [F-DROID.md](F-DROID.md).
+
 ## Entwicklungsstand 1.0.14
 
 Die App-Version ist jetzt **1.0.14**, der Android-Versionscode **14**. Der

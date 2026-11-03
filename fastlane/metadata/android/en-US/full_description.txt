@@ -1,25 +1,27 @@
-Magnolie Notes is a local notebook and task list for Android. Organize notes in notebooks, attach images or PDF files, and import text shared by other apps.
+Magnolie Notes is a local notebook and task list for Android. Organize notes, attach images or PDF files, and import text shared by other apps.
 
 Features:
-* Notes with creation and modification dates, notebooks and attachments.
+* Notebooks, attachments, creation and modification dates.
 * Tasks with due dates, priorities and optional reminders.
-* Optional time tracking with scheduled and manual pauses, alarms, encrypted history and monthly printing. Synchronize time records with your own Organizer after both devices opt in; local Notes removals do not delete Organizer records. Region and holidays are inherited from Organizer.
-* Import shared text and supported exported note files.
-* Local encrypted storage and user-controlled backups.
-* Optional encrypted sharing with paired Magnolie Organizer installations on Linux and Windows.
+* Optional time tracking with scheduled/manual pauses, alarms, encrypted history and monthly printing. Synchronize with your own Organizer after both devices opt in; local Notes removals do not delete Organizer records. Region and holidays come from Organizer.
+* Import shared text and supported note exports; local encrypted storage and user-controlled backups.
+* Optional encrypted sharing with Magnolie Organizer on Linux and Windows.
 * Twenty interface languages.
 
-No account or cloud service is required to use the notebook. Magnolie Organizer is a separate, free desktop application.
+Local notes need no account or cloud service. Magnolie Organizer is a separate, free desktop application.
+
+Notes optionally acts as Organizer's phone counterpart, independently of note synchronization and without KDE Connect. Notes-dependent additional functions belong under “Magnolie Notes phone connection → Advanced functions” in Organizer. KDE Connect functions use the separate KDE Connect app instead. Both connections are independent and unnecessary for local notes.
 
 Optional connections and permissions:
-* Discover Organizer or Magnolienbaum devices on the local network using UDP broadcast and Android network service discovery (NSD/mDNS). Discovery announces connection details; it does not authorize another device to read your notes. Pairing requires confirmation.
-* Share and synchronize selected notes and tasks with paired devices over encrypted connections. Bluetooth/RFCOMM can be enabled as a data fallback when the operating system and the paired devices support it; automatic Personal Sync remains Wi-Fi-only.
-* Allow a paired desktop to request outgoing calls on this phone, show incoming-call information, and request answering or ending a call. These actions depend on Android permissions and system restrictions. Call-related permissions include phone state, phone-number access and, where Android requires it for caller identification, call-log access.
-* Read Android contacts and their available photos, import reviewed contact cards, or synchronize contacts with a permitted branch. Contact writing needs its own Android permission. Read-only desktop access does not write phone contacts.
-* Optionally mirror the titles and text of notifications from apps you choose to the paired desktop. This requires enabling Magnolie Notes in Android’s notification-access settings and selecting the apps to share; it does not grant unrestricted access to those apps’ private data.
-* Optional time-tracking autostart can detect a selected visible Wi-Fi SSID without connecting or logging in. Android requires precise location permission and location services for these scans. Notes reads Wi-Fi observations, not GPS coordinates. An ongoing notification shows monitoring; Android may delay scans. Open the app after a device restart to resume monitoring.
-* A permitted own desktop can read, start, pause, resume or end local timers when time tracking is enabled. Developer options can separately allow redacted technical connection and crash diagnostics over the confirmed own Wi-Fi link.
+* Local discovery uses UDP broadcast and Android network service discovery (NSD/mDNS). It announces connection details, not permission to read notes. Pairing requires confirmation.
+* Share/synchronize selected notes and tasks over encrypted links. Bluetooth/RFCOMM is an optional data fallback where the system/devices support it; automatic Personal Sync remains Wi-Fi-only.
+* A paired desktop can request outgoing calls, show incoming-call information, and request answering/ending calls. Android permissions and system limits still apply: phone state, phone-number access and, where Android requires it for caller identification, call-log access.
+* Read Android contacts/contact photos, import reviewed cards, or synchronize contacts with a permitted branch. Writing needs separate permission; read-only desktop access does not change phone contacts.
+* Photo-source path in development, not yet enabled: prepared image-read permissions are not requested at startup. Intended access needs explicit own-Organizer consent plus Android photo permission for selected images or the permitted image collection, depending on Android version; no general write/delete access. Complete photo synchronization is not yet an available feature.
+* Share titles/text of notifications from chosen apps: separate Android notification access and app selection, not general access to private app data.
+* Time-tracking autostart at a selected visible Wi-Fi SSID, without connecting/logging in: Android needs precise location permission and enabled location services. Notes reads Wi-Fi observations, not GPS coordinates. An ongoing notification shows monitoring; Android may delay scans. Reopen the app after restart.
+* A permitted own desktop can read/start/pause/resume/end enabled local timers. Developer options separately allow redacted connection/crash diagnostics over the confirmed own Wi-Fi link.
 
-These integrations are opt-in through pairing, feature choices and the relevant Android permission or access prompts. They are not required for local note-taking. You can disable a feature, revoke its permission or remove a paired device. Bluetooth data transport is separate from any system-managed hands-free call-audio connection. Magnolie Notes does not provide native SMS or RCS messaging.
+All integrations are optional: pairing, feature selection and Android prompts provide separate approvals. Disable functions/permissions or remove pairings at any time. Bluetooth data is separate from system-managed hands-free audio. Notes provides no native SMS/RCS service.
 
-Version information: Opening the About page requests public release information from GitHub and compares the published Notes version locally. No note content or account credentials are sent. A release link opens your browser; Notes does not download or install APK updates itself.
+Version information: About requests public release information from GitHub and compares it locally, without sending note content or account credentials. A link opens the browser; Notes does not download/install APK updates itself.

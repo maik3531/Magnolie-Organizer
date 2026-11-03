@@ -1022,6 +1022,17 @@ All 38 desktop PO catalogs preserve previous translations and add exactly the tw
 new hints; the existing Linux PO/POT/JS/MO gates and Windows localization-completeness
 gate pass. These are not installed GUI or native profile acceptance.
 
+The German/English Notes Fastlane short and full package descriptions also state
+its optional phone-counterpart role, independent of note synchronization and KDE
+Connect. Existing optional access purposes and GitHub version-check privacy are
+retained. Prepared image-read access is explicitly development-only/not enabled,
+not advertised as working full photo synchronization. Notes' F-Droid/readme docs
+require metadata, manifest, actual APK and enabled feature paths to agree before
+submission; no camera/microphone or mirroring availability is claimed. Six source
+metadata checks pass, including 80/4000-character limits and existing image-only
+manifest scope. This is no F-Droid approval/scanner, APK build, signing or submission
+evidence, and no Android permission was added or enabled by the text changes.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
