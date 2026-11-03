@@ -43,6 +43,7 @@ def test_native_attachment_is_inert_no_preferences_or_send_and_no_second_owner(a
     channel.send.assert_not_called()
     assert connection.read_preferences().policy is None
     assert not list(Path(service.store.root).glob('photo-preferences-v1-*'))
+    assert not list(Path(service.store.root).glob('photo-mappings-v1-*'))
     with pytest.raises(ValueError, match='busy'):
         service.open_native_file_connection(peer['device_id'], peer['static_public'], channel, binding.generation)
     assert not connection._authority.protection._closed
@@ -111,6 +112,7 @@ def test_transport_replacement_revokes_and_cannot_reuse_old_native_controller(at
     replacement, _ = bind(service, peer)
     assert channel not in service._native_file_connections and connection._closed.is_set()
     assert connection._authority.protection._closed
+    assert connection._mappings._closed.is_set()
     with pytest.raises(TransferError): connection.send_controls()
     assert service.current_native_file_identity(peer['device_id'], peer['static_public'], channel, binding.generation) is None
     service._end_native_file_connection(replacement)

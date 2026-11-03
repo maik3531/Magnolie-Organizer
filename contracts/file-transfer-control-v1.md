@@ -1410,7 +1410,24 @@ normalizing old ownership, lost post-commit sync recovery, capacity without part
 rows and descriptor ownership through actual blocked I/O end. This is Linux
 source-host evidence, not installed GUI/power-loss/Windows receiver acceptance.
 
-Coordinator pre-admission lookup/post-save commit is still unjoined. Before release,
+The coordinator now performs passive historical lookup before both fresh native
+admission and explicit reservation resume. Known source associations require
+reconciliation/HOLD before target capture or a new catalog reservation, including
+when the original local file was edited, replaced or deleted. A populated mapping
+store cannot be bypassed with an offer lacking correlated media pages; previous
+pairing ownership requires explicit reassociation. Bounded lookups must observe
+the same protected store snapshot. No target file is read, moved or recreated by
+this admission check.
+
+Admission evidence: 71 affected coordinator/media/source/receiver cases and 45
+mapping-store/control-owner cases passed. The ten new admission cases cover
+original/edited/deleted/replaced local files for both accept and resume, corrupt
+historical rows preserved, and missing-media bypass rejection. Native construction
+remains inert and transport replacement closes the mapping owner before protection
+release. These source-host cases do not establish physical phone acceptance.
+
+Post-save commit is still unjoined. This pre-admission check alone is not the
+complete concurrent publication/recovery union. Before release,
 missing mapping metadata after restart must not be mistaken for first use: protected
 expected-store witnesses and per-job media/history recovery anchors are still needed.
 Whole consistent private-backup rollback without a trusted external monotonic

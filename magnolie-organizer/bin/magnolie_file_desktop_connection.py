@@ -23,6 +23,7 @@ from magnolie_file_chunk_message import RESULT as CHUNK
 from magnolie_file_receive import NativeFileReceiveOperation, NativeReceiveStartError
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
 from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation
 from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction
 from magnolie_telefon import now_ms, canonical, strict_json
 
@@ -57,6 +58,7 @@ class NativeDesktopFileConnection:
         self._source_media_pages = ()
         self._source_media_entries = None
         self._preferences = ProtectedPhotoPreferences(authority)
+        self._mappings = ProtectedPhotoMappings(authority)
         self._destination = NativePhotoDestinationController(authority)
         try:
             self._controls = NativeFileControlSession(authority.identity, self._peer, self._local)
@@ -408,6 +410,32 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_offer_not_confirmed')
             self._correlate_source_offer(self._source_offer, clock)
 
+    def _require_unmapped_media(self):
+        """Historical association wins over current target settings.
+
+        This only fences new admission. It neither proves first use after lost
+        restart metadata nor implements reconciliation or mapping recovery.
+        """
+        before, _ = self._mappings.lookup(())
+        if before.revision and not before.associated:
+            raise TransferError('file_desktop_photo_mapping_reassociation_required')
+        if not self._source_media_pages:
+            if before.count:
+                raise TransferError('file_desktop_photo_mapping_media_required')
+            return
+        page = self._source_media_pages[0]
+        entries = self._source_media_entries
+        if entries is None:
+            raise TransferError('file_desktop_source_media_not_correlated')
+        for offset in range(0, len(entries), 128):
+            associations = tuple(PhotoMappingAssociation(page.source_epoch, entry.photo_id, page.media_type)
+                                 for entry in entries[offset:offset+128])
+            current, records = self._mappings.lookup(associations)
+            if current != before:
+                raise TransferError('file_desktop_photo_mapping_changed')
+            if any(record is not None for record in records):
+                raise TransferError('file_desktop_photo_mapping_requires_reconcile')
+
     def _open_catalog(self, *, allow_create=True):
         if self._catalog is None:
             parent = Path(self._authority.binding.native_directory)
@@ -472,6 +500,7 @@ class NativeDesktopFileConnection:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
+            self._require_unmapped_media()
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -524,6 +553,7 @@ class NativeDesktopFileConnection:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
+            self._require_unmapped_media()
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -648,7 +678,7 @@ class NativeDesktopFileConnection:
                 except Exception as error:
                     failure = error
             receiver = self._run.receiver if self._run is not None else None
-            for resource in (receiver, self._catalog, self._destination, self._preferences, self._controls, self._authority):
+            for resource in (receiver, self._catalog, self._destination, self._mappings, self._preferences, self._controls, self._authority):
                 if resource is not None:
                     try:
                         resource.close()
