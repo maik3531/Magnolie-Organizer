@@ -1201,6 +1201,18 @@ build with zero warnings/errors. These are not a visible supported video switch,
 Android video permission/provider, physical video transfer or native Windows
 chooser/receiver acceptance. Those concrete #335 integration steps remain open.
 
+The user's following clarification (#336) keeps animations such as GIF in the
+photo domain, not the video destination, with an optional animations subfolder
+beneath the chosen photo root. Existing files must not be silently moved/renamed.
+The German/English Notes package descriptions now explicitly label video sync and
+the animations subfolder as development-only, not available features. The F-Droid
+documentation requires independent purpose/manifest/actual permission-path/native
+checks before enabling video reads; existing image permissions do not become video
+consent. Six source metadata checks pass with the unchanged package text limits.
+No permission, APK, submission, scanner or F-Droid acceptance is implied by this
+text correction; native animation routing and supported video activation remain
+unimplemented behind the existing closed production gates.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

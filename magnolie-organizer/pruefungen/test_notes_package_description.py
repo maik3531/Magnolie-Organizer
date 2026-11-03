@@ -21,12 +21,14 @@ def test_store_descriptions_fit_limits_and_name_the_optional_phone_role(locale):
         assert 'unabhängig vom Notizabgleich und ohne KDE Connect' in full
         assert 'Magnolie Notes-Telefonverbindung → Erweiterte Funktionen' in full
         assert 'noch nicht freigeschaltet' in full and 'noch keine verfügbare Funktion' in full
+        assert 'Animationen bleiben Fotos' in full and 'Videoabgleich/Animationsordner sind in Entwicklung' in full
         assert 'ohne Notizinhalte oder Kontozugangsdaten zu senden' in full
         assert 'keine APK-Updates selbst' in full
     else:
         assert 'independently of note synchronization and without KDE Connect' in full
         assert 'Magnolie Notes phone connection → Advanced functions' in full
         assert 'not yet enabled' in full and 'not yet an available feature' in full
+        assert 'Animations remain photos' in full and 'animations subfolder are still in development' in full
         assert 'without sending note content or account credentials' in full
         assert 'does not download/install APK updates itself' in full
 

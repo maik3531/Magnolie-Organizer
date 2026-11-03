@@ -55,6 +55,15 @@ setzt die gesonderte eigene Organizer-Freigabe und eine aktuelle Android-Lesefre
 voraus, nicht bloß Kopplung oder Kontaktzugriff. Kamera-/Mikrofonaufnahme und
 Bildschirmspiegelung werden nicht als bereits verfügbare APK-Funktionen beworben.
 
+Neu vorgesehen, aber nicht freigegeben, sind ein eigener standardmäßig
+ausgeschalteter Videoabgleich und ein optionaler Foto-Unterordner für Animationen.
+Animationen wie GIF bleiben dem Bild-/Fotobereich zugeordnet, nicht dem Videoziel.
+Video-Lesezugriff darf nicht aus Bild-Leserechten abgeleitet werden. Die momentan
+deklarierten Bildrechte und die unten beschriebenen Paketprüfungen werden dadurch
+nicht zu einer Videofreigabe. Bevor ein Video-Berechtigungspfad oder eine neue
+Berechtigung freigeschaltet wird, müssen sein eigener Zweck und die tatsächliche
+Abfrage gleichzeitig in Manifest, Pakettext und nativer Abnahme nachgewiesen sein.
+
 Vor jeder Einreichung müssen Beschreibung, Quellmanifest, tatsächlich gebaute APK,
 aktivierte Funktionspfade und Berechtigungsabfragen zusammenpassen. Hinzugefügte
 oder aktivierte Funktionen benötigen gleichzeitig eine passende Beschreibung und
