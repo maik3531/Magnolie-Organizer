@@ -1,5 +1,19 @@
 # Magnolie Notes
 
+# Native file/Gallery components belong to every Notes APK, including F-Droid.
+# Desktop build composition and branding keys must never strip this runtime.
+# Keep its native entrypoints even while production acceptance is still closed;
+# this does not advertise readiness or grant Android/media permissions.
+-keep class io.gitlab.maik3531.magnolienotes.telefon.NativeGallery** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.NativeFile** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.DeviceFile** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.DeviceTransferProtection** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.AndroidGallery** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.GalleryPhoto** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.PhotoSource** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.PhotoFolder** { *; }
+-keep class io.gitlab.maik3531.magnolienotes.telefon.ProtectedPhoto** { *; }
+
 # kotlinx.serialization braucht die generierten Serializer.
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**

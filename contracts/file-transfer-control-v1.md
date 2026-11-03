@@ -25,6 +25,15 @@ thread ownership. These checks compile actual Notes sources; they are not an
 installed APK, physical Android permission-dialog or phone/desktop acceptance.
 Organizer production activation/UI and safe changed-phone versions remain open.
 
+Notes' R8 rules now explicitly retain the native file/Gallery entrypoints and
+their implementation, including in the unsigned F-Droid configuration. This
+prevents currently closed production branches from stripping the required phone
+components. The actual F-Droid minifyReleaseWithR8 task succeeds without a
+signing-key environment or ContributorKey. Inspection of the resulting DEX finds
+all 18 checked native entry classes and 168 native file/Gallery class definitions.
+This is actual minified-code inclusion evidence, not APK packaging, installation,
+runtime readiness, media consent or physical-phone acceptance.
+
 ### Native worker activity and book tray (Refs #330)
 
 The actual native connection now always observes its album worker independently

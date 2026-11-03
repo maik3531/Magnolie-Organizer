@@ -123,6 +123,10 @@ def test_desktop_packaging_is_selected_before_import_audit_and_never_applies_to_
         gradle = notes.read_text()
         assert 'MAGNOLIE_PHONE_FEATURES' not in gradle and 'phone_features.py' not in gradle
         assert 'contributorHash' not in gradle
+        rules = (notes.parent / 'proguard-rules.pro').read_text()
+        for prefix in ('NativeGallery', 'NativeFile', 'DeviceFile', 'DeviceTransferProtection',
+                       'AndroidGallery', 'GalleryPhoto', 'PhotoSource', 'PhotoFolder', 'ProtectedPhoto'):
+            assert '-keep class io.gitlab.maik3531.magnolienotes.telefon.' + prefix + '** { *; }' in rules
     else:
         # A standalone desktop source archive has no Notes sibling to modify.
         assert stage.__globals__['ROOT'] == ROOT and ROOT.name != 'magnolie-notes'
