@@ -12,6 +12,10 @@ import java.io.IOException
 import java.nio.file.Files
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -32,6 +36,252 @@ class PhotoSourceJobIndexTest {
         fun freeze(index: PhotoSourceJobIndex, job: PhotoSourceJob, inventory: PhotoFolderInventory) = ProtectedPhotoSourceSnapshot.freeze(
             index.rootFile(job), inventory, "sender_fixture_01", native.scope, reader, protection)
         override fun close() { directory.deleteRecursively(); original.delete() }
+    }
+
+    @Test fun copiedDatabaseCannotBecomeOriginalAtFreshRootOrReplacementDatabaseInode() {
+        for (relocated in listOf(false, true)) Fixture().use { f ->
+            val job = f.open().use { it.reserve(f.inventory(), f.native.scope) }
+            val database = File(f.directory, "photo-source-jobs.db")
+            val originalBytes = database.readBytes()
+            if (relocated) {
+                val other = Files.createTempDirectory(File("/tmp/opencode").toPath(), "photo-membership345-copy-").toFile()
+                try {
+                    database.copyTo(File(other, database.name))
+                    Files.setPosixFilePermissions(File(other, database.name).toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+                    assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                        PhotoSourceJobIndex(other, f.protection).close()
+                    }.code)
+                    assertArrayEquals(originalBytes, database.readBytes())
+                } finally { other.deleteRecursively() }
+            } else {
+                val held = File(f.directory, "held-original-database")
+                assertTrue(database.renameTo(held))
+                try {
+                    held.copyTo(database)
+                    Files.setPosixFilePermissions(database.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+                    assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+                    assertArrayEquals(originalBytes, held.readBytes())
+                } finally {
+                    assertTrue(database.delete()); assertTrue(held.renameTo(database))
+                }
+            }
+            f.open().use { assertEquals(listOf(job), it.jobs()) }
+            assertTrue(File(f.directory, "photo-source-" + job.id).isDirectory)
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun missingReservedMemberAfterFreshOpenIsNotAnEmptyIndexOrReleasedQuota() {
+        Fixture().use { f ->
+            val job = f.open().use { it.reserve(f.inventory(), f.native.scope) }
+            val original = File(f.directory, "photo-source-" + job.id)
+            val held = File(f.directory.parentFile, f.directory.name + "-held-original-" + job.id)
+            assertTrue(original.renameTo(held))
+            try {
+                SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null,
+                    SQLiteDatabase.OPEN_READWRITE).use { database ->
+                    assertEquals(1, database.delete("source_jobs", "job_id=?", arrayOf(job.id)))
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { f.open().use { it.jobs() } }
+                assertTrue(held.isDirectory); assertFalse(original.exists())
+                assertEquals("hello", f.original.readText())
+            } finally { assertTrue(held.renameTo(original)) }
+        }
+    }
+
+    @Test fun missingOrDamagedMembershipIsPreservedRatherThanInitializedOnFreshOpen() {
+        for (change in listOf("missing", "cipher")) Fixture().use { f ->
+            f.open().close()
+            val path = File(f.directory, "photo-source-jobs.db")
+            var broken: ByteArray? = null
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                if (change == "missing") assertEquals(1, db.delete("source_meta", "name=?", arrayOf(PhotoSourceMembership.NAME)))
+                else db.rawQuery("SELECT sealed FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use {
+                    assertTrue(it.moveToFirst()); broken = it.getBlob(0).also { bytes -> bytes[bytes.lastIndex] = (bytes.last().toInt() xor 1).toByte() }
+                    db.execSQL("UPDATE source_meta SET sealed=? WHERE name=?", arrayOf(broken, PhotoSourceMembership.NAME))
+                }
+            }
+            if (change == "missing") assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }
+            else assertThrows(javax.crypto.AEADBadTagException::class.java) { f.open().close() }
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT sealed FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use {
+                    if (change == "missing") assertFalse(it.moveToFirst())
+                    else { assertTrue(it.moveToFirst()); assertArrayEquals(broken, it.getBlob(0)) }
+                }
+            }
+        }
+    }
+
+    @Test fun extraAuthenticJobCannotBeAdoptedIntoMembershipOrQuota() {
+        Fixture().use { f ->
+            val original = f.open().use { it.reserve(f.inventory(), f.native.scope) }
+            val extra = "e".repeat(32)
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                val bytes = db.rawQuery("SELECT sealed FROM source_jobs WHERE job_id=?", arrayOf(original.id)).use {
+                    assertTrue(it.moveToFirst()); it.getBlob(0)
+                }
+                val clone = f.protection.seal(f.protection.open(bytes, "photo-source-jobs-v1/job/" + original.id), "photo-source-jobs-v1/job/" + extra)
+                db.execSQL("INSERT INTO source_jobs(job_id,sealed) VALUES(?,?)", arrayOf(extra, clone))
+            }
+            assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT count(*) FROM source_jobs", null).use { assertTrue(it.moveToFirst()); assertEquals(2, it.getInt(0)) }
+            }
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun legacyIndexIsReadableButCannotRenewSourceAuthorityMutateOrRetireOriginalCache() {
+        Fixture().use { f ->
+            val inventory = f.inventory()
+            val job = f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+            }
+            val path = File(f.directory, "photo-source-jobs.db")
+            val legacy = f.protection.seal("magnolie-private-photo-source-jobs-v1".toByteArray(Charsets.US_ASCII), "photo-source-jobs-v1/header")
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("UPDATE source_meta SET sealed=? WHERE name='format'", arrayOf(legacy))
+                assertEquals(1, db.delete("source_meta", "name=?", arrayOf(PhotoSourceMembership.NAME)))
+            }
+            val root = File(f.directory, "photo-source-" + job.id)
+            val originals = root.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val opens = f.native.provider.opened
+            f.open().use { index ->
+                assertEquals(listOf(job), index.jobs())
+                assertTrue(index.galleryPolicy().repairPending)
+                assertEquals("photo_jobs_legacy_membership_upgrade_required", assertThrows(PhotoFolderScopeError::class.java) { index.requireMembershipReady() }.code)
+                assertThrows(PhotoFolderScopeError::class.java) { index.reserve(inventory, f.native.scope) }
+                assertThrows(PhotoFolderScopeError::class.java) { index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease) }
+                assertThrows(PhotoFolderScopeError::class.java) { index.retireCachedSnapshot(job) }
+                assertEquals(listOf(job), index.jobs())
+            }
+            assertEquals(opens, f.native.provider.opened); assertEquals(originals, root.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT sealed FROM source_meta WHERE name='format'", null).use { assertTrue(it.moveToFirst()); assertArrayEquals(legacy, it.getBlob(0)) }
+                db.rawQuery("SELECT count(*) FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+            }
+        }
+    }
+
+    @Test fun failedMembershipProtectionRollsBackReservationAndHeadTogetherWithoutCreatingSourceRoot() {
+        Fixture().use { f ->
+            var interrupt = false
+            f.open { if (interrupt && it == "membership-protect") throw IOException("fixture membership protection failed") }.use { index ->
+                interrupt = true
+                assertThrows(IOException::class.java) { index.reserve(f.inventory(), f.native.scope) }
+                assertTrue(index.jobs().isEmpty()); assertFalse(f.directory.listFiles()!!.any { it.isDirectory })
+                interrupt = false
+                val saved = index.reserve(f.inventory(), f.native.scope)
+                assertEquals(listOf(saved), index.jobs())
+            }
+        }
+    }
+
+    @Test fun lostMembershipPostcommitSyncReturnsNoReservationSuccessAndFreshOpenKeepsActualQuota() {
+        Fixture().use { f ->
+            var interrupt = false
+            f.open { if (interrupt && it == "membership-sync") throw IOException("fixture membership directory sync lost") }.use { index ->
+                interrupt = true
+                assertThrows(IOException::class.java) { index.reserve(f.inventory(), f.native.scope) }
+                val actual = index.jobs().single(); assertEquals("reserved", actual.phase); assertNull(actual.rootKey)
+                assertTrue(actual.cipherBudget > 0); assertFalse(index.rootFile(actual).exists())
+                assertEquals("photo_jobs_membership_repair_pending", assertThrows(PhotoFolderScopeError::class.java) { index.reserve(f.inventory(), f.native.scope) }.code)
+            }
+            f.open().use { index ->
+                val actual = index.jobs().single(); assertEquals("reserved", actual.phase); assertNull(actual.rootKey)
+                assertFalse(index.rootFile(actual).exists()); assertTrue(actual.cipherBudget > 0)
+            }
+            assertEquals("hello", f.original.readText())
+        }
+    }
+
+    @Test fun authenticatedBooleanMembershipCountersCannotStandInForIntegers() {
+        for ((field, boolean) in listOf("format" to true, "count" to false, "plain_bytes" to false,
+                "cipher_budget" to false, "metadata_count" to true, "revision" to true)) Fixture().use { f ->
+            f.open().close()
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                val cipher = db.rawQuery("SELECT sealed FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use {
+                    assertTrue(it.moveToFirst()); it.getBlob(0)
+                }
+                val value = ByteArrayInputStream(f.protection.open(cipher, "photo-source-jobs-v1/membership")).use {
+                    TelefonRahmen.lesen(it, DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
+                }
+                val changed = ByteArrayOutputStream().also {
+                    TelefonRahmen.schreiben(it, JsonObject(value + (field to JsonPrimitive(boolean))), DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
+                }.toByteArray()
+                db.execSQL("UPDATE source_meta SET sealed=? WHERE name=?", arrayOf(f.protection.seal(changed, "photo-source-jobs-v1/membership"), PhotoSourceMembership.NAME))
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }
+        }
+    }
+
+    @Test fun unfamiliarSqlSchemaIsPreservedAndCannotBeAdoptedByNativeMembershipMutation() {
+        Fixture().use { f ->
+            f.open().close()
+            val path = File(f.directory, "photo-source-jobs.db")
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                it.execSQL("CREATE TABLE unfamiliar_work(value TEXT)"); it.execSQL("INSERT INTO unfamiliar_work VALUES('preserve')")
+            }
+            assertEquals("photo_jobs_membership_schema_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT value FROM unfamiliar_work", null).use { assertTrue(it.moveToFirst()); assertEquals("preserve", it.getString(0)) }
+            }
+        }
+    }
+
+    @Test fun observedMembershipLossDoesNotReviveOldSourceReaderAfterOriginalHeadIsRestored() {
+        Fixture().use { f ->
+            val inventory = f.inventory(); val path = File(f.directory, "photo-source-jobs.db")
+            val job: PhotoSourceJob
+            f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val reader = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val member = reader.manifest.files.single()
+                val original = SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                    val bytes = db.rawQuery("SELECT sealed FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use {
+                        assertTrue(it.moveToFirst()); it.getBlob(0)
+                    }
+                    assertEquals(1, db.delete("source_meta", "name=?", arrayOf(PhotoSourceMembership.NAME))); bytes
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { reader.manifest }
+                SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                    db.execSQL("INSERT INTO source_meta(name,sealed) VALUES(?,?)", arrayOf(PhotoSourceMembership.NAME, original))
+                }
+                assertEquals(listOf(job), index.jobs()) // Metadata inspection is not renewed byte access.
+                assertTrue(index.galleryPolicy().repairPending)
+                assertEquals("photo_jobs_membership_repair_pending", assertThrows(PhotoFolderScopeError::class.java) {
+                    reader.readChunk(member.id, 0).fill(0)
+                }.code)
+            }
+            f.open().use { index ->
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                assertArrayEquals("hello".toByteArray(), source.readChunk(source.manifest.files.single().id, 0))
+            }
+        }
+    }
+
+    @Test fun sqliteLookalikeTriggerCannotDeleteOriginalMemberDuringLegitimateReservation() {
+        Fixture().use { f -> f.open().use { index ->
+            val original = index.reserve(f.inventory(), f.native.scope)
+            val path = File(f.directory, "photo-source-jobs.db")
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                // SQL LIKE's underscore is a wildcard, not SQLite's literal
+                // reserved-prefix separator. This is not an internal object.
+                it.execSQL("CREATE TRIGGER sqliteXunfamiliar AFTER INSERT ON source_jobs BEGIN DELETE FROM source_jobs WHERE job_id<>NEW.job_id; END")
+            }
+            assertEquals("photo_jobs_membership_schema_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                index.reserve(f.inventory(), f.native.scope)
+            }.code)
+            SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT job_id FROM source_jobs", null).use {
+                    assertTrue(it.moveToFirst()); assertEquals(original.id, it.getString(0)); assertFalse(it.moveToNext())
+                }
+                db.rawQuery("SELECT name FROM sqlite_master WHERE name='sqliteXunfamiliar'", null).use { assertTrue(it.moveToFirst()) }
+            }
+            assertTrue(index.rootFile(original).isDirectory); assertEquals("hello", f.original.readText())
+        } }
     }
 
     @Test fun offerPreflightUsesOnlyTheActualSealedHeadAndStillRejectsRevokedOrRetiredAuthority() {
@@ -277,7 +527,9 @@ class PhotoSourceJobIndexTest {
                 db.execSQL("INSERT INTO source_meta(name,sealed) VALUES(?,?)", arrayOf("unrelated-fixture", byteArrayOf(4, 2)))
                 db.execSQL("UPDATE source_jobs SET sealed=?", arrayOf(byteArrayOf(1, 2, 3)))
             }
-            f.open().use { index -> assertThrows(IllegalArgumentException::class.java) { index.jobs() } }
+            // Aggregate authentication now rejects the damaged rows already
+            // during fresh open, before exposing a partial/empty job view.
+            assertThrows(IllegalArgumentException::class.java) { f.open().use { it.jobs() } }
             SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 db.rawQuery("SELECT sealed FROM source_meta WHERE name='unrelated-fixture'", null).use { cursor ->
                     assertTrue(cursor.moveToFirst()); assertArrayEquals(byteArrayOf(4, 2), cursor.getBlob(0))

@@ -95,6 +95,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
 
     fun discoverSelectable(cancellation: CancellationSignal = CancellationSignal()): NativeGalleryAlbumCatalog {
         ready()
+        index.requireMembershipReady()
         val observed = bound()
         val catalog = discover(cancellation)
         return NativeGalleryAlbumCatalog(catalog, this, {
@@ -121,6 +122,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun freeze(catalog: GalleryAlbumCatalog, album: GalleryAlbumCandidate, desktopAlbumChoice: Boolean = false,
         cancellation: CancellationSignal = CancellationSignal()): PhotoSourceJob {
         ready()
+        index.requireMembershipReady()
         val observed = bound()
         val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
         val reader = AndroidGalleryPhotoSource(app, observed.scope)

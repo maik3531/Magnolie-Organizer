@@ -37,6 +37,13 @@ class GalleryPhotoPolicyTest {
         fun seal(value: JsonObject, name: String) = protection.seal(ByteArrayOutputStream().also {
             TelefonRahmen.schreiben(it, value, DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
         }.toByteArray(), "photo-source-jobs-v1/$name")
+        fun rows() = SQLiteDatabase.openDatabase(File(root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            val result = mutableMapOf<String, List<Byte>>()
+            db.rawQuery("SELECT name,sealed FROM source_meta ORDER BY name", null).use {
+                while (it.moveToNext()) result[it.getString(0)] = it.getBlob(1).toList()
+            }
+            result
+        }
         override fun close() { root.deleteRecursively() }
     }
 
@@ -391,6 +398,20 @@ class GalleryPhotoPolicyTest {
         }
     }
 
+    @Test fun missingProtectedPolicyCannotBecomeDisabledDefaultUnderOriginalMembership() {
+        Fixture().use { f ->
+            f.open().use { it.compareAndSetGalleryPolicy(it.galleryPolicy(), f.policy()) { true } }
+            val original = f.rows()
+            SQLiteDatabase.openDatabase(File(f.root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                assertEquals(1, it.delete("source_meta", "name=?", arrayOf("gallery-policy-v1")))
+            }
+            val remaining = f.rows()
+            assertEquals(original - "gallery-policy-v1", remaining)
+            assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            assertEquals(remaining, f.rows())
+        }
+    }
+
     @Test fun missingKeyCorruptStateAndCorruptFenceNeverBecomeDefaultPolicies() {
         Fixture().use { f ->
             f.open().use { it.compareAndSetGalleryPolicy(it.galleryPolicy(), f.policy()) { true } }
@@ -398,14 +419,18 @@ class GalleryPhotoPolicyTest {
             assertThrows(DeviceTransferKeyUnavailable::class.java) { f.open().close() }; assertNull(f.key)
             f.key = original
             f.replaceRow("gallery-policy-v1", byteArrayOf(1, 2, 3))
-            f.open().use { assertThrows(PhotoFolderScopeError::class.java) { it.galleryPolicy() } }
+            val rows = f.rows()
+            assertThrows(PhotoFolderScopeError::class.java) { f.open().use { it.galleryPolicy() } }
+            assertEquals(rows, f.rows())
         }
         Fixture().use { f ->
             f.open { if (it == "gallery-policy-fenced") throw IOException("synthetic interrupted operation") }.use { index ->
                 assertThrows(IOException::class.java) { index.compareAndSetGalleryPolicy(index.galleryPolicy(), f.policy()) { true } }
             }
             f.replaceRow("gallery-policy-v1-repair", byteArrayOf(1, 2, 3))
-            f.open().use { assertThrows(PhotoFolderScopeError::class.java) { it.galleryPolicy() } }
+            val rows = f.rows()
+            assertThrows(PhotoFolderScopeError::class.java) { f.open().use { it.galleryPolicy() } }
+            assertEquals(rows, f.rows())
         }
     }
 
@@ -414,15 +439,14 @@ class GalleryPhotoPolicyTest {
             f.open { if (it == "gallery-policy-published") throw IOException("synthetic publication acknowledgement loss") }.use { index ->
                 assertThrows(IOException::class.java) { index.compareAndSetGalleryPolicy(index.galleryPolicy(), f.policy()) { true } }
             }
-            val inspection = f.open().use { it.inspectGalleryPolicyRepair() }
+            assertTrue(f.open().use { it.inspectGalleryPolicyRepair().state.repairPending })
             val unknown = f.policy("b".repeat(64))
             f.replaceRow("gallery-policy-v1", f.seal(unknown.wire(), "gallery-policy-v1"))
-            f.open().use { index ->
-                assertEquals(unknown, index.galleryPolicy().policy); assertTrue(index.galleryPolicy().repairPending)
-                assertEquals("gallery_policy_unknown_concurrent_state", assertThrows(PhotoFolderScopeError::class.java) { index.inspectGalleryPolicyRepair() }.code)
-                assertThrows(PhotoFolderScopeError::class.java) { index.acknowledgeGalleryPolicyRepair(inspection) { true } }
-                assertEquals(unknown, index.galleryPolicy().policy)
-            }
+            // A valid independently sealed row is not an authenticated aggregate
+            // update. Reject before policy/repair exposure and preserve it all.
+            val rows = f.rows()
+            assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            assertEquals(rows, f.rows())
         }
     }
 
@@ -458,13 +482,9 @@ class GalleryPhotoPolicyTest {
             SQLiteDatabase.openDatabase(File(f.root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
                 it.execSQL("INSERT INTO source_meta(name,sealed) VALUES(?,?)", arrayOf("unrelated-fixture", byteArrayOf(4, 2)))
             }
-            f.open().use { index ->
-                val expected = index.galleryPolicy()
-                val old = expected.policy!!
-                val next = GalleryPhotoPolicy(old.receiverId, old.receiverIdentitySha256, "c".repeat(64), true,
-                    setOf(GallerySourceKind.CAMERA), old.revision + 1, 2)
-                assertEquals(old.revision + 1, index.compareAndSetGalleryPolicy(expected, next) { true }.policy!!.revision)
-            }
+            val rows = f.rows()
+            assertEquals("photo_jobs_membership_unknown_metadata", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            assertEquals(rows, f.rows())
             SQLiteDatabase.openDatabase(File(f.root, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 db.rawQuery("SELECT sealed FROM source_meta WHERE name='unrelated-fixture'", null).use {
                     assertTrue(it.moveToFirst()); assertArrayEquals(byteArrayOf(4, 2), it.getBlob(0))

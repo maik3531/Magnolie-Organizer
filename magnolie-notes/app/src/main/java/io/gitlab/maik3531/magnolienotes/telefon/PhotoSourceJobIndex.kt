@@ -87,6 +87,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     private lateinit var db: SQLiteDatabase
     private lateinit var dbKey: Any
     private var closed = false
+    private var membership: PhotoSourceMembership? = null
+    private var uncertain = false
 
     init {
         require(directory.isAbsolute && directory.canonicalFile == directory)
@@ -96,7 +98,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
                 Files.newDirectoryStream(root).use { entries ->
                     if (entries.any { it.fileName.toString() != "photo-source-jobs.lock" }) fail("photo_jobs_missing_index_preserved")
                 }
-                protection.seal(HEADER.toByteArray(Charsets.US_ASCII), "photo-source-jobs-v1/header")
+                protection.seal(MEMBER_HEADER.toByteArray(Charsets.US_ASCII), "photo-source-jobs-v1/header")
             } else null
             if (exists) regular(path) else Files.createFile(path.toPath(), PRIVATE_FILE)
             sidecars()
@@ -108,10 +110,11 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
                 db.execSQL("PRAGMA synchronous=FULL")
                 db.rawQuery("PRAGMA wal_autocheckpoint=256", null).use { if (!it.moveToFirst()) fail("photo_jobs_wal_configuration_failed") }
                 if (!exists) {
-                    transaction {
+                    transaction(bootstrap = true) {
                         db.execSQL("CREATE TABLE source_meta(name TEXT PRIMARY KEY NOT NULL, sealed BLOB NOT NULL)")
                         db.execSQL("CREATE TABLE source_jobs(job_id TEXT PRIMARY KEY NOT NULL, sealed BLOB NOT NULL)")
                         db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "format"); put("sealed", preparedHeader!!) })
+                        membershipModel().initialize()
                     }
                     synchronisiereOrdner(directory)
                 }
@@ -122,6 +125,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
 
     /** Durable encrypted reservation/readback BEFORE creating any source root. */
     fun reserve(inventory: PhotoSourceInventory, scope: NativePhotoSourceAuthority): PhotoSourceJob = gated {
+        writableMembership()
         val lease = inventory.lease
         fun allowed() { if (!scope.isCurrent(lease)) fail("photo_jobs_source_revoked") }
         allowed()
@@ -160,6 +164,9 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     }
 
     fun jobs(): List<PhotoSourceJob> = gated { readAll() }
+
+    /** Native preflight before enumerating live media, not a READ grant. */
+    fun requireMembershipReady(): Unit = gated { writableMembership(); Unit }
 
     /** Dedicated encrypted gallery policy rows in this private source DB, never
      * personal sync settings. Absence is off; corrupt/missing keys never reset.
@@ -230,6 +237,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
                 if (meta(GALLERY_FENCE)?.contentEquals(fence) != true || galleryVersion(meta(GALLERY_POLICY)) != stateVersion || !permitted())
                     fail("gallery_policy_repair_observation_changed")
                 if (db.delete("source_meta", "name=?", arrayOf(GALLERY_FENCE)) != 1) fail("gallery_policy_fence_clear_failed")
+                membership!!.advance()
                 if (!permitted()) fail("gallery_policy_revoked")
             }
             boundary("gallery-policy-fence-cleared")
@@ -248,7 +256,9 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         val policy = state?.let { GalleryPhotoPolicy.parse(parse(protection.open(it, "photo-source-jobs-v1/" + GALLERY_POLICY))) }
         val fence = meta(GALLERY_FENCE)
         fence?.let(::galleryFence)
-        return GalleryPhotoPolicySnapshot(galleryVersion(state), policy, fence != null)
+        // Native readiness only: preserve the exact protected consent/version.
+        // An uncertain aggregate or legacy index is not a renewed READ grant.
+        return GalleryPhotoPolicySnapshot(galleryVersion(state), policy, fence != null || uncertain || membership == null)
     }
 
     private fun galleryFence(cipher: ByteArray): Pair<String, String> {
@@ -268,6 +278,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         if (bytes.size !in 29..8192) fail("gallery_policy_invalid_cipher_bounds")
         val values = ContentValues().apply { put("name", name); put("sealed", bytes) }
         if (db.update("source_meta", values, "name=?", arrayOf(name)) == 0) db.insertOrThrow("source_meta", null, values)
+        membership!!.advance()
     }
     private fun galleryVersion(cipher: ByteArray?) = cipher?.let(::hash) ?: hash("magnolie-gallery-policy-v1/absent".toByteArray(Charsets.US_ASCII))
 
@@ -280,6 +291,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     }
 
     internal fun <T> withSealedHead(expected: PhotoSourceJob, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease, action: () -> T): T = gated {
+        writableMembership()
         fun check() {
             verifyHeader()
             val current = readOne(expected.id) ?: fail("photo_jobs_missing_job")
@@ -331,6 +343,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
      * A retry uses the actually re-read retired head, not a stale caller head.
      */
     fun retireAndClean(expected: PhotoSourceJob, cleanup: () -> Unit) = gated {
+        writableMembership()
         val observed = readOne(expected.id) ?: fail("photo_jobs_missing_job")
         if (observed.version != expected.version || data(observed) != data(expected)) fail("photo_jobs_cas_conflict")
         val retired = if (observed.phase == "retired") observed else update(observed, observed.copy(phase = "retired")) { }
@@ -346,6 +359,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             val current = readOne(retired.id) ?: fail("photo_jobs_missing_job")
             if (current.version != retired.version) fail("photo_jobs_cas_conflict")
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
+            membership!!.advance()
         }
         if (readOne(retired.id) != null) fail("photo_jobs_retirement_readback_failed")
     }
@@ -358,6 +372,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             permitted()
             if (db.update("source_jobs", ContentValues().apply { put("sealed", cipher) }, "job_id=?", arrayOf(expected.id)) != 1)
                 fail("photo_jobs_update_failed")
+            membership!!.advance()
             permitted()
         }
         boundary("job-head-committed")
@@ -368,6 +383,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     }
     private fun insert(value: PhotoSourceJob) {
         db.insertOrThrow("source_jobs", null, ContentValues().apply { put("job_id", value.id); put("sealed", protect(value)) })
+        membership!!.advance()
     }
     private fun protect(value: PhotoSourceJob) = protection.seal(frame(data(value)), "photo-source-jobs-v1/job/" + value.id)
     private fun readOne(id: String): PhotoSourceJob? = db.query("source_jobs", arrayOf("job_id", "sealed"), "job_id=?", arrayOf(id), null, null, null).use {
@@ -401,14 +417,47 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         return PhotoSourceJob(id, hash(cipher), text("source_context"), plain, budget, key, phase, snapshot)
     }
     private fun verifyHeader() {
-        db.query("source_meta", arrayOf("sealed"), "name=?", arrayOf("format"), null, null, null).use {
-            if (!it.moveToFirst() || !protection.open(it.getBlob(0), "photo-source-jobs-v1/header").contentEquals(HEADER.toByteArray(Charsets.US_ASCII)))
-                fail("photo_jobs_header_invalid")
-        }
+        try { db.query("source_meta", arrayOf("sealed"), "name=?", arrayOf("format"), null, null, null).use {
+            if (!it.moveToFirst()) fail("photo_jobs_header_invalid")
+            val clear = protection.open(it.getBlob(0), "photo-source-jobs-v1/header")
+            if (clear.contentEquals(HEADER.toByteArray(Charsets.US_ASCII))) {
+                if (membership != null || meta(PhotoSourceMembership.NAME) != null) fail("photo_jobs_membership_downgrade")
+            } else if (clear.contentEquals(MEMBER_HEADER.toByteArray(Charsets.US_ASCII))) membershipModel().verify()
+            else fail("photo_jobs_header_invalid")
+        } } catch (error: Exception) { uncertain = true; throw error }
     }
-    private fun <T> transaction(action: () -> T): T {
-        db.beginTransaction()
-        try { val result = action(); db.setTransactionSuccessful(); return result } finally { db.endTransaction() }
+
+    private fun membershipModel(): PhotoSourceMembership = membership ?: PhotoSourceMembership(db, rootKey.toString(), dbKey.toString(),
+        ::decode, { boundary("membership-protect"); protection.seal(frame(it), "photo-source-jobs-v1/membership") },
+        { parse(protection.open(it, "photo-source-jobs-v1/membership")) }).also { membership = it }
+
+    private fun writableMembership(): PhotoSourceMembership {
+        if (uncertain) fail("photo_jobs_membership_repair_pending")
+        verifyHeader()
+        return membership ?: fail("photo_jobs_legacy_membership_upgrade_required")
+    }
+
+    private fun <T> transaction(bootstrap: Boolean = false, action: () -> T): T {
+        val members = if (bootstrap) null else writableMembership()
+        members?.begin()
+        var began = false; var success = false
+        try {
+            db.beginTransaction(); began = true
+            val result = action()
+            membershipModel().verify()
+            db.setTransactionSuccessful(); success = true
+            return result
+        } finally {
+            try { if (began) db.endTransaction() }
+            catch (error: Exception) { uncertain = true; throw error }
+            finally { members?.end() }
+            if (success) try {
+                boundary("membership-sync")
+                synchronisiereOrdner(directory)
+                membershipModel().verify()
+                boundary("membership-committed")
+            } catch (error: Exception) { uncertain = true; throw error }
+        }
     }
     private fun checkDirectory() {
         if (closed || !attributes(directory).isDirectory || attributes(directory).fileKey() != rootKey || directory.canonicalFile != directory)
@@ -470,6 +519,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
                 regular(path)
                 sidecars()
                 if (attributes(path).fileKey() != dbKey) fail("photo_jobs_db_replaced")
+                verifyHeader()
             }
             return action()
         }
@@ -501,6 +551,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         private val ID = Regex("[0-9a-f]{32}")
         private val SHA = Regex("[0-9a-f]{64}")
         private const val HEADER = "magnolie-private-photo-source-jobs-v1"
+        private const val MEMBER_HEADER = "magnolie-private-photo-source-jobs-v2"
         private const val GALLERY_POLICY = "gallery-policy-v1"
         private const val GALLERY_FENCE = "gallery-policy-v1-repair"
         private val PRIVATE_FILE = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))

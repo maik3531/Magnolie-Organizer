@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Android source membership integrity (Refs #345, #337)
+
+The native source index now requires an authenticated aggregate for new header-v2
+stores: original root/database identities, revision, exact protected job membership,
+counts and reserved plain/cipher quotas, plus format/policy/repair-fence metadata.
+Each native SQL mutation advances that head in the same transaction under an exact
+thread/transaction/head-hash lease. Sync/readback failure reports no success and
+fences the old owner; fresh opening authenticates the actual committed state.
+Missing or additional rows, missing heads, copied/replaced databases and unknown
+schema objects cannot become an empty inventory or adopted membership. Schema
+validation enumerates every object, including SQLite-lookalike trigger names.
+
+Observed integrity loss does not revive old byte readers after the old head is
+restored. Native pending/readiness projection preserves protected consent/version;
+legacy header-v1 remains metadata-readable but cannot reserve, read source bytes,
+mutate policy or retire caches without separate explicit completeness repair.
+Selectable discovery and freeze require membership readiness before enumeration.
+
+124 distinct source-host cases pass (12 new, 112 affected), including two additional
+original-location/policy-loss cases. These are bounded Android host tests, not
+physical-device, installed-platform or crash/power-loss acceptance. Entire consistent
+backup rollback still needs external monotonic anchoring. Remote saved ownership,
+READ renewal, baseline/conflict convergence and UI/release gates remain unfinished.
+The separate, not-yet-confirmed cleanup absence/permission concern is tracked in
+#346; membership integrity does not establish safe quota retirement by itself.
+
 These controls are separate from contacts, Notes/Organizer personal-sync grants,
 book SaveACKs and Android media permissions. The native implementations are
 present in Linux `magnolie_file_control`, Android `DeviceFileControl` and Windows
