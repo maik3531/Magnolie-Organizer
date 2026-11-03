@@ -835,6 +835,52 @@ class NativeDesktopFileConnection:
                             raise TransferError('file_desktop_saved_recovery_evidence_changed')
                         return evidence  # Historical only; quota and local bytes stay held.
 
+    def repair_saved_mapping_receipt(self, action, native_job_owner):
+        """Explicitly finish only original complete save→mapping evidence.
+
+        No socket confirmation or missing-mapping reconstruction is performed.
+        A separate native recovery action is needed to send the historical ACK.
+        """
+        self._take_action(action)
+        with self._operation():
+            action.validate(self)
+            if self._run is not None:raise TransferError('file_desktop_receive_already_active')
+            self._mutation_action=action
+            try:
+                if not self._open_catalog(allow_create=False):
+                    raise TransferError('file_desktop_saved_recovery_unavailable')
+                binding=self._receive_binding();snapshot=self._receiving_policy();protection=self._authority.protection
+                with self._catalog.inspect_jobs() as (parent,jobs):
+                    job=next((job for job in jobs if job.owner==native_job_owner),None)
+                    if (job is None or job.accepted.binding!=binding or job.accepted.destination!=snapshot.policy.destination):
+                        raise TransferError('file_desktop_saved_recovery_original_job_required')
+                    job.accepted.verify(self._receive_binding)
+                    with ProtectedTransferJobIndex(parent,job.accepted.manifest,job.accepted.binding,self._receive_binding,
+                            protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                        lease=index.claim_operation()
+                        history=index.media_history
+                        if history is None:raise TransferError('file_desktop_saved_recovery_original_history_required')
+                        self._verify_expected_mapping_store();self._verify_job_mapping_store(history)
+                        snapshot,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                            for entry in history.entries))
+                        if any(record is None for record in records):
+                            raise TransferError('file_desktop_saved_recovery_original_mappings_required')
+                        checkpoint=self._mappings.checkpoint(self._mappings._store_witness())
+                        if checkpoint.version!=snapshot.version:
+                            raise TransferError('file_desktop_saved_mapping_checkpoint_changed')
+                        existing=index.saved_mapping_receipt()
+                        if existing is not None:
+                            if tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in existing.entries):
+                                raise TransferError('file_desktop_saved_mapping_receipt_changed')
+                            self._mappings.verify_checkpoint(existing.store)
+                        self._receive_binding();action.validate(self)
+                        if self._catalog.jobs()!=jobs:raise TransferError('file_desktop_saved_recovery_evidence_changed')
+                        result=index.commit_saved_mapping(records,checkpoint,lease)
+                        if index.saved_mapping_receipt()!=result:raise TransferError('file_desktop_saved_recovery_evidence_changed')
+                        self._receive_binding();action.validate(self)
+                        return result
+            finally:self._mutation_action=None
+
     def read_preferences(self):
         with self._operation():
             return self._preferences.read()

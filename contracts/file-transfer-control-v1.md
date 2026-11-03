@@ -1762,6 +1762,31 @@ This explicit native API is not yet joined to the advanced UI or made a producti
 admission prerequisite. Legacy completeness/repair, full recovery/convergence and
 installed/physical acceptance remain in #337; production/UI/automatic gates stay OFF.
 
+### Separate explicit repair of missing post-mapping evidence (Refs #341, #337)
+
+`repair_saved_mapping_receipt` addresses a narrowly provable interrupted commit:
+the original protected media history, every local save receipt and every matching
+original protected mapping already exist, but the post-mapping receipt does not.
+A fresh native action and exact original job/current binding/destination authorize
+only metadata repair. Native index worker ownership, catalog membership inspection
+and original mapping-store checkpoint protect the existing atomic receipt commit
+and authenticated readback. The original action lifetime also fences index writes.
+
+The repair performs no source/cache/stage/journal reopen, target read/write,
+mapping creation/reconstruction, socket confirmation, baseline advancement or quota
+release. Edited/deleted/replaced targets remain untouched. Missing mappings,
+incomplete local saves, legacy jobs without original media history and changed
+native mapping context stay HOLD; no defaults or new wire pages supply evidence.
+Already complete original receipts remain immutable. A separate fresh historical
+recovery action is needed to send a confirmation after repair.
+
+Thirteen new native source-host cases pass: fresh repair and separate confirmation
+with edited/deleted/replaced PC targets and removed cache; absent mappings, partial
+save and legacy history; wrong job/receipt/target context; original action expiry,
+exit/revocation during protection; lost post-commit sync with no returned success
+and actual complete evidence on authenticated reopen. This is not full source
+restart/READ renewal, arbitrary missing-metadata repair or platform/phone acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
