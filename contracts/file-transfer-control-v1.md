@@ -1359,6 +1359,40 @@ directory may be removed. Persistent mappings and restart-safe migration journal
 are prerequisites, not an inference from current settings. These concrete migration
 paths are not implemented by the prepared Boolean.
 
+### Protected historical photo mapping index (Refs #337)
+
+A separate existing-key SQLite/AEAD store now retains opaque source association →
+original saved root/path/inode/parent witnesses and the actual protected local save
+receipt/manifest/accepted-context hashes. It reuses the verified native descriptor,
+locking, close and protection lifecycle under a distinct store/protection domain;
+photo preferences remain separate. Constructor/passive absent lookup creates
+nothing. A mapping is historical metadata, not current presence, a saved receipt,
+READ/write/delete authority, accepted baseline or migration completion.
+
+Insertion requires an exact native one-shot action, current native owned receiver,
+matching peer/local identities, the complete freshly read protected save-receipt
+set and exact whole-manifest media-page correlation. Owner digest authenticates all
+row ciphertexts; original version CAS and durable encrypted readback are required.
+Identical original-receipt retry is idempotent; a different mapping for a known
+association requires reconciliation, never silently overwrites its original path.
+No move/delete/update API exists in this index. Checkbox changes and later PC
+edits/deletions do not erase historical associations or authorize file recreation.
+
+Seventeen native filesystem/receiver mapping cases pass, plus 73 affected protected
+settings cases after the minimal shared initial-owner/page-limit hooks. Coverage
+includes incomplete receipts, action/CAS fences, encrypted reopen/idempotency,
+corruption/unknown entries preserved, observed owner rollback, re-pairing without
+normalizing old ownership, lost post-commit sync recovery, capacity without partial
+rows and descriptor ownership through actual blocked I/O end. This is Linux
+source-host evidence, not installed GUI/power-loss/Windows receiver acceptance.
+
+Coordinator pre-admission lookup/post-save commit is still unjoined. Before release,
+missing mapping metadata after restart must not be mistaken for first use: protected
+expected-store witnesses and per-job media/history recovery anchors are still needed.
+Whole consistent private-backup rollback without a trusted external monotonic
+anchor is not claimed prevented by the in-process revision fence. These open recovery
+and migration requirements keep production readiness, UI and automatic runs OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

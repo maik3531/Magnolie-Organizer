@@ -169,6 +169,9 @@ class ProtectedPhotoPreferences:
             self._close_open_handles()
             raise
 
+    def _initial_owner(self):
+        return dict(revision=1,policy_sha256=None)
+
     def _open_impl(self,*,create=False,validate=lambda:None):
         self._peer()
         if self._db is not None:return True
@@ -193,11 +196,13 @@ class ProtectedPhotoPreferences:
             self._db=sqlite3.connect(path.as_uri()+'?mode=rw',uri=True,timeout=0,check_same_thread=False)
             self._db.execute('PRAGMA busy_timeout=0');self._db.execute('PRAGMA synchronous=FULL')
             if created:
-                self._db.execute('PRAGMA journal_mode=DELETE');self._db.execute('PRAGMA max_page_count=128')
+                self._db.execute('PRAGMA journal_mode=DELETE')
+                page_size=self._db.execute('PRAGMA page_size').fetchone()[0]
+                self._db.execute('PRAGMA max_page_count='+str(self.MAX_DATABASE_BYTES//page_size))
                 with self._db:
                     for sql in self._SCHEMA.values():self._db.execute(sql)
                     self._db.execute('PRAGMA user_version=1')
-                    self._db.execute('INSERT INTO owner VALUES(1,?)',(self._protect(dict(revision=1,policy_sha256=None),'owner'),))
+                    self._db.execute('INSERT INTO owner VALUES(1,?)',(self._protect(self._initial_owner(),'owner'),))
                     self._fresh();validate()
                 self._sync()
             self._schema();self._snapshot()
