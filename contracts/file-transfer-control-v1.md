@@ -1645,6 +1645,35 @@ integrity, retirement, post-mapping receipts or full private-backup anti-rollbac
 Mandatory joint native bootstrap/legacy repair, those recovery/convergence unions
 and native platform/physical acceptance remain open. All release/readiness/UI gates stay OFF.
 
+### Durable catalog membership for newly created catalogs (Refs #337)
+
+A focused source-host test reproduced a missing reservation becoming an empty
+catalog after close/reopen. Newly created catalogs now use immutable owner format 2
+with the original membership-database identity and a separate protected SQLite
+head. That head binds the original root/database/owner hash, revision, job count,
+reserved bytes and the digest of every actual protected member record.
+
+Native reservation first durably writes its original signed member, then commits,
+syncs and reads back the matching encrypted membership head under the existing
+catalog lock. A failure before the head commit preserves the unmatched member as
+repair-pending; a lost post-commit sync reports no success and a fresh authenticated
+reopen re-establishes durability. Missing members, missing/corrupt heads/databases
+and unowned journal/WAL/SHM sidecars cannot become empty defaults or be adopted by
+SQLite recovery. No target files are written by this bookkeeping.
+
+Existing owner-format-1 catalogs remain unchanged/readable; no automatic registry
+adoption or reset occurs. A new bootstrap choice from an unupgraded legacy catalog
+requires explicit native upgrade/repair. Complete consistent private-backup replay
+still needs separate monotonic anchoring; this membership head is not that claim.
+
+Fourteen new membership cases and 247 affected cases pass. The initial missing-job
+reproduction failed before the change; three additional authenticated Boolean/int
+counter confusions were also reproduced and fixed by comparing exact canonical
+expected head bytes. Signed member/head corruption, missing databases, dangling
+sidecar links, uncertain commit recovery and unchanged legacy handling preserve
+the originals. Actual native receive/source/close paths and two encrypted fixture
+socketpair cases pass; this is not physical-phone or installed-platform acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

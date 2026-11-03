@@ -199,7 +199,7 @@ def test_failed_reservation_holds_uncertain_metadata_and_fences_further_mutation
     elif failure == "readback":
         original = catalog._unseal
         def unseal(blob, domain):
-            return original(blob, domain) if domain.endswith("owner.enc") else fault()
+            return fault() if domain.rsplit('/',1)[-1].startswith('job-') else original(blob,domain)
         monkeypatch.setattr(catalog, "_unseal", unseal)
     else:
         original = catalog._write

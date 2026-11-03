@@ -20,6 +20,7 @@ import weakref
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_transfer import EncryptedTransferStage, TransferError
 from magnolie_job_catalog_witness import JobCatalogWitness,NativeJobCatalogChoice
+from magnolie_catalog_membership import CatalogMembership
 
 
 _ROOT_GATES = weakref.WeakValueDictionary()
@@ -89,6 +90,7 @@ class ProtectedTransferJobCatalog:
         self._closed = False
         self._failed = False
         self._known = {}
+        self._registry=None;self._registry_key=None
         try:
             self._private(os.fstat(self._parent_fd), directory=True)
             if create:
@@ -108,13 +110,18 @@ class ProtectedTransferJobCatalog:
             with self._locked():
                 if create:
                     self._limits = NativeJobCatalogLimits() if limits is None else limits
-                    self._write("owner.enc", {"format": 1, "identity": vars(identity), "limits": vars(self._limits),
-                        "lock_key": self._lock_key})
+                    self._registry=CatalogMembership(self,create=True);self._registry_key=self._registry.key
+                    self._write("owner.enc", {"format": 2, "identity": vars(identity), "limits": vars(self._limits),
+                        "lock_key": self._lock_key,"registry_key":self._registry_key})
+                    self._registry.commit((),None)
                     os.fsync(self._parent_fd)
                 else:
                     payload, _ = self._read("owner.enc")
                     self._parse_owner(payload, limits)
+                    if self._registry_key is not None:self._registry=CatalogMembership(self)
                 self._jobs()
+                if not create and self._registry is not None:
+                    os.fsync(self._registry.fd);os.fsync(self._root_fd)
         except BaseException:
             self.close()
             raise
@@ -230,8 +237,9 @@ class ProtectedTransferJobCatalog:
         return digest
 
     def _parse_owner(self, payload, expected_limits=None):
-        if (type(payload) is not dict or set(payload) != {"format", "identity", "limits", "lock_key"}
-                or type(payload["format"]) is not int or payload["format"] != 1 or payload["identity"] != vars(self._identity)
+        if (type(payload) is not dict or type(payload.get('format')) is not int or payload['format'] not in (1,2)
+                or set(payload) != ({"format", "identity", "limits", "lock_key"}|({'registry_key'} if payload['format']==2 else set()))
+                or payload["identity"] != vars(self._identity)
                 or payload["lock_key"] != list(self._lock_key) or type(payload["limits"]) is not dict
                 or set(payload["limits"]) != {"max_jobs", "max_reserved_bytes"}):
             raise TransferError("file_job_catalog_owner_changed")
@@ -239,6 +247,10 @@ class ProtectedTransferJobCatalog:
         if expected_limits is not None and expected_limits != limits:
             raise TransferError("file_job_catalog_limits_changed")
         self._limits = limits
+        key=payload.get('registry_key')
+        if payload['format']==2 and (type(key) is not list or len(key)!=2 or any(type(number) is not int or not 0<=number<2**64 for number in key) or key[1]==0):
+            raise TransferError('file_job_catalog_invalid_registry_identity')
+        self._registry_key=tuple(key) if key is not None else None
 
     @staticmethod
     def reservation_bytes(accepted):
@@ -255,26 +267,28 @@ class ProtectedTransferJobCatalog:
             + 8 * 1024 * 1024 + 3 * len(manifest.files) * (4096 + 128)
             + manifest.total_bytes)
 
-    def _jobs(self):
+    def _jobs(self,*,verify_membership=True):
         payload, _ = self._read("owner.enc")
         self._parse_owner(payload, self._limits)
         names = set()
         total = 0
         with os.scandir(self._root_fd) as entries:
             for entry in entries:
-                if (entry.name not in {"owner.enc", "catalog.lock"}
+                allowed={"owner.enc", "catalog.lock"}|({CatalogMembership.NAME} if self._registry_key is not None else set())
+                if self._registry is not None and self._registry.db.in_transaction:allowed.add(CatalogMembership.NAME+'-journal')
+                if (entry.name not in allowed
                         and re.fullmatch(r"job-[0-9a-f]{32}\.enc", entry.name) is None):
                     raise TransferError("file_job_catalog_unknown_entry_preserved")
                 value = entry.stat(follow_symlinks=False)
                 self._private(value)
                 total += value.st_size
-                if len(names) >= self._limits.max_jobs + 2 or total > self.MAX_METADATA_BYTES:
+                if len(names) >= self._limits.max_jobs + len(allowed) or total > self.MAX_METADATA_BYTES+CatalogMembership.MAX_BYTES:
                     raise TransferError("file_job_catalog_metadata_limit")
                 names.add(entry.name)
         if not {"owner.enc", "catalog.lock"} <= names or not set(self._known) <= names:
             raise TransferError("file_job_catalog_original_missing")
         jobs = []
-        for name in sorted(names - {"owner.enc", "catalog.lock"}):
+        for name in sorted(names - {"owner.enc", "catalog.lock",CatalogMembership.NAME,CatalogMembership.NAME+'-journal'}):
             payload, digest = self._read(name)
             owner = name[4:-4]
             if (type(payload) is not dict or set(payload) != {"format", "owner", "accepted", "reserved_bytes"}
@@ -288,6 +302,9 @@ class ProtectedTransferJobCatalog:
             jobs.append(NativeReservedTransferJob(owner, accepted, payload["reserved_bytes"], digest))
         if sum(job.reserved_bytes for job in jobs) > self._limits.max_reserved_bytes:
             raise TransferError("file_job_catalog_quota_exceeded")
+        if self._registry_key is not None and verify_membership:
+            if self._registry is None:raise TransferError('file_job_catalog_membership_required')
+            self._registry.read(tuple(jobs))
         return tuple(jobs)
 
     def jobs(self):
@@ -297,11 +314,16 @@ class ProtectedTransferJobCatalog:
 
     def _witness(self):
         payload,digest=self._read('owner.enc');self._parse_owner(payload,self._limits)
+        if self._registry_key is not None:
+            value=os.stat(CatalogMembership.NAME,dir_fd=self._root_fd,follow_symlinks=False);self._private(value)
+            if self._key(value)!=self._registry_key or value.st_size>CatalogMembership.MAX_BYTES:
+                raise TransferError('file_job_catalog_membership_original_changed')
         return JobCatalogWitness(self._identity.receiver_id,self._identity.receiver_identity_sha256,
             self._root_key,self._lock_key,self._known['owner.enc'][0],digest)
 
     def choice(self):
         if self._owner_only:raise TransferError('file_job_catalog_owner_only')
+        if self._registry_key is None:raise TransferError('file_job_catalog_legacy_membership_upgrade_required')
         with self._locked():
             self._jobs();return NativeJobCatalogChoice(self._witness(),self)
 
@@ -371,6 +393,7 @@ class ProtectedTransferJobCatalog:
                 raise TransferError("file_job_catalog_wrong_receiver")
             accepted.verify(current_binding)
             jobs = self._jobs()
+            membership_before=self._registry.last if self._registry is not None else None
             if expected_jobs is not None:
                 if type(expected_jobs) is not tuple or any(type(job) is not NativeReservedTransferJob for job in expected_jobs):
                     raise TransferError('file_job_catalog_native_history_required')
@@ -387,6 +410,8 @@ class ProtectedTransferJobCatalog:
             digest = self._write("job-" + owner + ".enc", {"format": 1, "owner": owner,
                 "accepted": accepted.wire(), "reserved_bytes": amount})
             accepted.verify(current_binding)
+            after=self._jobs(verify_membership=False)
+            if self._registry is not None:self._registry.commit(after,membership_before,validate=lambda:accepted.verify(current_binding))
             job = next(value for value in self._jobs() if value.owner == owner)
             if job.protected_record_sha256 != digest:
                 raise TransferError("file_job_catalog_readback_failed")
@@ -397,6 +422,7 @@ class ProtectedTransferJobCatalog:
         with self._gate:
             if not self._closed:
                 self._closed = True
+                if self._registry is not None:self._registry.close()
                 for fd in (self._lock_fd, self._root_fd, self._parent_fd):
                     if fd is not None:
                         os.close(fd)
