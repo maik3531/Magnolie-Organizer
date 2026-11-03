@@ -385,6 +385,8 @@ class ProtectedTransferJobCatalog:
     def _reserve(self, accepted, current_binding, *, expected_jobs=None):
         with self._locked():
             if self._owner_only:raise TransferError('file_job_catalog_owner_only')
+            if self._registry_key is None or self._registry is None:
+                raise TransferError('file_job_catalog_legacy_membership_upgrade_required')
             if self._root_key in getattr(_LOCAL,'inspecting',set()):raise TransferError('file_job_catalog_history_readonly')
             if self._failed:
                 raise TransferError("file_job_catalog_repair_pending")

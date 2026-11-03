@@ -1723,6 +1723,18 @@ already handed to transport before revocation cannot be retracted; the historica
 confirmation is not a current-presence claim. Android restart READ renewal, remote
 confirmation ownership and full conflict/recovery/quota retirement are still open.
 
+### Legacy catalog admission fence (Refs #339, #337)
+
+A direct native reservation call reproduced an additional legacy hole: bootstrap
+choice was fenced but owner-format-1 catalogs could still accept a new member
+without a durable membership head. Reservation now stops with explicit membership
+upgrade/repair required, before acceptance/binding verification or any member write.
+Authenticated legacy inspection and existing job metadata remain unchanged. Empty
+and populated legacy catalogs are both checked byte-for-byte; no registry adoption,
+owner rewrite, record reconstruction or reset occurs. Fifty-one targeted membership,
+catalog, root-witness and history cases pass, including both legacy variants. The
+explicit legacy upgrade/repair workflow itself is not implemented by this fence.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

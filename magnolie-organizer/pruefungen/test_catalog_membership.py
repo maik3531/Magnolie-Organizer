@@ -92,16 +92,24 @@ def test_job_written_before_membership_commit_failure_is_held_not_ignored_on_reo
     assert len(list(f.root.glob('job-*.enc')))==1
 
 
-def test_existing_legacy_catalog_stays_legacy_readonly_without_automatic_registry_adoption(fixture):
+@pytest.mark.parametrize('populated',[False,True])
+def test_existing_legacy_catalog_stays_legacy_readonly_without_automatic_registry_adoption(fixture,populated):
     f=fixture;catalog=f.open(create=True)
+    jobs=(catalog.reserve(f.accepted(),lambda:f.current),) if populated else ()
     path=f.root/'owner.enc';raw=f.cipher.open(path.read_bytes(),catalog._domain+'owner.enc');value=json.loads(raw)
     value['payload']['format']=1;del value['payload']['registry_key']
     legacy=f.cipher.seal(catalog._json(value),catalog._domain+'owner.enc');catalog.close()
     path.write_bytes(legacy)
     registry=f.root/CatalogMembership.NAME;held=f.parent/'held-new-registry';registry.rename(held)
     try:
-        reopened=f.open();assert reopened.jobs()==() and reopened._registry is None
+        reopened=f.open();assert reopened.jobs()==jobs and reopened._registry is None
         with pytest.raises(TransferError,match='legacy_membership_upgrade_required'):reopened.choice()
+        before={entry.name:entry.read_bytes() for entry in f.root.iterdir()}
+        def forbidden():pytest.fail('legacy admission must fail before binding verification')
+        with pytest.raises(TransferError,match='legacy_membership_upgrade_required'):
+            reopened.reserve(f.accepted('b'),forbidden)
+        assert {entry.name:entry.read_bytes() for entry in f.root.iterdir()}==before
+        assert reopened.jobs()==jobs
         assert not registry.exists() and path.read_bytes()==legacy
     finally:held.rename(registry)
 
