@@ -46,13 +46,14 @@ class AndroidGalleryPhotoSourceTest {
         var reverse = false
         var onQuery: (() -> Unit)? = null
         var onOpen: (() -> Unit)? = null
+        var namespace = "native-fixture-v1"
         val cursors = mutableListOf<Cursor>()
         val opens = mutableListOf<String>()
         val requests = mutableListOf<Bundle>()
         override fun onCreate() = true
         override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
             check(method == "get_version" && extras?.getString(Intent.EXTRA_TEXT) == "external_primary")
-            return Bundle().apply { putString(Intent.EXTRA_TEXT, "native-fixture-v1") }
+            return Bundle().apply { putString(Intent.EXTRA_TEXT, namespace) }
         }
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor =
             throw AssertionError("Expected API26+ bundle query")
@@ -277,6 +278,175 @@ class AndroidGalleryPhotoSourceTest {
             assertThrows(PhotoFolderScopeError::class.java) { first.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
             assertNull(first.remoteSaved(h.job)); assertNull(second.remoteSaved(h.job))
         } } }
+    }
+
+    private data class ResumeInputs(val scope: GalleryPhotoSourceScope, val reader: AndroidGalleryPhotoSource, val inventory: PhotoSourceInventory)
+    private fun resumeInputs(h: HistoricalCase): ResumeInputs {
+        h.f.request = NativeGalleryRequest(h.receiver!!, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
+        val scope = GalleryPhotoSourceScope({ h.f.request }, AndroidGalleryAccessEnvironment(h.f.context) { "2".repeat(64) })
+        val lease = scope.capture(GalleryAlbumCatalog(GalleryReadCoverage.FULL_IMAGES, listOf(h.f.album), h.f.request), h.f.album)
+        val reader = AndroidGalleryPhotoSource(h.f.context, scope)
+        return ResumeInputs(scope, reader, reader.enumerate(lease))
+    }
+
+    @Test fun freshResumeInspectionRevalidatesActualPfdBytesWithoutCacheWritesOrRenewedOutputAuthority() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val original = index.requireGalleryResumeOriginal(h.job); val inputs = resumeInputs(h)
+            assertNotEquals(original.originalAuthority!!.record["read_grant"], JsonPrimitive(inputs.inventory.lease.readGrantToken))
+            val opens = h.f.provider.opens.size
+            val observed = NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, original, inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(),
+                { assertEquals(original.record, index.requireGalleryResumeOriginal(h.job).record) })
+            assertEquals(h.job.id, observed.jobId); assertEquals(1, observed.verifiedFiles); assertEquals(5L, observed.verifiedBytes)
+            assertFalse(observed.allowsChunkOutput); assertFalse(observed.provesDeletion)
+            assertEquals(opens + 1, h.f.provider.opens.size)
+            assertEquals(listOf(h.job), index.jobs()); assertNull(index.remoteSaved(h.job))
+            assertFalse(File(h.directory, "photo-source-" + h.job.id).exists())
+            assertEquals("hello", File(h.f.root, "source.bin").readText())
+        } }
+    }
+
+    @Test fun changedOriginalBytesCannotPassResumeInspectionOrBeOverwrittenByOldCache() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val inputs = resumeInputs(h); File(h.f.root, "source.bin").writeText("HELLO")
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory, inputs.scope, inputs.reader,
+                    CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) })
+            }
+            assertEquals("HELLO", File(h.f.root, "source.bin").readText()); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun missingOrRenamedOriginalMemberHoldsResumeBeforeOpeningAnyPfd() {
+        for (change in listOf("missing", "renamed")) HistoricalCase().use { h -> h.open().use { index ->
+            h.f.provider.rows = if (change == "missing") listOf(Row(id = 2)) else listOf(Row(name = "renamed.jpg"))
+            val inputs = resumeInputs(h); val opens = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory, inputs.scope, inputs.reader,
+                    CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) })
+            }
+            assertEquals(opens, h.f.provider.opens); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun resumeInspectionRevocationAndCancellationClosePfdWithoutReturningSuccess() {
+        for (change in listOf("revoked", "canceled")) HistoricalCase().use { h -> h.open().use { index ->
+            val inputs = resumeInputs(h); val cancellation = CancellationSignal()
+            h.f.provider.onOpen = { if (change == "revoked") h.f.request = null else cancellation.cancel() }
+            assertThrows(java.io.IOException::class.java) {
+                try { NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory, inputs.scope, inputs.reader,
+                    cancellation, { index.requireGalleryResumeOriginal(h.job) }) }
+                catch (error: android.os.OperationCanceledException) { throw java.io.IOException(error) }
+            }
+            assertEquals(listOf(h.job), index.jobs()); h.f.assertClosed()
+        } }
+    }
+
+    @Test @Config(sdk = [28]) fun unknownLegacyGalleryNamespaceCannotResumeFromMatchingNamesOrByteSizes() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val inputs = resumeInputs(h); val opens = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory, inputs.scope, inputs.reader,
+                    CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) })
+            }
+            assertEquals(opens, h.f.provider.opens); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun changedNativeGalleryNamespaceCannotRebindOldResumePhotoIdentity() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            h.f.provider.namespace = "rebuilt-media-store"
+            val inputs = resumeInputs(h); val opened = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory,
+                    inputs.scope, inputs.reader, CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) })
+            }
+            assertEquals(opened, h.f.provider.opens); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test @Config(sdk = [34]) fun selectedOnlyGalleryVisibilityDoesNotRenewOriginalFullResumeScope() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            Shadows.shadowOf(h.f.context as Application).denyPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+            Shadows.shadowOf(h.f.context as Application).grantPermissions(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            h.f.request = NativeGalleryRequest(h.receiver!!, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
+            val scope = GalleryPhotoSourceScope({ h.f.request }, AndroidGalleryAccessEnvironment(h.f.context) { "2".repeat(64) })
+            val lease = scope.capture(GalleryAlbumCatalog(GalleryReadCoverage.SELECTED_ONLY, listOf(h.f.album), h.f.request), h.f.album)
+            val reader = AndroidGalleryPhotoSource(h.f.context, scope); val inventory = reader.enumerate(lease)
+            val opened = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect("sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inventory,
+                    scope, reader, CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) })
+            }
+            assertEquals(opened, h.f.provider.opens); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun resumeInspectionCannotOutliveItsBoundedAttemptOrIgnoreChangedNativePairing() {
+        for (change in listOf("expiry", "pairing", "sender")) HistoricalCase().use { h -> h.open().use { index ->
+            if (change == "pairing") h.receiver = h.receiver!!.copy(pairingEpoch = "9".repeat(64))
+            val inputs = resumeInputs(h); var ticks = 0; val opens = h.f.provider.opens.toList()
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeInspection.inspect(if (change == "sender") "foreign_sender_01" else "sender_fixture_01", h.job, index.requireGalleryResumeOriginal(h.job), inputs.inventory, inputs.scope, inputs.reader,
+                    CancellationSignal(), { index.requireGalleryResumeOriginal(h.job) }, { if (++ticks >= 3 && change == "expiry") 61_000L else 1000L })
+            }
+            assertEquals(opens, h.f.provider.opens); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun freshNativeWorkflowInspectsExplicitResumeSelectionOffMainWithoutRestoringCacheAuthority() {
+        Fixture().use { f ->
+            val directory = Files.createTempDirectory(f.root.toPath(), "workflow-resume351-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            var receiver = f.receiver.copy(pairingEpoch = "1".repeat(64))
+            val firstActivity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val first = NativeGalleryPhotoWorkflow(f.context, directory, "sender_fixture_01", protection) { receiver }
+            val job: PhotoSourceJob
+            try {
+                first.configure(first.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                first.bindActivity(firstActivity.get()) { throw AssertionError("No implicit permission request") }
+                firstActivity.start().resume()
+                val catalog = first.discover(); val album = catalog.albums.single()
+                job = first.freeze(catalog, album)
+                first.discoverSelectable().use { choices ->
+                    val page = choices.page()
+                    val selection = choices.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                    val requests = f.provider.requests.toList(); val opens = f.provider.opens.toList()
+                    assertEquals("photo_jobs_remote_acceptance_required", assertThrows(PhotoFolderScopeError::class.java) { first.inspectResume(selection, job) }.code)
+                    assertEquals(requests, f.provider.requests); assertEquals(opens, f.provider.opens)
+                }
+                val source = first.source(job, catalog, album)
+                val now = 1_800_000_000_000L; val offered = source.offerMessage(now)
+                val manifest = source.manifest
+                val accepted = DeviceFileRemoteAcceptance(offered.string("message_id"), manifest.fingerprint, manifest.transferId,
+                    "c".repeat(64), receiver.permissionEpoch, "e".repeat(64), now + 60_000, "d".repeat(64))
+                source.commitRemoteAcceptance(NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires), accepted) { }
+            } finally { first.close(); firstActivity.pause().stop().destroy() }
+            val cache = File(directory, "photo-source-" + job.id); val held = File(f.root, "held-workflow-cache")
+            assertTrue(cache.renameTo(held)); receiver = receiver.copy(owner = Any())
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val reopened = NativeGalleryPhotoWorkflow(f.context, directory, "sender_fixture_01", protection) { receiver }
+            val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+            val cancellation = CancellationSignal()
+            var selectedCatalog: NativeGalleryAlbumCatalog? = null
+            try {
+                reopened.bindActivity(activity.get()) { throw AssertionError("No implicit permission request") }
+                activity.start().resume()
+                val catalog = reopened.discoverSelectable(); selectedCatalog = catalog
+                val page = catalog.page()
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                val result = executor.submit<NativeGalleryResumeInspection> { reopened.inspectResume(selection, job, cancellation) }
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS)
+                assertEquals(job.id, result.jobId); assertEquals(5L, result.verifiedBytes)
+                assertFalse(result.allowsChunkOutput); assertFalse(result.provesDeletion)
+                assertEquals(listOf(job), reopened.jobs()); assertFalse(cache.exists())
+                assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
+                assertEquals("hello", File(f.root, "source.bin").readText())
+            } finally {
+                cancellation.cancel(); executor.shutdownNow(); assertTrue(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS))
+                selectedCatalog?.close(); reopened.close(); activity.pause().stop().destroy()
+                assertTrue(held.renameTo(cache))
+            }
+        }
     }
 
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {

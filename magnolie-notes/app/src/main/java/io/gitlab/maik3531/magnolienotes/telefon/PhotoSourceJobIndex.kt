@@ -202,6 +202,14 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         PhotoSourceRemoteAcceptance.parse(parse(protection.open(it, "photo-source-jobs-v1/remote-acceptance/" + job.id)), job)
     }
 
+    internal fun requireGalleryResumeOriginal(expected: PhotoSourceJob): PhotoSourceRemoteAcceptance = gated {
+        writableMembership()
+        if (expected.phase != "sealed" || readOne(expected.id) != expected) fail("photo_jobs_historical_original_job_required")
+        val original = readRemoteAcceptance(expected) ?: fail("photo_jobs_remote_acceptance_required")
+        if (original.originalAuthority == null) fail("photo_jobs_remote_acceptance_repair_required")
+        original
+    }
+
     fun issueHistoricalSavedAction(expected: PhotoSourceJob, current: () -> NativePhotoReceiver?,
         elapsed: () -> Long = DeviceFileControl::monotonicMs): NativeHistoricalSavedAction = gated {
         writableMembership()

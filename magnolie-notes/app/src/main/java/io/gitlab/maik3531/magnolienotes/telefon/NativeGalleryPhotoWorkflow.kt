@@ -51,6 +51,25 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun currentRequest(): NativeGalleryRequest? { ready(); return policy.currentRequest() }
     fun jobs(): List<PhotoSourceJob> { ready(); return index.jobs() }
 
+    /** Blocking native inspection only, off the UI thread. It does not restore
+     * cache READ, create a source run or publish a fresh offer. */
+    fun inspectResume(selection: NativeGalleryAlbumSelection, expected: PhotoSourceJob,
+        cancellation: CancellationSignal = CancellationSignal()): NativeGalleryResumeInspection {
+        ready()
+        val original = index.requireGalleryResumeOriginal(expected)
+        val observed = bound()
+        val album = selection.catalog.resolve(this, selection)
+        val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
+        val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        val inventory = reader.enumerate(lease, cancellation)
+        return NativeGalleryResumeInspection.inspect(senderId, expected, original, inventory, observed.scope, reader, cancellation, {
+            ready()
+            if (binding.get() !== observed || index.requireGalleryResumeOriginal(expected).record != original.record)
+                fail("gallery_resume_original_not_revalidated")
+            selection.catalog.resolve(this, selection)
+        })
+    }
+
     /** Called from native onCreate before STARTED, not from a wire/UI path.
      * Binding only registers an OS launcher; it never prompts on construction.
      */

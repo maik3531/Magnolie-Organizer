@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native live-source resume inspection, not renewal (Refs #351, #337)
+
+An explicit fresh native album selection can now inspect the original sealed job
+against actual current READ-only source PFDs. Original job/acceptance/context proof
+is checked before enumeration and repeatedly during inspection. Current sender,
+peer identity/pairing/permission/policy/source key must match; original photo IDs
+and native members, paths, sizes and every original byte hash must match. Renames
+are conservatively HOLD pending reconciliation, not copied to a new path. Unknown
+or rebuilt media namespaces, selected-only coverage, missing/changed original bytes,
+revocation/cancellation and expiry cannot yield a matching inspection.
+
+This bounded off-UI inspection writes no cache/job/proof/quota, does not open the
+old cache, and never treats a scan as deletion evidence. Metadata/index locks are
+not held over provider reads; original membership and live source freshness are
+rechecked at read boundaries. The returned point-in-time comparison explicitly
+allows no Chunk output and proves no deletion. It is NOT a renewed source lease,
+fresh offer/acceptance attempt, baseline or production readiness.
+
+Nine new host cases pass, including fresh workflow/owner/lifecycle and explicit
+selection with the old cache unavailable, actual off-main PFD verification, original
+proof preflight before enumeration, unchanged quota, real byte edits, missing/renamed
+members, unknown/rebuilt namespaces, selected-only visibility, pairing/local identity,
+expiry and cancellation/revocation. Actual restart cache-READ ownership, bounded
+resume-offer/acceptance attempts and global convergence remain separate unfinished
+work; all production/UI/automatic/release gates stay OFF.
+
 ### Explicit historical confirmation recovery after fresh open (Refs #350, #337)
 
 A one-use, monotonic-bounded native action selects an exact original sealed job
