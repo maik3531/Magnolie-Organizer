@@ -23,8 +23,26 @@ original-location/policy-loss cases. These are bounded Android host tests, not
 physical-device, installed-platform or crash/power-loss acceptance. Entire consistent
 backup rollback still needs external monotonic anchoring. Remote saved ownership,
 READ renewal, baseline/conflict convergence and UI/release gates remain unfinished.
-The separate, not-yet-confirmed cleanup absence/permission concern is tracked in
-#346; membership integrity does not establish safe quota retirement by itself.
+The separate cleanup absence/permission defect was confirmed and addressed in
+#346 as described below; membership integrity alone is not quota-retirement proof.
+
+### Cache absence proof before quota retirement (Refs #346, #337)
+
+A native reproduction removed the private parent's search permission immediately
+after retirement commit. The cache remained, but `Files.exists(false)` was treated
+as absence and the original job/quota was removed. Retirement now reads no-follow
+attributes and accepts only `NoSuchFileException`, bracketed by original parent
+identity/private-mode/search-access checks. Access and other I/O failures remain
+errors, not absence. Existing cache roots must be original directories before
+cleanup. Absence is checked again inside the final membership/job transaction,
+after the cleanup boundary; reappearing entries cannot silently release quota.
+
+39 distinct affected/new native host cases pass (four new, 35 affected): lost
+search permission before/after cleanup, explicit retry after restored access,
+reappearing cache and empty replacement parent, plus original source/policy-backed
+snapshot retirement and same-thread reentrant index ownership. Original files,
+retired job identity and quota remain held on failure. This bounded fix does not
+establish global concurrency/power-loss or physical-device retirement acceptance.
 
 These controls are separate from contacts, Notes/Organizer personal-sync grants,
 book SaveACKs and Android media permissions. The native implementations are

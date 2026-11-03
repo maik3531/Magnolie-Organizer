@@ -38,6 +38,94 @@ class PhotoSourceJobIndexTest {
         override fun close() { directory.deleteRecursively(); original.delete() }
     }
 
+    @Test fun lostParentSearchPermissionAfterRetirementCannotProveCacheAbsenceOrReleaseQuota() {
+        Fixture().use { f ->
+            var interrupt = false
+            var cleanupCalled = false
+            val privateMode = java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")
+            f.open { if (interrupt && it == "job-head-committed")
+                Files.setPosixFilePermissions(f.directory.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+            }.use { index ->
+                val job = index.reserve(f.inventory(), f.native.scope)
+                val child = index.rootFile(job)
+                val originalKey = Files.readAttributes(child.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java).fileKey()
+                var failure: Exception? = null
+                interrupt = true
+                try { index.retireAndClean(job) { cleanupCalled = true } }
+                catch (error: Exception) { failure = error }
+                finally { interrupt = false; Files.setPosixFilePermissions(f.directory.toPath(), privateMode) }
+                assertFalse(cleanupCalled)
+                assertTrue(child.isDirectory)
+                assertEquals(originalKey, Files.readAttributes(child.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java).fileKey())
+                val held = index.jobs().single()
+                assertEquals(job.id, held.id); assertEquals("retired", held.phase)
+                assertEquals(job.cipherBudget, held.cipherBudget)
+                assertNotNull("Search permission failure must not return cleanup success", failure)
+            }
+        }
+    }
+
+    @Test fun inaccessibleParentAfterActualCleanupStillHoldsRetiredQuotaUntilExplicitRetry() {
+        Fixture().use { f -> f.open().use { index ->
+            val job = index.reserve(f.inventory(), f.native.scope)
+            val child = index.rootFile(job)
+            try {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    index.retireAndClean(job) {
+                        assertTrue(child.delete())
+                        Files.setPosixFilePermissions(f.directory.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+                    }
+                }
+            } finally { Files.setPosixFilePermissions(f.directory.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")) }
+            val held = index.jobs().single()
+            assertEquals("retired", held.phase); assertEquals(job.cipherBudget, held.cipherBudget)
+            assertFalse(child.exists())
+            index.retireAndClean(held) { fail("Proven absent cache must not be cleaned again") }
+            assertTrue(index.jobs().isEmpty())
+        } }
+    }
+
+    @Test fun reappearingCacheAfterCleanupBoundaryCannotBeForgottenByQuotaCommit() {
+        Fixture().use { f ->
+            var child: File? = null
+            f.open { if (it == "cleanup-proven") {
+                assertTrue(child!!.mkdir()); File(child, "keep-user-file").writeText("preserve")
+            } }.use { index ->
+                val job = index.reserve(f.inventory(), f.native.scope); child = index.rootFile(job)
+                assertEquals("photo_jobs_cleanup_not_proven", assertThrows(PhotoFolderScopeError::class.java) {
+                    index.retireAndClean(job) { assertTrue(child!!.delete()) }
+                }.code)
+                assertEquals("preserve", File(child, "keep-user-file").readText())
+                val held = index.jobs().single()
+                assertEquals("retired", held.phase); assertEquals(job.cipherBudget, held.cipherBudget)
+            }
+        }
+    }
+
+    @Test fun emptyReplacementParentCannotProveAbsenceForTheOriginalRetiredJob() {
+        Fixture().use { f -> f.open().use { index ->
+            val job = index.reserve(f.inventory(), f.native.scope)
+            val held = File(f.directory.parentFile, f.directory.name + "-held-original")
+            try {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    index.retireAndClean(job) {
+                        assertTrue(index.rootFile(job).delete())
+                        assertTrue(f.directory.renameTo(held))
+                        Files.createDirectory(f.directory.toPath(), java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                            java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
+                    }
+                }
+                assertTrue(held.isDirectory)
+                assertTrue(f.directory.listFiles()!!.isEmpty())
+            } finally {
+                if (held.exists()) { assertTrue(f.directory.delete()); assertTrue(held.renameTo(f.directory)) }
+            }
+            val actual = index.jobs().single()
+            assertEquals(job.id, actual.id); assertEquals("retired", actual.phase)
+            assertEquals(job.cipherBudget, actual.cipherBudget)
+        } }
+    }
+
     @Test fun copiedDatabaseCannotBecomeOriginalAtFreshRootOrReplacementDatabaseInode() {
         for (relocated in listOf(false, true)) Fixture().use { f ->
             val job = f.open().use { it.reserve(f.inventory(), f.native.scope) }

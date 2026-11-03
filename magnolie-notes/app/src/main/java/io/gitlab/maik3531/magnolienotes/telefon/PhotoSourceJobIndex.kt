@@ -14,6 +14,7 @@ import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.file.NoSuchFileException
 import java.nio.file.StandardOpenOption.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
@@ -348,20 +349,37 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         if (observed.version != expected.version || data(observed) != data(expected)) fail("photo_jobs_cas_conflict")
         val retired = if (observed.phase == "retired") observed else update(observed, observed.copy(phase = "retired")) { }
         val child = rootFile(retired)
-        if (Files.exists(child.toPath(), NOFOLLOW_LINKS)) {
-            if (retired.rootKey == null || attributes(child).fileKey()?.toString() != retired.rootKey) fail("photo_jobs_unknown_root_preserved")
+        val childAttributes = cleanupAttributes(child)
+        if (childAttributes != null) {
+            if (!childAttributes.isDirectory || retired.rootKey == null || childAttributes.fileKey()?.toString() != retired.rootKey)
+                fail("photo_jobs_unknown_root_preserved")
             cleanup()
         }
-        if (Files.exists(child.toPath(), NOFOLLOW_LINKS)) fail("photo_jobs_cleanup_not_proven")
+        if (cleanupAttributes(child) != null) fail("photo_jobs_cleanup_not_proven")
         synchronisiereOrdner(directory)
         boundary("cleanup-proven")
         transaction {
+            if (cleanupAttributes(child) != null) fail("photo_jobs_cleanup_not_proven")
             val current = readOne(retired.id) ?: fail("photo_jobs_missing_job")
             if (current.version != retired.version) fail("photo_jobs_cas_conflict")
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
             membership!!.advance()
         }
         if (readOne(retired.id) != null) fail("photo_jobs_retirement_readback_failed")
+    }
+
+    /** exists(false) also means inaccessible. Only exact ENOENT under the
+     * original searchable private parent is evidence of completed cleanup. */
+    private fun cleanupAttributes(child: File): BasicFileAttributes? {
+        fun parent() {
+            checkDirectory()
+            if (!Files.getPosixFilePermissions(directory.toPath(), NOFOLLOW_LINKS)
+                    .containsAll(PosixFilePermissions.fromString("rwx------"))) fail("photo_jobs_cleanup_parent_inaccessible")
+        }
+        parent()
+        val result = try { attributes(child) } catch (_: NoSuchFileException) { null }
+        parent()
+        return result
     }
 
     private fun update(expected: PhotoSourceJob, wanted: PhotoSourceJob, permitted: () -> Unit = {}): PhotoSourceJob {
