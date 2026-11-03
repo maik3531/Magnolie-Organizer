@@ -153,6 +153,65 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         ready(); selection.catalog.resolve(this, selection)
     }
 
+    internal class FrozenBatch internal constructor(val job: PhotoSourceJob?, val reachedCurrentEnd: Boolean) {
+        val provesDeletion: Boolean get() = false
+    }
+
+    /** One live native album scan. Each batch becomes a real reserved, frozen,
+     * read-back source, not a partial manifest or a metadata-only success.
+     * The caller must finish/retire its previous source before requesting more.
+     */
+    internal inner class AlbumBatches internal constructor(private val selection: NativeGalleryAlbumSelection) : AutoCloseable {
+        private val observed = bound()
+        private val album = selection.catalog.resolve(this@NativeGalleryPhotoWorkflow, selection)
+        private val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
+        private val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        private var continuation: AndroidGalleryPhotoSource.Continuation? = null
+        private var previous: PhotoSourceJob? = null
+        private var ended = false
+        private var failed = false
+        private val stopped = AtomicBoolean(false)
+        private val activeCancellation = AtomicReference<CancellationSignal?>()
+
+        @Synchronized fun next(cancellation: CancellationSignal = CancellationSignal()): FrozenBatch {
+            fun current() {
+                ready(); cancellation.throwIfCanceled()
+                if (stopped.get() || ended || failed || binding.get() !== observed) fail("gallery_album_batch_not_current")
+                validateSelection(selection)
+                if (!observed.scope.isCurrent(lease)) fail("gallery_inventory_source_revoked")
+            }
+            current(); index.requireMembershipReady()
+            if (previous?.let { old -> index.jobs().any { it.id == old.id } } == true)
+                fail("gallery_album_previous_batch_held")
+            activeCancellation.set(cancellation)
+            try {
+                current()
+                val batch = reader.enumerateBatch(lease, continuation, cancellation)
+                current()
+                val job = if (batch.inventory.entries.isEmpty()) null else
+                    freezeInventory(batch.inventory, observed, reader, cancellation)
+                current()
+                previous = job; continuation = batch.continuation; ended = batch.reachedCurrentEnd
+                return FrozenBatch(job, ended)
+            } catch (error: Exception) {
+                failed = true // No implicit replay after a potentially committed reservation.
+                throw error
+            } finally {
+                activeCancellation.compareAndSet(cancellation, null)
+            }
+        }
+
+        override fun close() {
+            stopped.set(true)
+            activeCancellation.get()?.cancel() // Nonblocking request, never source owner release or deletion.
+        }
+    }
+
+    internal fun albumBatches(selection: NativeGalleryAlbumSelection): AlbumBatches {
+        ready(); index.requireMembershipReady(); validateSelection(selection)
+        return AlbumBatches(selection)
+    }
+
     /** Blocking bounded IO: run off the main UI thread in the real coordinator.
      * No partial source or manifest is offered on any failure; reservation and
      * exact native in-process cleanup witnesses remain held for explicit repair.
@@ -165,6 +224,14 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
         val reader = AndroidGalleryPhotoSource(app, observed.scope)
         val inventory = reader.enumerate(lease, cancellation)
+        return freezeInventory(inventory, observed, reader, cancellation)
+    }
+
+    private fun freezeInventory(inventory: PhotoSourceInventory, observed: Binding, reader: AndroidGalleryPhotoSource,
+        cancellation: CancellationSignal): PhotoSourceJob {
+        ready()
+        if (binding.get() !== observed) fail("gallery_album_batch_not_current")
+        val lease = inventory.lease
         val reserved = index.reserve(inventory, observed.scope)
         var snapshot: ProtectedPhotoSourceSnapshot? = null
         try {

@@ -30,16 +30,41 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
     private fun projection(): Array<String> = arrayOf("_id", "bucket_id", "bucket_display_name", "_display_name",
         "mime_type", "_size", "date_modified", "date_added") +
         (if (modern) arrayOf("relative_path", "is_pending") else emptyArray()) +
-        (if (Build.VERSION.SDK_INT >= 30) arrayOf("is_trashed", "generation_added", "generation_modified") else emptyArray())
+         (if (Build.VERSION.SDK_INT >= 30) arrayOf("is_trashed", "generation_added", "generation_modified") else emptyArray())
+
+    /** In-process scan position, not a URI, READ grant or deletion inventory.
+     * Fresh native scope checks are mandatory on EVERY continuation query.
+     */
+    internal class Continuation internal constructor(internal val reader: AndroidGalleryPhotoSource,
+        internal val lease: GalleryPhotoSourceLease, internal val after: Long)
+
+    internal class Batch internal constructor(val inventory: PhotoSourceInventory, val continuation: Continuation?) {
+        val reachedCurrentEnd: Boolean get() = continuation == null
+        // MediaStore can change between queries, even when the current end was seen.
+        val provesDeletion: Boolean get() = false
+    }
+
+    fun enumerateBatch(lease: GalleryPhotoSourceLease, continuation: Continuation? = null,
+        cancellation: CancellationSignal = CancellationSignal()): Batch {
+        fresh(lease, cancellation)
+        if (continuation != null && (continuation.reader !== this || continuation.lease !== lease || continuation.after <= 0))
+            fail("gallery_inventory_continuation_changed")
+        return enumerateBounded(lease, cancellation, continuation?.after ?: 0L, true)
+    }
 
     fun enumerate(lease: GalleryPhotoSourceLease, cancellation: CancellationSignal = CancellationSignal()): PhotoSourceInventory {
+        return enumerateBounded(lease, cancellation, 0L, false).inventory
+    }
+
+    private fun enumerateBounded(lease: GalleryPhotoSourceLease, cancellation: CancellationSignal,
+        initialAfter: Long, batching: Boolean): Batch {
         val started = SystemClock.elapsedRealtime()
         fun ready() {
             fresh(lease, cancellation)
             if (SystemClock.elapsedRealtime() - started > MAX_ELAPSED_MS) fail("gallery_inventory_deadline")
         }
         ready()
-        var after = 0L
+        var after = initialAfter
         var total = 0L
         val entries = mutableListOf<PhotoInventoryEntry>()
         val aliases = mutableSetOf<String>()
@@ -66,6 +91,13 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
                     val entry = member(lease, it)
                     val id = entry.documentId.substringBefore(':').toLong()
                     if (id <= after) fail("gallery_inventory_page_order")
+                    if (batching && (entries.size >= DeviceFileManifest.MAX_FILES ||
+                            total + entry.advertisedBytes > DeviceFileManifest.MAX_TOTAL_BYTES)) {
+                        // Look ahead without consuming this member. The next batch
+                        // queries after the last INCLUDED row, never after this row.
+                        ready()
+                        return Batch(PhotoSourceInventory(lease, entries), Continuation(this, lease, after))
+                    }
                     after = id
                     if (entries.size >= DeviceFileManifest.MAX_FILES) fail("gallery_inventory_file_limit")
                     total += entry.advertisedBytes
@@ -77,7 +109,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
                 }
             }
             ready()
-            if (count < PAGE_SIZE) return PhotoSourceInventory(lease, entries)
+            if (count < PAGE_SIZE) return Batch(PhotoSourceInventory(lease, entries), null)
         }
         fail("gallery_inventory_page_limit")
     }

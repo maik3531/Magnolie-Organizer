@@ -132,6 +132,63 @@ class AndroidGalleryPhotoSourceTest {
         override fun close() { assertClosed(); root.deleteRecursively() }
     }
 
+    @Test fun explicitAlbumBatchesVisitEveryMemberBeyond128WithoutOpeningPhotoBytes() {
+        Fixture().use { f ->
+            f.provider.rows = (1..300).map { Row(id = it.toLong(), name = "$it.jpg") }
+            val lease = f.lease()
+            var continuation: AndroidGalleryPhotoSource.Continuation? = null
+            val ids = mutableListOf<String>(); val sizes = mutableListOf<Int>()
+            do {
+                val batch = f.reader.enumerateBatch(lease, continuation)
+                assertFalse(batch.provesDeletion)
+                sizes += batch.inventory.entries.size
+                ids += batch.inventory.entries.map { it.documentId.substringBefore(':') }
+                continuation = batch.continuation
+                assertEquals(continuation == null, batch.reachedCurrentEnd)
+            } while (continuation != null)
+            assertEquals(listOf(128, 128, 44), sizes)
+            assertEquals((1..300).map { it.toString() }, ids)
+            assertTrue(f.provider.opens.isEmpty()); f.assertClosed()
+            // The old whole-inventory API still refuses truncation.
+            assertEquals("gallery_inventory_file_limit", assertThrows(PhotoFolderScopeError::class.java) {
+                f.reader.enumerate(lease)
+            }.code)
+        }
+    }
+
+    @Test fun explicitAlbumBatchByteBoundaryDoesNotSkipTheLookaheadMember() {
+        Fixture().use { f ->
+            f.provider.rows = (1..9).map { Row(id = it.toLong(), name = "$it.jpg", bytes = DeviceFileManifest.MAX_FILE_BYTES) }
+            val lease = f.lease()
+            val first = f.reader.enumerateBatch(lease)
+            assertEquals(8, first.inventory.entries.size); assertFalse(first.reachedCurrentEnd)
+            val last = f.reader.enumerateBatch(lease, first.continuation)
+            assertEquals(listOf("9:90"), last.inventory.entries.map { it.documentId })
+            assertTrue(last.reachedCurrentEnd); assertFalse(last.provesDeletion)
+            assertTrue(f.provider.opens.isEmpty())
+        }
+    }
+
+    @Test fun explicitAlbumContinuationRejectsForeignLeaseRevocationAndCancellation() {
+        Fixture().use { f ->
+            f.provider.rows = (1..129).map { Row(id = it.toLong(), name = "$it.jpg") }
+            val lease = f.lease(); val first = f.reader.enumerateBatch(lease)
+            assertNotNull(first.continuation)
+            assertEquals("gallery_inventory_continuation_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                f.reader.enumerateBatch(f.lease(), first.continuation)
+            }.code)
+            assertThrows(PhotoFolderScopeError::class.java) {
+                AndroidGalleryPhotoSource(f.context, f.scope).enumerateBatch(lease, first.continuation)
+            }
+            val canceled = CancellationSignal().also { it.cancel() }
+            assertThrows(OperationCanceledException::class.java) { f.reader.enumerateBatch(lease, first.continuation, canceled) }
+            f.request = null
+            assertEquals("gallery_inventory_source_revoked", assertThrows(PhotoFolderScopeError::class.java) {
+                f.reader.enumerateBatch(lease, first.continuation)
+            }.code)
+        }
+    }
+
     private class HistoricalCase : AutoCloseable {
         val f = Fixture()
         val directory = Files.createTempDirectory(f.root.toPath(), "historical350-").toFile()
@@ -2283,6 +2340,101 @@ class AndroidGalleryPhotoSourceTest {
                 f.request = null
                 assertThrows(PhotoFolderScopeError::class.java) { source.observeImageAnimation(file.id) }
                 assertEquals(opens, f.provider.opens.size)
+            }
+        }
+    }
+
+    @Test fun nativeAlbumBatchesFreezeRealSourcesAndRequirePreviousCacheRetirementBeforeContinuing() {
+        Fixture().use { f ->
+            f.provider.rows = (1..130).map { Row(id = it.toLong(), name = "$it.jpg") }
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-batches-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { }; activity.start().resume()
+                val catalog = workflow.discoverSelectable()
+                val page = catalog.page()
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.first().jsonObject.string("album_id"), false)
+                workflow.albumBatches(selection).use { scan ->
+                    val first = scan.next(); val job = first.job!!
+                    assertFalse(first.reachedCurrentEnd); assertFalse(first.provesDeletion)
+                    val source = workflow.source(job, catalog.source, selection.album)
+                    assertEquals(128, source.manifest.files.size)
+                    val firstSourceId = source.manifest.sourceId
+                    val firstOrigins = source.galleryOrigins!!.entries.map { it.nativeMember.substringBefore(':') }.toSet()
+                    source.manifest.files.forEach { assertArrayEquals("hello".toByteArray(), source.readChunk(it.id, 0)) }
+                    val opens = f.provider.opens.size
+                    assertEquals("gallery_album_previous_batch_held", assertThrows(PhotoFolderScopeError::class.java) { scan.next() }.code)
+                    assertEquals(opens, f.provider.opens.size); assertEquals(listOf(job), workflow.jobs())
+                    workflow.retireCached(job) // Explicit native unaccepted preview cleanup, not a Saved claim.
+                    assertTrue(workflow.jobs().isEmpty())
+                    val last = scan.next(); assertTrue(last.reachedCurrentEnd); assertFalse(last.provesDeletion)
+                    val lastJob = last.job!!
+                    val rest = workflow.source(lastJob, catalog.source, selection.album)
+                    assertEquals(2, rest.manifest.files.size)
+                    assertNotEquals(firstSourceId, rest.manifest.sourceId)
+                    assertEquals(setOf("129", "130"), rest.galleryOrigins!!.entries.map { it.nativeMember.substringBefore(':') }.toSet())
+                    assertEquals((1..128).map { it.toString() }.toSet(), firstOrigins)
+                    rest.manifest.files.forEach { assertArrayEquals("hello".toByteArray(), rest.readChunk(it.id, 0)) }
+                    assertThrows(PhotoFolderScopeError::class.java) { scan.next() }
+                    workflow.retireCached(lastJob)
+                }
+                assertTrue(workflow.jobs().isEmpty()); assertEquals("hello", File(f.root, "source.bin").readText())
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun nativeEmptyAlbumBatchCreatesNoJobAndCannotProveDeletion() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-empty-batch-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { }; activity.start().resume()
+                val catalog = workflow.discoverSelectable(); val page = catalog.page()
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.first().jsonObject.string("album_id"), false)
+                f.provider.rows = emptyList() // The live album emptied AFTER discovery, not a delete authorization.
+                workflow.albumBatches(selection).use { scan ->
+                    val empty = scan.next()
+                    assertNull(empty.job); assertTrue(empty.reachedCurrentEnd); assertFalse(empty.provesDeletion)
+                    assertThrows(PhotoFolderScopeError::class.java) { scan.next() }
+                }
+                assertTrue(workflow.jobs().isEmpty()); assertTrue(f.provider.opens.isEmpty())
+            } finally { workflow.close(); activity.pause().stop().destroy() }
+        }
+    }
+
+    @Test fun nativeAlbumBatchCloseRequestsCancellationWithoutWaitingForBlockedProviderOrReleasingIo() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-blocked-batch-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+            val error = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            var worker: Thread? = null
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                workflow.bindActivity(activity.get()) { }; activity.start().resume()
+                val catalog = workflow.discoverSelectable(); val page = catalog.page()
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.first().jsonObject.string("album_id"), false)
+                val scan = workflow.albumBatches(selection)
+                f.provider.onQuery = { entered.countDown(); check(release.await(10, java.util.concurrent.TimeUnit.SECONDS)) }
+                worker = Thread { try { scan.next() } catch (failure: Throwable) { error.set(failure) } }.also { it.start() }
+                check(entered.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                scan.close() // Must return while provider still owns its open cursor.
+                assertTrue(worker.isAlive); assertTrue(workflow.jobs().isEmpty())
+                release.countDown(); worker.join(10_000); assertFalse(worker.isAlive)
+                assertTrue(error.get() is OperationCanceledException)
+                assertThrows(PhotoFolderScopeError::class.java) { scan.next() }
+                assertTrue(workflow.jobs().isEmpty()); assertTrue(f.provider.opens.isEmpty())
+            } finally {
+                release.countDown(); worker?.join(10_000)
+                workflow.close(); activity.pause().stop().destroy()
             }
         }
     }

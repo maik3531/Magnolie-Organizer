@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit bounded native album inventory batches (Refs #330)
+
+The Gallery reader offers an explicit in-process batch API in addition to its
+unchanged all-or-fail whole-inventory API. Each batch obeys the existing 128-file,
+400-MiB, provider-page and query-time bounds. A reader/exact-native-lease-bound
+keyset continuation points after the last INCLUDED row; a size/count lookahead
+does not consume the next member. Every continuation rechecks native authority,
+permissions, cancellation, album/provider metadata and ordering. Neither reaching
+the current end nor an empty batch proves deletion: MediaStore is a live source,
+not an atomic full-album snapshot.
+
+The native workflow can freeze consecutive batches into actual separately reserved,
+encrypted and read-back source jobs. Its preceding source must be explicitly
+retired before it prepares another. Empty batches allocate no transfer job; errors
+after potentially committed I/O do not implicitly retry reservations. Scan close
+requests cancellation without waiting for blocked provider I/O or pretending that
+I/O ownership ended, and never deletes photos or private caches itself.
+
+16 distinct host cases pass (six new, ten affected), including 300 exact members
+across 128/128/44 inventories, byte-boundary lookahead, foreign/revoked/canceled
+continuations, actual encrypted 128/2 native sources with prior-cache admission
+guard, empty inventory, blocked-provider cancellation and affected original
+inventory/workflow/frozen-selection behavior. Production run commands, desktop
+whole-album iteration and installed phone/UI acceptance are NOT connected by this
+step; their readiness/automatic/UI/release gates remain OFF.
+
 ### Completed-cache capacity without dropping save history (Refs #330)
 
 An explicit native finish can now retire only a fully saved receiver's exact owned
