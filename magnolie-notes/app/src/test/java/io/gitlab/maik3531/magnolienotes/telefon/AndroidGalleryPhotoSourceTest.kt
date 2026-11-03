@@ -481,7 +481,7 @@ class AndroidGalleryPhotoSourceTest {
                         assertEquals(manifest!!.fingerprint, DeviceFileOfferEnvelope.validate(
                             Json.parseToJsonElement(clear.decodeToString()).jsonObject, identity.deviceId, peer.peerId, now).fingerprint)
                         val actualOffer=whole.offerOutput.get()!!
-                        val acceptance=TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                        var acceptance=TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
                             put("format",1); put("offer_id",actualOffer.messageId); put("transfer_id",manifest!!.transferId)
                             put("manifest_sha256",manifest!!.fingerprint); put("acceptance_sha256","c".repeat(64))
                             put("permission_epoch",runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token","e".repeat(64))
@@ -497,6 +497,55 @@ class AndroidGalleryPhotoSourceTest {
                             runtime.observeAcceptance(acceptance,{if (++acceptanceTicks>=3) now+60_000 else now})
                         }
                         assertNull(whole.acceptance.get())
+                        val wireOfferCommand = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                            put("format",1); put("operation","offer_run"); put("expected_version",runtime.savedPolicy().version); put("run_id",whole.id)
+                        },60_000,now)
+                        val providerOpens = f.provider.opens.size
+                        val oldOutput = whole.offerOutput.get()
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.receiveSourceCommand(wireOfferCommand, { throw java.io.IOException("wire offer output failed") }, {now})
+                        }
+                        assertSame(oldOutput,whole.offerOutput.get())
+                        assertNotNull(whole.wireOfferAttempt.get())
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.observeAcceptance(acceptance,{now}) }
+                        fun drainedWire(): List<JsonObject> {
+                            val input=ByteArrayInputStream(output.toByteArray());output.reset()
+                            val result=mutableListOf<JsonObject>()
+                            while(input.available()>0) {
+                                val encrypted=TelefonRahmen.lesen(input);val aad=JsonObject(encrypted-"ciphertext")
+                                val plain=TelefonKrypto.entschluesseln(key,TelefonKrypto.nonce(prefix,aad.long("seq")),
+                                    java.util.Base64.getDecoder().decode(encrypted.string("ciphertext")),TelefonKanonisch.bytes(aad))
+                                result+=Json.parseToJsonElement(plain.decodeToString()).jsonObject
+                            }
+                            return result
+                        }
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.receiveSourceCommand(wireOfferCommand, {
+                                if(it.string("kind")==DeviceFileSourceCommand.RUN_RESULT) throw java.io.IOException("offer result output lost")
+                                channel.send(it)
+                            }, {now})
+                        }
+                        val unconfirmed=drainedWire().single()
+                        assertEquals(DeviceFileOfferEnvelope.KIND,unconfirmed.string("kind"))
+                        runtime.receiveSourceCommand(wireOfferCommand,channel::send,{now})
+                        val offeredWire=drainedWire()
+                        assertEquals(2,offeredWire.size);assertEquals(unconfirmed,offeredWire[0])
+                        val wireResult=offeredWire[1]
+                        assertEquals(DeviceFileSourceCommand.RUN_RESULT,wireResult.string("kind"))
+                        assertEquals(wireOfferCommand.string("message_id"),wireResult["body"]!!.jsonObject.string("request_id"))
+                        assertEquals("offer_run",wireResult["body"]!!.jsonObject.string("operation"))
+                        assertEquals(offeredWire[0].string("message_id"),wireResult["body"]!!.jsonObject.string("offer_id"))
+                        assertEquals(manifest!!.fingerprint,wireResult["body"]!!.jsonObject.string("manifest_sha256"))
+                        assertTrue(wireResult.long("expires_ms")<=offeredWire[0].long("expires_ms"))
+                        runtime.receiveSourceCommand(wireOfferCommand,channel::send,{now})
+                        assertEquals(offeredWire[0],drainedWire()[0])
+                        val changed=JsonObject(wireOfferCommand+("created_ms" to JsonPrimitive(now+1)))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(changed,channel::send,{now}) }
+                        val replacementCommand=TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST,wireOfferCommand["body"]!!.jsonObject,60_000,now)
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(replacementCommand,channel::send,{now}) }
+                        assertEquals(0,output.size());assertEquals(providerOpens,f.provider.opens.size)
+                        acceptance=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+
+                            ("offer_id" to JsonPrimitive(offeredWire[0].string("message_id"))))))
                         runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
                         assertEquals("e".repeat(64),whole.acceptance.get()!!.destinationToken)
                         val chunkRequest=TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST,buildJsonObject {

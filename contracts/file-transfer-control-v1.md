@@ -1090,6 +1090,48 @@ native advanced UI bridge, baseline/conflict/tombstone/quota union, phone restar
 READ renewal and physical acceptance remain outstanding. No timer, automatic
 worker, discovery 21 or package is enabled.
 
+### Explicit immutable native run offer request (integration still gated)
+
+`file_transfer.sources.request` operation `offer_run` accepts exactly format,
+operation, expected_version and the original native run_id. Android requires the
+held whole run, ended source preparation, current native Gallery read authority
+and its protected frozen manifest. Before actual output it retains one immutable
+offer envelope plus exact request ID/full canonical command digest. Failed offer
+or result writes may retry only that same attempt; differing command bodies or
+new request IDs cannot replace it. Original wall expiry, observed wall/monotonic
+rollback and a bounded native monotonic deadline permanently fence the attempt.
+No cache/provider reopen scan, whole-run release or quota retirement is implied.
+
+Actual output is `file_transfer.offer` followed by the correlated sources.run_result
+with operation `offer_run`, snapshot_ready, source_io_ended=true, offer_id and
+manifest_sha256. Only this result operation accepts those two extra fields.
+Result and offer deadlines cannot exceed the original command deadline. Offer
+output, result output, acceptance, durable checkpoint, save and whole-run completion
+remain separate events. An earlier native offer output cannot authorize acceptance
+after an unresolved wire attempt has retained a different offer envelope.
+
+Python and C# strict codecs match these fields and reject non-ready states, missing
+or aliased IDs/hashes, extra authority, wrong policy/run/request and expired results.
+The PC controller permits an explicit offer request only for its exact known
+snapshot-ready source run. It retains the received immutable offer but cannot
+accept/resume it until a result names that exact offer ID and full manifest hash.
+Metadata arriving without the offer cannot complete the command. Cancellation,
+changed native policy/binding or outstanding commands prevent acceptance. Pending
+offers cannot be replaced by retry metadata. Existing unsolicited native-only
+receive admission remains separate when no source run is held.
+
+Evidence so far: eleven Android source-host/Robolectric cases pass (parser 7,
+bounded attempt 3, actual Gallery/runtime encrypted lifecycle 1); Python source
+codec 43, source-controller 22 and native receive/resume 21 cases pass, including
+targeted final fixture-clock/admission and changed-source-policy checks. C# source-host core
+source-codec group passes 1/1 after compilation. The initial C# invocation passed
+a build flag to the application filter and ran no tests; invoking the already-built
+DLL with the exact group filter then passed. These are not physical Android or
+installed Windows receiver/DPAPI, full synchronization or release acceptance.
+Production readiness and discovery 21 remain OFF. The actual Android Gallery
+lifecycle case also passes after adding post-source-read acceptance attempt
+revalidation, replacing that case's earlier evidence rather than counting it twice.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

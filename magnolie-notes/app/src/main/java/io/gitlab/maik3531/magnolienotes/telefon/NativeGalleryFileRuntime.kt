@@ -81,29 +81,64 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     /** Native-only offer path. An output receipt is not acceptance/publication.
      * Whole-run ownership remains held after source preparation and this write. */
     internal fun sendSyncRunOffer(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,
-        now: Long = System.currentTimeMillis()) = withOperation {
+        now: Long = System.currentTimeMillis()): Unit = withOperation {
+        sendSyncRunOfferOwned(run, send, { now })
+        Unit
+    }
+
+    private fun sendSyncRunOfferOwned(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,
+        now: () -> Long, checkCommand: () -> Unit = {},
+        wire: Pair<DeviceFileSourceCommand, JsonObject>? = null): NativeGalleryOfferOutput {
         if (syncRun !== run || run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
         if (run.acceptance.get() != null) DeviceFileControl.fail("file_accept_already_bound")
+        val held = run.wireOfferAttempt.get()
+        val digest = wire?.let { DeviceFileControl.digest("magnolie-gallery-offer-command-v1\u0000", it.second) }
+        if (held != null && (wire == null || held.requestId != wire.first.requestId || held.commandSha256 != digest))
+            DeviceFileControl.fail("gallery_sync_offer_attempt_held")
+        held?.checkCurrent(now())
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
         val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
         val selected = run.selection
         val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
-        val offer = source.offerMessage(now)
         val manifest = source.manifest
         val fingerprint = manifest.fingerprint
+        checkCommand()
+        val offer = held?.message ?: if (wire == null) source.offerMessage(now()) else {
+            val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, wire.first.expires - at)
+            if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+            DeviceFileOfferEnvelope.create(manifest, at, ttlMs = ttl).also {
+                // Capture the exact immutable envelope BEFORE actual output.
+                // A lost offer/result write may retry only this native attempt,
+                // never silently replace the remotely pending offer identity.
+                run.wireOfferAttempt.set(NativeGalleryWireOfferAttempt(wire.first.requestId, digest!!, it, at))
+            }
+        }
+        if (DeviceFileOfferEnvelope.validate(offer, manifest.senderId, manifest.receiverId, now()).fingerprint != fingerprint ||
+            now() >= offer.long("expires_ms")) DeviceFileControl.fail("file_offer_invalid_envelope")
         if (workflow.currentRequest() == null || run.cancelRequested) DeviceFileControl.fail("gallery_source_not_activated")
+        checkCommand()
+        run.wireOfferAttempt.get()?.checkCurrent(now())
         send(offer)
         // Revalidate actual protected source authority after output as well.
         if (source.manifest.fingerprint != fingerprint || workflow.currentRequest() == null || run.cancelRequested)
             DeviceFileControl.fail("gallery_source_not_activated")
+        checkCommand()
+        run.wireOfferAttempt.get()?.checkCurrent(now())
+        if (now() >= offer.long("expires_ms")) DeviceFileControl.fail("file_offer_invalid_envelope")
         run.offered.set(fingerprint)
-        run.offerOutput.set(NativeGalleryOfferOutput(offer.string("message_id"), manifest.transferId, fingerprint, offer.long("expires_ms")))
+        return NativeGalleryOfferOutput(offer.string("message_id"), manifest.transferId, fingerprint, offer.long("expires_ms")).also {
+            run.offerOutput.set(it)
+        }
     }
 
     internal fun observeAcceptance(message: JsonObject, now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
         val accepted = DeviceFileAcceptanceEnvelope.parse(message, now())
         val run = syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
         val offer = run.offerOutput.get() ?: DeviceFileControl.fail("file_accept_offer_not_sent")
+        run.wireOfferAttempt.get()?.let {
+            it.checkCurrent(now())
+            if (offer.messageId != it.message.string("message_id")) DeviceFileControl.fail("file_accept_offer_not_sent")
+        }
         if (now() >= offer.expires || accepted.offerId != offer.messageId || accepted.transferId != offer.transferId ||
             accepted.manifestSha256 != offer.manifestSha256) DeviceFileControl.fail("file_accept_offer_changed")
         val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
@@ -117,6 +152,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         if (source.manifest.fingerprint != accepted.manifestSha256 || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
             DeviceFileControl.fail("file_accept_permission_changed")
         val checked = now()
+        run.wireOfferAttempt.get()?.checkCurrent(checked)
         if (checked >= accepted.expires || checked >= offer.expires) DeviceFileControl.fail("file_accept_offer_changed")
         run.acceptance.set(accepted)
     }
@@ -220,7 +256,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
-            if (command.operation in setOf("run", "run_status", "cancel_run")) {
+            if (command.operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
                 val run = if (command.operation == "run") {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                     val scope = DeviceFileControl.digest("magnolie-gallery-run-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
@@ -237,6 +273,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 if (command.operation == "cancel_run") {
                     run.stopped.set(true); run.preparation.cancel()
                 }
+                val output = if (command.operation == "offer_run") sendSyncRunOfferOwned(run, send, now,
+                    { authority(); Unit }, command to message) else null
                 authority()
                 val ioEnded = run.preparation.ioEnded
                 val state = if (run.cancelRequested && !ioEnded) "cancel_pending"
@@ -245,10 +283,15 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                     put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ioEnded))
+                    if (output != null) {
+                        put("offer_id", JsonPrimitive(output.messageId)); put("manifest_sha256", JsonPrimitive(output.manifestSha256))
+                    }
                 }
-                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                val at = now(); val deadline = minOf(command.expires, output?.expires ?: command.expires)
+                val ttl = minOf(DeviceFileControl.MAX_TTL_MS, deadline - at)
                 if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
                 authority(); send(TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)); authority()
+                if (now() >= deadline) DeviceFileControl.fail("file_sources_command_expired")
                 return@withOperation
             }
             if (command.operation == "request_read") {

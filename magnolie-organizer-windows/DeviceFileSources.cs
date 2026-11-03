@@ -11,7 +11,8 @@ internal sealed record DeviceFileSourceStatus(string RequestId, string Operation
 internal sealed record DeviceFileAlbumMetadata(string AlbumId, string Kind, string DisplayName, long VisibleImages, bool NeedsChoice);
 internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? NextCursor, string Coverage, IReadOnlyList<DeviceFileAlbumMetadata> Albums);
 internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State);
-internal sealed record DeviceFileRunResult(string RequestId, string Operation, string Version, string RunId, string State, bool SourceIoEnded);
+internal sealed record DeviceFileRunResult(string RequestId, string Operation, string Version, string RunId, string State, bool SourceIoEnded,
+    string? OfferId = null, string? ManifestSha256 = null);
 
 internal static class DeviceFileSources
 {
@@ -55,7 +56,7 @@ internal static class DeviceFileSources
     internal static DeviceFileSourceRequest ParseRequest(JsonObject message, long now)
     {
         var body = Body(message, RequestKind, now); var operation = Text(body, "operation");
-        if (operation is "run" or "run_status" or "cancel_run")
+        if (operation is "run" or "run_status" or "cancel_run" or "offer_run")
         {
             Exact(body, operation == "run" ? ["format", "operation", "expected_version", "catalog_id", "album_id", "desktop_choice"] :
                 ["format", "operation", "expected_version", "run_id"]);
@@ -100,8 +101,8 @@ internal static class DeviceFileSources
     {
         if (now is < 0 or > 253402300739999) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
-        if (operation is not ("run" or "run_status" or "cancel_run") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
-        if (operation is "run" or "run_status" or "cancel_run")
+        if (operation is not ("run" or "run_status" or "cancel_run" or "offer_run") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
+        if (operation is "run" or "run_status" or "cancel_run" or "offer_run")
         {
             if (enabled is not null || kinds is not null || after is not null) throw Error();
             body["expected_version"] = expectedVersion;
@@ -197,16 +198,21 @@ internal static class DeviceFileSources
         string expectedVersion, long now, string? expectedRunId = null)
     {
         var body = Body(message, RunResultKind, now);
-        Exact(body, "format", "request_id", "operation", "version", "run_id", "state", "source_io_ended");
         var id = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
+        Exact(body, operation == "offer_run" ?
+            ["format", "request_id", "operation", "version", "run_id", "state", "source_io_ended", "offer_id", "manifest_sha256"] :
+            ["format", "request_id", "operation", "version", "run_id", "state", "source_io_ended"]);
         var run = Text(body, "run_id"); var state = Text(body, "state"); var ended = Flag(body, "source_io_ended");
+        var offer = operation == "offer_run" ? Text(body, "offer_id") : null;
+        var manifest = operation == "offer_run" ? Text(body, "manifest_sha256") : null;
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || operation != expectedOperation ||
-            operation is not ("run" or "run_status" or "cancel_run") || !DeviceFileControl.Hash(version) || version != expectedVersion ||
+            operation is not ("run" or "run_status" or "cancel_run" or "offer_run") || !DeviceFileControl.Hash(version) || version != expectedVersion ||
             !TelefonProtocolContract.IsUuidV4(run) || operation != "run" && (!TelefonProtocolContract.IsUuidV4(expectedRunId) || run != expectedRunId) ||
             operation == "run" && expectedRunId is not null && run != expectedRunId ||
             state is not ("preparing" or "snapshot_ready" or "cancel_pending" or "canceled_held" or "failed_held") ||
             ended != (state is "snapshot_ready" or "canceled_held" or "failed_held") ||
-            operation == "cancel_run" && state is not ("cancel_pending" or "canceled_held")) throw Error();
-        return new(id, operation, version, run, state, ended);
+            operation == "cancel_run" && state is not ("cancel_pending" or "canceled_held") ||
+            operation == "offer_run" && (state != "snapshot_ready" || !TelefonProtocolContract.IsUuidV4(offer) || !DeviceFileControl.Hash(manifest))) throw Error();
+        return new(id, operation, version, run, state, ended, offer, manifest);
     }
 }

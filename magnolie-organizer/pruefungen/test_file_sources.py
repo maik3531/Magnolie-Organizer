@@ -78,3 +78,51 @@ def test_shared_source_command_golden_matches_canonical_bytes():
     assert len(wire) == vector['canonical_bytes']
     assert hashlib.sha256(wire).hexdigest() == vector['canonical_sha256']
     assert sources.parse_command(vector['configure'], now=vector['now_ms']).kinds == ('camera', 'screenshots')
+
+
+def offer_result():
+    message = result()
+    message['kind'] = sources.RUN_RESULT
+    message['body'] = dict(format=1, request_id=ID, operation='offer_run', version='a'*64, run_id=ID,
+                           state='snapshot_ready', source_io_ended=True, offer_id=ID, manifest_sha256='b'*64)
+    return message
+
+
+def parse_offer(message, **options):
+    return sources.parse_run_result(message, expected_request_id=options.get('request', ID),
+        expected_operation=options.get('operation', 'offer_run'), expected_version=options.get('version', 'a'*64),
+        expected_run_id=options.get('run', ID), now=options.get('now', NOW))
+
+
+def test_offer_request_binds_exact_policy_and_native_run_but_never_selects_an_offer():
+    command = sources.create_command('offer_run', expected_version='a'*64, run_id=ID, now=NOW)
+    parsed = sources.parse_command(command, now=NOW)
+    assert parsed.run_id == ID and parsed.expected_version == 'a'*64
+    for key, value in [('offer_id', ID), ('manifest_sha256', 'b'*64), ('run_id', 'path'), ('read_granted', True)]:
+        changed = deepcopy(command); changed['body'][key] = value
+        with pytest.raises(TransferError): sources.parse_command(changed, now=NOW)
+    with pytest.raises(TransferError): sources.create_command('offer_run', expected_version='a'*64, run_id=ID, enabled=True, now=NOW)
+
+
+def test_offer_result_is_exact_ready_output_metadata_not_a_save_or_grant():
+    parsed = parse_offer(offer_result())
+    assert parsed.offer_id == ID and parsed.manifest_sha256 == 'b'*64
+    assert not hasattr(parsed, 'saved') and not hasattr(parsed, 'read_granted')
+    for missing in ('offer_id', 'manifest_sha256'):
+        changed = offer_result(); del changed['body'][missing]
+        with pytest.raises(TransferError): parse_offer(changed)
+
+
+@pytest.mark.parametrize('key,value', [('offer_id', 'path'), ('manifest_sha256', 'B'*64),
+    ('source_io_ended', False), ('source_io_ended', 1), ('state', 'preparing'), ('state', 'failed_held'),
+    ('state', 'canceled_held'), ('success', True), ('operation', 'run_status')])
+def test_offer_output_fields_cannot_be_aliased_or_added_to_other_run_results(key, value):
+    changed = offer_result(); changed['body'][key] = value
+    with pytest.raises(TransferError): parse_offer(changed)
+
+
+@pytest.mark.parametrize('option,value', [('request', '22222222-2222-4222-8222-222222222222'),
+    ('run', '22222222-2222-4222-8222-222222222222'), ('version', 'c'*64),
+    ('operation', 'run_status'), ('now', NOW+60_000)])
+def test_offer_result_cannot_escape_original_command_correlation_or_deadline(option, value):
+    with pytest.raises(TransferError): parse_offer(offer_result(), **{option: value})

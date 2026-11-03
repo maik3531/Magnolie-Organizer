@@ -75,11 +75,13 @@ def reconnect(fixture):
     finally: service._end_native_file_connection(channel)
 
 
-def offer(fixture, data=b'hello', transfer='1'):
+def offer(fixture, data=b'hello', transfer='1', *, deadline=None, now=None):
     service, peer, channel, connection, _ = fixture
     manifest = FileManifest(transfer*32, '2'*32, peer['device_id'], service.store.identity['device_id'],
         (ManifestFile('3'*32, 'Camera/photo.jpg', len(data), sha256(data).hexdigest()),), len(data))
-    message = create_offer(manifest)
+    message = create_offer(manifest, now=now)
+    if deadline is not None:
+        message['expires_ms'] = min(message['expires_ms'], deadline)
     service._payload(peer, channel, message)
     return message, manifest
 

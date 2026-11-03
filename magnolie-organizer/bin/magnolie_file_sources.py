@@ -63,7 +63,7 @@ def parse_command(message, *, now=None):
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
         return SourceCommand(message["message_id"], "status")
-    if body.get('operation') in ('run', 'run_status', 'cancel_run'):
+    if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run'):
         starting = body['operation'] == 'run'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
                 or not _hex(body['expected_version'])):
@@ -100,9 +100,9 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation not in ('run', 'run_status', 'cancel_run') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
-    if operation in ('run', 'run_status', 'cancel_run'):
+    if operation in ('run', 'run_status', 'cancel_run', 'offer_run'):
         if enabled is not None or kinds != () or after is not None:
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
@@ -243,20 +243,27 @@ class SourceRunResult:
     run_id: str
     state: str
     source_io_ended: bool
+    offer_id: str | None = None
+    manifest_sha256: str | None = None
 
 
 def parse_run_result(message, *, expected_request_id, expected_operation, expected_version,
                      expected_run_id=None, now=None):
     body = _body(message, RUN_RESULT, now_ms() if now is None else now)
-    if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'}
+    offering = body.get('operation') == 'offer_run'
+    if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'} |
+            ({'offer_id', 'manifest_sha256'} if offering else set())
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] not in ('run', 'run_status', 'cancel_run') or body['operation'] != expected_operation
+            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run') or body['operation'] != expected_operation
             or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
             or body['operation'] != 'run' and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
             or body['operation'] == 'run' and expected_run_id is not None and body['run_id'] != expected_run_id
             or type(body['source_io_ended']) is not bool
             or body['state'] not in ('preparing', 'snapshot_ready', 'cancel_pending', 'canceled_held', 'failed_held')
             or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'canceled_held', 'failed_held'))
-            or body['operation'] == 'cancel_run' and body['state'] not in ('cancel_pending', 'canceled_held')):
+            or body['operation'] == 'cancel_run' and body['state'] not in ('cancel_pending', 'canceled_held')
+            or offering and (body['state'] != 'snapshot_ready' or not valid_uuid(body['offer_id'], version=4)
+                             or not _hex(body['manifest_sha256']))):
         raise TransferError('file_sources_invalid_run_result')
-    return SourceRunResult(body['request_id'], body['operation'], body['version'], body['run_id'], body['state'], body['source_io_ended'])
+    return SourceRunResult(body['request_id'], body['operation'], body['version'], body['run_id'], body['state'],
+                           body['source_io_ended'], body.get('offer_id'), body.get('manifest_sha256'))

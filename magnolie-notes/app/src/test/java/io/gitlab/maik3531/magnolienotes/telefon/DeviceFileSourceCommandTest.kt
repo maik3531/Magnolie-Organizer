@@ -90,12 +90,17 @@ class DeviceFileSourceCommandTest {
             "path" to JsonPrimitive("/private"), "success" to JsonPrimitive(true), "quota_retired" to JsonPrimitive(true))) {
             assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(start + (key to value))), now) }
         }
-        for (op in listOf("run_status", "cancel_run")) {
+        for (op in listOf("run_status", "cancel_run", "offer_run")) {
             val body = buildJsonObject {
                 put("format", 1); put("operation", op); put("expected_version", "a".repeat(64))
                 put("run_id", "33333333-3333-4333-8333-333333333333")
             }
             assertEquals(op, DeviceFileSourceCommand.parse(message(body), now).operation)
+            for ((key, value) in listOf("run_id" to JsonPrimitive("unowned-run"),
+                "expected_version" to JsonPrimitive(true), "offer_id" to JsonPrimitive("wire-selected-offer"),
+                "manifest_sha256" to JsonPrimitive("a".repeat(64)))) {
+                assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body + (key to value))), now) }
+            }
         }
     }
 }

@@ -30,7 +30,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
-            if (operation in setOf("run", "run_status", "cancel_run")) {
+            if (operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
                 if (body.keys != base + setOf("expected_version") +
                     (if (operation == "run") setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

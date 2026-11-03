@@ -52,6 +52,7 @@ class NativeDesktopFileConnection:
         self._source_pending = self._source_status = self._source_catalog = self._source_run = self._source_result = None
         self._source_albums = {}
         self._source_control_required = None
+        self._source_offer = None
         self._preferences = ProtectedPhotoPreferences(authority)
         self._destination = NativePhotoDestinationController(authority)
         try:
@@ -203,9 +204,13 @@ class NativeDesktopFileConnection:
                             or album.needs_choice and not desktop_choice):
                         raise TransferError('file_desktop_source_album_not_current')
                     options.update(catalog_id=self._source_catalog.catalog_id, album_id=album.album_id, desktop_choice=desktop_choice)
-            elif operation in ('run_status', 'cancel_run'):
+            elif operation in ('run_status', 'cancel_run', 'offer_run'):
                 if self._source_run is None:
                     raise TransferError('file_desktop_source_run_not_current')
+                if operation == 'offer_run' and (self._run is not None or self._offer is not None
+                        or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
+                        or self._source_run.version != self._source_status.version):
+                    raise TransferError('file_desktop_source_offer_not_ready')
                 options['run_id'] = self._source_run.run_id
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
@@ -250,6 +255,10 @@ class NativeDesktopFileConnection:
                     or old.state in ('cancel_pending', 'canceled_held') and result.state not in ('cancel_pending', 'canceled_held')
                     or old.state == 'failed_held' and result.state not in ('failed_held', 'canceled_held')):
                 raise TransferError('file_desktop_source_run_state_rollback')
+            if command.operation == 'offer_run':
+                self._correlate_source_offer(result, clock)
+                if message['expires_ms'] > min(pending.message['expires_ms'], self._offer['expires_ms']):
+                    raise TransferError('file_desktop_source_offer_correlation')
         self._source_command_authority(pending, clock)
         self._controls.finish_receiver_command(pending.ticket)
         self._source_pending = None
@@ -268,8 +277,12 @@ class NativeDesktopFileConnection:
                 self._source_albums = {}
             self._source_catalog = result
             self._source_albums.update((album.album_id, album) for album in result.albums)
-        elif command.operation in ('run', 'run_status', 'cancel_run'):
+        elif command.operation in ('run', 'run_status', 'cancel_run', 'offer_run'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
+            if command.operation == 'offer_run':
+                self._source_offer = result
+            elif result.state != 'snapshot_ready':
+                self._source_offer = None
         self._source_result = result
 
     def _take_action(self, action):
@@ -307,6 +320,14 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_offer_expired')
         if self._run is not None:
             raise TransferError('file_desktop_receive_run_held')
+        if self._source_run is not None:
+            pending = self._source_pending
+            if (pending is None or not pending.sent or pending.command.operation != 'offer_run'
+                    or pending.command.run_id != self._source_run.run_id):
+                raise TransferError('file_desktop_source_offer_not_requested')
+            self._source_command_authority(pending, clock)
+            if message['expires_ms'] > pending.message['expires_ms']:
+                raise TransferError('file_desktop_source_offer_correlation')
         frozen = canonical(message)
         if self._offer is not None and canonical(self._offer) != frozen:
             raise TransferError('file_desktop_offer_already_pending')
@@ -317,6 +338,25 @@ class NativeDesktopFileConnection:
         self._offer = strict_json(frozen)  # Detach mutable dispatcher/wire input.
         self._offer_binding = binding
         self._offer_policy_version = snapshot.version
+
+    def _correlate_source_offer(self, result, clock):
+        binding = self._receive_binding()
+        if (self._offer is None or self._offer['message_id'] != result.offer_id
+                or binding != self._offer_binding or self._receiving_policy().version != self._offer_policy_version):
+            raise TransferError('file_desktop_source_offer_correlation')
+        manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+        if manifest.fingerprint != result.manifest_sha256 or clock() >= self._offer['expires_ms']:
+            raise TransferError('file_desktop_source_offer_correlation')
+
+    def _require_source_offer(self, clock):
+        if self._source_run is not None:
+            if (self._source_pending is not None or self._source_offer is None
+                    or self._source_run.state != 'snapshot_ready'
+                    or self._source_run.run_id != self._source_offer.run_id
+                    or self._source_run.version != self._source_offer.version
+                    or self._source_status is None or self._source_status.version != self._source_offer.version):
+                raise TransferError('file_desktop_source_offer_not_confirmed')
+            self._correlate_source_offer(self._source_offer, clock)
 
     def _open_catalog(self, *, allow_create=True):
         if self._catalog is None:
@@ -381,6 +421,7 @@ class NativeDesktopFileConnection:
         with self._operation():
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
+            self._require_source_offer(clock)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -432,6 +473,7 @@ class NativeDesktopFileConnection:
         with self._operation():
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
+            self._require_source_offer(clock)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:

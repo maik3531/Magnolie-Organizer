@@ -86,6 +86,35 @@ internal static class DeviceFileSourcesTests
             var invalid=(JsonObject)runReply.DeepClone(); invalid["body"]!.AsObject()[key]=value;
             TestAssert.Throws<InvalidDataException>(() => ReadRun(invalid), "Run metadata became sync success/false END.");
         }
+        var offerRequest = DeviceFileSources.CreateRequest("offer_run", now, new string('a',64), runId: runId);
+        TestAssert.That(DeviceFileSources.ParseRequest(offerRequest, now).RunId == runId, "Offer command lost native run correlation.");
+        var offerReply = (JsonObject)offerRequest.DeepClone(); offerReply["kind"] = DeviceFileSources.RunResultKind;
+        var offerId = Guid.NewGuid().ToString();
+        offerReply["body"] = new JsonObject { ["format"] = 1, ["request_id"] = offerRequest["message_id"]!.DeepClone(),
+            ["operation"] = "offer_run", ["version"] = new string('a',64), ["run_id"] = runId,
+            ["state"] = "snapshot_ready", ["source_io_ended"] = true, ["offer_id"] = offerId, ["manifest_sha256"] = new string('b',64) };
+        DeviceFileRunResult ReadOffer(JsonObject value) => DeviceFileSources.ParseRunResult(value,
+            offerRequest["message_id"]!.GetValue<string>(), "offer_run", new string('a',64), now, runId);
+        TestAssert.That(ReadOffer(offerReply).OfferId == offerId && ReadOffer(offerReply).ManifestSha256 == new string('b',64), "Offer output metadata lost correlation.");
+        foreach (var (key,value) in new (string,JsonNode?)[] { ("offer_id",JsonValue.Create("path")),
+            ("manifest_sha256",JsonValue.Create(new string('B',64))), ("state",JsonValue.Create("preparing")),
+            ("state",JsonValue.Create("failed_held")), ("source_io_ended",JsonValue.Create(false)),
+            ("source_io_ended",JsonValue.Create(1)), ("success",JsonValue.Create(true)),
+            ("run_id",JsonValue.Create(Guid.NewGuid().ToString())), ("version",JsonValue.Create(new string('c',64))),
+            ("request_id",JsonValue.Create(Guid.NewGuid().ToString())), ("operation",JsonValue.Create("run_status")) })
+        {
+            var invalid=(JsonObject)offerReply.DeepClone(); invalid["body"]!.AsObject()[key]=value;
+            TestAssert.Throws<InvalidDataException>(() => ReadOffer(invalid), "Invalid offer result accepted.");
+        }
+        foreach (var key in new[] { "offer_id", "manifest_sha256" })
+        {
+            var invalid=(JsonObject)offerReply.DeepClone(); invalid["body"]!.AsObject().Remove(key);
+            TestAssert.Throws<InvalidDataException>(() => ReadOffer(invalid), "Incomplete offer result accepted.");
+            var other=(JsonObject)runReply.DeepClone(); other["body"]!.AsObject()[key]=offerReply["body"]![key]!.DeepClone();
+            TestAssert.Throws<InvalidDataException>(() => ReadRun(other), "Offer-only fields accepted on another operation.");
+        }
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseRunResult(offerReply,
+            offerRequest["message_id"]!.GetValue<string>(), "offer_run", new string('a',64), now+60000, runId), "Expired offer result accepted.");
         return Task.CompletedTask;
     }
 }

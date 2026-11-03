@@ -13,12 +13,18 @@ import magnolie_file_sources as sources
 from magnolie_file_control import FileControlPacket, FileGrantState
 from magnolie_file_transfer import TransferError
 from test_file_authenticated_desktop import native
-from test_file_desktop_receive import receiving
+from test_file_desktop_receive import receiving, offer as native_offer
 from test_file_desktop_connection import forbid_legacy
 
 CATALOG = '22222222-2222-4222-8222-222222222222'
 ALBUM = '33333333-3333-4333-8333-333333333333'
 RUN = '44444444-4444-4444-8444-444444444444'
+
+
+def offer(fixture, **options):
+    pending = fixture[3]._source_pending
+    deadline = pending.message['expires_ms'] if pending is not None else None
+    return native_offer(fixture, deadline=deadline, **options)
 
 
 def response(request, kind, **fields):
@@ -294,3 +300,102 @@ def test_failed_native_source_run_can_be_canceled_but_never_revived_as_a_ready_s
         state='canceled_held', source_io_ended=True))
     assert connection.source_state()['run'].state == 'canceled_held'
     assert connection._run is None and connection._catalog is None
+
+
+def ready_source(fixture, *, state='snapshot_ready', ended=True):
+    status(fixture); catalog(fixture)
+    start = request(fixture, 'run', album_id=ALBUM, desktop_choice=True)
+    fixture[0]._payload(fixture[1], fixture[2], response(start, sources.RUN_RESULT,
+        version='b'*64, run_id=RUN, state=state, source_io_ended=ended))
+
+
+def offer_output(fixture, req, message, manifest, **fields):
+    result = response(req, sources.RUN_RESULT, version='b'*64, run_id=RUN, state='snapshot_ready',
+        source_io_ended=True, offer_id=message['message_id'], manifest_sha256=manifest.fingerprint)
+    result['expires_ms'] = min(req['expires_ms'], message['expires_ms'])
+    result['body'].update(fields)
+    return result
+
+
+def test_offer_trigger_joins_exact_native_ready_run_actual_offer_and_result_before_acceptance(receiving):
+    service, peer, channel, connection, _ = receiving
+    ready_source(receiving)
+    req = request(receiving, 'offer_run')
+    assert req['body']['run_id'] == RUN and req['body']['expected_version'] == 'b'*64
+    message, manifest = offer(receiving)
+    with pytest.raises(TransferError, match='not_confirmed'):
+        connection.accept_pending_offer(connection.issue_receive_action(), message['message_id'])
+    assert connection._catalog is None and connection._run is None
+    service._payload(peer, channel, offer_output(receiving, req, message, manifest))
+    connection.accept_pending_offer(connection.issue_receive_action(), message['message_id'])
+    assert channel.send.call_args.args[0]['body']['offer_id'] == message['message_id']
+    assert connection._run.accepted.manifest == manifest
+
+
+@pytest.mark.parametrize('changed', ['offer_id', 'manifest_sha256', 'deadline'])
+def test_mismatched_offer_result_keeps_original_pending_envelope_and_no_native_reservation(receiving, changed):
+    service, peer, channel, connection, _ = receiving
+    ready_source(receiving); req = request(receiving, 'offer_run')
+    message, manifest = offer(receiving)
+    wrong = offer_output(receiving, req, message, manifest)
+    if changed == 'deadline': wrong['expires_ms'] = min(req['expires_ms'], message['expires_ms'])+1
+    else: wrong['body'][changed] = str(uuid.uuid4()) if changed == 'offer_id' else 'f'*64
+    with pytest.raises(TransferError, match='correlation'): service._payload(peer, channel, wrong)
+    assert connection._source_pending is not None and connection._source_offer is None
+    assert connection._offer == message and connection._run is None and connection._catalog is None
+    connection.retry_source_command()
+    assert channel.send.call_args.args[0] == req
+    service._payload(peer, channel, message)  # Exact offer replay, no replacement.
+    service._payload(peer, channel, offer_output(receiving, req, message, manifest))
+    assert connection._source_offer.offer_id == message['message_id']
+
+
+def test_source_offer_cannot_be_unsolicited_replaced_or_requested_before_snapshot_readiness(receiving):
+    service, peer, channel, connection, _ = receiving
+    ready_source(receiving, state='preparing', ended=False)
+    with pytest.raises(TransferError, match='not_ready'): request(receiving, 'offer_run')
+    with pytest.raises(TransferError, match='not_requested'): offer(receiving)
+    assert connection._offer is None and connection._run is None
+    poll = request(receiving, 'run_status')
+    service._payload(peer, channel, response(poll, sources.RUN_RESULT, version='b'*64, run_id=RUN,
+        state='snapshot_ready', source_io_ended=True))
+    req = request(receiving, 'offer_run'); message, manifest = offer(receiving)
+    with pytest.raises(TransferError, match='already_pending'): offer(receiving, transfer='4')
+    service._payload(peer, channel, offer_output(receiving, req, message, manifest))
+    cancel = request(receiving, 'cancel_run')
+    service._payload(peer, channel, response(cancel, sources.RUN_RESULT, version='b'*64, run_id=RUN,
+        state='canceled_held', source_io_ended=True))
+    with pytest.raises(TransferError, match='not_confirmed'):
+        connection.accept_pending_offer(connection.issue_receive_action(), message['message_id'])
+    assert connection._catalog is None and connection._run is None
+
+
+def test_offer_result_without_actual_offer_cannot_unlock_acceptance_or_finish_attempt(receiving):
+    service, peer, channel, connection, _ = receiving
+    ready_source(receiving); req = request(receiving, 'offer_run')
+    early = response(req, sources.RUN_RESULT, version='b'*64, run_id=RUN, state='snapshot_ready',
+        source_io_ended=True, offer_id=str(uuid.uuid4()), manifest_sha256='f'*64)
+    with pytest.raises(TransferError, match='correlation'): service._payload(peer, channel, early)
+    assert connection._source_pending is not None and connection._offer is None
+    assert connection._source_offer is None and connection._catalog is None
+    message, manifest = offer(receiving)
+    service._payload(peer, channel, offer_output(receiving, req, message, manifest))
+    assert connection._source_pending is None and connection._source_offer.offer_id == message['message_id']
+
+
+def test_offer_cannot_outlive_original_native_source_command(receiving):
+    ready_source(receiving); req = request(receiving, 'offer_run')
+    with pytest.raises(TransferError, match='correlation'):
+        native_offer(receiving, now=req['created_ms']+1)
+    assert receiving[3]._offer is None and receiving[3]._source_pending is not None
+
+
+def test_new_source_policy_status_cannot_leave_previous_offer_confirmed_for_admission(receiving):
+    service, peer, channel, connection, _ = receiving
+    ready_source(receiving); req = request(receiving, 'offer_run')
+    message, manifest = offer(receiving)
+    service._payload(peer, channel, offer_output(receiving, req, message, manifest))
+    status(receiving, version='c'*64, revision=3)
+    with pytest.raises(TransferError, match='not_confirmed'):
+        connection.accept_pending_offer(connection.issue_receive_action(), message['message_id'])
+    assert connection._run is None and connection._catalog is None and connection._offer == message
