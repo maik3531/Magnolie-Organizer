@@ -14,6 +14,7 @@ from magnolie_file_receive import NativeFileReceiveOperation
 from magnolie_file_transfer import MAX_FILE_BYTES, TransferError, _portable_path
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice
 from magnolie_telefon import canonical
 
 
@@ -113,6 +114,45 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
 
     def _initial_owner(self):
         return dict(revision=1,count=0,mappings_sha256=sha256(b'').hexdigest(),pairing_epoch=self._peer().pairing_epoch)
+
+    def _store_witness(self):
+        self._fresh()
+        return PhotoMappingStoreWitness(self._scope,self._root_key,self._db_key,self._lock_key)
+
+    def bootstrap(self,action,expected):
+        """Explicit native bootstrap only; never called from absent lookup."""
+        if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_mappings_native_action_required')
+        action.consume(self)
+        if type(expected) is not PhotoMappingsSnapshot:raise TransferError('photo_mappings_native_snapshot_required')
+        with self._operation():
+            self._open(create=True,validate=lambda:action.validate(self))
+            with self._locked():
+                self._schema();current=self._snapshot()
+                if current.version!=expected.version:raise TransferError('photo_mappings_cas_conflict')
+                if not current.associated:raise TransferError('photo_mappings_reassociation_required')
+                action.validate(self);self._sync();witness=self._store_witness();action.validate(self)
+                return NativePhotoMappingStoreChoice(witness,self)
+
+    def verify_witness(self,witness):
+        if type(witness) is not PhotoMappingStoreWitness:raise TransferError('photo_mapping_store_native_witness_required')
+        PhotoMappingStoreWitness.parse(witness.wire())
+        try:
+            with self._operation():
+                if not self._open():raise TransferError('photo_mapping_store_expected_missing')
+                with self._locked():
+                    self._schema();snapshot=self._snapshot()
+                    if witness!=self._store_witness():raise TransferError('photo_mapping_store_original_changed')
+                    if not snapshot.associated:raise TransferError('photo_mappings_reassociation_required')
+                    self._sync();return witness
+        except Exception as error:
+            if not isinstance(error,TransferError) or str(error) not in ('photo_preferences_busy','photo_preferences_closed_or_pending','photo_preferences_authority_changed'):
+                self._uncertain=True
+            raise
+
+    def verify_choice(self,choice):
+        if type(choice) is not NativePhotoMappingStoreChoice or choice.owner is not self:
+            raise TransferError('photo_mapping_store_foreign_choice')
+        return self.verify_witness(choice.witness)
 
     def _rows_digest(self):
         digest=sha256();count=0

@@ -1489,6 +1489,36 @@ reader rechecks current accepted binding and does not renew revoked authority.
 Seven new resume cases and 23 existing native receiver cases pass. This still
 does not implement Android restart READ renewal or the missing-store recovery union.
 
+### Expected original mapping-store witness (Refs #337)
+
+An explicit native mapping bootstrap can now capture the original protected store
+scope and root/database/lock device/inode witnesses. A native same-authority choice
+may anchor that value in the protected photo policy using its existing action/CAS
+and encrypted readback. Legacy policies omit the optional field unchanged; passive
+lookup never bootstraps a store. Once present, the original witness is preserved
+across ordinary setting changes and cannot be rebound to an explicitly created
+replacement empty store through the configuration API.
+
+For an anchored policy, the coordinator verifies the expected original store before
+admission, native publication mutations and saved metadata/confirmation retry.
+Missing, replaced or corrupt original metadata fails closed without creation or
+normalization, including after the metadata owner is reopened. A witness is not a
+source/file grant, current file presence or trusted external monotonic anchor.
+No whole-private-backup anti-rollback guarantee is added.
+
+Thirteen new witness/bootstrap/coordinator cases and 152 affected existing cases
+pass. Tests retain original missing root/database/lock objects by renaming them;
+no original metadata is deleted. Lost store validation before policy commit rolls
+the policy back; loss after commit/readback reports failure and retains the durable
+expected marker for explicit repair, never returns success. Policy-choice validation
+checks the original store again before commit and after encrypted readback.
+
+This optional foundation is not a completed native UI bootstrap/legacy repair
+flow. Legacy policies without the expectation remain limited groundwork; release
+still requires mandatory truthful bootstrap/availability, per-job mapping-store
+version/witness anchors and the complete concurrent publication/restart recovery
+union. Readiness, discovery 21, automatic runs, advanced UI and releases stay OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

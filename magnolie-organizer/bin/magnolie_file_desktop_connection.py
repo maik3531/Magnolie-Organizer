@@ -417,6 +417,7 @@ class NativeDesktopFileConnection:
         This only fences new admission. It neither proves first use after lost
         restart metadata nor implements reconciliation or mapping recovery.
         """
+        self._verify_expected_mapping_store()
         before, _ = self._mappings.lookup(())
         if before.revision and not before.associated:
             raise TransferError('file_desktop_photo_mapping_reassociation_required')
@@ -436,6 +437,12 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_photo_mapping_changed')
             if any(record is not None for record in records):
                 raise TransferError('file_desktop_photo_mapping_requires_reconcile')
+
+    def _verify_expected_mapping_store(self):
+        snapshot=self._receiving_policy()
+        witness=snapshot.policy.mapping_store
+        if witness is not None:
+            self._mappings.verify_witness(witness)
 
     def _open_catalog(self, *, allow_create=True):
         if self._catalog is None:
@@ -473,6 +480,7 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_native_publication_action_required')
         if self._receive_binding() != binding:
             raise TransferError('file_desktop_native_authority_changed')
+        self._verify_expected_mapping_store()
         action.validate(self)
         result = mutation()
         if self._receive_binding() != binding:
@@ -662,6 +670,7 @@ class NativeDesktopFileConnection:
 
     def _commit_saved_media(self, run, *, action=None):
         # Use the original protected job anchor, never the current wire cache.
+        self._verify_expected_mapping_store()
         history = run.receiver._index.media_history
         if history is None:
             if self._source_media_pages:
