@@ -131,6 +131,154 @@ class AndroidGalleryPhotoSourceTest {
         override fun close() { assertClosed(); root.deleteRecursively() }
     }
 
+    private class HistoricalCase : AutoCloseable {
+        val f = Fixture()
+        val directory = Files.createTempDirectory(f.root.toPath(), "historical350-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val now = 1_800_000_000_000L
+        val job: PhotoSourceJob
+        val message: JsonObject
+        var receiver: NativePhotoReceiver? = f.receiver.copy(owner = Any(), pairingEpoch = "1".repeat(64))
+        private val held: File
+        init {
+            f.request = NativeGalleryRequest(receiver!!, f.request!!.policyEpoch, f.request!!.kinds, f.request!!.mediaType)
+            val lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            PhotoSourceJobIndex(directory, protection).use { index ->
+                val reserved = index.reserve(inventory, f.scope)
+                val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, f.reader, protection)
+                job = index.publishSnapshot(reserved, snapshot, f.scope, lease)
+                val source = index.restore(job, "sender_fixture_01", f.scope, lease)
+                val manifest = source.manifest
+                val accepted = DeviceFileRemoteAcceptance(java.util.UUID.randomUUID().toString(), manifest.fingerprint, manifest.transferId,
+                    "c".repeat(64), receiver!!.permissionEpoch, "e".repeat(64), now + 60_000, "d".repeat(64))
+                source.commitRemoteAcceptance(NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires), accepted) { }
+                message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                    put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                    put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch); put("destination_token", accepted.destinationToken)
+                    put("receipts", JsonArray(manifest.files.map { buildJsonObject {
+                        put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
+                    } }))
+                }, 60_000, now)
+            }
+            val original = File(directory, "photo-source-" + job.id)
+            held = File(f.root, "held-original-cache")
+            check(original.renameTo(held))
+            f.request = null // No live source lease/permission-host is available.
+            receiver = receiver!!.copy(owner = Any()) // Fresh authenticated channel ownership.
+        }
+        fun open(hook: (String) -> Unit = {}) = PhotoSourceJobIndex(directory, protection, hook)
+        override fun close() { f.close() }
+    }
+
+    @Test fun freshHistoricalSavedActionStoresProofWithoutCacheOrLiveSourceAndDoesNotReleaseQuota() {
+        HistoricalCase().use { h ->
+            val opened = h.f.provider.opens.toList()
+            h.open().use { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.receiver })
+                val proof = index.commitHistoricalRemoteSaved(action, h.message, { h.now })
+                assertEquals(proof.record, index.remoteSaved(h.job)!!.record)
+                assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+                assertEquals(listOf(h.job), index.jobs())
+                val repeat = index.issueHistoricalSavedAction(h.job, { h.receiver })
+                assertEquals(proof.record, index.commitHistoricalRemoteSaved(repeat, h.message, { h.now }).record)
+            }
+            h.open().use { assertNotNull(it.remoteSaved(h.job)); assertEquals(listOf(h.job), it.jobs()) }
+            assertEquals(opened, h.f.provider.opens); assertNull(h.f.request)
+            assertFalse(File(h.directory, "photo-source-" + h.job.id).exists())
+        }
+    }
+
+    @Test fun historicalSavedActionFencesChangedIdentityPairingPermissionOrChannelOwner() {
+        for (change in listOf("identity", "pairing", "epoch", "owner", "revoked")) HistoricalCase().use { h -> h.open().use { index ->
+            val action = index.issueHistoricalSavedAction(h.job, { h.receiver })
+            h.receiver = when (change) {
+                "identity" -> h.receiver!!.copy(identitySha256 = "9".repeat(64))
+                "pairing" -> h.receiver!!.copy(pairingEpoch = "9".repeat(64))
+                "epoch" -> h.receiver!!.copy(permissionEpoch = "9".repeat(64))
+                "owner" -> h.receiver!!.copy(owner = Any())
+                else -> null
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+            if (change != "owner") assertThrows(PhotoFolderScopeError::class.java) { index.issueHistoricalSavedAction(h.job, { h.receiver }) }
+            assertNull(index.remoteSaved(h.job)); assertEquals(listOf(h.job), index.jobs())
+        } }
+    }
+
+    @Test fun historicalSavedActionExpiryAndMonotonicRollbackCannotBeRenewedByIncomingMetadata() {
+        for (tick in listOf(999L, 61_000L)) HistoricalCase().use { h -> h.open().use { index ->
+            var elapsed = 1000L
+            val action = index.issueHistoricalSavedAction(h.job, { h.receiver }, { elapsed })
+            elapsed = tick
+            assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+            elapsed = 1000L
+            assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+            assertNull(index.remoteSaved(h.job))
+        } }
+    }
+
+    @Test fun historicalSavedMembershipFailureRollsBackProofAndKeepsExactOriginalJob() {
+        HistoricalCase().use { h ->
+            var interrupted = false
+            h.open { if (interrupted && it == "membership-protect") throw java.io.IOException("fixture historical proof seal failed") }.use { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.receiver }); interrupted = true
+                assertThrows(java.io.IOException::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+                assertNull(index.remoteSaved(h.job)); assertEquals(listOf(h.job), index.jobs())
+                interrupted = false
+                assertNotNull(index.commitHistoricalRemoteSaved(index.issueHistoricalSavedAction(h.job, { h.receiver }), h.message, { h.now }))
+            }
+        }
+    }
+
+    @Test fun historicalSavedRevocationOrExpiryDuringNativeHeadMutationRollsBackAllProof() {
+        for (change in listOf("revoked", "expired")) HistoricalCase().use { h ->
+            var active = false; var elapsed = 1000L
+            h.open { if (active && it == "membership-protect") {
+                if (change == "revoked") h.receiver = null else elapsed = 61_000L
+            } }.use { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.receiver }, { elapsed })
+                active = true
+                assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+                assertNull(index.remoteSaved(h.job)); assertEquals(listOf(h.job), index.jobs())
+            }
+        }
+    }
+
+    @Test fun historicalSavedSyncLossReturnsNoSuccessButFreshInspectionRetainsActuallyCommittedProof() {
+        HistoricalCase().use { h ->
+            h.open { if (it == "membership-sync") throw java.io.IOException("fixture historical proof sync lost") }.use { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.receiver })
+                assertThrows(java.io.IOException::class.java) { index.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+                assertNotNull(index.remoteSaved(h.job))
+                assertThrows(PhotoFolderScopeError::class.java) { index.issueHistoricalSavedAction(h.job, { h.receiver }) }
+            }
+            h.open().use { index ->
+                assertNotNull(index.remoteSaved(h.job)); assertEquals(listOf(h.job), index.jobs())
+                assertNotNull(index.commitHistoricalRemoteSaved(index.issueHistoricalSavedAction(h.job, { h.receiver }), h.message, { h.now }))
+            }
+        }
+    }
+
+    @Test fun historicalSavedConflictOrExpiredEnvelopeCannotReplaceOriginalProof() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val proof = index.commitHistoricalRemoteSaved(index.issueHistoricalSavedAction(h.job, { h.receiver }), h.message, { h.now })
+            val body = h.message["body"]!!.jsonObject
+            val members = body["receipts"]!!.jsonArray.map { JsonObject(it.jsonObject + ("receipt_sha256" to JsonPrimitive("9".repeat(64)))) }
+            val changed = JsonObject(h.message + ("body" to JsonObject(body + ("receipts" to JsonArray(members)))))
+            assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(index.issueHistoricalSavedAction(h.job, { h.receiver }), changed, { h.now }) }
+            assertThrows(PhotoFolderScopeError::class.java) { index.commitHistoricalRemoteSaved(index.issueHistoricalSavedAction(h.job, { h.receiver }), h.message, { h.now + 60_000 }) }
+            assertEquals(proof.record, index.remoteSaved(h.job)!!.record)
+        } }
+    }
+
+    @Test fun historicalSavedActionCannotMoveBetweenFreshIndexOwners() {
+        HistoricalCase().use { h -> h.open().use { first -> h.open().use { second ->
+            val action = first.issueHistoricalSavedAction(h.job, { h.receiver })
+            assertThrows(PhotoFolderScopeError::class.java) { second.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+            assertThrows(PhotoFolderScopeError::class.java) { first.commitHistoricalRemoteSaved(action, h.message, { h.now }) }
+            assertNull(first.remoteSaved(h.job)); assertNull(second.remoteSaved(h.job))
+        } } }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
@@ -735,6 +883,7 @@ class AndroidGalleryPhotoSourceTest {
                         acceptance=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+
                             ("offer_id" to JsonPrimitive(offeredWire[0].string("message_id"))))))
                         runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.issueHistoricalSavedAction(started.snapshotJob()!!) }
                         PhotoSourceJobIndex(root, protection).use { inspected ->
                             val originalJob = inspected.jobs().single()
                             assertEquals(whole.acceptance.get()!!.acceptanceSha256,
@@ -813,6 +962,43 @@ class AndroidGalleryPhotoSourceTest {
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.endStoppedSyncRun(whole) }
                         assertNotNull(runtime.savedPolicy().policy); assertEquals(0, released.get())
                         connection!!.close()
+                        val originalJob = PhotoSourceJobIndex(root, protection).use { it.jobs().single() }
+                        val originalCache = File(root, "photo-source-" + originalJob.id)
+                        val heldCache = File(root.parentFile, root.name + "-held-cache")
+                        assertTrue(originalCache.renameTo(heldCache))
+                        val previousOpens = f.provider.opens.toList()
+                        val freshOutput = ByteArrayOutputStream(); val freshKey = ByteArray(32) { 7 }; val freshPrefix = ByteArray(4) { 8 }
+                        val freshChannel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), freshOutput, ByteArray(16),
+                            freshKey.copyOf(), freshPrefix, ByteArray(32), ByteArray(4))
+                        val freshPeer = peer.copy(owner = freshChannel)
+                        val freshPcPeer = pcPeer.copy(owner = Any())
+                        val freshDesktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { freshPcPeer }, { pcState })
+                        val reopened = NativeGalleryFileRuntime(f.context, root, identity, protection, freshChannel, { freshPeer }, { true })
+                        try {
+                            fun freshToDesktop() {
+                                if (!reopened.sendControls(now)) return
+                                val sent = TelefonRahmen.lesen(ByteArrayInputStream(freshOutput.toByteArray())); freshOutput.reset()
+                                val sentHeader = JsonObject(sent - "ciphertext")
+                                val decoded = TelefonKrypto.entschluesseln(freshKey, TelefonKrypto.nonce(freshPrefix, sentHeader.long("seq")),
+                                    java.util.Base64.getDecoder().decode(sent.string("ciphertext")), TelefonKanonisch.bytes(sentHeader))
+                                freshDesktop.observeRemote(DeviceFileControlEnvelope.validate(Json.parseToJsonElement(decoded.decodeToString()).jsonObject, now), freshPcPeer)
+                            }
+                            freshToDesktop(); val agreement = freshDesktop.packet(); freshDesktop.markSent(agreement)
+                            reopened.observeControls(DeviceFileControlEnvelope.create(agreement, now), now); freshToDesktop()
+                            val selectedOriginal = reopened.historicalSourceJobs().single()
+                            val recovery = reopened.issueHistoricalSavedAction(selectedOriginal)
+                            assertEquals(historical.fingerprint, reopened.recoverHistoricalSaved(recovery, savedMessage, { now }).confirmation.fingerprint)
+                            assertThrows(PhotoFolderScopeError::class.java) { reopened.recoverHistoricalSaved(recovery, savedMessage, { now }) }
+                            assertEquals(listOf(originalJob), reopened.historicalSourceJobs())
+                            assertEquals(previousOpens, f.provider.opens)
+                            assertEquals(0, freshOutput.size()) // No source/offer/chunk/ACK output.
+                            val ending = reopened.issueHistoricalSavedAction(selectedOriginal)
+                            reopened.close()
+                            assertThrows(PhotoFolderScopeError::class.java) { reopened.recoverHistoricalSaved(ending, savedMessage, { now }) }
+                        } finally {
+                            reopened.close(); freshDesktop.close(); freshChannel.close()
+                            assertTrue(heldCache.renameTo(originalCache))
+                        }
                     } else {
                         assertEquals("canceled_held", started.phase); assertNull(started.snapshotJob())
                     }

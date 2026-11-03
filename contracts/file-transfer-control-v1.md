@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit historical confirmation recovery after fresh open (Refs #350, #337)
+
+A one-use, monotonic-bounded native action selects an exact original sealed job
+with complete original format-2 acceptance/context proof. Its current authenticated
+receiver must match original identity, nonmissing pairing and permission epoch;
+channel-owner changes, expiry/clock rollback, revocation, retired/stale jobs and
+foreign action owners reject. Actual native runtime issuance/recovery excludes an
+active sync/source run. An incoming message alone cannot issue this action.
+
+Only a fresh complete correlated saved envelope can then be committed/read back
+through the existing proof/membership transaction. No source lease, permission-host,
+MediaStore/PFD/cache/stage/offer/Chunk access is opened or renewed. No ACK, baseline,
+deletion or quota retirement is emitted. Same historical proof remains immutable;
+conflicts and lost original evidence HOLD. Sync loss reports no success; an exact
+fresh inspection/action can subsequently observe the actual committed proof.
+
+154 distinct host cases pass (nine new, 145 affected). These include new proof commit
+after fresh index opening with the cache unavailable and live source disabled;
+actual fresh runtime/control agreement without a permission host then idempotent
+historical replay with the cache unavailable; one-use/identity/pairing/channel-owner,
+expiry, permission loss during transaction, rollback/sync loss, conflicts and exit.
+The runtime API is not registered as a wire handler or exposed in the UI. This does
+not resume source READ/unfinished chunks or complete global convergence/platform
+acceptance. All production/UI/automatic/release gates remain OFF.
+
 ### Inspectable original native source identity (Refs #349, #337)
 
 New acceptance-format-2 proofs retain the actual native source context fields,

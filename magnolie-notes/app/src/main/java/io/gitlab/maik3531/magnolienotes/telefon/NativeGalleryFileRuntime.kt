@@ -232,6 +232,20 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         // success from a remote historical assertion. Those native steps differ.
     }
 
+    /** Explicit native caller only; no IPC routing or automatic selection. */
+    internal fun historicalSourceJobs(): List<PhotoSourceJob> = withOperation { index.jobs() }
+
+    internal fun issueHistoricalSavedAction(expected: PhotoSourceJob): NativeHistoricalSavedAction = withOperation {
+        if (syncRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
+        index.issueHistoricalSavedAction(expected, { workflow.currentRequest()?.receiver })
+    }
+
+    internal fun recoverHistoricalSaved(action: NativeHistoricalSavedAction, message: JsonObject,
+        now: () -> Long = { System.currentTimeMillis() }): PhotoSourceRemoteSaved = withOperation {
+        if (syncRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
+        index.commitHistoricalRemoteSaved(action, message, now)
+    }
+
     /** Only an explicitly stopped run can end here. This neither reports sync
      * success nor retires source quota; data/publication receipts remain separate. */
     internal fun endStoppedSyncRun(run: NativeGallerySyncRun) = withOperation {

@@ -5,6 +5,11 @@ import kotlinx.serialization.json.*
 /** Historical native observation, not a restarted offer/READ/Chunk grant. */
 internal class PhotoSourceRemoteAcceptance private constructor(val record: JsonObject) {
     val acceptance: JsonObject get() = record["acceptance"] as JsonObject
+    internal fun historicalAcceptance(): DeviceFileRemoteAcceptance {
+        fun text(name: String) = (acceptance[name] as JsonPrimitive).content
+        return DeviceFileRemoteAcceptance(text("offer_id"), text("manifest_sha256"), text("transfer_id"), text("acceptance_sha256"),
+            text("permission_epoch"), text("destination_token"), text("expires").toLong(), text("command_digest"))
+    }
     val originalAuthority: NativePhotoSourceContext? get() = (record["source_authority"] as? JsonObject)?.let {
         NativePhotoSourceContext.parse(it, (record["source_context"] as JsonPrimitive).content)
     }

@@ -126,6 +126,17 @@ class PhotoSourceJobIndexTest {
         } }
     }
 
+    @Test fun historicalRecoveryCannotInferAnOriginalPairingEpochFromLegacyUnpairedContext() {
+        Fixture().use { f -> f.open().use { index ->
+            val source = sealedSource(f, index); remoteSaved(source)
+            assertNull(index.remoteAcceptance(source.job)!!.originalAuthority!!.pairingEpoch)
+            assertEquals("photo_jobs_historical_authority_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                index.issueHistoricalSavedAction(source.job, { f.native.receiver })
+            }.code)
+            assertNull(index.remoteSaved(source.job)); assertEquals(listOf(source.job), index.jobs())
+        } }
+    }
+
     @Test fun missingDurableAcceptanceCannotBeSuppliedByRemoteSavedOrAuthorizeChunkOutput() {
         Fixture().use { f -> f.open().use { index ->
             val source = sealedSource(f, index); val (accepted, message) = remoteSaved(source, false)
