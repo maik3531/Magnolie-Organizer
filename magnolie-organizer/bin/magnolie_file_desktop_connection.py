@@ -15,6 +15,7 @@ from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFil
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_sources import _body
 import magnolie_file_sources as source_messages
+from magnolie_file_media import parse_media_page, correlate_media_pages
 from magnolie_file_transfer import TransferError
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
@@ -53,6 +54,8 @@ class NativeDesktopFileConnection:
         self._source_albums = {}
         self._source_control_required = None
         self._source_offer = None
+        self._source_media_pages = ()
+        self._source_media_entries = None
         self._preferences = ProtectedPhotoPreferences(authority)
         self._destination = NativePhotoDestinationController(authority)
         try:
@@ -117,7 +120,7 @@ class NativeDesktopFileConnection:
     def receive(self, message, *, clock=now_ms):
         with self._operation(incoming=True):
             if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
-                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT):
+                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA):
                 self._receive_source_result(message, clock)
                 return
             if self._data_handlers_ready and message.get('kind') == OFFER:
@@ -140,7 +143,8 @@ class NativeDesktopFileConnection:
         """Native UI metadata only; no serialized status/album grants OS READ."""
         with self._operation():
             return dict(status=self._source_status, catalog=self._source_catalog, albums=tuple(self._source_albums.values()),
-                        run=self._source_run, result=self._source_result, pending=self._source_pending is not None)
+                        run=self._source_run, result=self._source_result, pending=self._source_pending is not None,
+                        media_pages=self._source_media_pages, media_manifest_correlated=self._source_media_entries is not None)
 
     def _source_command_authority(self, pending, clock):
         self._receiving_policy()
@@ -204,13 +208,21 @@ class NativeDesktopFileConnection:
                             or album.needs_choice and not desktop_choice):
                         raise TransferError('file_desktop_source_album_not_current')
                     options.update(catalog_id=self._source_catalog.catalog_id, album_id=album.album_id, desktop_choice=desktop_choice)
-            elif operation in ('run_status', 'cancel_run', 'offer_run'):
+            elif operation in ('run_status', 'cancel_run', 'offer_run', 'media_page'):
                 if self._source_run is None:
                     raise TransferError('file_desktop_source_run_not_current')
-                if operation == 'offer_run' and (self._run is not None or self._offer is not None
+                if operation in ('offer_run', 'media_page') and (self._run is not None or self._offer is not None
                         or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
-                        or self._source_run.version != self._source_status.version):
+                        or self._source_run.version != self._source_status.version
+                        or not self._source_status.enabled or not self._source_status.associated):
                     raise TransferError('file_desktop_source_offer_not_ready')
+                if operation == 'media_page':
+                    after = self._source_media_pages[-1].next_cursor if self._source_media_pages else 0
+                    if after is None:
+                        raise TransferError('file_desktop_source_media_pages_complete')
+                    options['after'] = after
+                elif operation == 'offer_run' and self._source_media_pages and self._source_media_pages[-1].next_cursor is not None:
+                    raise TransferError('file_desktop_source_media_pages_incomplete')
                 options['run_id'] = self._source_run.run_id
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
@@ -246,6 +258,20 @@ class NativeDesktopFileConnection:
         elif command.operation == 'request_read':
             result = source_messages.parse_permission_result(message, expected_request_id=command.request_id,
                 expected_version=command.expected_version, now=at)
+        elif command.operation == 'media_page':
+            first = self._source_media_pages[0] if self._source_media_pages else None
+            result = parse_media_page(message, expected_request_id=command.request_id, expected_version=command.expected_version,
+                expected_run_id=command.run_id, expected_after=command.after, expected_manifest_sha256=first.manifest_sha256 if first else None,
+                expected_source_epoch=first.source_epoch if first else None, now=at)
+            if message['expires_ms'] > pending.message['expires_ms']:
+                raise TransferError('file_desktop_source_media_deadline_changed')
+            if first is not None and (result.media_type, result.insertion_witness, result.total_files) != (
+                    first.media_type, first.insertion_witness, first.total_files):
+                raise TransferError('file_desktop_source_media_scope_changed')
+            known_files = {entry.file_id for page in self._source_media_pages for entry in page.entries}
+            known_photos = {entry.photo_id for page in self._source_media_pages for entry in page.entries}
+            if any(entry.file_id in known_files or entry.photo_id in known_photos for entry in result.entries):
+                raise TransferError('file_desktop_source_duplicate_media')
         else:
             result = source_messages.parse_run_result(message, expected_request_id=command.request_id, expected_operation=command.operation,
                 expected_version=command.expected_version, expected_run_id=command.run_id, now=at)
@@ -266,6 +292,8 @@ class NativeDesktopFileConnection:
             if self._source_status is None or self._source_status.version != result.version:
                 self._source_catalog = None
                 self._source_albums = {}
+                self._source_media_pages = ()
+                self._source_media_entries = None
             self._source_status = result
             if command.operation == 'configure':
                 # The phone changes native send state in this transaction and
@@ -283,6 +311,10 @@ class NativeDesktopFileConnection:
                 self._source_offer = result
             elif result.state != 'snapshot_ready':
                 self._source_offer = None
+                self._source_media_pages = ()
+                self._source_media_entries = None
+        elif command.operation == 'media_page':
+            self._source_media_pages += (result,)
         self._source_result = result
 
     def _take_action(self, action):
@@ -315,7 +347,7 @@ class NativeDesktopFileConnection:
     def _observe_offer(self, message, clock):
         snapshot = self._receiving_policy()
         binding = self._receive_binding()
-        validate_offer(message, binding.sender_id, binding.receiver_id, now=clock())
+        manifest = validate_offer(message, binding.sender_id, binding.receiver_id, now=clock())
         if clock() >= message['expires_ms']:
             raise TransferError('file_desktop_offer_expired')
         if self._run is not None:
@@ -335,9 +367,11 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_offer_authority_changed')
         if self._receiving_policy().version != snapshot.version:
             raise TransferError('file_desktop_offer_authority_changed')
+        media_entries = correlate_media_pages(self._source_media_pages, manifest) if self._source_media_pages else None
         self._offer = strict_json(frozen)  # Detach mutable dispatcher/wire input.
         self._offer_binding = binding
         self._offer_policy_version = snapshot.version
+        self._source_media_entries = media_entries
 
     def _correlate_source_offer(self, result, clock):
         binding = self._receive_binding()
@@ -349,6 +383,20 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_source_offer_correlation')
 
     def _require_source_offer(self, clock):
+        snapshot = self._receiving_policy()
+        if snapshot.include_videos or snapshot.separate_animations or snapshot.separate_own_recordings:
+            if self._source_media_entries is None:
+                raise TransferError('file_desktop_source_media_not_correlated')
+            # Native per-file destination/semantic grouping is not yet joined.
+            # Never silently ignore an explicitly selected unsupported option.
+            raise TransferError('file_desktop_media_target_routing_unavailable')
+        if self._source_media_pages:
+            if self._offer is None or self._source_media_pages[0].media_type != 'images':
+                raise TransferError('file_desktop_media_target_routing_unavailable')
+            binding = self._receive_binding()
+            manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+            if self._source_media_entries != correlate_media_pages(self._source_media_pages, manifest):
+                raise TransferError('file_desktop_source_media_not_correlated')
         if self._source_run is not None:
             if (self._source_pending is not None or self._source_offer is None
                     or self._source_run.state != 'snapshot_ready'

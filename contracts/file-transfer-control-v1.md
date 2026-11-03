@@ -1332,6 +1332,33 @@ Existing configure/acceptance golden bytes are unchanged. The PC controller has
 not yet joined these pages to admission/routing; production gates/visibility stay
 closed. This is no physical synchronization or native Windows receiver acceptance.
 
+The PC native owner now joins `media_page` commands/results to its exact native
+receiver ticket, held snapshot-ready run, policy and returned page cursor. Pages
+remain immutable and are fenced against changed namespace/type/insertion metadata,
+counts, cross-page duplicate file/photo IDs and extended original deadlines. A
+real full offer must match every page/member/hash before the owner records media
+manifest correlation; metadata alone creates no reservation, target or data grant.
+Partial pages cannot request an offer, and missing/unready/unsolicited results stay
+inside the reserved namespace rather than entering personal actors/queues.
+
+Sixty-three affected Python cases pass (new media-owner 15, existing source-owner
+22, native receiver 23, three additional default-OFF/reserved-namespace cases).
+This step deliberately does not silently execute selected but unjoined animation,
+video or real-recording routing as an ordinary photo receive. Those options remain
+unexposed/unavailable until native immutable destination and persistent historical
+mapping/reconciliation are joined. Legacy limited photo admission remains separate.
+
+The user's later #337 migration requirements are symmetric: enabling recording
+separation asks whether existing files should be sorted; disabling asks whether
+they should be merged back. Confirmed operations must safely move preserved files
+and durably update their original associations, not delete and re-download/copy.
+Declining leaves individual existing locations intact. Either path must prevent
+later sync from creating another copy merely because a checkbox changed. No file
+or edited/conflicting version may be discarded; only an empty, verified special
+directory may be removed. Persistent mappings and restart-safe migration journals
+are prerequisites, not an inference from current settings. These concrete migration
+paths are not implemented by the prepared Boolean.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

@@ -66,7 +66,7 @@ def test_actual_reserved_dispatch_joins_control_echo_without_personal_defaults_o
 
 @pytest.mark.parametrize('kind', ['file_transfer.control', 'file_transfer.offer', 'file_transfer.accept',
     'file_transfer.chunk.request', 'file_transfer.chunk', 'file_transfer.saved',
-    'file_transfer.sources.request', 'file_transfer.sources.run_result', 'file_transfer.future'])
+    'file_transfer.sources.request', 'file_transfer.sources.run_result', 'file_transfer.sources.media', 'file_transfer.future'])
 def test_unattached_reserved_namespace_never_enters_personal_or_legacy_replay(native, monkeypatch, kind):
     service, peer, _ = native
     channel, _ = bind(service, peer)
@@ -78,7 +78,7 @@ def test_unattached_reserved_namespace_never_enters_personal_or_legacy_replay(na
     assert not list(Path(service.store.root).glob('photo-preferences-v1-*'))
 
 
-@pytest.mark.parametrize('kind', ['file_transfer.offer', 'file_transfer.chunk', 'file_transfer.sources.result'])
+@pytest.mark.parametrize('kind', ['file_transfer.offer', 'file_transfer.chunk', 'file_transfer.sources.result', 'file_transfer.sources.media'])
 def test_unsupported_data_is_rejected_even_with_native_control_owner(attached, monkeypatch, kind):
     service, peer, channel, _, connection = attached
     forbid_legacy(service, monkeypatch)
@@ -180,7 +180,7 @@ def test_saved_enabled_policy_does_not_announce_receive_before_real_data_handler
     finally: chooser.close()
 
 
-@pytest.mark.parametrize('kind', ['file_transfer.control', 'file_transfer.accept', 'file_transfer.sources.request', 'file_transfer.future'])
+@pytest.mark.parametrize('kind', ['file_transfer.control', 'file_transfer.accept', 'file_transfer.sources.request', 'file_transfer.sources.media', 'file_transfer.future'])
 def test_reserved_output_cannot_use_legacy_global_grants_or_outbox(attached, monkeypatch, kind):
     service, peer, channel, _, _ = attached
     forbid_legacy(service, monkeypatch)
