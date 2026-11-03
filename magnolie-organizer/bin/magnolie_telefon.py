@@ -214,6 +214,8 @@ def unb64(value, length):
 
 
 def valid_uuid(value, version=None):
+    if type(value) is not str:
+        return False
     try:
         parsed = uuid.UUID(value)
         return str(parsed) == value and (version is None or parsed.version == version)

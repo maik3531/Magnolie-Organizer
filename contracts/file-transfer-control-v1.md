@@ -14,8 +14,12 @@ correlation cases, actual existing Linux source runtime compatibility and explic
 refusal to emit unfinished native resume commands, plus Android shared-vector
 validation. NativeDesktopFileConnection and its readiness gate are unchanged; this
 codec step does NOT implement desktop receiver resume/acceptance/reconciliation,
-Windows parity, UI or physical acceptance. A separate general Python UUID None-type
-validation concern is tracked in #363; new resume fields are locally type-checked.
+Windows parity, UI or physical acceptance. The separate general Python UUID None-type
+defect was confirmed and fixed in #363: non-string values reject before UUID
+construction. 224 targeted host cases pass (15 new, 209 affected), including missing/
+non-string IDs, canonical/version rules and protocol/source/offer/acceptance/native-
+authority/media/history callers. No data-loss or privilege-escalation claim is
+established by this validation fix.
 Production/automatic/UI/releases remain OFF.
 
 ### Current-owner native transfer dispatch (Refs #361, #337)
