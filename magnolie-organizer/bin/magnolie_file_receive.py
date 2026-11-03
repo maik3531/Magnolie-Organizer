@@ -73,6 +73,19 @@ class NativeFileReceiveOperation:
         job.accepted.verify(current_binding)
         return result
 
+    @classmethod
+    def read_media_history(cls, catalog, job, current_binding, seal, unseal):
+        """Original protected association only, no stage/publication reopen."""
+        if type(catalog) is not ProtectedTransferJobCatalog:
+            raise TransferError('file_receive_native_controller_required')
+        parent=catalog.require_reserved(job)
+        job.accepted.verify(current_binding)
+        with ProtectedTransferJobIndex(parent,job.accepted.manifest,job.accepted.binding,current_binding,
+                seal,unseal,owner=job.owner,accepted=job.accepted) as index:
+            result=index.media_history
+        job.accepted.verify(current_binding)
+        return result
+
     def __init__(self, catalog, job, current_binding, seal, unseal, publication_gate, *, create,media_history=None):
         if (type(catalog) is not ProtectedTransferJobCatalog or type(create) is not bool
                 or not all(callable(value) for value in (current_binding, seal, unseal, publication_gate))):

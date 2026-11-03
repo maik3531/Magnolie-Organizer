@@ -1479,6 +1479,16 @@ This is source-host evidence, not physical phone, power-loss or native Windows
 receiver acceptance. The later post-save join above still does not complete expected
 global mapping-store witnesses, missing-store restart recovery or convergence.
 
+Resume now reads the original protected media history before opening the receiving
+stage or emitting acceptance. Freshly correlated pages must preserve source epoch,
+media type and ordered opaque member associations/kinds. New exact page request
+UUIDs may differ; they never replace the original historical attempts. An anchored
+job without fresh media, or a legacy job with fresh media but no original anchor,
+is held for explicit repair rather than assigned guessed identities. The native
+reader rechecks current accepted binding and does not renew revoked authority.
+Seven new resume cases and 23 existing native receiver cases pass. This still
+does not implement Android restart READ renewal or the missing-store recovery union.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

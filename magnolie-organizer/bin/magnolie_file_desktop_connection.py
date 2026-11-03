@@ -569,8 +569,17 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_resume_not_current')
             job.accepted.verify(self._receive_binding)
             action.validate(self)
-            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job)
             protection = self._authority.protection
+            original = NativeFileReceiveOperation.read_media_history(self._catalog,job,self._receive_binding,
+                protection.seal,protection.unseal)
+            if original is not None or self._source_media_pages:
+                if original is None or not self._source_media_pages:
+                    raise TransferError('file_desktop_resume_media_history_required')
+                current = NativeMediaHistory.capture(job.accepted,self._source_media_pages)
+                if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
+                    raise TransferError('file_desktop_resume_media_association_changed')
+            action.validate(self)
+            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job)
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
                 protection.seal, protection.unseal, self._publication_gate)
             action.validate(self)
