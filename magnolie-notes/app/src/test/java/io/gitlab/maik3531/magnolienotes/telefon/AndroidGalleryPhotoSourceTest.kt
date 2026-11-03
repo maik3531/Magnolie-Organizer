@@ -1935,6 +1935,100 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    private fun abandonCommand(h: ResumeRuntimeCase, run: NativeGalleryResumeRun, at: Long): JsonObject {
+        lateinit var head: PhotoSourceResumeAttempt
+        h.inspect { head = it.resumeAttempt(h.job)!! }
+        return TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+            put("format", 1); put("operation", "abandon_resume"); put("expected_version", h.runtime.savedPolicy().version)
+            put("run_id", run.id); put("original_job_id", h.job.id); put("original_job_version", h.job.version)
+            put("attempt_id", head.id); put("attempt_sha256", head.version)
+        }, 60_000, at)
+    }
+
+    @Test fun resumeAbandonmentRequiresActualEndedOwnerAndPreservesExactOldHeadBeforeReply() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            val command = abandonCommand(h, run, at)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            h.runtime.cancelResumeRun(run)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            h.runtime.receiveSourceCommand(h.resumeStatus("end_resume", run, at), h.channel::send, { at }); h.drain()
+            var durable: JsonObject? = null
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, { message ->
+                h.inspect { index ->
+                    val receipt = index.resumeAbandonments(h.job).single()
+                    assertEquals(index.resumeAttempt(h.job)!!.record, receipt.head)
+                    assertEquals(command, receipt.command)
+                    assertEquals(receipt.version, message["body"]!!.jsonObject.string("receipt_sha256"))
+                    durable = receipt.record
+                }
+                h.channel.send(message); throw java.io.IOException("fixture abandonment reply lost")
+            }, { at }) }
+            assertEquals(1, h.drain().size)
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at + 1 }); h.drain()
+            h.inspect { assertEquals(durable, it.resumeAbandonments(h.job).single().record) }
+            val next = h.start(); h.awaitEnd()
+            h.runtime.sendResumeRunOffer(next, h.channel::send, { at + 2 }); h.drain()
+            h.inspect { index ->
+                assertNotEquals(command["body"]!!.jsonObject.string("attempt_id"), index.resumeAttempt(h.job)!!.id)
+                assertEquals(durable, index.resumeAbandonments(h.job).single().record)
+            }
+            h.runtime.observeResumeRunAcceptance(next, h.acceptance(next, at + 2), { at + 2 })
+            h.runtime.receiveResumeRunChunkRequest(next, h.chunk(next, at + 3), h.channel::send, { at + 3 })
+            assertEquals(1, h.drain().size)
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeAbandonmentTransactionRollbackAndForeignHeadCannotManufactureReceipt() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            h.runtime.cancelResumeRun(run)
+            h.runtime.receiveSourceCommand(h.resumeStatus("end_resume", run, at), h.channel::send, { at }); h.drain()
+            val command = abandonCommand(h, run, at)
+            val body = command["body"]!!.jsonObject
+            val wrong = JsonObject(command + ("body" to JsonObject(body + ("attempt_sha256" to JsonPrimitive("9".repeat(64))))))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(wrong, h.channel::send, { at }) }
+            h.indexHook { if (it == "membership-protect") throw java.io.IOException("fixture abandonment tx rollback") }
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            h.inspect { assertTrue(it.resumeAbandonments(h.job).isEmpty()) }
+            h.indexHook { }
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at }); h.drain()
+            h.inspect { assertEquals(1, it.resumeAbandonments(h.job).size) }
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeAbandonmentCannotRunAlongsideNewNativeSourceOwner() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            val command = abandonCommand(h, run, at)
+            h.runtime.cancelResumeRun(run)
+            h.runtime.receiveSourceCommand(h.resumeStatus("end_resume", run, at), h.channel::send, { at }); h.drain()
+            val next = h.start(); h.awaitEnd()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            assertSame(next, h.currentResume()); assertFalse(next.cancelRequested)
+            h.inspect { assertTrue(it.resumeAbandonments(h.job).isEmpty()) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeAbandonmentLostSyncKeepsHistoricalReceiptButCannotPublishSuccess() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            h.runtime.cancelResumeRun(run)
+            h.runtime.receiveSourceCommand(h.resumeStatus("end_resume", run, at), h.channel::send, { at }); h.drain()
+            val command = abandonCommand(h, run, at)
+            h.indexHook { if (it == "membership-sync") throw java.io.IOException("fixture abandonment sync loss") }
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            assertEquals(0, h.output.size())
+            h.inspect { assertEquals(command, it.resumeAbandonments(h.job).single().command) }
+            h.indexHook { }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            h.assertOriginal()
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()

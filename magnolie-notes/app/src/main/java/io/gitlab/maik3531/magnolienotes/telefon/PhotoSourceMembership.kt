@@ -104,11 +104,12 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                     name.startsWith("remote-saved-v1/") -> name.removePrefix("remote-saved-v1/")
                     name.startsWith("remote-acceptance-v1/") -> name.removePrefix("remote-acceptance-v1/")
                     name.startsWith("resume-attempt-v1/") -> name.removePrefix("resume-attempt-v1/")
+                    name.startsWith("resume-abandonments-v1/") -> name.removePrefix("resume-abandonments-v1/")
                     else -> null
                 }
                 if ((name !in setOf("format", "gallery-policy-v1", "gallery-policy-v1-repair") &&
                     (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
-                    metadata.size >= 3 + 3 * PhotoSourceJobIndex.MAX_JOBS)
+                    metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS)
                     fail("photo_jobs_membership_unknown_metadata")
                 val bytes = it.getBlob(1)
                 if (bytes.size !in 28..DeviceTransferProtection.MAX_CLEAR_BYTES + 28) fail("photo_jobs_membership_invalid")

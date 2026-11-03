@@ -11,7 +11,8 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
     val catalogId: String? = null, val after: Int = 0,
     val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null,
     val originalJobId: String? = null, val originalJobVersion: String? = null,
-    val lookupSourceId: String? = null, val lookupTransferId: String? = null, val lookupManifestSha256: String? = null) {
+    val lookupSourceId: String? = null, val lookupTransferId: String? = null, val lookupManifestSha256: String? = null,
+    val attemptId: String? = null, val attemptSha256: String? = null) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
@@ -34,6 +35,16 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
+            if (operation == "abandon_resume") {
+                if (body.keys != base + setOf("expected_version", "run_id", "original_job_id", "original_job_version", "attempt_id", "attempt_sha256")) fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val job = text("original_job_id").takeIf { Regex("[0-9a-f]{32}").matches(it) } ?: fail()
+                val jobVersion = text("original_job_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val hash = text("attempt_sha256").takeIf(DeviceFileControl::hash) ?: fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
+                    runId = opaque("run_id"), originalJobId = job, originalJobVersion = jobVersion,
+                    attemptId = opaque("attempt_id"), attemptSha256 = hash)
+            }
             if (operation == "resume_lookup") {
                 if (body.keys != base + setOf("expected_version", "source_id", "transfer_id", "manifest_sha256")) fail()
                 fun id(name: String) = text(name).takeIf { Regex("[0-9a-f]{32}").matches(it) } ?: fail()

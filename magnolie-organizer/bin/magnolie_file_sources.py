@@ -19,6 +19,7 @@ PERMISSION_RESULT = "file_transfer.sources.permission_result"
 RUN_RESULT = "file_transfer.sources.run_result"
 MEDIA = "file_transfer.sources.media"
 RESUME = "file_transfer.sources.resume"
+ABANDONED = 'file_transfer.sources.abandoned'
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
 
 
@@ -64,6 +65,8 @@ class SourceCommand:
     source_id: str | None = None
     transfer_id: str | None = None
     manifest_sha256: str | None = None
+    attempt_id: str | None = None
+    attempt_sha256: str | None = None
 
 
 def parse_command(message, *, now=None):
@@ -76,6 +79,15 @@ def parse_command(message, *, now=None):
                 or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], body['operation'], body['expected_version'], after=body['after'], run_id=body['run_id'])
+    if body.get('operation') == 'abandon_resume':
+        if (set(body) != base | {'expected_version', 'run_id', 'original_job_id', 'original_job_version', 'attempt_id', 'attempt_sha256'}
+                or not _hex(body['expected_version']) or not _hex(body['original_job_version']) or not _hex(body['attempt_sha256'])
+                or not valid_uuid(body['run_id'], version=4) or not valid_uuid(body['attempt_id'], version=4)
+                or type(body['original_job_id']) is not str or re.fullmatch(r'[0-9a-f]{32}', body['original_job_id']) is None):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], 'abandon_resume', body['expected_version'], run_id=body['run_id'],
+            original_job_id=body['original_job_id'], original_job_version=body['original_job_version'],
+            attempt_id=body['attempt_id'], attempt_sha256=body['attempt_sha256'])
     if body.get('operation') == 'resume_lookup':
         if (set(body) != base | {'expected_version', 'source_id', 'transfer_id', 'manifest_sha256'}
                 or not _hex(body['expected_version']) or not _hex(body['manifest_sha256'])
@@ -133,18 +145,25 @@ def parse_command(message, *, now=None):
 
 def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
                    album_id=None, desktop_choice=None, run_id=None, original_job_id=None, original_job_version=None,
-                   source_id=None, transfer_id=None, manifest_sha256=None, now=None, message_id=None):
+                   source_id=None, transfer_id=None, manifest_sha256=None, attempt_id=None, attempt_sha256=None, now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
     if operation != 'resume_lookup' and any(value is not None for value in (source_id, transfer_id, manifest_sha256)):
         raise TransferError('file_sources_invalid_command')
-    if operation != 'resume_run' and any(value is not None for value in (original_job_id, original_job_version)):
+    if operation != 'abandon_resume' and any(value is not None for value in (attempt_id, attempt_sha256)):
         raise TransferError('file_sources_invalid_command')
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('resume_run', 'abandon_resume') and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation == 'resume_lookup':
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+        raise TransferError('file_sources_invalid_command')
+    if operation == 'abandon_resume':
+        if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice)):
+            raise TransferError('file_sources_invalid_command')
+        body.update(expected_version=expected_version, run_id=run_id, original_job_id=original_job_id,
+                    original_job_version=original_job_version, attempt_id=attempt_id, attempt_sha256=attempt_sha256)
+    elif operation == 'resume_lookup':
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice, run_id)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, source_id=source_id, transfer_id=transfer_id, manifest_sha256=manifest_sha256)
@@ -325,6 +344,32 @@ class SourceResumeHistory:
     attempt_phase: str | None
     attempt_id: str | None = None
     attempt_sha256: str | None = None
+
+
+@dataclass(frozen=True)
+class SourceResumeAbandonment:
+    request_id: str
+    version: str
+    run_id: str
+    job_id: str
+    job_version: str
+    attempt_id: str
+    attempt_sha256: str
+    receipt_sha256: str
+
+
+def parse_resume_abandonment(message, command, *, now=None):
+    body = _body(message, ABANDONED, now_ms() if now is None else now)
+    if (type(command) is not SourceCommand or command.operation != 'abandon_resume'
+            or set(body) != {'format', 'operation', 'request_id', 'version', 'run_id', 'job_id', 'job_version',
+                             'attempt_id', 'attempt_sha256', 'receipt_sha256'}
+            or body['operation'] != 'abandon_resume' or not _hex(body['receipt_sha256'])
+            or body['request_id'] != command.request_id or body['version'] != command.expected_version
+            or body['run_id'] != command.run_id or body['job_id'] != command.original_job_id
+            or body['job_version'] != command.original_job_version or body['attempt_id'] != command.attempt_id
+            or body['attempt_sha256'] != command.attempt_sha256):
+        raise TransferError('file_sources_invalid_resume_abandonment')
+    return SourceResumeAbandonment(**{key: body[key] for key in SourceResumeAbandonment.__dataclass_fields__})
 
 
 def parse_resume_history(message, *, expected_request_id, expected_version, expected_source_id,

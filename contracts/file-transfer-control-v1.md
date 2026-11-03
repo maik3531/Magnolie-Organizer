@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit ended-owner abandonment and new attempt (Refs #372, #330)
+
+The connected native repair path now requires the desktop's actual receiver-stop/
+checkpoint/close record, correlated source-END confirmation, fresh exact original
+lookup and a new native action. Tokens or expired messages alone cannot request it.
+The phone requires its actual ended-owner job/head/run record, current native peer/
+policy/original binding, no Saved proof and true worker quiescence with no active
+normal/resume owner. A bounded immutable protected abandonment ledger retains the
+complete old head and exact command before reply. Transactions/readback and exact
+head CAS precede replacement; lost output retries the same command/receipt.
+
+Only an explicitly new native source/attempt can replace an exactly archived head;
+the original manifest/acceptance/job/checkpoint/media history/quota is unchanged.
+Eight historical receipts per job are retained without eviction; full or uncertain
+history HOLD. A source run ID already ended on the desktop cannot be revived as a
+new owner. Stop/abandonment receipts are not READ/Saved/baseline grants.
+
+275 distinct host cases pass (15 new, 260 affected), including real native commit/
+fresh-read/next-offer/acceptance/Chunk, rollback/sync loss, active-owner rejection,
+desktop stop/END/receipt/new-owner/original-checkpoint join, false receipt fields,
+lost output and existing membership/attempt/source/lookup compatibility. This is
+the proven same-runtime ended-owner path, NOT recovery from lost native stop/END
+proof after restart or from arbitrary pre-receiver pending heads; those remain HOLD
+under #330. Physical phone testing, ordinary repeat-sync/UI/platform integration
+remain separate acceptance work. No readiness or release gate is enabled here.
+
 ### Local resumed-receiver stop/checkpoint/close (Refs #371, #337)
 
 An explicit native action can mark only the actual resumed receiver for local stop

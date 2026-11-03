@@ -67,6 +67,7 @@ class NativeDesktopFileConnection:
         self._receive_stop_gate = threading.Lock()
         self._receive_stop = None
         self._stopped_receive_run = None
+        self._resume_end_confirmation = self._resume_abandonment = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -231,7 +232,7 @@ class NativeDesktopFileConnection:
     def receive(self, message, *, clock=now_ms):
         with self._operation(incoming=True):
             if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
-                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA, source_messages.RESUME):
+                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA, source_messages.RESUME, source_messages.ABANDONED):
                 self._receive_source_result(message, clock)
                 return
             if self._data_handlers_ready and message.get('kind') == OFFER:
@@ -265,6 +266,8 @@ class NativeDesktopFileConnection:
         _body(pending.message, source_messages.REQUEST, clock())
         if pending.command.operation == 'resume_lookup':
             self._require_resume_lookup_selection()
+        elif pending.command.operation == 'abandon_resume':
+            self._require_resume_abandonment_intent()
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
             self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=pending.command.operation == 'cancel_resume')
 
@@ -308,6 +311,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_resume_original_job_changed')
             self._resume_lookup_selection = _NativeDesktopResumeLookup(job, snapshot.version, self._source_status.version)
             self._resume_history = None
+            self._resume_abandonment = None
             self._require_resume_lookup_selection(); action.validate(self)
             manifest = job.accepted.manifest
             message = source_messages.create_command('resume_lookup', expected_version=self._source_status.version,
@@ -316,6 +320,44 @@ class NativeDesktopFileConnection:
             ticket = self._controls.receiver_command_ticket()
             self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
             self._source_control_required = None
+            self._send_source_pending(clock, action)
+            return message['message_id']
+
+    def _require_resume_abandonment_intent(self):
+        selected = self._require_resume_lookup_selection()
+        state = self.receive_stop_state()
+        stopped = self._stopped_receive_run
+        ended = self._resume_end_confirmation
+        history = self._resume_history
+        if (state is None or state.state != 'stopped' or not state.io_ended or not state.checkpoint_committed
+                or not state.resources_closed or stopped is None or stopped.job != selected.job
+                or state.owner != selected.job.owner or stopped.receiver is None or not stopped.receiver._closed
+                or ended is None or ended[0] != selected.job or not ended[1].run_ended
+                or ended[1].run_id != state.source_run_id or history is None or history.phase != 'sealed'
+                or history.remote_saved_history or history.attempt_phase is None
+                or history.attempt_id is None or history.attempt_sha256 is None):
+            raise TransferError('file_desktop_resume_abandonment_proof_required')
+        protection = self._authority.protection
+        original = NativeFileReceiveOperation.read_media_history(self._catalog, selected.job,
+            self._receive_binding, protection.seal, protection.unseal)
+        if original is None: raise TransferError('file_desktop_resume_media_history_required')
+        self._verify_job_mapping_store(original)
+        return selected, history, state
+
+    def request_resume_abandonment(self, action, *, clock=now_ms):
+        """Explicit current native intent; wire/history tokens alone cannot call it."""
+        self._take_action(action)
+        with self._operation():
+            if self._source_pending is not None or self._offer is not None:
+                raise TransferError('file_desktop_receive_run_held')
+            selected, history, state = self._require_resume_abandonment_intent()
+            action.validate(self)
+            message = source_messages.create_command('abandon_resume', expected_version=self._source_status.version,
+                run_id=state.source_run_id, original_job_id=history.job_id, original_job_version=history.job_version,
+                attempt_id=history.attempt_id, attempt_sha256=history.attempt_sha256, now=clock())
+            command = source_messages.parse_command(message, now=clock())
+            ticket = self._controls.receiver_command_ticket()
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
             self._send_source_pending(clock, action)
             return message['message_id']
 
@@ -378,7 +420,10 @@ class NativeDesktopFileConnection:
                     if operation == 'resume_run':
                         selected = self._require_resume_lookup_selection()
                         history = self._resume_history
-                        if history is None or history.phase != 'sealed' or history.remote_saved_history or history.attempt_phase is not None:
+                        repaired = (self._resume_abandonment is not None and history is not None
+                            and self._resume_abandonment.job_id == history.job_id and self._resume_abandonment.job_version == history.job_version
+                            and self._resume_abandonment.attempt_id == history.attempt_id and self._resume_abandonment.attempt_sha256 == history.attempt_sha256)
+                        if history is None or history.phase != 'sealed' or history.remote_saved_history or history.attempt_phase is not None and not repaired:
                             raise TransferError('file_desktop_resume_history_requires_reconcile')
                         protection = self._authority.protection
                         original = NativeFileReceiveOperation.read_media_history(self._catalog, selected.job,
@@ -451,6 +496,11 @@ class NativeDesktopFileConnection:
         elif command.operation == 'request_read':
             result = source_messages.parse_permission_result(message, expected_request_id=command.request_id,
                 expected_version=command.expected_version, now=at)
+        elif command.operation == 'abandon_resume':
+            self._require_resume_abandonment_intent()
+            result = source_messages.parse_resume_abandonment(message, command, now=at)
+            if message['expires_ms'] > pending.message['expires_ms']:
+                raise TransferError('file_desktop_resume_lookup_deadline_changed')
         elif command.operation == 'resume_lookup':
             selected = self._require_resume_lookup_selection()
             manifest = selected.job.accepted.manifest
@@ -490,6 +540,9 @@ class NativeDesktopFileConnection:
                 if message['expires_ms'] > min(pending.message['expires_ms'], self._offer['expires_ms']):
                     raise TransferError('file_desktop_source_offer_correlation')
         self._source_command_authority(pending, clock)
+        if (command.operation == 'resume_run' and self._receive_stop is not None
+                and result.run_id == self._receive_stop.source_run_id):
+            raise TransferError('file_desktop_resume_source_owner_ended')
         self._controls.finish_receiver_command(pending.ticket)
         self._source_pending = None
         if command.operation in ('status', 'configure'):
@@ -511,6 +564,7 @@ class NativeDesktopFileConnection:
             self._source_catalog = result
             self._source_albums.update((album.album_id, album) for album in result.albums)
         elif command.operation == 'end_resume':
+            self._resume_end_confirmation = (self._resume_lookup_selection.job, result)
             self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
             self._source_run = self._source_offer = self._resume_source_id = None
             self._resume_lookup_selection = self._resume_history = None
@@ -532,6 +586,8 @@ class NativeDesktopFileConnection:
             self._source_media_pages += (result,)
         elif command.operation == 'resume_lookup':
             self._resume_history = result  # Historical hint only; no receive/run/READ authority.
+        elif command.operation == 'abandon_resume':
+            self._resume_abandonment = result  # Exact explicitly confirmed history, never a READ/run grant.
         self._source_result = result
 
     def _take_action(self, action):

@@ -219,6 +219,62 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         PhotoSourceResumeAttempt.parse(parse(protection.open(it, "photo-source-jobs-v1/resume-attempt/" + job.id)), job, original)
     }
 
+    internal fun resumeAbandonments(job: PhotoSourceJob): List<PhotoSourceResumeAbandonment> = gated {
+        writableMembership()
+        if (readOne(job.id) != job) fail("photo_jobs_cas_conflict")
+        readResumeAbandonments(job)
+    }
+
+    private fun readResumeAbandonments(job: PhotoSourceJob): List<PhotoSourceResumeAbandonment> {
+        val cipher = meta("resume-abandonments-v1/" + job.id) ?: return emptyList()
+        val value = parse(protection.open(cipher, "photo-source-jobs-v1/resume-abandonments/" + job.id))
+        val entries = value["receipts"] as? JsonArray ?: fail("photo_jobs_resume_abandonment_invalid")
+        if (value.keys != setOf("format", "receipts") || value["format"] != JsonPrimitive(1) ||
+            entries.size !in 1..PhotoSourceResumeAbandonment.MAX_HISTORY) fail("photo_jobs_resume_abandonment_invalid")
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        val receipts = entries.map { PhotoSourceResumeAbandonment.parse(it as? JsonObject ?: fail("photo_jobs_resume_abandonment_invalid"), job, original) }
+        if (receipts.map { it.head["attempt_id"] }.distinct().size != receipts.size) fail("photo_jobs_resume_abandonment_invalid")
+        return receipts
+    }
+
+    /** Called only with the runtime's actual stopped/ended ownership gate.
+     * Equality tokens alone never call this method from a metadata lookup. */
+    internal fun abandonResumeAttempt(job: PhotoSourceJob, command: JsonObject, observedAt: Long,
+        permitted: () -> Unit): PhotoSourceResumeAbandonment = gated {
+        writableMembership(); permitted()
+        if (job.phase != "sealed" || readOne(job.id) != job || readRemoteSaved(job) != null)
+            fail("photo_jobs_resume_abandonment_held")
+        val parsed = DeviceFileSourceCommand.parse(command, observedAt)
+        val head = readResumeAttempt(job) ?: fail("photo_jobs_resume_attempt_missing")
+        if (head.id != parsed.attemptId || head.version != parsed.attemptSha256)
+            fail("photo_jobs_resume_attempt_changed")
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        val prior = readResumeAbandonments(job)
+        prior.singleOrNull { it.head["attempt_id"] == head.record["attempt_id"] }?.let {
+            if (it.head != head.record || it.command != command) fail("photo_jobs_resume_abandonment_changed")
+            permitted(); return@gated it
+        }
+        if (prior.size >= PhotoSourceResumeAbandonment.MAX_HISTORY) fail("photo_jobs_resume_abandonments_held")
+        val next = PhotoSourceResumeAbandonment.create(job, original, head, command, observedAt)
+        val name = "resume-abandonments-v1/" + job.id
+        val before = meta(name)
+        val value = JsonObject(mapOf("format" to JsonPrimitive(1), "receipts" to JsonArray(prior.map { it.record } + next.record)))
+        val cipher = protection.seal(frame(value), "photo-source-jobs-v1/resume-abandonments/" + job.id)
+        permitted()
+        transaction {
+            if (readOne(job.id) != job || readResumeAttempt(job)?.record != head.record || readRemoteSaved(job) != null ||
+                (before == null && meta(name) != null) || (before != null && meta(name)?.contentEquals(before) != true)) fail("photo_jobs_cas_conflict")
+            permitted()
+            if (before == null) db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", name); put("sealed", cipher) })
+            else if (db.update("source_meta", ContentValues().apply { put("sealed", cipher) }, "name=?", arrayOf(name)) != 1)
+                fail("photo_jobs_cas_conflict")
+            membership!!.advance(); permitted()
+        }
+        permitted()
+        if (readResumeAbandonments(job).last().record != next.record) fail("photo_jobs_resume_abandonment_readback_failed")
+        next
+    }
+
     internal fun prepareResumeAttempt(owner: NativeGalleryResumeAttempt, job: PhotoSourceJob, original: PhotoSourceRemoteAcceptance,
         offer: JsonObject, permitted: () -> Unit): NativeResumeAttemptStorage = gated {
         writableMembership(); permitted()
@@ -226,15 +282,20 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             fail("photo_jobs_historical_original_job_required")
         val next = PhotoSourceResumeAttempt.prepare(job, original, owner.id, offer)
         val existing = readResumeAttempt(job)
-        if (existing != null) {
-            if (existing.base != next.base) fail("photo_jobs_resume_original_attempt_held")
-        } else {
+        val replacing = existing != null && existing.base != next.base
+        if (replacing && readResumeAbandonments(job).none { it.head == existing!!.record })
+            fail("photo_jobs_resume_original_attempt_held")
+        if (existing == null || replacing) {
             val cipher = protection.seal(frame(next.record), "photo-source-jobs-v1/resume-attempt/" + job.id)
             permitted()
             transaction {
-                if (readOne(job.id) != job || meta("resume-attempt-v1/" + job.id) != null) fail("photo_jobs_cas_conflict")
+                if (readOne(job.id) != job || readResumeAttempt(job)?.record != existing?.record || readRemoteSaved(job) != null)
+                    fail("photo_jobs_cas_conflict")
+                if (replacing && readResumeAbandonments(job).none { it.head == existing!!.record }) fail("photo_jobs_cas_conflict")
                 permitted()
-                db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "resume-attempt-v1/" + job.id); put("sealed", cipher) })
+                if (existing == null) db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "resume-attempt-v1/" + job.id); put("sealed", cipher) })
+                else if (db.update("source_meta", ContentValues().apply { put("sealed", cipher) }, "name=?", arrayOf("resume-attempt-v1/" + job.id)) != 1)
+                    fail("photo_jobs_cas_conflict")
                 membership!!.advance(); permitted()
             }
             if (readResumeAttempt(job)?.record != next.record) fail("photo_jobs_resume_attempt_readback_failed")
@@ -628,6 +689,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             db.delete("source_meta", "name=?", arrayOf("remote-saved-v1/" + retired.id))
             db.delete("source_meta", "name=?", arrayOf("remote-acceptance-v1/" + retired.id))
             db.delete("source_meta", "name=?", arrayOf("resume-attempt-v1/" + retired.id))
+            db.delete("source_meta", "name=?", arrayOf("resume-abandonments-v1/" + retired.id))
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
             membership!!.advance()
         }

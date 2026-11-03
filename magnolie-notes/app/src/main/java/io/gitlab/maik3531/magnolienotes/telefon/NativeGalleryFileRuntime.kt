@@ -24,7 +24,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private var syncRun: NativeGallerySyncRun? = null // Access only through operationGate.
     private var resumeRun: NativeGalleryResumeRun? = null // Same whole-run owner, not disk metadata.
     private var resumeEnd: ResumeEndOutput? = null // Bounded metadata retry, never a live source owner.
-    private class ResumeEndOutput(val command: JsonObject, val reply: JsonObject, issuedWall: Long) {
+    private class ResumeEndOutput(val command: JsonObject, val reply: JsonObject, issuedWall: Long,
+        val job: PhotoSourceJob, val headId: String?, val headSha256: String?) {
+        var abandonmentCommand: NativeGalleryWireOfferAttempt? = null
         private val issued = DeviceFileControl.monotonicMs()
         private val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.long("expires_ms") - issuedWall)
         private val clock = NativeGalleryWireOfferAttempt(command.string("message_id"),
@@ -540,7 +542,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     }
                     val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
                     if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
-                    val prepared = ResumeEndOutput(message, TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at), at)
+                    val head = index.resumeAttempt(run.originalJob)
+                    val prepared = ResumeEndOutput(message, TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at), at,
+                        run.originalJob, head?.id, head?.version)
                     prepared.check(now()); authority()
                     resumeEnd = prepared // Exact bounded result survives uncertain output.
                     endStoppedResumeRunOwned(run)
@@ -552,6 +556,50 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     throw error
                 }
                 return@withOperation // Owner END only, never job/proof/quota retirement.
+            }
+            if (command.operation == "abandon_resume") {
+                val ended = resumeEnd ?: DeviceFileControl.fail("gallery_resume_end_proof_required")
+                fun abandonmentAuthority() {
+                    authority()
+                    if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent)
+                        DeviceFileControl.fail("gallery_sync_run_held")
+                    if (ended.job.id != command.originalJobId || ended.job.version != command.originalJobVersion ||
+                        ended.command["body"]?.let { (it as? JsonObject)?.get("run_id") } != JsonPrimitive(command.runId) ||
+                        ended.headId != command.attemptId || ended.headSha256 != command.attemptSha256)
+                        DeviceFileControl.fail("gallery_resume_end_proof_changed")
+                    val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+                    val manifest = DeviceFileManifest.parse(ended.job.snapshot!!["manifest"] as JsonObject)
+                    index.lookupGalleryResume(localIdentity.deviceId, manifest.sourceId, manifest.transferId, manifest.fingerprint,
+                        request.receiver, request.policyEpoch)
+                }
+                // The abandonment command gets its own exact bounded clock;
+                // an old offer/END lifetime is never rewritten or reused.
+                val held = ended.abandonmentCommand
+                if (held != null && held.message != message) DeviceFileControl.fail("gallery_resume_abandon_command_changed")
+                abandonmentAuthority()
+                val clock = held ?: NativeGalleryWireOfferAttempt(command.requestId,
+                    DeviceFileControl.digest("magnolie-gallery-resume-abandon-command-v1\u0000", message), message, now())
+                    .also { ended.abandonmentCommand = it }
+                fun permitted() { clock.checkCurrent(now()); abandonmentAuthority() }
+                permitted()
+                val receipt = index.abandonResumeAttempt(ended.job, message, now(), ::permitted)
+                permitted()
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("operation", JsonPrimitive(command.operation)); put("request_id", JsonPrimitive(command.requestId))
+                    put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(command.runId))
+                    put("job_id", JsonPrimitive(ended.job.id)); put("job_version", JsonPrimitive(ended.job.version))
+                    put("attempt_id", JsonPrimitive(command.attemptId)); put("attempt_sha256", JsonPrimitive(command.attemptSha256))
+                    put("receipt_sha256", JsonPrimitive(receipt.version))
+                }
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                try {
+                    permitted(); send(TelefonNachrichten.message("file_transfer.sources.abandoned", body, ttl, at)); permitted()
+                } catch (error: Exception) {
+                    try { permitted() } catch (_: Exception) { }
+                    throw error
+                }
+                return@withOperation
             }
             if (command.operation == "resume_lookup") {
                 val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
