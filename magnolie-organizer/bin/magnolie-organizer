@@ -24704,7 +24704,7 @@ class Fenster(_FENSTER_BASIS):
         current_call = getattr(self, "_aktueller_anruf_hinweis", None)
         if current_call and not self._gesperrt:
             self._telefon_ereignis("incoming_call", current_call)
-        GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), False)[1])
+        GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), self._tray_medien_aktualisieren(), False)[2])
 
     def _kde_legacy_einstellungen_migrieren(self):
         stand = background_settings_read()

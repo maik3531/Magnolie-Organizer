@@ -140,3 +140,21 @@ def test_icon_render_failure_does_not_suppress_existing_badge_or_tooltip():
     methods['_tray_zaehler_anzeigen'](window)
     assert 'render-error' in calls and ('3', '99+') in calls
     assert any(isinstance(value, str) and '3 notifications' in value for value in calls)
+
+
+def test_phone_status_refresh_after_service_replacement_does_not_keep_old_activity_icon():
+    methods = ui_methods('_telefon_stand_melden', '_tray_medien_aktualisieren')
+    queued = []; calls = []
+    methods['GLib'] = SimpleNamespace(idle_add=lambda function: queued.append(function))
+    methods['_kdeconnect_backend'] = lambda callback: None
+    window = SimpleNamespace(_telefon=SimpleNamespace(report=lambda: {'media_activity': {'synchronizing': False, 'camera': False}},
+        replay_personal_sync=lambda: None), _tray_medien=(True, False),
+        _kde_ereignis=lambda *args: None, _kde_legacy_einstellungen_migrieren=lambda: None,
+        antwort=lambda *args: calls.append('status'), _telefon_bericht=lambda: {},
+        _tray_telefone_aktualisieren=lambda: calls.append('menu'))
+    window._tray_zaehler_anzeigen = lambda: calls.append(window._tray_medien)
+    window._tray_medien_aktualisieren = lambda: methods['_tray_medien_aktualisieren'](window)
+    methods['_telefon_stand_melden'](window)
+    assert window._tray_medien == (True, False)
+    assert queued.pop()() is False
+    assert window._tray_medien == (False, False) and calls == ['status', 'menu', (False, False)]

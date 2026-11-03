@@ -9,6 +9,8 @@ END callbacks cannot hide a different active worker. Construction, pairing and
 connection alone do not report synchronization activity. The daemon's existing
 ticket path carries an opaque refresh event; GTK reads current native status
 instead of trusting a delayed activity payload.
+Ordinary phone-status refreshes also reread this state, so replacement of a
+stopped daemon cannot leave the old worker's icon permanently active.
 
 The existing book tray now draws circular synchronization arrows on its cover
 and has a separate camera-in-book mark which can coexist with the arrows.
