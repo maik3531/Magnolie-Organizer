@@ -1271,6 +1271,23 @@ desktop animation flag as trusted provenance or change immutable destination
 mapping/publication. APNG/WebP recognition and real animations-folder execution
 still require their own integration/acceptance.
 
+### Optional own-camera recording separation (Refs #337)
+
+The user also requests an initially-OFF “Separate own recordings” selection for
+both photo and video roots, with an `Eigene Aufnahmen` child folder. Its optional
+protected Boolean now follows the same exact native action/CAS/encrypted readback,
+legacy-no-migration and re-pairing fences. It does not enable videos or overwrite
+either destination/animation selection. Seventy-three affected Python settings
+cases pass (capture 15, animation 15, video 18, photo 25); option updates alone
+create no folder and move no existing file.
+
+This setting is not camera-origin evidence. A CAMERA album, DCIM path, filename,
+EXIF model/make or an untrusted supplied flag alone does not establish capture by
+this phone's camera. Unknown origin must remain outside the special folder. Native
+capture provenance, immutable per-file mappings, interaction with animation
+routing and real source/target acceptance remain open, so this option is not
+exposed as an available supported feature by these policy preparations.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
