@@ -1797,7 +1797,7 @@ incoming media or source commands never invoke bootstrap or renew consent.
 
 Positive media fixtures now explicitly prepare both roots through the actual
 native bootstrap API and renew native control agreement BEFORE source commands.
-The older generic non-media offer fixture remains explicitly separate; it does
+The lower-level direct file fixture without a Gallery source run remains explicitly separate; it does
 not prove production media readiness. Standalone mapping tests use the actual
 coordinator's held-I/O owner/lease and explicit original-owner reopens rather than
 a competing writer hidden from native availability validation. Expectations now
@@ -1812,6 +1812,24 @@ historical recovery. Earlier failed reproductions/fixture adaptations remain
 separate evidence and are not counted as extra passing cases. Advanced UI, automatic
 runs, production handlers and releases remain OFF pending the remaining complete
 recovery/conflict/migration/source/platform acceptance in #337.
+
+### No first-use Gallery history omission bypass (Refs #343, #337)
+
+An actual first unbound Gallery run reproduced admission after a correlated
+run/offer result without any media pages. The source-run preflight now requires
+its original media history before mapping/history/catalog inspection or reservation,
+even at first use. Bound and unbound omissions both HOLD for accept and resume;
+there is no default identity inference or bootstrap from an incoming offer.
+
+The positive source/offer fixture now uses real correlated media pages and both
+native root bindings. The encrypted socketpair source-offer path explicitly binds
+both roots before control negotiation and exchanges the actual bounded media page
+before offer/accept/chunk/save, rather than treating a legacy offer as Gallery-ready.
+73 distinct cases pass (two new, 71 affected), including the source/control/history
+union and both encrypted fixture paths. Historical missing-page cases now fence
+earlier without weakening preservation or admission checks. These are not physical
+device/native installed-platform acceptance; all production/UI/auto/release gates
+and the other remaining #337 recovery/classification/migration work remain OFF/open.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

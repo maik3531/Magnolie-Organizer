@@ -330,10 +330,14 @@ def offer_output(fixture, req, message, manifest, **fields):
 
 def test_offer_trigger_joins_exact_native_ready_run_actual_offer_and_result_before_acceptance(receiving):
     service, peer, channel, connection, _ = receiving
-    ready_source(receiving,prepare_storage=False) # Limited generic-file fixture, no media history.
+    from magnolie_file_offer import create_offer
+    from test_file_desktop_media import manifest as media_manifest,collect
+    ready_source(receiving)
+    manifest=media_manifest(receiving);collect(receiving,manifest)
     req = request(receiving, 'offer_run')
     assert req['body']['run_id'] == RUN and req['body']['expected_version'] == 'b'*64
-    message, manifest = offer(receiving)
+    message=create_offer(manifest);message['expires_ms']=min(message['expires_ms'],req['expires_ms'])
+    service._payload(peer,channel,message)
     with pytest.raises(TransferError, match='not_confirmed'):
         connection.accept_pending_offer(connection.issue_receive_action(), message['message_id'])
     assert connection._catalog is None and connection._run is None

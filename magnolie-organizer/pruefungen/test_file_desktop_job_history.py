@@ -96,7 +96,7 @@ def test_missing_current_media_pages_do_not_bypass_existing_job_identity(receivi
     receiver.close();connection._run=None
     connection._source_media_pages=();connection._source_media_entries=None
     before=connection._catalog.jobs()
-    with pytest.raises(TransferError,match='photo_job_media_required'):
+    with pytest.raises(TransferError,match='source_media_history_required'):
         connection.accept_pending_offer(connection.issue_receive_action(),connection._offer['message_id'])
     assert connection._run is None and connection._catalog.jobs()==before
 

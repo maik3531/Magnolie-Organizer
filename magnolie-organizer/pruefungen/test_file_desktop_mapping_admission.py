@@ -50,7 +50,7 @@ def test_known_native_mapping_holds_before_reservation_even_if_original_is_chang
 def test_missing_media_cannot_bypass_existing_history_via_legacy_offer(receiving,monkeypatch):
     connection=receiving[3];committed(receiving)
     connection._source_media_pages=();connection._source_media_entries=None
-    with pytest.raises(TransferError,match='photo_mapping_media_required'):
+    with pytest.raises(TransferError,match='source_media_history_required'):
         connection.accept_pending_offer(connection.issue_receive_action(),connection._offer['message_id'])
     assert connection._run is None
 

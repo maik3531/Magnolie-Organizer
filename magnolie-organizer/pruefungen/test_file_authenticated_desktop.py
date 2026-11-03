@@ -191,6 +191,11 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
                         prefs = native_connection._preferences
                         prefs.configure(prefs.issue_action(), prefs.read(), enabled=True, mode='manual', destination_choice=choice)
                     finally: chooser.close()
+                    if mode=='file-source-offer':
+                        from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+                        setup=NativeMediaStorageBootstrap(native_connection._authority)
+                        try:setup.prepare(setup.issue_action(),prefs.read())
+                        finally:setup.close()
                 observed = threading.Event()
                 dispatch = native_connection.receive
                 def receive_native(message):
@@ -220,6 +225,9 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
                     from magnolie_file_offer import create_offer
                     from magnolie_file_transfer import FileManifest, ManifestFile
                     assert echoed.grants.receive_files
+                    data = b'actual encrypted native receiver bytes'
+                    manifest = FileManifest('1'*32, '2'*32, peer['device_id'], identity['device_id'],
+                        (ManifestFile('3'*32, 'Camera/native.jpg', len(data), hashlib.sha256(data).hexdigest()),), len(data))
                     def source_reply(command, kind, **body):
                         at = phone.now_ms()
                         message = dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=kind,
@@ -244,12 +252,14 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
                         assert command['body']['catalog_id'] == catalog_id
                         source_reply(command, sources.RUN_RESULT, version='c'*64, run_id=run_id,
                             state='snapshot_ready', source_io_ended=True)
+                        native_connection.request_source(native_connection.issue_receive_action(),'media_page')
+                        command=receive()
+                        source_reply(command,sources.MEDIA,version='c'*64,run_id=run_id,page=dict(format=1,
+                            manifest_sha256=manifest.fingerprint,source_epoch='d'*64,media_type='images',insertion_witness=False,
+                            after=0,next_cursor=None,total_files=1,entries=[dict(file_id='3'*32,photo_id='e'*64,media_kind='image')]))
                         native_connection.request_source(native_connection.issue_receive_action(), 'offer_run')
                         command = receive()
                         assert command['body']['run_id'] == run_id
-                    data = b'actual encrypted native receiver bytes'
-                    manifest = FileManifest('1'*32, '2'*32, peer['device_id'], identity['device_id'],
-                        (ManifestFile('3'*32, 'Camera/native.jpg', len(data), hashlib.sha256(data).hexdigest()),), len(data))
                     offered = create_offer(manifest)
                     if mode == 'file-source-offer':
                         offered['expires_ms'] = min(offered['expires_ms'], command['expires_ms'])

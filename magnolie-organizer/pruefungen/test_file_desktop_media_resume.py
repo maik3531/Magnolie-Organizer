@@ -55,7 +55,7 @@ def test_changed_stable_media_association_is_held_before_native_receiver_resume(
 def test_missing_fresh_media_cannot_resume_anchored_job_through_legacy_path(receiving):
     connection=receiving[3];receiver,job,original,offered=retry_offer(receiving)
     connection._source_media_pages=();connection._source_media_entries=None
-    with pytest.raises(TransferError,match='resume_media_history_required'):
+    with pytest.raises(TransferError,match='source_media_history_required'):
         connection.resume_pending_offer(connection.issue_receive_action(),offered['message_id'],job.owner)
     assert connection._run is None
     unpublished(receiving,receiver)
