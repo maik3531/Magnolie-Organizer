@@ -166,6 +166,11 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
 
     internal fun observeResumeRunAcceptance(run: NativeGalleryResumeRun, message: JsonObject,
         now: () -> Long = System::currentTimeMillis): NativeResumeAcceptanceProjection = withOperation {
+        observeResumeRunAcceptanceOwned(run, message, now)
+    }
+
+    private fun observeResumeRunAcceptanceOwned(run: NativeGalleryResumeRun, message: JsonObject,
+        now: () -> Long): NativeResumeAcceptanceProjection {
         val source = resumeSourceOwned(run)
         val attempt = run.attempt.get() ?: DeviceFileControl.fail("gallery_resume_offer_not_sent")
         fun acceptanceWall(): Long = now().also { run.wireOfferCommand.get()?.checkCurrent(it) }
@@ -175,7 +180,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         val prior = run.acceptance.get()
         if (prior != null && prior !== projection) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
         run.acceptance.set(projection) // Durable accepted head precedes this projection.
-        projection // Still explicitly allows NO Chunk output.
+        return projection // Still explicitly allows NO Chunk output.
     }
 
     /** Active native owner + exact durable accepted head, not a historical
@@ -198,6 +203,11 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
      * run, and neither stored metadata nor a standalone projection can call this. */
     internal fun receiveResumeRunChunkRequest(run: NativeGalleryResumeRun, message: JsonObject, send: (JsonObject) -> Unit,
         now: () -> Long = System::currentTimeMillis): Unit = withOperation {
+        receiveResumeRunChunkRequestOwned(run, message, send, now)
+    }
+
+    private fun receiveResumeRunChunkRequestOwned(run: NativeGalleryResumeRun, message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long) {
         val at = now()
         val request = DeviceFileChunkEnvelope.parseRequest(message, at)
         val projection = run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
@@ -230,6 +240,11 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
      * original acceptance remains the persisted historical proof's context. */
     internal fun observeResumeRunRemoteSaved(run: NativeGalleryResumeRun, message: JsonObject,
         now: () -> Long = System::currentTimeMillis): PhotoSourceRemoteSaved = withOperation {
+        observeResumeRunRemoteSavedOwned(run, message, now)
+    }
+
+    private fun observeResumeRunRemoteSavedOwned(run: NativeGalleryResumeRun, message: JsonObject,
+        now: () -> Long): PhotoSourceRemoteSaved {
         val projection = run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
         val source = acceptedResumeSourceOwned(run, projection, allowSaved = true)
         val confirmation = DeviceFileSavedEnvelope.parse(message, source.manifest, now())
@@ -246,7 +261,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         val durable = index.commitResumeRemoteSaved(source, projection, message, ::authority)
         authority()
         run.remoteSaved.set(prior ?: durable.confirmation)
-        durable // Not a local receipt, baseline, quota retirement or run END.
+        return durable // Not a local receipt, baseline, quota retirement or run END.
     }
 
     /** Native-only offer path. An output receipt is not acceptance/publication.
@@ -303,6 +318,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     internal fun observeAcceptance(message: JsonObject, now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        observeAcceptanceOwned(message, now)
+    }
+
+    private fun observeAcceptanceOwned(message: JsonObject, now: () -> Long) {
         val accepted = DeviceFileAcceptanceEnvelope.parse(message, now())
         val run = syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
         val offer = run.offerOutput.get() ?: DeviceFileControl.fail("file_accept_offer_not_sent")
@@ -345,6 +364,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
 
     internal fun receiveChunkRequest(message: JsonObject, send: (JsonObject) -> Unit,
         now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        receiveChunkRequestOwned(message, send, now)
+    }
+
+    private fun receiveChunkRequestOwned(message: JsonObject, send: (JsonObject) -> Unit, now: () -> Long) {
         val request=DeviceFileChunkEnvelope.parseRequest(message,now())
         val run=syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
         val accepted=run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
@@ -373,6 +396,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     internal fun observeRemoteSaved(message: JsonObject, now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
+        observeRemoteSavedOwned(message, now)
+    }
+
+    private fun observeRemoteSavedOwned(message: JsonObject, now: () -> Long) {
         val run=syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
         val accepted=run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
         fun authority() {
@@ -403,7 +430,25 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         // success from a remote historical assertion. Those native steps differ.
     }
 
-    /** Explicit native caller only; no IPC routing or automatic selection. */
+    /** Dispatch only to an ALREADY owned native run. No packet/transfer ID or
+     * historical head can create, restore or adopt a source/attempt here. */
+    internal fun receiveTransferMessage(message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = System::currentTimeMillis): Unit = withOperation {
+        val resumed = resumeRun
+        if (resumed != null && syncRun != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        when (message["kind"]) {
+            JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) -> if (resumed == null) observeAcceptanceOwned(message, now)
+                else observeResumeRunAcceptanceOwned(resumed, message, now)
+            JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) -> if (resumed == null) receiveChunkRequestOwned(message, send, now)
+                else receiveResumeRunChunkRequestOwned(resumed, message, send, now)
+            JsonPrimitive(DeviceFileSavedEnvelope.KIND) -> if (resumed == null) observeRemoteSavedOwned(message, now)
+                else observeResumeRunRemoteSavedOwned(resumed, message, now)
+            else -> DeviceFileControl.fail("file_sources_unexpected_result")
+        }
+        Unit
+    }
+
+    /** Explicit native caller only; no automatic historical job selection. */
     internal fun historicalSourceJobs(): List<PhotoSourceJob> = withOperation { index.jobs() }
 
     internal fun issueHistoricalSavedAction(expected: PhotoSourceJob): NativeHistoricalSavedAction = withOperation {

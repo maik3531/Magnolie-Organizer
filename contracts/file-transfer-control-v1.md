@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Current-owner native transfer dispatch (Refs #361, #337)
+
+The existing authenticated TelefonWerk file lane now forwards acceptance/Chunk/
+Saved messages to one runtime dispatcher. Under its existing single operation gate,
+the dispatcher selects ONLY an already-owned resume run or the existing normal-run
+path. Neither packet IDs nor historical accepted heads create/select/adopt a run.
+Missing, preparing, canceled, revoked or exited owners reject through the same
+strict native handlers. Direct normal APIs remain normal-only. Shared normal/resume
+handler bodies execute once under the runtime gate, never under the Werk monitor.
+Existing native current-channel/peer/generation checks remain before dispatch.
+
+TelefonWerk also retains the bounded resume-start replay ledger beside the normal
+ledger across native runtime ownership changes, rather than creating it from wire
+or disk metadata. No discovery/readiness/automatic/UI gate is enabled.
+58 distinct host cases pass (three new, 55 affected): actual native controls and
+source commands through new offer/acceptance/Chunk/Saved dispatcher flow, encrypted
+bytes and durable historical proof, normal dispatch compatibility, accepted disk
+history without a run, preparing/stopped/revoked ownership and affected native
+offer/data/source/permission paths. TelefonWerk wiring is compiled against these
+native APIs; full installed TelefonWerk/network/phone lifecycle acceptance is NOT
+established by the runtime fixtures. Desktop counterpart, pending-head repair,
+baseline/conflict convergence/migration/classification, UI and physical acceptance
+remain unfinished. Production/automatic/UI/releases remain OFF.
+
 ### Guarded immutable resume offer command (Refs #360, #337)
 
 offer_resume now addresses only the exact active native resume run. Its complete

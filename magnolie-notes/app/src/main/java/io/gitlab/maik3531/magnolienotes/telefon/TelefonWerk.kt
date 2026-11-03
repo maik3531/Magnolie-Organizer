@@ -136,6 +136,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private var galleryFileConnection: NativeGalleryFileConnection? = null
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()
     private val galleryRunCommands = NativeGalleryRunCommands()
+    private val galleryResumeCommands = NativeGalleryResumeCommands()
     private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -2447,11 +2448,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 return
             }
             if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
-            else if (message["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND)) runtime.observeAcceptance(message)
-            else if (message["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST)) runtime.receiveChunkRequest(message,channel::send)
-            else if (message["kind"] == JsonPrimitive(DeviceFileSavedEnvelope.KIND)) runtime.observeRemoteSaved(message)
+            else if (message["kind"] in setOf(JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.REQUEST),
+                JsonPrimitive(DeviceFileSavedEnvelope.KIND))) runtime.receiveTransferMessage(message, channel::send)
             else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))
-                runtime.receiveSourceCommand(message, channel::send, runCommands = galleryRunCommands)
+                runtime.receiveSourceCommand(message, channel::send, runCommands = galleryRunCommands, resumeCommands = galleryResumeCommands)
             else DeviceFileControl.fail("file_sources_unexpected_result")
             runtime.sendControls()
             return // Reserved file frames never enter personal-store staging/ACKs.

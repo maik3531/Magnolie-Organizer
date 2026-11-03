@@ -1617,6 +1617,59 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun guardedResumeSourceCommandsAndCurrentTransferDispatcherCompleteNativeDataWithoutAdoptingHistory() {
+        ResumeRuntimeCase().use { h ->
+            val start = h.resumeCommand(); h.watchEnd()
+            val ledger = NativeGalleryResumeCommands({ h.now }, { 1000L })
+            h.runtime.receiveSourceCommand(start, h.channel::send, { h.now }, resumeCommands = ledger)
+            h.drain(); h.awaitEnd(); val run = h.currentResume(); val at = h.now + 120_000
+            h.runtime.receiveSourceCommand(h.resumeStatus("offer_resume", run, at), h.channel::send, { at })
+            val offered = h.drain(); assertEquals(2, offered.size)
+            val acceptance = h.acceptance(run, at)
+            h.runtime.receiveTransferMessage(acceptance, h.channel::send, { at })
+            assertNotNull(run.acceptance.get()); assertEquals(0, h.output.size())
+            val request = h.chunk(run); h.runtime.receiveTransferMessage(request, h.channel::send, { h.now + 240_000 })
+            val chunk = h.drain().single()
+            assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(chunk["body"]!!.jsonObject.string("data_base64")))
+            h.runtime.receiveTransferMessage(h.saved(run), h.channel::send, { h.now + 240_000 })
+            assertNotNull(run.remoteSaved.get()); assertEquals(0, h.output.size()); h.assertOriginal(saved = true)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+        }
+    }
+
+    @Test fun transferDispatcherCannotRestoreRunOrAuthorityFromPersistedAcceptedHeadAndPackets() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val request = h.chunk(run); val saved = h.saved(run); val acceptance = h.acceptance(run)
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+            h.inspect { assertEquals("accepted", it.resumeAttempt(h.job)!!.phase) }
+            for (message in listOf(request, saved, acceptance)) assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.receiveTransferMessage(message, h.channel::send, { h.now + 240_000 })
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveTransferMessage(h.resumeStatus("resume_status", run), h.channel::send, { h.now }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun transferDispatcherPreparingStoppedOrRevokedOwnerCannotFallBackToOldAcceptedHistory() {
+        for (change in listOf("preparing", "canceled", "revoked")) ResumeRuntimeCase().use { h ->
+            val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); check(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            val run = h.start()
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                val original = h.originalAcceptance["acceptance"]!!.jsonObject
+                val stale = TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, JsonObject(original - setOf("expires", "command_digest") + ("format" to JsonPrimitive(1))), 60_000, h.now)
+                if (change == "canceled") h.runtime.cancelResumeRun(run)
+                if (change == "revoked") h.runtime.revokeControl()
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveTransferMessage(stale, h.channel::send, { h.now }) }
+                assertNull(run.attempt.get()); assertNull(run.acceptance.get()); assertNull(run.remoteSaved.get())
+                assertEquals(0, h.output.size())
+            } finally { h.release.countDown(); h.awaitEnd() }
+            h.assertOriginal()
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
@@ -2220,7 +2273,7 @@ class AndroidGalleryPhotoSourceTest {
                         assertEquals(0,output.size());assertEquals(providerOpens,f.provider.opens.size)
                         acceptance=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+
                             ("offer_id" to JsonPrimitive(offeredWire[0].string("message_id"))))))
-                        runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
+                        runtime.receiveTransferMessage(acceptance,channel::send,{now}); runtime.observeAcceptance(acceptance,{now})
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.beginResumeRun(selected, started.snapshotJob()!!) }
                         assertThrows(PhotoFolderScopeError::class.java) { runtime.issueHistoricalSavedAction(started.snapshotJob()!!) }
                         PhotoSourceJobIndex(root, protection).use { inspected ->
@@ -2250,7 +2303,7 @@ class AndroidGalleryPhotoSourceTest {
                         assertThrows(java.io.IOException::class.java) {
                             runtime.receiveChunkRequest(chunkRequest,{throw java.io.IOException("chunk output failed")},{now})
                         }
-                        runtime.receiveChunkRequest(chunkRequest,channel::send,{now})
+                        runtime.receiveTransferMessage(chunkRequest,channel::send,{now})
                         val chunkFrame=TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray()));output.reset()
                         val chunkHeader=JsonObject(chunkFrame-"ciphertext")
                         val chunkClear=TelefonKrypto.entschluesseln(key,TelefonKrypto.nonce(prefix,chunkHeader.long("seq")),
@@ -2274,7 +2327,7 @@ class AndroidGalleryPhotoSourceTest {
                             runtime.observeRemoteSaved(savedMessage,{if (++savedTicks>=2) now+60_000 else now})
                         }
                         assertNull(whole.remoteSaved.get())
-                        runtime.observeRemoteSaved(savedMessage,{now})
+                        runtime.receiveTransferMessage(savedMessage,channel::send,{now})
                         val historical=whole.remoteSaved.get()!!
                         PhotoSourceJobIndex(root, protection).use { inspected ->
                             val originalJob = inspected.jobs().single()
