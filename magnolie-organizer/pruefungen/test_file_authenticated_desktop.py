@@ -118,7 +118,7 @@ def test_native_revocation_does_not_wait_for_peer_io_or_return_late_authority(na
     finally:
         release.set();assert ended.wait(5);worker.join(5);authority.close()
 
-@pytest.mark.parametrize('mode',['normal','generation-change','file-control','file-receive'])
+@pytest.mark.parametrize('mode',['normal','generation-change','file-control','file-receive','file-source-offer'])
 def test_actual_crypto_session_captures_its_authenticated_public_identity_and_removes_it_at_transport_end(native,monkeypatch,mode):
     service,peer,private=native
     # Leave unrelated personal outbox producers inert in this focused crypto /
@@ -175,13 +175,13 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
             assert native_identity.receiver_id==identity['device_id']
             assert native_identity.receiver_identity_sha256==hashlib.sha256(phone.unb64(identity['static_public'],32)).hexdigest()
             native_connection = None
-            if mode in ('file-control', 'file-receive'):
+            if mode in ('file-control', 'file-receive', 'file-source-offer'):
                 from magnolie_file_control import KIND, FileControlPacket, FileGrantState
-                if mode == 'file-receive':
+                if mode in ('file-receive', 'file-source-offer'):
                     from magnolie_file_desktop_connection import NativeDesktopFileConnection
                     monkeypatch.setattr(NativeDesktopFileConnection, '_data_handlers_ready', True)  # Fixture only.
                 native_connection = service.open_native_file_connection(peer['device_id'], peer['static_public'], server_channel, service._generation)
-                if mode == 'file-receive':
+                if mode in ('file-receive', 'file-source-offer'):
                     from magnolie_photo_destination import NativePhotoDestinationController
                     target = Path(service.store.root).parent/'explicit-native-photo-target'
                     target.mkdir(mode=0o700)
@@ -201,7 +201,8 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
                 first = receive()
                 assert first['kind'] == KIND
                 local = FileControlPacket.parse(first['body'])
-                remote = FileControlPacket(FileGrantState(1, 'a'*64, mode == 'file-receive', mode != 'file-receive'), 'b'*64, 1, local.challenge)
+                receiving = mode in ('file-receive', 'file-source-offer')
+                remote = FileControlPacket(FileGrantState(1, 'a'*64, receiving, not receiving), 'b'*64, 1, local.challenge)
                 at = phone.now_ms()
                 send(dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=KIND,
                           created_ms=at, expires_ms=at+60_000, body=remote.wire()))
@@ -219,12 +220,47 @@ def test_actual_crypto_session_captures_its_authenticated_public_identity_and_re
                     from magnolie_file_offer import create_offer
                     from magnolie_file_transfer import FileManifest, ManifestFile
                     assert echoed.grants.receive_files
+                    def source_reply(command, kind, **body):
+                        at = phone.now_ms()
+                        message = dict(type='message', v=1, message_id=str(uuid.uuid4()), kind=kind,
+                            created_ms=at, expires_ms=command['expires_ms'], body=dict(format=1,
+                            request_id=command['message_id'], operation=command['body']['operation'], **body))
+                        observed.clear(); send(message); assert observed.wait(5)
+                    if mode == 'file-source-offer':
+                        import magnolie_file_sources as sources
+                        native_connection.request_source(native_connection.issue_receive_action(), 'status')
+                        command = receive()
+                        assert command['kind'] == sources.REQUEST and command['body']['operation'] == 'status'
+                        source_reply(command, sources.RESULT, version='c'*64, revision=2, enabled=True,
+                            associated=True, repair_pending=False, kinds=['camera'])
+                        native_connection.request_source(native_connection.issue_receive_action(), 'discover')
+                        command = receive()
+                        catalog_id, album_id, run_id = [str(uuid.uuid4()) for _ in range(3)]
+                        source_reply(command, sources.CATALOG, version='c'*64, page=dict(format=1,
+                            catalog_id=catalog_id, after=0, next_cursor=None, coverage='full_images', proves_deletion=False,
+                            albums=[dict(album_id=album_id, kind='camera', display_name='Camera', visible_images=1, needs_choice=False)]))
+                        native_connection.request_source(native_connection.issue_receive_action(), 'run', album_id=album_id, desktop_choice=True)
+                        command = receive()
+                        assert command['body']['catalog_id'] == catalog_id
+                        source_reply(command, sources.RUN_RESULT, version='c'*64, run_id=run_id,
+                            state='snapshot_ready', source_io_ended=True)
+                        native_connection.request_source(native_connection.issue_receive_action(), 'offer_run')
+                        command = receive()
+                        assert command['body']['run_id'] == run_id
                     data = b'actual encrypted native receiver bytes'
                     manifest = FileManifest('1'*32, '2'*32, peer['device_id'], identity['device_id'],
                         (ManifestFile('3'*32, 'Camera/native.jpg', len(data), hashlib.sha256(data).hexdigest()),), len(data))
                     offered = create_offer(manifest)
+                    if mode == 'file-source-offer':
+                        offered['expires_ms'] = min(offered['expires_ms'], command['expires_ms'])
                     observed.clear(); send(offered); assert observed.wait(5)
                     assert not (target/'Camera/native.jpg').exists()
+                    if mode == 'file-source-offer':
+                        with pytest.raises(TransferError, match='not_confirmed'):
+                            native_connection.accept_pending_offer(native_connection.issue_receive_action(), offered['message_id'])
+                        assert native_connection._run is None and native_connection._catalog is None
+                        source_reply(command, sources.RUN_RESULT, version='c'*64, run_id=run_id,
+                            state='snapshot_ready', source_io_ended=True, offer_id=offered['message_id'], manifest_sha256=manifest.fingerprint)
                     native_connection.accept_pending_offer(native_connection.issue_receive_action(), offered['message_id'])
                     accepted = receive()
                     assert accepted['kind'] == 'file_transfer.accept'

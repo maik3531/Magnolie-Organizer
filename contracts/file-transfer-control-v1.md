@@ -1132,6 +1132,17 @@ Production readiness and discovery 21 remain OFF. The actual Android Gallery
 lifecycle case also passes after adding post-source-read acceptance attempt
 revalidation, replacing that case's earlier evidence rather than counting it twice.
 
+One additional actual encrypted socketpair case passes: authenticated native
+session → dedicated control echo/receive consent → source status/discovery/run/
+offer_run commands over directional AEAD → actual offer retained with early
+acceptance denied → exact encrypted result correlation → native acceptance/chunk
+request/chunk stage/readback/checkpoint → explicit publication/protected saved
+projection → transport end/native descriptor cleanup. The phone source metadata
+and bytes here are a bounded fixture, not an installed Android Gallery/OS grant
+or physical synchronization test. This adds one distinct case (87 affected Python
+cases including the previous codec/controller/receive evidence), not five repeats
+of the pre-existing crypto modes. It neither retires quota nor commits a baseline.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
