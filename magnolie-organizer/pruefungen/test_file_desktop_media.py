@@ -166,7 +166,7 @@ def test_video_metadata_is_not_silently_received_in_photo_root_without_native_vi
     assert connection._catalog is None and connection._run is None
 
 
-def test_animation_folder_selection_is_not_silently_ignored_by_unjoined_target_mapping(receiving):
+def test_animation_folder_selection_is_bound_to_native_accepted_target_before_any_publication(receiving):
     service,peer,channel,connection,_=receiving
     prefs=connection._preferences
     prefs.configure(prefs.issue_action(),prefs.read(),enabled=True,mode='manual',separate_animations=True)
@@ -174,9 +174,11 @@ def test_animation_folder_selection_is_not_silently_ignored_by_unjoined_target_m
     ready_source(receiving);full=manifest(receiving);req=request(receiving,'media_page')
     value=media(req,full);value['body']['page']['entries'][0]['media_kind']='animation';dispatch(receiving,value)
     offered,result=send_offer(receiving,full);dispatch(receiving,result)
-    with pytest.raises(TransferError,match='routing_unavailable'):
-        connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
-    assert connection._catalog is None and connection._run is None
+    connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
+    accepted=connection._run.accepted
+    assert dict(accepted.targets)=={full.files[0].id:'Animationen/'+full.files[0].path}
+    assert not (receiving[4]/dict(accepted.targets)[full.files[0].id]).exists()
+    assert connection._run.receiver._index.accepted_transfer==accepted
 
 
 def test_bidirectional_choice_is_not_silently_run_as_one_way_without_reverse_handlers(receiving):

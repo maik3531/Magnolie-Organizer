@@ -1831,6 +1831,31 @@ earlier without weakening preservation or admission checks. These are not physic
 device/native installed-platform acceptance; all production/UI/auto/release gates
 and the other remaining #337 recovery/classification/migration work remain OFF/open.
 
+### Fresh animation target routing (Refs #344, #337)
+
+For a new unassociated media admission with protected `separate_animations`, only
+correlated original `animation` members receive the `Animationen/` prefix inside
+the original photo destination. Static/other image members keep their exact source
+paths. The native accepted transfer authenticates the complete final target map
+before reservation; duplicate/tree-colliding routed targets fail without a new
+job or target write. Missing correlated media cannot fall back to an unrouted legacy
+target. Video and semantic photograph/graphic grouping remain separately unsupported.
+
+Original association/job lookup still precedes path derivation. Changing this
+preference later does not relocate existing files or download a second copy: known
+associations remain reconcile/HOLD at their original location. No existing-file
+merge/sort migration or special-folder removal is performed. The requested symmetric
+Yes/No migration dialogue and durable no-replace move journal remain unfinished;
+fresh routing does not complete the user-facing grouping feature or enable its UI.
+
+50 distinct scoped cases pass (seven new, 43 affected), including consistent
+two-frame GIF and static PNG bytes through native source/offer/chunk/save, protected
+targets/mappings/post-mapping receipts, fresh historical recovery preserving newer
+PC animation edits, route collisions, existing destination preservation and grouping
+changes in both directions after an actual fresh native source owner. The no-overlap
+guard and original quota remain intact. These fixtures prove transport/routing, not
+a semantic classifier, native installed-platform/phone acceptance or a release.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

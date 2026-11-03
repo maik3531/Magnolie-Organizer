@@ -415,12 +415,14 @@ class NativeDesktopFileConnection:
         snapshot = self._receiving_policy()
         if snapshot.direction != 'phone_to_desktop':
             raise TransferError('file_desktop_reverse_handlers_unavailable')
-        if snapshot.include_videos or snapshot.separate_animations or snapshot.separate_own_recordings:
+        if snapshot.include_videos or snapshot.separate_own_recordings:
             if self._source_media_entries is None:
                 raise TransferError('file_desktop_source_media_not_correlated')
             # Native per-file destination/semantic grouping is not yet joined.
             # Never silently ignore an explicitly selected unsupported option.
             raise TransferError('file_desktop_media_target_routing_unavailable')
+        if snapshot.separate_animations and self._source_media_entries is None:
+            raise TransferError('file_desktop_source_media_not_correlated')
         if self._source_media_pages:
             if self._offer is None or self._source_media_pages[0].media_type != 'images':
                 raise TransferError('file_desktop_media_target_routing_unavailable')
@@ -597,7 +599,14 @@ class NativeDesktopFileConnection:
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
             if clock() >= self._offer['expires_ms']:
                 raise TransferError('file_desktop_offer_expired')
-            accepted = NativeAcceptedTransfer.capture(manifest, binding, {file.id:file.path for file in manifest.files},
+            targets={file.id:file.path for file in manifest.files}
+            if snapshot.separate_animations:
+                # Only fresh, correlated animation members are routed. Known
+                # historical associations were fenced before deriving paths.
+                entries={entry.file_id:entry for entry in self._source_media_entries}
+                targets={file.id:('Animationen/'+file.path if entries[file.id].media_kind=='animation' else file.path)
+                    for file in manifest.files}
+            accepted = NativeAcceptedTransfer.capture(manifest, binding, targets,
                 snapshot.policy.destination.path, self._receive_binding)
             if accepted.destination != snapshot.policy.destination:
                 raise TransferError('file_desktop_original_destination_changed')
