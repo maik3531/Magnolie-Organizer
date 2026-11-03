@@ -65,4 +65,23 @@ class GalleryPhotoPermissionIntentTest {
         assertFalse(NativeGalleryForeground.acceptsPermissionAction(action.token))
         assertNull(Shadows.shadowOf(app).nextStartedActivity)
     }
+
+    @Test fun independentVideoNotificationDoesNotReplacePhotoTapOrLabelVideoAsPhotoAccess() {
+        val app = RuntimeEnvironment.getApplication()
+        Shadows.shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        val image = NativeGalleryPermissionAction("1".repeat(64))
+        val video = NativeGalleryPermissionAction("2".repeat(64), GalleryMediaType.VIDEO)
+        assertTrue(GalleryPhotoPermissionIntent.post(app, image)); assertTrue(GalleryPhotoPermissionIntent.post(app, video))
+        val manager = app.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val notifications = Shadows.shadowOf(manager).allNotifications
+        assertEquals(2, notifications.size)
+        val photo = notifications.single { GalleryPhotoPermissionIntent.token(Shadows.shadowOf(it.contentIntent).savedIntent) == image.token }
+        val clip = notifications.single { GalleryPhotoPermissionIntent.token(Shadows.shadowOf(it.contentIntent).savedIntent) == video.token }
+        assertNotEquals(photo.channelId, clip.channelId)
+        assertEquals("Videosynchronisation: Zugriff bestätigen", clip.extras.getCharSequence(android.app.Notification.EXTRA_TITLE).toString())
+        assertEquals(android.app.Notification.VISIBILITY_PRIVATE, clip.visibility)
+        assertTrue(clip.contentIntent.isImmutable); assertNull(clip.fullScreenIntent)
+        assertFalse(NativeGalleryForeground.acceptsPermissionAction(video.token))
+        assertNull(Shadows.shadowOf(app).nextStartedActivity)
+    }
 }

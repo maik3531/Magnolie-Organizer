@@ -33,7 +33,8 @@ class NativeGalleryFileRuntimeTest {
         }
     }
 
-    private fun negotiatedRuntime(action: (NativeGalleryFileRuntime, () -> Unit) -> Unit) {
+    private fun negotiatedRuntime(videoReady: () -> Boolean = { false }, peerVideo: () -> Boolean = { false },
+        action: (NativeGalleryFileRuntime, () -> Unit) -> Unit) {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "file-source-command330-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
         val link = Link()
@@ -41,7 +42,8 @@ class NativeGalleryFileRuntimeTest {
         val desktopPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, "1".repeat(64))
         val state = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
         val desktop = NativeFileControlSession(remote, { desktopPeer }, { state })
-        val runtime = NativeGalleryFileRuntime(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection, link.channel, { peer }, { true })
+        val runtime = NativeGalleryFileRuntime.withVideoHandlers(org.robolectric.RuntimeEnvironment.getApplication(), root, identity, protection,
+            link.channel, { peer.copy(videoSupported = peerVideo()) }, { true }, videoReady)
         try {
             fun echo() {
                 if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
@@ -91,6 +93,70 @@ class NativeGalleryFileRuntimeTest {
             assertEquals(setOf("format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds"),
                 legacy!!["body"]!!.jsonObject.keys)
         }
+    }
+
+    @Test fun typedForegroundVideoTapUsesOnlyItsEarlyHostAndFeatureWithdrawalInvalidatesItsAction() {
+        var supported = true
+        val activity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).create()
+        val imageHost = GalleryPhotoPermissionHost(activity.get())
+        val videoHost = GalleryPhotoPermissionHost(activity.get(), GalleryMediaType.VIDEO)
+        NativeGalleryForeground.registerHost(imageHost); NativeGalleryForeground.registerHost(videoHost)
+        activity.start().resume()
+        try {
+            negotiatedRuntime(videoReady = { true }, peerVideo = { supported }) { runtime, echo ->
+                runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                val photo = runtime.currentRequest()!!
+                runtime.configureVideosFromAuthenticatedCommand(runtime.savedPolicy(), true)
+                assertNotNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+                assertEquals(photo.policyEpoch, runtime.currentRequest()!!.policyEpoch)
+                val imageOwner = runtime.attachForeground { }
+                val videoResults = mutableListOf<Result<GalleryReadCoverage>>()
+                val videoOwner = runtime.attachForeground(GalleryMediaType.VIDEO) { videoResults += it }
+                assertNotSame(imageOwner, videoOwner)
+                val imageAction = NativeGalleryForeground.permissionAction(imageOwner)
+                val videoAction = NativeGalleryForeground.permissionAction(videoOwner)
+                assertEquals(GalleryMediaType.VIDEO, videoAction.mediaType)
+                assertTrue(NativeGalleryForeground.acceptsPermissionAction(imageAction.token))
+                assertTrue(NativeGalleryForeground.acceptsPermissionAction(videoAction.token))
+                NativeGalleryForeground.performPermissionAction(videoAction.token)
+                assertTrue(videoHost.requestPending); assertFalse(imageHost.requestPending)
+                assertFalse(NativeGalleryForeground.acceptsPermissionAction(videoAction.token))
+                assertEquals("gallery_permission_request_pending", assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryForeground.performPermissionAction(imageAction.token)
+                }.code)
+                assertTrue(NativeGalleryForeground.acceptsPermissionAction(imageAction.token))
+                val permission = org.robolectric.Shadows.shadowOf(activity.get()).lastRequestedPermission!!
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    assertTrue(android.Manifest.permission.READ_MEDIA_VIDEO in permission.requestedPermissions)
+                    assertFalse(android.Manifest.permission.READ_MEDIA_IMAGES in permission.requestedPermissions)
+                } else assertArrayEquals(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), permission.requestedPermissions)
+                val request = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "request_read"); put("expected_version", runtime.savedPolicy().version)
+                }, 60_000, now)
+                var result: JsonObject? = null
+                runtime.receiveSourceCommand(request, { result = it }, { now })
+                assertEquals("foreground_required", result!!["body"]!!.jsonObject.string("state"))
+                assertFalse(imageHost.requestPending); assertTrue(videoHost.requestPending)
+                activity.get().onRequestPermissionsResult(permission.requestCode, permission.requestedPermissions,
+                    IntArray(permission.requestedPermissions.size) { android.content.pm.PackageManager.PERMISSION_DENIED })
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertEquals(1, videoResults.size); assertFalse(videoHost.requestPending)
+                val pending = NativeGalleryForeground.permissionAction(videoOwner)
+                supported = false
+                assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+                assertFalse(NativeGalleryForeground.acceptsPermissionAction(pending.token))
+                assertTrue(NativeGalleryForeground.acceptsPermissionAction(imageAction.token))
+                runtime.configureVideosFromAuthenticatedCommand(runtime.savedPolicy(), false)
+                assertNotNull(runtime.currentRequest()); assertEquals(photo.policyEpoch, runtime.currentRequest()!!.policyEpoch)
+            }
+        } finally {
+            NativeGalleryForeground.unregisterHost(videoHost); NativeGalleryForeground.unregisterHost(imageHost)
+            activity.pause().stop().destroy()
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun modernTypedForegroundVideoTapNeverRequestsImageRead() {
+        typedForegroundVideoTapUsesOnlyItsEarlyHostAndFeatureWithdrawalInvalidatesItsAction()
     }
 
     @Test fun sourceCommandExpiryReachesTheNativeConfigurerBeforePolicyPublicationAndReleasesItsTicket() {

@@ -94,7 +94,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun sendControls(now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.sendIfNeeded(now) }
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.observe(message, now) }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
-    fun currentRequest(): NativeGalleryRequest? { ready(); return workflow.currentRequest() }
+    fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? { ready(); return workflow.currentRequest(mediaType) }
     fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): NativeGalleryAlbumCatalog = withOperation {
         workflow.discoverSelectable(cancellation)
     }
@@ -597,12 +597,15 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         ready(); workflow.attachPermissionHost(host, onResult)
     }
-    fun requestReadPermission() { ready(); workflow.requestReadPermission() }
+    fun requestReadPermission(mediaType: GalleryMediaType = GalleryMediaType.IMAGES) { ready(); workflow.requestReadPermission(mediaType) }
     // Epoch rotation only: no runtime/session I/O lock or READ creation. Safe
     // from native lifecycle notifications while Werk owns its monitor.
     internal fun nativeReadAccessChanged() { workflow.nativeReadAccessChanged() }
     fun attachForeground(onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
-        ready(); return NativeGalleryForeground.attach(this, onResult)
+        return attachForeground(GalleryMediaType.IMAGES, onResult)
+    }
+    fun attachForeground(mediaType: GalleryMediaType, onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
+        ready(); return NativeGalleryForeground.attach(this, onResult, mediaType)
     }
 
     /** Guarded source commands. Status/configuration work while initial send is
@@ -951,7 +954,9 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                         "requested"
                     } catch (error: PhotoFolderScopeError) {
                         if (error.code !in NativeGalleryPermissionActions.RETRYABLE) throw error
-                        if (error.code == "gallery_permission_request_pending") "requested"
+                        if (error.code == "gallery_permission_request_pending") {
+                            if (workflow.permissionRequestPending(command.mediaType)) "requested" else "foreground_required"
+                        }
                         else {
                             authority()
                             if (NativeGalleryForeground.postPermissionAction(app, action)) "notification_posted" else "foreground_required"
@@ -1062,6 +1067,18 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = withOperation {
         workflow.disableLocally(expected)
+    }
+
+    internal fun configureVideosFromAuthenticatedCommand(expected: GalleryPhotoPolicySnapshot, enabled: Boolean): GalleryPhotoPolicySnapshot = withOperation {
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null || !sourceWorker.isQuiescent)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        val issued = controls.session.configurationTicket()
+        if (!ticket.compareAndSet(null, issued)) {
+            controls.session.finishConfiguration(issued)
+            DeviceFileControl.fail("file_control_configuration_busy")
+        }
+        try { workflow.configureVideos(expected, enabled) }
+        finally { ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
     }
 
     /** Native channel-end path can revoke file authority synchronously on any

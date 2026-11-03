@@ -153,6 +153,8 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         val current = bound(mediaType)
         if (current.host == null) current.launcher.request() else current.host.request(this)
     }
+    internal fun permissionRequestPending(mediaType: GalleryMediaType): Boolean =
+        nativeBinding(mediaType).get()?.launcher?.requestPending == true
 
     fun discover(cancellation: CancellationSignal = CancellationSignal(), mediaType: GalleryMediaType = GalleryMediaType.IMAGES): GalleryAlbumCatalog {
         ready()

@@ -20,9 +20,28 @@ The runtime wire join is still deliberately closed: typed video commands and
 video configuration fail before acquiring a configuration ticket, emitting a
 reply or reaching any image catalog/permission path. Prepared permission output
 also rejects a video-to-image substitution. Scoped video catalogs, run matching,
-foreground routing and desktop video target/worker integration remain to be
+wire foreground dispatch and desktop video target/worker integration remain to be
 joined before enabling this lane. Parsing or marker support alone is not usable
 video synchronization, and old image status replies remain unchanged.
+
+### Typed native foreground owners and permission taps (Refs #330)
+
+The passive foreground route now retains separate image/video hosts, owners and
+process-local action ledgers. MainActivity registers both hosts before STARTED,
+without opening a store, starting a service or requesting OS permission. Every
+tap remains tied to its native media type, owner, current request and expiry;
+equal identities/epochs cannot reassign an image action to video. Closing the
+runtime invalidates both routes. A live video-capability withdrawal invalidates
+video actions without cancelling an unrelated photo action or rekeying grants.
+
+Video and photo notifications use separate IDs/channels and correctly typed
+labels, retaining private immutable one-shot intents and no background activity
+launch. One actually pending OS dialog still excludes the other media domain.
+An image wire request while only a video dialog is pending reports foreground
+interaction required, not image permission requested. Actual native typed-tap
+tests exercise legacy and modern Android permission hosts and notification
+coexistence. The video wire command lane remains closed, so this native route
+alone does not expose video synchronization or constitute physical acceptance.
 
 ### Native independent video consent and typed READ workflow (Refs #330)
 
@@ -50,7 +69,7 @@ Source-host tests include actual protected-policy/index operations, native
 permission hosts and MediaStore/PFD/encrypted-cache workflow on legacy and modern
 Android runtimes, plus merged-manifest permission inspection. They do not prove
 physical permission dialogs or an installed phone transfer. The authenticated
-source-command/foreground-tap video join, independent desktop video destination
+source-command video join, independent desktop video destination
 and complete worker/UI integration are still absent. No video control or new
 production readiness is advertised from these native workflow checks alone.
 

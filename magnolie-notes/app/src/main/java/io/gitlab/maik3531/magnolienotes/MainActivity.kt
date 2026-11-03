@@ -122,6 +122,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 
 class MainActivity : ComponentActivity() {
     private var galleryPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
+    private var galleryVideoPermissionHost: io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost? = null
     private var pendingGalleryPermissionAction: String? = null
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
@@ -137,6 +138,10 @@ class MainActivity : ComponentActivity() {
         // Register before STARTED without constructing a phone store/service.
         // Explicit native file activation can attach later, preserving drafts.
         galleryPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this).also {
+            io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
+        }
+        galleryVideoPermissionHost = io.gitlab.maik3531.magnolienotes.telefon.GalleryPhotoPermissionHost(this,
+            io.gitlab.maik3531.magnolienotes.telefon.GalleryMediaType.VIDEO).also {
             io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.registerHost(it)
         }
         acceptGalleryPermissionIntent(intent)
@@ -164,6 +169,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         galleryPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }
         galleryPermissionHost = null
+        galleryVideoPermissionHost?.let { io.gitlab.maik3531.magnolienotes.telefon.NativeGalleryForeground.unregisterHost(it) }
+        galleryVideoPermissionHost = null
         pendingGalleryPermissionAction = null
         super.onDestroy()
     }

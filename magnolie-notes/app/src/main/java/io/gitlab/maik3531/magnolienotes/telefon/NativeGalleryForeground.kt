@@ -4,7 +4,8 @@ import android.os.Looper
 import android.content.Context
 import java.lang.ref.WeakReference
 
-internal class NativeGalleryForegroundOwner internal constructor(internal val runtime: NativeGalleryFileRuntime)
+internal class NativeGalleryForegroundOwner internal constructor(internal val runtime: NativeGalleryFileRuntime,
+    internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES)
 
 /** Passive native Activity route only. Registering the early host does not
  * construct TelefonWerk/stores, start a service, request permission or activate
@@ -12,69 +13,82 @@ internal class NativeGalleryForegroundOwner internal constructor(internal val ru
  */
 internal object NativeGalleryForeground {
     private class Binding(val owner: NativeGalleryForegroundOwner, val onResult: (Result<GalleryReadCoverage>) -> Unit)
-    private var host = WeakReference<GalleryPhotoPermissionHost>(null)
-    private var binding: Binding? = null
-    private val actions = NativeGalleryPermissionActions({ binding?.let { current ->
-        current.owner.runtime.currentRequest()?.let { NativeGalleryPermissionActionScope(current.owner, it) }
-    } })
+    private class Route(val mediaType: GalleryMediaType) {
+        var host = WeakReference<GalleryPhotoPermissionHost>(null)
+        var binding: Binding? = null
+        val actions = NativeGalleryPermissionActions({ binding?.let { current ->
+            current.owner.runtime.currentRequest(mediaType)?.let { NativeGalleryPermissionActionScope(current.owner, it) }
+        } })
+    }
+    private val routes = GalleryMediaType.entries.associateWith { Route(it) }
 
     fun registerHost(value: GalleryPhotoPermissionHost) {
         uiThread()
-        if (host.get() === value) return
-        binding?.let { it.owner.runtime.attachPermissionHost(value, it.onResult) }
-        host = WeakReference(value)
+        val route = routes.getValue(value.mediaType)
+        if (route.host.get() === value) return
+        route.binding?.let { it.owner.runtime.attachPermissionHost(value, it.onResult) }
+        route.host = WeakReference(value)
     }
 
     fun unregisterHost(value: GalleryPhotoPermissionHost) {
         uiThread()
-        if (host.get() === value) host.clear()
+        val route = routes.getValue(value.mediaType)
+        if (route.host.get() === value) route.host.clear()
         value.close() // Exact Activity owner, never a different/new host.
     }
 
-    internal fun attach(runtime: NativeGalleryFileRuntime, onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
+    internal fun attach(runtime: NativeGalleryFileRuntime, onResult: (Result<GalleryReadCoverage>) -> Unit,
+        mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryForegroundOwner {
         uiThread()
-        binding?.let {
+        if (routes.values.any { it.binding?.owner?.runtime?.let { held -> held !== runtime } == true })
+            DeviceFileControl.fail("gallery_foreground_runtime_busy")
+        val route = routes.getValue(mediaType)
+        route.binding?.let {
             if (it.owner.runtime !== runtime) DeviceFileControl.fail("gallery_foreground_runtime_busy")
             return it.owner
         }
-        val owner = NativeGalleryForegroundOwner(runtime)
-        host.get()?.let { runtime.attachPermissionHost(it, onResult) }
-        binding = Binding(owner, onResult)
+        val owner = NativeGalleryForegroundOwner(runtime, mediaType)
+        route.host.get()?.let { runtime.attachPermissionHost(it, onResult) }
+        route.binding = Binding(owner, onResult)
         return owner
     }
 
     internal fun detach(runtime: NativeGalleryFileRuntime) {
         uiThread()
-        binding?.takeIf { it.owner.runtime === runtime }?.let { actions.cancelOwner(it.owner); binding = null }
+        routes.values.forEach { route ->
+            route.binding?.takeIf { it.owner.runtime === runtime }?.let { route.actions.cancelOwner(it.owner); route.binding = null }
+        }
     }
 
     fun isCurrent(owner: NativeGalleryForegroundOwner): Boolean {
         uiThread()
-        return binding?.owner === owner
+        return routes.getValue(owner.mediaType).binding?.owner === owner
     }
 
     fun permissionAction(owner: NativeGalleryForegroundOwner): NativeGalleryPermissionAction {
         uiThread()
         if (!isCurrent(owner)) DeviceFileControl.fail("gallery_permission_action_source_changed")
-        return actions.create()
+        return routes.getValue(owner.mediaType).actions.create()
     }
 
     fun acceptsPermissionAction(token: String): Boolean {
         uiThread()
-        return runCatching { actions.isCurrent(token) }.getOrDefault(false)
+        return routes.values.any { runCatching { it.actions.isCurrent(token) }.getOrDefault(false) }
     }
 
     fun performPermissionAction(token: String) {
         uiThread()
-        actions.perform(token) { owner ->
-            val current = binding?.takeIf { it.owner === owner } ?: DeviceFileControl.fail("gallery_permission_action_source_changed")
-            current.owner.runtime.requestReadPermission()
+        val route = routes.values.singleOrNull { it.actions.isCurrent(token) }
+            ?: DeviceFileControl.fail("gallery_permission_action_unknown")
+        route.actions.perform(token) { owner ->
+            val current = route.binding?.takeIf { it.owner === owner } ?: DeviceFileControl.fail("gallery_permission_action_source_changed")
+            current.owner.runtime.requestReadPermission(route.mediaType)
         }
     }
 
     fun postPermissionAction(context: Context, action: NativeGalleryPermissionAction): Boolean {
         uiThread()
-        if (!actions.isCurrent(action.token)) DeviceFileControl.fail("gallery_permission_action_source_changed")
+        if (!routes.getValue(action.mediaType).actions.isCurrent(action.token)) DeviceFileControl.fail("gallery_permission_action_source_changed")
         return GalleryPhotoPermissionIntent.post(context, action)
     }
 

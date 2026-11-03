@@ -613,7 +613,9 @@ class NativeFilePairingBootstrapTest {
                     assertEquals("notification_posted", sent().single()["body"]!!.jsonObject.string("state"))
                     assertSame(originalIntent, org.robolectric.Shadows.shadowOf(manager).allNotifications.single().contentIntent)
                     assertFalse(NativeGalleryForeground.acceptsPermissionAction(oldAction))
-                    assertNull(field(NativeGalleryForeground::class.java, "binding").get(null)) // No new UI attempt/owner was created.
+                    val routes = field(NativeGalleryForeground::class.java, "routes").get(null) as Map<*, *>
+                    assertEquals(GalleryMediaType.entries.toSet(), routes.keys)
+                    routes.values.forEach { route -> assertNull(field(route!!.javaClass, "binding").get(route)) } // No media UI attempt/owner was created.
                     assertEquals(saved, reopened.runtime.savedPolicy())
                     val outputField = field(TelefonSecureChannel::class.java, "output")
                     val originalOutput = outputField.get(channel) as java.io.OutputStream

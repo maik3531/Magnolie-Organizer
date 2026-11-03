@@ -89,4 +89,17 @@ class NativeGalleryPermissionActionsTest {
         assertThrows(PhotoFolderScopeError::class.java) { f.actions.create() }
         assertFalse(f.actions.isCurrent("native-name-not-a-ticket"))
     }
+
+    @Test fun sameNativeOwnerAndEpochCannotReassignAnImageActionToVideo() {
+        val f = Fixture(); val old = f.request!!; val image = f.actions.create()
+        assertEquals(GalleryMediaType.IMAGES, image.mediaType)
+        f.request = NativeGalleryRequest(old.receiver, old.policyEpoch, old.kinds, GalleryMediaType.VIDEO)
+        assertFalse(f.actions.isCurrent(image.token))
+        var launches = 0
+        assertThrows(PhotoFolderScopeError::class.java) { f.actions.perform(image.token) { launches++ } }
+        val video = f.actions.create()
+        assertEquals(GalleryMediaType.VIDEO, video.mediaType); assertNotEquals(image.token, video.token)
+        f.request = old
+        assertFalse(f.actions.isCurrent(video.token)); assertEquals(0, launches)
+    }
 }

@@ -3,7 +3,8 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import java.security.SecureRandom
 import java.util.Locale
 
-internal class NativeGalleryPermissionAction internal constructor(val token: String)
+internal class NativeGalleryPermissionAction internal constructor(val token: String,
+    internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES)
 internal class NativeGalleryPermissionActionScope(val owner: Any, val request: NativeGalleryRequest)
 
 /** Opaque in-memory permission-UI actions only, never serialized source/read
@@ -25,7 +26,7 @@ internal class NativeGalleryPermissionActions(private val current: () -> NativeG
         pending?.let { if (now >= it.issued && now < it.expires && same(it.scope, scope)) return it.action }
         val token = ByteArray(32).also { SecureRandom().nextBytes(it) }
             .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-        return NativeGalleryPermissionAction(token).also { pending = Entry(it, scope, now, now + DeviceFileControl.MAX_TTL_MS) }
+        return NativeGalleryPermissionAction(token, scope.request.mediaType).also { pending = Entry(it, scope, now, now + DeviceFileControl.MAX_TTL_MS) }
     }
 
     @Synchronized fun isCurrent(token: String): Boolean = try { requireEntry(token); true }
@@ -59,6 +60,7 @@ internal class NativeGalleryPermissionActions(private val current: () -> NativeG
         val before = first.request; val after = second.request
         val a = before.receiver; val b = after.receiver
         return first.owner === second.owner && a.allowed && b.allowed && before.kinds == after.kinds && before.policyEpoch == after.policyEpoch &&
+            before.mediaType == after.mediaType &&
             a.owner === b.owner && a.peerId == b.peerId && a.identitySha256 == b.identitySha256 &&
             a.permissionEpoch == b.permissionEpoch && a.pairingEpoch == b.pairingEpoch
     }

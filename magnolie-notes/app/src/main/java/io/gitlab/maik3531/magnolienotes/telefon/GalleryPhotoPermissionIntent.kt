@@ -47,13 +47,17 @@ internal object GalleryPhotoPermissionIntent {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return false
         if (Build.VERSION.SDK_INT >= 24 && !manager.areNotificationsEnabled()) return false
-        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL, "Fotozugriff bestätigen", NotificationManager.IMPORTANCE_DEFAULT))
-        val notification = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("Fotosynchronisation: Zugriff bestätigen")
-            .setContentText("Notes öffnen, um den Zugriff auf die ausgewählten Fotoquellen zu bestätigen.")
+        val video = action.mediaType == GalleryMediaType.VIDEO
+        val channel = if (video) CHANNEL + "-video" else CHANNEL
+        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(channel,
+            if (video) "Videozugriff bestätigen" else "Fotozugriff bestätigen", NotificationManager.IMPORTANCE_DEFAULT))
+        val notification = NotificationCompat.Builder(context, channel).setSmallIcon(android.R.drawable.ic_menu_gallery)
+            .setContentTitle(if (video) "Videosynchronisation: Zugriff bestätigen" else "Fotosynchronisation: Zugriff bestätigen")
+            .setContentText(if (video) "Notes öffnen, um den Zugriff auf die ausgewählten Videoquellen zu bestätigen."
+                else "Notes öffnen, um den Zugriff auf die ausgewählten Fotoquellen zu bestätigen.")
             .setContentIntent(pendingIntent(context, action)).setAutoCancel(true).setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setCategory(NotificationCompat.CATEGORY_STATUS).build()
-        manager.notify(NOTIFICATION, notification)
+        manager.notify(if (video) NOTIFICATION + 1 else NOTIFICATION, notification)
         return true
     }
 }
