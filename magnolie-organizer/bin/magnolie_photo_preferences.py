@@ -56,19 +56,23 @@ class PhotoPreferences:
     destination: NativeAcceptedDestination | None
     destination_token: str | None
     videos: VideoPreferences | None = None
+    separate_animations: bool | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
             enabled=self.enabled,mode=self.mode,phone_to_pc_delete=self.phone_to_pc_delete,pc_to_phone_delete=self.pc_to_phone_delete,
             destination=self.destination.wire() if self.destination is not None else None,destination_token=self.destination_token)
         if self.videos is not None:value['videos']=self.videos.wire()
+        if self.separate_animations is not None:value['separate_animations']=self.separate_animations
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or set(value) not in (required,required|{'videos'}) or type(value['format']) is not int or value['format']!=1
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations'}
+                or 'separate_animations' in value and type(value['separate_animations']) is not bool
+                or type(value['format']) is not int or value['format']!=1
                 or type(value['revision']) is not int or not 2<=value['revision']<=MAX_REVISION
                 or not _hex(value['permission_epoch']) or not _hex(value['pairing_epoch'])
                 or any(type(value[key]) is not bool for key in ('enabled','phone_to_pc_delete','pc_to_phone_delete'))
@@ -81,7 +85,7 @@ class PhotoPreferences:
             raise TransferError('photo_preferences_invalid_destination')
         videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
-            value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos)
+            value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,value.get('separate_animations'))
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -96,6 +100,10 @@ class PhotoPreferencesSnapshot:
         # Requested protected setting only, never native Video READ/readiness.
         return bool(self.associated and self.policy is not None and self.policy.enabled
             and self.policy.videos is not None and self.policy.videos.enabled)
+    @property
+    def separate_animations(self):
+        return bool(self.associated and self.policy is not None and self.policy.enabled
+            and self.policy.separate_animations is True)
 
 class ProtectedPhotoPreferences:
     MAX_DATABASE_BYTES=512*1024
@@ -281,13 +289,14 @@ class ProtectedPhotoPreferences:
             raise
 
     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
-            include_videos=None,video_destination_choice=None):
+            include_videos=None,video_destination_choice=None,separate_animations=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
                 or mode not in ('manual','automatic')):raise TransferError('photo_preferences_invalid_settings')
         if pc_to_phone_delete:raise TransferError('photo_preferences_reverse_delete_unavailable')
         if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')
+        if separate_animations is not None and type(separate_animations) is not bool:raise TransferError('animation_preferences_invalid_settings')
         if enabled and destination_choice is None and (expected.policy is None or expected.policy.destination is None):
             raise TransferError('photo_preferences_destination_required')
         with self._operation():
@@ -305,6 +314,9 @@ class ProtectedPhotoPreferences:
                 if enabled and destination is not None:destination.verify()
                 if enabled and destination is None:raise TransferError('photo_preferences_destination_required')
                 videos=current.policy.videos if current.policy is not None else None
+                animations=current.policy.separate_animations if current.policy is not None else None
+                if animations is not None and not current.associated:animations=False
+                if separate_animations is not None:animations=separate_animations
                 if videos is not None and not current.associated:
                     # Re-pairing preserves destination metadata, never silently
                     # re-enables the separately selected video scope.
@@ -326,7 +338,7 @@ class ProtectedPhotoPreferences:
                     videos=VideoPreferences.parse(VideoPreferences(video_enabled,video_destination,video_token).wire())
                 revision=(current.policy.revision if current.policy is not None else 1)+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
-                policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,destination,token,videos)
+                policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,destination,token,videos,animations)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:

@@ -1241,6 +1241,16 @@ Android OS permission-dialog acceptance. No production native video-policy path,
 desktop video command, video permission request/manifest addition, video capability,
 automatic worker, UI readiness or package release is enabled by this adapter unit.
 
+The protected desktop photo policy also has an optional, initially-OFF
+`separate_animations` selection. Legacy/absent records keep their exact previous
+shape and bytes until an explicit native update. CAS/encrypted readback preserves
+independent video settings and both destinations. A settings change creates no
+animations folder, moves no old GIF and grants no write/read/transfer authority;
+re-pairing does not silently renew the routing choice. Fifty-eight affected Python
+settings cases pass (animation 15, video 18, existing photo 25). Native animation
+recognition and immutable per-file destination routing remain required before
+exposing or executing this option.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
