@@ -643,6 +643,7 @@ class NativeDesktopFileConnection:
                 run.receiver.publish_completed()
                 self._receive_binding(); action.validate(self)
                 run.receiver.commit_saved_receipts()
+                self._commit_saved_media(run, action=action)
                 confirmation = run.receiver.saved_receipt_message(now=clock())
                 action.validate(self)
                 self._send_data(confirmation, clock, action=action)
@@ -650,12 +651,28 @@ class NativeDesktopFileConnection:
             finally:
                 self._mutation_action = None
 
+    def _commit_saved_media(self, run, *, action=None):
+        # Use the original protected job anchor, never the current wire cache.
+        history = run.receiver._index.media_history
+        if history is None:
+            if self._source_media_pages:
+                raise TransferError('file_desktop_saved_media_history_required')
+            return  # Limited legacy photo fixture, not media-feature readiness.
+        if action is not None:
+            action.validate(self)
+        self._receive_binding()
+        self._mappings.commit_saved_history(self._mappings.issue_action(),self._mappings.read(),run.receiver)
+        self._receive_binding()
+        if action is not None:
+            action.validate(self)
+
     def send_saved_confirmation(self, *, clock=now_ms):
         """Retry historical protected receipts without re-publication or overwrite."""
         with self._operation():
             run = self._require_receiver()
             if not run.acceptance_sent:
                 raise TransferError('file_desktop_acceptance_not_sent')
+            self._commit_saved_media(run)
             message = run.receiver.saved_receipt_message(now=clock())
             self._send_data(message, clock)
 

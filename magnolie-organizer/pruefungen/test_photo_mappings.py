@@ -29,7 +29,15 @@ def save(fixture,*,count=1,publish=True):
     offered,result=send_offer(fixture,full);dispatch(fixture,result)
     connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
     for file in full.files:dispatch(fixture,chunk(connection.request_next_chunk(),b'hello'))
-    if publish:connection.publish_received(connection.issue_receive_action())
+    if publish:
+        # Standalone mapping-store tests stop after native publication + receipt
+        # readback, before coordinator mapping/ACK. Keep its actual native gate.
+        action=connection.issue_receive_action();connection._take_action(action)
+        connection._mutation_action=action
+        try:
+            connection._run.receiver.publish_completed()
+            connection._run.receiver.commit_saved_receipts()
+        finally:connection._mutation_action=None
     pages=connection._source_media_pages
     association=PhotoMappingAssociation(pages[0].source_epoch,pages[0].entries[0].photo_id,pages[0].media_type)
     return connection._run.receiver,pages,association
@@ -85,7 +93,10 @@ def test_no_saved_receipt_or_incomplete_actual_receipt_set_cannot_create_mapping
     with pytest.raises(TransferError,match='complete_saved_receipts_required'):
         owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
     assert not (Path(fixture[0].store.root)/owner._name).exists()
-    fixture[3].publish_received(fixture[3].issue_receive_action())
+    connection=fixture[3];action=connection.issue_receive_action();connection._take_action(action)
+    connection._mutation_action=action
+    try:receiver.publish_completed();receiver.commit_saved_receipts()
+    finally:connection._mutation_action=None
     receipts=receiver._index.saved_receipts()
     with receiver._index._db:receiver._index._db.execute('DELETE FROM receipts WHERE file_id=?',(receipts[1].file_id,))
     with pytest.raises(TransferError,match='complete_saved_receipts_required'):

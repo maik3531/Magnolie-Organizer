@@ -1426,8 +1426,22 @@ historical rows preserved, and missing-media bypass rejection. Native constructi
 remains inert and transport replacement closes the mapping owner before protection
 release. These source-host cases do not establish physical phone acceptance.
 
-Post-save commit is still unjoined. This pre-admission check alone is not the
-complete concurrent publication/recovery union. Before release,
+Native media-aware publication now commits mappings from the held receiver's
+protected original media history and complete fresh protected save receipts before
+any saved socket confirmation. The current media-page cache cannot supply or alter
+these original associations. Saved-confirmation retry performs the same idempotent
+metadata commit/readback, never publication. Pre-commit protection failures and
+ambiguous post-commit sync failures send no saved confirmation. An uncertain store
+stays fenced until explicit native recovery; tests reopen the exact original store,
+not a reset or a production restart-recovery API.
+
+Ninety-five affected cases pass, including seven new actual coordinator-save cases
+for mapping-before-wire order, changed/cleared caches, failed protection with retry
+after PC edits/deletions/replacement, and lost post-commit sync without re-publication.
+Standalone store fixtures intentionally stop after real native publication and
+receipt readback, before coordinator mapping/ACK, to inject metadata failures.
+
+These bounded joins are not the complete concurrent publication/recovery union. Before release,
 missing mapping metadata after restart must not be mistaken for first use: protected
 expected-store witnesses and per-job media/history recovery anchors are still needed.
 Whole consistent private-backup rollback without a trusted external monotonic
@@ -1462,7 +1476,8 @@ receipt/source and 14 saved-wire cases also pass. One fresh-process case reads t
 actual protected native history with the existing key and no live binding or seal
 callback. In total these are 17 new history cases and 169 affected existing cases.
 This is source-host evidence, not physical phone, power-loss or native Windows
-receiver acceptance. Post-save mapping and missing-store recovery remain unjoined.
+receiver acceptance. The later post-save join above still does not complete expected
+global mapping-store witnesses, missing-store restart recovery or convergence.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

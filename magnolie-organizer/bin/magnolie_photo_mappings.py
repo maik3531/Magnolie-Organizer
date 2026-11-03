@@ -9,6 +9,7 @@ from hashlib import sha256
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import MAX_REVISION, _hex
 from magnolie_file_media import correlate_media_pages
+from magnolie_file_media_history import NativeMediaHistory
 from magnolie_file_receive import NativeFileReceiveOperation
 from magnolie_file_transfer import MAX_FILE_BYTES, TransferError, _portable_path
 from magnolie_photo_destination import NativePhotoDestinationAction
@@ -176,6 +177,13 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             raise
 
     def commit_received(self,action,expected,receiver,pages):
+        return self._commit_received(action,expected,receiver,pages)
+
+    def commit_saved_history(self,action,expected,receiver):
+        """Only the owned native index supplies the original historical IDs."""
+        return self._commit_received(action,expected,receiver,None)
+
+    def _commit_received(self,action,expected,receiver,pages):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_mappings_native_action_required')
         action.consume(self)
         if type(expected) is not PhotoMappingsSnapshot or type(receiver) is not NativeFileReceiveOperation:
@@ -184,7 +192,16 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
         with receiver._gate:
             receiver._require()
             accepted=receiver._accepted
-            entries=correlate_media_pages(pages,accepted.manifest)
+            history=receiver._index.media_history
+            if pages is None:
+                if type(history) is not NativeMediaHistory:raise TransferError('photo_mappings_persisted_media_history_required')
+                NativeMediaHistory.parse(history.wire(),accepted)
+                entries=history.entries;source_epoch=history.source_epoch;media_type=history.media_type
+            else:
+                entries=correlate_media_pages(pages,accepted.manifest)
+                if history is not None and NativeMediaHistory.capture(accepted,pages)!=history:
+                    raise TransferError('photo_mappings_media_history_changed')
+                source_epoch=pages[0].source_epoch;media_type=pages[0].media_type
             peer=self._peer()
             if (accepted.binding.sender_id!=peer.peer_id or accepted.binding.sender_identity_sha256!=peer.identity_sha256
                     or accepted.binding.receiver_id!=self._authority.identity.receiver_id
@@ -196,7 +213,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             wanted=[]
             for entry in entries:
                 receipt=by_file[entry.file_id]
-                association=PhotoMappingAssociation(pages[0].source_epoch,entry.photo_id,pages[0].media_type)
+                association=PhotoMappingAssociation(source_epoch,entry.photo_id,media_type)
                 proposed=NativeSavedPhotoMapping(association,accepted.destination,receipt.relative_path,receipt.file_key,receipt.parent_keys,
                     receipt.size,receipt.sha256,receipt.protected_record_sha256,receipt.manifest_sha256,receipt.accepted_sha256,
                     receipt.file_id,receipt.owner,'0'*64)
@@ -218,6 +235,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                         receiver._require();self._fresh();action.validate(self)
                         if self._peer().pairing_epoch!=peer.pairing_epoch:raise TransferError('photo_mappings_pairing_changed')
                         if receiver._index.saved_receipts()!=receipts:raise TransferError('photo_mappings_saved_receipts_changed')
+                        if receiver._index.media_history!=history:raise TransferError('photo_mappings_media_history_changed')
                     fresh()
                     if not pending:return current,tuple(self._mapping(item.association) for item in wanted)
                     mutated=False
