@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Ručně"
+
+msgid "Synchronize photos"
+msgstr "Synchronizovat fotografie"
+
+msgid "Canceled"
+msgstr "Zrušeno"
+
+msgid "Phone camera active"
+msgstr "Fotoaparát telefonu je aktivní"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Synchronizovat pouze sbírku v telefonu"
+
+msgid "Mode"
+msgstr "Režim"
+
+msgid "Destination folder"
+msgstr "Cílová složka"
+
+msgid "Preparing photo synchronization…"
+msgstr "Příprava synchronizace fotografií…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Povolte přístup k fotografiím v telefonu a poté obnovte alba."
+
+msgid "Finding phone albums…"
+msgstr "Hledání alb telefonu…"
+
+msgid "Phone albums are ready."
+msgstr "Alba telefonu jsou připravena."
+
+msgid "Photo synchronization active"
+msgstr "Synchronizace fotografií je aktivní"
+
+msgid "Stopping photo synchronization…"
+msgstr "Zastavování synchronizace fotografií…"
+
+msgid "Selected album synchronized."
+msgstr "Vybrané album bylo synchronizováno."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Změny vyžadují kontrolu. Žádná konfliktní verze nebyla přepsána."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Synchronizace fotografií byla bezpečně zastavena. Před dalším pokusem zkontrolujte připojení."
+
+msgid "Allow photo access on phone"
+msgstr "Povolit přístup k fotografiím v telefonu"
+
+msgid "Refresh albums"
+msgstr "Obnovit alba"
+
+msgid "Phone album"
+msgstr "Album telefonu"
+
+msgid "Photo synchronization could not be started."
+msgstr "Synchronizaci fotografií se nepodařilo spustit."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Synchronizaci fotografií se nepodařilo spustit. Zkontrolujte aktuální připojení telefonu a oprávnění."
+
 msgid " (filtered)"
 msgstr " (filtrováno)"
 

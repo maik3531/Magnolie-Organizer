@@ -18,6 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "يدوي"
+
+msgid "Synchronize photos"
+msgstr "مزامنة الصور"
+
+msgid "Canceled"
+msgstr "أُلغي"
+
+msgid "Phone camera active"
+msgstr "كاميرا الهاتف نشطة"
+
+msgid "Synchronize only the phone's collection"
+msgstr "مزامنة المجموعة الموجودة على الهاتف فقط"
+
+msgid "Mode"
+msgstr "الوضع"
+
+msgid "Destination folder"
+msgstr "مجلد الوجهة"
+
+msgid "Preparing photo synchronization…"
+msgstr "جارٍ إعداد مزامنة الصور…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "اسمح بالوصول إلى الصور على الهاتف، ثم حدّث الألبومات."
+
+msgid "Finding phone albums…"
+msgstr "جارٍ البحث عن ألبومات الهاتف…"
+
+msgid "Phone albums are ready."
+msgstr "ألبومات الهاتف جاهزة."
+
+msgid "Photo synchronization active"
+msgstr "مزامنة الصور نشطة"
+
+msgid "Stopping photo synchronization…"
+msgstr "جارٍ إيقاف مزامنة الصور…"
+
+msgid "Selected album synchronized."
+msgstr "تمت مزامنة الألبوم المحدد."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "تحتاج التغييرات إلى مراجعة. لم تُستبدل أي نسخة متعارضة."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "توقفت مزامنة الصور بأمان. تحقق من الاتصال قبل المحاولة مجددًا."
+
+msgid "Allow photo access on phone"
+msgstr "السماح بالوصول إلى الصور على الهاتف"
+
+msgid "Refresh albums"
+msgstr "تحديث الألبومات"
+
+msgid "Phone album"
+msgstr "ألبوم الهاتف"
+
+msgid "Photo synchronization could not be started."
+msgstr "تعذّر بدء مزامنة الصور."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "تعذّر بدء مزامنة الصور. تحقق من اتصال الهاتف الحالي والأذونات."
+
 msgid " (filtered)"
 msgstr " (مصفّى)"
 

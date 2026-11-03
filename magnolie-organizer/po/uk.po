@@ -18,6 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Вручну"
+
+msgid "Synchronize photos"
+msgstr "Синхронізувати фотографії"
+
+msgid "Canceled"
+msgstr "Скасовано"
+
+msgid "Phone camera active"
+msgstr "Камера телефону активна"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Синхронізувати лише колекцію на телефоні"
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Destination folder"
+msgstr "Тека призначення"
+
+msgid "Preparing photo synchronization…"
+msgstr "Підготовка синхронізації фотографій…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Дозвольте доступ до фотографій на телефоні, потім оновіть альбоми."
+
+msgid "Finding phone albums…"
+msgstr "Пошук альбомів телефону…"
+
+msgid "Phone albums are ready."
+msgstr "Альбоми телефону готові."
+
+msgid "Photo synchronization active"
+msgstr "Синхронізація фотографій активна"
+
+msgid "Stopping photo synchronization…"
+msgstr "Зупинка синхронізації фотографій…"
+
+msgid "Selected album synchronized."
+msgstr "Вибраний альбом синхронізовано."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Зміни потребують перевірки. Жодну конфліктну версію не було перезаписано."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Синхронізацію фотографій безпечно зупинено. Перевірте з’єднання перед повторною спробою."
+
+msgid "Allow photo access on phone"
+msgstr "Дозволити доступ до фотографій на телефоні"
+
+msgid "Refresh albums"
+msgstr "Оновити альбоми"
+
+msgid "Phone album"
+msgstr "Альбом телефону"
+
+msgid "Photo synchronization could not be started."
+msgstr "Не вдалося запустити синхронізацію фотографій."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Не вдалося запустити синхронізацію фотографій. Перевірте поточне з’єднання з телефоном і дозволи."
+
 msgid " (filtered)"
 msgstr " (відфільтровано)"
 

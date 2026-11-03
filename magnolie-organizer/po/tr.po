@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Elle"
+
+msgid "Synchronize photos"
+msgstr "Fotoğrafları eşitle"
+
+msgid "Canceled"
+msgstr "İptal edildi"
+
+msgid "Phone camera active"
+msgstr "Telefon kamerası etkin"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Yalnızca telefondaki koleksiyonu eşitle"
+
+msgid "Mode"
+msgstr "Kip"
+
+msgid "Destination folder"
+msgstr "Hedef klasör"
+
+msgid "Preparing photo synchronization…"
+msgstr "Fotoğraf eşitlemesi hazırlanıyor…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Telefonda fotoğraf erişimine izin verin, ardından albümleri yenileyin."
+
+msgid "Finding phone albums…"
+msgstr "Telefon albümleri aranıyor…"
+
+msgid "Phone albums are ready."
+msgstr "Telefon albümleri hazır."
+
+msgid "Photo synchronization active"
+msgstr "Fotoğraf eşitlemesi etkin"
+
+msgid "Stopping photo synchronization…"
+msgstr "Fotoğraf eşitlemesi durduruluyor…"
+
+msgid "Selected album synchronized."
+msgstr "Seçilen albüm eşitlendi."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Değişikliklerin incelenmesi gerekiyor. Çakışan hiçbir sürümün üzerine yazılmadı."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Fotoğraf eşitlemesi güvenli bir şekilde durduruldu. Yeniden denemeden önce bağlantıyı kontrol edin."
+
+msgid "Allow photo access on phone"
+msgstr "Telefonda fotoğraf erişimine izin ver"
+
+msgid "Refresh albums"
+msgstr "Albümleri yenile"
+
+msgid "Phone album"
+msgstr "Telefon albümü"
+
+msgid "Photo synchronization could not be started."
+msgstr "Fotoğraf eşitlemesi başlatılamadı."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Fotoğraf eşitlemesi başlatılamadı. Mevcut telefon bağlantısını ve izinleri kontrol edin."
+
 msgid " (filtered)"
 msgstr " (filtrelendi)"
 

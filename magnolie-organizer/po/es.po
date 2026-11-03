@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Synchronize photos"
+msgstr "Sincronizar fotos"
+
+msgid "Canceled"
+msgstr "Cancelado"
+
+msgid "Phone camera active"
+msgstr "Cámara del teléfono activa"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Sincronizar solo la colección del teléfono"
+
+msgid "Mode"
+msgstr "Modo"
+
+msgid "Destination folder"
+msgstr "Carpeta de destino"
+
+msgid "Preparing photo synchronization…"
+msgstr "Preparando la sincronización de fotos…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Permite el acceso a las fotos en el teléfono y después actualiza los álbumes."
+
+msgid "Finding phone albums…"
+msgstr "Buscando álbumes del teléfono…"
+
+msgid "Phone albums are ready."
+msgstr "Los álbumes del teléfono están listos."
+
+msgid "Photo synchronization active"
+msgstr "Sincronización de fotos activa"
+
+msgid "Stopping photo synchronization…"
+msgstr "Deteniendo la sincronización de fotos…"
+
+msgid "Selected album synchronized."
+msgstr "Álbum seleccionado sincronizado."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Es necesario revisar los cambios. No se ha sobrescrito ninguna versión en conflicto."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "La sincronización de fotos se ha detenido de forma segura. Comprueba la conexión antes de volver a intentarlo."
+
+msgid "Allow photo access on phone"
+msgstr "Permitir acceso a fotos en el teléfono"
+
+msgid "Refresh albums"
+msgstr "Actualizar álbumes"
+
+msgid "Phone album"
+msgstr "Álbum del teléfono"
+
+msgid "Photo synchronization could not be started."
+msgstr "No se ha podido iniciar la sincronización de fotos."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "No se ha podido iniciar la sincronización de fotos. Comprueba la conexión actual del teléfono y los permisos."
+
 msgid " (filtered)"
 msgstr " (filtrado)"
 

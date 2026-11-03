@@ -18,6 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Ręcznie"
+
+msgid "Synchronize photos"
+msgstr "Synchronizuj zdjęcia"
+
+msgid "Canceled"
+msgstr "Anulowano"
+
+msgid "Phone camera active"
+msgstr "Aparat telefonu aktywny"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Synchronizuj tylko kolekcję na telefonie"
+
+msgid "Mode"
+msgstr "Tryb"
+
+msgid "Destination folder"
+msgstr "Folder docelowy"
+
+msgid "Preparing photo synchronization…"
+msgstr "Przygotowywanie synchronizacji zdjęć…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Zezwól na dostęp do zdjęć na telefonie, a następnie odśwież albumy."
+
+msgid "Finding phone albums…"
+msgstr "Wyszukiwanie albumów telefonu…"
+
+msgid "Phone albums are ready."
+msgstr "Albumy telefonu są gotowe."
+
+msgid "Photo synchronization active"
+msgstr "Synchronizacja zdjęć aktywna"
+
+msgid "Stopping photo synchronization…"
+msgstr "Zatrzymywanie synchronizacji zdjęć…"
+
+msgid "Selected album synchronized."
+msgstr "Wybrany album został zsynchronizowany."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Zmiany wymagają sprawdzenia. Żadna wersja powodująca konflikt nie została nadpisana."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Synchronizacja zdjęć została bezpiecznie zatrzymana. Sprawdź połączenie przed ponowną próbą."
+
+msgid "Allow photo access on phone"
+msgstr "Zezwól na dostęp do zdjęć na telefonie"
+
+msgid "Refresh albums"
+msgstr "Odśwież albumy"
+
+msgid "Phone album"
+msgstr "Album telefonu"
+
+msgid "Photo synchronization could not be started."
+msgstr "Nie udało się uruchomić synchronizacji zdjęć."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Nie udało się uruchomić synchronizacji zdjęć. Sprawdź bieżące połączenie z telefonem i uprawnienia."
+
 msgid " (filtered)"
 msgstr " (przefiltrowano)"
 

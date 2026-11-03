@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Handmatig"
+
+msgid "Synchronize photos"
+msgstr "Foto’s synchroniseren"
+
+msgid "Canceled"
+msgstr "Geannuleerd"
+
+msgid "Phone camera active"
+msgstr "Telefooncamera actief"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Alleen de verzameling op de telefoon synchroniseren"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Destination folder"
+msgstr "Doelmap"
+
+msgid "Preparing photo synchronization…"
+msgstr "Fotosynchronisatie voorbereiden…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Sta fototoegang op de telefoon toe en vernieuw daarna de albums."
+
+msgid "Finding phone albums…"
+msgstr "Telefoonalbums zoeken…"
+
+msgid "Phone albums are ready."
+msgstr "De telefoonalbums zijn gereed."
+
+msgid "Photo synchronization active"
+msgstr "Fotosynchronisatie actief"
+
+msgid "Stopping photo synchronization…"
+msgstr "Fotosynchronisatie stoppen…"
+
+msgid "Selected album synchronized."
+msgstr "Geselecteerd album gesynchroniseerd."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Wijzigingen moeten worden gecontroleerd. Geen conflicterende versie is overschreven."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Fotosynchronisatie is veilig gestopt. Controleer de verbinding voordat u het opnieuw probeert."
+
+msgid "Allow photo access on phone"
+msgstr "Fototoegang op telefoon toestaan"
+
+msgid "Refresh albums"
+msgstr "Albums vernieuwen"
+
+msgid "Phone album"
+msgstr "Telefoonalbum"
+
+msgid "Photo synchronization could not be started."
+msgstr "Fotosynchronisatie kon niet worden gestart."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Fotosynchronisatie kon niet worden gestart. Controleer de huidige telefoonverbinding en machtigingen."
+
 msgid " (filtered)"
 msgstr " (gefilterd)"
 

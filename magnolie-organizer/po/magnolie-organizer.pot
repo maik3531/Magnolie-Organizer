@@ -814,6 +814,12 @@ msgstr ""
 msgid "Allow notifications despite password protection"
 msgstr ""
 
+msgid "Allow photo access on phone"
+msgstr ""
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr ""
+
 msgid "Allow this device to share this connection"
 msgstr ""
 
@@ -1412,6 +1418,9 @@ msgstr ""
 msgid "Cancel sending"
 msgstr ""
 
+msgid "Canceled"
+msgstr ""
+
 msgid "Canton"
 msgstr ""
 
@@ -1457,6 +1466,9 @@ msgid "Change password"
 msgstr ""
 
 msgid "Changes are applied automatically"
+msgstr ""
+
+msgid "Changes need review. No conflicting version was overwritten."
 msgstr ""
 
 msgid "Changes to your own profile are saved with Save."
@@ -2279,6 +2291,9 @@ msgstr ""
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr ""
 
+msgid "Destination folder"
+msgstr ""
+
 msgid "Detect now"
 msgstr ""
 
@@ -2813,6 +2828,9 @@ msgid "Fill with gradient"
 msgstr ""
 
 msgid "Fill with stored values"
+msgstr ""
+
+msgid "Finding phone albums…"
 msgstr ""
 
 msgid ""
@@ -3685,6 +3703,10 @@ msgstr ""
 msgid "Manual"
 msgstr ""
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr ""
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr ""
@@ -3820,6 +3842,9 @@ msgid "Mobile"
 msgstr ""
 
 msgid "Mobile network"
+msgstr ""
+
+msgid "Mode"
 msgstr ""
 
 msgid "Model"
@@ -4911,10 +4936,19 @@ msgstr ""
 msgid "Phone"
 msgstr ""
 
+msgid "Phone album"
+msgstr ""
+
+msgid "Phone albums are ready."
+msgstr ""
+
 msgid "Phone battery"
 msgstr ""
 
 msgid "Phone call"
+msgstr ""
+
+msgid "Phone camera active"
 msgstr ""
 
 msgid "Phone connection"
@@ -4959,6 +4993,21 @@ msgid "Photo available"
 msgstr ""
 
 msgid "Photo of %(name)s"
+msgstr ""
+
+msgid "Photo synchronization active"
+msgstr ""
+
+msgid "Photo synchronization could not be started."
+msgstr ""
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
 msgstr ""
 
 msgid "Pick up"
@@ -5076,6 +5125,9 @@ msgid ""
 msgstr ""
 
 msgid "Preferred backup folder"
+msgstr ""
+
+msgid "Preparing photo synchronization…"
 msgstr ""
 
 msgid "Preparing selected notes…"
@@ -5282,6 +5334,9 @@ msgid "Redo"
 msgstr ""
 
 msgid "Refresh"
+msgstr ""
+
+msgid "Refresh albums"
 msgstr ""
 
 msgid "Region"
@@ -5857,6 +5912,9 @@ msgstr ""
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
 
+msgid "Selected album synchronized."
+msgstr ""
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr ""
@@ -6237,6 +6295,9 @@ msgstr ""
 msgid "Stop retrying"
 msgstr ""
 
+msgid "Stopping photo synchronization…"
+msgstr ""
+
 msgid "Street"
 msgstr ""
 
@@ -6335,7 +6396,13 @@ msgstr ""
 msgid "Synchronize now"
 msgstr ""
 
+msgid "Synchronize only the phone's collection"
+msgstr ""
+
 msgid "Synchronize permanently"
+msgstr ""
+
+msgid "Synchronize photos"
 msgstr ""
 
 msgid "Synchronize tasks"

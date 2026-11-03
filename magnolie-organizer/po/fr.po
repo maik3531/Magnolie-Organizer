@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Synchronize photos"
+msgstr "Synchroniser les photos"
+
+msgid "Canceled"
+msgstr "Annulé"
+
+msgid "Phone camera active"
+msgstr "Caméra du téléphone active"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Synchroniser uniquement la collection du téléphone"
+
+msgid "Mode"
+msgstr "Mode"
+
+msgid "Destination folder"
+msgstr "Dossier de destination"
+
+msgid "Preparing photo synchronization…"
+msgstr "Préparation de la synchronisation des photos…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Autorisez l’accès aux photos sur le téléphone, puis actualisez les albums."
+
+msgid "Finding phone albums…"
+msgstr "Recherche des albums du téléphone…"
+
+msgid "Phone albums are ready."
+msgstr "Les albums du téléphone sont prêts."
+
+msgid "Photo synchronization active"
+msgstr "Synchronisation des photos en cours"
+
+msgid "Stopping photo synchronization…"
+msgstr "Arrêt de la synchronisation des photos…"
+
+msgid "Selected album synchronized."
+msgstr "Album sélectionné synchronisé."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Les modifications doivent être vérifiées. Aucune version en conflit n’a été écrasée."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "La synchronisation des photos s’est arrêtée en sécurité. Vérifiez la connexion avant de réessayer."
+
+msgid "Allow photo access on phone"
+msgstr "Autoriser l’accès aux photos sur le téléphone"
+
+msgid "Refresh albums"
+msgstr "Actualiser les albums"
+
+msgid "Phone album"
+msgstr "Album du téléphone"
+
+msgid "Photo synchronization could not be started."
+msgstr "Impossible de démarrer la synchronisation des photos."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Impossible de démarrer la synchronisation des photos. Vérifiez la connexion actuelle du téléphone et les autorisations."
+
 msgid " (filtered)"
 msgstr " (filtré)"
 

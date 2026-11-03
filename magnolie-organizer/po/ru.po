@@ -18,6 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Вручную"
+
+msgid "Synchronize photos"
+msgstr "Синхронизировать фотографии"
+
+msgid "Canceled"
+msgstr "Отменено"
+
+msgid "Phone camera active"
+msgstr "Камера телефона активна"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Синхронизировать только коллекцию на телефоне"
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Destination folder"
+msgstr "Папка назначения"
+
+msgid "Preparing photo synchronization…"
+msgstr "Подготовка синхронизации фотографий…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Разрешите доступ к фотографиям на телефоне, затем обновите альбомы."
+
+msgid "Finding phone albums…"
+msgstr "Поиск альбомов телефона…"
+
+msgid "Phone albums are ready."
+msgstr "Альбомы телефона готовы."
+
+msgid "Photo synchronization active"
+msgstr "Синхронизация фотографий активна"
+
+msgid "Stopping photo synchronization…"
+msgstr "Остановка синхронизации фотографий…"
+
+msgid "Selected album synchronized."
+msgstr "Выбранный альбом синхронизирован."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Изменения требуют проверки. Ни одна конфликтующая версия не была перезаписана."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Синхронизация фотографий безопасно остановлена. Проверьте соединение перед повторной попыткой."
+
+msgid "Allow photo access on phone"
+msgstr "Разрешить доступ к фотографиям на телефоне"
+
+msgid "Refresh albums"
+msgstr "Обновить альбомы"
+
+msgid "Phone album"
+msgstr "Альбом телефона"
+
+msgid "Photo synchronization could not be started."
+msgstr "Не удалось запустить синхронизацию фотографий."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Не удалось запустить синхронизацию фотографий. Проверьте текущее соединение с телефоном и разрешения."
+
 msgid " (filtered)"
 msgstr " (отфильтровано)"
 

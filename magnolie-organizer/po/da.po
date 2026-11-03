@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Synchronize photos"
+msgstr "Synkroniser fotos"
+
+msgid "Canceled"
+msgstr "Annulleret"
+
+msgid "Phone camera active"
+msgstr "Telefonkamera aktivt"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Synkroniser kun samlingen på telefonen"
+
+msgid "Mode"
+msgstr "Tilstand"
+
+msgid "Destination folder"
+msgstr "Destinationsmappe"
+
+msgid "Preparing photo synchronization…"
+msgstr "Forbereder fotosynkronisering…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Tillad adgang til fotos på telefonen, og opdater derefter albummer."
+
+msgid "Finding phone albums…"
+msgstr "Søger efter telefonens albummer…"
+
+msgid "Phone albums are ready."
+msgstr "Telefonens albummer er klar."
+
+msgid "Photo synchronization active"
+msgstr "Fotosynkronisering aktiv"
+
+msgid "Stopping photo synchronization…"
+msgstr "Stopper fotosynkronisering…"
+
+msgid "Selected album synchronized."
+msgstr "Det valgte album er synkroniseret."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Ændringer skal gennemgås. Ingen version med konflikter blev overskrevet."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Fotosynkronisering blev stoppet sikkert. Kontroller forbindelsen, før du prøver igen."
+
+msgid "Allow photo access on phone"
+msgstr "Tillad adgang til fotos på telefonen"
+
+msgid "Refresh albums"
+msgstr "Opdater albummer"
+
+msgid "Phone album"
+msgstr "Telefonalbum"
+
+msgid "Photo synchronization could not be started."
+msgstr "Fotosynkronisering kunne ikke startes."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Fotosynkronisering kunne ikke startes. Kontroller telefonens aktuelle forbindelse og tilladelser."
+
 msgid " (filtered)"
 msgstr " (filtreret)"
 

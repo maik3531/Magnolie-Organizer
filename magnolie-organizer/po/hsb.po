@@ -18,6 +18,70 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuelnje"
+
+msgid "Synchronize photos"
+msgstr "Fota synchronizować"
+
+msgid "Canceled"
+msgstr "Přetorhnjene"
+
+msgid "Phone camera active"
+msgstr "Kamera telefona je aktiwna"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Jeno zběrku na telefonje synchronizować"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Destination folder"
+msgstr "Cilowy rjadowak"
+
+msgid "Preparing photo synchronization…"
+msgstr "Synchronizacija fotow so přihotuje…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Dowolće přistup k fotam na telefonje a aktualizujće potom albumy."
+
+msgid "Finding phone albums…"
+msgstr "Albumy telefona so pytaja…"
+
+msgid "Phone albums are ready."
+msgstr "Albumy telefona su hotowe."
+
+msgid "Photo synchronization active"
+msgstr "Synchronizacija fotow je aktiwna"
+
+msgid "Stopping photo synchronization…"
+msgstr "Synchronizacija fotow so zastawja…"
+
+msgid "Selected album synchronized."
+msgstr "Wubrany album je synchronizowany."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Změny dyrbja so přepruwować. Žana konfliktna wersija njeje so přepisała."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Synchronizacija fotow je so wěsće zastajiła. Přepruwujće zwisk před dalšim pospytom."
+
+msgid "Allow photo access on phone"
+msgstr "Přistup k fotam na telefonje dowolić"
+
+msgid "Refresh albums"
+msgstr "Albumy aktualizować"
+
+msgid "Phone album"
+msgstr "Album telefona"
+
+msgid "Photo synchronization could not be started."
+msgstr "Synchronizacija fotow njeje so dała startować."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Synchronizacija fotow njeje so dała startować. Přepruwujće aktualny zwisk z telefonom a dowolnosće."
+
 msgid " (filtered)"
 msgstr " (filtrowane)"
 

@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "手動"
+
+msgid "Synchronize photos"
+msgstr "写真を同期"
+
+msgid "Canceled"
+msgstr "キャンセルしました"
+
+msgid "Phone camera active"
+msgstr "スマートフォンのカメラを使用中"
+
+msgid "Synchronize only the phone's collection"
+msgstr "スマートフォン内のコレクションのみ同期"
+
+msgid "Mode"
+msgstr "モード"
+
+msgid "Destination folder"
+msgstr "保存先フォルダー"
+
+msgid "Preparing photo synchronization…"
+msgstr "写真の同期を準備しています…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "スマートフォンで写真へのアクセスを許可してから、アルバムを更新してください。"
+
+msgid "Finding phone albums…"
+msgstr "スマートフォンのアルバムを検索しています…"
+
+msgid "Phone albums are ready."
+msgstr "スマートフォンのアルバムの準備ができました。"
+
+msgid "Photo synchronization active"
+msgstr "写真を同期中"
+
+msgid "Stopping photo synchronization…"
+msgstr "写真の同期を停止しています…"
+
+msgid "Selected album synchronized."
+msgstr "選択したアルバムを同期しました。"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "変更の確認が必要です。競合するバージョンは上書きされていません。"
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "写真の同期を安全に停止しました。再試行する前に接続を確認してください。"
+
+msgid "Allow photo access on phone"
+msgstr "スマートフォンで写真へのアクセスを許可"
+
+msgid "Refresh albums"
+msgstr "アルバムを更新"
+
+msgid "Phone album"
+msgstr "スマートフォンのアルバム"
+
+msgid "Photo synchronization could not be started."
+msgstr "写真の同期を開始できませんでした。"
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "写真の同期を開始できませんでした。現在のスマートフォンの接続と権限を確認してください。"
+
 msgid " (filtered)"
 msgstr "（フィルター済み）"
 

@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuale"
+
+msgid "Synchronize photos"
+msgstr "Sincronizza foto"
+
+msgid "Canceled"
+msgstr "Annullato"
+
+msgid "Phone camera active"
+msgstr "Fotocamera del telefono attiva"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Sincronizza solo la raccolta del telefono"
+
+msgid "Mode"
+msgstr "Modalità"
+
+msgid "Destination folder"
+msgstr "Cartella di destinazione"
+
+msgid "Preparing photo synchronization…"
+msgstr "Preparazione della sincronizzazione delle foto…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Consenti l’accesso alle foto sul telefono, poi aggiorna gli album."
+
+msgid "Finding phone albums…"
+msgstr "Ricerca degli album del telefono…"
+
+msgid "Phone albums are ready."
+msgstr "Gli album del telefono sono pronti."
+
+msgid "Photo synchronization active"
+msgstr "Sincronizzazione delle foto attiva"
+
+msgid "Stopping photo synchronization…"
+msgstr "Arresto della sincronizzazione delle foto…"
+
+msgid "Selected album synchronized."
+msgstr "Album selezionato sincronizzato."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Le modifiche richiedono una verifica. Nessuna versione in conflitto è stata sovrascritta."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "La sincronizzazione delle foto si è arrestata in sicurezza. Verifica la connessione prima di riprovare."
+
+msgid "Allow photo access on phone"
+msgstr "Consenti l’accesso alle foto sul telefono"
+
+msgid "Refresh albums"
+msgstr "Aggiorna album"
+
+msgid "Phone album"
+msgstr "Album del telefono"
+
+msgid "Photo synchronization could not be started."
+msgstr "Impossibile avviare la sincronizzazione delle foto."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Impossibile avviare la sincronizzazione delle foto. Verifica la connessione attuale del telefono e le autorizzazioni."
+
 msgid " (filtered)"
 msgstr " (filtrato)"
 

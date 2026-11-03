@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "मैन्युअल"
+
+msgid "Synchronize photos"
+msgstr "फ़ोटो सिंक्रनाइज़ करें"
+
+msgid "Canceled"
+msgstr "रद्द किया गया"
+
+msgid "Phone camera active"
+msgstr "फ़ोन का कैमरा सक्रिय है"
+
+msgid "Synchronize only the phone's collection"
+msgstr "केवल फ़ोन के संग्रह को सिंक्रनाइज़ करें"
+
+msgid "Mode"
+msgstr "मोड"
+
+msgid "Destination folder"
+msgstr "गंतव्य फ़ोल्डर"
+
+msgid "Preparing photo synchronization…"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन तैयार हो रहा है…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें, फिर एल्बम ताज़ा करें।"
+
+msgid "Finding phone albums…"
+msgstr "फ़ोन के एल्बम खोजे जा रहे हैं…"
+
+msgid "Phone albums are ready."
+msgstr "फ़ोन के एल्बम तैयार हैं।"
+
+msgid "Photo synchronization active"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन सक्रिय है"
+
+msgid "Stopping photo synchronization…"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन रोका जा रहा है…"
+
+msgid "Selected album synchronized."
+msgstr "चुना गया एल्बम सिंक्रनाइज़ हो गया।"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "बदलावों की समीक्षा आवश्यक है। किसी भी परस्पर विरोधी संस्करण को अधिलेखित नहीं किया गया।"
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन सुरक्षित रूप से रुक गया। दोबारा प्रयास करने से पहले कनेक्शन जाँचें।"
+
+msgid "Allow photo access on phone"
+msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें"
+
+msgid "Refresh albums"
+msgstr "एल्बम ताज़ा करें"
+
+msgid "Phone album"
+msgstr "फ़ोन का एल्बम"
+
+msgid "Photo synchronization could not be started."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका।"
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका। फ़ोन का मौजूदा कनेक्शन और अनुमतियाँ जाँचें।"
+
 msgid " (filtered)"
 msgstr " (फ़िल्टर किया हुआ)"
 

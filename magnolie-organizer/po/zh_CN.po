@@ -17,6 +17,70 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "手动"
+
+msgid "Synchronize photos"
+msgstr "同步照片"
+
+msgid "Canceled"
+msgstr "已取消"
+
+msgid "Phone camera active"
+msgstr "手机摄像头正在使用中"
+
+msgid "Synchronize only the phone's collection"
+msgstr "仅同步手机上的照片集"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Destination folder"
+msgstr "目标文件夹"
+
+msgid "Preparing photo synchronization…"
+msgstr "正在准备照片同步…"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "请在手机上允许访问照片，然后刷新相册。"
+
+msgid "Finding phone albums…"
+msgstr "正在查找手机相册…"
+
+msgid "Phone albums are ready."
+msgstr "手机相册已就绪。"
+
+msgid "Photo synchronization active"
+msgstr "照片同步进行中"
+
+msgid "Stopping photo synchronization…"
+msgstr "正在停止照片同步…"
+
+msgid "Selected album synchronized."
+msgstr "所选相册已同步。"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "需要检查更改。未覆盖任何冲突版本。"
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "照片同步已安全停止。重试前请检查连接。"
+
+msgid "Allow photo access on phone"
+msgstr "在手机上允许访问照片"
+
+msgid "Refresh albums"
+msgstr "刷新相册"
+
+msgid "Phone album"
+msgstr "手机相册"
+
+msgid "Photo synchronization could not be started."
+msgstr "无法启动照片同步。"
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "无法启动照片同步。请检查当前手机连接和权限。"
+
 msgid " (filtered)"
 msgstr "（已筛选）"
 
