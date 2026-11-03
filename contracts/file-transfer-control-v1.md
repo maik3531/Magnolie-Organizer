@@ -1614,6 +1614,37 @@ orphan indexes from guessed fresh offers or reset metadata. Durable post-mapping
 receipts, retirement/baselines and the full missing-metadata/concurrent recovery
 union remain open. Production readiness, discovery 21, UI, automatic runs and releases stay OFF.
 
+### Original catalog bootstrap expectation (Refs #337)
+
+Protected photo policies can now additionally retain an optional original catalog
+bootstrap witness: local identity, root/lock/owner-file device/inode and protected
+immutable-owner hash. The choice must come from the actual native catalog under
+the same native parent and bound existing-key protection. Existing expectations
+cannot be rebound to an empty replacement root. Legacy policy wire shape stays
+unchanged; no passive bootstrap occurs. Choice validation repeats before policy
+commit and after encrypted readback.
+
+Marked native readiness and catalog opening verify this expectation before any
+creation. A missing whole expected catalog is not first use after metadata-owner
+reopen. An owner-only observer verifies the immutable protected bootstrap without
+creation, job enumeration, reservation or OS-lock acquisition. Live-catalog
+verification uses a nonwaiting reentrant instance gate, avoiding an additional
+flock inside the current native reservation's own binding validation. Missing or
+corrupt expectations fence this connection; ordinary busy state remains transient.
+
+Eighteen new catalog-expectation cases and 318 affected cases pass. A focused
+blocked-owner-read test first reproduced a stale ready projection after exit in
+the prepared code. Final native close/authority revalidation now fences both exit
+and revocation after observation; protection stays held through actual I/O end.
+Affected native control/source and encrypted-socketpair cases also pass after that
+fix. The witness tests preserve displaced roots and reject both empty-root rebinding
+and policy-commit/readback success when the original catalog disappears.
+
+This witness covers the original immutable bootstrap, not complete job-membership
+integrity, retirement, post-mapping receipts or full private-backup anti-rollback.
+Mandatory joint native bootstrap/legacy repair, those recovery/convergence unions
+and native platform/physical acceptance remain open. All release/readiness/UI gates stay OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

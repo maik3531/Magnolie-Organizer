@@ -60,6 +60,7 @@ class NativeDesktopFileConnection:
         self._source_offer = None
         self._source_media_pages = ()
         self._source_media_entries = None
+        self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
         self._destination = NativePhotoDestinationController(authority)
@@ -88,7 +89,24 @@ class NativeDesktopFileConnection:
             if witness is not None:
                 try:self._mappings.validate_availability(witness)
                 except (TransferError,OSError,InvalidTag):return replace(grant,policy_ready=False)
+            if snapshot.policy.job_catalog is not None:
+                try:self._verify_catalog_witness(snapshot.policy.job_catalog)
+                except (TransferError,OSError,InvalidTag):return replace(grant,policy_ready=False)
+        self._ready()
+        if self._authority.current_peer() is None:raise TransferError('file_desktop_native_authority_changed')
         return grant
+
+    def _verify_catalog_witness(self,witness):
+        if self._catalog_expectation_uncertain:raise TransferError('file_desktop_catalog_repair_pending')
+        try:
+            if self._catalog is not None:return self._catalog.verify_witness(witness)
+            protection=self._authority.protection
+            with ProtectedTransferJobCatalog(Path(self._authority.binding.native_directory),self._authority.identity,
+                    protection.seal,protection.unseal,owner_only=True) as observer:
+                return observer.verify_witness(witness)
+        except Exception as error:
+            if not isinstance(error,TransferError) or str(error)!='file_job_catalog_busy':self._catalog_expectation_uncertain=True
+            raise
 
     @contextmanager
     def _operation(self, *, incoming=False):
@@ -497,6 +515,8 @@ class NativeDesktopFileConnection:
             self._mappings.verify_checkpoint(checkpoint)
 
     def _open_catalog(self, *, allow_create=True):
+        snapshot=self._receiving_policy()
+        if snapshot.policy.job_catalog is not None:self._verify_catalog_witness(snapshot.policy.job_catalog)
         if self._catalog is None:
             parent = Path(self._authority.binding.native_directory)
             try:

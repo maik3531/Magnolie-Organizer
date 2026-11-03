@@ -23,6 +23,7 @@ from magnolie_photo_destination import (NativePhotoDestinationAction, NativePhot
     NativeVideoDestinationChoice, NativeVideoDestinationController)
 from magnolie_file_transfer import TransferError
 from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice
+from magnolie_job_catalog_witness import JobCatalogWitness,NativeJobCatalogChoice
 from magnolie_telefon import canonical, strict_json
 
 @dataclass(frozen=True)
@@ -61,6 +62,7 @@ class PhotoPreferences:
     separate_own_recordings: bool | None = None
     direction: str | None = None
     mapping_store: PhotoMappingStoreWitness | None = None
+    job_catalog: JobCatalogWitness | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -71,13 +73,14 @@ class PhotoPreferences:
         if self.separate_own_recordings is not None:value['separate_own_recordings']=self.separate_own_recordings
         if self.direction is not None:value['direction']=self.direction
         if self.mapping_store is not None:value['mapping_store']=self.mapping_store.wire()
+        if self.job_catalog is not None:value['job_catalog']=self.job_catalog.wire()
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
@@ -96,7 +99,8 @@ class PhotoPreferences:
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
-            PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None)
+            PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
+            JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -312,7 +316,8 @@ class ProtectedPhotoPreferences:
             raise
 
     def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
-            include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None,mapping_store_choice=None):
+            include_videos=None,video_destination_choice=None,separate_animations=None,separate_own_recordings=None,direction=None,mapping_store_choice=None,
+            job_catalog_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
@@ -347,6 +352,18 @@ class ProtectedPhotoPreferences:
                 if recordings is not None and not current.associated:recordings=False
                 if selected_direction is not None and not current.associated:selected_direction='phone_to_desktop'
                 mapping_store=current.policy.mapping_store if current.policy is not None else None
+                job_catalog=current.policy.job_catalog if current.policy is not None else None
+                if job_catalog_choice is not None:
+                    from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
+                    if (type(job_catalog_choice) is not NativeJobCatalogChoice or type(job_catalog_choice.owner) is not ProtectedTransferJobCatalog
+                            or job_catalog_choice.owner._identity!=self._authority.identity
+                            or job_catalog_choice.owner._parent!=Path(self._authority.binding.native_directory)
+                            or getattr(job_catalog_choice.owner._seal,'__self__',None) is not self._authority.protection
+                            or getattr(job_catalog_choice.owner._unseal,'__self__',None) is not self._authority.protection):
+                        raise TransferError('photo_preferences_foreign_job_catalog_choice')
+                    selected=job_catalog_choice.owner.verify_choice(job_catalog_choice)
+                    if job_catalog is not None and job_catalog!=selected:raise TransferError('photo_preferences_original_job_catalog_required')
+                    job_catalog=selected
                 if mapping_store_choice is not None:
                     from magnolie_photo_mappings import ProtectedPhotoMappings
                     if (type(mapping_store_choice) is not NativePhotoMappingStoreChoice or type(mapping_store_choice.owner) is not ProtectedPhotoMappings
@@ -381,7 +398,7 @@ class ProtectedPhotoPreferences:
                 revision=(current.policy.revision if current.policy is not None else 1)+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
                 policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,
-                    destination,token,videos,animations,recordings,selected_direction,mapping_store)
+                    destination,token,videos,animations,recordings,selected_direction,mapping_store,job_catalog)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
@@ -389,12 +406,15 @@ class ProtectedPhotoPreferences:
                     self._db.execute('INSERT OR REPLACE INTO policy VALUES(1,?)',(blob,));mutated=True
                     self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
                     if mapping_store_choice is not None:mapping_store_choice.owner.verify_choice(mapping_store_choice)
+                    if job_catalog_choice is not None:job_catalog_choice.owner.verify_choice(job_catalog_choice)
                     self._fresh();action.validate(self);self._db.commit();self._sync()
                     result=self._snapshot()
                     action.validate(self)
                     if result.policy!=policy or result.version!=sha256(blob).hexdigest():raise TransferError('photo_preferences_readback_failed')
                     if mapping_store_choice is not None:
                         mapping_store_choice.owner.verify_choice(mapping_store_choice);action.validate(self)
+                    if job_catalog_choice is not None:
+                        job_catalog_choice.owner.verify_choice(job_catalog_choice);action.validate(self)
                     return result
                 except BaseException:
                     if self._db.in_transaction:self._db.rollback()

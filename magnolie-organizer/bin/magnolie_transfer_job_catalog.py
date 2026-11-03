@@ -19,6 +19,7 @@ import weakref
 
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_transfer import EncryptedTransferStage, TransferError
+from magnolie_job_catalog_witness import JobCatalogWitness,NativeJobCatalogChoice
 
 
 _ROOT_GATES = weakref.WeakValueDictionary()
@@ -70,11 +71,13 @@ class ProtectedTransferJobCatalog:
     MAX_RECORD_BYTES = 2 * 1024 * 1024
     MAX_METADATA_BYTES = 128 * (MAX_RECORD_BYTES + 128) + 8192
 
-    def __init__(self, parent, identity, seal, unseal, *, create=False, limits=None):
+    def __init__(self, parent, identity, seal, unseal, *, create=False, limits=None,owner_only=False):
         if (type(identity) is not NativeJobCatalogIdentity or type(create) is not bool
-                or not callable(seal) or not callable(unseal) or limits is not None and type(limits) is not NativeJobCatalogLimits):
+                or not callable(seal) or not callable(unseal) or limits is not None and type(limits) is not NativeJobCatalogLimits
+                or type(owner_only) is not bool or owner_only and create):
             raise TransferError("file_job_catalog_native_context_required")
         self._identity, self._seal, self._unseal = identity, seal, unseal
+        self._owner_only=owner_only
         self._domain = "magnolie-file-job-catalog-v1/" + identity.receiver_id + "/" + identity.receiver_identity_sha256 + "/"
         self._parent = Path(parent)
         if not self._parent.is_absolute() or self._parent.resolve(strict=True) != self._parent:
@@ -99,6 +102,9 @@ class ProtectedTransferJobCatalog:
             self._lock_key = self._key(os.fstat(self._lock_fd))
             with _ROOT_GATES_LOCK:
                 self._root_gate = _ROOT_GATES.setdefault(self._root_key, threading.RLock())
+            if owner_only:
+                payload,_=self._read('owner.enc');self._parse_owner(payload,limits)
+                return # No CREATE, job discovery, reservation or OS-lock adoption.
             with self._locked():
                 if create:
                     self._limits = NativeJobCatalogLimits() if limits is None else limits
@@ -285,14 +291,40 @@ class ProtectedTransferJobCatalog:
         return tuple(jobs)
 
     def jobs(self):
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
         with self._locked():
             return self._jobs()  # Discovery is metadata-only, not resume consent.
+
+    def _witness(self):
+        payload,digest=self._read('owner.enc');self._parse_owner(payload,self._limits)
+        return JobCatalogWitness(self._identity.receiver_id,self._identity.receiver_identity_sha256,
+            self._root_key,self._lock_key,self._known['owner.enc'][0],digest)
+
+    def choice(self):
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
+        with self._locked():
+            self._jobs();return NativeJobCatalogChoice(self._witness(),self)
+
+    def verify_witness(self,witness):
+        if type(witness) is not JobCatalogWitness:raise TransferError('file_job_catalog_native_witness_required')
+        JobCatalogWitness.parse(witness.wire())
+        if not self._gate.acquire(blocking=False):raise TransferError('file_job_catalog_busy')
+        try:
+            if self._witness()!=witness:raise TransferError('file_job_catalog_original_witness_changed')
+            return witness
+        finally:self._gate.release()
+
+    def verify_choice(self,choice):
+        if self._owner_only or type(choice) is not NativeJobCatalogChoice or choice.owner is not self:
+            raise TransferError('file_job_catalog_foreign_choice')
+        return self.verify_witness(choice.witness)
 
     @contextmanager
     def inspect_jobs(self):
         """Bounded authenticated metadata snapshot; never create or reserve.
         The native parent is for historical index reads, not target authority.
         """
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
         with self._locked():
             inspecting=getattr(_LOCAL,'inspecting',None)
             if inspecting is None:inspecting=_LOCAL.inspecting=set()
@@ -308,12 +340,14 @@ class ProtectedTransferJobCatalog:
         """Authenticate exact native operation metadata and private parent.
         This does not start work, grant permission or release any reservation.
         """
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
         with self._locked():
             if type(job) is not NativeReservedTransferJob or not any(value == job for value in self._jobs()):
                 raise TransferError("file_job_catalog_unknown_native_reservation")
             return self._parent
 
     def reserve(self, accepted, current_binding, *, expected_jobs=None):
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
         with self._locked():
             reserving = getattr(_LOCAL, "reserving", None)
             if reserving is None:
@@ -328,6 +362,7 @@ class ProtectedTransferJobCatalog:
 
     def _reserve(self, accepted, current_binding, *, expected_jobs=None):
         with self._locked():
+            if self._owner_only:raise TransferError('file_job_catalog_owner_only')
             if self._root_key in getattr(_LOCAL,'inspecting',set()):raise TransferError('file_job_catalog_history_readonly')
             if self._failed:
                 raise TransferError("file_job_catalog_repair_pending")
