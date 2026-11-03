@@ -134,6 +134,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
+    // Native production acceptance gate, never a phone setting or wire claim.
+    // Notes always ships the implementation; this is not ContributorKey gating.
+    @Volatile private var nativeGalleryHandlersReady = false
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()
     private val galleryRunCommands = NativeGalleryRunCommands()
     private val galleryResumeCommands = NativeGalleryResumeCommands()
@@ -699,6 +702,63 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun nativeGalleryFileTransportEnded(channel: TelefonSecureChannel) {
         val connection = synchronized(this) { galleryFileConnection?.takeIf { it.channel === channel } }
         connection?.transportEnded() // Deliberately outside the Werk monitor.
+    }
+
+    /** The first authenticated receiver control is the desktop's explicit file
+     * activation, not a Notes-content grant. It can create only CLOSED local
+     * source metadata. Configuration, fresh control echoes and OS READ remain
+     * separate. The socket lane never holds Werk while waiting for native UI.
+     */
+    private fun nativeGalleryConnectionForMessage(sessionPeer: TelefonPeer, message: JsonObject,
+        channel: TelefonSecureChannel, generation: Long): NativeGalleryFileConnection {
+        synchronized(this) {
+            if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
+                DeviceFileControl.fail("file_control_native_channel_changed")
+            galleryFileConnection?.let {
+                if (it.channel !== channel || it.isEnded) DeviceFileControl.fail("gallery_file_connection_busy")
+                return it
+            }
+            if (!nativeGalleryHandlersReady || message["kind"] != JsonPrimitive(DeviceFileControl.KIND))
+                DeviceFileControl.fail("file_control_native_handler_unavailable")
+            val packet = DeviceFileControlEnvelope.validate(message)
+            if (!packet.grants.receiveFiles ||
+                currentNativeFileIdentity(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
+                DeviceFileControl.fail("file_control_native_activation_required")
+        }
+        val canceled = java.util.concurrent.atomic.AtomicBoolean(false)
+        val candidate = java.util.concurrent.atomic.AtomicReference<NativeGalleryFileConnection?>()
+        fun create(): NativeGalleryFileConnection {
+            fun live() = !canceled.get() && nativeGalleryHandlersReady
+            fun activationLive() = live() && System.currentTimeMillis() < message.long("expires_ms")
+            if (!activationLive()) DeviceFileControl.fail("file_control_native_activation_expired")
+            DeviceFileControlEnvelope.validate(message)
+            prepareNativeFileRelationshipForExplicitActivation(sessionPeer.device_id, sessionPeer.static_public,
+                channel, generation, ::activationLive)
+            val connection = openNativeGalleryFileConnection(sessionPeer.device_id, sessionPeer.static_public,
+                channel, generation, ::live)
+            candidate.set(connection)
+            try {
+                if (!activationLive()) DeviceFileControl.fail("file_control_native_activation_expired")
+                DeviceFileControlEnvelope.validate(message)
+                return connection
+            } catch (error: Exception) { connection.close(); throw error }
+        }
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) return create()
+        val ui = android.os.Handler(android.os.Looper.getMainLooper())
+        val task = java.util.concurrent.FutureTask<NativeGalleryFileConnection> { create() }
+        val remaining = minOf(5_000L, message.long("expires_ms") - System.currentTimeMillis())
+        if (remaining <= 0 || !ui.post(task)) DeviceFileControl.fail("gallery_permission_foreground_required")
+        try {
+            return task.get(remaining, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (error: Exception) {
+            canceled.set(true) // Revoke even a running/late factory before UI cleanup.
+            task.cancel(false)
+            ui.post { candidate.get()?.close() }
+            if (error is InterruptedException) Thread.currentThread().interrupt()
+            val cause = (error as? java.util.concurrent.ExecutionException)?.cause
+            if (cause is RuntimeException) throw cause
+            DeviceFileControl.fail("file_control_native_activation_interrupted")
+        }
     }
 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
@@ -2429,12 +2489,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
                 JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG),
                 JsonPrimitive(DeviceFileSourceCommand.PERMISSION_RESULT), JsonPrimitive(DeviceFileSourceCommand.RUN_RESULT))) {
-            val connection = synchronized(this) {
-                if (currentNativeFileTransportPeer(sessionPeer.device_id, sessionPeer.static_public, channel, generation) == null)
-                    DeviceFileControl.fail("file_control_native_channel_changed")
-                galleryFileConnection?.takeIf { it.channel === channel }
-                    ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
-            }
+            val connection = nativeGalleryConnectionForMessage(sessionPeer, message, channel, generation)
             // Runtime/session callbacks acquire Werk: never dispatch under its monitor.
             val runtime = connection.runtime
             if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST) && DeviceFileSourceCommand.parse(message).operation == "request_read") {

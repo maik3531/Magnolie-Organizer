@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Notes dispatcher activation of the actual native Gallery runtime (Refs #330)
+
+The Notes file dispatcher now calls the native runtime factory for a first valid
+authenticated receiver control, instead of requiring a connection opened by a
+test/controller beforehand. This path still has a private production-acceptance
+gate which remains off; it is independent of ContributorKey and does not exclude
+any Notes code from the APK. Source/status/data messages, malformed controls,
+missing receive intent or missing authenticated identity cannot bootstrap it.
+
+Explicit activation initializes only the existing relationship's closed file
+metadata. It does not enable a source policy, Notes-content grants, Android READ,
+scanning or synchronization. Configuration and fresh dedicated control echoes
+remain necessary before the existing permission-notification path is usable.
+The socket lane queues native UI construction outside the Werk monitor and
+waits boundedly. Interrupted/late activation is revoked and cleaned up on the UI
+lane; queued work rechecks exact transport ownership and handler readiness.
+Control response writes stay encrypted on the socket lane, outside that monitor.
+
+18 distinct Robolectric cases pass, including actual dispatcher activation,
+legacy-metadata preservation, configuration/control echoes/permission notification,
+interrupted and stale queued activation, and background-to-UI-to-encrypted-reply
+thread ownership. These checks compile actual Notes sources; they are not an
+installed APK, physical Android permission-dialog or phone/desktop acceptance.
+Organizer production activation/UI and safe changed-phone versions remain open.
+
 ### Native worker activity and book tray (Refs #330)
 
 The actual native connection now always observes its album worker independently

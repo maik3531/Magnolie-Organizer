@@ -173,6 +173,163 @@ class NativeFilePairingBootstrapTest {
         cache[channel] = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
     }
 
+    private fun activationControl(receive: Boolean = true) = DeviceFileControlEnvelope.create(
+        DeviceFileControlPacket(DeviceFileGrantState(1, "c".repeat(64), false, receive), "e".repeat(64), 1, null))
+
+    @Test fun actualFirstReceiverControlBootstrapsOnlyClosedGalleryRuntimeWithoutNotesOrReadGrants() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val message = activationControl()
+            assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(legacy, message, channel, generation) }
+            assertEquals(legacy, storage.fileAuthorityPeers().peer) // Production gate is still OFF.
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            work.receiveMessage(legacy, message, channel, generation)
+            val connection = field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection
+            try {
+                val saved = storage.fileAuthorityPeers().peer!!
+                assertTrue(DeviceFileControl.hash(saved.file_pairing_epoch))
+                assertEquals(legacy, saved.copy(file_pairing_epoch = ""))
+                assertNull(connection.runtime.savedPolicy().policy)
+                assertNull(connection.runtime.currentRequest())
+                assertFalse(saved.personal_notes_sync_granted)
+                val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+                val frame = TelefonRahmen.lesen(ByteArrayInputStream(bytes.toByteArray()))
+                val header = JsonObject(frame - "ciphertext")
+                val clear = TelefonKrypto.entschluesseln(ByteArray(32), TelefonKrypto.nonce(ByteArray(4), header.long("seq")),
+                    java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                val packet = DeviceFileControlEnvelope.validate(Json.parseToJsonElement(clear.decodeToString()).jsonObject)
+                assertFalse(packet.grants.sendFiles); assertFalse(packet.grants.receiveFiles)
+            } finally { connection.close() }
+        }
+    }
+
+    @Test fun firstFileMessageCannotBootstrapFromStatusMalformedControlNoReceiveConsentOrMissingNativeIdentity() {
+        withNativeTransport { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val status = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "status")
+            }, 60_000)
+            for (message in listOf(status, activationControl(false),
+                JsonObject(activationControl() + ("body" to buildJsonObject { put("format", 1) })), activationControl())) {
+                assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(legacy, message, channel, generation) }
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            }
+            val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            assertEquals(0, bytes.size())
+        }
+    }
+
+    private fun awaitUiFactory(worker: Thread) {
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2)
+        while (worker.state != Thread.State.TIMED_WAITING && worker.isAlive && System.nanoTime() < deadline) Thread.sleep(1)
+        assertEquals(Thread.State.TIMED_WAITING, worker.state)
+    }
+
+    @Test @org.robolectric.annotation.LooperMode(org.robolectric.annotation.LooperMode.Mode.PAUSED)
+    fun canceledQueuedActivationCannotInitializeLegacyMetadataOrOpenLateRuntime() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val worker = Thread {
+                try { work.receiveMessage(legacy, activationControl(), channel, generation) }
+                catch (error: Throwable) { failure.set(error) }
+            }
+            try {
+                worker.start(); awaitUiFactory(worker); worker.interrupt(); worker.join(5000)
+                assertFalse(worker.isAlive); assertNotNull(failure.get())
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            } finally { worker.interrupt(); worker.join(5000) }
+        }
+    }
+
+    @Test @org.robolectric.annotation.LooperMode(org.robolectric.annotation.LooperMode.Mode.PAUSED)
+    fun queuedActivationRechecksExactNativeChannelBeforeAnyProtectedBootstrap() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val worker = Thread {
+                try { work.receiveMessage(legacy, activationControl(), channel, generation) }
+                catch (error: Throwable) { failure.set(error) }
+            }
+            try {
+                worker.start(); awaitUiFactory(worker)
+                field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                worker.join(5000); assertFalse(worker.isAlive)
+                assertTrue(failure.get() is PhotoFolderScopeError)
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            } finally { worker.interrupt(); worker.join(5000) }
+        }
+    }
+
+    @Test @org.robolectric.annotation.LooperMode(org.robolectric.annotation.LooperMode.Mode.PAUSED)
+    fun actualSocketLaneWaitsForUiFactoryThenWritesOnlyEncryptedClosedControlsOffUiAndOutsideWerkMonitor() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val uiThread = Thread.currentThread()
+            val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            val writes = java.util.concurrent.atomic.AtomicInteger()
+            val checked = object : java.io.OutputStream() {
+                override fun write(value: Int) {
+                    assertNotSame(uiThread, Thread.currentThread())
+                    assertFalse(Thread.holdsLock(work))
+                    writes.incrementAndGet(); bytes.write(value)
+                }
+            }
+            field(TelefonSecureChannel::class.java, "output").set(channel, checked)
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val worker = Thread {
+                try { work.receiveMessage(legacy, activationControl(), channel, generation) }
+                catch (error: Throwable) { failure.set(error) }
+            }
+            try {
+                worker.start(); awaitUiFactory(worker)
+                assertEquals(0, writes.get())
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                worker.join(5000); assertFalse(worker.isAlive); assertNull(failure.get())
+                assertTrue(writes.get() > 0)
+                val connection = field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection
+                assertNull(connection.runtime.savedPolicy().policy); assertNull(connection.runtime.currentRequest())
+                connection.close()
+            } finally { worker.interrupt(); worker.join(5000) }
+        }
+    }
+
+    @Test @org.robolectric.annotation.LooperMode(org.robolectric.annotation.LooperMode.Mode.PAUSED)
+    fun queuedActivationRechecksHandlerReadinessBeforeAnyProtectedBootstrap() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val worker = Thread {
+                try { work.receiveMessage(legacy, activationControl(), channel, generation) }
+                catch (error: Throwable) { failure.set(error) }
+            }
+            try {
+                worker.start(); awaitUiFactory(worker)
+                field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, false)
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                worker.join(5000); assertFalse(worker.isAlive)
+                assertTrue(failure.get() is PhotoFolderScopeError)
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            } finally { worker.interrupt(); worker.join(5000) }
+        }
+    }
+
     @Test fun nativeFactoryUsesCapturedIdentityExistingKeyAndRetainsOwnershipUntilActualUiClose() {
         withNativeTransport { work, channel, generation ->
             var peer = storage.fileAuthorityPeers().peer!!
@@ -271,8 +428,11 @@ class NativeFilePairingBootstrapTest {
             val initial = command("status")
             assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(peer, initial, channel, generation) }
             assertEquals(0, bytes.size()) // No fallback to ordinary personal staging/ACK.
-            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { connection ->
-                assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(peer, initial, channel, generation) }
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            val activation = desktop.packet(); desktop.markSent(activation)
+            work.receiveMessage(peer, DeviceFileControlEnvelope.create(activation), channel, generation)
+            sent().forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it), desktopPeer) }
+            (field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection).use { connection ->
                 assertNull(connection.runtime.savedPolicy().policy)
                 fun metadata() {
                     val packet = desktop.packet(); desktop.markSent(packet)
