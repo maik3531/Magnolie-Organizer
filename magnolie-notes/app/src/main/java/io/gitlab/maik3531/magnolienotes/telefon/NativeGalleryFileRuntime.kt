@@ -154,6 +154,15 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         val checked = now()
         run.wireOfferAttempt.get()?.checkCurrent(checked)
         if (checked >= accepted.expires || checked >= offer.expires) DeviceFileControl.fail("file_accept_offer_changed")
+        source.commitRemoteAcceptance(offer, accepted) {
+            val current = now()
+            run.wireOfferAttempt.get()?.checkCurrent(current)
+            if (run.cancelRequested || current >= accepted.expires || current >= offer.expires ||
+                workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+                DeviceFileControl.fail("file_accept_permission_changed")
+        }
+        if (now() >= accepted.expires || now() >= offer.expires || run.cancelRequested ||
+            workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_accept_permission_changed")
         run.acceptance.set(accepted)
     }
 
@@ -180,12 +189,14 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         val job=run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
         val source=workflow.source(job,selected.catalog.source,selected.album,selected.desktopChoice)
         if (source.manifest.fingerprint != accepted.manifestSha256) DeviceFileControl.fail("file_chunk_acceptance_changed")
+        source.requireRemoteAcceptance(accepted)
         val data=source.readChunk(request.fileId,request.chunkIndex)
         try {
             authority()
             val response=DeviceFileChunkEnvelope.response(request,data,now())
             authority();send(response);authority()
             if (source.manifest.fingerprint != accepted.manifestSha256) DeviceFileControl.fail("file_chunk_acceptance_changed")
+            source.requireRemoteAcceptance(accepted)
         } finally { data.fill(0) }
         // A completed chunk write releases no source quota or whole-run owner.
     }

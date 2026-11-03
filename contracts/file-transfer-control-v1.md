@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Durable original Android acceptance before output (Refs #348, #337)
+
+The actual native acceptance path now commits/readbacks original sealed job/source
+identity, the actually sent correlated offer and validated acceptance/command digest
+before exposing RAM acceptance. Chunk output requires that exact durable binding;
+remote-saved commit requires the same original acceptance. Both record kinds are
+bounded by actual job membership and atomically covered by the aggregate head.
+Identical acceptance repeats are immutable; changed offer/destination/context cannot
+rebind a source job. Expiry/revocation during the transaction rolls back; lost
+postcommit sync returns no success and fences the old source owner.
+
+Fresh metadata inspection is historical only. It never restores run/offer ownership,
+READ, chunk output or permission epochs. Prior valid historical saved records without
+the new acceptance proof stay readable and unchanged; they require separate explicit
+repair rather than fabricating an earlier acceptance. Final proven retirement removes
+both proof kinds and the job under one transaction, not upon remote confirmation.
+
+143 distinct source-host cases pass (seven new, 136 affected), including actual
+native acceptance inspection before the first chunk, unchanged source/permission
+runtime paths, immutable original bindings, absent/lost acceptance, typed/context
+rejection, transaction/permission/Sync boundaries and valid prior-format history
+without invented adoption. Restart READ renewal and post-restart incoming ownership,
+global baseline/conflict/migration and installed/physical acceptance remain open.
+Production/UI/automatic/release gates remain OFF.
+
 ### Durable Android historical remote-saved evidence (Refs #347, #337)
 
 The actual native `observeRemoteSaved` path now commits a protected historical
@@ -22,7 +47,7 @@ inspection with the source cache temporarily unavailable, actual runtime persist
 before its RAM result, immutable conflicts, missing proof, typed/context corruption,
 transaction rollback, permission loss during head protection, postcommit sync loss
 with no returned success, and atomic final retirement rollback/retry. This is not
-acceptance persistence before chunk output, restart READ renewal, post-restart
+restart READ renewal, post-restart
 incoming confirmation handling, baseline/conflict convergence or physical acceptance.
 Those remaining #337 boundaries and all production/UI/automatic/release gates stay
 unfinished/OFF; full consistent private-backup rollback needs monotonic anchoring.

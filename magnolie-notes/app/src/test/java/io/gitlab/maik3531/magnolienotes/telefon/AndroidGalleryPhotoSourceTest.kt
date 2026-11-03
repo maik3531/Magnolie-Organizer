@@ -735,6 +735,12 @@ class AndroidGalleryPhotoSourceTest {
                         acceptance=JsonObject(acceptance+("body" to JsonObject(acceptance["body"]!!.jsonObject+
                             ("offer_id" to JsonPrimitive(offeredWire[0].string("message_id"))))))
                         runtime.observeAcceptance(acceptance,{now}); runtime.observeAcceptance(acceptance,{now})
+                        PhotoSourceJobIndex(root, protection).use { inspected ->
+                            val originalJob = inspected.jobs().single()
+                            assertEquals(whole.acceptance.get()!!.acceptanceSha256,
+                                (inspected.remoteAcceptance(originalJob)!!.acceptance["acceptance_sha256"] as JsonPrimitive).content)
+                            assertNull(inspected.remoteSaved(originalJob))
+                        } // No chunk has been returned yet.
                         assertEquals("e".repeat(64),whole.acceptance.get()!!.destinationToken)
                         val chunkRequest=TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST,buildJsonObject {
                             put("format",1);put("transfer_id",manifest!!.transferId);put("manifest_sha256",manifest!!.fingerprint)

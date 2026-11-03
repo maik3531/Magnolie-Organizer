@@ -78,6 +78,14 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
 
     fun commitRemoteSaved(accepted: DeviceFileRemoteAcceptance, message: JsonObject, permitted: () -> Unit): PhotoSourceRemoteSaved =
         index.commitRemoteSaved(job, scope, lease, accepted, message, permitted)
+
+    fun commitRemoteAcceptance(offer: NativeGalleryOfferOutput, accepted: DeviceFileRemoteAcceptance, permitted: () -> Unit): PhotoSourceRemoteAcceptance =
+        index.commitRemoteAcceptance(job, scope, lease, offer, accepted, permitted)
+
+    fun requireRemoteAcceptance(accepted: DeviceFileRemoteAcceptance) = index.withSealedHead(job, scope, lease) {
+        val original = index.remoteAcceptance(job) ?: DeviceFileControl.fail("photo_jobs_remote_acceptance_required")
+        if (original.acceptance != PhotoSourceRemoteAcceptance.acceptanceWire(accepted)) DeviceFileControl.fail("photo_jobs_remote_acceptance_changed")
+    }
 }
 
 /** Dedicated source-job DB only. Never opens/migrates the personal phone DB.
@@ -183,12 +191,51 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         PhotoSourceRemoteSaved.parse(parse(protection.open(it, "photo-source-jobs-v1/remote-saved/" + job.id)), job)
     }
 
+    fun remoteAcceptance(expected: PhotoSourceJob): PhotoSourceRemoteAcceptance? = gated {
+        val actual = readOne(expected.id) ?: fail("photo_jobs_missing_job")
+        if (actual != expected) fail("photo_jobs_cas_conflict")
+        readRemoteAcceptance(actual)
+    }
+
+    private fun readRemoteAcceptance(job: PhotoSourceJob): PhotoSourceRemoteAcceptance? = meta("remote-acceptance-v1/" + job.id)?.let {
+        PhotoSourceRemoteAcceptance.parse(parse(protection.open(it, "photo-source-jobs-v1/remote-acceptance/" + job.id)), job)
+    }
+
+    internal fun commitRemoteAcceptance(expected: PhotoSourceJob, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
+        offer: NativeGalleryOfferOutput, accepted: DeviceFileRemoteAcceptance, permitted: () -> Unit): PhotoSourceRemoteAcceptance =
+        withSealedHead(expected, scope, lease) {
+            permitted()
+            if (accepted.permissionEpoch != lease.receiver.permissionEpoch) fail("photo_jobs_remote_acceptance_authority_changed")
+            val next = PhotoSourceRemoteAcceptance.capture(expected, offer, accepted)
+            val original = readRemoteAcceptance(expected)
+            if (original != null) {
+                if (original.record != next.record) fail("photo_jobs_remote_acceptance_changed")
+                permitted(); original
+            } else {
+                if (readRemoteSaved(expected) != null) fail("photo_jobs_remote_acceptance_repair_required")
+                val cipher = protection.seal(frame(next.record), "photo-source-jobs-v1/remote-acceptance/" + expected.id)
+                permitted()
+                transaction {
+                    if (readOne(expected.id) != expected || meta("remote-acceptance-v1/" + expected.id) != null) fail("photo_jobs_cas_conflict")
+                    permitted()
+                    db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "remote-acceptance-v1/" + expected.id); put("sealed", cipher) })
+                    membership!!.advance(); permitted()
+                }
+                permitted()
+                val result = readRemoteAcceptance(expected) ?: fail("photo_jobs_remote_acceptance_readback_failed")
+                if (result.record != next.record) fail("photo_jobs_remote_acceptance_readback_failed")
+                result
+            }
+        }
+
     internal fun commitRemoteSaved(expected: PhotoSourceJob, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
         accepted: DeviceFileRemoteAcceptance, message: JsonObject, permitted: () -> Unit): PhotoSourceRemoteSaved =
         withSealedHead(expected, scope, lease) {
             permitted()
             if (accepted.permissionEpoch != lease.receiver.permissionEpoch) fail("photo_jobs_remote_saved_authority_changed")
             val next = PhotoSourceRemoteSaved.capture(expected, accepted, message)
+            val durableAcceptance = readRemoteAcceptance(expected) ?: fail("photo_jobs_remote_acceptance_required")
+            if (durableAcceptance.acceptance != PhotoSourceRemoteAcceptance.acceptanceWire(accepted)) fail("photo_jobs_remote_acceptance_changed")
             val original = readRemoteSaved(expected)
             if (original != null) {
                 if (original.confirmation.fingerprint != next.confirmation.fingerprint ||
@@ -406,6 +453,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             val current = readOne(retired.id) ?: fail("photo_jobs_missing_job")
             if (current.version != retired.version) fail("photo_jobs_cas_conflict")
             db.delete("source_meta", "name=?", arrayOf("remote-saved-v1/" + retired.id))
+            db.delete("source_meta", "name=?", arrayOf("remote-acceptance-v1/" + retired.id))
             if (db.delete("source_jobs", "job_id=?", arrayOf(retired.id)) != 1) fail("photo_jobs_retirement_failed")
             membership!!.advance()
         }

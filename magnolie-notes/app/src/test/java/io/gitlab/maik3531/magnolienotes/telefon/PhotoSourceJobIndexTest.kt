@@ -38,11 +38,13 @@ class PhotoSourceJobIndexTest {
         override fun close() { directory.deleteRecursively(); original.delete() }
     }
 
-    private fun remoteSaved(source: IndexedPhotoSource): Pair<DeviceFileRemoteAcceptance, JsonObject> {
+    private fun remoteSaved(source: IndexedPhotoSource, bindAcceptance: Boolean = true): Pair<DeviceFileRemoteAcceptance, JsonObject> {
         val manifest = source.manifest
         val now = 1_800_000_000_000L
         val accepted = DeviceFileRemoteAcceptance(java.util.UUID.randomUUID().toString(), manifest.fingerprint,
             manifest.transferId, "c".repeat(64), "f".repeat(64), "e".repeat(64), now + 60_000, "d".repeat(64))
+        if (bindAcceptance) source.commitRemoteAcceptance(NativeGalleryOfferOutput(accepted.offerId, manifest.transferId,
+            manifest.fingerprint, accepted.expires), accepted) { }
         val message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, kotlinx.serialization.json.buildJsonObject {
             put("format", JsonPrimitive(1)); put("transfer_id", JsonPrimitive(manifest.transferId)); put("manifest_sha256", JsonPrimitive(manifest.fingerprint))
             put("acceptance_sha256", JsonPrimitive(accepted.acceptanceSha256)); put("permission_epoch", JsonPrimitive(accepted.permissionEpoch))
@@ -51,6 +53,156 @@ class PhotoSourceJobIndexTest {
             }))
         }, 60_000, now)
         return accepted to message
+    }
+
+    private fun sealedSource(f: Fixture, index: PhotoSourceJobIndex): IndexedPhotoSource {
+        val inventory = f.inventory(); val reserved = index.reserve(inventory, f.native.scope)
+        val job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+        return index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+    }
+
+    @Test fun originalRemoteAcceptanceIsImmutableAndFreshInspectionDoesNotRenewByteAuthority() {
+        Fixture().use { f ->
+            lateinit var original: JsonObject; lateinit var job: PhotoSourceJob
+            f.open().use { index ->
+                val source = sealedSource(f, index); job = source.job
+                val (accepted, _) = remoteSaved(source)
+                val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
+                original = index.remoteAcceptance(job)!!.record
+                assertEquals(original, source.commitRemoteAcceptance(offer, accepted) { }.record)
+                source.requireRemoteAcceptance(accepted)
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    source.commitRemoteAcceptance(offer, accepted.copy(destinationToken = "9".repeat(64))) { }
+                }
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    source.commitRemoteAcceptance(offer.copy(messageId = java.util.UUID.randomUUID().toString()), accepted) { }
+                }
+                assertEquals(original, index.remoteAcceptance(job)!!.record); assertEquals(listOf(job), index.jobs())
+            }
+            val root = File(f.directory, "photo-source-" + job.id); val held = File(f.directory.parentFile, f.directory.name + "-held")
+            assertTrue(root.renameTo(held)); val opened = f.native.provider.opened
+            try { f.open().use { index -> assertEquals(original, index.remoteAcceptance(job)!!.record); assertEquals(listOf(job), index.jobs()) } }
+            finally { assertTrue(held.renameTo(root)) }
+            assertEquals(opened, f.native.provider.opened)
+        }
+    }
+
+    @Test fun missingDurableAcceptanceCannotBeSuppliedByRemoteSavedOrAuthorizeChunkOutput() {
+        Fixture().use { f -> f.open().use { index ->
+            val source = sealedSource(f, index); val (accepted, message) = remoteSaved(source, false)
+            assertEquals("photo_jobs_remote_acceptance_required", assertThrows(PhotoFolderScopeError::class.java) { source.requireRemoteAcceptance(accepted) }.code)
+            assertEquals("photo_jobs_remote_acceptance_required", assertThrows(PhotoFolderScopeError::class.java) { source.commitRemoteSaved(accepted, message) { } }.code)
+            assertNull(index.remoteAcceptance(source.job)); assertNull(index.remoteSaved(source.job))
+            assertEquals(listOf(source.job), index.jobs())
+        } }
+    }
+
+    @Test fun lostAcceptanceRowIsIntegrityFailureNotARebindableEmptySlot() {
+        Fixture().use { f ->
+            val job = f.open().use { index -> val source = sealedSource(f, index); remoteSaved(source); source.job }
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                assertEquals(1, it.delete("source_meta", "name=?", arrayOf("remote-acceptance-v1/" + job.id)))
+            }
+            assertEquals("photo_jobs_membership_changed", assertThrows(PhotoFolderScopeError::class.java) { f.open().close() }.code)
+            assertTrue(File(f.directory, "photo-source-" + job.id).isDirectory)
+        }
+    }
+
+    @Test fun remoteAcceptancePermissionLossRollsBackBeforeAnyRuntimeGrantCanBePublished() {
+        Fixture().use { f ->
+            var interrupt = false; var permitted = true
+            f.open { if (interrupt && it == "membership-protect") permitted = false }.use { index ->
+                val source = sealedSource(f, index); val (accepted, _) = remoteSaved(source, false)
+                val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
+                interrupt = true
+                assertThrows(IOException::class.java) { source.commitRemoteAcceptance(offer, accepted) {
+                    if (!permitted) throw IOException("fixture acceptance expired")
+                } }
+                assertNull(index.remoteAcceptance(source.job)); assertEquals(listOf(source.job), index.jobs())
+                interrupt = false
+                source.commitRemoteAcceptance(offer, accepted) { }
+                source.requireRemoteAcceptance(accepted)
+            }
+        }
+    }
+
+    @Test fun remoteAcceptanceSyncLossReturnsNoSuccessAndFreshReadIsHistoricalOnly() {
+        Fixture().use { f ->
+            var interrupt = false; lateinit var job: PhotoSourceJob; lateinit var original: JsonObject
+            f.open { if (interrupt && it == "membership-sync") throw IOException("fixture acceptance sync lost") }.use { index ->
+                val source = sealedSource(f, index); job = source.job
+                val (accepted, _) = remoteSaved(source, false)
+                val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
+                original = PhotoSourceRemoteAcceptance.capture(job, offer, accepted).record
+                interrupt = true
+                assertThrows(IOException::class.java) { source.commitRemoteAcceptance(offer, accepted) { } }
+                assertEquals(original, index.remoteAcceptance(job)!!.record)
+                assertThrows(PhotoFolderScopeError::class.java) { source.requireRemoteAcceptance(accepted) }
+            }
+            f.open().use { index -> assertEquals(original, index.remoteAcceptance(job)!!.record); assertEquals(listOf(job), index.jobs()) }
+        }
+    }
+
+    @Test fun legacyHistoricalSavedWithoutAcceptanceRemainsReadableButCannotInventEarlierBinding() {
+        Fixture().use { f ->
+            val inventory = f.inventory(); lateinit var accepted: DeviceFileRemoteAcceptance; lateinit var job: PhotoSourceJob
+            lateinit var saved: JsonObject
+            f.open().use { index ->
+                val reserved = index.reserve(inventory, f.native.scope)
+                job = index.publishSnapshot(reserved, f.freeze(index, reserved, inventory), f.native.scope, inventory.lease)
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val pair = remoteSaved(source); accepted = pair.first
+                saved = source.commitRemoteSaved(accepted, pair.second) { }.record
+            }
+            // Model the genuine prior #347 format: saved proof was committed
+            // with a valid aggregate, but acceptance-before-bytes did not exist.
+            SQLiteDatabase.openDatabase(File(f.directory, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                val old = db.rawQuery("SELECT sealed FROM source_meta WHERE name=?", arrayOf(PhotoSourceMembership.NAME)).use {
+                    assertTrue(it.moveToFirst()); ByteArrayInputStream(f.protection.open(it.getBlob(0), "photo-source-jobs-v1/membership")).use {
+                        TelefonRahmen.lesen(it, DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
+                    }
+                }
+                assertEquals(1, db.delete("source_meta", "name=?", arrayOf("remote-acceptance-v1/" + job.id)))
+                fun digest(bytes: ByteArray) = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+                val metadata = mutableListOf<JsonObject>()
+                db.rawQuery("SELECT name,sealed FROM source_meta WHERE name<>? ORDER BY name", arrayOf(PhotoSourceMembership.NAME)).use {
+                    while (it.moveToNext()) metadata += JsonObject(mapOf("name" to JsonPrimitive(it.getString(0)), "sha256" to JsonPrimitive(digest(it.getBlob(1)))))
+                }
+                val prior = JsonObject(old + mapOf("metadata_count" to JsonPrimitive(metadata.size),
+                    "metadata_sha256" to JsonPrimitive(digest(TelefonKanonisch.bytes(kotlinx.serialization.json.JsonArray(metadata))))))
+                val bytes = ByteArrayOutputStream().also { TelefonRahmen.schreiben(it, prior, DeviceTransferProtection.MAX_CLEAR_BYTES - 4) }.toByteArray()
+                db.execSQL("UPDATE source_meta SET sealed=? WHERE name=?", arrayOf(f.protection.seal(bytes, "photo-source-jobs-v1/membership"), PhotoSourceMembership.NAME))
+            }
+            f.open().use { index ->
+                assertEquals(saved, index.remoteSaved(job)!!.record); assertNull(index.remoteAcceptance(job))
+                val source = index.restore(job, "sender_fixture_01", f.native.scope, inventory.lease)
+                val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
+                assertEquals("photo_jobs_remote_acceptance_repair_required", assertThrows(PhotoFolderScopeError::class.java) {
+                    source.commitRemoteAcceptance(offer, accepted) { }
+                }.code)
+                assertEquals(saved, index.remoteSaved(job)!!.record); assertNull(index.remoteAcceptance(job))
+            }
+        }
+    }
+
+    @Test fun durableAcceptanceCodecRejectsTypedExpiryAndForeignOriginalJobOrOffer() {
+        Fixture().use { f -> f.open().use { index ->
+            val source = sealedSource(f, index); val (accepted, _) = remoteSaved(source, false)
+            val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
+            val record = PhotoSourceRemoteAcceptance.capture(source.job, offer, accepted).record
+            val originalOffer = record["offer"] as JsonObject
+            val originalAcceptance = record["acceptance"] as JsonObject
+            fun nested(name: String, original: JsonObject, key: String, value: JsonPrimitive) =
+                JsonObject(record + (name to JsonObject(original + (key to value))))
+            val variants = listOf(JsonObject(record + ("format" to JsonPrimitive(true))),
+                JsonObject(record + ("job_id" to JsonPrimitive("e".repeat(32)))),
+                JsonObject(record + ("source_job_sha256" to JsonPrimitive("e".repeat(64)))),
+                nested("offer", originalOffer, "expires", JsonPrimitive(true)),
+                nested("acceptance", originalAcceptance, "expires", JsonPrimitive("1800000060000")),
+                nested("acceptance", originalAcceptance, "command_digest", JsonPrimitive(false)))
+            for (variant in variants) assertThrows(PhotoFolderScopeError::class.java) { PhotoSourceRemoteAcceptance.parse(variant, source.job) }
+            assertNull(index.remoteAcceptance(source.job))
+        } }
     }
 
     @Test fun remoteSavedIsDurableHistoricalMetadataWithoutSourceReopenOrQuotaRelease() {
