@@ -442,7 +442,16 @@ class NativeDesktopFileConnection:
         snapshot=self._receiving_policy()
         witness=snapshot.policy.mapping_store
         if witness is not None:
-            self._mappings.verify_witness(witness)
+            return self._mappings.checkpoint(witness)
+
+    def _verify_job_mapping_store(self,history):
+        witness=self._receiving_policy().policy.mapping_store
+        checkpoint=history.mapping_store if history is not None else None
+        if (checkpoint is None)!=(witness is None):
+            raise TransferError('file_desktop_job_mapping_checkpoint_required')
+        if checkpoint is not None:
+            if checkpoint.witness!=witness:raise TransferError('file_desktop_job_mapping_store_changed')
+            self._mappings.verify_checkpoint(checkpoint)
 
     def _open_catalog(self, *, allow_create=True):
         if self._catalog is None:
@@ -481,6 +490,8 @@ class NativeDesktopFileConnection:
         if self._receive_binding() != binding:
             raise TransferError('file_desktop_native_authority_changed')
         self._verify_expected_mapping_store()
+        if self._run is not None and self._run.receiver is not None:
+            self._verify_job_mapping_store(self._run.receiver._index.media_history)
         action.validate(self)
         result = mutation()
         if self._receive_binding() != binding:
@@ -521,7 +532,9 @@ class NativeDesktopFileConnection:
                 snapshot.policy.destination.path, self._receive_binding)
             if accepted.destination != snapshot.policy.destination:
                 raise TransferError('file_desktop_original_destination_changed')
-            history = NativeMediaHistory.capture(accepted,self._source_media_pages) if self._source_media_pages else None
+            history = NativeMediaHistory.capture(accepted,self._source_media_pages,
+                mapping_store=self._verify_expected_mapping_store()) if self._source_media_pages else None
+            self._verify_job_mapping_store(history)
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, accepted)
             self._mutation_action = action
@@ -580,6 +593,7 @@ class NativeDesktopFileConnection:
             protection = self._authority.protection
             original = NativeFileReceiveOperation.read_media_history(self._catalog,job,self._receive_binding,
                 protection.seal,protection.unseal)
+            self._verify_job_mapping_store(original)
             if original is not None or self._source_media_pages:
                 if original is None or not self._source_media_pages:
                     raise TransferError('file_desktop_resume_media_history_required')
@@ -672,6 +686,7 @@ class NativeDesktopFileConnection:
         # Use the original protected job anchor, never the current wire cache.
         self._verify_expected_mapping_store()
         history = run.receiver._index.media_history
+        self._verify_job_mapping_store(history)
         if history is None:
             if self._source_media_pages:
                 raise TransferError('file_desktop_saved_media_history_required')

@@ -14,7 +14,7 @@ from magnolie_file_receive import NativeFileReceiveOperation
 from magnolie_file_transfer import MAX_FILE_BYTES, TransferError, _portable_path
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_preferences import ProtectedPhotoPreferences
-from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice
+from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice,PhotoMappingStoreCheckpoint
 from magnolie_telefon import canonical
 
 
@@ -134,6 +134,9 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 return NativePhotoMappingStoreChoice(witness,self)
 
     def verify_witness(self,witness):
+        return self.checkpoint(witness).witness
+
+    def checkpoint(self,witness):
         if type(witness) is not PhotoMappingStoreWitness:raise TransferError('photo_mapping_store_native_witness_required')
         PhotoMappingStoreWitness.parse(witness.wire())
         try:
@@ -143,11 +146,28 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                     self._schema();snapshot=self._snapshot()
                     if witness!=self._store_witness():raise TransferError('photo_mapping_store_original_changed')
                     if not snapshot.associated:raise TransferError('photo_mappings_reassociation_required')
-                    self._sync();return witness
+                    self._sync();return PhotoMappingStoreCheckpoint(witness,self._last[1],snapshot.revision,snapshot.count)
         except Exception as error:
             if not isinstance(error,TransferError) or str(error) not in ('photo_preferences_busy','photo_preferences_closed_or_pending','photo_preferences_authority_changed'):
                 self._uncertain=True
             raise
+
+    def _require_checkpoint(self,minimum,current):
+        if type(minimum) is not PhotoMappingStoreCheckpoint:raise TransferError('photo_mapping_store_native_checkpoint_required')
+        PhotoMappingStoreCheckpoint.parse(minimum.wire())
+        if (minimum.witness!=self._store_witness() or not current.associated or current.revision<minimum.revision
+                or current.count<minimum.count or current.revision==minimum.revision and (self._last[1],current.count)!=(minimum.version,minimum.count)):
+            self._uncertain=True
+            raise TransferError('photo_mapping_store_checkpoint_changed')
+
+    def verify_checkpoint(self,minimum):
+        if type(minimum) is not PhotoMappingStoreCheckpoint:raise TransferError('photo_mapping_store_native_checkpoint_required')
+        PhotoMappingStoreCheckpoint.parse(minimum.wire())
+        current=self.checkpoint(minimum.witness)
+        if (current.revision<minimum.revision or current.count<minimum.count
+                or current.revision==minimum.revision and (current.version,current.count)!=(minimum.version,minimum.count)):
+            self._uncertain=True;raise TransferError('photo_mapping_store_checkpoint_changed')
+        return current
 
     def verify_choice(self,choice):
         if type(choice) is not NativePhotoMappingStoreChoice or choice.owner is not self:
@@ -239,7 +259,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 entries=history.entries;source_epoch=history.source_epoch;media_type=history.media_type
             else:
                 entries=correlate_media_pages(pages,accepted.manifest)
-                if history is not None and NativeMediaHistory.capture(accepted,pages)!=history:
+                if history is not None and NativeMediaHistory.capture(accepted,pages,mapping_store=history.mapping_store)!=history:
                     raise TransferError('photo_mappings_media_history_changed')
                 source_epoch=pages[0].source_epoch;media_type=pages[0].media_type
             peer=self._peer()
@@ -262,6 +282,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 self._open(create=True,validate=lambda:action.validate(self))
                 with self._locked():
                     self._schema();current=self._snapshot()
+                    if history is not None and history.mapping_store is not None:self._require_checkpoint(history.mapping_store,current)
                     if current.version!=expected.version:raise TransferError('photo_mappings_cas_conflict')
                     if not current.associated:raise TransferError('photo_mappings_reassociation_required')
                     pending=[]

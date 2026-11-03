@@ -6,6 +6,7 @@ from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_control import _hex
 from magnolie_file_media import SourceMediaEntry, correlate_media_pages
 from magnolie_file_transfer import TransferError
+from magnolie_photo_mapping_witness import PhotoMappingStoreCheckpoint
 from magnolie_telefon import valid_uuid
 
 
@@ -20,6 +21,7 @@ class NativeMediaHistory:
     insertion_witness: bool
     attempts: tuple
     entries: tuple
+    mapping_store: PhotoMappingStoreCheckpoint | None = None
 
     @property
     def grants_write_authority(self):return False
@@ -28,19 +30,23 @@ class NativeMediaHistory:
     def is_saved_receipt(self):return False
 
     def wire(self):
-        return dict(format=1,accepted_sha256=self.accepted_sha256,manifest_sha256=self.manifest_sha256,
+        value=dict(format=1,accepted_sha256=self.accepted_sha256,manifest_sha256=self.manifest_sha256,
             version=self.version,run_id=self.run_id,source_epoch=self.source_epoch,media_type=self.media_type,
             insertion_witness=self.insertion_witness,
             attempts=[dict(request_id=request_id,count=count) for request_id,count in self.attempts],
             entries=[dict(file_id=entry.file_id,photo_id=entry.photo_id,media_kind=entry.media_kind) for entry in self.entries])
+        if self.mapping_store is not None:value=dict(value,format=2,mapping_store=self.mapping_store.wire())
+        return value
 
     @classmethod
-    def capture(cls,accepted,pages):
+    def capture(cls,accepted,pages,*,mapping_store=None):
         if type(accepted) is not NativeAcceptedTransfer:raise TransferError('file_media_history_native_acceptance_required')
+        if mapping_store is not None and type(mapping_store) is not PhotoMappingStoreCheckpoint:
+            raise TransferError('file_media_history_native_mapping_checkpoint_required')
         entries=correlate_media_pages(pages,accepted.manifest)
         first=pages[0]
         history=cls(accepted.fingerprint,accepted.manifest.fingerprint,first.version,first.run_id,first.source_epoch,
-            first.media_type,first.insertion_witness,tuple((page.request_id,len(page.entries)) for page in pages),entries)
+            first.media_type,first.insertion_witness,tuple((page.request_id,len(page.entries)) for page in pages),entries,mapping_store)
         return cls.parse(history.wire(),accepted)
 
     @classmethod
@@ -50,9 +56,9 @@ class NativeMediaHistory:
         """
         def fail():raise TransferError('file_media_history_invalid')
         if (type(accepted) is not NativeAcceptedTransfer or type(value) is not dict
-                or set(value)!={'format','accepted_sha256','manifest_sha256','version','run_id','source_epoch',
-                    'media_type','insertion_witness','attempts','entries'}
-                or type(value['format']) is not int or value['format']!=1
+                or type(value.get('format')) is not int or value['format'] not in (1,2)
+                or set(value)!=({'format','accepted_sha256','manifest_sha256','version','run_id','source_epoch',
+                    'media_type','insertion_witness','attempts','entries'} | ({'mapping_store'} if value['format']==2 else set()))
                 or value['accepted_sha256']!=accepted.fingerprint or value['manifest_sha256']!=accepted.manifest.fingerprint
                 or not _hex(value['version']) or not _hex(value['source_epoch']) or not valid_uuid(value['run_id'],version=4)
                 or value['media_type'] not in ('images','video') or type(value['insertion_witness']) is not bool
@@ -76,4 +82,5 @@ class NativeMediaHistory:
         if (tuple(entry.file_id for entry in entries)!=tuple(file.id for file in accepted.manifest.files)
                 or len({entry.photo_id for entry in entries})!=len(entries)):fail()
         return cls(value['accepted_sha256'],value['manifest_sha256'],value['version'],value['run_id'],value['source_epoch'],
-            value['media_type'],value['insertion_witness'],tuple(attempts),tuple(entries))
+            value['media_type'],value['insertion_witness'],tuple(attempts),tuple(entries),
+            PhotoMappingStoreCheckpoint.parse(value['mapping_store']) if value['format']==2 else None)

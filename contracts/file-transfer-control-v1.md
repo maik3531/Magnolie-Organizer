@@ -1442,8 +1442,9 @@ Standalone store fixtures intentionally stop after real native publication and
 receipt readback, before coordinator mapping/ACK, to inject metadata failures.
 
 These bounded joins are not the complete concurrent publication/recovery union. Before release,
-missing mapping metadata after restart must not be mistaken for first use: protected
-expected-store witnesses and per-job media/history recovery anchors are still needed.
+missing mapping metadata after restart must not be mistaken for first use:
+the optional expected-store/job-history anchors below still need mandatory native
+bootstrap, legacy repair and complete recovery integration.
 Whole consistent private-backup rollback without a trusted external monotonic
 anchor is not claimed prevented by the in-process revision fence. These open recovery
 and migration requirements keep production readiness, UI and automatic runs OFF.
@@ -1477,7 +1478,7 @@ actual protected native history with the existing key and no live binding or sea
 callback. In total these are 17 new history cases and 169 affected existing cases.
 This is source-host evidence, not physical phone, power-loss or native Windows
 receiver acceptance. The later post-save join above still does not complete expected
-global mapping-store witnesses, missing-store restart recovery or convergence.
+mandatory global mapping-store bootstrap, missing-store recovery or convergence.
 
 Resume now reads the original protected media history before opening the receiving
 stage or emitting acceptance. Freshly correlated pages must preserve source epoch,
@@ -1515,9 +1516,39 @@ checks the original store again before commit and after encrypted readback.
 
 This optional foundation is not a completed native UI bootstrap/legacy repair
 flow. Legacy policies without the expectation remain limited groundwork; release
-still requires mandatory truthful bootstrap/availability, per-job mapping-store
-version/witness anchors and the complete concurrent publication/restart recovery
+still requires mandatory truthful bootstrap/availability, durable post-mapping
+receipts and the complete concurrent publication/restart recovery
 union. Readiness, discovery 21, automatic runs, advanced UI and releases stay OFF.
+
+### Per-job original mapping-store minimum (Refs #337)
+
+Marked media jobs now capture the actual original mapping-store witness and
+protected owner-ciphertext SHA/revision/count in immutable history before receiver
+admission/index creation or publication. Inner media-history format 2 carries the
+optional checkpoint; old format 1 remains exactly unchanged and has no invented
+store expectation. Even an empty store records its actual protected owner hash,
+not the public absent-store preference-CAS sentinel.
+
+Marked admission requires this native checkpoint. Resume, publication and saved
+mapping/confirmation verify the original store and at least the observed revision
+and count; the same revision requires exactly the original protected version/count.
+Later legitimate native commits may advance the store without rewriting the old
+job history. The mapping transaction also checks the original minimum before any
+row insertion and fences an observed mismatch. Fresh page request IDs remain
+independent from the historical mapping-store minimum.
+
+Eight new checkpoint cases and 110 affected existing cases pass. They cover actual
+marked pre-chunk capture, malformed/new-format absence, later native advancement,
+same-revision changed ciphertext after metadata-owner reopen, an older consistent
+metadata replay against an actually observed newer minimum, direct saved-commit
+fencing before insertion, and marked legacy/admission/resume boundaries. Saved
+files and displaced metadata are preserved. This is source-host metadata evidence,
+not physical restart/power-loss/Windows acceptance.
+
+A pre-publication minimum does NOT prove protection from later post-save whole
+private-backup rollback. Durable post-mapping receipts, trusted external monotonic
+anchoring where required, legacy/native bootstrap/availability and the complete
+concurrent reconciliation/restart union remain open. No readiness/release gate changes.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

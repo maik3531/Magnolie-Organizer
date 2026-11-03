@@ -1,7 +1,7 @@
 """Expected original metadata-store identities, not file/READ/write grants."""
 from dataclasses import dataclass
 
-from magnolie_file_control import _hex
+from magnolie_file_control import _hex,MAX_REVISION
 from magnolie_file_transfer import TransferError
 
 
@@ -34,3 +34,23 @@ class PhotoMappingStoreWitness:
 class NativePhotoMappingStoreChoice:
     witness: PhotoMappingStoreWitness
     owner: object
+
+
+@dataclass(frozen=True)
+class PhotoMappingStoreCheckpoint:
+    witness: PhotoMappingStoreWitness
+    version: str
+    revision: int
+    count: int
+
+    def wire(self):
+        return dict(format=1,witness=self.witness.wire(),version=self.version,revision=self.revision,count=self.count)
+
+    @classmethod
+    def parse(cls,value):
+        if (type(value) is not dict or set(value)!={'format','witness','version','revision','count'}
+                or type(value['format']) is not int or value['format']!=1 or not _hex(value['version'])
+                or type(value['revision']) is not int or not 1<=value['revision']<=MAX_REVISION
+                or type(value['count']) is not int or not 0<=value['count']<=10_000):
+            raise TransferError('photo_mapping_store_invalid_checkpoint')
+        return cls(PhotoMappingStoreWitness.parse(value['witness']),value['version'],value['revision'],value['count'])
