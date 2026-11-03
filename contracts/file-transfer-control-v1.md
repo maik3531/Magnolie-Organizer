@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit native accepted resume Chunk output (Refs #357, #337)
+
+A separate native-only Chunk API now requires the exact active resume run and its
+in-process acceptance projection, actual renewed source, and matching durable
+accepted attempt ID/envelope. Historical acceptance is decoded only at its original
+protected observation time to compare that binding, not to create current authority.
+A stored head or standalone projection without active runtime binding grants no
+data output. Normal incoming routes still do not dispatch to resume runs.
+
+Each Chunk request supplies its own fresh bounded lifetime and exact original
+transfer/manifest/acceptance/permission/destination/member binding. Current native
+READ/peer/lifecycle/index and accepted-head checks surround protected cache reading
+and actual output; request wall rollback, monotonic rollback/expiry and cancellation
+reject success. The accepted run is not extended by rewriting old offer/acceptance
+TTLs, nor incorrectly stopped merely because those negotiation messages expired.
+The plaintext byte buffer is cleared in finally. Output already handed to transport
+is irretractable and remains neither Saved, baseline nor a quota-retirement receipt.
+
+Eight distinct host cases pass (seven new, one affected actual normal runtime route),
+including encrypted original frozen bytes after negotiation TTL, standalone/foreign
+projection rejection, binding/member/expiry failures, output-time cancel/exit/expiry/
+wall rollback, pre-output expiry, damaged cache/lost accepted head and complete
+historical Saved HOLD. Original jobs/proofs/ciphertext/quotas remain held. Resume
+Saved commit, wire/source-command/UI registration, pending-head repair, convergence
+and physical acceptance remain unfinished. Production/auto/UI/releases remain OFF.
+
 ### Actual native resume-run offer/acceptance handoff (Refs #356, #337)
 
 The exact active resume run now keeps one native attempt before durable preparation

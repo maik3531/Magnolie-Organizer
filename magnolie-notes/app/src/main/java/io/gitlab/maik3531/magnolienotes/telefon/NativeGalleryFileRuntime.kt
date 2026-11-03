@@ -141,6 +141,54 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         projection // Still explicitly allows NO Chunk output.
     }
 
+    /** Active native owner + exact durable accepted head, not a historical
+     * projection's message lifetime, govern this data-run inspection. */
+    private fun acceptedResumeSourceOwned(run: NativeGalleryResumeRun,
+        projection: NativeResumeAcceptanceProjection): NativeGalleryRenewedSource {
+        val source = resumeSourceOwned(run)
+        val attempt = run.attempt.get() ?: DeviceFileControl.fail("gallery_resume_offer_not_sent")
+        if (run.acceptance.get() !== projection || projection.attemptId != attempt.id)
+            DeviceFileControl.fail("gallery_resume_run_not_current")
+        val durable = index.resumeAttempt(run.originalJob) ?: DeviceFileControl.fail("photo_jobs_resume_attempt_missing")
+        if (durable.phase != "accepted" || durable.id != attempt.id || durable.record["acceptance"] != projection.message ||
+            DeviceFileAcceptanceEnvelope.parse(projection.message, durable.record.long("accepted_at")) != projection.accepted ||
+            source.manifest.fingerprint != projection.accepted.manifestSha256)
+            DeviceFileControl.fail("gallery_resume_acceptance_changed")
+        return source
+    }
+
+    /** Explicit native data API only. Normal packet routes never select a resume
+     * run, and neither stored metadata nor a standalone projection can call this. */
+    internal fun receiveResumeRunChunkRequest(run: NativeGalleryResumeRun, message: JsonObject, send: (JsonObject) -> Unit,
+        now: () -> Long = System::currentTimeMillis): Unit = withOperation {
+        val at = now()
+        val request = DeviceFileChunkEnvelope.parseRequest(message, at)
+        val projection = run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
+        val source = acceptedResumeSourceOwned(run, projection)
+        val accepted = projection.accepted
+        if (request.transferId != accepted.transferId || request.manifestSha256 != accepted.manifestSha256 ||
+            request.acceptanceSha256 != accepted.acceptanceSha256 || request.destinationToken != accepted.destinationToken ||
+            request.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_chunk_acceptance_changed")
+        val issued = DeviceFileControl.monotonicMs()
+        val ttl = minOf(DeviceFileControl.MAX_TTL_MS, request.expires - at)
+        if (issued < 0 || ttl <= 0 || issued > Long.MAX_VALUE - ttl) DeviceFileControl.fail("file_chunk_authority_changed")
+        var lastWall = at; var lastElapsed = issued
+        fun authority() {
+            val wall = now(); val tick = DeviceFileControl.monotonicMs()
+            if (wall < lastWall || wall >= request.expires || tick < lastElapsed || tick >= issued + ttl ||
+                acceptedResumeSourceOwned(run, projection) !== source) DeviceFileControl.fail("file_chunk_authority_changed")
+            lastWall = wall; lastElapsed = tick
+        }
+        authority()
+        val data = source.readChunk(request.fileId, request.chunkIndex)
+        try {
+            authority()
+            val response = DeviceFileChunkEnvelope.response(request, data, now())
+            authority(); send(response); authority()
+        } finally { data.fill(0) }
+        // No Saved assertion, baseline, quota retirement or whole-run release.
+    }
+
     /** Native-only offer path. An output receipt is not acceptance/publication.
      * Whole-run ownership remains held after source preparation and this write. */
     internal fun sendSyncRunOffer(run: NativeGallerySyncRun, send: (JsonObject) -> Unit,

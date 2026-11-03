@@ -1012,6 +1012,21 @@ class AndroidGalleryPhotoSourceTest {
             assertEquals(cipher, File(root, "photo-source-" + job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
             assertEquals("hello", File(f.root, "source.bin").readText())
         }
+        fun acceptedRun(): NativeGalleryResumeRun {
+            val run = start(); awaitEnd()
+            runtime.sendResumeRunOffer(run, channel::send, { now + 120_000 }); drain()
+            runtime.observeResumeRunAcceptance(run, acceptance(run), { now + 120_000 })
+            return run
+        }
+        fun chunk(run: NativeGalleryResumeRun, at: Long = now + 240_000): JsonObject {
+            val accepted = run.acceptance.get()!!.accepted
+            val file = run.source().manifest.files.single()
+            return TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                put("format", 1); put("transfer_id", accepted.transferId); put("manifest_sha256", accepted.manifestSha256)
+                put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch)
+                put("destination_token", accepted.destinationToken); put("file_id", file.id); put("chunk_index", 0)
+            }, 60_000, at)
+        }
         override fun close() {
             release.countDown(); runtime.revokeControl()
             if (!worker.isQuiescent) awaitEnd()
@@ -1140,6 +1155,132 @@ class AndroidGalleryPhotoSourceTest {
             assertNull(run.acceptance.get())
             h.inspect { assertEquals("accepted", it.resumeAttempt(h.job)!!.phase); assertFalse(it.resumeAttempt(h.job)!!.allowsChunkOutput) }
             h.assertOriginal(); assertEquals(0, h.output.size())
+        }
+    }
+
+    @Test fun actualAcceptedResumeOutputsFrozenChunkUnderFreshRequestAfterOfferMessageTtlEnds() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val request = h.chunk(run)
+            assertTrue(at > run.acceptance.get()!!.validUntil)
+            assertFalse(run.acceptance.get()!!.allowsChunkOutput) // Alone never grants bytes.
+            h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at })
+            val response = h.drain().single()
+            assertEquals(DeviceFileChunkEnvelope.RESULT, response.string("kind"))
+            val body = response["body"]!!.jsonObject
+            assertEquals(request.string("message_id"), body.string("request_id"))
+            assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(body.string("data_base64")))
+            assertEquals(run.acceptance.get()!!.accepted.acceptanceSha256, body.string("acceptance_sha256"))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            h.assertOriginal()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveChunkRequest(request, h.channel::send, { at }) }
+            assertEquals(0, h.output.size())
+        }
+    }
+
+    @Test fun resumeChunkRequiresActualAcceptedOwnerNotStandaloneProjectionOrForeignRun() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { at }); h.drain()
+            val message = h.acceptance(run)
+            // Component acceptance can be durable without runtime post-I/O binding.
+            val standalone = run.attempt.get()!!.observeAcceptance(message, { at })
+            val accepted = standalone.accepted; val file = run.source().manifest.files.single()
+            val request = TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                put("format", 1); put("transfer_id", accepted.transferId); put("manifest_sha256", accepted.manifestSha256)
+                put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch)
+                put("destination_token", accepted.destinationToken); put("file_id", file.id); put("chunk_index", 0)
+            }, 60_000, at)
+            assertNull(run.acceptance.get())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }) }
+            h.runtime.observeResumeRunAcceptance(run, message, { at })
+            val foreign = NativeGalleryResumeRun(h.selected, h.job, run.preparation)
+            foreign.attempt.set(run.attempt.get()); foreign.acceptance.set(standalone)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(foreign, request, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeChunkRejectsChangedBindingsExpiredRequestsAndUnknownMembersBeforeOutput() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.chunk(run); val body = message["body"]!!.jsonObject
+            for ((field, value) in listOf("transfer_id" to JsonPrimitive("9".repeat(32)), "manifest_sha256" to JsonPrimitive("9".repeat(64)),
+                "acceptance_sha256" to JsonPrimitive("9".repeat(64)), "permission_epoch" to JsonPrimitive("9".repeat(64)),
+                "destination_token" to JsonPrimitive("9".repeat(64)), "file_id" to JsonPrimitive("9".repeat(32)), "chunk_index" to JsonPrimitive(1))) {
+                val changed = JsonObject(message + ("body" to JsonObject(body + (field to value))))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, changed, h.channel::send, { at }) }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, message, h.channel::send, { at + 60_000 }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeChunkCancelExitOrExpiryDuringEncryptedOutputNeverReturnsLateSuccess() {
+        for (change in listOf("cancel", "exit", "expired", "rollback")) ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val request = h.chunk(run); var wall = at
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, { response ->
+                h.channel.send(response)
+                when (change) { "cancel" -> run.cancel(); "exit" -> h.runtime.revokeControl(); "expired" -> wall += 60_000; else -> wall-- }
+            }, { wall }) }
+            assertEquals(1, h.drain().size) // Actual output is irretractable, never an ACK.
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeChunkExpiryBeforeOutputAndStoppedOwnerCannotLeakSourceBytes() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val request = h.chunk(run); var ticks = 0
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { if (++ticks >= 3) at + 60_000 else at })
+            }
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeChunkCannotUseDamagedCacheOrLostDurableAcceptedHead() {
+        for (change in listOf("cipher", "head")) ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val request = h.chunk(run)
+            if (change == "cipher") {
+                val entry = File(h.root, "photo-source-" + h.job.id).listFiles()!!.single { it.name.endsWith("-0.enc") }
+                val bytes = entry.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }; entry.writeBytes(bytes)
+                assertThrows(java.io.IOException::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }) }
+                assertArrayEquals(bytes, entry.readBytes())
+                h.inspect { assertEquals(listOf(h.job), it.jobs()); assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record) }
+            } else {
+                android.database.sqlite.SQLiteDatabase.openDatabase(File(h.root, "photo-source-jobs.db").path, null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE).use {
+                    assertEquals(1, it.delete("source_meta", "name=?", arrayOf("resume-attempt-v1/" + h.job.id)))
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }) }
+                assertTrue(File(h.root, "photo-source-" + h.job.id).isDirectory)
+            }
+            assertEquals(0, h.output.size()); assertEquals("hello", File(h.f.root, "source.bin").readText())
+        }
+    }
+
+    @Test fun resumeChunkStopsWhenOriginalHistoricalSavedProofIsAlreadyComplete() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val request = h.chunk(run)
+            val source = run.source(); val manifest = source.manifest; val accepted = run.acceptance.get()!!.accepted
+            val saved = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("transfer_id", accepted.transferId); put("manifest_sha256", accepted.manifestSha256)
+                put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch)
+                put("destination_token", accepted.destinationToken)
+                put("receipts", JsonArray(manifest.files.map { buildJsonObject {
+                    put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
+                } }))
+            }, 60_000, at)
+            h.inspect { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.runtime.currentRequest()!!.receiver })
+                index.commitHistoricalRemoteSaved(action, saved, { at })
+            } // Another explicit native metadata owner has already confirmed history.
+            assertEquals("gallery_resume_original_already_saved", assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at })
+            }.code)
+            assertEquals(0, h.output.size())
+            h.inspect { assertEquals(listOf(h.job), it.jobs()); assertNotNull(it.remoteSaved(h.job)); assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record) }
+            assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
         }
     }
 
