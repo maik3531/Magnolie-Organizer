@@ -437,11 +437,14 @@ class ProtectedPhotoPreferences:
         """
         return self._set_behavior(action,expected,dict(separate_animations=separate),historical_choice=historical_choice)
 
+    def set_capture_layout(self,action,expected,*,separate,historical_choice):
+        return self._set_behavior(action,expected,dict(separate_own_recordings=separate),historical_choice=historical_choice)
+
     def _set_behavior(self,action,expected,changes,*,historical_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
-        if set(changes)=={'separate_animations'}:
-            if type(changes['separate_animations']) is not bool or type(historical_choice) is not str or historical_choice!='keep_existing':
+        if set(changes) in ({'separate_animations'},{'separate_own_recordings'}):
+            if type(next(iter(changes.values()))) is not bool or type(historical_choice) is not str or historical_choice!='keep_existing':
                 raise TransferError('photo_preferences_historical_layout_choice_required')
         elif set(changes)!={'mode'} or changes['mode'] not in ('manual','automatic'):
             raise TransferError('photo_preferences_invalid_settings')

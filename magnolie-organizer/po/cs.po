@@ -75,6 +75,9 @@ msgstr "Obnovit alba"
 msgid "Phone album"
 msgstr "Album telefonu"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Ukládat nové fotografie z fotoaparátu do samostatné složky"
+
 msgid "Store new animations in a separate folder"
 msgstr "Ukládat nové animace do samostatné složky"
 

@@ -75,6 +75,9 @@ msgstr "アルバムを更新"
 msgid "Phone album"
 msgstr "スマートフォンのアルバム"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "カメラで撮影した新しい写真を別のフォルダーに保存"
+
 msgid "Store new animations in a separate folder"
 msgstr "新しいアニメーションを別のフォルダーに保存"
 

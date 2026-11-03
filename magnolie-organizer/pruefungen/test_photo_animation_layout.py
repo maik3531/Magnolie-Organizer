@@ -20,7 +20,8 @@ def animation(fixture):
     return replace(base,files=(replace(base.files[0],path='Camera/old.gif'),))
 
 
-def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_original_grants(receiving,request):
+@pytest.mark.parametrize('capture',[False,True],ids=['animations_only','camera_and_animations'])
+def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_original_grants(receiving,request,capture):
     service,peer,channel,connection,target=receiving;converge_controls(service,peer,channel)
     first=animation(receiving)
     photos={'Camera/old.gif':sha256(b'old-photo').hexdigest(),'Camera/new.gif':sha256(b'new-photo').hexdigest(),
@@ -38,6 +39,9 @@ def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_or
     session._automatic_paused=True
     action(dict(action='animations_separate',historical_choice='keep_existing'))
     assert session.join(15) and session.snapshot()['separate_animations'],session.snapshot()
+    if capture:
+        action(dict(action='captures_separate',historical_choice='keep_existing'))
+        assert session.join(15) and session.snapshot()['separate_own_recordings'],session.snapshot()
     assert session._automatic_paused
     assert connection._receive_binding()==binding and connection._preferences.local_grant(True).grants==grant
     assert connection._mappings.read()==records and connection._catalog.jobs()==jobs
@@ -52,8 +56,9 @@ def test_gtk_layout_applies_only_to_new_animations_and_preserves_pc_edits_and_or
         release.set();assert worker.join(30),worker.progress()
         assert not errors and worker.progress()['state']=='complete',worker.progress()
         assert chunks==[files[1].id,files[2].id] and len(saved)==1
-    grouped=target/'Animationen/Camera/new.gif';assert grouped.read_bytes()==b'hello'
-    assert (target/'Camera/still.jpg').read_bytes()==b'hello' and not (target/'Animationen/Camera/still.jpg').exists()
+    prefix='Eigene Aufnahmen/' if capture else ''
+    grouped=target/(prefix+'Animationen/Camera/new.gif');assert grouped.read_bytes()==b'hello'
+    assert (target/(prefix+'Camera/still.jpg')).read_bytes()==b'hello' and not (target/(prefix+'Animationen/Camera/still.jpg')).exists()
     assert not (target/'Camera/new.gif').exists() and (original.stat().st_ino,original.read_bytes())==before
     grouped_before=(grouped.stat().st_ino,grouped.read_bytes())
     action(dict(action='animations_together',historical_choice='keep_existing'))

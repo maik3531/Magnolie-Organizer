@@ -2895,10 +2895,10 @@ class PhoneService:
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
                 or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
-                    'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together')
+                    'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together')
                 or ('album_id' in request) != (request['action']=='sync')
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
-                or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together'))
+                or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together','captures_separate','captures_together'))
                 or 'historical_choice' in request and (type(request['historical_choice']) is not str or request['historical_choice']!='keep_existing')
                 or 'job_owner' in request and (type(request['job_owner']) is not str or re.fullmatch('[0-9a-f]{32}',request['job_owner']) is None)
                 or request.get('album_id') is not None and type(request['album_id']) is not str):

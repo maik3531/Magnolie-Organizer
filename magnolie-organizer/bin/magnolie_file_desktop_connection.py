@@ -67,6 +67,7 @@ class NativeDesktopFileConnection:
         self._offer_binding = self._offer_policy_version = None
         self._source_pending = self._source_status = self._source_catalog = self._source_run = self._source_result = None
         self._source_albums = {}
+        self._source_album_kind = None
         self._source_control_required = None
         self._source_offer = None
         self._source_media_pages = ()
@@ -165,7 +166,7 @@ class NativeDesktopFileConnection:
         with self._operation():
             snapshot = self._receiving_policy(); action.validate(self)
             if (snapshot.direction != 'phone_to_desktop' or snapshot.include_videos
-                    or snapshot.separate_own_recordings or snapshot.policy.phone_to_pc_delete or snapshot.policy.pc_to_phone_delete):
+                    or snapshot.policy.phone_to_pc_delete or snapshot.policy.pc_to_phone_delete):
                 raise TransferError('file_desktop_album_options_unavailable')
             if self._album_worker is not None or self._source_pending is not None or self._source_run is not None or self._run is not None:
                 raise TransferError('file_desktop_album_worker_busy')
@@ -584,7 +585,8 @@ class NativeDesktopFileConnection:
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
             ticket = self._controls.receiver_command_ticket()
-            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
+                album_kind=album.kind if operation in ('run','batch_run','resume_run') else None)
             self._source_control_required = None
             self._send_source_pending(clock, action)
             return message['message_id']
@@ -677,6 +679,8 @@ class NativeDesktopFileConnection:
         if (command.operation == 'resume_run' and self._receive_stop is not None
                 and result.run_id == self._receive_stop.source_run_id):
             raise TransferError('file_desktop_resume_source_owner_ended')
+        if command.operation in ('run','batch_run','resume_run') and pending.album_kind not in source_messages.KINDS:
+            raise TransferError('file_desktop_source_album_kind_required')
         self._controls.finish_receiver_command(pending.ticket)
         self._source_pending = None
         if command.operation in ('status', 'configure'):
@@ -688,6 +692,7 @@ class NativeDesktopFileConnection:
                 self._resume_lookup_selection = self._resume_history = None
                 self._ended_batch = self._ended_batch_policy = None
                 self._album_media_scope = None
+                self._source_album_kind = None
             self._source_status = result
             if command.operation == 'configure':
                 # The phone changes native send state in this transaction and
@@ -706,8 +711,10 @@ class NativeDesktopFileConnection:
             self._offer = self._offer_binding = self._offer_policy_version = None
             self._source_media_pages = (); self._source_media_entries = None
             self._selected_preview = self._selected_source_id = None
+            if self._ended_batch is None or self._ended_batch.batch_end is True:self._source_album_kind=None
         elif command.operation == 'end_album':
             self._ended_batch = self._ended_batch_policy = self._album_media_scope = None
+            self._source_album_kind=None
         elif command.operation == 'end_resume':
             self._resume_end_confirmation = (self._resume_lookup_selection.job, result)
             self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
@@ -715,6 +722,7 @@ class NativeDesktopFileConnection:
             self._resume_lookup_selection = self._resume_history = None
             self._offer = self._offer_binding = self._offer_policy_version = None
             self._source_media_pages = (); self._source_media_entries = None
+            self._source_album_kind=None
         elif command.operation == 'select_run':
             self._source_run = result
             self._selected_source_id = result.run_id
@@ -726,6 +734,7 @@ class NativeDesktopFileConnection:
                 self._ended_batch = self._ended_batch_policy = None
                 if command.operation != 'next_batch':
                     self._album_media_scope = None
+                if command.operation!='next_batch':self._source_album_kind=pending.album_kind
             if command.operation == 'resume_run': self._resume_source_id = result.run_id
             if (command.operation in ('cancel_run', 'cancel_resume') and result.state == 'canceled_held' and result.source_io_ended
                     and self._run is not None and self._run.stop_requested.is_set()
@@ -829,12 +838,15 @@ class NativeDesktopFileConnection:
         snapshot = self._receiving_policy()
         if snapshot.direction != 'phone_to_desktop':
             raise TransferError('file_desktop_reverse_handlers_unavailable')
-        if snapshot.include_videos or snapshot.separate_own_recordings:
+        if snapshot.include_videos:
             if self._source_media_entries is None:
                 raise TransferError('file_desktop_source_media_not_correlated')
-            # Native per-file destination/semantic grouping is not yet joined.
+            # The independent native video source/destination join is absent.
             # Never silently ignore an explicitly selected unsupported option.
             raise TransferError('file_desktop_media_target_routing_unavailable')
+        if snapshot.separate_own_recordings and (self._source_album_kind not in source_messages.KINDS
+                or self._source_media_entries is None or self._source_run is None):
+            raise TransferError('file_desktop_source_album_kind_required')
         if snapshot.separate_animations and self._source_media_entries is None:
             raise TransferError('file_desktop_source_media_not_correlated')
         if self._source_media_pages:
@@ -1245,6 +1257,8 @@ class NativeDesktopFileConnection:
                 entries={entry.file_id:entry for entry in self._source_media_entries}
                 targets={file.id:('Animationen/'+file.path if entries[file.id].media_kind=='animation' else file.path)
                     for file in manifest.files}
+            if snapshot.separate_own_recordings and self._source_album_kind=='camera':
+                targets={file_id:'Eigene Aufnahmen/'+path for file_id,path in targets.items()}
             parents=selection.version_parents if selection is not None else ()
             if parents:
                 from magnolie_photo_mappings import photo_version_path
@@ -1545,13 +1559,20 @@ class NativeDesktopFileConnection:
             return progress  # Never a remote ACK, baseline reset or quota cleanup.
 
     def set_future_animation_layout(self,action,*,separate,historical_choice):
+        return self._set_future_layout(action,'animation',separate,historical_choice)
+
+    def set_future_capture_layout(self,action,*,separate,historical_choice):
+        return self._set_future_layout(action,'capture',separate,historical_choice)
+
+    def _set_future_layout(self,action,kind,separate,historical_choice):
         self._take_action(action)
         with self._operation():
             if (self._album_worker is not None or self._run is not None or self._source_pending is not None
                     or self._source_run is not None or self._offer is not None):
                 raise TransferError('file_desktop_receive_already_active')
             binding=self._receive_binding();before=self._preferences.read()
-            changed=self._preferences.set_animation_layout(self._preferences.issue_action(),before,
+            setter=self._preferences.set_animation_layout if kind=='animation' else self._preferences.set_capture_layout
+            changed=setter(self._preferences.issue_action(),before,
                 separate=separate,historical_choice=historical_choice)
             action.validate(self)
             if self._receive_binding()!=binding:raise TransferError('photo_preferences_authority_changed')
@@ -2040,6 +2061,7 @@ class NativePhotoDesktopSession:
         self._timer=None;self._sync_active=False
         self._recovery=[];self._recovery_result=None
         self._separate_animations=False
+        self._separate_captures=False
         self._schedule=PhotoSyncSchedule(self._schedule_scope,lambda:time.monotonic_ns()//1_000_000)
 
     def snapshot(self):
@@ -2049,6 +2071,7 @@ class NativePhotoDesktopSession:
                 busy=self._running,automatic_supported=True)
             value.update(recovery_supported=True,recovery=[dict(item) for item in self._recovery],recovery_result=self._recovery_result)
             value.update(animation_grouping_supported=True,separate_animations=self._separate_animations)
+            value.update(capture_grouping_supported=True,separate_own_recordings=self._separate_captures)
             worker=self._worker
         if worker is not None:
             progress=worker.progress()
@@ -2063,9 +2086,9 @@ class NativePhotoDesktopSession:
 
     def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None):
         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
-                'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together'):
+                'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together'):
             raise TransferError('photo_sync_invalid_action')
-        if (operation in ('animations_separate','animations_together')):
+        if operation in ('animations_separate','animations_together','captures_separate','captures_together'):
             if type(historical_choice) is not str or historical_choice!='keep_existing':
                 raise TransferError('photo_preferences_historical_layout_choice_required')
         elif historical_choice is not None:raise TransferError('photo_sync_invalid_action')
@@ -2094,7 +2117,8 @@ class NativePhotoDesktopSession:
                     raise TransferError('photo_sync_invalid_action')
                 if operation=='sync':schedule_run=self._schedule.request_now()
                 self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
-                if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together'):
+                if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together',
+                        'captures_separate','captures_together'):
                     self._automatic_paused=False
                 self._running=True
                 self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run,job_owner,historical_choice),
@@ -2192,7 +2216,6 @@ class NativePhotoDesktopSession:
             before=preferences.read()
         policy=before.policy
         if enabled and (before.direction!='phone_to_desktop' or before.include_videos
-                or before.separate_own_recordings
                 or policy is not None and (policy.phone_to_pc_delete or policy.pc_to_phone_delete)):
             raise TransferError('file_desktop_album_options_unavailable')
         choice=None
@@ -2206,6 +2229,7 @@ class NativePhotoDesktopSession:
                 destination_choice=choice,**options)
         with self._lock:
             self._enabled=enabled;self._mode=before.mode;self._separate_animations=before.separate_animations
+            self._separate_captures=before.separate_own_recordings
             self._destination=before.policy.destination.path if before.policy and before.policy.destination else None
         self._schedule.set_mode(before.mode if enabled else 'manual')
         connection.send_controls()
@@ -2228,12 +2252,12 @@ class NativePhotoDesktopSession:
                     if (policy is None or not before.associated or not policy.enabled or before.mode!='automatic'
                             or not before.destination_available or policy.mapping_store is None or policy.job_catalog is None
                             or before.direction!='phone_to_desktop' or before.include_videos
-                            or before.separate_own_recordings
                             or policy.phone_to_pc_delete or policy.pc_to_phone_delete):
                         raise TransferError('photo_sync_resume_consent_changed')
                     with self._lock:
                         self._enabled=True;self._mode=before.mode;self._destination=policy.destination.path
                         self._separate_animations=before.separate_animations
+                        self._separate_captures=before.separate_own_recordings
                     self._schedule.set_mode(before.mode)
                     self.connection.send_controls()
                 else:self._local_enabled(True)
@@ -2260,11 +2284,14 @@ class NativePhotoDesktopSession:
                 state=self._command('request_read')
                 with self._lock:self._permission=state['result'].state; self._state='permission_required'
             elif operation=='discover':self._discover()
-            elif operation in ('animations_separate','animations_together'):
+            elif operation in ('animations_separate','animations_together','captures_separate','captures_together'):
                 if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
-                changed=self.connection.set_future_animation_layout(self.connection.issue_receive_action(),
-                    separate=operation=='animations_separate',historical_choice=historical_choice)
-                with self._lock:self._separate_animations=changed.separate_animations;self._state='layout'
+                setter=self.connection.set_future_animation_layout if operation.startswith('animations_') else self.connection.set_future_capture_layout
+                changed=setter(self.connection.issue_receive_action(),
+                    separate=operation.endswith('_separate'),historical_choice=historical_choice)
+                with self._lock:
+                    self._separate_animations=changed.separate_animations
+                    self._separate_captures=changed.separate_own_recordings;self._state='layout'
             elif operation in ('inspect_recovery','recover_saved','repair_receipt'):
                 if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
                 if operation=='recover_saved':
@@ -2338,3 +2365,4 @@ class _NativeDesktopSourceCommand:
     command: source_messages.SourceCommand
     remote_witness: tuple
     sent: bool = False
+    album_kind: str | None = None

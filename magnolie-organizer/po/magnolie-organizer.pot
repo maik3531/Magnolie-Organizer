@@ -6328,6 +6328,9 @@ msgstr ""
 msgid "Store new animations in a separate folder"
 msgstr ""
 
+msgid "Store new camera photos in a separate folder"
+msgstr ""
+
 msgid "Street"
 msgstr ""
 

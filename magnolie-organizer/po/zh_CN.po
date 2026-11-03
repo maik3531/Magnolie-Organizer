@@ -75,6 +75,9 @@ msgstr "刷新相册"
 msgid "Phone album"
 msgstr "手机相册"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "将新拍摄的相机照片保存到单独的文件夹"
+
 msgid "Store new animations in a separate folder"
 msgstr "将新动画保存到单独的文件夹"
 

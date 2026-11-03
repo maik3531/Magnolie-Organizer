@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native camera-album classification for future photo grouping (Refs #330)
+
+Future grouping of camera photos now uses the actual selected native album kind.
+The pending native source command pins that kind from the validated catalog at
+run start; the correlated reply attaches it to the same owner. Subset selection
+and following batches retain this classification, while actual run/album END
+and policy-generation changes clear it. Rediscovery, an album display name or a
+path containing `Camera` cannot reclassify an active source. A missing kind with
+camera grouping enabled is HOLD, not an inferred classification or READ permit.
+
+New camera-photo targets can use `Eigene Aufnahmen/`, combined deterministically
+with the animation folder when selected. Downloads, screenshots and received
+WhatsApp media keep their own ordinary/animation target routing. Existing
+accepted targets, version chains and original resume targets remain authoritative.
+Both future-only layout options require explicit `keep_existing`; neither moves
+historical files or changes grants, storage witnesses, pairings or paused
+scheduling. The native idle gate, strict local GTK/IPC action and existing Notes
+advanced-functions area apply to this separate camera-photo checkbox as well.
+It does not advertise live phone-camera capture or video synchronization.
+
+Actual source-host cases cover all four album kinds with misleading names/paths,
+multiple batches, classification retained across subset selection and later
+discovery, combined animation/camera routing, historical targets and PC edits,
+original stopped-job resume, explicit GTK/IPC choices and automatic sync. These
+remain source-host checks, not installed/physical-device acceptance.
+
 ### Future-only animation grouping with explicit historical choice (Refs #330)
 
 The actual album worker now supports the existing native animation target route
@@ -22,9 +48,9 @@ nineteen desktop catalogs.
 Source-host tests cover actual GTK/IPC changes, mixed animation/image publication,
 preserved original PC edits, disabling grouping without moving already grouped
 files, repeated sync without chunks, original stopped-job resume at its old
-target, invalid/implicit historical choices and in-flight exclusion. Grouping
-of own recordings, video routing, historical destination reassociation and
-journaled no-replace migration remain separate unimplemented joins; these checks
+target, invalid/implicit historical choices and in-flight exclusion. Video
+routing, historical destination reassociation and journaled no-replace
+migration remain separate unimplemented joins; these checks
 grant no installed/physical-device or production acceptance.
 
 ### Explicit Organizer recovery overview and historical receipts (Refs #330)

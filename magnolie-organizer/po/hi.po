@@ -75,6 +75,9 @@ msgstr "एल्बम ताज़ा करें"
 msgid "Phone album"
 msgstr "फ़ोन का एल्बम"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "कैमरे की नई तस्वीरें अलग फ़ोल्डर में सहेजें"
+
 msgid "Store new animations in a separate folder"
 msgstr "नए एनिमेशन अलग फ़ोल्डर में सहेजें"
 

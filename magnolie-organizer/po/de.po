@@ -10011,6 +10011,9 @@ msgstr "Alben aktualisieren"
 msgid "Phone album"
 msgstr "Handyalbum"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Neue Kamerafotos in separatem Ordner speichern"
+
 msgid "Store new animations in a separate folder"
 msgstr "Neue Animationen in separatem Ordner speichern"
 

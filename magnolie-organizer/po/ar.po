@@ -76,6 +76,9 @@ msgstr "تحديث الألبومات"
 msgid "Phone album"
 msgstr "ألبوم الهاتف"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "حفظ صور الكاميرا الجديدة في مجلد منفصل"
+
 msgid "Store new animations in a separate folder"
 msgstr "حفظ الرسوم المتحركة الجديدة في مجلد منفصل"
 

@@ -75,6 +75,9 @@ msgstr "Opdater albummer"
 msgid "Phone album"
 msgstr "Telefonalbum"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Gem nye kamerafotos i en separat mappe"
+
 msgid "Store new animations in a separate folder"
 msgstr "Gem nye animationer i en separat mappe"
 

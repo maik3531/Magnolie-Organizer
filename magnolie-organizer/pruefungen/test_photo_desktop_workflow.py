@@ -317,10 +317,14 @@ def test_manual_automatic_mode_is_protected_but_never_rotates_native_file_grants
     assert not list(target.iterdir()) and connection._album_worker is None
 
 
-def test_real_automatic_worker_manual_switch_waits_for_io_end_and_repeat_keeps_pc_edit(receiving,monkeypatch):
+@pytest.mark.parametrize('capture',[False,True],ids=['ordinary_photos','camera_grouping'])
+def test_real_automatic_worker_manual_switch_waits_for_io_end_and_repeat_keeps_pc_edit(receiving,monkeypatch,capture):
     service,peer,channel,connection,target=receiving
     converge_controls(service,peer,channel)
-    batches=prepared(receiving)[:1];session=connection.desktop_session();session._local_enabled(True)
+    batches=prepared(receiving)[:1]
+    if capture:
+        connection.set_future_capture_layout(connection.issue_receive_action(),separate=True,historical_choice='keep_existing')
+    session=connection.desktop_session();session._local_enabled(True)
     monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
     fingerprint=phone.fingerprint(phone.unb64(peer['static_public'],32))
     binding=connection._receive_binding();completed=threading.Event()
@@ -355,7 +359,8 @@ def test_real_automatic_worker_manual_switch_waits_for_io_end_and_repeat_keeps_p
             assert session._schedule.active is None and not service._native_media_activity()['synchronizing']
             assert len(chunks)==len(saved)==1 and not errors
             assert connection._receive_binding()==binding
-            path=target/batches[0].files[0].path;path.write_bytes(b'keep automatic PC crop');before=(path.stat().st_ino,path.read_bytes())
+            path=target/(('Eigene Aufnahmen/' if capture else '')+batches[0].files[0].path)
+            path.write_bytes(b'keep automatic PC crop');before=(path.stat().st_ino,path.read_bytes())
             completed.clear()
             service.photo_sync_action(peer['device_id'],fingerprint,dict(action='mode_automatic'))
             assert completed.wait(20),(session.snapshot()['state'],session.snapshot()['error']);assert session.join(10)

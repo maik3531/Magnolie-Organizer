@@ -7559,6 +7559,18 @@ function knopfMit(text, wurzel) {
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "stop"));
   assert.ok(!fotoGruppe.querySelector("[data-photo-recovery]"), "unangebundene Wiederherstellung bleibt unsichtbar");
   assert.ok(!fotoGruppe.querySelector("[data-photo-animations]"), "unangebundene Gruppierung bleibt unsichtbar");
+  assert.ok(!fotoGruppe.querySelector("[data-photo-captures]"), "unangebundene Kameraalbum-Gruppierung bleibt unsichtbar");
+  const capturesBefore = baumNachrichten.length;
+  fotoStand({ available: true, enabled: true, state: "layout", capture_grouping_supported: true, separate_own_recordings: false, albums: [] });
+  const captureCheck = bd.querySelector("[data-photo-captures]");
+  assert.ok(captureCheck && !captureCheck.checked && !captureCheck.disabled);
+  assert.strictEqual(baumNachrichten.length, capturesBefore);
+  captureCheck.checked = true; captureCheck.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), {
+    action: "captures_separate", historical_choice: "keep_existing"
+  }, "Kameraalbum-Gruppierung ist eine ausdrückliche Zukunftswahl, keine historische Migration");
+  fotoStand({ available: true, enabled: true, state: "syncing", busy: true, capture_grouping_supported: true, separate_own_recordings: true, albums: [] });
+  assert.ok(bd.querySelector("[data-photo-captures]").checked && bd.querySelector("[data-photo-captures]").disabled);
   const groupingBefore = baumNachrichten.length;
   fotoStand({ available: true, enabled: true, state: "layout", animation_grouping_supported: true, separate_animations: false, albums: [] });
   fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");

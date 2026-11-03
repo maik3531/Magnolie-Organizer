@@ -76,6 +76,9 @@ msgstr "Albumy aktualizować"
 msgid "Phone album"
 msgstr "Album telefona"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Nowe kamerowe fota w separatnym rjadowaku składować"
+
 msgid "Store new animations in a separate folder"
 msgstr "Nowe animacije w separatnym rjadowaku składować"
 

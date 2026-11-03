@@ -28715,8 +28715,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           animationen.addEventListener("change", () => sende(animationen.checked ? "animations_separate" : "animations_together", undefined, undefined, "keep_existing"));
           const animationLabel = el("label", "hak");
           animationLabel.append(animationen, document.createTextNode(" " + _("Store new animations in a separate folder")));
-          gruppe.append(animationLabel, el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+          gruppe.append(animationLabel);
         }
+        if (stand.capture_grouping_supported === true) {
+          const aufnahmen = document.createElement("input"); aufnahmen.type = "checkbox";
+          aufnahmen.dataset.photoCaptures = "true";
+          aufnahmen.checked = stand.separate_own_recordings === true; aufnahmen.disabled = stand.busy === true;
+          aufnahmen.addEventListener("change", () => sende(aufnahmen.checked ? "captures_separate" : "captures_together", undefined, undefined, "keep_existing"));
+          const aufnahmenLabel = el("label", "hak");
+          aufnahmenLabel.append(aufnahmen, document.createTextNode(" " + _("Store new camera photos in a separate folder")));
+          gruppe.append(aufnahmenLabel);
+        }
+        if (stand.animation_grouping_supported === true || stand.capture_grouping_supported === true)
+          gruppe.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
         const status = {
           enable: _("Preparing photo synchronization…"), permission_required: _("Allow photo access on the phone, then refresh albums."),
           discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),

@@ -75,6 +75,9 @@ msgstr "Albums vernieuwen"
 msgid "Phone album"
 msgstr "Telefoonalbum"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Nieuwe camerafoto’s in een aparte map opslaan"
+
 msgid "Store new animations in a separate folder"
 msgstr "Nieuwe animaties in een aparte map opslaan"
 

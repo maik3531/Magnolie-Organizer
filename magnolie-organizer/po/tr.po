@@ -75,6 +75,9 @@ msgstr "Albümleri yenile"
 msgid "Phone album"
 msgstr "Telefon albümü"
 
+msgid "Store new camera photos in a separate folder"
+msgstr "Yeni kamera fotoğraflarını ayrı bir klasöre kaydet"
+
 msgid "Store new animations in a separate folder"
 msgstr "Yeni animasyonları ayrı bir klasöre kaydet"
 
