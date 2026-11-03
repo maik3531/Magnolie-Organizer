@@ -1271,22 +1271,30 @@ desktop animation flag as trusted provenance or change immutable destination
 mapping/publication. APNG/WebP recognition and real animations-folder execution
 still require their own integration/acceptance.
 
-### Optional own-camera recording separation (Refs #337)
+### Optional real-recording separation (Refs #337)
 
-The user also requests an initially-OFF “Separate own recordings” selection for
-both photo and video roots, with an `Eigene Aufnahmen` child folder. Its optional
+The user requests an initially-OFF recording separation selection for both photo
+and video roots, with the proposed `Eigene Aufnahmen` child folder. Its optional
 protected Boolean now follows the same exact native action/CAS/encrypted readback,
 legacy-no-migration and re-pairing fences. It does not enable videos or overwrite
 either destination/animation selection. Seventy-three affected Python settings
 cases pass (capture 15, animation 15, video 18, photo 25); option updates alone
 create no folder and move no existing file.
 
-This setting is not camera-origin evidence. A CAMERA album, DCIM path, filename,
-EXIF model/make or an untrusted supplied flag alone does not establish capture by
-this phone's camera. Unknown origin must remain outside the special folder. Native
-capture provenance, immutable per-file mappings, interaction with animation
-routing and real source/target acceptance remain open, so this option is not
-exposed as an available supported feature by these policy preparations.
+The user's subsequent clarification supersedes the earlier own-phone-only
+interpretation: distinguish real photos/video recordings from memes, joke images
+and graphics, regardless of which phone/camera captured them. Received real
+recordings and captures from other cameras must not be excluded merely because of
+origin. The internal persisted name `separate_own_recordings` remains a routing
+choice only, not an own-camera restriction or provenance claim. Existing paired
+own-device transport security is independent of the pictured media's capture origin.
+
+Source folder, filename and EXIF camera model alone do not reliably distinguish
+photographic content from memes/graphics. No semantic classifier or hidden cloud
+image upload is implemented by this setting. Local classification with truthful
+limits, immutable per-file mappings, interaction with animation routing and real
+source/target acceptance remain open, so the prepared option is not exposed as an
+available supported feature. Existing files remain unmoved and unrenamed.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
