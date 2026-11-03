@@ -1,5 +1,31 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Linux native resume source/history/receiver join (Refs #367, #337)
+
+An explicit resume_run can now use only the bound original native lookup selection,
+current album choice and a sealed, unsaved phone history with NO persisted attempt
+head. Prepared/sent/accepted unknown heads remain HOLD, not expired/adopted. The
+original protected desktop media/mapping anchor is required before sending new
+source work; missing legacy history cannot be reconstructed from fresh pages.
+
+The desktop holds a private resume-source owner and separates resume status/cancel/
+media/offer from normal commands. Fresh media pages must match the original native
+manifest; only explicitly requested resume offers with that exact manifest correlate.
+Before original stage resume, existing protected history/source namespace/photo IDs/
+media kinds, mapping store, destination and accepted binding are verified again.
+Original acceptance fingerprint, job/quota and history are not replaced or reserved
+anew. This joins existing native receiver restore rather than bypassing it.
+
+80 distinct host cases pass (16 new, 64 affected): actual protected catalog reconnect,
+lookup/source/media/new-offer through original checkpoint restore, only missing-file
+requests, same acceptance on lost-output retry, foreign media/manifests, normal-path
+fallback rejection, cancel rollback, legacy missing anchors and saved/retired/pending
+head HOLD, plus normal source/media/lookup compatibility. Host service/channel
+fixtures are not physical Android/Linux interoperability acceptance. Safe pending-
+head repair, UI, Windows/Apple parity, baseline/conflict convergence, migration/
+classification and physical acceptance remain unfinished. All production/auto/UI/
+release gates remain OFF.
+
 ### Current native resume media pages (Refs #366, #337)
 
 resume_media_page now requires the exact active native resume owner, real completed
