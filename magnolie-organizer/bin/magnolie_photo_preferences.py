@@ -4,7 +4,7 @@ Construction/passive absent reads create nothing. Only an exact native UI action
 can create this dedicated store or update consent. No worker/timer is started.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
 import base64
@@ -63,6 +63,7 @@ class PhotoPreferences:
     direction: str | None = None
     mapping_store: PhotoMappingStoreWitness | None = None
     job_catalog: JobCatalogWitness | None = None
+    permission_revision: int | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -74,18 +75,21 @@ class PhotoPreferences:
         if self.direction is not None:value['direction']=self.direction
         if self.mapping_store is not None:value['mapping_store']=self.mapping_store.wire()
         if self.job_catalog is not None:value['job_catalog']=self.job_catalog.wire()
+        if self.permission_revision is not None:value['permission_revision']=self.permission_revision
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
                 or type(value['format']) is not int or value['format']!=1
                 or type(value['revision']) is not int or not 2<=value['revision']<=MAX_REVISION
+                or 'permission_revision' in value and (type(value['permission_revision']) is not int
+                    or not 2<=value['permission_revision']<=value['revision'])
                 or not _hex(value['permission_epoch']) or not _hex(value['pairing_epoch'])
                 or any(type(value[key]) is not bool for key in ('enabled','phone_to_pc_delete','pc_to_phone_delete'))
                 or value['pc_to_phone_delete']
@@ -100,7 +104,7 @@ class PhotoPreferences:
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
-            JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None)
+            JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'))
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -421,6 +425,41 @@ class ProtectedPhotoPreferences:
                     if mutated:self._uncertain=True
                     raise
 
+    def set_mode(self,action,expected,mode):
+        """UI scheduling only: retain exact grants, destinations and baselines."""
+        if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
+        action.consume(self)
+        if type(expected) is not PhotoPreferencesSnapshot or mode not in ('manual','automatic'):
+            raise TransferError('photo_preferences_invalid_settings')
+        with self._operation():
+            if not self._open(create=False):raise TransferError('photo_preferences_destination_required')
+            with self._locked():
+                current=self._snapshot();policy=current.policy
+                if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
+                if policy is None or not current.associated or not policy.enabled:
+                    raise TransferError('photo_preferences_authority_changed')
+                if policy.mode==mode:return current
+                revision=policy.revision+1
+                if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
+                changed=replace(policy,revision=revision,mode=mode,
+                    permission_revision=policy.permission_revision if policy.permission_revision is not None else policy.revision)
+                blob=self._protect(changed.wire(),'policy')
+                head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
+                mutated=False
+                try:
+                    action.validate(self);self._peer();self._db.execute('BEGIN IMMEDIATE')
+                    self._db.execute('UPDATE policy SET payload=? WHERE id=1',(blob,));mutated=True
+                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
+                    self._fresh();action.validate(self);self._db.commit();self._sync()
+                    saved=self._snapshot();action.validate(self)
+                    if saved.policy!=changed or saved.version!=sha256(blob).hexdigest():
+                        raise TransferError('photo_preferences_readback_failed')
+                    return saved
+                except BaseException:
+                    if self._db.in_transaction:self._db.rollback()
+                    if mutated:self._uncertain=True
+                    raise
+
     def local_grant(self,handlers_ready):
         return self.native_local_state(handlers_ready)[0]
 
@@ -432,7 +471,7 @@ class ProtectedPhotoPreferences:
         # Reverse source/target handlers are not released in this implementation.
         enabled=(handlers_ready and policy is not None and policy.enabled and snapshot.associated and snapshot.destination_available
             and snapshot.direction=='phone_to_desktop')
-        revision=policy.revision if policy is not None else 1
+        revision=(policy.permission_revision if policy.permission_revision is not None else policy.revision) if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
         return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready),snapshot
 

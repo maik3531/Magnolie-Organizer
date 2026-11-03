@@ -127,6 +127,7 @@ def test_desktop_packaging_is_selected_before_import_audit_and_never_applies_to_
         for prefix in ('NativeGallery', 'NativeFile', 'DeviceFile', 'DeviceTransferProtection',
                        'AndroidGallery', 'GalleryPhoto', 'PhotoSource', 'PhotoFolder', 'ProtectedPhoto'):
             assert '-keep class io.gitlab.maik3531.magnolienotes.telefon.' + prefix + '** { *; }' in rules
+        assert 'boolean nativeGalleryHandlersReady;' in rules
     else:
         # A standalone desktop source archive has no Notes sibling to modify.
         assert stage.__globals__['ROOT'] == ROOT and ROOT.name != 'magnolie-notes'

@@ -1,5 +1,55 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Integrated Organizer activation and native background READ (Refs #330)
+
+The Organizer's Notes-only advanced photo controls now call the daemon-owned
+native desktop session through the existing GTK bridge and Unix IPC. Availability
+requires compiled handlers, the current authenticated own-PC channel and fresh
+capabilities/grants/own-PC metadata observed after successful encrypted ACK writes.
+Persisted capabilities, failed ACKs, personal-content consent and KDE identity are
+not substitutes. Raw own-PC withdrawal closes file authority even where legacy
+personal metadata normalization would otherwise retain an own-device flag.
+
+Explicit activation of an existing pairing may add only its closed file epoch,
+using the original native ciphertext, existing key, pinned staging descriptor,
+consent rechecks and durable readback. It must not reconstruct PhoneStore, rotate
+identity, rewrite unrelated peer preferences or remove unfamiliar staging files.
+Only subsequent explicit file policy activation binds the protected destination,
+mapping and job stores. Native Pictures defaults preserve existing custom targets.
+
+The actual action lane joins controls, source configuration, native phone
+permission notification, coverage-based album discovery and the real bounded
+album worker. A permission reply itself never proves OS READ. Manual is the
+default; mode-only writes preserve native grants, destination and baseline
+bindings. A switch to Manual during active I/O stops future repetitions immediately
+but commits protected mode only after real worker END. An idle scheduler is not
+tray synchronization activity; actual grouped runs are. Repeated unchanged phone
+media requests no duplicate chunks and preserves PC crops. Changed-phone conflicts
+remain HOLD/conflicts, not a claim that version synchronization is complete.
+
+Automatic reconnection reads existing protected policy without defaults, legacy
+bootstrap or permission prompting. It waits for fresh current-channel ACK evidence
+and resumes only an associated, enabled Automatic policy with existing destination
+and storage witnesses. Revoked phone source consent is not re-enabled. Manual,
+disabled and absent profiles start no photo session on reconnection.
+
+Notes may create fresh background read leases from its existing app-wide OS READ
+and current dedicated native file policy, without retaining an Activity. A live UI
+binding takes precedence; attach/detach and native permission lifecycle changes
+invalidate old access epochs. Permission requests remain Activity-bound. Lack of
+access and incomplete/selected-only coverage never prove deletion. R8 retains the
+private readiness field as well as the native runtime roots; discovery version 21
+is advertised only when actual native readiness is enabled, never by branding.
+
+Source-host evidence includes the extracted real GTK handler through real Unix
+IPC, native metadata/control/source paths, actual file publication, repeat and PC
+crop preservation; blocked-I/O automatic/manual transition; reconnection profiles;
+whole existing JS UI suite; native background READ/Activity lifecycle tests; and
+fresh F-Droid R8 DEX retention. These are not installed-package, physical-phone,
+camera, microphone or mirroring acceptance. Production readiness stays OFF. Safe
+phone-edit version execution, conflicts/deletions/grouping and platform/native
+acceptance remain open under #330; camera/mirroring remain #244/#245.
+
 ### Notes dispatcher activation of the actual native Gallery runtime (Refs #330)
 
 The Notes file dispatcher now calls the native runtime factory for a first valid

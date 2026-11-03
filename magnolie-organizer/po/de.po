@@ -9952,3 +9952,61 @@ msgstr "＋ Termin hinzufügen"
 #~ "erlaubt, Seriennummer und IMEI. Ab Android 10 sind Hardwarekennungen für "
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
+
+msgid "Synchronize photos"
+msgstr "Fotos synchronisieren"
+
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuell"
+
+msgid "Synchronize only the phone's collection"
+msgstr "Nur den Bestand auf dem Handy abgleichen"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Destination folder"
+msgstr "Zielordner"
+
+msgid "Preparing photo synchronization…"
+msgstr "Fotoabgleich wird vorbereitet …"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Fotozugriff auf dem Handy erlauben, anschließend Alben aktualisieren."
+
+msgid "Finding phone albums…"
+msgstr "Handyalben werden gesucht …"
+
+msgid "Phone albums are ready."
+msgstr "Handyalben sind bereit."
+
+msgid "Photo synchronization active"
+msgstr "Fotoabgleich aktiv"
+
+msgid "Stopping photo synchronization…"
+msgstr "Fotoabgleich wird angehalten …"
+
+msgid "Selected album synchronized."
+msgstr "Ausgewähltes Album abgeglichen."
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Änderungen müssen geprüft werden. Keine widersprüchliche Version wurde überschrieben."
+
+msgid "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "Fotoabgleich sicher angehalten. Vor einem erneuten Versuch die Verbindung prüfen."
+
+msgid "Allow photo access on phone"
+msgstr "Fotozugriff auf Handy erlauben"
+
+msgid "Refresh albums"
+msgstr "Alben aktualisieren"
+
+msgid "Phone album"
+msgstr "Handyalbum"
+
+msgid "Photo synchronization could not be started."
+msgstr "Fotoabgleich konnte nicht gestartet werden."
+
+msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
+msgstr "Fotoabgleich konnte nicht gestartet werden. Aktuelle Handyverbindung und Berechtigungen prüfen."

@@ -23,7 +23,7 @@ from test_file_desktop_photo_review import end_normal_source
 
 
 @contextmanager
-def phone_batches(fixture, batches, *, block_chunk=None, block_source=False):
+def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None):
     queue = Queue(); errors = []; chunks = []; saved = []
     entered = threading.Event(); release = threading.Event()
     run_ids = [str(uuid.uuid4()) for _ in batches]
@@ -36,6 +36,11 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False):
                 kind = message['kind']; body = message['body']
                 if kind == sources.REQUEST:
                     operation = body['operation']
+                    if metadata_handler is not None and operation in ('status','configure','discover','catalog_page','request_read'):
+                        metadata_handler(message);continue
+                    if operation=='batch_run':
+                        index=0;canceled=False
+                        run_ids[:]=[str(uuid.uuid4()) for _ in batches]
                     if block_source and operation == 'batch_run':
                         entered.set(); assert release.wait(10)
                         if fixture[3]._closed.is_set(): return

@@ -1,8 +1,9 @@
-"""Native desktop file-control owner; no automatic transfer or scheduler.
+"""Native desktop file controls and explicitly enabled photo workflows.
 
 The receive data/UI/recovery union is not ready: every outgoing data grant stays
-OFF, including when a protected enabled preference exists. Construction itself
-does not send packets, create preferences or start any worker.
+OFF by default, including when a protected enabled preference exists. Construction
+does not send packets, create preferences or start a worker. Accepted controllers
+may drive automatic runs only from protected explicit desktop mode consent.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
@@ -19,6 +20,7 @@ import magnolie_file_sources as source_messages
 from magnolie_file_media import parse_media_page, correlate_media_pages
 from magnolie_file_media_history import NativeMediaHistory
 from magnolie_file_transfer import TransferError
+from magnolie_photo_schedule import PhotoSyncSchedule, NativePhotoSyncScope
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
 from magnolie_file_chunk_message import RESULT as CHUNK
@@ -41,13 +43,17 @@ class NativeDesktopFileConnection:
     # Full data/recovery/baseline and frontend acceptance is still outstanding.
     _data_handlers_ready = False
 
-    def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None):
+    def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None):
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
                 or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
         if activity_changed is not None and not callable(activity_changed):
             raise TransferError('file_desktop_native_activity_callback_required')
         self._activity_changed = activity_changed
+        if status_changed is not None and not callable(status_changed):
+            raise TransferError('file_desktop_native_activity_callback_required')
+        self._status_changed = status_changed
+        self._desktop_session = None
         self._authority = authority
         self._channel = channel
         self._closed = threading.Event()
@@ -318,7 +324,17 @@ class NativeDesktopFileConnection:
             return dict(status=self._source_status, catalog=self._source_catalog, albums=tuple(self._source_albums.values()),
                          run=self._source_run, result=self._source_result, pending=self._source_pending is not None,
                          media_pages=self._source_media_pages, media_manifest_correlated=self._source_media_entries is not None,
-                         resume_history=self._resume_history)
+                          resume_history=self._resume_history)
+
+    def desktop_session(self):
+        if self._desktop_session is not None:return self._desktop_session
+        with self._operation():
+            if self._desktop_session is None:self._desktop_session=NativePhotoDesktopSession(self)
+            return self._desktop_session
+
+    def desktop_snapshot(self):
+        session=self._desktop_session
+        return session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
 
     def _source_command_authority(self, pending, clock):
         self._receiving_policy()
@@ -1718,6 +1734,274 @@ class NativePhotoAlbumWorker:
                 if connection._album_worker is self: connection._album_worker = None
             self._ended.set() # All actual worker I/O has returned, not just a cancel request.
             self._activity(False)
+
+
+class NativePhotoDesktopSession:
+    """One real Organizer action lane per authenticated connection.
+
+    UI/IPC returns metadata immediately. All folder/policy/control/source I/O
+    and the actual album worker remain on owned native background lanes.
+    No action is scheduled by construction, pairing or status inspection.
+    """
+    READ_WAIT_SECONDS = 120
+    AUTO_TICK_SECONDS = 1
+
+    def __init__(self, connection):
+        self.connection=connection; self._lock=threading.RLock()
+        self._thread=None; self._running=False; self._stop=threading.Event(); self._worker=None
+        self._state='off'; self._error=None; self._enabled=False
+        self._destination=None; self._albums=[]; self._permission=None
+        self._disable_pending=False
+        self._mode='manual';self._pending_mode=None;self._automatic_paused=False
+        self._timer=None;self._sync_active=False
+        self._schedule=PhotoSyncSchedule(self._schedule_scope,lambda:time.monotonic_ns()//1_000_000)
+
+    def snapshot(self):
+        with self._lock:
+            value=dict(available=True,state=self._state,error=self._error,enabled=self._enabled,mode=self._pending_mode or self._mode,
+                destination=self._destination,albums=[dict(album) for album in self._albums],permission=self._permission,
+                busy=self._running,automatic_supported=True)
+            worker=self._worker
+        if worker is not None:
+            progress=worker.progress()
+            value.update(saved_files=progress['saved_files'],known_files=progress['known_files'],conflicts=len(progress['conflicts']))
+        return value
+
+    def _notify(self):
+        callback=self.connection._status_changed
+        if callback is not None:
+            try:callback()
+            except Exception:pass # A failed frontend cannot replace native ownership.
+
+    def start(self, operation, album_id=None, *, schedule_run=None):
+        if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic'):
+            raise TransferError('photo_sync_invalid_action')
+        with self._lock:
+            running=self._running
+            if operation.startswith('mode_') and running:
+                self._pending_mode=operation.removeprefix('mode_')
+                self._schedule.set_mode(self._pending_mode) # Stop repeats now; commit UI mode after real I/O END.
+            elif operation in ('stop','disable') and running:
+                self._disable_pending=operation=='disable' or self._disable_pending
+                self._automatic_paused=True
+                self._stop.set(); worker=self._worker; self._state='stopping'
+                if worker is not None:worker.stop()
+                self.connection._wake_album_worker()
+            elif operation=='stop':
+                return self.snapshot()
+            else:
+                if running:raise TransferError('photo_sync_busy')
+                if operation=='sync' and not any(album['album_id']==album_id for album in self._albums):
+                    raise TransferError('file_desktop_source_album_not_current')
+                if operation=='automatic' and (schedule_run is None or self._schedule.active is not schedule_run
+                        or self._schedule.mode!='automatic'):
+                    raise TransferError('photo_sync_invalid_action')
+                if operation=='sync':schedule_run=self._schedule.request_now()
+                self._stop.clear(); self._error=None; self._state=operation
+                if operation!='automatic':self._automatic_paused=False
+                self._running=True
+                self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run),
+                    name='magnolie-photo-desktop-action',daemon=True)
+                try:self._thread.start()
+                except BaseException:
+                    self._running=False
+                    if schedule_run is not None:self._schedule.finished(schedule_run)
+                    raise
+        self._notify()
+        return self.snapshot()
+
+    def join(self, timeout=None):
+        thread=self._thread
+        if thread is not None:thread.join(timeout)
+        timer=self._timer
+        if self.connection._closed.is_set() and timer is not None:timer.join(timeout)
+        return (thread is None or not thread.is_alive()) and (not self.connection._closed.is_set() or timer is None or not timer.is_alive())
+
+    def _schedule_scope(self):
+        # Scheduling is not READ authority. Its generation is the authenticated
+        # source-policy witness; every scan/file still obtains fresh native grants.
+        # Do not take the UI lock from the schedule's native-scope callback.
+        status=self.connection._source_status
+        if not self._enabled or status is None or not status.enabled or not status.associated or status.repair_pending:return None
+        try:return NativePhotoSyncScope(self.connection._receive_binding(),status.version,self.connection)
+        except (TransferError,OSError):return None
+
+    def _ensure_timer(self):
+        with self._lock:
+            if (not self._enabled or self._mode!='automatic' or self.connection._closed.is_set()
+                    or self._timer is not None and self._timer.is_alive()):return
+            self._timer=threading.Thread(target=self._automatic_loop,name='magnolie-photo-schedule',daemon=True)
+            self._timer.start()
+
+    def _automatic_loop(self):
+        try:
+            while not self.connection._closed.wait(self.AUTO_TICK_SECONDS):
+                with self._lock:
+                    if self._running or self._automatic_paused or not self._enabled:continue
+                    run=self._schedule.take_due()
+                    if run is None:continue
+                    try:self.start('automatic',schedule_run=run)
+                    except Exception:
+                        self._schedule.finished(run);self._automatic_paused=True
+        except Exception as error:
+            with self._lock:self._state='held';self._error=str(error);self._automatic_paused=True
+            self._notify()
+        finally:self._schedule.close() # Active token remains held until its real action END.
+
+    def _sync_activity(self, active):
+        self._sync_active=active
+        observer=self.connection._activity_changed
+        if observer is not None:
+            try:observer(self,active)
+            except Exception:pass
+
+    def _apply_mode(self, mode):
+        prefs=self.connection._preferences
+        changed=prefs.set_mode(prefs.issue_action(),prefs.read(),mode)
+        with self._lock:self._mode=changed.mode;self._pending_mode=None
+        self._schedule.set_mode(mode)
+
+    def _wait(self, generation, seconds=.25):
+        if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+        self.connection._ready()
+        with self.connection._update_condition:
+            if self.connection._update_generation==generation:
+                self.connection._update_condition.wait(seconds)
+
+    def _command(self, operation, **options):
+        deadline=time.monotonic()+MAX_TTL_MS/1000; sent=False
+        while time.monotonic()<deadline:
+            generation=self.connection._update_generation
+            if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+            try:
+                if not sent:
+                    self.connection.request_source(self.connection.issue_receive_action(),operation,**options)
+                    sent=True
+                state=self.connection.source_state()
+                if not state['pending']:return state
+            except TransferError as error:
+                if str(error) not in ('file_control_receiver_command_not_ready','file_desktop_source_controls_pending','file_desktop_connection_busy'):
+                    raise
+            self._wait(generation)
+        raise TransferError('photo_sync_native_reply_timeout')
+
+    def _local_enabled(self, enabled):
+        connection=self.connection; preferences=connection._preferences; before=preferences.read()
+        if enabled and (before.policy is None or before.policy.mapping_store is None or before.policy.job_catalog is None):
+            from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+            bootstrap=NativeMediaStorageBootstrap(connection._authority)
+            try:bootstrap.prepare(bootstrap.issue_action(),before)
+            finally:bootstrap.close()
+            before=preferences.read()
+        policy=before.policy
+        if enabled and (before.direction!='phone_to_desktop' or before.include_videos
+                or before.separate_animations or before.separate_own_recordings
+                or policy is not None and (policy.phone_to_pc_delete or policy.pc_to_phone_delete)):
+            raise TransferError('file_desktop_album_options_unavailable')
+        choice=None
+        if enabled and (policy is None or policy.destination is None):
+            choice=connection._destination.choose_default(connection._destination.issue_action())
+        if policy is None or policy.enabled is not enabled or not before.associated:
+            options={} if policy is not None else dict(include_videos=False,separate_animations=False,
+                separate_own_recordings=False,direction='phone_to_desktop')
+            before=preferences.configure(preferences.issue_action(),before,enabled=enabled,mode=before.mode,
+                phone_to_pc_delete=policy.phone_to_pc_delete if policy is not None else False,
+                destination_choice=choice,**options)
+        with self._lock:
+            self._enabled=enabled;self._mode=before.mode
+            self._destination=before.policy.destination.path if before.policy and before.policy.destination else None
+        self._schedule.set_mode(before.mode if enabled else 'manual')
+        connection.send_controls()
+
+    def _discover(self):
+        state=self._command('discover')
+        while state['catalog'].next_cursor is not None:state=self._command('catalog_page')
+        albums=[dict(album_id=album.album_id,display_name=album.display_name,kind=album.kind,
+            visible_images=album.visible_images,needs_choice=album.needs_choice) for album in state['albums']]
+        with self._lock:
+            self._albums=albums;self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
+
+    def _run(self, operation, album_id, schedule_run=None):
+        syncing=operation in ('sync','automatic')
+        if syncing:self._sync_activity(True)
+        try:
+            if operation in ('enable','resume_automatic'):
+                if operation=='resume_automatic':
+                    before=self.connection._preferences.read();policy=before.policy
+                    if (policy is None or not before.associated or not policy.enabled or before.mode!='automatic'
+                            or not before.destination_available or policy.mapping_store is None or policy.job_catalog is None
+                            or before.direction!='phone_to_desktop' or before.include_videos
+                            or before.separate_animations or before.separate_own_recordings
+                            or policy.phone_to_pc_delete or policy.pc_to_phone_delete):
+                        raise TransferError('photo_sync_resume_consent_changed')
+                    with self._lock:
+                        self._enabled=True;self._mode=before.mode;self._destination=policy.destination.path
+                    self._schedule.set_mode(before.mode)
+                    self.connection.send_controls()
+                else:self._local_enabled(True)
+                state=self._command('status'); status=state['status']
+                if status.repair_pending:raise TransferError('photo_sync_source_repair_pending')
+                if not status.enabled or not status.associated:
+                    if operation=='resume_automatic':raise TransferError('photo_sync_source_consent_changed')
+                    self._command('configure',enabled=True,kinds=tuple(sorted(source_messages.KINDS)))
+                self._discover() # Existing OS READ needs no new prompt.
+                if self.snapshot()['state']=='permission_required' and operation=='enable':
+                    state=self._command('request_read')
+                    with self._lock:self._permission=state['result'].state
+                    self._notify()
+                    deadline=time.monotonic()+self.READ_WAIT_SECONDS
+                    while time.monotonic()<deadline:
+                        self._discover() # Actual current coverage, never reply-as-READ.
+                        self._notify()
+                        if self.snapshot()['state']!='permission_required':break
+                        self._wait(self.connection._update_generation,2)
+            elif operation=='disable':
+                self._local_enabled(False)
+                with self._lock:self._state='off'
+            elif operation=='request_read':
+                state=self._command('request_read')
+                with self._lock:self._permission=state['result'].state; self._state='permission_required'
+            elif operation=='discover':self._discover()
+            elif operation.startswith('mode_'):
+                self._apply_mode(operation.removeprefix('mode_'))
+                with self._lock:self._state='albums' if self._albums else 'permission_required'
+            elif syncing:
+                if operation=='automatic':
+                    self._discover() # Fresh catalogue, never stale opaque album IDs.
+                    albums=[album['album_id'] for album in self._albums if not album['needs_choice']]
+                else:albums=[album_id]
+                for selected in albums:
+                    if self._stop.is_set():break
+                    worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,
+                        activity_changed=lambda owner,active:self._notify())
+                    with self._lock:self._worker=worker; self._state='syncing'
+                    self._notify()
+                    while not worker.join(.25):
+                        if self._stop.is_set():worker.stop()
+                    progress=worker.progress()
+                    with self._lock:self._state=progress['state'];self._error=progress['error']
+                    if progress['state']!='complete':break
+        except Exception as error:
+            with self._lock:self._state='held';self._error=str(error)
+        finally:
+            try:
+                with self._lock:disable=self._disable_pending;self._disable_pending=False
+                if disable:
+                    self._local_enabled(False)
+                    with self._lock:self._state='off'
+                elif self._pending_mode is not None:self._apply_mode(self._pending_mode)
+            except Exception as error:
+                with self._lock:self._state='held';self._error=str(error)
+            if syncing:self._sync_activity(False)
+            if schedule_run is not None:
+                try:self._schedule.finished(schedule_run)
+                except TransferError as error:
+                    with self._lock:self._state='held';self._error=str(error)
+            with self._lock:
+                self._running=False
+                if self._state in ('held','conflicts','canceled'):self._automatic_paused=True
+            self._notify()
+            self._ensure_timer()
 
 
 @dataclass(frozen=True)

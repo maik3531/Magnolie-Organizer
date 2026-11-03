@@ -2576,6 +2576,81 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun nativeBackgroundWorkflowUsesExistingOsReadAndExplicitFilePolicyWithoutActivityOrPrompt() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-background-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                assertTrue(workflow.discover().albums.isEmpty()); assertTrue(f.provider.requests.isEmpty())
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                val catalog = workflow.discoverSelectable(); val page = catalog.page()
+                val selection = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+                val result = java.util.concurrent.atomic.AtomicReference<PhotoSourceJob?>()
+                val error = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+                val worker = Thread { try { result.set(workflow.freeze(catalog.source, selection.album)) } catch (failure: Throwable) { error.set(failure) } }
+                worker.start(); worker.join(10_000); assertFalse(worker.isAlive); assertNull(error.get())
+                val job = result.get()!!; val source = workflow.source(job, catalog.source, selection.album)
+                assertArrayEquals("hello".toByteArray(), source.readChunk(source.manifest.files.single().id, 0))
+                assertNull(Shadows.shadowOf(f.context as Application).nextStartedActivity)
+                assertEquals("hello", File(f.root, "source.bin").readText())
+                workflow.nativeReadAccessChanged()
+                assertThrows(PhotoFolderScopeError::class.java) { source.offerMessage() }
+                assertEquals(listOf(job), workflow.jobs()) // Epoch rotation is not retirement or Saved.
+                workflow.retireCached(job)
+            } finally { workflow.close() }
+        }
+    }
+
+    @Test fun nativeBackgroundDiscoveryWithoutOsReadNeverPromptsOpensBytesOrProvesDeletion() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-background-denied-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                Shadows.shadowOf(f.context as Application).denyPermissions(if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE)
+                val page = workflow.discoverSelectable().page()
+                assertEquals("none", page.string("coverage")); assertTrue(page["albums"]!!.jsonArray.isEmpty())
+                assertEquals(JsonPrimitive(false), page["proves_deletion"])
+                assertTrue(f.provider.opens.isEmpty()); assertTrue(workflow.jobs().isEmpty())
+                assertNull(Shadows.shadowOf(f.context as Application).nextStartedActivity)
+                assertEquals("gallery_workflow_permission_host_missing", assertThrows(PhotoFolderScopeError::class.java) {
+                    workflow.requestReadPermission() }.code)
+            } finally { workflow.close() }
+        }
+    }
+
+    @Test fun nativeActivityDestructionInvalidatesOldUiCatalogButFreshBackgroundReadKeepsExistingOsConsent() {
+        Fixture().use { f ->
+            val cache = Files.createTempDirectory(f.root.toPath(), "workflow-background-host-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val workflow = NativeGalleryPhotoWorkflow(f.context, cache, "sender_fixture_01", protection) { f.receiver }
+            val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
+            val host = GalleryPhotoPermissionHost(activity.get())
+            var destroyed = false
+            try {
+                workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                val background = workflow.discoverSelectable(); val first = background.page()
+                workflow.attachPermissionHost(host) { throw AssertionError("No permission prompt expected") }
+                activity.start().resume()
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    background.select(first.string("catalog_id"), first["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+                }
+                val ui = workflow.discoverSelectable(); val old = ui.page()
+                activity.pause().stop().destroy(); destroyed = true
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    ui.select(old.string("catalog_id"), old["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+                }
+                val fresh = workflow.discoverSelectable(); val page = fresh.page()
+                val selection = fresh.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+                val job = workflow.freeze(fresh.source, selection.album)
+                assertEquals("sealed", job.phase); assertEquals("hello", File(f.root, "source.bin").readText())
+                workflow.retireCached(job)
+            } finally { workflow.close(); if (!destroyed) activity.pause().stop().destroy() }
+        }
+    }
+
     @Test fun nativeWorkflowJoinsProtectedPolicyActualDiscoveryPfdSnapshotOfferAndRevokedCacheCleanup() {
         Fixture().use { f ->
             val cache = Files.createTempDirectory(f.root.toPath(), "workflow-").toFile()

@@ -587,6 +587,9 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         ready(); workflow.attachPermissionHost(host, onResult)
     }
     fun requestReadPermission() { ready(); workflow.requestReadPermission() }
+    // Epoch rotation only: no runtime/session I/O lock or READ creation. Safe
+    // from native lifecycle notifications while Werk owns its monitor.
+    internal fun nativeReadAccessChanged() { workflow.nativeReadAccessChanged() }
     fun attachForeground(onResult: (Result<GalleryReadCoverage>) -> Unit): NativeGalleryForegroundOwner {
         ready(); return NativeGalleryForeground.attach(this, onResult)
     }

@@ -146,6 +146,83 @@ class ExistingFileTransferProtection:
             self._directories()
             return result
 
+    def initialize_native_file_pairing(self, expected_peer, permitted, published):
+        """Explicit native activation only, serialized by the owning service.
+
+        Patch one CLOSED relationship field using the existing key and exact
+        original ciphertext. Never use PhoneStore's migrating/full-list writer.
+        A lost postcommit reply preserves this metadata, not a file grant.
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        from magnolie_telefon import PhoneStore, canonical, strict_json
+        from magnolie_file_control import DISCOVERY_VERSION, _hex
+        import secrets
+        if not callable(permitted) or not callable(published):
+            raise TransferError('file_pairing_native_activation_required')
+        with self._gate:
+            def record():
+                self._directories()
+                fd=os.open('peers.json',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=self._root_fd)
+                with os.fdopen(fd,'rb') as source:
+                    before=os.fstat(source.fileno())
+                    if (not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_mode&0o077
+                            or before.st_nlink!=1 or not 29<=before.st_size<=self.MAX_PLAIN_BYTES+28):
+                        raise TransferError('file_authority_unsafe_native_peers')
+                    blob=source.read(self.MAX_PLAIN_BYTES+29)
+                    after=os.fstat(source.fileno())
+                    named=os.stat('peers.json',dir_fd=self._root_fd,follow_symlinks=False)
+                    if len(blob)!=before.st_size or self._signature(before)!=self._signature(after) or self._signature(named)!=self._signature(after):
+                        raise TransferError('file_pairing_native_peer_changed')
+                    return blob,self._signature(after)
+            key=self._read_key(); original=record()
+            plain=AESGCM(key).decrypt(original[0][:12],original[0][12:],b'magnolie-phone-storage-v1\0peersall')
+            value=strict_json(plain)
+            if (type(value) is not dict or set(value)!={'storage_version','items'} or type(value['storage_version']) is not int
+                    or value['storage_version']!=1 or type(value['items']) is not list or len(value['items'])!=1
+                    or value['items'][0]!=expected_peer):
+                raise TransferError('file_pairing_native_peer_changed')
+            peer=value['items'][0]; PhoneStore._validate_peer(peer)
+            personal=peer.get('personal_sync',{}); status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
+            if (peer.get('state')!='paired' or personal.get('own_device') is not True or personal.get('remote_own_device') is not True
+                    or status.get('available') is not True or DISCOVERY_VERSION not in status.get('versions',[])):
+                raise TransferError('file_pairing_native_activation_required')
+            def fresh(wanted):
+                if not permitted() or self._read_key()!=key or record()!=wanted:
+                    raise TransferError('file_pairing_native_activation_changed')
+            fresh(original)
+            if 'file_pairing_epoch' in peer:
+                if not _hex(peer['file_pairing_epoch']):raise TransferError('file_pairing_invalid_epoch')
+                return dict(peer)
+            updated=dict(peer,file_pairing_epoch=secrets.token_hex(32))
+            wanted=canonical(dict(value,items=[updated])); nonce=os.urandom(12)
+            cipher=nonce+AESGCM(key).encrypt(nonce,wanted,b'magnolie-phone-storage-v1\0peersall')
+            with os.scandir(self._root_fd) as entries:
+                held=0
+                for entry in entries:
+                    if entry.name.startswith('peers.json.file-') and entry.name.endswith('.new'):
+                        held+=1; attributes=entry.stat(follow_symlinks=False)
+                        if held>=4 or not stat.S_ISREG(attributes.st_mode) or attributes.st_size>self.MAX_PLAIN_BYTES+28:
+                            raise TransferError('file_pairing_native_staging_held')
+            name='peers.json.file-'+secrets.token_hex(16)+'.new'
+            fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=self._root_fd)
+            with os.fdopen(fd,'wb') as output:
+                output.write(cipher);output.flush();os.fsync(output.fileno())
+                staged=self._signature(os.fstat(output.fileno()))
+                fresh(original)
+                if (self._signature(os.fstat(output.fileno()))!=staged
+                        or self._signature(os.stat(name,dir_fd=self._root_fd,follow_symlinks=False))!=staged):
+                    raise TransferError('file_pairing_native_staging_changed')
+                os.replace(name,'peers.json',src_dir_fd=self._root_fd,dst_dir_fd=self._root_fd)
+                # Preserve metadata even if later durability/readback fails;
+                # this callback creates no receive/data policy or read authority.
+                published(dict(updated))
+                os.fsync(self._root_fd)
+            saved=record()
+            if saved[0]!=cipher or self.read_native_peers_blob()!=wanted:
+                raise TransferError('file_pairing_native_readback_failed')
+            fresh(saved)
+            return updated
+
     @property
     def native_directory(self):
         return str(self._root) # Existing canonical native root, never a wire path.

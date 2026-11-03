@@ -806,6 +806,7 @@ def _request_shape(operation, arguments):
             "clipboard_mode", "file_mode", "download_directory"},
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
+        "phone_photo_sync_action": {"peer_id", "fingerprint", "request"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
         "phone_actor_producer": {"subscriber", "book_source", "request"},
@@ -2028,6 +2029,7 @@ class IPCServer:
             return phone.set_call_audio(arguments["peer_id"], arguments["prefer_pc"], arguments.get("address"), arguments.get("echo_cancel"))
         calls = {
             "phone_report": ("report", ()),
+            "phone_photo_sync_action": ("photo_sync_action", ("peer_id", "fingerprint", "request")),
             "phone_contact_groups": ("contact_groups", ("peer_id", "fingerprint", "request")),
             "phone_contact_values": ("contact_values", ("peer_id", "fingerprint", "request")),
             "phone_contact_group_title": ("contact_group_title", ("peer_id", "fingerprint", "request")),
@@ -2792,6 +2794,9 @@ class PhoneServiceProxy:
         return bool(self.report().get("enabled"))
 
     def report(self): return self._call("report")
+
+    def photo_sync_action(self, peer_id, fingerprint, request):
+        return self._call("photo_sync_action", peer_id=peer_id, fingerprint=fingerprint, request=request)
     def mcp_status(self): return self._call("mcp_status")
     def mcp_action(self, request): return self._call("mcp_action", request=request)
     def mcp_device_status_result(self, request_id):

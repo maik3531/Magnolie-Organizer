@@ -28660,6 +28660,81 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
+  const telefonFotoFehler = new Map();
+  const telefonFotoAnsichten = new Map();
+
+  function zeichneTelefonFotos(einzelneWurzel = null) {
+    for (const wurzel of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-notes-photo-root]")) {
+      const alt = wurzel.querySelector("details");
+      if (alt && wurzel.dataset.photoPeer) telefonFotoAnsichten.set(wurzel.dataset.photoPeer, {
+        offen: alt.open, album: wurzel.querySelector("select[data-photo-album]")?.value || ""
+      });
+      wurzel.replaceChildren();
+      const peers = telefonStand?.peers || [];
+      if (!Bruecke.vorhanden || !telefonStand?.enabled || telefonStand.binding_conflict || peers.length !== 1) continue;
+      const peer = peers[0], stand = peer.photo_sync;
+      // Native readiness only, never ContributorKey, Notes-content grants or KDE.
+      if (stand?.available !== true || !peer.own_device || !peer.remote_own_device || !peer.transport) continue;
+      wurzel.dataset.photoPeer = peer.device_id;
+      const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
+      const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
+      erweitert.open = ansicht.offen; erweitert.append(el("summary", null, _("Advanced functions")));
+      const gruppe = el("div", "notes-foto-sync");
+      const sende = (action, album_id) => {
+        telefonFotoFehler.delete(peer.device_id);
+        const request = { action }; if (album_id !== undefined) request.album_id = album_id;
+        Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint, request });
+      };
+      const an = document.createElement("input"); an.type = "checkbox";
+      an.checked = stand.enabled === true; an.disabled = stand.busy === true && !an.checked;
+      an.addEventListener("change", () => sende(an.checked ? "enable" : "disable"));
+      const label = el("label", "hak"); label.append(an, document.createTextNode(" " + _("Synchronize photos")));
+      gruppe.append(label);
+      if (stand.enabled) {
+        const richtung = document.createElement("select");
+        const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
+        nurHandy.textContent = _("Synchronize only the phone's collection"); richtung.append(nurHandy);
+        gruppe.append(formZeile(_("Direction"), richtung));
+        // Unsupported controls are absent instead of silently doing other work.
+        if (stand.automatic_supported === true) {
+          const modus = document.createElement("select"); modus.dataset.photoMode = "true";
+          for (const [wert, text] of [["manual", pgettext("photo synchronization", "Manual")], ["automatic", _("Automatic")]]) {
+            const option = document.createElement("option"); option.value = wert; option.textContent = text; modus.append(option);
+          }
+          modus.value = stand.mode === "automatic" ? "automatic" : "manual";
+          modus.addEventListener("change", () => sende("mode_" + modus.value));
+          gruppe.append(formZeile(_("Mode"), modus));
+        } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
+        if (stand.destination) gruppe.append(formZeile(_("Destination folder"), el("span", null, stand.destination)));
+        const status = {
+          enable: _("Preparing photo synchronization…"), permission_required: _("Allow photo access on the phone, then refresh albums."),
+          discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),
+          stopping: _("Stopping photo synchronization…"), complete: _("Selected album synchronized."),
+          conflicts: _("Changes need review. No conflicting version was overwritten."),
+          held: _("Photo synchronization stopped safely. Check the connection before retrying."), canceled: _("Canceled")
+        };
+        gruppe.append(el("p", stand.state === "held" || stand.state === "conflicts" ? "einst-warnung" : "einst-hinweis", status[stand.state] || ""));
+        const reihe = el("div", "knopfreihe");
+        const lesen = knopf(_("Allow photo access on phone"), "", () => sende("request_read"));
+        const alben = knopf(_("Refresh albums"), "", () => sende("discover"));
+        lesen.disabled = alben.disabled = stand.busy === true; reihe.append(lesen, alben); gruppe.append(reihe);
+        const auswahl = document.createElement("select"); auswahl.dataset.photoAlbum = "true";
+        auswahl.setAttribute("aria-label", _("Phone album"));
+        for (const album of stand.albums || []) {
+          const option = document.createElement("option"); option.value = album.album_id;
+          option.textContent = album.display_name + " (" + album.visible_images + ")"; auswahl.append(option);
+        }
+        if ([...auswahl.options].some(option => option.value === ansicht.album)) auswahl.value = ansicht.album;
+        if (auswahl.options.length) gruppe.append(formZeile(_("Phone album"), auswahl));
+        const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("sync", auswahl.value));
+        jetzt.disabled = stand.busy === true || !auswahl.options.length; gruppe.append(jetzt);
+        if (stand.busy) gruppe.append(knopf(_("Stop"), "", () => sende("stop")));
+      }
+      if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
+      erweitert.append(gruppe); wurzel.append(erweitert);
+    }
+  }
+
   function baueTelefonverbindung(wurzel) {
     const ab = abschnitt(_("Magnolie Notes phone connection"),
       _("A separate encrypted connection for dial requests, device status and selected notifications."));
@@ -28672,9 +28747,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       _("Requires Magnolie Notes on Android. KDE Connect is not required.")));
     kdeAb.append(el("p", "einst-hinweis kde-app-voraussetzung",
       _("KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes.")));
-    // No released native advanced-feature availability projection exists yet.
-    // Keep the section absent, including during loading or with old counterparts;
-    // pairing, connection enablement or capability metadata alone is not readiness.
+    const fotoWurzel = el("div"); fotoWurzel.dataset.notesPhotoRoot = "true";
     if (!Bruecke.vorhanden) {
       ab.append(el("p", "einst-hinweis",
         _("The phone connection is available only in the installed application.")));
@@ -28787,6 +28860,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     ab.append(liste, el("p", "einst-hinweis",
       _("WLAN has priority. Bluetooth data starts only after WLAN failure and carries the same encrypted phone frames.")));
+    ab.append(fotoWurzel); zeichneTelefonFotos(fotoWurzel);
     wurzel.append(ab);
 
     const kde = telefonStand.kdeconnect || {};
@@ -33904,8 +33978,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         notes: new Set(value.members.notes), tasks: new Set(value.members.tasks) });
     },
     telefonEntwicklerDiagnose,
+    telefonFotoErgebnis(value) {
+      if (typeof value?.device_id !== "string") return;
+      if (value.ok) telefonFotoFehler.delete(value.device_id);
+      else telefonFotoFehler.set(value.device_id, value.error || _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      zeichneTelefonFotos();
       for (const render of kdeDateisystemAnsichten) render(telefonStand?.kdeconnect?.filesystem);
       const diagnoseQuelle = entwicklerDiagnoseQuelle(), diagnoseAusgabe = $("#entwickler-wlan-diagnose");
       if (entwicklerDiagnoseAnfrage && (!diagnoseQuelle || diagnoseQuelle.device_id !== entwicklerDiagnoseAnfrage.peer ||

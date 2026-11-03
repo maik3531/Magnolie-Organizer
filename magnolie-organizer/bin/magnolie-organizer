@@ -22310,6 +22310,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_schalten(
                 bool(nachricht.get("an"))), daemon=True).start()
 
+        elif befehl == "telefon_foto_aktion":
+            threading.Thread(target=lambda: self._telefon_foto_aktion(nachricht),
+                             name="magnolie-photo-native-ui", daemon=True).start()
+
         elif befehl == "telefon_pairing_oeffnen":
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
@@ -24242,6 +24246,9 @@ class Fenster(_FENSTER_BASIS):
         return result
 
     def _telefon_ereignis(self, art, nutzlast):
+        if art == "photo_sync":
+            self._telefon_stand_melden()
+            return
         if art == "media_activity":
             GLib.idle_add(self._tray_medien_aktualisieren)
             return
@@ -24705,6 +24712,18 @@ class Fenster(_FENSTER_BASIS):
         if current_call and not self._gesperrt:
             self._telefon_ereignis("incoming_call", current_call)
         GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), self._tray_medien_aktualisieren(), False)[2])
+
+    def _telefon_foto_aktion(self, nachricht):
+        kennung=nachricht.get("kennung")
+        try:
+            if self._gesperrt or not self._telefon:
+                raise ValueError("photo_sync_unavailable")
+            self._telefon.photo_sync_action(kennung,nachricht.get("fingerprint"),nachricht.get("request"))
+            self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung})
+        except (ValueError, RuntimeError, OSError):
+            self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung,
+                "error": _("Photo synchronization could not be started. Check the current phone connection and permissions.")})
+        self._telefon_stand_melden()
 
     def _kde_legacy_einstellungen_migrieren(self):
         stand = background_settings_read()

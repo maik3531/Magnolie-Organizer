@@ -7514,6 +7514,51 @@ function knopfMit(text, wurzel) {
   reconnect.click();
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_reconnect"),
     "KDE erneut verbinden löst keine sichere aktive Discovery aus");
+  const fotoPeer = { device_id: "photo-native-peer", fingerprint: "photo-native-fingerprint",
+    display_name: "Notes phone", state: "online_wifi", transport: "wifi", own_device: true, remote_own_device: true };
+  const fotoStand = (photo, extras = {}) => bw.App.telefonStand({ enabled: true, peers: [{ ...fotoPeer, photo_sync: photo }],
+    bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
+  fotoStand(undefined);
+  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
+  fotoStand({ available: true, enabled: false, state: "off", albums: [] });
+  let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&
+    !bd.querySelector(".telefon-kde-karte").contains(fotoGruppe), "Fotoeinstellungen gehören ausschließlich zu Notes");
+  const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
+  fotoAn.checked = true; fotoAn.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.kennung === fotoPeer.device_id &&
+    value.fingerprint === fotoPeer.fingerprint && value.request.action === "enable"), "explizite Fotoaktivierung erreicht den nativen Einstieg");
+  fotoStand({ available: true, enabled: true, state: "permission_required", mode: "manual", albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
+  assert.ok(fotoGruppe.textContent.includes("Nur den Bestand auf dem Handy abgleichen") &&
+    fotoGruppe.textContent.includes("Manuell"), "Anfangszustand ist ausschließlich manuell und einseitig");
+  assert.ok(!fotoGruppe.querySelector("option[value='bidirectional']") && !fotoGruppe.textContent.includes("Automatisch"),
+    "nicht angebundene Richtungen oder Automatik werden nicht angeboten");
+  fotoStand({ available: true, enabled: true, state: "albums", mode: "manual", automatic_supported: true, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
+  const fotoModus = fotoGruppe.querySelector("select[data-photo-mode]");
+  assert.ok(fotoModus && fotoModus.value === "manual", "native Automatikbereitschaft beginnt weiterhin manuell");
+  fotoModus.value = "automatic"; fotoModus.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "mode_automatic"),
+    "Automatik benötigt eine ausdrückliche native Desktopaktion");
+  Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Alben aktualisieren").click();
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "discover"));
+  fotoStand({ available: true, enabled: true, state: "albums", albums: [
+    { album_id: "album-native-1", display_name: "Camera", visible_images: 2 },
+    { album_id: "album-native-2", display_name: "<img src=x onerror=bad>", visible_images: 1 }] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.ok(fotoGruppe.open && !fotoGruppe.querySelector("img"), "Aktualisierung bewahrt Details und escaped native Albumnamen");
+  fotoGruppe.querySelector("select[data-photo-album]").value = "album-native-2";
+  Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").click();
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync" &&
+    value.request.album_id === "album-native-2"), "Nur die aktuelle explizite Albumauswahl wird gesendet, kein Zielpfad");
+  fotoStand({ available: true, enabled: true, state: "syncing", busy: true, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.ok(Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").disabled);
+  Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Stopp").click();
+  assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "stop"));
+  fotoStand({ available: true }, { enabled: false });
+  assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
   bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],
     kdeconnect: { available: false, paired: 0, legacy_pinned_count: 1,
       locally_pinned_count: 1, transport_reachable: true, device_count: 0,

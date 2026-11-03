@@ -13,6 +13,11 @@
 -keep class io.gitlab.maik3531.magnolienotes.telefon.PhotoSource** { *; }
 -keep class io.gitlab.maik3531.magnolienotes.telefon.PhotoFolder** { *; }
 -keep class io.gitlab.maik3531.magnolienotes.telefon.ProtectedPhoto** { *; }
+# This private native acceptance gate must not be constant-folded into removal
+# of the dispatcher/factory branch. It is not a user setting or branding key.
+-keepclassmembers class io.gitlab.maik3531.magnolienotes.telefon.TelefonWerk {
+    boolean nativeGalleryHandlersReady;
+}
 
 # kotlinx.serialization braucht die generierten Serializer.
 -keepattributes *Annotation*, InnerClasses

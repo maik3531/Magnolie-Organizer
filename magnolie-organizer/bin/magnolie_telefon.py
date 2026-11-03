@@ -96,6 +96,10 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                                         [1, 2, 3, 4, 5, 7, 8, 12, 17, 19, 20] if name == "device_status" else
                                        [1, 2, 3, 5, 9, 10, 14] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
+    if optional_phone.available('photo_sync'):
+        native=importlib.import_module('magnolie_file_desktop_connection')
+        if native.NativeDesktopFileConnection._data_handlers_ready:
+            items['device_status']['versions'].append(21)
     return {"revision": revision, "items": items}
 
 
@@ -2724,6 +2728,7 @@ class PhoneService:
         self.connections = {}
         self._file_channel_bindings = weakref.WeakKeyDictionary()
         self._native_file_connections = weakref.WeakKeyDictionary()
+        self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
@@ -2798,6 +2803,8 @@ class PhoneService:
                     or generation != self._generation or binding.generation != generation or binding.store_owner is not self.store
                     or binding.peer_id != peer_id or binding.static_public != static_public):
                 return None
+            own=getattr(self,'_native_file_controls',{}).get(channel,{}).get('personal_sync.settings')
+            if own is not None and own!={'format':1,'own_device':True}:return None
             return binding
 
     def current_native_file_identity(self, peer_id, static_public, channel, generation):
@@ -2828,7 +2835,8 @@ class PhoneService:
                     if self._native_file_connections.get(channel) is owner:
                         self._native_file_connections.pop(channel, None)
             connection = NativeDesktopFileConnection(authority, channel, released=released,
-                activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active))
+                activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
+                status_changed=lambda: self.callback('photo_sync', {}))
         except BaseException:
             authority.close()
             raise
@@ -2859,14 +2867,114 @@ class PhoneService:
                 # cleanup or claiming resource release. No personal data logged.
                 return False
 
+    def photo_sync_state(self, peer_id):
+        if not self._native_photo_built:return None
+        connection_type=self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
+        if not connection_type._data_handlers_ready:return None
+        with self.lock:
+            channel=self.connections.get(peer_id)
+            binding=self._file_channel_bindings.get(channel) if channel is not None else None
+            if binding is None or self._current_native_file_binding(peer_id,binding.static_public,channel,binding.generation) is not binding:
+                return None
+            peers=self.store.peers
+            if len(peers)!=1 or peers[0].get('device_id')!=peer_id:return None
+            personal=peers[0].get('personal_sync',{})
+            status=peers[0].get('capabilities',{}).get('items',{}).get('device_status',{})
+            if (peers[0].get('state')!='paired' or personal.get('own_device') is not True or personal.get('remote_own_device') is not True
+                    or status.get('available') is not True or 21 not in status.get('versions',[])):return None
+            controls=self._native_file_controls.get(channel,{})
+            if (controls.get('capabilities.update')!=peers[0].get('capabilities')
+                    or controls.get('grants.update')!=peers[0].get('grants')
+                    or controls.get('personal_sync.settings')!={'format':1,'own_device':True}):return None
+            connection=self._native_file_connections.get(channel)
+        if connection is None:return dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+        return connection.desktop_snapshot()
+
+    def photo_sync_action(self, peer_id, expected_fingerprint, request):
+        """Local native Organizer/daemon entry. Wire peers cannot call this API."""
+        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id'}
+                or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic')
+                or ('album_id' in request) != (request['action']=='sync')
+                or request.get('album_id') is not None and type(request['album_id']) is not str):
+            raise ValueError('photo_sync_invalid_action')
+        if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+        with self.lock:
+            channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+            if (binding is None or type(expected_fingerprint) is not str
+                    or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                raise ValueError('phone_control_conflict')
+            connection=self._native_file_connections.get(channel)
+            if connection is None and request['action']!='enable':raise ValueError('photo_sync_not_enabled')
+            if connection is None:
+                # Explicit bootstrap uses the existing native peer-write monitor,
+                # not a new lock with reversed ordering or a migrating loader.
+                from dataclasses import replace
+                from copy import deepcopy
+                ExistingFileTransferProtection=self._native_file_module('magnolie_file_native_authority').ExistingFileTransferProtection
+                original=binding; expected=deepcopy(self.store.peers[0]); adopted=[None]
+                def permitted():
+                    current=self._current_native_file_binding(peer_id,original.static_public,channel,original.generation)
+                    wanted=expected if adopted[0] is None else dict(expected,file_pairing_epoch=adopted[0].pairing_epoch)
+                    return (current is (original if adopted[0] is None else adopted[0]) and len(self.store.peers)==1
+                        and self.store.peers[0]==wanted
+                        and self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection._data_handlers_ready)
+                def published(peer):
+                    self.store.peers[0]['file_pairing_epoch']=peer['file_pairing_epoch']
+                    adopted[0]=replace(original,pairing_epoch=peer['file_pairing_epoch'])
+                    self._file_channel_bindings[channel]=adopted[0]
+                with ExistingFileTransferProtection(original.native_directory) as protection:
+                    saved=protection.initialize_native_file_pairing(expected,permitted,published)
+                if adopted[0] is None:published(saved)
+                binding=adopted[0]
+        if connection is None:
+            connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
+        return connection.desktop_session().start(request['action'],request.get('album_id'))
+
+    def _observe_native_file_control(self, peer, channel, kind, body):
+        # Connection-scoped metadata AFTER actual secure ACK completion. It is
+        # neither a Notes-content grant nor a file/Android READ grant. Persisted
+        # capabilities alone must not start a file session during FS1 warmup.
+        if kind not in ('capabilities.update','grants.update','personal_sync.settings'):return
+        with self.lock:
+            self._native_file_controls.setdefault(channel,{})[kind]=json.loads(json.dumps(body))
+        if self._native_photo_built:
+            self._resume_automatic_photos(peer,channel)
+            self.callback('photo_sync',{})
+
+    def _resume_automatic_photos(self, peer, channel):
+        if self.photo_sync_state(peer['device_id']) is None:return
+        with self.lock:
+            if channel in self._native_file_connections:return
+            binding=self._file_channel_bindings.get(channel)
+            if binding is None or binding.pairing_epoch is None:return
+        connection=None
+        try:
+            # Existing-key, read-only preference inspection. No legacy bootstrap,
+            # folder defaults, phone prompt or manual-mode run on reconnection.
+            authority=self.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+            try:
+                from importlib import import_module
+                preferences=import_module('magnolie_photo_preferences').ProtectedPhotoPreferences(authority)
+                try:stored=preferences.read()
+                finally:preferences.close()
+                if (stored.policy is None or not stored.associated or not stored.policy.enabled or stored.mode!='automatic'
+                        or not stored.destination_available or stored.policy.mapping_store is None or stored.policy.job_catalog is None):return
+            finally:authority.close()
+            connection=self.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
+            connection.desktop_session().start('resume_automatic')
+        except (ValueError,OSError):
+            if connection is not None:connection.close()
+            # Uncertain metadata is HOLD; no default record or automatic repair.
+
     def _native_photo_activity_changed(self, connection, owner, active):
         # These are in-process native owners, never serialized client claims.
         # Revocation does not manufacture END while the old I/O is still draining.
-        if type(active) is not bool: return
+        if type(active) is not bool or owner is None: return
         with self.lock:
             if active:
                 if (self._native_file_connections.get(connection._channel) is not connection
-                        or connection._album_worker is not owner): return
+                        or connection._album_worker is not owner and not (
+                            getattr(connection,'_desktop_session',None) is owner and getattr(owner,'_sync_active',False))): return
                 self._native_photo_activity[owner] = connection
             elif self._native_photo_activity.get(owner) is connection:
                 self._native_photo_activity.pop(owner)
@@ -2935,6 +3043,9 @@ class PhoneService:
                            "personal_sync_active_auto": bool(
                                self.store.active_auto_run(peer_id)),
                            "personal_sync_report": personal["last_report"]})
+        for value in peers:
+            photos=self.photo_sync_state(value['device_id'])
+            if photos is not None:value['photo_sync']=photos
         return {"possible": True, "enabled": self.enabled,
                 "media_activity": self._native_media_activity(),
                 "desktop_features": self.store.desktop_features(),
@@ -8173,6 +8284,7 @@ class PhoneService:
             self.connection_errors.pop(peer_id, None)
             peer["last_contact_ms"] = int(time.time() * 1000)
             self.store.save_peers()
+            if file_binding is not None:self._resume_automatic_photos(peer,channel)
             self.callback("status", self.report())
             sock.settimeout(1)
             last_incoming = time.monotonic()
@@ -8719,7 +8831,10 @@ class PhoneService:
             channel.send({"type": "ack", "message_id": payload["message_id"],
                           "status": ("accepted" if payload["kind"] == "personal_sync.batch"
                                      else "duplicate") if previous[0] == "accepted" else "rejected",
-                          "error": "none" if previous[0] == "accepted" else previous[1]})
+                           "error": "none" if previous[0] == "accepted" else previous[1]})
+            if (previous[0]=='accepted' and self.store.received_matches(peer['device_id'],payload)
+                    and now_ms()<=payload['expires_ms']):
+                self._observe_native_file_control(peer,channel,kind,payload['body'])
             return
         status, error = "accepted", "none"
         if payload["expires_ms"] + CLOCK_SKEW_MS < received:
@@ -9138,6 +9253,8 @@ class PhoneService:
                 self._queue_desktop_features(peer["device_id"], channel)
         channel.send({"type": "ack", "message_id": payload["message_id"],
                       "status": status, "error": error})
+        if status=='accepted' and now_ms()<=payload['expires_ms']:
+            self._observe_native_file_control(peer,channel,kind,payload['body'])
 
     def _emit_personal_sync(self, payload):
         with self.lock:

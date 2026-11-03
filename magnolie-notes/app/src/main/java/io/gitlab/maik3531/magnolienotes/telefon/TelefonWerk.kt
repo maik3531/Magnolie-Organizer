@@ -562,7 +562,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
-    internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1() }
+    internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1(fileHandlersReady = nativeGalleryHandlersReady) }
     private val sharedPreferences by lazy { queue.sharedSettingsStorage({
         safePeer()?.takeIf { it.state == "paired" }?.let { SharedSettingsBinding(sharedActor, it.device_id, it.static_public) }
     }, { !Ablage.hole(context).synchronisationsSchreibbar() }) }
@@ -1361,6 +1361,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized fun runtimePermissionsChanged() {
+        galleryFileConnection?.takeUnless { it.isEnded }?.let { owner ->
+            runCatching { owner.runtime.nativeReadAccessChanged() }
+        }
         val callPermissions = TelefonModulStatus.missingCallPermissions(context).toSet()
         val callsChanged = callPermissions != callPermissionSnapshot
         callPermissionSnapshot = callPermissions
@@ -4497,7 +4500,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     contactRead = peer.own_device && peer.remote_own_device && peer.contacts_read_enabled && ContactReadAndroid(context).permission(),
                     contactGroupsWrite = peer.contact_groups_write_enabled && contactGroupWriter.permission(),
                     contactValuesWrite = contactValueWritesEnabled && peer.contacts_write_enabled && contactValueWriter.permission(),
-                    contactGroupTitlesWrite = contactGroupTitleWritesEnabled && peer.contacts_write_enabled && contactGroupTitleWriter.permission())), 86_400_000)
+                     contactGroupTitlesWrite = contactGroupTitleWritesEnabled && peer.contacts_write_enabled && contactGroupTitleWriter.permission(),
+                     fileHandlersReady = nativeGalleryHandlersReady)), 86_400_000)
         }
         if (!queue.hasKind(peer.device_id, "grants.update")) {
             peer = peer.copy(grants_revision = peer.grants_revision + 1); storage.savePeer(peer)

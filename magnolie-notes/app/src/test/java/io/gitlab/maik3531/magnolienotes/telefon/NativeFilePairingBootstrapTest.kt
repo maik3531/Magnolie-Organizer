@@ -76,6 +76,20 @@ class NativeFilePairingBootstrapTest {
         assertFalse(saved.contacts_read_enabled)
     }
 
+    @Test fun nativeFileDiscoveryIsReadinessMetadataAndNeverPairingSourceOrOsReadConsent() {
+        assertFalse(DeviceFileControl.DISCOVERY_VERSION in TelefonCapabilities.phase1().getValue("device_status").versions)
+        assertTrue(DeviceFileControl.DISCOVERY_VERSION in TelefonCapabilities.phase1(fileHandlersReady = true).getValue("device_status").versions)
+        withNativeTransport { work, channel, generation ->
+            val original = storage.fileAuthorityPeers().peer!!
+            assertFalse(DeviceFileControl.DISCOVERY_VERSION in work.sharedLocalCapabilities().getValue("device_status").versions)
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+            assertTrue(DeviceFileControl.DISCOVERY_VERSION in work.sharedLocalCapabilities().getValue("device_status").versions)
+            assertEquals(original, storage.fileAuthorityPeers().peer)
+            assertNull(work.currentNativeFilePeer(original.device_id, original.static_public, channel, generation, true))
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+        }
+    }
+
     @Test fun staleOrDeniedActivationCannotOverwriteTheCurrentProtectedPeer() {
         val legacy = storage.peers().peer!!
         assertThrows(PhotoFolderScopeError::class.java) { storage.initializeFilePairingEpoch(legacy) { false } }
