@@ -8,9 +8,56 @@ class DeviceFileSourceCommandTest {
     private val now = 1_800_000_000_000L
     private fun message(body: JsonObject) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, body, 60_000, now)
     private val status = buildJsonObject { put("format", 1); put("operation", "status") }
+    @Test fun videoDiscoveryMarkerRequiresBothNativeHandlerGates() {
+        for (base in listOf(false, true)) for (video in listOf(false, true)) {
+            val versions = TelefonCapabilities.phase1(fileHandlersReady = base, videoHandlersReady = video).getValue("device_status").versions
+            assertEquals(base, DeviceFileControl.DISCOVERY_VERSION in versions)
+            assertEquals(base && video, DeviceFileControl.VIDEO_DISCOVERY_VERSION in versions)
+            assertEquals(versions.sorted().distinct(), versions)
+        }
+    }
     private val configure = buildJsonObject {
         put("format", 1); put("operation", "configure"); put("expected_version", "a".repeat(64)); put("enabled", true)
         put("kinds", JsonArray(listOf(JsonPrimitive("camera"), JsonPrimitive("screenshots"))))
+    }
+
+    @Test fun typedMediaCommandsRetainTheirScopeAndLegacyImageGoldensStayImplicit() {
+        val bodies = mutableListOf<JsonObject>()
+        for (operation in listOf("discover", "request_read")) bodies += buildJsonObject {
+            put("format", 1); put("operation", operation); put("expected_version", "a".repeat(64))
+        }
+        for (operation in listOf("run_status", "cancel_run", "offer_run", "end_run", "end_album", "next_batch",
+            "resume_status", "cancel_resume", "offer_resume", "end_resume")) bodies += buildJsonObject {
+            put("format", 1); put("operation", operation); put("expected_version", "a".repeat(64))
+            put("run_id", "33333333-3333-4333-8333-333333333333")
+        }
+        for (operation in listOf("media_page", "resume_media_page")) bodies += buildJsonObject {
+            put("format", 1); put("operation", operation); put("expected_version", "a".repeat(64))
+            put("run_id", "33333333-3333-4333-8333-333333333333"); put("after", 0)
+        }
+        for (body in bodies) {
+            assertEquals(GalleryMediaType.IMAGES, DeviceFileSourceCommand.parse(message(body), now).mediaType)
+            for ((label, type) in listOf("images" to GalleryMediaType.IMAGES, "video" to GalleryMediaType.VIDEO))
+                assertEquals(type, DeviceFileSourceCommand.parse(message(JsonObject(body + ("media_type" to JsonPrimitive(label)))), now).mediaType)
+            for (bad in listOf(JsonPrimitive(true), JsonPrimitive("videos"), JsonPrimitive("VIDEO"), JsonNull))
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    DeviceFileSourceCommand.parse(message(JsonObject(body + ("media_type" to bad))), now)
+                }
+        }
+    }
+
+    @Test fun separateVideoConfigurationIsMetadataOnlyAndRejectsImageConfigureAliases() {
+        val body = buildJsonObject {
+            put("format", 1); put("operation", "configure_videos"); put("expected_version", "a".repeat(64)); put("enabled", true)
+        }
+        val parsed = DeviceFileSourceCommand.parse(message(body), now)
+        assertEquals("configure_videos", parsed.operation); assertEquals(true, parsed.enabled); assertTrue(parsed.kinds.isEmpty())
+        for ((key, value) in listOf("media_type" to JsonPrimitive("video"), "enabled" to JsonPrimitive("true"),
+            "read_granted" to JsonPrimitive(true), "kinds" to JsonArray(emptyList())))
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body + (key to value))), now) }
+        for (legacy in listOf(status, configure)) assertThrows(PhotoFolderScopeError::class.java) {
+            DeviceFileSourceCommand.parse(message(JsonObject(legacy + ("media_type" to JsonPrimitive("video")))), now)
+        }
     }
 
     @Test fun strictMetadataCommandsContainNoNativeAuthorityOrReadRunSettings() {

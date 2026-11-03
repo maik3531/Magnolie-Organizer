@@ -13,7 +13,8 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
     val originalJobId: String? = null, val originalJobVersion: String? = null,
     val lookupSourceId: String? = null, val lookupTransferId: String? = null, val lookupManifestSha256: String? = null,
     val attemptId: String? = null, val attemptSha256: String? = null,
-    val selectionManifestSha256: String? = null, val selectedFileIds: List<String> = emptyList()) {
+    val selectionManifestSha256: String? = null, val selectedFileIds: List<String> = emptyList(),
+    val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
@@ -31,7 +32,14 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             val body = message["body"] as? JsonObject ?: fail()
             fun text(name: String) = (body[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
             val operation = text("operation")
-            val base = setOf("format", "operation")
+            val scoped = operation in setOf("discover", "catalog_page", "request_read", "run", "batch_run", "next_batch", "run_status",
+                "cancel_run", "offer_run", "end_run", "end_album", "select_run", "media_page", "resume_lookup", "resume_run", "resume_status",
+                "cancel_resume", "offer_resume", "end_resume", "resume_media_page", "abandon_resume")
+            if ("media_type" in body && !scoped) fail()
+            val mediaType = if ("media_type" !in body) GalleryMediaType.IMAGES else when (text("media_type")) {
+                "images" -> GalleryMediaType.IMAGES; "video" -> GalleryMediaType.VIDEO; else -> fail()
+            }
+            val base = setOf("format", "operation") + if ("media_type" in body) setOf("media_type") else emptySet()
             if (body["format"] != JsonPrimitive(1)) fail()
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
@@ -45,7 +53,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 val ids = raw.map { value -> (value as? JsonPrimitive)?.takeIf { it.isString && Regex("[0-9a-f]{32}").matches(it.content) }?.content ?: fail() }
                 if (ids != ids.sorted().distinct()) fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
-                    runId = opaque("run_id"), selectionManifestSha256 = manifest, selectedFileIds = ids)
+                    runId = opaque("run_id"), selectionManifestSha256 = manifest, selectedFileIds = ids, mediaType = mediaType)
             }
             if (operation == "abandon_resume") {
                 if (body.keys != base + setOf("expected_version", "run_id", "original_job_id", "original_job_version", "attempt_id", "attempt_sha256")) fail()
@@ -55,7 +63,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 val hash = text("attempt_sha256").takeIf(DeviceFileControl::hash) ?: fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
                     runId = opaque("run_id"), originalJobId = job, originalJobVersion = jobVersion,
-                    attemptId = opaque("attempt_id"), attemptSha256 = hash)
+                    attemptId = opaque("attempt_id"), attemptSha256 = hash, mediaType = mediaType)
             }
             if (operation == "resume_lookup") {
                 if (body.keys != base + setOf("expected_version", "source_id", "transfer_id", "manifest_sha256")) fail()
@@ -63,7 +71,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
                 val manifest = text("manifest_sha256").takeIf(DeviceFileControl::hash) ?: fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
-                    lookupSourceId = id("source_id"), lookupTransferId = id("transfer_id"), lookupManifestSha256 = manifest)
+                    lookupSourceId = id("source_id"), lookupTransferId = id("transfer_id"), lookupManifestSha256 = manifest, mediaType = mediaType)
             }
             if (operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume", "end_resume")) {
                 val starting = operation == "resume_run"
@@ -71,13 +79,13 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                     setOf("catalog_id", "album_id", "desktop_choice", "original_job_id", "original_job_version") else setOf("run_id"))) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
                 if (!starting) return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
-                    message.long("expires_ms"), runId = opaque("run_id"))
+                    message.long("expires_ms"), runId = opaque("run_id"), mediaType = mediaType)
                 val choice = (body["desktop_choice"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
                 val jobId = text("original_job_id").takeIf { Regex("[0-9a-f]{32}").matches(it) } ?: fail()
                 val jobVersion = text("original_job_version").takeIf(DeviceFileControl::hash) ?: fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
                     catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice,
-                    originalJobId = jobId, originalJobVersion = jobVersion)
+                    originalJobId = jobId, originalJobVersion = jobVersion, mediaType = mediaType)
             }
             if (operation in setOf("media_page", "resume_media_page")) {
                 if (body.keys != base + setOf("expected_version", "run_id", "after")) fail()
@@ -85,7 +93,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 val after = (body["after"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
                     ?.takeIf { it in 0..DeviceFileManifest.MAX_FILES } ?: fail()
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
-                    message.long("expires_ms"), after = after, runId = opaque("run_id"))
+                    message.long("expires_ms"), after = after, runId = opaque("run_id"), mediaType = mediaType)
             }
             if (operation in setOf("run", "batch_run", "next_batch", "run_status", "cancel_run", "offer_run", "end_run", "end_album")) {
                 if (body.keys != base + setOf("expected_version") +
@@ -94,10 +102,10 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 if (operation in setOf("run", "batch_run")) {
                     val choice = (body["desktop_choice"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
                     return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
-                        message.long("expires_ms"), catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice)
+                        message.long("expires_ms"), catalogId = opaque("catalog_id"), albumId = opaque("album_id"), desktopChoice = choice, mediaType = mediaType)
                 }
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
-                    message.long("expires_ms"), runId = opaque("run_id"))
+                    message.long("expires_ms"), runId = opaque("run_id"), mediaType = mediaType)
             }
             if (operation == "status") {
                 if (body.keys != base) fail()
@@ -111,7 +119,13 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 } ?: fail() else null
                 val after = if (operation == "catalog_page") (body["after"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
                     ?.takeIf { it in 0..AndroidGalleryAlbumDiscovery.MAX_ALBUMS } ?: fail() else 0
-                return DeviceFileSourceCommand(message.string("message_id"), operation, expected, null, emptySet(), message.long("expires_ms"), id, after)
+                return DeviceFileSourceCommand(message.string("message_id"), operation, expected, null, emptySet(), message.long("expires_ms"), id, after, mediaType = mediaType)
+            }
+            if (operation == "configure_videos") {
+                if (body.keys != base + setOf("expected_version", "enabled")) fail()
+                val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val enabled = (body["enabled"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, expected, enabled, emptySet(), message.long("expires_ms"))
             }
             if (operation != "configure" || body.keys != base + setOf("expected_version", "enabled", "kinds")) fail()
             val expected = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

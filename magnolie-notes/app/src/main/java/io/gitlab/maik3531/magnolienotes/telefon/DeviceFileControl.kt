@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal object DeviceFileControl {
     const val KIND = "file_transfer.control"
     const val DISCOVERY_VERSION = 21
+    const val VIDEO_DISCOVERY_VERSION = 22
     const val MAX_REVISION = 9_007_199_254_740_991L
     const val MAX_WIRE_BYTES = 8192
     const val MAX_TTL_MS = 60_000L
@@ -87,7 +88,7 @@ internal class NativeLocalFileGrant(val grants: DeviceFileGrantState, val owner:
 
 internal data class NativeFileControlPeer(val peerId: String, val identitySha256: String, val owner: Any,
     val ready: Boolean, val paired: Boolean, val ownDevice: Boolean, val remoteOwnDevice: Boolean, val controlSupported: Boolean,
-    val pairingEpoch: String? = null) {
+    val pairingEpoch: String? = null, val videoSupported: Boolean = false) {
     init { require(DeviceFileControl.id(peerId) && DeviceFileControl.hash(identitySha256) &&
         (pairingEpoch == null || DeviceFileControl.hash(pairingEpoch))) }
     val allowed: Boolean get() = ready && paired && ownDevice && remoteOwnDevice && controlSupported

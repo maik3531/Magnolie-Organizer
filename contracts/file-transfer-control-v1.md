@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Video negotiation and scoped command codec (Refs #330, partial join)
+
+Discovery marker 22 is reserved for video handlers alongside required base-file
+marker 21. It is emitted only when both local handler gates are true; production
+gates remain OFF. The authenticated native peer projection keeps video support
+separate from base file support. Removing video support need not rotate pairing
+or photo file grants. The runtime supplies a live local/peer video-availability
+veto to the workflow, in addition to the existing acknowledged data authority.
+
+The strict native command codec accepts an optional `media_type` (`images` or
+`video`) for scoped catalog, READ, run and resume operations. Omission retains
+legacy images. `configure_videos` is a separate metadata-only operation with
+`expected_version` and `enabled`, not a photo configuration or an OS READ grant.
+Legacy status/configure shapes reject media extensions; existing canonical
+image command vectors are unchanged.
+
+The runtime wire join is still deliberately closed: typed video commands and
+video configuration fail before acquiring a configuration ticket, emitting a
+reply or reaching any image catalog/permission path. Prepared permission output
+also rejects a video-to-image substitution. Scoped video catalogs, run matching,
+foreground routing and desktop video target/worker integration remain to be
+joined before enabling this lane. Parsing or marker support alone is not usable
+video synchronization, and old image status replies remain unchanged.
+
 ### Native independent video consent and typed READ workflow (Refs #330)
 
 The native policy has an optional strict format 4 with a separately disabled-by-

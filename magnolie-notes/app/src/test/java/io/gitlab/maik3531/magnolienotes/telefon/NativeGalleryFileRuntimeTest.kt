@@ -62,6 +62,37 @@ class NativeGalleryFileRuntimeTest {
         }
     }, 60_000, now)
 
+    @Test fun unjoinedVideoCommandsCannotFallBackToImageCatalogPermissionOrConfiguration() {
+        negotiatedRuntime { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+            val before = runtime.savedPolicy(); val image = runtime.currentRequest()!!
+            var writes = 0
+            for (operation in listOf("discover", "request_read", "configure_videos")) {
+                val command = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", operation); put("expected_version", before.version)
+                    if (operation == "configure_videos") put("enabled", true) else put("media_type", "video")
+                }, 60_000, now)
+                assertEquals("gallery_video_wire_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                    runtime.receiveSourceCommand(command, { writes++ }, { now })
+                }.code)
+                if (operation == "request_read") {
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        runtime.preparePermissionReply(command, NativeGalleryPermissionCommands(), { now })
+                    }
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        runtime.sendPreparedPermissionReply(command, JsonObject(emptyMap()), { writes++ }, { now })
+                    }
+                }
+            }
+            assertEquals(0, writes); assertEquals(before, runtime.savedPolicy())
+            assertEquals(image.policyEpoch, runtime.currentRequest()!!.policyEpoch)
+            var legacy: JsonObject? = null
+            runtime.receiveSourceCommand(sourceCommand("status"), { legacy = it }, { now })
+            assertEquals(setOf("format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds"),
+                legacy!!["body"]!!.jsonObject.keys)
+        }
+    }
+
     @Test fun sourceCommandExpiryReachesTheNativeConfigurerBeforePolicyPublicationAndReleasesItsTicket() {
         negotiatedRuntime { runtime, _ ->
             val before = runtime.savedPolicy()

@@ -14,9 +14,18 @@ import java.util.concurrent.atomic.AtomicReference
  * discovery advertisement. The caller supplies existing native identity/key,
  * private directory and authenticated current-peer/channel ownership.
  */
-internal class NativeGalleryFileRuntime(context: Context, directory: File, identity: NativeFileControlIdentity,
+internal class NativeGalleryFileRuntime private constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
     protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
-    handlersReady: () -> Boolean) : AutoCloseable {
+    handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean) : AutoCloseable {
+    constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
+        protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
+        handlersReady: () -> Boolean) : this(context, directory, identity, protection, channel, currentPeer, handlersReady, { false })
+    companion object {
+        internal fun withVideoHandlers(context: Context, directory: File, identity: NativeFileControlIdentity,
+            protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
+            handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean) =
+            NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady)
+    }
     private val closed = AtomicBoolean(false)
     private val revoked = AtomicBoolean(false)
     private val operationGate = java.util.concurrent.locks.ReentrantLock()
@@ -58,6 +67,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
     private val nativePeer = { if (closed.get() || revoked.get()) null else currentPeer() }
+    private val videoAvailable = { handlersReady() && videoHandlersReady() && nativePeer()?.let { it.allowed && it.videoSupported } == true }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
     private val controls: NativeFileControlChannel
@@ -72,7 +82,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             controls = prepared
             workflow = NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(context, directory, identity.deviceId, protection,
                 { if (closed.get() || revoked.get()) null else controls.session.photoReceiver() },
-                { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } })
+                 { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } },
+                 videoAvailable)
             sourceWorker = NativeGallerySourceWorker({ selected, cancellation -> workflow.freeze(selected, cancellation) }, { sourceIoEnded() })
         } catch (error: Exception) {
             closed.set(true); prepared?.close(); index.close()
@@ -605,6 +616,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         resumeCommands: NativeGalleryResumeCommands = localResumeCommands): Unit = withOperation {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
+        // Typed parsing must never turn an unjoined video command into a legacy
+        // image request. Keep the wire lane closed until its owner/catalog join.
+        if (command.mediaType == GalleryMediaType.VIDEO || command.operation == "configure_videos")
+            DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (command.operation == "request_read" && Looper.myLooper() != Looper.getMainLooper())
             DeviceFileControl.fail("gallery_permission_ui_thread_required")
         val issued = controls.session.configurationTicket()
@@ -1018,6 +1033,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
         val command = DeviceFileSourceCommand.parse(message, now())
         if (command.operation != "request_read") DeviceFileControl.fail("file_sources_invalid_command")
+        if (command.mediaType == GalleryMediaType.VIDEO) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         val issued = controls.session.configurationTicket()
         fun checkAuthority() {
             if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")

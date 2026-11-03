@@ -20,19 +20,22 @@ internal class GalleryPhotoBuildFailure internal constructor(val reservationId: 
  */
 internal class NativeGalleryPhotoWorkflow private constructor(context: Context, directory: File, private val senderId: String,
     private val protection: DeviceTransferProtection, currentReceiver: () -> NativePhotoReceiver?,
-    currentConfigurer: (() -> NativeGalleryConfigurer?)?) : AutoCloseable {
+    currentConfigurer: (() -> NativeGalleryConfigurer?)?, videoAvailable: () -> Boolean) : AutoCloseable {
     constructor(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
-        currentReceiver: () -> NativePhotoReceiver?) : this(context, directory, senderId, protection, currentReceiver, null)
+        currentReceiver: () -> NativePhotoReceiver?) : this(context, directory, senderId, protection, currentReceiver, null, { true })
     companion object {
         fun forAuthenticatedConfigurer(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
             currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?) =
-            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer)
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, { true })
+        fun forAuthenticatedConfigurer(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
+            currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean) =
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, videoAvailable)
     }
     private val app = context.applicationContext
     init { require(Regex("[A-Za-z0-9_-]{16,160}").matches(senderId)) }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val policy = if (currentConfigurer == null) GalleryPhotoPolicyController(index, currentReceiver)
-        else GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, currentReceiver, currentConfigurer)
+        else GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, currentReceiver, currentConfigurer, videoAvailable)
     private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope, val host: GalleryPhotoPermissionHost? = null)
     private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
     private val binding = AtomicReference<Binding?>()

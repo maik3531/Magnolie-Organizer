@@ -186,13 +186,15 @@ object TelefonCapabilities {
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
                   endCalls: Boolean = false, identifiers: Boolean = false, contactRead: Boolean = false,
                    contactGroupsWrite: Boolean = false, contactValuesWrite: Boolean = false,
-                    contactGroupTitlesWrite: Boolean = false, fileHandlersReady: Boolean = false) = linkedMapOf(
+                     contactGroupTitlesWrite: Boolean = false, fileHandlersReady: Boolean = false,
+                     videoHandlersReady: Boolean = false) = linkedMapOf(
         "device_status" to TelefonCapability(true, "available", (listOf(1, 2, 3, 11, PhoneTimeZone.VERSION, io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION) +
               (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION, ContactRead.PROFILE_VERSION, ContactRead.PROFILE_DIAGNOSTIC_VERSION) else emptyList()) +
               (if (contactRead && contactGroupsWrite) listOf(ContactGroupWrite.VERSION, ContactGroupProbe.VERSION) else emptyList()) +
               (if (contactRead && contactValuesWrite) listOf(ContactValueWrite.VERSION) else emptyList()) +
                (if (contactRead && contactGroupTitlesWrite) listOf(ContactGroupTitleWrite.VERSION) else emptyList()) +
-               (if (fileHandlersReady) listOf(DeviceFileControl.DISCOVERY_VERSION) else emptyList())).sorted()),
+                (if (fileHandlersReady) listOf(DeviceFileControl.DISCOVERY_VERSION) else emptyList()) +
+                (if (fileHandlersReady && videoHandlersReady) listOf(DeviceFileControl.VIDEO_DISCOVERY_VERSION) else emptyList())).sorted()),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,
             if (dialRequest && dialResolvable && dialPermission) "available" else if (!dialResolvable) "os_restricted"

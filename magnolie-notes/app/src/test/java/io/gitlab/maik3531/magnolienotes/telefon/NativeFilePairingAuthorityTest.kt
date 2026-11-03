@@ -72,4 +72,17 @@ class NativeFilePairingAuthorityTest {
             NativeFilePairingAuthority.fromAuthenticatedIdentity(value.copy(static_public = TelefonKrypto.b64(ByteArray(31))))
         }
     }
+
+    @Test fun videoMarkerDoesNotReplaceBaseFilesOrCreateNativeTransportAuthority() {
+        val saved = peer("1".repeat(64)).copy(remote_device_status_available = true,
+            remote_device_status_versions = listOf(1, DeviceFileControl.DISCOVERY_VERSION, DeviceFileControl.VIDEO_DISCOVERY_VERSION))
+        val owner = Any()
+        val video = NativeFilePairingAuthority.controlPeer(saved, owner, true, true)!!
+        assertTrue(video.videoSupported)
+        val photos = NativeFilePairingAuthority.controlPeer(saved.copy(remote_device_status_versions = listOf(1, DeviceFileControl.DISCOVERY_VERSION)), owner, true, true)!!
+        assertFalse(photos.videoSupported); assertEquals(video.pairingEpoch, photos.pairingEpoch); assertSame(video.owner, photos.owner)
+        assertNull(NativeFilePairingAuthority.controlPeer(saved.copy(remote_device_status_versions = listOf(1, DeviceFileControl.VIDEO_DISCOVERY_VERSION)), owner, true, true))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved, owner, false, true))
+        assertNull(NativeFilePairingAuthority.controlPeer(saved, owner, true, false))
+    }
 }

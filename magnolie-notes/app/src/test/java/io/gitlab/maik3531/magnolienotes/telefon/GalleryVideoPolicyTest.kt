@@ -64,6 +64,29 @@ class GalleryVideoPolicyTest {
         }
     }
 
+    @Test fun liveVideoCapabilityWithdrawalVetoesReadWithoutChangingPhotoGrantOrSavedPolicy() {
+        Fixture().use { f ->
+            var available = false
+            val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(f.index, { f.receiver }, { f.configurer }, { available })
+            val photos = f.enablePhotos(); val grant = f.grants.current()!!.grants
+            val photo = controller.currentRequest()!!
+            assertEquals("gallery_video_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                controller.configureVideos(photos, true)
+            }.code)
+            assertEquals(photos, f.index.galleryPolicy())
+            available = true
+            val enabled = controller.configureVideos(photos, true)
+            assertNotNull(controller.currentRequest(GalleryMediaType.VIDEO))
+            available = false
+            assertNull(controller.currentRequest(GalleryMediaType.VIDEO))
+            assertSamePhotoActivation(photo, controller.currentRequest())
+            assertEquals(grant, f.grants.current()!!.grants); assertEquals(enabled, f.index.galleryPolicy())
+            // A local decrease remains permitted even after feature withdrawal.
+            assertFalse(controller.configureVideos(enabled, false).policy!!.videos!!.enabled)
+            assertEquals(grant, f.grants.current()!!.grants)
+        }
+    }
+
     @Test fun videoDisableAndRenewalUseIndependentEpochWithoutPhotoConsentOrGrantChurn() {
         Fixture().use { f ->
             val photos = f.enablePhotos(); val grant = f.grants.current()!!.grants; val request = f.controller.currentRequest()!!

@@ -41,6 +41,7 @@ internal object NativeFilePairingAuthority {
         val key = TelefonKrypto.b64(peer.static_public, 32)
         val hash = MessageDigest.getInstance("SHA-256").digest(key)
             .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-        return NativeFileControlPeer(peer.device_id, hash, owner, true, true, peer.own_device, peer.remote_own_device, true, epoch)
+        return NativeFileControlPeer(peer.device_id, hash, owner, true, true, peer.own_device, peer.remote_own_device, true, epoch,
+            DeviceFileControl.VIDEO_DISCOVERY_VERSION in peer.remote_device_status_versions)
     }
 }

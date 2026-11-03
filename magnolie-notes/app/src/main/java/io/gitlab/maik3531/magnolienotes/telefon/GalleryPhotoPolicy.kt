@@ -97,11 +97,15 @@ internal data class NativeGalleryConfigurer(val peerId: String, val identitySha2
  * fence this controller too; explicit store repair requires a fresh owner.
  */
 internal class GalleryPhotoPolicyController private constructor(private val index: PhotoSourceJobIndex,
-    private val currentReceiver: () -> NativePhotoReceiver?, private val currentConfigurer: (() -> NativeGalleryConfigurer?)?) {
-    constructor(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?) : this(index, currentReceiver, null)
+    private val currentReceiver: () -> NativePhotoReceiver?, private val currentConfigurer: (() -> NativeGalleryConfigurer?)?,
+    private val videoAvailable: () -> Boolean) {
+    constructor(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?) : this(index, currentReceiver, null, { true })
     companion object {
         fun forAuthenticatedConfigurer(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?,
-            currentConfigurer: () -> NativeGalleryConfigurer?) = GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer)
+            currentConfigurer: () -> NativeGalleryConfigurer?) = GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, { true })
+        fun forAuthenticatedConfigurer(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?,
+            currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean) =
+            GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, videoAvailable)
     }
     private var uncertain = false
 
@@ -151,6 +155,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
      * rekeys the already acknowledged photo transport or its saved history. */
     @Synchronized fun configureVideos(expected: GalleryPhotoPolicySnapshot, enabled: Boolean): GalleryPhotoPolicySnapshot {
         if (uncertain || expected.repairPending) fail("gallery_policy_repair_pending")
+        if (enabled && !videoAvailable()) fail("gallery_video_handlers_unavailable")
         val receiver = configurer()?.takeIf { it.allowed } ?: fail("gallery_configurer_not_ready")
         val old = expected.policy ?: fail("gallery_video_photo_policy_required")
         if (!old.enabled || old.receiverId != receiver.peerId || old.receiverIdentitySha256 != receiver.identitySha256 ||
@@ -175,6 +180,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
 
     @Synchronized fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? {
         if (uncertain) return null
+        if (mediaType == GalleryMediaType.VIDEO && !videoAvailable()) return null
         val receiver = currentReceiver()?.takeIf { it.allowed } ?: return null
         val saved = index.galleryPolicy()
         val policy = saved.policy ?: return null
