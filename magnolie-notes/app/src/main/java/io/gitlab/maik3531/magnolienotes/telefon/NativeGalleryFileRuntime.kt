@@ -119,27 +119,57 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     /** Native-only handoff. No incoming packet or persisted head creates a run. */
     internal fun sendResumeRunOffer(run: NativeGalleryResumeRun, send: (JsonObject) -> Unit,
         now: () -> Long = System::currentTimeMillis): Unit = withOperation {
+        sendResumeRunOfferOwned(run, send, now)
+        Unit
+    }
+
+    private fun sendResumeRunOfferOwned(run: NativeGalleryResumeRun, send: (JsonObject) -> Unit,
+        now: () -> Long, checkCommand: () -> Unit = {}, wire: Pair<DeviceFileSourceCommand, JsonObject>? = null): NativeGalleryOfferOutput {
         val source = resumeSourceOwned(run)
         if (run.acceptance.get() != null) DeviceFileControl.fail("gallery_resume_acceptance_already_bound")
-        val attempt = run.attempt.get() ?: NativeGalleryResumeAttempt.begin(source, now()).also {
+        val digest = wire?.let { DeviceFileControl.digest("magnolie-gallery-resume-offer-command-v1\u0000", it.second) }
+        var held = run.wireOfferCommand.get()
+        if (held != null && (wire == null || held.requestId != wire.first.requestId || held.commandSha256 != digest || held.message != wire.second))
+            DeviceFileControl.fail("gallery_resume_offer_command_held")
+        if (wire != null && held == null) {
+            if (run.attempt.get() != null) DeviceFileControl.fail("gallery_resume_offer_command_held")
+            checkCommand()
+            held = NativeGalleryWireOfferAttempt(wire.first.requestId, digest!!, wire.second, now()).also { run.wireOfferCommand.set(it) }
+        }
+        fun currentWall(): Long {
+            val at = now(); held?.checkCurrent(at)
+            try { checkCommand() } catch (error: Exception) {
+                try { held?.checkCurrent(now()) } catch (_: Exception) { }
+                throw error
+            }
+            return at
+        }
+        val at = currentWall()
+        val ttl = minOf(DeviceFileControl.MAX_TTL_MS, wire?.first?.expires?.minus(at) ?: DeviceFileControl.MAX_TTL_MS)
+        if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+        val attempt = run.attempt.get() ?: NativeGalleryResumeAttempt.begin(source, at, ttlMs = ttl).also {
             // Keep this exact envelope even when preparation or output fails.
             run.attempt.set(it)
         }
-        attempt.prepareStorage(index, now)
+        attempt.prepareStorage(index, ::currentWall)
         if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
         attempt.sendOffer({ message ->
             if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
             send(message)
             if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
-        }, now)
+        }, ::currentWall)
         if (resumeSourceOwned(run) !== source) DeviceFileControl.fail("gallery_resume_original_changed")
+        currentWall()
+        val manifest = source.manifest
+        return NativeGalleryOfferOutput(attempt.offerId, manifest.transferId, manifest.fingerprint, attempt.offerExpires)
     }
 
     internal fun observeResumeRunAcceptance(run: NativeGalleryResumeRun, message: JsonObject,
         now: () -> Long = System::currentTimeMillis): NativeResumeAcceptanceProjection = withOperation {
         val source = resumeSourceOwned(run)
         val attempt = run.attempt.get() ?: DeviceFileControl.fail("gallery_resume_offer_not_sent")
-        val projection = attempt.observeAcceptance(message, now)
+        fun acceptanceWall(): Long = now().also { run.wireOfferCommand.get()?.checkCurrent(it) }
+        val projection = attempt.observeAcceptance(message, ::acceptanceWall)
         if (resumeSourceOwned(run) !== source || now() >= projection.validUntil)
             DeviceFileControl.fail("gallery_resume_run_not_current")
         val prior = run.acceptance.get()
@@ -429,7 +459,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
-            if (command.operation in setOf("resume_run", "resume_status", "cancel_resume")) {
+            if (command.operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume")) {
                 val run = if (command.operation == "resume_run") {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                     val scope = DeviceFileControl.digest("magnolie-gallery-resume-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
@@ -448,6 +478,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 if (resumeRun !== run) DeviceFileControl.fail("gallery_resume_run_not_current")
                 authority()
                 if (command.operation == "cancel_resume") run.cancel()
+                val offered = if (command.operation == "offer_resume") sendResumeRunOfferOwned(run, send, now,
+                    { authority(); Unit }, command to message) else null
                 val ended = run.preparation.ioEnded
                 val state = if (run.cancelRequested && !ended) "cancel_pending"
                     else if (run.cancelRequested) "canceled_held" else if (ended) run.preparation.phase else "preparing"
@@ -455,10 +487,22 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                     put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ended))
+                    if (offered != null) {
+                        put("offer_id", JsonPrimitive(offered.messageId)); put("manifest_sha256", JsonPrimitive(offered.manifestSha256))
+                    }
                 }
-                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                val at = now(); val deadline = minOf(command.expires, offered?.expires ?: command.expires)
+                val ttl = minOf(DeviceFileControl.MAX_TTL_MS, deadline - at)
                 if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
-                authority(); send(TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)); authority()
+                try {
+                    authority(); send(TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)); authority()
+                    run.wireOfferCommand.get()?.takeIf { command.operation == "offer_resume" }?.checkCurrent(now())
+                } catch (error: Exception) {
+                    // Observe clock expiry/rollback even if authority or reply
+                    // output also failed. A transport error alone keeps retry.
+                    if (command.operation == "offer_resume") try { run.wireOfferCommand.get()?.checkCurrent(now()) } catch (_: Exception) { }
+                    throw error
+                }
                 return@withOperation
             }
             if (command.operation == "media_page") {

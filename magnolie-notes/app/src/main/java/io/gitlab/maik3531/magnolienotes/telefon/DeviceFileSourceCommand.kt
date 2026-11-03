@@ -32,7 +32,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
-            if (operation in setOf("resume_run", "resume_status", "cancel_resume")) {
+            if (operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume")) {
                 val starting = operation == "resume_run"
                 if (body.keys != base + setOf("expected_version") + (if (starting)
                     setOf("catalog_id", "album_id", "desktop_choice", "original_job_id", "original_job_version") else setOf("run_id"))) fail()

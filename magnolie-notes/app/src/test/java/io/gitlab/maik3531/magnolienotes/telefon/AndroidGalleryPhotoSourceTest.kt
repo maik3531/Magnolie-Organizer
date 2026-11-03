@@ -1531,6 +1531,92 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun resumeOfferCommandClampsOfferToRemainingCommandLifetimeAndRepliesAfterDurableSent() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            val command = h.resumeStatus("offer_resume", run, at)
+            h.runtime.receiveSourceCommand(command, { message ->
+                h.inspect { assertEquals(if (message.string("kind") == DeviceFileOfferEnvelope.KIND) "prepared" else "sent", it.resumeAttempt(h.job)!!.phase) }
+                h.channel.send(message)
+            }, { at + 20_000 })
+            val frames = h.drain(); assertEquals(2, frames.size)
+            val offer = frames[0]; val reply = frames[1]
+            assertEquals(at + 60_000, offer.long("expires_ms")); assertEquals(at + 20_000, offer.long("created_ms"))
+            assertEquals(offer.string("message_id"), reply["body"]!!.jsonObject.string("offer_id"))
+            assertEquals(command.string("message_id"), reply["body"]!!.jsonObject.string("request_id"))
+            assertTrue(reply.long("expires_ms") <= offer.long("expires_ms"))
+            assertFalse(h.runtime.observeResumeRunAcceptance(run, h.acceptance(run, at + 20_000), { at + 20_000 }).allowsChunkOutput)
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeOfferCommandLostOutputOrReplyRetriesOnlySameCommandAndOfferEnvelope() {
+        for (lost in listOf(DeviceFileOfferEnvelope.KIND, DeviceFileSourceCommand.RUN_RESULT)) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.resumeStatus("offer_resume", run, at)
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, {
+                h.channel.send(it); if (it.string("kind") == lost) throw java.io.IOException("fixture resume wire output lost")
+            }, { at }) }
+            val initial = h.drain(); val first = initial.first(); val attempt = run.attempt.get()!!
+            h.inspect { assertEquals(if (lost == DeviceFileOfferEnvelope.KIND) "prepared" else "sent", it.resumeAttempt(h.job)!!.phase) }
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at + 1 })
+            val repeated = h.drain(); assertEquals(first, repeated.first()); assertSame(attempt, run.attempt.get())
+            assertEquals(2, repeated.size); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeOfferCommandCannotBeReboundToNewRequestChangedEnvelopeOrNativeFallback() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.resumeStatus("offer_resume", run, at)
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, { throw java.io.IOException("fixture held wire offer") }, { at }) }
+            val held = run.attempt.get()!!
+            val changedId = JsonObject(command + ("message_id" to JsonPrimitive(java.util.UUID.randomUUID().toString())))
+            val changedTime = JsonObject(command + ("created_ms" to JsonPrimitive(at + 1)))
+            for (message in listOf(changedId, changedTime)) assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.receiveSourceCommand(message, h.channel::send, { at + 1 })
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.sendResumeRunOffer(run, h.channel::send, { at + 1 }) }
+            assertSame(held, run.attempt.get()); assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { at }); h.drain()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(h.resumeStatus("offer_resume", run, at), h.channel::send, { at }) }
+            assertNull(run.wireOfferCommand.get()); assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeOfferCommandReplyRollbackOrExitCannotReviveAcceptanceWhenClockReturns() {
+        for (change in listOf("rollback", "exit", "expired")) ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; var wall = at
+            val command = h.resumeStatus("offer_resume", run, at)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, { message ->
+                h.channel.send(message)
+                if (message.string("kind") == DeviceFileSourceCommand.RUN_RESULT) {
+                    when (change) { "rollback" -> wall--; "exit" -> h.runtime.revokeControl(); else -> wall += 60_000 }
+                }
+            }, { wall }) }
+            assertEquals(2, h.drain().size); assertNull(run.acceptance.get())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunAcceptance(run, h.acceptance(run, at), { at }) }
+            assertNull(run.acceptance.get()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeOfferCommandPreparingOrCanceledRunCannotBindAttemptOrReachOutput() {
+        ResumeRuntimeCase().use { h ->
+            val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); check(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            val run = h.start(); val at = h.now + 120_000; val command = h.resumeStatus("offer_resume", run, at)
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+                assertNull(run.attempt.get()); assertNull(run.wireOfferCommand.get())
+                h.runtime.cancelResumeRun(run)
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            } finally { h.release.countDown(); h.awaitEnd() }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()

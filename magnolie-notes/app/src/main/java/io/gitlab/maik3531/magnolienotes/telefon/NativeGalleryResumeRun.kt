@@ -11,6 +11,7 @@ internal class NativeGalleryResumeRun internal constructor(internal val selectio
     val id: String = UUID.randomUUID().toString()
     private val stopped = AtomicBoolean(false)
     internal val attempt = AtomicReference<NativeGalleryResumeAttempt?>()
+    internal val wireOfferCommand = AtomicReference<NativeGalleryWireOfferAttempt?>()
     internal val acceptance = AtomicReference<NativeResumeAcceptanceProjection?>()
     internal val remoteSaved = AtomicReference<RemoteSavedConfirmation?>()
     val cancelRequested: Boolean get() = stopped.get() || preparation.cancelRequested

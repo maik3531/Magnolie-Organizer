@@ -17,6 +17,7 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
     private val elapsed: () -> Long) {
     val id: String = java.util.UUID.randomUUID().toString()
     val offerId: String get() = offer.string("message_id")
+    val offerExpires: Long get() = offer.long("expires_ms")
     private val gate = ReentrantLock()
     private val canceled = AtomicBoolean(false)
     private var invalid = false
@@ -94,13 +95,13 @@ internal class NativeGalleryResumeAttempt private constructor(private val source
 
     companion object {
         fun begin(source: NativeGalleryRenewedSource, now: Long = System.currentTimeMillis(),
-            elapsed: () -> Long = DeviceFileControl::monotonicMs): NativeGalleryResumeAttempt {
+            elapsed: () -> Long = DeviceFileControl::monotonicMs, ttlMs: Long = DeviceFileControl.MAX_TTL_MS): NativeGalleryResumeAttempt {
             val original = source.originalAcceptance().historicalAcceptance()
             val manifest = source.manifest
             if (original.manifestSha256 != manifest.fingerprint || original.transferId != manifest.transferId)
                 DeviceFileControl.fail("gallery_resume_original_changed")
             // This is a NEW bounded offer. No field in the old proof is renewed.
-            val offer = DeviceFileOfferEnvelope.create(manifest, now)
+            val offer = DeviceFileOfferEnvelope.create(manifest, now, ttlMs = ttlMs)
             return NativeGalleryResumeAttempt(source, offer, original, now, elapsed).also { it.current(now) }
         }
     }

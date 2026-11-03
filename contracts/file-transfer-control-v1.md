@@ -1,5 +1,26 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Guarded immutable resume offer command (Refs #360, #337)
+
+offer_resume now addresses only the exact active native resume run. Its complete
+command envelope/request ID/digest is held before durable offer preparation; lost
+offer or result output can retry only that same command and offer. Another request,
+changed envelope, wire-to-native fallback or native-to-wire adoption cannot rebind
+the attempt. A new offer is bounded by remaining command lifetime, not historical
+negotiation TTL. Real prepared/sent metadata and current configuration/peer/source/
+clock checks still surround actual encrypted output and the metadata result.
+
+Observed rollback/expiry stays sticky even if response authority/output fails first;
+restoring wall time cannot revive acceptance. Transport failure alone preserves
+exact retry. Result output is not acceptance, Saved, quota retirement or readiness.
+73 distinct host cases pass (five new, 68 affected): TTL clamping, real encrypted
+offer/result ordering, lost offer/reply retry, request rebinding/fallback rejection,
+reply rollback/exit/expiry and preparing/canceled owners, plus affected native
+attempt/offer/Chunk/Saved/source/parser/normal ownership cases. Normal handlers
+remain separate. Generic resume acceptance/Chunk/Saved transport dispatch, desktop/
+UI, pending-head repair, convergence and physical/platform acceptance remain open.
+Production/automatic/UI/releases remain OFF.
+
 ### Explicit resume source start/status/cancel commands (Refs #359, #337)
 
 The guarded source-command parser/runtime now accepts resume_run with exact
