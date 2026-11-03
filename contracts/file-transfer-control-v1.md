@@ -1580,6 +1580,40 @@ complete cancellation/recovery union still require acceptance, not a Boolean cac
 The global production data-readiness gate, advanced UI, discovery 21, automatic
 runs and releases remain OFF; native UI/bootstrap and recovery union are not done.
 
+### Existing job history before a new media reservation (Refs #337)
+
+After protected mapping lookup, native admission now inspects only an already
+existing authenticated job catalog, bounded by its original limits (32 jobs by
+default, at most 128). Original protected job media history is read without target
+verification, binding renewal, stage ownership, source access or sealing. A known
+same-peer source epoch/photo ID/media type requires reconciliation, even if the
+mapping commit has not happened or an unmarked mapping store is missing. Unknown
+legacy job media identity, missing current media pages or a damaged/missing known
+index are HOLD/repair states, not empty history. No filename/hash deduplication is
+performed. An explicit resume may exempt only its own native job, then still must
+pass all exact original manifest/binding/target/history/minimum/stage checks.
+
+Catalog history inspection is read-only under its native gate/OS lock; nested
+reservation is forbidden. The authenticated job tuple becomes the reservation CAS
+input. A new reservation appearing between history lookup and native admission
+fences the operation before another cache or acceptance is created, including a
+previously empty catalog. An exit during a historical scan stops before new target
+capture while preserving protection/descriptors until the actual read ends.
+
+Seventeen new catalog/history cases and 156 affected cases pass, including actual
+staged/unreceipted/PC-edited/deleted/missing-map gaps, legacy/no-page bypass fences,
+offline history with missing original target and binding/seal callbacks forbidden,
+reservation-list races and close during blocked index read. Two affected cases use
+actual encrypted socketpairs with a fixture phone; this is not physical-phone or
+installed/native Windows acceptance.
+
+This protects known existing catalogs, not a fresh process's inability to distinguish
+a completely missing unanchored catalog from first use. Mandatory native bootstrap
+must anchor the original catalog as well as the mapping store. Do not reconstruct
+orphan indexes from guessed fresh offers or reset metadata. Durable post-mapping
+receipts, retirement/baselines and the full missing-metadata/concurrent recovery
+union remain open. Production readiness, discovery 21, UI, automatic runs and releases stay OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

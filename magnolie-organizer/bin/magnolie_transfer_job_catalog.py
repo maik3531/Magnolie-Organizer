@@ -288,6 +288,22 @@ class ProtectedTransferJobCatalog:
         with self._locked():
             return self._jobs()  # Discovery is metadata-only, not resume consent.
 
+    @contextmanager
+    def inspect_jobs(self):
+        """Bounded authenticated metadata snapshot; never create or reserve.
+        The native parent is for historical index reads, not target authority.
+        """
+        with self._locked():
+            inspecting=getattr(_LOCAL,'inspecting',None)
+            if inspecting is None:inspecting=_LOCAL.inspecting=set()
+            if self._root_key in inspecting:raise TransferError('file_job_catalog_history_busy')
+            inspecting.add(self._root_key)
+            try:
+                jobs=self._jobs()
+                yield self._parent,jobs
+                if self._jobs()!=jobs:raise TransferError('file_job_catalog_history_changed')
+            finally:inspecting.remove(self._root_key)
+
     def require_reserved(self, job):
         """Authenticate exact native operation metadata and private parent.
         This does not start work, grant permission or release any reservation.
@@ -297,7 +313,7 @@ class ProtectedTransferJobCatalog:
                 raise TransferError("file_job_catalog_unknown_native_reservation")
             return self._parent
 
-    def reserve(self, accepted, current_binding):
+    def reserve(self, accepted, current_binding, *, expected_jobs=None):
         with self._locked():
             reserving = getattr(_LOCAL, "reserving", None)
             if reserving is None:
@@ -306,12 +322,13 @@ class ProtectedTransferJobCatalog:
                 raise TransferError("file_job_catalog_nested_reservation")
             reserving.add(self._root_key)
             try:
-                return self._reserve(accepted, current_binding)
+                return self._reserve(accepted, current_binding, expected_jobs=expected_jobs)
             finally:
                 reserving.remove(self._root_key)
 
-    def _reserve(self, accepted, current_binding):
+    def _reserve(self, accepted, current_binding, *, expected_jobs=None):
         with self._locked():
+            if self._root_key in getattr(_LOCAL,'inspecting',set()):raise TransferError('file_job_catalog_history_readonly')
             if self._failed:
                 raise TransferError("file_job_catalog_repair_pending")
             if (type(accepted) is not NativeAcceptedTransfer or accepted.binding.receiver_id != self._identity.receiver_id
@@ -319,6 +336,10 @@ class ProtectedTransferJobCatalog:
                 raise TransferError("file_job_catalog_wrong_receiver")
             accepted.verify(current_binding)
             jobs = self._jobs()
+            if expected_jobs is not None:
+                if type(expected_jobs) is not tuple or any(type(job) is not NativeReservedTransferJob for job in expected_jobs):
+                    raise TransferError('file_job_catalog_native_history_required')
+                if jobs!=expected_jobs:raise TransferError('file_job_catalog_history_changed')
             if any(job.accepted.manifest.transfer_id == accepted.manifest.transfer_id
                     and job.accepted.binding.sender_id == accepted.binding.sender_id for job in jobs):
                 raise TransferError("file_job_catalog_existing_operation")

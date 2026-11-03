@@ -24,6 +24,7 @@ from magnolie_file_offer import KIND as OFFER, validate_offer
 from magnolie_file_chunk_message import RESULT as CHUNK
 from magnolie_file_receive import NativeFileReceiveOperation, NativeReceiveStartError
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
+from magnolie_transfer_job_index import ProtectedTransferJobIndex
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation
 from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction
@@ -418,7 +419,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_offer_not_confirmed')
             self._correlate_source_offer(self._source_offer, clock)
 
-    def _require_unmapped_media(self):
+    def _require_unmapped_media(self, *, resume_owner=None):
         """Historical association wins over current target settings.
 
         This only fences new admission. It neither proves first use after lost
@@ -431,7 +432,7 @@ class NativeDesktopFileConnection:
         if not self._source_media_pages:
             if before.count:
                 raise TransferError('file_desktop_photo_mapping_media_required')
-            return
+            return self._require_unreserved_media_history(resume_owner)
         page = self._source_media_pages[0]
         entries = self._source_media_entries
         if entries is None:
@@ -444,6 +445,41 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_photo_mapping_changed')
             if any(record is not None for record in records):
                 raise TransferError('file_desktop_photo_mapping_requires_reconcile')
+        return self._require_unreserved_media_history(resume_owner)
+
+    def _require_unreserved_media_history(self,resume_owner):
+        # Job anchors precede publication/mapping. Their absence/corruption is
+        # not evidence of first use or permission to reserve another copy.
+        if not self._open_catalog(allow_create=False):return ()
+        peer=self._authority.current_peer()
+        if peer is None:raise TransferError('file_desktop_native_authority_changed')
+        wanted=set()
+        if self._source_media_pages:
+            first=self._source_media_pages[0]
+            wanted={(first.source_epoch,entry.photo_id,first.media_type) for entry in self._source_media_entries}
+        protection=self._authority.protection
+        with self._catalog.inspect_jobs() as (parent,jobs):
+            for job in jobs:
+                self._ready()
+                binding=job.accepted.binding
+                if (binding.sender_id!=peer.peer_id or binding.sender_identity_sha256!=peer.identity_sha256
+                        or job.owner==resume_owner):continue
+                try:
+                    # Historical metadata only: no target verification, source
+                    # READ renewal, stage worker or publication is authorized.
+                    with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,lambda:None,
+                            protection.seal,protection.unseal,owner=job.owner) as index:
+                        history=index.media_history
+                except Exception as error:
+                    raise TransferError('file_desktop_photo_job_repair_pending') from error
+                self._ready()
+                if history is None:
+                    if wanted:raise TransferError('file_desktop_photo_job_history_required')
+                    continue # Limited generic legacy file path, not media readiness.
+                if not wanted:raise TransferError('file_desktop_photo_job_media_required')
+                if any((history.source_epoch,entry.photo_id,history.media_type) in wanted for entry in history.entries):
+                    raise TransferError('file_desktop_photo_job_requires_reconcile')
+            return jobs
 
     def _verify_expected_mapping_store(self):
         snapshot=self._receiving_policy()
@@ -527,7 +563,7 @@ class NativeDesktopFileConnection:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
-            self._require_unmapped_media()
+            observed_jobs=self._require_unmapped_media()
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -552,7 +588,8 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_offer_expired')
                 protection = self._authority.protection
                 self._run.receiver = NativeFileReceiveOperation.accept(self._catalog, accepted,
-                    self._receive_binding, protection.seal, protection.unseal, self._publication_gate,media_history=history)
+                    self._receive_binding, protection.seal, protection.unseal, self._publication_gate,media_history=history,
+                    expected_jobs=observed_jobs)
                 self._run.job = self._run.receiver.job
                 self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
                 action.validate(self)
@@ -583,7 +620,7 @@ class NativeDesktopFileConnection:
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
             self._require_source_offer(clock)
-            self._require_unmapped_media()
+            observed_jobs=self._require_unmapped_media(resume_owner=native_job_owner)
             snapshot = self._receiving_policy()
             binding = self._receive_binding()
             if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
@@ -591,7 +628,9 @@ class NativeDesktopFileConnection:
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
             if clock() >= self._offer['expires_ms'] or not self._open_catalog(allow_create=False):
                 raise TransferError('file_desktop_resume_unavailable')
-            job = next((job for job in self._catalog.jobs() if job.owner == native_job_owner), None)
+            current_jobs=self._catalog.jobs()
+            if current_jobs!=observed_jobs:raise TransferError('file_desktop_photo_job_history_changed')
+            job = next((job for job in current_jobs if job.owner == native_job_owner), None)
             if (job is None or job.accepted.manifest != manifest or job.accepted.binding != binding
                     or job.accepted.destination != snapshot.policy.destination):
                 raise TransferError('file_desktop_resume_not_current')

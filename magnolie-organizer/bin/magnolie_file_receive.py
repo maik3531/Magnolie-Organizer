@@ -43,7 +43,7 @@ class NativeReceiveProgress:
 
 class NativeFileReceiveOperation:
     @classmethod
-    def accept(cls, catalog, accepted, current_binding, seal, unseal, publication_gate, *, media_history=None):
+    def accept(cls, catalog, accepted, current_binding, seal, unseal, publication_gate, *, media_history=None,expected_jobs=None):
         if (type(catalog) is not ProtectedTransferJobCatalog
                 or not all(callable(value) for value in (current_binding, seal, unseal, publication_gate))):
             raise TransferError("file_receive_native_controller_required")
@@ -51,7 +51,7 @@ class NativeFileReceiveOperation:
             from magnolie_file_media_history import NativeMediaHistory
             if type(media_history) is not NativeMediaHistory:raise TransferError('file_receive_native_media_history_required')
             NativeMediaHistory.parse(media_history.wire(),accepted)
-        job = catalog.reserve(accepted, current_binding)
+        job = catalog.reserve(accepted, current_binding,expected_jobs=expected_jobs)
         return cls(catalog, job, current_binding, seal, unseal, publication_gate, create=True,media_history=media_history)
 
     @classmethod
