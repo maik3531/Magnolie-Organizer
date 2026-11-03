@@ -22,6 +22,7 @@ import weakref
 
 from magnolie_file_transfer import FileManifest, NativeTransferBinding, TransferError, TransferStageHandle
 from magnolie_file_acceptance import NativeAcceptedTransfer
+from magnolie_file_media_history import NativeMediaHistory
 from magnolie_file_receipt import NativeSavedFileReceipt
 from magnolie_file_publish import inspect_publication_destination
 from magnolie_publication_journal import ProtectedPublicationJournal
@@ -65,7 +66,7 @@ class ProtectedTransferJobIndex:
         "heads": "CREATE TABLE heads(revision INTEGER PRIMARY KEY,payload BLOB NOT NULL)"}
     _RECEIPT_SCHEMA = "CREATE TABLE receipts(file_id TEXT PRIMARY KEY,payload BLOB NOT NULL)"
 
-    def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False, accepted=None):
+    def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False, accepted=None, media_history=None):
         if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
                 or (manifest.sender_id, manifest.receiver_id) != (binding.sender_id, binding.receiver_id)
                 or type(owner) is not str or re.fullmatch(r"[0-9a-f]{32}", owner) is None
@@ -76,7 +77,13 @@ class ProtectedTransferJobIndex:
             if type(accepted) is not NativeAcceptedTransfer or accepted.manifest != manifest or accepted.binding != binding:
                 raise TransferError("transfer_job_index_acceptance_mismatch")
             self._context = dict(self._context, format=2, accepted=accepted.wire())
+        if media_history is not None:
+            if type(media_history) is not NativeMediaHistory:
+                raise TransferError('transfer_job_index_native_media_history_required')
+            media_history=NativeMediaHistory.parse(media_history.wire(),accepted)
+            self._context=dict(self._context,format=3,media_history=media_history.wire())
         self._accepted = accepted
+        self._media_history = media_history
         self._expected_manifest = manifest
         self._binding, self._current = binding, current_binding
         self._seal, self._unseal = seal, unseal
@@ -269,25 +276,36 @@ class ProtectedTransferJobIndex:
         value = self._open(blob, "owner")
         if (type(value) is dict and type(value.get("context")) is dict
                 and type(value["context"].get("format")) is int
-                and value["context"].get("format") == 2 and self._context["format"] == 1):
+                and value["context"].get("format") in (2,3) and value['context']['format'] > self._context['format']):
             stored = value["context"]
-            base = {key: item for key, item in stored.items() if key != "accepted"}
-            if dict(base, format=1) != self._context or "accepted" not in stored:
+            base = {key: item for key, item in stored.items() if key != "media_history"}
+            if 'accepted' not in stored:
                 raise TransferError("transfer_job_index_acceptance_mismatch")
             accepted = NativeAcceptedTransfer.parse(stored["accepted"])
             if accepted.manifest != self._expected_manifest or accepted.binding != self._binding:
                 raise TransferError("transfer_job_index_acceptance_mismatch")
+            if self._accepted is not None and self._accepted != accepted:
+                raise TransferError('transfer_job_index_acceptance_mismatch')
+            wanted_base=dict(self._context,format=2,accepted=accepted.wire())
+            if dict(base,format=2)!=wanted_base:
+                raise TransferError('transfer_job_index_acceptance_mismatch')
             # Parsing authenticated metadata does not check a live destination
             # or grant. Mutation still goes through _fresh/accepted.verify.
-            wanted_context = dict(self._context, format=2, accepted=accepted.wire())
+            wanted_context = wanted_base
+            if stored['format']==3:
+                history=NativeMediaHistory.parse(stored.get('media_history'),accepted)
+                wanted_context=dict(wanted_context,format=3,media_history=history.wire())
+            else:
+                history=None
         else:
             accepted = self._accepted
             wanted_context = self._context
+            history = self._media_history
         wanted = {"context": wanted_context, "root_key": list(self._root_key),
             "database_key": list(self._database_key), "lock_key": list(self._lock_key)}
         if value != wanted or self._owner_cipher is not None and self._owner_cipher != blob:
             raise TransferError("transfer_job_index_owner_changed")
-        self._context, self._accepted = wanted_context, accepted
+        self._context, self._accepted, self._media_history = wanted_context, accepted, history
         self._owner_cipher = blob
 
     @property
@@ -295,6 +313,12 @@ class ProtectedTransferJobIndex:
         with self._locked():
             self._owner()
             return self._accepted  # None for legacy heads; never guessed defaults.
+
+    @property
+    def media_history(self):
+        with self._locked():
+            self._owner()
+            return self._media_history  # Historical only; absence is not inferred.
 
     def _snapshot(self):
         self._schema()

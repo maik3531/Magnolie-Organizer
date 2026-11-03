@@ -43,12 +43,16 @@ class NativeReceiveProgress:
 
 class NativeFileReceiveOperation:
     @classmethod
-    def accept(cls, catalog, accepted, current_binding, seal, unseal, publication_gate):
+    def accept(cls, catalog, accepted, current_binding, seal, unseal, publication_gate, *, media_history=None):
         if (type(catalog) is not ProtectedTransferJobCatalog
                 or not all(callable(value) for value in (current_binding, seal, unseal, publication_gate))):
             raise TransferError("file_receive_native_controller_required")
+        if media_history is not None:
+            from magnolie_file_media_history import NativeMediaHistory
+            if type(media_history) is not NativeMediaHistory:raise TransferError('file_receive_native_media_history_required')
+            NativeMediaHistory.parse(media_history.wire(),accepted)
         job = catalog.reserve(accepted, current_binding)
-        return cls(catalog, job, current_binding, seal, unseal, publication_gate, create=True)
+        return cls(catalog, job, current_binding, seal, unseal, publication_gate, create=True,media_history=media_history)
 
     @classmethod
     def resume(cls, catalog, job, current_binding, seal, unseal, publication_gate):
@@ -69,7 +73,7 @@ class NativeFileReceiveOperation:
         job.accepted.verify(current_binding)
         return result
 
-    def __init__(self, catalog, job, current_binding, seal, unseal, publication_gate, *, create):
+    def __init__(self, catalog, job, current_binding, seal, unseal, publication_gate, *, create,media_history=None):
         if (type(catalog) is not ProtectedTransferJobCatalog or type(create) is not bool
                 or not all(callable(value) for value in (current_binding, seal, unseal, publication_gate))):
             raise TransferError("file_receive_native_controller_required")
@@ -90,7 +94,7 @@ class NativeFileReceiveOperation:
         self._receipts = None
         try:
             self._index = ProtectedTransferJobIndex(parent, self._accepted.manifest, self._accepted.binding,
-                current_binding, seal, unseal, owner=job.owner, create=create, accepted=self._accepted)
+                current_binding, seal, unseal, owner=job.owner, create=create, accepted=self._accepted,media_history=media_history)
             self._lease = self._index.claim_operation()
             self._stage = EncryptedTransferStage(parent, self._accepted.manifest, self._accepted.binding,
                 current_binding, seal, unseal, owner=job.owner)

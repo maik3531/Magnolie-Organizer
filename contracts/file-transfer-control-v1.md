@@ -1434,6 +1434,36 @@ Whole consistent private-backup rollback without a trusted external monotonic
 anchor is not claimed prevented by the in-process revision fence. These open recovery
 and migration requirements keep production readiness, UI and automatic runs OFF.
 
+### Immutable per-job media history (Refs #337)
+
+Media-aware native admission now captures the exact accepted transfer fingerprint,
+whole manifest hash, original source version/run/epoch/type, insertion metadata,
+original page request IDs/counts and ordered opaque member associations. The
+protected job index stores this immutable history in owner context format 3 during
+initial index creation, before staged chunks or first media publication. The
+SQLite schema/checkpoint/receipt formats stay unchanged; old context formats 1/2
+remain readable and have no invented media anchor. Native receiver admission checks
+a supplied typed history against the exact accepted context before reserving a job.
+
+Reopen may authenticate format 3 through existing format-1/2 caller contexts, but
+must retain the original exact accepted destination/targets, not merely matching
+manifest and peer binding. History parsing checks full order, unique IDs, original
+bounded page attempts and type consistency. This is historical identity metadata,
+not renewed Android READ, current presence, publication authority, a save receipt
+or completed baseline. No expired source request is reconstructed or resent from it.
+
+The initial new tests incorrectly expected an empty destination directory after
+native admission, overlooking its existing private publication workspace. The
+fixture now checks that exact original workspace and absence of all media targets;
+no production guard was relaxed or workspace removed. Fourteen corrected history
+cases and 42 native index/receiver regressions pass. A further 68 owner-union cases
+pass, including two additional history boundary/accepted-target cases; 47 affected
+receipt/source and 14 saved-wire cases also pass. One fresh-process case reads the
+actual protected native history with the existing key and no live binding or seal
+callback. In total these are 17 new history cases and 169 affected existing cases.
+This is source-host evidence, not physical phone, power-loss or native Windows
+receiver acceptance. Post-save mapping and missing-store recovery remain unjoined.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

@@ -16,6 +16,7 @@ from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_sources import _body
 import magnolie_file_sources as source_messages
 from magnolie_file_media import parse_media_page, correlate_media_pages
+from magnolie_file_media_history import NativeMediaHistory
 from magnolie_file_transfer import TransferError
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
@@ -512,6 +513,7 @@ class NativeDesktopFileConnection:
                 snapshot.policy.destination.path, self._receive_binding)
             if accepted.destination != snapshot.policy.destination:
                 raise TransferError('file_desktop_original_destination_changed')
+            history = NativeMediaHistory.capture(accepted,self._source_media_pages) if self._source_media_pages else None
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, accepted)
             self._mutation_action = action
@@ -522,7 +524,7 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_offer_expired')
                 protection = self._authority.protection
                 self._run.receiver = NativeFileReceiveOperation.accept(self._catalog, accepted,
-                    self._receive_binding, protection.seal, protection.unseal, self._publication_gate)
+                    self._receive_binding, protection.seal, protection.unseal, self._publication_gate,media_history=history)
                 self._run.job = self._run.receiver.job
                 self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
                 action.validate(self)
