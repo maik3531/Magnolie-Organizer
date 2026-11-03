@@ -279,6 +279,61 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
          * On failure the caller retains the exact allocated directory for guarded recovery;
          * it must not report a completed source or reuse partial chunks as proofs.
          */
+        internal fun selectFrozen(original: ProtectedPhotoSourceSnapshot, root: File, selected: List<String>,
+            cancellation: CancellationSignal, boundary: (String) -> Unit = {}): ProtectedPhotoSourceSnapshot {
+            val source = original.manifest
+            val lease = original.lease as? GalleryPhotoSourceLease ?: fail("gallery_media_native_scope_required")
+            if (selected.isEmpty() || selected != selected.sorted().distinct() || selected.any { id -> source.files.none { it.id == id } })
+                fail("photo_snapshot_invalid_selection")
+            val files = source.files.filter { it.id in selected }
+            require(root.isAbsolute && root.canonicalFile == root)
+            val metadata = attributes(root)
+            if (!metadata.isDirectory || metadata.fileKey() == null || Files.newDirectoryStream(root.toPath()).use { it.iterator().hasNext() })
+                fail("photo_snapshot_new_private_directory_required")
+            val owner = id()
+            val members = (source.wire()["files"] as JsonArray).filter { item ->
+                selected.any { (item as JsonObject)["id"] == JsonPrimitive(it) }
+            }
+            val value = JsonObject(source.wire() + mapOf("source_id" to JsonPrimitive(owner), "transfer_id" to JsonPrimitive(id()),
+                "files" to JsonArray(members), "total_bytes" to JsonPrimitive(files.sumOf { it.size })))
+            val manifest = DeviceFileManifest.parse(value)
+            val snapshot = ProtectedPhotoSourceSnapshot(root, original.protection, original.scope, lease, cancellation,
+                owner, metadata.fileKey()!!, boundary)
+            try {
+                snapshot.fresh(); original.fresh()
+                val plan = JsonObject(manifest.wire() + ("files" to JsonArray(members.map {
+                    JsonObject((it as JsonObject) + ("sha256" to JsonPrimitive("0".repeat(64))))
+                })))
+                snapshot.create("owner.enc", frame(JsonObject(mapOf("format" to JsonPrimitive(1), "plan" to plan))))
+                files.forEach { file ->
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    val chunks = ((file.size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()
+                    repeat(chunks) { index ->
+                        snapshot.fresh()
+                        val bytes = original.readChunk(file.id, index)
+                        try {
+                            digest.update(bytes)
+                            val clear = byteArrayOf(1) + bytes
+                            try { snapshot.create("${file.id}-$index.enc", clear) } finally { clear.fill(0) }
+                        } finally { bytes.fill(0) }
+                    }
+                    if (hex(digest.digest()) != file.sha256) fail("photo_snapshot_final_digest_changed")
+                    if (file.size == 0L) snapshot.create("empty-${file.id}.enc", byteArrayOf(1))
+                }
+                snapshot.create("manifest.enc", frame(manifest.wire()))
+                files.forEach { file ->
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    val chunks = ((file.size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()
+                    repeat(chunks) { index -> snapshot.readMemberChunk(file, index).also { digest.update(it); it.fill(0) } }
+                    if (hex(digest.digest()) != file.sha256) fail("photo_snapshot_final_digest_changed")
+                }
+                snapshot.fresh(); original.fresh()
+                snapshot.sealedManifest = manifest
+                snapshot.origins = original.galleryOrigins?.selected(manifest, lease) ?: fail("gallery_media_origins_required")
+                return snapshot
+            } catch (error: Exception) { throw PhotoSnapshotBuildFailure(snapshot, error) }
+        }
+
         fun freeze(root: File, inventory: PhotoSourceInventory, senderId: String, scope: NativePhotoSourceAuthority,
             source: PhotoSourceAccess, protection: DeviceTransferProtection,
             cancellation: CancellationSignal = CancellationSignal(), boundary: (String) -> Unit = {}): ProtectedPhotoSourceSnapshot {

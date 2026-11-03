@@ -26,6 +26,11 @@ internal class GalleryPhotoOrigins private constructor(entries: List<GalleryPhot
         JsonObject(fields + (if (format == 2) mapOf("native_revision" to (it.nativeRevision?.let(::JsonPrimitive) ?: JsonNull)) else emptyMap()))
     })))
 
+    internal fun selected(manifest: DeviceFileManifest, lease: GalleryPhotoSourceLease): GalleryPhotoOrigins {
+        val chosen = manifest.files.map { file -> entries.singleOrNull { it.fileId == file.id } ?: fail() }
+        return parse(GalleryPhotoOrigins(chosen, format, false).wire(), manifest, lease)
+    }
+
     companion object {
         private val member = Regex("[1-9][0-9]{0,18}:(0|[1-9][0-9]{0,18})(:(0|[1-9][0-9]{0,18}))?")
         private fun validMember(value: String) = member.matches(value) && value.split(':').all { it.toLongOrNull() != null }

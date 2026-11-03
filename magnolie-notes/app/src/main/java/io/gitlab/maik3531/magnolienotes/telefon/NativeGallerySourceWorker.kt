@@ -65,6 +65,10 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         renew: (NativeGalleryAlbumSelection, CancellationSignal) -> NativeGalleryRenewedSource): NativeGallerySourceRun =
         startOwned(selection) { selected, cancellation -> renew(selected, cancellation).let { it.job to it } }
 
+    fun startSelected(selection: NativeGalleryAlbumSelection,
+        copy: (CancellationSignal) -> PhotoSourceJob): NativeGallerySourceRun =
+        startOwned(selection) { _, cancellation -> copy(cancellation) to null }
+
     private fun startOwned(selection: NativeGalleryAlbumSelection,
         action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob, NativeGalleryRenewedSource?>): NativeGallerySourceRun {
         val run = synchronized(gate) {

@@ -1,5 +1,28 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Mixed ordinary album: explicit frozen-member selection (Refs #330)
+
+select_run binds an exact unaccepted current preview run/manifest to a bounded,
+sorted, distinct list of its opaque member IDs. A new actual single-worker source
+copies only those protected frozen bytes into a separately reserved/read-back native
+snapshot with new source/transfer/run identities, preserving original photo origins
+and content hashes. No provider reopen, old accepted-head mutation or PC-file adoption
+occurs. Only the never-accepted preview cache is retired after the selected snapshot
+commits; accepted jobs and original phone photos remain untouched. Held command replay
+returns the same new owner after lost output, never another selection worker.
+
+The desktop derives that selection from a fresh native review's NEW photos only.
+Selected results must use a new owner; subsequent media/photo IDs, source namespace,
+media kinds and exact subset manifest must match the original selection before
+ordinary native admission. Known PC edits remain at their original mapped targets.
+165 distinct host cases pass (seven new, 158 affected): real native frozen-member
+copy/next offer/acceptance/Chunk with provider reopen forbidden and lost-reply replay,
+strict ID lists, actual mixed desktop publication of only the new photo, existing
+PC crop/inode/mapping preservation, next full scan without downloads, and foreign
+member/photo/owner rejection plus existing codec/source/review compatibility.
+Large-album batching, changed-photo execution and actual UI/phone/platform integration
+remain unfinished. No capability/readiness/automatic/UI/release gate is enabled here.
+
 ### Ordinary repeated-photo review and normal source completion (Refs #330)
 
 The native desktop now compares the fresh phone manifest with the ORIGINAL protected

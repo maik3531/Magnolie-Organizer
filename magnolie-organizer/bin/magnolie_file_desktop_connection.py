@@ -68,6 +68,7 @@ class NativeDesktopFileConnection:
         self._receive_stop = None
         self._stopped_receive_run = None
         self._resume_end_confirmation = self._resume_abandonment = None
+        self._selected_preview = self._selected_source_id = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -268,6 +269,14 @@ class NativeDesktopFileConnection:
             self._require_resume_lookup_selection()
         elif pending.command.operation == 'abandon_resume':
             self._require_resume_abandonment_intent()
+        elif pending.command.operation == 'select_run':
+            selected = self._selected_preview
+            if (selected is None or self._source_run is None or self._source_run.run_id != selected.source_run_id
+                    or self._selected_source_id is not None or self._offer is None
+                    or pending.command.selection_manifest_sha256 != selected.manifest.fingerprint
+                    or pending.command.selected_file_ids != selected.file_ids
+                    or self._mappings.read() != selected.mapping_snapshot):
+                raise TransferError('file_desktop_photo_selection_not_current')
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
             self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=pending.command.operation == 'cancel_resume')
 
@@ -529,9 +538,18 @@ class NativeDesktopFileConnection:
             known_photos = {entry.photo_id for page in self._source_media_pages for entry in page.entries}
             if any(entry.file_id in known_files or entry.photo_id in known_photos for entry in result.entries):
                 raise TransferError('file_desktop_source_duplicate_media')
+            selected = self._selected_preview
+            if selected is not None and self._selected_source_id == command.run_id:
+                expected = {entry.file_id: entry for entry in selected.entries}
+                if ((result.source_epoch, result.media_type, result.insertion_witness, result.total_files) !=
+                        (selected.source_epoch, selected.media_type, selected.insertion_witness, len(selected.file_ids))
+                        or any(expected.get(entry.file_id) != entry for entry in result.entries)):
+                    raise TransferError('file_desktop_photo_selection_changed')
         else:
             result = source_messages.parse_run_result(message, expected_request_id=command.request_id, expected_operation=command.operation,
-                expected_version=command.expected_version, expected_run_id=command.run_id, now=at)
+                expected_version=command.expected_version, expected_run_id=None if command.operation == 'select_run' else command.run_id, now=at)
+            if command.operation == 'select_run' and result.run_id == command.run_id:
+                raise TransferError('file_desktop_photo_selection_owner_reused')
             old = self._source_run
             if old is not None and old.run_id == result.run_id and (
                     old.source_io_ended and not result.source_io_ended
@@ -570,12 +588,18 @@ class NativeDesktopFileConnection:
             self._source_run = self._source_offer = None
             self._offer = self._offer_binding = self._offer_policy_version = None
             self._source_media_pages = (); self._source_media_entries = None
+            self._selected_preview = self._selected_source_id = None
         elif command.operation == 'end_resume':
             self._resume_end_confirmation = (self._resume_lookup_selection.job, result)
             self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
             self._source_run = self._source_offer = self._resume_source_id = None
             self._resume_lookup_selection = self._resume_history = None
             self._offer = self._offer_binding = self._offer_policy_version = None
+            self._source_media_pages = (); self._source_media_entries = None
+        elif command.operation == 'select_run':
+            self._source_run = result
+            self._selected_source_id = result.run_id
+            self._offer = self._offer_binding = self._offer_policy_version = self._source_offer = None
             self._source_media_pages = (); self._source_media_entries = None
         elif command.operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
@@ -628,6 +652,12 @@ class NativeDesktopFileConnection:
         snapshot = self._receiving_policy()
         binding = self._receive_binding()
         manifest = validate_offer(message, binding.sender_id, binding.receiver_id, now=clock())
+        selected = self._selected_preview
+        if selected is not None and self._source_run is not None and self._source_run.run_id == self._selected_source_id:
+            expected_files = tuple(file for file in selected.manifest.files if file.id in selected.file_ids)
+            if (manifest.files != expected_files or manifest.source_id == selected.manifest.source_id
+                    or manifest.transfer_id == selected.manifest.transfer_id):
+                raise TransferError('file_desktop_photo_selection_changed')
         if self._source_run is None and manifest.fingerprint == self._resume_ended_manifest:
             raise TransferError('file_desktop_resume_source_owner_ended')
         if clock() >= message['expires_ms']:
@@ -805,6 +835,37 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_offer_expired')
             return NativePhotoReview(manifest.fingerprint, tuple(items))
 
+    def select_pending_new_photos(self, action, *, clock=now_ms):
+        """Select only unmapped current phone members after a fresh native review.
+        Known photos retain their individual historical targets and local edits.
+        """
+        reviewed = self.review_pending_photos(action, clock=clock)
+        with self._operation():
+            action.validate(self)
+            if (self._run is not None or self._resume_source_id is not None or self._source_pending is not None
+                    or self._source_run is None or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
+                    or self._selected_preview is not None):
+                raise TransferError('file_desktop_photo_selection_not_current')
+            self._require_source_offer(clock)
+            binding = self._receive_binding()
+            manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+            if manifest.fingerprint != reviewed.manifest_sha256:
+                raise TransferError('file_desktop_photo_selection_not_current')
+            ids = tuple(sorted(item.file_id for item in reviewed.items if item.decision == 'new_photo'))
+            if not ids:
+                return None  # Explicit no-download review, not a Saved receipt.
+            first = self._source_media_pages[0]
+            entries = tuple(entry for entry in self._source_media_entries if entry.file_id in ids)
+            self._selected_preview = _NativeDesktopPhotoSelection(manifest, self._source_run.run_id, ids, entries,
+                first.source_epoch, first.media_type, first.insertion_witness, self._mappings.read())
+            message = source_messages.create_command('select_run', expected_version=self._source_status.version,
+                run_id=self._source_run.run_id, manifest_sha256=manifest.fingerprint, file_ids=list(ids), now=clock())
+            command = source_messages.parse_command(message, now=clock())
+            ticket = self._controls.receiver_command_ticket()
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._send_source_pending(clock, action)
+            return message['message_id']
+
     def _require_unreserved_media_history(self,resume_owner):
         # Job anchors precede publication/mapping. Their absence/corruption is
         # not evidence of first use or permission to reserve another copy.
@@ -973,6 +1034,7 @@ class NativeDesktopFileConnection:
                     self._receive_binding, protection.seal, protection.unseal, self._publication_gate,media_history=history,
                     expected_jobs=observed_jobs)
                 self._run.job = self._run.receiver.job
+                self._selected_preview = self._selected_source_id = None
                 self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
                 action.validate(self)
                 self._send_data(self._run.acceptance, clock, action=action)
@@ -1377,6 +1439,18 @@ class _NativeDesktopResumeLookup:
     job: object
     policy_version: str
     source_version: str
+
+
+@dataclass(frozen=True)
+class _NativeDesktopPhotoSelection:
+    manifest: object
+    source_run_id: str
+    file_ids: tuple
+    entries: tuple
+    source_epoch: str
+    media_type: str
+    insertion_witness: bool
+    mapping_snapshot: object
 
 
 @dataclass

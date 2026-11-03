@@ -67,6 +67,8 @@ class SourceCommand:
     manifest_sha256: str | None = None
     attempt_id: str | None = None
     attempt_sha256: str | None = None
+    selection_manifest_sha256: str | None = None
+    selected_file_ids: tuple = ()
 
 
 def parse_command(message, *, now=None):
@@ -79,6 +81,16 @@ def parse_command(message, *, now=None):
                 or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], body['operation'], body['expected_version'], after=body['after'], run_id=body['run_id'])
+    if body.get('operation') == 'select_run':
+        if (set(body) != base | {'expected_version', 'run_id', 'manifest_sha256', 'file_ids'}
+                or not _hex(body['expected_version']) or not _hex(body['manifest_sha256'])
+                or not valid_uuid(body['run_id'], version=4) or type(body['file_ids']) is not list
+                or not 1 <= len(body['file_ids']) <= 128
+                or any(type(value) is not str or re.fullmatch(r'[0-9a-f]{32}', value) is None for value in body['file_ids'])
+                or body['file_ids'] != sorted(set(body['file_ids']))):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], 'select_run', body['expected_version'], run_id=body['run_id'],
+            selection_manifest_sha256=body['manifest_sha256'], selected_file_ids=tuple(body['file_ids']))
     if body.get('operation') == 'abandon_resume':
         if (set(body) != base | {'expected_version', 'run_id', 'original_job_id', 'original_job_version', 'attempt_id', 'attempt_sha256'}
                 or not _hex(body['expected_version']) or not _hex(body['original_job_version']) or not _hex(body['attempt_sha256'])
@@ -145,20 +157,27 @@ def parse_command(message, *, now=None):
 
 def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
                    album_id=None, desktop_choice=None, run_id=None, original_job_id=None, original_job_version=None,
-                   source_id=None, transfer_id=None, manifest_sha256=None, attempt_id=None, attempt_sha256=None, now=None, message_id=None):
+                   source_id=None, transfer_id=None, manifest_sha256=None, attempt_id=None, attempt_sha256=None,
+                   file_ids=None, now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation != 'resume_lookup' and any(value is not None for value in (source_id, transfer_id, manifest_sha256)):
+    if operation not in ('resume_lookup', 'select_run') and any(value is not None for value in (source_id, transfer_id, manifest_sha256)):
+        raise TransferError('file_sources_invalid_command')
+    if operation != 'select_run' and file_ids is not None:
         raise TransferError('file_sources_invalid_command')
     if operation != 'abandon_resume' and any(value is not None for value in (attempt_id, attempt_sha256)):
         raise TransferError('file_sources_invalid_command')
     if operation not in ('resume_run', 'abandon_resume') and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'select_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
-    if operation == 'abandon_resume':
+    if operation == 'select_run':
+        if enabled is not None or kinds != () or any(value is not None for value in (source_id, transfer_id, catalog_id, after, album_id, desktop_choice)):
+            raise TransferError('file_sources_invalid_command')
+        body.update(expected_version=expected_version, run_id=run_id, manifest_sha256=manifest_sha256, file_ids=file_ids)
+    elif operation == 'abandon_resume':
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, run_id=run_id, original_job_id=original_job_id,
@@ -412,10 +431,10 @@ def parse_run_result(message, *, expected_request_id, expected_operation, expect
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'} |
             ({'offer_id', 'manifest_sha256'} if offering else {'run_ended'} if ending else set())
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
+            or body['operation'] not in ('run', 'select_run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
             or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
-            or body['operation'] not in ('run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
-            or body['operation'] in ('run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id
+            or body['operation'] not in ('run', 'select_run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
+            or body['operation'] in ('run', 'select_run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id
             or type(body['source_io_ended']) is not bool
             or body['state'] not in ('preparing', 'snapshot_ready', 'cancel_pending', 'canceled_held', 'failed_held')
             or body['source_io_ended'] != (body['state'] in ('snapshot_ready', 'canceled_held', 'failed_held'))

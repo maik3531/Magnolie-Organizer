@@ -2058,6 +2058,57 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun ordinarySelectedRunCopiesOnlyRequestedFrozenMemberWithoutReopeningPhonePhoto() {
+        ResumeRuntimeCase(2).use { h ->
+            val at = h.now + 120_000
+            h.watchEnd(); val preview = h.runtime.beginSyncRun(h.selected); h.awaitEnd()
+            val previewJob = preview.preparation.completedNativeJob()!!
+            h.runtime.sendSyncRunOffer(preview, h.channel::send, at)
+            val fullOffer = h.drain().single()
+            val full = DeviceFileOfferEnvelope.validate(fullOffer, h.identity.deviceId, h.peer.peerId, at)
+            val chosen = full.files.last()
+            val command = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "select_run"); put("expected_version", h.runtime.savedPolicy().version)
+                put("run_id", preview.id); put("manifest_sha256", full.fingerprint)
+                put("file_ids", JsonArray(listOf(JsonPrimitive(chosen.id))))
+            }, 60_000, at)
+            val opens = h.f.provider.opens.toList()
+            h.f.provider.onOpen = { throw AssertionError("Selected frozen member must not reopen the provider") }
+            h.watchEnd()
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, {
+                h.channel.send(it); throw java.io.IOException("fixture selected-run reply lost")
+            }, { at }) }
+            h.drain(); h.awaitEnd()
+            val selected = NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }.get(h.runtime) as NativeGallerySyncRun
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at + 1 }); h.drain()
+            assertSame(selected, NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }.get(h.runtime))
+            assertNotEquals(preview.id, selected.id); assertTrue(preview.cancelRequested)
+            assertNotEquals(previewJob.id, selected.preparation.snapshotJob()!!.id)
+            assertFalse(File(h.root, "photo-source-" + previewJob.id).exists())
+            assertEquals(opens, h.f.provider.opens)
+            h.runtime.sendSyncRunOffer(selected, h.channel::send, at + 1)
+            val offered = h.drain().single()
+            val subset = DeviceFileOfferEnvelope.validate(offered, h.identity.deviceId, h.peer.peerId, at + 1)
+            assertEquals(listOf(chosen), subset.files); assertNotEquals(full.transferId, subset.transferId)
+            assertNotEquals(full.sourceId, subset.sourceId)
+            h.runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("offer_id", offered.string("message_id")); put("transfer_id", subset.transferId)
+                put("manifest_sha256", subset.fingerprint); put("acceptance_sha256", "c".repeat(64))
+                put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token", "e".repeat(64))
+            }, 60_000, at + 1), { at + 1 })
+            val request = TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                put("format", 1); put("transfer_id", subset.transferId); put("manifest_sha256", subset.fingerprint)
+                put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch)
+                put("destination_token", "e".repeat(64)); put("file_id", chosen.id); put("chunk_index", 0)
+            }, 60_000, at + 2)
+            h.runtime.receiveChunkRequest(request, h.channel::send, { at + 2 })
+            assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(h.drain().single()["body"]!!.jsonObject.string("data_base64")))
+            h.inspect { assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record); assertEquals(2, it.jobs().size) }
+            assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+            assertEquals("hello", File(h.f.root, "source.bin").readText())
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()

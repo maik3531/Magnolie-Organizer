@@ -43,6 +43,27 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
     fun mediaPage(after: Int, ensureNative: () -> Unit = {}): JsonObject = index.withSealedHead(job, scope, lease) {
         NativeGalleryMediaProjection.page(snapshot, lease, after, ::readChunk, ensureNative)
     }
+
+    internal fun selectedJob(fileIds: List<String>, cancellation: CancellationSignal, permitted: () -> Unit): PhotoSourceJob =
+        index.withSealedHead(job, scope, lease) {
+            permitted(); cancellation.throwIfCanceled()
+            if (lease !is GalleryPhotoSourceLease || fileIds.isEmpty() || fileIds != fileIds.sorted().distinct() ||
+                fileIds.any { id -> snapshot.manifest.files.none { it.id == id } }) DeviceFileControl.fail("photo_snapshot_invalid_selection")
+            if (index.remoteAcceptance(job) != null || index.resumeAttempt(job) != null)
+                DeviceFileControl.fail("photo_jobs_selected_preview_already_accepted")
+            val origins = snapshot.galleryOrigins ?: DeviceFileControl.fail("gallery_media_origins_required")
+            val chosen = snapshot.manifest.files.filter { it.id in fileIds }
+            val entries = chosen.map { file ->
+                val origin = origins.entries.single { it.fileId == file.id }
+                PhotoInventoryEntry("content://media/${lease.album.volume}/${lease.activation.mediaType.uriSegment}/media/${origin.nativeMember.substringBefore(':')}",
+                    origin.nativeMember, file.path, file.size, null, origin.nativeRevision)
+            }
+            val reserved = index.reserve(PhotoSourceInventory(lease, entries), scope)
+            permitted(); cancellation.throwIfCanceled()
+            val selected = ProtectedPhotoSourceSnapshot.selectFrozen(snapshot, index.rootFile(reserved), fileIds, cancellation)
+            permitted(); cancellation.throwIfCanceled()
+            index.publishSnapshot(reserved, selected, scope, lease)
+        }
     /** Preflight only; the actual send handler must recheck live negotiated
      * authority. Returning an envelope does not preserve consent after revoke.
      */

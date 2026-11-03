@@ -12,7 +12,8 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
     val albumId: String? = null, val desktopChoice: Boolean? = null, val runId: String? = null,
     val originalJobId: String? = null, val originalJobVersion: String? = null,
     val lookupSourceId: String? = null, val lookupTransferId: String? = null, val lookupManifestSha256: String? = null,
-    val attemptId: String? = null, val attemptSha256: String? = null) {
+    val attemptId: String? = null, val attemptSha256: String? = null,
+    val selectionManifestSha256: String? = null, val selectedFileIds: List<String> = emptyList()) {
     companion object {
         const val REQUEST = "file_transfer.sources.request"
         const val RESULT = "file_transfer.sources.result"
@@ -35,6 +36,17 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
+            if (operation == "select_run") {
+                if (body.keys != base + setOf("expected_version", "run_id", "manifest_sha256", "file_ids")) fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val manifest = text("manifest_sha256").takeIf(DeviceFileControl::hash) ?: fail()
+                val raw = body["file_ids"] as? JsonArray ?: fail()
+                if (raw.size !in 1..DeviceFileManifest.MAX_FILES) fail()
+                val ids = raw.map { value -> (value as? JsonPrimitive)?.takeIf { it.isString && Regex("[0-9a-f]{32}").matches(it.content) }?.content ?: fail() }
+                if (ids != ids.sorted().distinct()) fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
+                    runId = opaque("run_id"), selectionManifestSha256 = manifest, selectedFileIds = ids)
+            }
             if (operation == "abandon_resume") {
                 if (body.keys != base + setOf("expected_version", "run_id", "original_job_id", "original_job_version", "attempt_id", "attempt_sha256")) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

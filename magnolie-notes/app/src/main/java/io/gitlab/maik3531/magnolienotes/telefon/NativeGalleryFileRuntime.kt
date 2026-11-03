@@ -103,6 +103,44 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         beginResumeRunOwned(selection, original)
     }
 
+    private fun selectSyncRunOwned(command: DeviceFileSourceCommand, checkCommand: () -> Unit): NativeGallerySyncRun {
+        ready()
+        val previous = syncRun?.takeIf { it.id == command.runId && !it.cancelRequested && it.acceptance.get() == null }
+            ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+        if (resumeRun != null || !sourceWorker.isQuiescent || !previous.preparation.ioEnded)
+            DeviceFileControl.fail("gallery_source_worker_io_pending")
+        val job = previous.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+        val selection = previous.selection
+        val source = workflow.source(job, selection.catalog.source, selection.album, selection.desktopChoice)
+        if (source.manifest.fingerprint != command.selectionManifestSha256 || index.remoteAcceptance(job) != null ||
+            index.resumeAttempt(job) != null) DeviceFileControl.fail("photo_jobs_selected_preview_already_accepted")
+        if (command.selectedFileIds.any { id -> source.manifest.files.none { it.id == id } })
+            DeviceFileControl.fail("photo_snapshot_invalid_selection")
+        checkCommand()
+        val issued = DeviceFileControl.monotonicMs()
+        previous.stopped.set(true) // Exact preview can no longer accept or output data.
+        val preparing = sourceWorker.startSelected(selection) { cancellation ->
+            var last = issued
+            fun permitted() {
+                val tick = DeviceFileControl.monotonicMs()
+                if (issued < 0 || tick < last || tick - issued >= DeviceFileControl.MAX_TTL_MS)
+                    DeviceFileControl.fail("gallery_selected_source_preparation_expired")
+                last = tick; ready(); cancellation.throwIfCanceled(); workflow.validateSelection(selection)
+            }
+            permitted()
+            val selected = source.selectedJob(command.selectedFileIds, cancellation, ::permitted)
+            permitted()
+            // The selected cache has committed/read back. Only the never-accepted
+            // preview is retired; original phone media is never changed.
+            if (index.remoteAcceptance(job) != null || index.resumeAttempt(job) != null)
+                DeviceFileControl.fail("photo_jobs_selected_preview_already_accepted")
+            workflow.retireCached(job)
+            permitted()
+            selected
+        }
+        return NativeGallerySyncRun(selection, preparing).also { syncRun = it }
+    }
+
     private fun beginResumeRunOwned(selection: NativeGalleryAlbumSelection, original: PhotoSourceJob,
         checkCommand: () -> Unit = {}): NativeGalleryResumeRun {
         if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_busy")
@@ -750,14 +788,15 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                 mediaAuthority(); send(reply); mediaAuthority()
                 return@withOperation
             }
-            if (command.operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
-                val run = if (command.operation == "run") {
+            if (command.operation in setOf("run", "run_status", "cancel_run", "offer_run", "select_run")) {
+                val run = if (command.operation in setOf("run", "select_run")) {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                     val scope = DeviceFileControl.digest("magnolie-gallery-run-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
                         JsonPrimitive(localIdentity.deviceId), JsonPrimitive(localIdentity.identitySha256), JsonPrimitive(owner.peerId),
                         JsonPrimitive(owner.identitySha256), JsonPrimitive(owner.pairingEpoch))))
                     runCommands.start(scope, this, command, message) {
                         authority()
+                        if (command.operation == "select_run") return@start selectSyncRunOwned(command) { authority(); Unit }
                         val catalog = wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                         val selection = catalog.select(command.catalogId!!, command.albumId!!, command.desktopChoice!!)
                         beginSyncRunOwned(selection) { authority(); Unit }

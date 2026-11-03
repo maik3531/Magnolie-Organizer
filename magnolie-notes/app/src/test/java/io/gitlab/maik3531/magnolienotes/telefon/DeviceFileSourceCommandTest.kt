@@ -77,6 +77,21 @@ class DeviceFileSourceCommandTest {
         }
     }
 
+    @Test fun selectedRunCommandsRequireExactManifestAndBoundedDistinctLiteralMembers() {
+        val body = buildJsonObject {
+            put("format", 1); put("operation", "select_run"); put("expected_version", "a".repeat(64))
+            put("run_id", "33333333-3333-4333-8333-333333333333"); put("manifest_sha256", "b".repeat(64))
+            put("file_ids", JsonArray(listOf(JsonPrimitive("c".repeat(32)))))
+        }
+        assertEquals(listOf("c".repeat(32)), DeviceFileSourceCommand.parse(message(body), now).selectedFileIds)
+        for (files in listOf(JsonArray(emptyList()), JsonArray(listOf(JsonPrimitive(true))),
+            JsonArray(listOf(JsonPrimitive("c".repeat(32)), JsonPrimitive("c".repeat(32)))),
+            JsonArray(listOf(JsonPrimitive("d".repeat(32)), JsonPrimitive("c".repeat(32)))))) {
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body + ("file_ids" to files))), now) }
+        }
+        assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body + ("path" to JsonPrimitive("DCIM/Camera")))), now) }
+    }
+
     @Test fun discoveryAndPagingRequireTheExactPolicyVersionAndCanonicalOpaqueCatalogCursor() {
         val discover = buildJsonObject { put("format", 1); put("operation", "discover"); put("expected_version", "a".repeat(64)) }
         assertEquals("discover", DeviceFileSourceCommand.parse(message(discover), now).operation)
