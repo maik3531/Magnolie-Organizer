@@ -18,12 +18,35 @@ def native_pictures_directory():
         raise TransferError('photo_destination_native_pictures_unavailable')
     return value # Never guessed HOME/Pictures or a localized literal.
 
-def photo_folder_component(name):
+def native_videos_directory():
+    from gi.repository import GLib
+    value=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS)
+    if type(value) is not str or not value or not Path(value).is_absolute():
+        raise TransferError('video_destination_native_videos_unavailable')
+    return value # Independent native Videos location, never the photo destination.
+
+def native_account_name():
+    import pwd
+    try:return pwd.getpwuid(os.geteuid()).pw_name
+    except KeyError:return ''
+
+def photo_folder_component(name,*,fallback_user_name=''):
+    return _media_folder_component(name,'-Fotos',fallback_user_name)
+
+def video_folder_component(name,*,fallback_user_name=''):
+    return _media_folder_component(name,'-Videos',fallback_user_name)
+
+def _safe_media_name(name):
     if type(name) is not str:raise TransferError('photo_destination_native_name_required')
     normalized=unicodedata.normalize('NFC',name)
     safe=''.join(character if character.isalnum() or character in ' -_' else '_' for character in normalized)
-    safe=' '.join(safe.split()).strip(' _')[:60].rstrip(' _') or 'Telefon'
-    return safe+'-Fotos'
+    return ' '.join(safe.split()).strip(' _')[:60].rstrip(' _')
+
+def _media_folder_component(name,suffix,fallback_user_name):
+    # The phone's native name always wins. Never replace it with the account name.
+    safe=_safe_media_name(name)
+    if not safe:safe=_safe_media_name(fallback_user_name)
+    return (safe or 'Telefon')+suffix
 
 class NativePhotoDestinationAction:
     def __init__(self,owner,clock):
@@ -50,14 +73,20 @@ class NativePhotoDestinationChoice:
     destination_token: str
     owner: object
 
+@dataclass(frozen=True)
+class NativeVideoDestinationChoice(NativePhotoDestinationChoice):
+    pass
+
 class NativePhotoDestinationController:
     """Only the private Organizer UI handler issues an action. Wire settings
     cannot construct its exact in-process owner/ticket or choose a path. Folder
     I/O belongs to the native I/O lane; this class starts no worker/timer itself.
     """
-    def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
+    _choice_type=NativePhotoDestinationChoice
+    def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000,username_provider=native_account_name):
         if type(authority) is not NativeDesktopFileAuthority:raise TransferError('photo_destination_native_authority_required')
-        self._authority=authority;self._clock=monotonic_ms;self._closed=threading.Event()
+        if not callable(username_provider):raise TransferError('photo_destination_native_name_required')
+        self._authority=authority;self._clock=monotonic_ms;self._closed=threading.Event();self._username=username_provider
     def _open(self):
         if self._closed.is_set():raise TransferError('photo_destination_controller_closed')
     def issue_action(self):
@@ -75,12 +104,15 @@ class NativePhotoDestinationController:
         action.consume(self)
         return self._peer()
     def choose_default(self,action,*,pictures_provider=native_pictures_directory):
+        return self._choose_default(action,pictures_provider,photo_folder_component,'photo_destination_native_pictures_unavailable')
+    def _choose_default(self,action,provider,folder_component,unavailable):
         peer=self._take(action)
-        pictures=pictures_provider()
+        pictures=provider()
         if not isinstance(pictures,(str,Path)) or not Path(pictures).is_absolute():
-            raise TransferError('photo_destination_native_pictures_unavailable')
+            raise TransferError(unavailable)
         base=NativeAcceptedDestination.capture(pictures)
-        component=photo_folder_component(peer.display_name)
+        fallback=self._username() if not _safe_media_name(peer.display_name) else ''
+        component=folder_component(peer.display_name,fallback_user_name=fallback)
         self._peer();base.verify()
         fd=os.open(base.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
@@ -92,17 +124,23 @@ class NativePhotoDestinationController:
             base.verify()
             destination=NativeAcceptedDestination.capture(Path(base.path)/component)
             self._peer();self._open();action.validate(self)
-            return NativePhotoDestinationChoice(destination,secrets.token_hex(32),self)
+            return self._choice_type(destination,secrets.token_hex(32),self)
         finally:os.close(fd)
     def choose_custom(self,action,selected_native_directory):
         self._take(action)
         destination=NativeAcceptedDestination.capture(selected_native_directory)
         self._peer();self._open();action.validate(self)
-        return NativePhotoDestinationChoice(destination,secrets.token_hex(32),self)
+        return self._choice_type(destination,secrets.token_hex(32),self)
     def verify_choice(self,choice):
-        if type(choice) is not NativePhotoDestinationChoice or choice.owner is not self:
+        if type(choice) is not self._choice_type or choice.owner is not self:
             raise TransferError('photo_destination_choice_not_native')
         self._peer();choice.destination.verify();self._peer()
         return choice.destination
     def close(self):
         self._closed.set() # Ends folder UI capabilities, not the shared file authority.
+
+class NativeVideoDestinationController(NativePhotoDestinationController):
+    """Independent video folder metadata, not enabling video read/synchronization."""
+    _choice_type=NativeVideoDestinationChoice
+    def choose_default(self,action,*,videos_provider=native_videos_directory):
+        return self._choose_default(action,videos_provider,video_folder_component,'video_destination_native_videos_unavailable')

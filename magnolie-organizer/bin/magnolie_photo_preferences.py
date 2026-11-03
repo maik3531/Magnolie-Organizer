@@ -19,9 +19,30 @@ import time
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import FileGrantState, NativeLocalFileGrant, MAX_REVISION, _hex
 from magnolie_file_native_authority import NativeDesktopFileAuthority
-from magnolie_photo_destination import NativePhotoDestinationAction, NativePhotoDestinationChoice, NativePhotoDestinationController
+from magnolie_photo_destination import (NativePhotoDestinationAction, NativePhotoDestinationChoice, NativePhotoDestinationController,
+    NativeVideoDestinationChoice, NativeVideoDestinationController)
 from magnolie_file_transfer import TransferError
 from magnolie_telefon import canonical, strict_json
+
+@dataclass(frozen=True)
+class VideoPreferences:
+    enabled: bool = False
+    destination: NativeAcceptedDestination | None = None
+    destination_token: str | None = None
+
+    def wire(self):
+        return dict(enabled=self.enabled,destination=self.destination.wire() if self.destination is not None else None,
+            destination_token=self.destination_token)
+
+    @classmethod
+    def parse(cls,value):
+        if (type(value) is not dict or set(value)!={'enabled','destination','destination_token'}
+                or type(value['enabled']) is not bool):raise TransferError('video_preferences_invalid_record')
+        destination=NativeAcceptedDestination.parse(value['destination']) if value['destination'] is not None else None
+        if ((destination is None)!=(value['destination_token'] is None)
+                or destination is not None and not _hex(value['destination_token'])
+                or value['enabled'] and destination is None):raise TransferError('video_preferences_invalid_destination')
+        return cls(value['enabled'],destination,value['destination_token'])
 
 @dataclass(frozen=True)
 class PhotoPreferences:
@@ -34,16 +55,20 @@ class PhotoPreferences:
     pc_to_phone_delete: bool
     destination: NativeAcceptedDestination | None
     destination_token: str | None
+    videos: VideoPreferences | None = None
 
     def wire(self):
-        return dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
+        value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
             enabled=self.enabled,mode=self.mode,phone_to_pc_delete=self.phone_to_pc_delete,pc_to_phone_delete=self.pc_to_phone_delete,
             destination=self.destination.wire() if self.destination is not None else None,destination_token=self.destination_token)
+        if self.videos is not None:value['videos']=self.videos.wire()
+        return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
-        if (type(value) is not dict or set(value)!={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
-                'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'} or type(value['format']) is not int or value['format']!=1
+        required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
+                'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
+        if (type(value) is not dict or set(value) not in (required,required|{'videos'}) or type(value['format']) is not int or value['format']!=1
                 or type(value['revision']) is not int or not 2<=value['revision']<=MAX_REVISION
                 or not _hex(value['permission_epoch']) or not _hex(value['pairing_epoch'])
                 or any(type(value[key]) is not bool for key in ('enabled','phone_to_pc_delete','pc_to_phone_delete'))
@@ -54,8 +79,9 @@ class PhotoPreferences:
         if ((destination is None)!=(value['destination_token'] is None) or destination is not None and not _hex(value['destination_token'])
                 or value['enabled'] and destination is None):
             raise TransferError('photo_preferences_invalid_destination')
+        videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
-            value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'])
+            value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -65,6 +91,11 @@ class PhotoPreferencesSnapshot:
     destination_available: bool
     @property
     def mode(self):return self.policy.mode if self.policy is not None else 'manual'
+    @property
+    def include_videos(self):
+        # Requested protected setting only, never native Video READ/readiness.
+        return bool(self.associated and self.policy is not None and self.policy.enabled
+            and self.policy.videos is not None and self.policy.videos.enabled)
 
 class ProtectedPhotoPreferences:
     MAX_DATABASE_BYTES=512*1024
@@ -249,12 +280,14 @@ class ProtectedPhotoPreferences:
             if not transient:self._uncertain=True
             raise
 
-    def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None):
+    def configure(self,action,expected,*,enabled,mode,phone_to_pc_delete=False,pc_to_phone_delete=False,destination_choice=None,
+            include_videos=None,video_destination_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
         if (type(expected) is not PhotoPreferencesSnapshot or any(type(value) is not bool for value in (enabled,phone_to_pc_delete,pc_to_phone_delete))
                 or mode not in ('manual','automatic')):raise TransferError('photo_preferences_invalid_settings')
         if pc_to_phone_delete:raise TransferError('photo_preferences_reverse_delete_unavailable')
+        if include_videos is not None and type(include_videos) is not bool:raise TransferError('video_preferences_invalid_settings')
         if enabled and destination_choice is None and (expected.policy is None or expected.policy.destination is None):
             raise TransferError('photo_preferences_destination_required')
         with self._operation():
@@ -271,9 +304,29 @@ class ProtectedPhotoPreferences:
                     destination=destination_choice.owner.verify_choice(destination_choice);token=destination_choice.destination_token
                 if enabled and destination is not None:destination.verify()
                 if enabled and destination is None:raise TransferError('photo_preferences_destination_required')
+                videos=current.policy.videos if current.policy is not None else None
+                if videos is not None and not current.associated:
+                    # Re-pairing preserves destination metadata, never silently
+                    # re-enables the separately selected video scope.
+                    videos=VideoPreferences(False,videos.destination,videos.destination_token)
+                if include_videos is not None or video_destination_choice is not None:
+                    old=videos or VideoPreferences()
+                    video_destination,video_token=old.destination,old.destination_token
+                    if video_destination_choice is not None:
+                        if (type(video_destination_choice) is not NativeVideoDestinationChoice
+                                or type(video_destination_choice.owner) is not NativeVideoDestinationController
+                                or video_destination_choice.owner._authority is not self._authority):
+                            raise TransferError('video_preferences_foreign_destination_choice')
+                        video_destination=video_destination_choice.owner.verify_choice(video_destination_choice)
+                        video_token=video_destination_choice.destination_token
+                    video_enabled=old.enabled if include_videos is None else include_videos
+                    if video_enabled:
+                        if video_destination is None:raise TransferError('video_preferences_destination_required')
+                        video_destination.verify()
+                    videos=VideoPreferences.parse(VideoPreferences(video_enabled,video_destination,video_token).wire())
                 revision=(current.policy.revision if current.policy is not None else 1)+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
-                policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,destination,token)
+                policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,destination,token,videos)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:

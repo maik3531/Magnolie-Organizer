@@ -17,7 +17,12 @@ internal static class PhotoDestinationPaths
         return path; // No guessed HOME/Pictures/localized literal or Create option.
     }
 
-    internal static string FolderComponent(string name)
+    internal static string FolderComponent(string name, string fallbackUserName = "")
+        => MediaFolderComponent(name, "-Fotos", fallbackUserName);
+
+    internal static string NativeFolderComponent(string phoneName) => FolderComponent(phoneName, Environment.UserName);
+
+    internal static string MediaFolderComponent(string name, string suffix, string fallbackUserName = "")
     {
         if (name is null) throw new InvalidDataException("photo_destination_native_name_required");
         var safe = new StringBuilder();
@@ -30,6 +35,24 @@ internal static class PhotoDestinationPaths
         }
         var words = string.Join(" ", safe.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim(' ', '_');
         var limited = string.Concat(words.EnumerateRunes().Take(60).Select(rune => rune.ToString())).TrimEnd(' ', '_');
-        return (limited.Length == 0 ? "Telefon" : limited) + "-Fotos";
+        if (limited.Length == 0 && fallbackUserName.Length != 0) return MediaFolderComponent(fallbackUserName, suffix);
+        return (limited.Length == 0 ? "Telefon" : limited) + suffix;
     }
+}
+
+// Independent video path projection; no video consent, source scan or folder I/O.
+internal static class VideoDestinationPaths
+{
+    internal static string NativeVideosDirectory() => NativeVideosDirectory(Environment.GetFolderPath);
+
+    internal static string NativeVideosDirectory(Func<Environment.SpecialFolder, string> provider)
+    {
+        var path = provider(Environment.SpecialFolder.MyVideos);
+        if (string.IsNullOrEmpty(path) || !Path.IsPathFullyQualified(path) || !Directory.Exists(path))
+            throw new InvalidDataException("video_destination_native_videos_unavailable");
+        return path;
+    }
+
+    internal static string FolderComponent(string name, string fallbackUserName = "") => PhotoDestinationPaths.MediaFolderComponent(name, "-Videos", fallbackUserName);
+    internal static string NativeFolderComponent(string phoneName) => FolderComponent(phoneName, Environment.UserName);
 }

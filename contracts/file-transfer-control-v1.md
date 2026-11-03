@@ -1166,6 +1166,41 @@ affected saved-receipt and desktop receive cases); a further actual blocked-read
 close case passes, for 65 distinct affected cases. No Android, Windows native
 receiver or installed GUI support is inferred from this Linux evidence.
 
+### Optional video scope (Refs #335, integration not released)
+
+The user additionally requires an explicit, initially-OFF “Also synchronize videos”
+choice and a destination independent from photos: native Videos/My Videos →
+`<phone name>-Videos`, or an explicitly chosen native folder. The phone name has
+priority, never the account/user name; a user name may only be a fallback when no
+usable phone name is available. Existing custom targets are never renamed.
+
+Linux native folder choice now has a separate video controller/choice type and
+uses GLib DIRECTORY_VIDEOS, not Pictures or a localized/home guess. Photo and video
+actions, owner checks and tokens remain independent; a video choice cannot enter
+the photo destination field or vice versa. Windows read-only path projection uses
+SpecialFolder.MyVideos and the same safe phone-name-first component policy. These
+projections alone do not authorize target writes, media reads or synchronization.
+
+The existing-key protected desktop policy has an optional video subrecord. Absent
+and existing legacy photo records remain video-OFF without passive migration or
+rewriting. Video opt-in requires an exact own native video destination choice (or
+its still-valid previously selected witness), explicit Boolean setting, protected
+CAS and durable encrypted readback. Selecting a folder alone stays OFF. Ordinary
+photo changes preserve independent video metadata. Main disable or re-pairing
+does not silently renew the video scope; re-pairing preserves paths but resets video
+selection unless explicitly opted in again. Missing video folders can still be
+disabled without losing their witnesses. No Android video permission, source
+handler, automatic worker, capability advertisement or frontend switch is enabled
+by these preparations; unsupported advanced controls stay absent.
+
+The targeted source-host evidence is 38 Python native destination cases (including
+unchanged photo behavior and phone-name priority/fallback), 43 protected settings
+cases (the re-pairing method subsequently rechecked after adding explicit video
+consent fencing), and the Windows path-projection core group 1/1 after a bounded
+build with zero warnings/errors. These are not a visible supported video switch,
+Android video permission/provider, physical video transfer or native Windows
+chooser/receiver acceptance. Those concrete #335 integration steps remain open.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
