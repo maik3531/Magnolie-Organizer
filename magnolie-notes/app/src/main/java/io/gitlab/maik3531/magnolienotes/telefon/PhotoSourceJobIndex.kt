@@ -30,6 +30,11 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
     val manifest: DeviceFileManifest get() = index.withSealedHead(job, scope, lease) { snapshot.manifest }
     val galleryOrigins: GalleryPhotoOrigins? get() = index.withSealedHead(job, scope, lease) { snapshot.galleryOrigins }
     fun readChunk(fileId: String, chunk: Int): ByteArray = index.withSealedHead(job, scope, lease) { snapshot.readChunk(fileId, chunk) }
+    fun observeImageAnimation(fileId: String): NativeImageAnimationObservation = index.withSealedHead(job, scope, lease) {
+        if (lease !is GalleryPhotoSourceLease || lease.activation.mediaType != GalleryMediaType.IMAGES)
+            DeviceFileControl.fail("image_animation_native_image_scope_required")
+        NativeImageAnimation.inspect(snapshot.manifest, fileId) { readChunk(fileId, it) }
+    }
     /** Preflight only; the actual send handler must recheck live negotiated
      * authority. Returning an envelope does not preserve consent after revoke.
      */

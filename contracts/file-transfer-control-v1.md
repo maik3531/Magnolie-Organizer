@@ -1251,6 +1251,26 @@ settings cases pass (animation 15, video 18, existing photo 25). Native animatio
 recognition and immutable per-file destination routing remain required before
 exposing or executing this option.
 
+The native Android image snapshot now offers byte-bound GIF container inspection:
+first verify the full manifest SHA-256 through bounded plaintext chunks, then
+inspect bounded GIF records without bitmap/LZW decompression. Recognized single-
+image containers are still; recognized multiple-image containers are animated.
+Malformed/truncated/unsupported or over-limit input stays unknown, not video.
+Extensions/filenames are not evidence. Returned plaintext chunks are cleared.
+This is container inspection, not full codec validation or a parser for every
+animated format. The result binds the manifest/file/content hash and grants no
+target, mutation, baseline or receipt authority.
+
+Only a live protected native image source can expose that observation. Native
+source/index guards surround the actual reads; video leases are rejected and
+classification never reopens the live media provider after freezing. Eight
+targeted Android cases pass (six container/hash/chunk tests plus actual protected
+image snapshot and video-scope rejection cases). The video case replaces its
+earlier evidence rather than being counted again. This does not yet expose a
+desktop animation flag as trusted provenance or change immutable destination
+mapping/publication. APNG/WebP recognition and real animations-folder execution
+still require their own integration/acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

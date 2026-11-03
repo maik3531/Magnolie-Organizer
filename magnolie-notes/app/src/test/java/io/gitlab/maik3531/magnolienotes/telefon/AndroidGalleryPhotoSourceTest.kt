@@ -155,6 +155,7 @@ class AndroidGalleryPhotoSourceTest {
                 val restored = index.restore(job, "sender_fixture_01", f.scope, lease)
                 assertNotNull(restored.galleryOrigins)
                 assertArrayEquals("hello".toByteArray(), restored.readChunk(restored.manifest.files.single().id, 0))
+                assertThrows(PhotoFolderScopeError::class.java) { restored.observeImageAnimation(restored.manifest.files.single().id) }
                 assertEquals(opens, f.provider.opens.size)
                 f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
                 assertFalse(f.scope.isCurrent(lease))
@@ -244,6 +245,35 @@ class AndroidGalleryPhotoSourceTest {
             app.denyPermissions(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
             assertFalse(f.scope.isCurrent(selected))
             assertTrue(f.provider.opens.isEmpty())
+        }
+    }
+
+    @Test fun nativeAnimationObservationReadsOnlyProtectedFrozenImageBytesAndRemainsBoundToItsLiveLease() {
+        Fixture().use { f ->
+            val gif = NativeImageAnimationTest().gif(2)
+            File(f.root, "source.bin").writeBytes(gif)
+            f.provider.rows = listOf(Row(name = "not-an-extension-hint.bin", mime = "image/gif", bytes = gif.size.toLong()))
+            val lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val cache = Files.createTempDirectory(f.root.toPath(), "native-animation-cache-").toFile()
+            PhotoSourceJobIndex(cache, protection).use { index ->
+                val reserved = index.reserve(inventory, f.scope)
+                val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, f.reader, protection)
+                val job = index.publishSnapshot(reserved, snapshot, f.scope, lease)
+                val source = index.restore(job, "sender_fixture_01", f.scope, lease)
+                val file = source.manifest.files.single(); val opens = f.provider.opens.size
+                val observed = source.observeImageAnimation(file.id)
+                assertEquals(NativeImageAnimationKind.ANIMATED, observed.kind)
+                assertEquals(file.sha256, observed.contentSha256)
+                assertEquals(source.manifest.fingerprint, observed.manifestSha256)
+                assertFalse(observed.grantsWriteAuthority); assertFalse(observed.isSavedReceipt)
+                assertArrayEquals(gif, source.readChunk(file.id, 0))
+                assertEquals(opens, f.provider.opens.size)
+                assertEquals("sealed", index.jobs().single().phase)
+                f.request = null
+                assertThrows(PhotoFolderScopeError::class.java) { source.observeImageAnimation(file.id) }
+                assertEquals(opens, f.provider.opens.size)
+            }
         }
     }
 
