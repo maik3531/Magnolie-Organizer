@@ -1005,8 +1005,22 @@ and physical phone acceptance remain outstanding.
 Architecture boundary: this protocol's current Android counterpart is the Notes
 app's native telephone/Gallery runtime. Notes-content synchronization need not be
 enabled, but stock KDE Connect alone does not implement these source/manifest/
-acceptance/chunk/receipt handlers. Placement of future desktop controls beneath
-KDE Connect does not make the current photo path a KDE-Connect-only backend.
+acceptance/chunk/receipt handlers. Notes-dependent desktop controls belong under
+Organizer → Magnolie Notes phone connection → Advanced functions; KDE-Connect-only
+functions remain under KDE Connect. The earlier common KDE placement is superseded
+by the user's explicit backend-specific UI requirement.
+
+Both desktop frontends now have separate backend-labelled cards and an independent
+`telefon-erweiterte-funktionen` details section owned by the Notes card. The existing
+`kde-erweiterte-funktionen` keeps KDE input and player controls. Clear translated
+prerequisite hints state that Notes functions require Notes on Android but not KDE
+Connect, and vice versa. Notes' unfinished additional features remain unavailable;
+opening the details starts no native command or grants. Twelve isolated full-UI
+source-host cases pass across Linux/Windows: Notes-only, KDE-only, both, neither,
+loading and German labels. Existing data/explicit phone selection stays unchanged.
+All 38 desktop PO catalogs preserve previous translations and add exactly the two
+new hints; the existing Linux PO/POT/JS/MO gates and Windows localization-completeness
+gate pass. These are not installed GUI or native profile acceptance.
 
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,

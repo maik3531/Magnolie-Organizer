@@ -778,6 +778,12 @@ msgstr "पते"
 msgid "Advanced"
 msgstr "उन्नत"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Android पर Magnolie Notes आवश्यक है। KDE Connect आवश्यक नहीं है।"
+
+msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
+msgstr "KDE Connect की सुविधाओं के लिए Android पर KDE Connect ऐप आवश्यक है, Magnolie Notes नहीं।"
+
 msgid "Advanced functions"
 msgstr "उन्नत सुविधाएँ"
 

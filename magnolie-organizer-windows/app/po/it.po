@@ -586,6 +586,12 @@ msgstr "Indirizzi"
 msgid "Advanced"
 msgstr "Avanzate"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Richiede Magnolie Notes su Android. KDE Connect non è necessario."
+
+msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
+msgstr "Le funzioni di KDE Connect richiedono l’app KDE Connect su Android, non Magnolie Notes."
+
 msgid "Advanced functions"
 msgstr "Funzioni avanzate"
 

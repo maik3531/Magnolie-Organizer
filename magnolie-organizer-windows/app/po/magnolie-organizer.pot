@@ -2841,6 +2841,11 @@ msgstr ""
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+
 msgid "KDE Connect pairing failed."
 msgstr ""
 
@@ -4639,6 +4644,9 @@ msgid "Replace completely"
 msgstr ""
 
 msgid "Report unusual cycle intervals"
+msgstr ""
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
 msgstr ""
 
 msgid "Requires a Nextcloud account."
