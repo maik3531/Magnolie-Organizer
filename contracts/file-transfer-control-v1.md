@@ -1704,6 +1704,25 @@ socketpair fixture cases. These checks are not installed GUI, physical phone,
 OS-dialog or power-loss acceptance. Full restart/recovery ownership, legacy repair,
 baseline/conflict convergence and release/readiness/UI gates remain unfinished/OFF.
 
+The explicit native `recover_saved_confirmation` path can now repeat that complete
+historical media confirmation after a fresh desktop connection/index/catalog open.
+It consumes a fresh bounded native action and requires the exact original reserved
+job, current binding/destination, protected index history/save receipts/post-mapping
+receipt and original mapping hashes/checkpoint. Catalog membership and the exact
+index lock remain held through output. No receive worker, source command, stage,
+cache, publication journal, target read/write, new mapping or quota release is
+started. Incomplete/legacy jobs without the complete original receipt remain HOLD;
+there is no inferred or unattended reconstruction.
+
+Thirteen additional native source-host recovery cases pass, including actual
+fresh reconnect with both original-root witnesses, deleted cache and unchanged,
+edited/deleted/replaced PC targets; missing complete proof, unknown job, active
+receiver, one-use action and revocation/exit around actual blocked output. Exit
+retains descriptors until actual I/O ends and cannot return late success. Bytes
+already handed to transport before revocation cannot be retracted; the historical
+confirmation is not a current-presence claim. Android restart READ renewal, remote
+confirmation ownership and full conflict/recovery/quota retirement are still open.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

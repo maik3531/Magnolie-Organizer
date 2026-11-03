@@ -790,6 +790,51 @@ class NativeDesktopFileConnection:
             message = run.receiver.saved_receipt_message(now=clock())
             self._send_data(message, clock)
 
+    def recover_saved_confirmation(self, action, native_job_owner, *, clock=now_ms):
+        """Explicit historical media ACK retry, never source/stage recovery.
+
+        Requires a complete original post-mapping receipt. Unfinished or legacy
+        jobs need separate repair; no guessed mapping, target read or new worker.
+        """
+        from magnolie_file_saved_message import create_saved
+        self._take_action(action)
+        with self._operation():
+            action.validate(self)
+            if self._run is not None:raise TransferError('file_desktop_receive_already_active')
+            if not self._open_catalog(allow_create=False):
+                raise TransferError('file_desktop_saved_recovery_unavailable')
+            binding=self._receive_binding();snapshot=self._receiving_policy()
+            protection=self._authority.protection
+            with self._catalog.inspect_jobs() as (parent,jobs):
+                job=next((job for job in jobs if job.owner==native_job_owner),None)
+                if (job is None or job.accepted.binding!=binding or job.accepted.destination!=snapshot.policy.destination):
+                    raise TransferError('file_desktop_saved_recovery_original_job_required')
+                job.accepted.verify(self._receive_binding);action.validate(self)
+                with ProtectedTransferJobIndex(parent,job.accepted.manifest,job.accepted.binding,self._receive_binding,
+                        protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                    # Hold the exact original index lock until actual output ends.
+                    # A live receiver lease on another instance fails busy.
+                    with index._locked():
+                        evidence=index.saved_mapping_receipt();history=index.media_history
+                        if evidence is None or history is None:
+                            raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+                        self._verify_expected_mapping_store();self._verify_job_mapping_store(history)
+                        self._mappings.verify_checkpoint(evidence.store)
+                        _,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                            for entry in history.entries))
+                        if (any(record is None for record in records)
+                                or tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in evidence.entries)):
+                            raise TransferError('file_desktop_saved_mapping_receipt_changed')
+                        receipts=index.saved_receipts()
+                        message=create_saved(job.accepted,receipts,self._receive_binding,job.owner,now=clock())
+                        action.validate(self)
+                        if self._catalog.jobs()!=jobs or index.saved_mapping_receipt()!=evidence:
+                            raise TransferError('file_desktop_saved_recovery_evidence_changed')
+                        self._send_data(message,clock,action=action)
+                        if index.saved_mapping_receipt()!=evidence:
+                            raise TransferError('file_desktop_saved_recovery_evidence_changed')
+                        return evidence  # Historical only; quota and local bytes stay held.
+
     def read_preferences(self):
         with self._operation():
             return self._preferences.read()
