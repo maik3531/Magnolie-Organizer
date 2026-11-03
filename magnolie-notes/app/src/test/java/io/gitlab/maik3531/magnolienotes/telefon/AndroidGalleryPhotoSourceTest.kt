@@ -1835,6 +1835,59 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun resumeEndLostReplyRetriesExactReceiptWithoutEndingAnotherActiveOwnerOrDroppingQuota() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            h.runtime.cancelResumeRun(run); val command = h.resumeStatus("end_resume", run, at)
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, {
+                h.channel.send(it); throw java.io.IOException("fixture end reply lost")
+            }, { at }) }
+            val first = h.drain().single()
+            assertEquals(JsonPrimitive(true), first["body"]!!.jsonObject["run_ended"])
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.endStoppedResumeRun(run) }
+            val next = h.start(); h.awaitEnd()
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at + 1 })
+            assertEquals(first, h.drain().single()); assertSame(next, h.currentResume()); assertFalse(next.cancelRequested)
+            val changed = JsonObject(command + ("created_ms" to JsonPrimitive(at + 1)))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(changed, h.channel::send, { at + 1 }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(h.resumeStatus("end_resume", run, at), h.channel::send, { at + 1 }) }
+            assertEquals(0, h.output.size()); assertFalse(next.cancelRequested); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeEndCannotReleaseBlockedProviderOwnerBeforeActualIoEnds() {
+        ResumeRuntimeCase().use { h ->
+            val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); check(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            val run = h.start(); val at = h.now + 120_000; val command = h.resumeStatus("end_resume", run, at)
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); h.runtime.cancelResumeRun(run)
+                assertEquals("gallery_source_worker_io_pending", assertThrows(PhotoFolderScopeError::class.java) {
+                    h.runtime.receiveSourceCommand(command, h.channel::send, { at })
+                }.code)
+                assertSame(run, h.currentResume()); assertEquals(0, h.output.size()); assertFalse(run.preparation.ioEnded)
+            } finally { h.release.countDown(); h.awaitEnd() }
+            h.runtime.receiveSourceCommand(command, h.channel::send, { at })
+            assertEquals(JsonPrimitive(true), h.drain().single()["body"]!!.jsonObject["run_ended"])
+            h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeEndRequiresStoppedOwnerAndExpiredReplyCannotBeRevivedByClockReturn() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.resumeStatus("end_resume", run, at)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            assertSame(run, h.currentResume()); h.runtime.cancelResumeRun(run)
+            var wall = at
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, {
+                h.channel.send(it); wall += 60_000
+            }, { wall }) }
+            assertEquals(1, h.drain().size)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
+            assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()

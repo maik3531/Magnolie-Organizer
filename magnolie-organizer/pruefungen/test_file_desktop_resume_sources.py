@@ -205,3 +205,69 @@ def test_legacy_receiver_without_original_media_anchor_cannot_start_fresh_source
             request(fresh, 'resume_run', album_id=ALBUM, desktop_choice=True)
         assert fresh[2].send.call_count == count and connection._source_run is None and connection._run is None
         held(fresh, job)
+
+
+def cancel(fixture):
+    message = request(fixture, 'cancel_resume')
+    result = response(message, sources.RUN_RESULT, version='b' * 64, run_id=RESUME_RUN,
+                      state='canceled_held', source_io_ended=True)
+    result['expires_ms'] = min(result['expires_ms'], message['expires_ms']); dispatch(fixture, result)
+
+
+def ended(message):
+    result = response(message, sources.RUN_RESULT, version='b' * 64, run_id=RESUME_RUN,
+                      state='canceled_held', source_io_ended=True, run_ended=True)
+    result['expires_ms'] = min(result['expires_ms'], message['expires_ms'])
+    return result
+
+
+def test_resume_end_releases_only_confirmed_source_owner_keeps_original_job_and_requires_new_lookup(receiving):
+    with selected(receiving) as (fresh, job, _):
+        connection = fresh[3]; start(fresh); collect(fresh, job); pending_offer = offer(fresh, job)
+        cancel(fresh); message = request(fresh, 'end_resume')
+        assert connection._source_run is not None
+        dispatch(fresh, ended(message))
+        assert connection._source_run is None and connection._resume_source_id is None and connection._offer is None
+        assert connection.source_state()['result'].run_ended
+        assert connection.source_state()['resume_history'] is None
+        count = fresh[2].send.call_count
+        with pytest.raises(TransferError): request(fresh, 'resume_run', album_id=ALBUM, desktop_choice=True)
+        with pytest.raises(TransferError): dispatch(fresh, pending_offer)
+        assert fresh[2].send.call_count == count; held(fresh, job)
+
+
+def test_resume_end_lost_output_retries_same_command_without_clearing_owner_before_reply(receiving):
+    with selected(receiving) as (fresh, job, _):
+        connection = fresh[3]; start(fresh); cancel(fresh)
+        fresh[2].send.side_effect = OSError('fixture end command output lost')
+        with pytest.raises(OSError): request(fresh, 'end_resume')
+        message = deepcopy(connection._source_pending.message)
+        assert connection._source_run is not None
+        fresh[2].send.side_effect = None; connection.retry_source_command()
+        assert fresh[2].send.call_args.args[0] == message and connection._source_run is not None
+        result = ended(message); dispatch(fresh, result)
+        assert connection._source_run is None
+        with pytest.raises(TransferError): dispatch(fresh, result)
+        held(fresh, job)
+
+
+@pytest.mark.parametrize('field,value', [('run_ended', False), ('run_ended', 1), ('state', 'snapshot_ready'), ('source_io_ended', False)])
+def test_resume_end_invalid_result_does_not_release_actual_source_metadata_owner(receiving, field, value):
+    with selected(receiving) as (fresh, job, _):
+        connection = fresh[3]; start(fresh); cancel(fresh); message = request(fresh, 'end_resume')
+        result = ended(message); result['body'][field] = value
+        with pytest.raises(TransferError): dispatch(fresh, result)
+        assert connection._source_run.run_id == RESUME_RUN and connection._source_pending is not None
+        held(fresh, job)
+
+
+def test_resume_end_requires_stopped_real_io_status_and_never_implicitly_closes_receiver_stage(receiving):
+    with selected(receiving) as (fresh, job, _):
+        connection = fresh[3]; start(fresh)
+        with pytest.raises(TransferError): request(fresh, 'end_resume')
+        collect(fresh, job); offered = offer(fresh, job)
+        connection.resume_pending_offer(connection.issue_receive_action(), offered['message_id'], job.owner)
+        run = connection._run
+        with pytest.raises(TransferError): request(fresh, 'end_resume')
+        assert connection._run is run and connection.receive_progress().owner == job.owner
+        held(fresh, job)

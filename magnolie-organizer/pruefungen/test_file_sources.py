@@ -40,7 +40,7 @@ def resume_vector():
     return json.loads((Path(__file__).resolve().parents[2] / 'contracts/file-transfer-resume-sources-v1-vectors.json').read_text())
 
 
-@pytest.mark.parametrize('index', range(6))
+@pytest.mark.parametrize('index', range(7))
 def test_shared_resume_command_goldens_roundtrip_without_native_authority(index):
     vector = resume_vector(); message = vector['commands'][index]; before = deepcopy(message)
     command = sources.parse_command(message, now=vector['now_ms'])
@@ -60,20 +60,21 @@ def test_resume_command_rejects_wrong_original_context_types_and_authority_field
     with pytest.raises(TransferError): sources.parse_command(message, now=NOW)
 
 
-@pytest.mark.parametrize('operation', ['status', 'run', 'run_status', 'offer_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+@pytest.mark.parametrize('operation', ['status', 'run', 'run_status', 'offer_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume'])
 def test_resume_original_context_cannot_be_silently_ignored_by_other_command_builders(operation):
     with pytest.raises(TransferError):
         sources.create_command(operation, expected_version='a' * 64, run_id=ID,
                                original_job_id='b' * 32, original_job_version='c' * 64, now=NOW)
 
 
-@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume'])
+@pytest.mark.parametrize('operation', ['resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume'])
 def test_resume_results_correlate_exact_operation_owner_and_metadata_only_state(operation):
     message = sources.create_command('status', now=NOW, message_id=ID)
     message['kind'] = sources.RUN_RESULT
     body = dict(format=1, request_id=ID, operation=operation, version='a' * 64, run_id=ID,
-                state='canceled_held' if operation == 'cancel_resume' else 'snapshot_ready', source_io_ended=True)
+                state='canceled_held' if operation in ('cancel_resume', 'end_resume') else 'snapshot_ready', source_io_ended=True)
     if operation == 'offer_resume': body.update(offer_id=ID, manifest_sha256='b' * 64)
+    if operation == 'end_resume': body['run_ended'] = True
     message['body'] = body
     options = dict(expected_request_id=ID, expected_operation=operation, expected_version='a' * 64, now=NOW)
     if operation != 'resume_run': options['expected_run_id'] = ID

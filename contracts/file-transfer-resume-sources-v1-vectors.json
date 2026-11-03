@@ -6,7 +6,8 @@
     {"type":"message","v":1,"message_id":"33333333-3333-4333-8333-333333333333","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"cancel_resume","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","run_id":"44444444-4444-4444-8444-444444444444"}},
     {"type":"message","v":1,"message_id":"44444444-4444-4444-8444-444444444444","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"offer_resume","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","run_id":"44444444-4444-4444-8444-444444444444"}},
     {"type":"message","v":1,"message_id":"55555555-5555-4555-8555-555555555555","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"resume_lookup","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","source_id":"dddddddddddddddddddddddddddddddd","transfer_id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","manifest_sha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}},
-    {"type":"message","v":1,"message_id":"66666666-6666-4666-8666-666666666666","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"resume_media_page","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","run_id":"44444444-4444-4444-8444-444444444444","after":0}}
+    {"type":"message","v":1,"message_id":"66666666-6666-4666-8666-666666666666","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"resume_media_page","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","run_id":"44444444-4444-4444-8444-444444444444","after":0}},
+    {"type":"message","v":1,"message_id":"77777777-7777-4777-8777-777777777777","kind":"file_transfer.sources.request","created_ms":1800000000000,"expires_ms":1800000060000,"body":{"format":1,"operation":"end_resume","expected_version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","run_id":"44444444-4444-4444-8444-444444444444"}}
   ],
   "canonical_sha256": [
     "c4a1b51369b7375cc2dfd79455ee6463dd590a29b4ca6058531dde4c0dc6d7c8",
@@ -14,6 +15,7 @@
     "3c4e3e54397d7b1e6cc38ff90a868b01d556b610a100b304bd98de95d2b106f7",
     "e3bcf53cf9b3a8f6c5dda435bbc4ff9fa55917cf9859cbb6dac8c519578bff24",
     "40589a28d653bc813318bafc642447f072f29a5b149414318568db2f6263e7f7",
-    "84f09dc1c8c295df5b74574f5e9ef90e1c2e53c0ac841b097cf4d7865a3d4928"
+    "84f09dc1c8c295df5b74574f5e9ef90e1c2e53c0ac841b097cf4d7865a3d4928",
+    "712e2f50ef9238d64f1a45e3cb99d39534880d83e489efcb3a24f88cff816e14"
   ]
 }

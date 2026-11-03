@@ -62,6 +62,7 @@ class NativeDesktopFileConnection:
         self._source_media_entries = None
         self._resume_lookup_selection = self._resume_history = None
         self._resume_source_id = None
+        self._resume_ended_manifest = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -185,7 +186,7 @@ class NativeDesktopFileConnection:
         _body(pending.message, source_messages.REQUEST, clock())
         if pending.command.operation == 'resume_lookup':
             self._require_resume_lookup_selection()
-        elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page'):
+        elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
             self._require_resume_lookup_selection(allow_source_run=True)
 
     def _require_resume_lookup_selection(self, *, allow_source_run=False):
@@ -305,13 +306,15 @@ class NativeDesktopFileConnection:
                         self._verify_job_mapping_store(original)
                         options.update(original_job_id=history.job_id, original_job_version=history.job_version)
                         self._source_media_pages = (); self._source_media_entries = None; self._source_offer = None
-            elif operation in ('run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page'):
+            elif operation in ('run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
                 if self._source_run is None:
                     raise TransferError('file_desktop_source_run_not_current')
-                resumed = operation in ('resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page')
+                resumed = operation in ('resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume')
                 if resumed != (self._resume_source_id is not None and self._source_run.run_id == self._resume_source_id):
                     raise TransferError('file_desktop_resume_source_owner_changed')
                 if resumed: self._require_resume_lookup_selection(allow_source_run=True)
+                if operation == 'end_resume' and (self._source_run.state != 'canceled_held' or not self._source_run.source_io_ended):
+                    raise TransferError('file_desktop_resume_source_io_pending')
                 if operation in ('offer_run', 'media_page', 'offer_resume', 'resume_media_page') and (self._run is not None or self._offer is not None
                         or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
                         or self._source_run.version != self._source_status.version
@@ -420,6 +423,12 @@ class NativeDesktopFileConnection:
                 self._source_albums = {}
             self._source_catalog = result
             self._source_albums.update((album.album_id, album) for album in result.albums)
+        elif command.operation == 'end_resume':
+            self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
+            self._source_run = self._source_offer = self._resume_source_id = None
+            self._resume_lookup_selection = self._resume_history = None
+            self._offer = self._offer_binding = self._offer_policy_version = None
+            self._source_media_pages = (); self._source_media_entries = None
         elif command.operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
             if command.operation == 'resume_run': self._resume_source_id = result.run_id
@@ -466,6 +475,8 @@ class NativeDesktopFileConnection:
         snapshot = self._receiving_policy()
         binding = self._receive_binding()
         manifest = validate_offer(message, binding.sender_id, binding.receiver_id, now=clock())
+        if self._source_run is None and manifest.fingerprint == self._resume_ended_manifest:
+            raise TransferError('file_desktop_resume_source_owner_ended')
         if clock() >= message['expires_ms']:
             raise TransferError('file_desktop_offer_expired')
         if self._run is not None:

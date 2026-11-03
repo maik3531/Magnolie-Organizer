@@ -42,7 +42,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(), message.long("expires_ms"),
                     lookupSourceId = id("source_id"), lookupTransferId = id("transfer_id"), lookupManifestSha256 = manifest)
             }
-            if (operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume")) {
+            if (operation in setOf("resume_run", "resume_status", "cancel_resume", "offer_resume", "end_resume")) {
                 val starting = operation == "resume_run"
                 if (body.keys != base + setOf("expected_version") + (if (starting)
                     setOf("catalog_id", "album_id", "desktop_choice", "original_job_id", "original_job_version") else setOf("run_id"))) fail()

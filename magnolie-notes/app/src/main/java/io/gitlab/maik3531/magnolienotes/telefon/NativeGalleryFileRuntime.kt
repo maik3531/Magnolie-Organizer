@@ -23,6 +23,22 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private var operationActive = false // Guarded by the short-lived runtime monitor.
     private var syncRun: NativeGallerySyncRun? = null // Access only through operationGate.
     private var resumeRun: NativeGalleryResumeRun? = null // Same whole-run owner, not disk metadata.
+    private var resumeEnd: ResumeEndOutput? = null // Bounded metadata retry, never a live source owner.
+    private class ResumeEndOutput(val command: JsonObject, val reply: JsonObject, issuedWall: Long) {
+        private val issued = DeviceFileControl.monotonicMs()
+        private val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.long("expires_ms") - issuedWall)
+        private val clock = NativeGalleryWireOfferAttempt(command.string("message_id"),
+            DeviceFileControl.digest("magnolie-gallery-resume-end-command-v1\u0000", command), command, issuedWall, issued)
+        private var invalid = false
+        init { if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired") }
+        fun check(wall: Long) {
+            val elapsed = DeviceFileControl.monotonicMs()
+            clock.checkCurrent(wall, elapsed)
+            if (invalid || elapsed >= issued + ttl) {
+                invalid = true; DeviceFileControl.fail("file_sources_command_expired")
+            }
+        }
+    }
     private val app = context.applicationContext
     private val localIdentity = identity
     private val localPermissionCommands = NativeGalleryPermissionCommands()
@@ -101,6 +117,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     }
 
     internal fun endStoppedResumeRun(run: NativeGalleryResumeRun) = withOperation {
+        endStoppedResumeRunOwned(run)
+    }
+
+    private fun endStoppedResumeRunOwned(run: NativeGalleryResumeRun) {
         if (resumeRun !== run || !run.cancelRequested) DeviceFileControl.fail("gallery_resume_run_not_current")
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
         resumeRun = null // No cache/proof/quota cleanup or successful sync assertion.
@@ -504,6 +524,35 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "end_resume") {
+                val prior = resumeEnd
+                val output = if (prior != null && prior.command.string("message_id") == command.requestId) {
+                    if (prior.command != message) DeviceFileControl.fail("gallery_resume_end_command_changed")
+                    prior
+                } else {
+                    val run = resumeRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_resume_run_not_current")
+                    if (!run.cancelRequested) DeviceFileControl.fail("gallery_resume_run_not_current")
+                    if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+                    val body = kotlinx.serialization.json.buildJsonObject {
+                        put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                        put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
+                        put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
+                    }
+                    val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                    if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                    val prepared = ResumeEndOutput(message, TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at), at)
+                    prepared.check(now()); authority()
+                    resumeEnd = prepared // Exact bounded result survives uncertain output.
+                    endStoppedResumeRunOwned(run)
+                    prepared
+                }
+                fun endAuthority() { output.check(now()); authority() }
+                try { endAuthority(); send(output.reply); endAuthority() } catch (error: Exception) {
+                    try { endAuthority() } catch (_: Exception) { }
+                    throw error
+                }
+                return@withOperation // Owner END only, never job/proof/quota retirement.
+            }
             if (command.operation == "resume_lookup") {
                 val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
                 val history = index.lookupGalleryResume(localIdentity.deviceId, command.lookupSourceId!!, command.lookupTransferId!!, command.lookupManifestSha256!!,

@@ -1,5 +1,26 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit stopped resume-source END, not job retirement (Refs #368, #337)
+
+end_resume now releases only the exact stopped native source owner after actual
+worker quiescence and preparation I/O END. The bounded exact end command/result is
+held before owner release; lost reply retries that immutable metadata receipt rather
+than ending another run. Foreign/changed/stale commands, pending provider I/O and
+expiry reject. run_ended=true is valid only for this exact end result, never for
+ordinary status/cancel or as Saved/baseline/quota retirement.
+
+Linux releases its private source owner only after the correlated end confirmation,
+keeps the protected original job/stage/checkpoint/quota, clears only pending source
+metadata and requires a fresh original lookup for another resume. Late old resume
+offers cannot fall back to standalone admission after END. An active receiver stage
+is not implicitly closed by a source-END action.
+160 distinct host cases pass (13 new, 147 affected): actual blocked native PFD END,
+same-receipt retry while another owner is active, expiry/clock fences, Linux lost
+command/result/strict end-state behavior, original job preservation, active-stage
+refusal, canonical shared end vector and existing source/ownership compatibility.
+Safe pending-attempt repair, receiver data-stop/normal source-END integration, UI,
+Windows/Apple and physical acceptance remain unfinished. Production gates stay OFF.
+
 ### Linux native resume source/history/receiver join (Refs #367, #337)
 
 An explicit resume_run can now use only the bound original native lookup selection,
