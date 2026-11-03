@@ -1740,6 +1740,12 @@ msgstr ""
 msgid "Complete pairing"
 msgstr ""
 
+msgid "Complete receipt"
+msgstr ""
+
+msgid "Complete the saved mapping receipt."
+msgstr ""
+
 msgid "Completed (%(count)s)"
 msgstr ""
 
@@ -3072,6 +3078,9 @@ msgid "Hide past appointments"
 msgstr ""
 
 msgid "Highlighter"
+msgstr ""
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
 msgstr ""
 
 msgid "History"
@@ -5287,6 +5296,9 @@ msgstr ""
 msgid "Reason"
 msgstr ""
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr ""
+
 msgid "Receive files"
 msgstr ""
 
@@ -5557,6 +5569,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr ""
 
+msgid "Resume with a fresh phone album scan."
+msgstr ""
+
 msgid "Retrieval failed."
 msgstr ""
 
@@ -5600,6 +5615,9 @@ msgid "Retry"
 msgstr ""
 
 msgid "Review and enable"
+msgstr ""
+
+msgid "Review interrupted transfers"
 msgstr ""
 
 msgid "Review the exact SMS text for every recipient before confirming."
@@ -5734,6 +5752,9 @@ msgid "Save tasks"
 msgstr ""
 
 msgid "Saved"
+msgstr ""
+
+msgid "Saved confirmation available."
 msgstr ""
 
 msgid "Saved to: %(path)s (%(count)s entry)"
@@ -5935,6 +5956,9 @@ msgid "Send documents"
 msgstr ""
 
 msgid "Send notes by email or fax"
+msgstr ""
+
+msgid "Send saved confirmation again"
 msgstr ""
 
 msgid "Send secure request"
@@ -7848,6 +7872,9 @@ msgstr ""
 msgid "Transfer received text to the clipboard"
 msgstr ""
 
+msgid "Transfer recovery"
+msgstr ""
+
 msgid "Travel"
 msgstr ""
 
@@ -7914,6 +7941,9 @@ msgid "URI"
 msgstr ""
 
 msgid "Unavailable"
+msgstr ""
+
+msgid "Uncertain transfer: no automatic retry or file changes."
 msgstr ""
 
 msgid "Unchanged contents do not create another recovery point."

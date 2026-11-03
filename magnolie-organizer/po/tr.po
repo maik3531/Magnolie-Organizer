@@ -75,6 +75,36 @@ msgstr "Albümleri yenile"
 msgid "Phone album"
 msgstr "Telefon albümü"
 
+msgid "Transfer recovery"
+msgstr "Aktarım kurtarma"
+
+msgid "Review interrupted transfers"
+msgstr "Kesintiye uğrayan aktarımları incele"
+
+msgid "Saved confirmation available."
+msgstr "Kaydetme onayı mevcut."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Kaydetme ve eşleştirme belgesini tamamlayın."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Telefon albümünü yeniden tarayarak devam edin."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Belirsiz aktarım: otomatik yeniden deneme veya dosya değişikliği yapılmaz."
+
+msgid "Send saved confirmation again"
+msgstr "Kaydetme onayını yeniden gönder"
+
+msgid "Complete receipt"
+msgstr "Belgeyi tamamla"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Önceki onay gönderildi. Bu, yeni bir aktarımı onaylamaz."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Belge tamamlandı. Önceki onayını ayrıca gönderin."
+
 msgid "Photo synchronization could not be started."
 msgstr "Fotoğraf eşitlemesi başlatılamadı."
 

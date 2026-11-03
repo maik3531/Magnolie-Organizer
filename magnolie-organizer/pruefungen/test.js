@@ -7557,6 +7557,31 @@ function knopfMit(text, wurzel) {
   assert.ok(Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").disabled);
   Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Stopp").click();
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "stop"));
+  assert.ok(!fotoGruppe.querySelector("[data-photo-recovery]"), "unangebundene Wiederherstellung bleibt unsichtbar");
+  const recoveryJobs = [
+    { job_owner: "a".repeat(32), state: "saved_confirmation", files: 1 },
+    { job_owner: "b".repeat(32), state: "mapping_receipt_repair", files: 2 },
+    { job_owner: "<img src=x onerror=bad>", state: "held", files: 3 },
+    { job_owner: "c".repeat(32), state: "resumable", files: 1 }
+  ];
+  const recoveryBefore = baumNachrichten.length;
+  fotoStand({ available: true, enabled: true, state: "recovery", recovery_supported: true, recovery: recoveryJobs, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.strictEqual(baumNachrichten.length, recoveryBefore, "Anzeige allein bestätigt oder repariert keinen Auftrag");
+  assert.strictEqual(fotoGruppe.querySelectorAll(".foto-wiederherstellung").length, 4);
+  assert.ok(!fotoGruppe.querySelector("img") && !bd.querySelector(".telefon-kde-karte [data-photo-recovery]"));
+  fotoGruppe.querySelector('[data-photo-recovery="inspect"]').click();
+  fotoGruppe.querySelector('[data-photo-recovery="confirm"]').click();
+  fotoGruppe.querySelector('[data-photo-recovery="repair"]').click();
+  const recoveryActions = baumNachrichten.slice(recoveryBefore).filter(value => value.cmd === "telefon_foto_aktion");
+  assert.deepStrictEqual(recoveryActions.map(value => JSON.parse(JSON.stringify(value.request))), [
+    { action: "inspect_recovery" }, { action: "recover_saved", job_owner: "a".repeat(32) },
+    { action: "repair_receipt", job_owner: "b".repeat(32) }
+  ], "nur ausdrückliche einzelne Originalauswahl, kein Zielpfad und kein automatischer Resume");
+  assert.strictEqual(fotoGruppe.querySelectorAll(".foto-wiederherstellung button").length, 2,
+    "ungewisse oder nur fortsetzbare Aufträge bieten keine Belegreparatur an");
+  fotoStand({ available: true, enabled: true, state: "recover_saved", busy: true, recovery_supported: true, recovery: recoveryJobs, albums: [] });
+  assert.ok([...bd.querySelectorAll("[data-photo-recovery]")].every(button => button.disabled), "keine überlappenden Wiederherstellungsaktionen");
   fotoStand({ available: true }, { enabled: false });
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
   bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],

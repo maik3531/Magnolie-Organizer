@@ -75,6 +75,36 @@ msgstr "Albums vernieuwen"
 msgid "Phone album"
 msgstr "Telefoonalbum"
 
+msgid "Transfer recovery"
+msgstr "Overdrachten herstellen"
+
+msgid "Review interrupted transfers"
+msgstr "Onderbroken overdrachten controleren"
+
+msgid "Saved confirmation available."
+msgstr "Opslagbevestiging beschikbaar."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Voltooi het opslag- en koppelingsbewijs."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Hervat na een nieuwe scan van het telefoonalbum."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Onzekere overdracht: geen automatische nieuwe poging of bestandswijzigingen."
+
+msgid "Send saved confirmation again"
+msgstr "Opslagbevestiging opnieuw verzenden"
+
+msgid "Complete receipt"
+msgstr "Bewijs voltooien"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Eerdere bevestiging verzonden. Dit bevestigt geen nieuwe overdracht."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Bewijs voltooid. Verzend de eerdere bevestiging afzonderlijk."
+
 msgid "Photo synchronization could not be started."
 msgstr "Fotosynchronisatie kon niet worden gestart."
 

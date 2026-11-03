@@ -28680,9 +28680,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
       erweitert.open = ansicht.offen; erweitert.append(el("summary", null, _("Advanced functions")));
       const gruppe = el("div", "notes-foto-sync");
-      const sende = (action, album_id) => {
+      const sende = (action, album_id, job_owner) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
+        if (job_owner !== undefined) request.job_owner = job_owner;
         Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint, request });
       };
       const an = document.createElement("input"); an.type = "checkbox";
@@ -28711,7 +28712,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),
           stopping: _("Stopping photo synchronization…"), complete: _("Selected album synchronized."),
           conflicts: _("Changes need review. No conflicting version was overwritten."),
-          held: _("Photo synchronization stopped safely. Check the connection before retrying."), canceled: _("Canceled")
+          held: _("Photo synchronization stopped safely. Check the connection before retrying."), canceled: _("Canceled"),
+          recovery: _("Transfer recovery"), inspect_recovery: _("Transfer recovery"),
+          recover_saved: _("Transfer recovery"), repair_receipt: _("Transfer recovery")
         };
         gruppe.append(el("p", stand.state === "held" || stand.state === "conflicts" ? "einst-warnung" : "einst-hinweis", status[stand.state] || ""));
         const reihe = el("div", "knopfreihe");
@@ -28729,6 +28732,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("sync", auswahl.value));
         jetzt.disabled = stand.busy === true || !auswahl.options.length; gruppe.append(jetzt);
         if (stand.busy) gruppe.append(knopf(_("Stop"), "", () => sende("stop")));
+        if (stand.recovery_supported === true) {
+          const pruefen = knopf(_("Review interrupted transfers"), "", () => sende("inspect_recovery"));
+          pruefen.dataset.photoRecovery = "inspect";
+          pruefen.disabled = stand.busy === true; gruppe.append(pruefen);
+          const texte = {
+            saved_confirmation: _("Saved confirmation available."),
+            mapping_receipt_repair: _("Complete the saved mapping receipt."),
+            resumable: _("Resume with a fresh phone album scan."),
+            held: _("Uncertain transfer: no automatic retry or file changes.")
+          };
+          for (const auftrag of Array.isArray(stand.recovery) ? stand.recovery : []) {
+            const zeile = el("div", "foto-wiederherstellung");
+            zeile.append(el("p", "einst-hinweis", String(auftrag.job_owner).slice(0, 8) + " (" + auftrag.files + "): " + (texte[auftrag.state] || texte.held)));
+            if (auftrag.state === "saved_confirmation" || auftrag.state === "mapping_receipt_repair") {
+              const bestaetigung = auftrag.state === "saved_confirmation";
+              const aktion = knopf(bestaetigung ? _("Send saved confirmation again") : _("Complete receipt"), "", () =>
+                sende(bestaetigung ? "recover_saved" : "repair_receipt", undefined, auftrag.job_owner));
+              aktion.dataset.photoRecovery = bestaetigung ? "confirm" : "repair";
+              aktion.disabled = stand.busy === true; zeile.append(aktion);
+            }
+            gruppe.append(zeile);
+          }
+          if (stand.recovery_result === "confirmation_sent") gruppe.append(el("p", "einst-hinweis", _("Historical confirmation sent. This does not confirm a new transfer.")));
+          if (stand.recovery_result === "receipt_repaired") gruppe.append(el("p", "einst-hinweis", _("Receipt completed. Send its historical confirmation separately.")));
+        }
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       erweitert.append(gruppe); wurzel.append(erweitert);

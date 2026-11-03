@@ -75,6 +75,36 @@ msgstr "アルバムを更新"
 msgid "Phone album"
 msgstr "スマートフォンのアルバム"
 
+msgid "Transfer recovery"
+msgstr "転送の復旧"
+
+msgid "Review interrupted transfers"
+msgstr "中断された転送を確認"
+
+msgid "Saved confirmation available."
+msgstr "保存確認があります。"
+
+msgid "Complete the saved mapping receipt."
+msgstr "保存と関連付けの記録を補完してください。"
+
+msgid "Resume with a fresh phone album scan."
+msgstr "スマートフォンのアルバムを再スキャンして再開してください。"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "転送状態が不明です。自動再試行やファイル変更は行いません。"
+
+msgid "Send saved confirmation again"
+msgstr "保存確認を再送信"
+
+msgid "Complete receipt"
+msgstr "記録を補完"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "以前の確認を送信しました。新しい転送の確認ではありません。"
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "記録を補完しました。以前の確認は別途送信してください。"
+
 msgid "Photo synchronization could not be started."
 msgstr "写真の同期を開始できませんでした。"
 

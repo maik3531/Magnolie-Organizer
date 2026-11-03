@@ -8,6 +8,7 @@ may drive automatic runs only from protected explicit desktop mode consent.
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+import re
 import threading
 import time
 import uuid
@@ -1543,6 +1544,55 @@ class NativeDesktopFileConnection:
             self._offer = self._offer_binding = self._offer_policy_version = None
             return progress  # Never a remote ACK, baseline reset or quota cleanup.
 
+    def inspect_photo_recovery(self, action):
+        """Bounded native metadata overview; never a repair/publication permit.
+
+        No stage, publisher, destination-file read or source lookup is opened.
+        Every subsequent explicit recovery action revalidates the original job.
+        """
+        self._take_action(action)
+        with self._operation():
+            if self._run is not None or self._source_pending is not None or self._source_run is not None or self._offer is not None:
+                raise TransferError('file_desktop_receive_already_active')
+            binding=self._receive_binding();snapshot=self._receiving_policy()
+            if not self._open_catalog(allow_create=False):return ()
+            protection=self._authority.protection;result=[]
+            with self._catalog.inspect_jobs() as (parent,jobs):
+                events=self._catalog._registry.attempts(jobs) if self._catalog._registry is not None else ()
+                for job in jobs:
+                    if job.accepted.binding!=binding or job.accepted.destination!=snapshot.policy.destination:continue
+                    state='held'
+                    try:
+                        with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,self._receive_binding,
+                                protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                            history=index.media_history;receipt=index.saved_mapping_receipt()
+                            if history is not None:
+                                self._verify_expected_mapping_store();self._verify_job_mapping_store(history)
+                                if receipt is not None:
+                                    self._mappings.verify_checkpoint(receipt.store)
+                                    _,records=self._mappings.lookup_saved(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                                        for entry in history.entries),tuple(entry.saved_receipt_sha256 for entry in receipt.entries))
+                                    if (all(record is not None for record in records) and
+                                            tuple(record.protected_record_sha256 for record in records)==tuple(entry.mapping_record_sha256 for entry in receipt.entries)):
+                                        state='saved_confirmation'
+                                else:
+                                    receipts={value.file_id:value for value in index.saved_receipts()}
+                                    if set(receipts)=={entry.file_id for entry in history.entries}:
+                                        _,records=self._mappings.lookup_saved(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                                            for entry in history.entries),tuple(receipts[entry.file_id].protected_record_sha256 for entry in history.entries))
+                                        if all(record is not None for record in records):state='mapping_receipt_repair'
+                                    elif job.cache_retirement_sha256 is None:
+                                        last=next((value for value,_ in reversed(events) if value['owner']==job.owner),None)
+                                        if last is not None and last['operation']=='closed':state='resumable'
+                    except Exception:
+                        # Corrupt/inaccessible metadata is displayed as held, not
+                        # reinitialized or converted into missing-file evidence.
+                        self._receive_binding();action.validate(self)
+                    result.append(dict(job_owner=job.owner,state=state,files=len(job.accepted.manifest.files)))
+                if self._catalog.jobs()!=jobs:raise TransferError('file_desktop_saved_recovery_evidence_changed')
+            action.validate(self);self._receive_binding()
+            return tuple(result)
+
     def recover_saved_confirmation(self, action, native_job_owner, *, clock=now_ms):
         """Explicit historical media ACK retry, never source/stage recovery.
 
@@ -1553,7 +1603,8 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             action.validate(self)
-            if self._run is not None:raise TransferError('file_desktop_receive_already_active')
+            if self._run is not None or self._source_pending is not None or self._source_run is not None or self._offer is not None:
+                raise TransferError('file_desktop_receive_already_active')
             if not self._open_catalog(allow_create=False):
                 raise TransferError('file_desktop_saved_recovery_unavailable')
             binding=self._receive_binding();snapshot=self._receiving_policy()
@@ -1597,7 +1648,8 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             action.validate(self)
-            if self._run is not None:raise TransferError('file_desktop_receive_already_active')
+            if self._run is not None or self._source_pending is not None or self._source_run is not None or self._offer is not None:
+                raise TransferError('file_desktop_receive_already_active')
             self._mutation_action=action
             try:
                 if not self._open_catalog(allow_create=False):
@@ -1973,6 +2025,7 @@ class NativePhotoDesktopSession:
         self._disable_pending=False
         self._mode='manual';self._pending_mode=None;self._automatic_paused=False
         self._timer=None;self._sync_active=False
+        self._recovery=[];self._recovery_result=None
         self._schedule=PhotoSyncSchedule(self._schedule_scope,lambda:time.monotonic_ns()//1_000_000)
 
     def snapshot(self):
@@ -1980,6 +2033,7 @@ class NativePhotoDesktopSession:
             value=dict(available=True,state=self._state,error=self._error,enabled=self._enabled,mode=self._pending_mode or self._mode,
                 destination=self._destination,albums=[dict(album) for album in self._albums],permission=self._permission,
                 busy=self._running,automatic_supported=True)
+            value.update(recovery_supported=True,recovery=[dict(item) for item in self._recovery],recovery_result=self._recovery_result)
             worker=self._worker
         if worker is not None:
             progress=worker.progress()
@@ -1992,8 +2046,12 @@ class NativePhotoDesktopSession:
             try:callback()
             except Exception:pass # A failed frontend cannot replace native ownership.
 
-    def start(self, operation, album_id=None, *, schedule_run=None):
-        if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic'):
+    def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None):
+        if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
+                'inspect_recovery','recover_saved','repair_receipt'):
+            raise TransferError('photo_sync_invalid_action')
+        if ((operation in ('recover_saved','repair_receipt')) != (job_owner is not None)
+                or job_owner is not None and (type(job_owner) is not str or re.fullmatch('[0-9a-f]{32}',job_owner) is None)):
             raise TransferError('photo_sync_invalid_action')
         with self._lock:
             running=self._running
@@ -2016,10 +2074,11 @@ class NativePhotoDesktopSession:
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
                 if operation=='sync':schedule_run=self._schedule.request_now()
-                self._stop.clear(); self._error=None; self._state=operation
-                if operation!='automatic':self._automatic_paused=False
+                self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
+                if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt'):
+                    self._automatic_paused=False
                 self._running=True
-                self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run),
+                self._thread=threading.Thread(target=self._run,args=(operation,album_id,schedule_run,job_owner),
                     name='magnolie-photo-desktop-action',daemon=True)
                 try:self._thread.start()
                 except BaseException:
@@ -2140,7 +2199,7 @@ class NativePhotoDesktopSession:
         with self._lock:
             self._albums=albums;self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
 
-    def _run(self, operation, album_id, schedule_run=None):
+    def _run(self, operation, album_id, schedule_run=None, job_owner=None):
         syncing=operation in ('sync','automatic')
         if syncing:self._sync_activity(True)
         try:
@@ -2181,6 +2240,17 @@ class NativePhotoDesktopSession:
                 state=self._command('request_read')
                 with self._lock:self._permission=state['result'].state; self._state='permission_required'
             elif operation=='discover':self._discover()
+            elif operation in ('inspect_recovery','recover_saved','repair_receipt'):
+                if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+                if operation=='recover_saved':
+                    self.connection.recover_saved_confirmation(self.connection.issue_receive_action(),job_owner)
+                elif operation=='repair_receipt':
+                    self.connection.repair_saved_mapping_receipt(self.connection.issue_receive_action(),job_owner)
+                if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+                recovery=self.connection.inspect_photo_recovery(self.connection.issue_receive_action())
+                with self._lock:
+                    self._recovery=list(recovery);self._state='recovery'
+                    self._recovery_result={'recover_saved':'confirmation_sent','repair_receipt':'receipt_repaired'}.get(operation)
             elif operation.startswith('mode_'):
                 self._apply_mode(operation.removeprefix('mode_'))
                 with self._lock:self._state='albums' if self._albums else 'permission_required'

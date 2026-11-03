@@ -1,5 +1,33 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit Organizer recovery overview and historical receipts (Refs #330)
+
+The existing Notes advanced-functions area exposes a bounded native recovery
+overview only when the actual desktop implementation is available. Inspecting
+it creates no transfer job and opens no source, stage, publisher or destination
+file. Original protected catalog/index/mapping evidence distinguishes historical
+Saved confirmation, an independently completable post-mapping receipt, a cleanly
+closed pending job requiring a fresh album scan, and HOLD. Corrupt, missing or
+uncertain evidence stays HOLD; the overview grants no recovery authority.
+
+Local GTK/IPC actions select one original native owner, never a caller-supplied
+path or proof. Historical confirmation and receipt completion remain separate
+explicit actions and revalidate the original protected evidence. Neither
+recreates a deleted PC file, republishes content, creates mappings or frees job
+quota. A confirmation result means only that the historical message was sent,
+not that the phone acknowledged a new transfer. Pending offers, source commands,
+actual source owners and live receivers exclude these actions. The native action
+lane stays busy until actual output ends, even after a UI stop request. Recovery
+inspection/repair/confirmation cannot resume paused automatic synchronization.
+
+Source-host tests exercise the actual GTK/Unix-IPC actions with deleted targets,
+missing post-mapping receipts, stale IDs, malformed selections, corrupt history,
+real source-owner exclusion and blocked historical ACK output. Frontend tests
+cover inert rendering, separate original-job actions, escaped labels, exclusion
+from KDE/unsupported connections and disabled overlapping controls. New messages
+are localized in all nineteen desktop catalogs. No installed or physical-device
+acceptance or production readiness is implied.
+
 ### Native clean-END proof and one-use publication renewal (Refs #330)
 
 A native receiver which actually closes before its publisher ever entered a

@@ -75,6 +75,36 @@ msgstr "刷新相册"
 msgid "Phone album"
 msgstr "手机相册"
 
+msgid "Transfer recovery"
+msgstr "传输恢复"
+
+msgid "Review interrupted transfers"
+msgstr "检查中断的传输"
+
+msgid "Saved confirmation available."
+msgstr "已有保存确认。"
+
+msgid "Complete the saved mapping receipt."
+msgstr "补全保存与关联凭证。"
+
+msgid "Resume with a fresh phone album scan."
+msgstr "重新扫描手机相册后继续。"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "传输状态不确定：不自动重试或更改文件。"
+
+msgid "Send saved confirmation again"
+msgstr "重新发送保存确认"
+
+msgid "Complete receipt"
+msgstr "补全凭证"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "已发送先前的确认。这并不确认新的传输。"
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "凭证已补全。请单独发送其先前的确认。"
+
 msgid "Photo synchronization could not be started."
 msgstr "无法启动照片同步。"
 

@@ -76,6 +76,36 @@ msgstr "Albumy aktualizować"
 msgid "Phone album"
 msgstr "Album telefona"
 
+msgid "Transfer recovery"
+msgstr "Wobnowjenje přenjeseńow"
+
+msgid "Review interrupted transfers"
+msgstr "Přetorhnjene přenjesenja přepruwować"
+
+msgid "Saved confirmation available."
+msgstr "Wobkrućenje składowanja je k dispoziciji."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Dokład wo składowanju a přirjadowanju dokónčić."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Po nowym přepytowanju telefonoweho albuma pokročować."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Njewěste přenjesenje: žane awtomatiske wospjetowanje ani změny datajow."
+
+msgid "Send saved confirmation again"
+msgstr "Wobkrućenje składowanja znowa pósłać"
+
+msgid "Complete receipt"
+msgstr "Dokład dokónčić"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Prjedawše wobkrućenje pósłane. To nowe přenjesenje njewobkruća."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Dokład dokónčeny. Prjedawše wobkrućenje separatnje pósłać."
+
 msgid "Photo synchronization could not be started."
 msgstr "Synchronizacija fotow njeje so dała startować."
 

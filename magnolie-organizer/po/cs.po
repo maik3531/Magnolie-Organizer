@@ -75,6 +75,36 @@ msgstr "Obnovit alba"
 msgid "Phone album"
 msgstr "Album telefonu"
 
+msgid "Transfer recovery"
+msgstr "Obnova přenosů"
+
+msgid "Review interrupted transfers"
+msgstr "Zkontrolovat přerušené přenosy"
+
+msgid "Saved confirmation available."
+msgstr "Potvrzení uložení je k dispozici."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Dokončit doklad o uložení a přiřazení."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Pokračovat po novém prohledání alba telefonu."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Nejistý přenos: bez automatického opakování a změn souborů."
+
+msgid "Send saved confirmation again"
+msgstr "Znovu odeslat potvrzení uložení"
+
+msgid "Complete receipt"
+msgstr "Dokončit doklad"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Dřívější potvrzení odesláno. To nepotvrzuje nový přenos."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Doklad dokončen. Dřívější potvrzení odešlete samostatně."
+
 msgid "Photo synchronization could not be started."
 msgstr "Synchronizaci fotografií se nepodařilo spustit."
 

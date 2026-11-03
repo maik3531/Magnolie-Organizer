@@ -2893,9 +2893,12 @@ class PhoneService:
 
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
-        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id'}
-                or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic')
+        if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner'}
+                or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
+                    'inspect_recovery','recover_saved','repair_receipt')
                 or ('album_id' in request) != (request['action']=='sync')
+                or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
+                or 'job_owner' in request and (type(request['job_owner']) is not str or re.fullmatch('[0-9a-f]{32}',request['job_owner']) is None)
                 or request.get('album_id') is not None and type(request['album_id']) is not str):
             raise ValueError('photo_sync_invalid_action')
         if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
@@ -2929,7 +2932,7 @@ class PhoneService:
                 binding=adopted[0]
         if connection is None:
             connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
-        return connection.desktop_session().start(request['action'],request.get('album_id'))
+        return connection.desktop_session().start(request['action'],request.get('album_id'),job_owner=request.get('job_owner'))
 
     def _observe_native_file_control(self, peer, channel, kind, message, *, duplicate=False, acknowledged=True):
         # Positive connection metadata requires actual secure ACK completion.

@@ -76,6 +76,36 @@ msgstr "تحديث الألبومات"
 msgid "Phone album"
 msgstr "ألبوم الهاتف"
 
+msgid "Transfer recovery"
+msgstr "استعادة عمليات النقل"
+
+msgid "Review interrupted transfers"
+msgstr "مراجعة عمليات النقل المنقطعة"
+
+msgid "Saved confirmation available."
+msgstr "تأكيد الحفظ متاح."
+
+msgid "Complete the saved mapping receipt."
+msgstr "أكمل إيصال الحفظ والربط."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "استأنف بعد فحص ألبوم الهاتف مجددًا."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "نقل غير مؤكد: لا إعادة محاولة تلقائية ولا تغييرات على الملفات."
+
+msgid "Send saved confirmation again"
+msgstr "إعادة إرسال تأكيد الحفظ"
+
+msgid "Complete receipt"
+msgstr "إكمال الإيصال"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "أُرسل التأكيد السابق. هذا لا يؤكد عملية نقل جديدة."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "اكتمل الإيصال. أرسل تأكيده السابق بشكل منفصل."
+
 msgid "Photo synchronization could not be started."
 msgstr "تعذّر بدء مزامنة الصور."
 

@@ -76,6 +76,36 @@ msgstr "Обновить альбомы"
 msgid "Phone album"
 msgstr "Альбом телефона"
 
+msgid "Transfer recovery"
+msgstr "Восстановление передач"
+
+msgid "Review interrupted transfers"
+msgstr "Проверить прерванные передачи"
+
+msgid "Saved confirmation available."
+msgstr "Подтверждение сохранения доступно."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Завершить квитанцию сохранения и сопоставления."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Продолжить после нового сканирования альбома телефона."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Неопределённая передача: без автоматического повтора и изменения файлов."
+
+msgid "Send saved confirmation again"
+msgstr "Повторно отправить подтверждение сохранения"
+
+msgid "Complete receipt"
+msgstr "Завершить квитанцию"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Прежнее подтверждение отправлено. Это не подтверждает новую передачу."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Квитанция завершена. Отправьте прежнее подтверждение отдельно."
+
 msgid "Photo synchronization could not be started."
 msgstr "Не удалось запустить синхронизацию фотографий."
 

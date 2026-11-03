@@ -75,6 +75,36 @@ msgstr "Atualizar álbuns"
 msgid "Phone album"
 msgstr "Álbum do telefone"
 
+msgid "Transfer recovery"
+msgstr "Recuperação de transferências"
+
+msgid "Review interrupted transfers"
+msgstr "Rever transferências interrompidas"
+
+msgid "Saved confirmation available."
+msgstr "Confirmação de gravação disponível."
+
+msgid "Complete the saved mapping receipt."
+msgstr "Completar o comprovativo de gravação e associação."
+
+msgid "Resume with a fresh phone album scan."
+msgstr "Retomar com uma nova análise do álbum do telemóvel."
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Transferência incerta: sem novas tentativas automáticas nem alterações de ficheiros."
+
+msgid "Send saved confirmation again"
+msgstr "Reenviar a confirmação de gravação"
+
+msgid "Complete receipt"
+msgstr "Completar comprovativo"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Confirmação anterior enviada. Isto não confirma uma nova transferência."
+
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Comprovativo completado. Envie a confirmação anterior separadamente."
+
 msgid "Photo synchronization could not be started."
 msgstr "Não foi possível iniciar a sincronização de fotografias."
 
