@@ -50,16 +50,25 @@ rm -rf "$BAUM" "$REPO"
 mkdir -p "$ARBEIT" "$(dirname -- "$AUSGABE")"
 python3 - "$MANIFEST" "$BAU_MANIFEST" "$CONTRIBUTOR_HASH" <<'PY'
 import json
+import os
 import pathlib
+import shlex
 import sys
 
 source, target, contributor_hash = sys.argv[1:]
 manifest = json.loads(pathlib.Path(source).read_text(encoding="utf-8"))
 module = manifest["modules"][-1]
-if contributor_hash:
-    module["build-commands"].append(
-        "printf '{\"contributorHash\":\"%s\"}\\n' > "
-        "/app/share/magnolie-organizer/build-config.json" % contributor_hash)
+raw_features = os.environ.get("MAGNOLIE_PHONE_FEATURES")
+if contributor_hash or raw_features is not None:
+    sys.path.insert(0, str(pathlib.Path(source).resolve().parent.parent / "bin"))
+    from magnolie_optional_phone import composition
+    config = {"contributorHash": contributor_hash} if contributor_hash else {}
+    if raw_features is not None: config["phoneFeatures"] = json.loads(raw_features)
+    composition(config)
+    position = next(index for index, command in enumerate(module["build-commands"]) if "werkzeuge/phone_features.py" in command)
+    module["build-commands"].insert(position,
+        "printf '%s\\n' " + shlex.quote(json.dumps(config, separators=(",", ":"))) +
+        " > /app/share/magnolie-organizer/build-config.json")
 pathlib.Path(target).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
 # Builder's xdg-data permission follows HOME, not an explicit installation path.

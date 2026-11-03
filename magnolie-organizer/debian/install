@@ -8,7 +8,6 @@ bin/magnolie_timezone.py               usr/bin
 bin/magnolie_appimage_lifecycle.py      usr/bin
 bin/magnolie_call_actors.py            usr/bin
 bin/magnolie_cycle.py                  usr/bin
-bin/magnolie_personal_sync.py          usr/lib/magnolie-organizer
 bin/magnolie_kdeconnect.py             usr/bin
 bin/magnolie_digitizer.py              usr/bin
 bin/magnolie_hintergrund.py            usr/bin
@@ -38,7 +37,7 @@ bin/magnolie_drawing_svg.py            usr/bin
 bin/magnolie_versand.py                usr/bin
 bin/magnolie_kde_filesystem.py         usr/bin
 bin/magnolie_kde_transfer.py           usr/bin
-bin/magnolie_file_transfer.py          usr/bin
+bin/magnolie_optional_phone.py         usr/bin
 bin/magnolie_kde_input.py              usr/bin
 bin/magnolie_kde_input_x11.py          usr/bin
 bin/magnolie_kde_media.py              usr/bin
@@ -56,7 +55,7 @@ bin/magnolie_country_flags.py           usr/bin
 bin/magnolie_or6.py                     usr/bin
 bin/magnolie_phone_contacts.py          usr/bin
 bin/magnolie_recurrence.py              usr/bin
-debian/restart-background.py           usr/lib/magnolie-organizer
+debian/restart-background.py           usr/share/magnolie-organizer/maintenance
 web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
 web/country-flags.png                 usr/share/magnolie-organizer/web

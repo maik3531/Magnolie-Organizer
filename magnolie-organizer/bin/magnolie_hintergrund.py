@@ -187,6 +187,7 @@ def normalize_settings(value):
 def _locale_directory():
     script = os.path.dirname(os.path.realpath(__file__))
     for candidate in (os.environ.get("MAGNOLIE_LOCALE_DIR"),
+            os.path.join(script, "..", "..", "locale"),
             os.path.join(script, "..", "share", "locale"),
             os.path.join(script, "..", "locale"), os.path.join(script, "locale"),
             "/usr/share/locale"):
@@ -326,6 +327,10 @@ def service_executable(executable=None):
     if appimage and os.path.isabs(appimage):
         return appimage
     candidate = executable or sys.argv[0]
+    directory = os.path.dirname(os.path.abspath(candidate))
+    if os.path.basename(directory) == 'python' and os.path.basename(os.path.dirname(directory)) == PROGRAM_NAME:
+        wrapper = os.path.abspath(os.path.join(directory, '..', '..', '..', 'bin', PROGRAM_NAME))
+        if os.path.isfile(wrapper): candidate = wrapper
     if os.path.sep not in candidate:
         resolved = shutil.which(candidate)
         if resolved:

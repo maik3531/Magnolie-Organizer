@@ -36,7 +36,7 @@
         "install -m 0644 bin/magnolie_native_book_json.py bin/magnolie_personal_actor_decision_review.py bin/magnolie_personal_actor_producer.py bin/magnolie_personal_actor_projection.py bin/magnolie_personal_actor_report_owner.py bin/magnolie_personal_actor_restore_candidate.py bin/magnolie_personal_actor_restore_source.py bin/magnolie_personal_actor_target_evidence.py bin/magnolie_personal_actor_target_review.py bin/magnolie_personal_actor_writer.py /app/bin/",
         "install -m 0644 bin/magnolie_timezone.py /app/bin/",
         "install -m 0644 bin/magnolie_kde_transfer.py /app/bin/",
-        "install -m 0644 bin/magnolie_file_transfer.py /app/bin/",
+        "install -m 0644 bin/magnolie_optional_phone.py /app/bin/",
         "install -m 0644 bin/magnolie_appimage_lifecycle.py /app/bin/",
         "cp -a web/. /app/share/magnolie-organizer/web/",
         "python3 -c 'import json,re,pathlib; v=re.search(r\"^[^(]+\\(([^)]+)\\)\",pathlib.Path(\"debian/changelog\").read_text()).group(1); pathlib.Path(\"/app/share/magnolie-organizer/version.json\").write_text(json.dumps({\"version\":v})+\"\\n\")'",
@@ -48,6 +48,7 @@
         "install -m 0644 magnolie-organizer.appdata.xml /app/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml",
         "install -m 0644 symbole/magnolie-organizer.svg /app/share/icons/hicolor/scalable/apps/io.gitlab.maik3531.MagnolieOrganizer.svg",
         "install -m 0644 symbole/256x256/magnolie-organizer.png /app/share/icons/hicolor/256x256/apps/io.gitlab.maik3531.MagnolieOrganizer.png",
+        "python3 -I -B werkzeuge/phone_features.py /app/bin /app/share/magnolie-organizer",
         "python3 werkzeuge/release_sources.py binary /app/share/magnolie-organizer",
         "python3 -I -B werkzeuge/runtime_pruefen.py /app/bin"
       ],

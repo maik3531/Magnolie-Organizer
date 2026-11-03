@@ -6,7 +6,7 @@ SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)
 export SOURCE_DATE_EPOCH
 
 %:
-	dh $@
+	dh $@ --with python3
 
 # Kataloge erzeugen und die Python-Syntax prüfen.
 override_dh_auto_build:
@@ -62,6 +62,7 @@ override_dh_install:
 	  mkdir -p "$$ziel"; \
 	  printf '{"contributorHash":"%s"}\n' "$$hash" > "$$ziel/build-config.json"; \
 	fi
+	python3 -I -B werkzeuge/phone_features.py debian/magnolie-organizer/usr/bin debian/magnolie-organizer/usr/share/magnolie-organizer
 
 override_dh_builddeb:
 	python3 -I -B werkzeuge/runtime_pruefen.py debian/magnolie-organizer/usr/bin

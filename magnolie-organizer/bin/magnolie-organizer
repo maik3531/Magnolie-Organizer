@@ -733,6 +733,7 @@ def zeitzone_automatisch_aktualisieren(phone=None, erwartet=None, pfad=None, hol
 def finde_locale_verzeichnis():
     skript = os.path.dirname(os.path.realpath(__file__))
     kandidaten = [os.environ.get("MAGNOLIE_LOCALE_DIR"),
+                  os.path.join(skript, "..", "..", "locale"),
                   os.path.join(skript, "..", "share", "locale"),
                   os.path.join(skript, "..", "locale"),
                   os.path.join(skript, "locale"),
@@ -889,7 +890,12 @@ def daten_datei():
 
 def eigener_pfad():
     """Pfad genau dieser Installation, auch unter /usr/local oder im Quellbaum."""
-    return os.path.realpath(__file__)
+    pfad = os.path.realpath(__file__)
+    ordner = os.path.dirname(pfad)
+    if os.path.basename(ordner) == "python" and os.path.basename(os.path.dirname(ordner)) == "magnolie-organizer":
+        wrapper = os.path.abspath(os.path.join(ordner, "..", "..", "..", "bin", PROGRAMM_NAME))
+        if os.path.isfile(wrapper): return wrapper
+    return pfad
 
 
 def registrierungs_programm(programm=None):
@@ -8756,11 +8762,11 @@ def finde_klang_datei():
         kandidaten.append(aus_umgebung)
     skript = os.path.dirname(os.path.realpath(__file__))
     kandidaten += [
-        "/usr/share/magnolie-organizer/klang/erinnerung.wav",
         os.path.join(skript, "..", "share", "magnolie-organizer",
                      "klang", "erinnerung.wav"),
         os.path.join(skript, "..", "klang", "erinnerung.wav"),
         os.path.join(skript, "klang", "erinnerung.wav"),
+        "/usr/share/magnolie-organizer/klang/erinnerung.wav",
     ]
     for pfad in kandidaten:
         if pfad and os.path.isfile(pfad):
@@ -11688,6 +11694,8 @@ def magnolie_logo_pfad():
     hier = os.path.dirname(os.path.abspath(__file__))
     kandidaten = [
         os.path.join(hier, "..", "symbole", "128x128", "magnolie-organizer.png"),
+        os.path.join(hier, "..", "..", "icons", "hicolor", "128x128", "apps", "magnolie-organizer.png"),
+        os.path.join(hier, "..", "..", "icons", "hicolor", "256x256", "apps", "io.gitlab.maik3531.MagnolieOrganizer.png"),
         "/usr/share/icons/hicolor/128x128/apps/magnolie-organizer.png",
         os.path.join(hier, "..", "symbole", "magnolie-organizer.svg"),
         "/usr/share/icons/hicolor/scalable/apps/magnolie-organizer.svg",

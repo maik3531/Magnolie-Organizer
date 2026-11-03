@@ -170,7 +170,7 @@ install -m 0644 "$WURZEL/bin/magnolie_drawing_svg.py" "$APPDIR/usr/bin/magnolie_
 install -m 0644 "$WURZEL/bin/magnolie_versand.py" "$APPDIR/usr/bin/magnolie_versand.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_filesystem.py" "$APPDIR/usr/bin/magnolie_kde_filesystem.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_transfer.py" "$APPDIR/usr/bin/magnolie_kde_transfer.py"
-install -m 0644 "$WURZEL/bin/magnolie_file_transfer.py" "$APPDIR/usr/bin/magnolie_file_transfer.py"
+install -m 0644 "$WURZEL/bin/magnolie_optional_phone.py" "$APPDIR/usr/bin/magnolie_optional_phone.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_input.py" "$APPDIR/usr/bin/magnolie_kde_input.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_input_x11.py" "$APPDIR/usr/bin/magnolie_kde_input_x11.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_media.py" "$APPDIR/usr/bin/magnolie_kde_media.py"
@@ -531,6 +531,7 @@ ln -sf usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png \
     "$APPDIR/magnolie-organizer.png"
 
 epoch=${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -STimestamp)}
+python3 -I -B "$WURZEL/werkzeuge/phone_features.py" "$APPDIR/usr/bin" "$APPDIR/usr/share/magnolie-organizer"
 python3 "$WURZEL/werkzeuge/release_sources.py" binary "$APPDIR/usr/share/magnolie-organizer"
 python3 "$WURZEL/werkzeuge/release_sources.py" binary "$APPDIR/usr/share/magnolie-handbuch"
 python3 -I -B "$WURZEL/werkzeuge/runtime_pruefen.py" "$APPDIR/usr/bin" --tzpath "$APPDIR/usr/share/zoneinfo"

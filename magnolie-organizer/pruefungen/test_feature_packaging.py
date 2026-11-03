@@ -14,14 +14,19 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 import notes_candidate
 import package_preflight
 import release_sources
-from runtime_pruefen import package_modules
+from runtime_pruefen import package_modules, composition_policy
 
 
-def test_all_four_explicit_runtime_lists_match_current_source():
+@pytest.mark.parametrize('enabled', [False, True])
+def test_all_four_explicit_runtime_lists_match_current_source(enabled):
     actual = {path.name for path in (ROOT / 'bin').glob('*.py')}
     assert actual
-    for kind, installed in package_modules(ROOT).items():
-        assert installed == actual, kind
+    policy = composition_policy(ROOT)
+    selected = {name: enabled for name in policy.FEATURES}
+    expected = policy.selected_modules(actual, selected)
+    for kind, installed in package_modules(ROOT, selected).items():
+        assert installed == expected, kind
+    assert (expected == actual) is enabled
 
 
 def test_json_and_markdown_contracts_are_copied_without_changing_goldens(tmp_path):

@@ -2,7 +2,7 @@
 set -e
 if [ "$1" = "configure" ]; then
     if [ -n "${2:-}" ]; then
-        /usr/bin/python3 -I /usr/lib/magnolie-organizer/restart-background.py
+        /usr/bin/python3 -I /usr/share/magnolie-organizer/maintenance/restart-background.py
     fi
     if command -v update-desktop-database >/dev/null 2>&1; then
         update-desktop-database -q /usr/share/applications || true

@@ -175,7 +175,7 @@ install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_dr
 install -Dpm 0644 bin/magnolie_versand.py %{buildroot}%{_bindir}/magnolie_versand.py
 install -Dpm 0644 bin/magnolie_kde_filesystem.py %{buildroot}%{_bindir}/magnolie_kde_filesystem.py
 install -Dpm 0644 bin/magnolie_kde_transfer.py %{buildroot}%{_bindir}/magnolie_kde_transfer.py
-install -Dpm 0644 bin/magnolie_file_transfer.py %{buildroot}%{_bindir}/magnolie_file_transfer.py
+install -Dpm 0644 bin/magnolie_optional_phone.py %{buildroot}%{_bindir}/magnolie_optional_phone.py
 install -Dpm 0644 bin/magnolie_kde_input.py %{buildroot}%{_bindir}/magnolie_kde_input.py
 install -Dpm 0644 bin/magnolie_kde_input_x11.py %{buildroot}%{_bindir}/magnolie_kde_input_x11.py
 install -Dpm 0644 bin/magnolie_kde_media.py %{buildroot}%{_bindir}/magnolie_kde_media.py
@@ -250,6 +250,7 @@ while read -r language; do
 done < po/LINGUAS
 
 %find_lang %{name}
+/usr/bin/python3 -I -B werkzeuge/phone_features.py %{buildroot}%{_bindir} %{buildroot}%{_datadir}/%{name}
 /usr/bin/python3 werkzeuge/release_sources.py binary %{buildroot}%{_datadir}/%{name}
 
 # %check runs before %install. Validate the installed product here while the
@@ -262,7 +263,7 @@ import pathlib
 import sys
 
 root = pathlib.Path(r"%{buildroot}")
-bindir = root / "usr/bin"
+bindir = root / "usr/share/magnolie-organizer/python"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
               "magnolie_time_sync.py", "magnolie_time_control.py", "magnolie_call_actors.py", "magnolie_cycle.py",
@@ -294,62 +295,6 @@ done
 %license debian/copyright PROTECTED-ASSETS-LICENSE.txt
 %doc LIESMICH.md INTERNATIONALISIERUNG.md
 %{_bindir}/%{name}
-%{_bindir}/magnolie_telefon.py
-%{_bindir}/magnolie_anruf_audio.py
-%{_bindir}/magnolie_kdeconnect.py
-%{_bindir}/magnolie_digitizer.py
-%{_bindir}/magnolie_hintergrund.py
-%{_bindir}/magnolie_personal_sync.py
-%{_bindir}/magnolie_time_sync.py
-%{_bindir}/magnolie_time_control.py
-%{_bindir}/magnolie_call_actors.py
-%{_bindir}/magnolie_cycle.py
-%{_bindir}/magnolie_nextcloud.py
-%{_bindir}/magnolie_cloud_backup.py
-%{_bindir}/magnolie_akonadi.py
-%{_bindir}/magnolie_crash.py
-%{_bindir}/magnolie_asset.py
-%{_bindir}/magnolie_mcp.py
-%{_bindir}/magnolie_calendar_dedup.py
-%{_bindir}/magnolie_content_scope.py
-%{_bindir}/magnolie_personal_actor.py
-%{_bindir}/magnolie_personal_actor_store.py
-%{_bindir}/magnolie_personal_actor_completion.py
-%{_bindir}/magnolie_native_book_json.py
-%{_bindir}/magnolie_personal_actor_decision_review.py
-%{_bindir}/magnolie_personal_actor_producer.py
-%{_bindir}/magnolie_personal_actor_projection.py
-%{_bindir}/magnolie_personal_actor_report_owner.py
-%{_bindir}/magnolie_personal_actor_restore_candidate.py
-%{_bindir}/magnolie_personal_actor_restore_source.py
-%{_bindir}/magnolie_personal_actor_target_evidence.py
-%{_bindir}/magnolie_personal_actor_target_review.py
-%{_bindir}/magnolie_personal_actor_writer.py
-%{_bindir}/magnolie_phone_ack.py
-%{_bindir}/magnolie_drawing_svg.py
-%{_bindir}/magnolie_versand.py
-%{_bindir}/magnolie_kde_filesystem.py
-%{_bindir}/magnolie_kde_transfer.py
-%{_bindir}/magnolie_file_transfer.py
-%{_bindir}/magnolie_kde_input.py
-%{_bindir}/magnolie_kde_input_x11.py
-%{_bindir}/magnolie_kde_media.py
-%{_bindir}/magnolie_kde_mpris.py
-%{_bindir}/magnolie_kde_volume.py
-%{_bindir}/magnolie_timezone.py
-%{_bindir}/magnolie_appimage_lifecycle.py
-%{_bindir}/magnolie_office_profile.py
-%{_bindir}/magnolie_own_profile.py
-%{_bindir}/magnolie_pdf.py
-%{_bindir}/magnolie_shared_sync.py
-%{_bindir}/magnolie_social_profiles.py
-%{_bindir}/magnolie_setup_state.py
-%{_bindir}/magnolie_setup_ui.py
-%{_bindir}/magnolie_phone_region.py
-%{_bindir}/magnolie_phone_contacts.py
-%{_bindir}/magnolie_recurrence.py
-%{_bindir}/magnolie_country_flags.py
-%{_bindir}/magnolie_or6.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml

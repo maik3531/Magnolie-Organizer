@@ -1,5 +1,43 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Desktop build composition and private Linux Python layout (Refs #330)
+
+Unconfigured Linux desktop source builds now omit the optional photo implementation
+from their actual payload, not merely from visible controls. Prepared distribution
+configuration and explicitly selected desktop composition are separate from the
+user's runtime Contributor-Key: that user key remains branding-only and grants no
+file, camera or microphone authority. Notes/APK composition is independent and must
+retain the components needed by F-Droid distributions. No public activation recipe
+is provided for optional desktop source-build features.
+
+The always-present core blocks reserved file frames from personal staging/replay
+without importing optional modules. Native factories and authenticated transport
+bindings remain closed when the desktop composition excludes the implementation.
+Composition rejects malformed profiles, unfamiliar payload edits, directory aliases
+and stale compiled files instead of overwriting or silently shipping them.
+
+Following Debian Python Policy §5.3, private pure-Python implementation files and
+the actual application main now live under /usr/share/magnolie-organizer/python.
+Only the small public starter remains in /usr/bin. Web/assets, locale and icon
+locations retain their standard shared-data layout. The existing Debian helper
+sequence now uses dh_python3 for private-module dependency/bytecode maintenance;
+the package does not ship precompiled private bytecode. Personal account, pairing,
+permission, draft and media locations are unchanged. CLI, resource finders and
+background/autostart references resolve the same installation's public command.
+
+75 distinct host cases pass: exact selected module closures and import origins for
+all four Linux package layouts, real staged wrapper help/version, installed flag/
+OR6 readers, prefix-local resources and service paths, prepared/default/explicit
+Flatpak manifest ordering, source-archive replay, unknown-code preservation,
+reserved-message isolation and affected native authenticated photo workers.
+These checks use actual staged source bytes, not a newly installed native package.
+Windows conditional-compilation parity and final native package/GUI/physical-phone
+acceptance remain separate work. No production/automatic/UI/release gate is enabled.
+
+References: Debian Python Policy, Programs Shipping Private Modules (§5.3),
+https://www.debian.org/doc/packaging-manuals/python-policy/ ; dh_python3 private-dir
+and maintainer-script handling, https://manpages.debian.org/trixie/dh-python/dh_python3.1.en.html .
+
 ### Explicit real desktop album worker (Refs #330)
 
 An explicitly started native desktop worker now drives the full single-album

@@ -5,6 +5,7 @@ import base64
 import copy
 import hashlib
 import hmac
+import importlib
 import secrets
 import io
 import json
@@ -29,6 +30,7 @@ import time
 import unicodedata
 import uuid
 import weakref
+import magnolie_optional_phone as optional_phone
 from collections import deque
 
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
@@ -2691,6 +2693,12 @@ def receive_frame(sock, maximum):
     return strict_json(receive_exact(sock, length))
 
 
+def is_reserved_file_message(value):
+    # Always present even when optional implementations are absent from a build.
+    # Reserved data must never fall through into personal staging or replay.
+    return isinstance(value, dict) and isinstance(value.get('kind'), str) and value['kind'].startswith('file_transfer.')
+
+
 class PhoneService:
     """Own listener, pairing state, status cache and phone sessions."""
 
@@ -2700,6 +2708,7 @@ class PhoneService:
 
     def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
         self.store = PhoneStore(root, display_name)
+        self._native_photo_built = optional_phone.available('photo_sync')
         self._mcp_worker = threading.local()
         self._mcp_operations = threading.Lock()
         emit = callback or (lambda _event, _payload: None)
@@ -2775,7 +2784,13 @@ class PhoneService:
         self.personal_offers = deque(maxlen=256)
         self.personal_offer_keys = set()
 
+    def _native_file_module(self, name):
+        if (not self._native_photo_built or name not in ('magnolie_file_native_authority', 'magnolie_file_desktop_connection')):
+            raise ValueError('file_feature_not_in_build')
+        return importlib.import_module(name)
+
     def _current_native_file_binding(self, peer_id, static_public, channel, generation):
+        if not self._native_photo_built: return None
         with self.lock:
             binding = self._file_channel_bindings.get(channel)
             if (binding is None or not self.enabled or self.stop_event.is_set() or self.connections.get(peer_id) is not channel
@@ -2789,7 +2804,7 @@ class PhoneService:
         return binding.local_identity if binding is not None else None
 
     def open_native_file_authority(self, peer_id, static_public, channel, generation):
-        from magnolie_file_native_authority import NativeDesktopFileAuthority
+        NativeDesktopFileAuthority = self._native_file_module('magnolie_file_native_authority').NativeDesktopFileAuthority
         binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
         if binding is None:
             raise ValueError('file_authority_native_channel_changed')
@@ -2797,7 +2812,7 @@ class PhoneService:
         return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation), channel=channel)
 
     def open_native_file_connection(self, peer_id, static_public, channel, generation):
-        from magnolie_file_desktop_connection import NativeDesktopFileConnection
+        NativeDesktopFileConnection = self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
         binding = self._current_native_file_binding(peer_id, static_public, channel, generation)
         if binding is None:
             raise ValueError('file_authority_native_channel_changed')
@@ -7420,7 +7435,6 @@ class PhoneService:
             return True
 
     def _send_message(self, channel, peer_id, message):
-        from magnolie_file_desktop_connection import is_reserved_file_message
         if is_reserved_file_message(message):
             return False  # Dedicated native file owner only, never legacy grants/outbox.
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
@@ -7438,7 +7452,6 @@ class PhoneService:
 
     def _send_message_locked(self, channel, peer_id, message):
         # Reserved actors require their own authorized route, never a legacy fallback.
-        from magnolie_file_desktop_connection import is_reserved_file_message
         if is_reserved_file_message(message):
             return False
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
@@ -8029,7 +8042,6 @@ class PhoneService:
         from cryptography.hazmat.primitives.asymmetric.x25519 import (X25519PrivateKey,
                                                                       X25519PublicKey)
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-        from magnolie_file_native_authority import capture_authenticated_binding
         authenticated_store = self.store
         authenticated_identity = dict(authenticated_store.identity)
         file_generation = self._generation
@@ -8132,7 +8144,8 @@ class PhoneService:
                     self._payload(peer, channel, payload)
             if control_ids:
                 raise TimeoutError("desktop control update acknowledgement timeout")
-            file_binding = capture_authenticated_binding(authenticated_identity, authenticated_peer, file_generation, authenticated_store)
+            file_binding = (self._native_file_module('magnolie_file_native_authority').capture_authenticated_binding(
+                authenticated_identity, authenticated_peer, file_generation, authenticated_store) if self._native_photo_built else None)
             self._activate_connection(peer_id, channel, transport, file_binding=file_binding)
             activated = True
             self.connection_errors.pop(peer_id, None)
@@ -8183,7 +8196,7 @@ class PhoneService:
             if self.stop_event.is_set():
                 raise OSError("phone service stopped")
             if file_binding is not None:
-                from magnolie_file_native_authority import AuthenticatedNativeFileBinding
+                AuthenticatedNativeFileBinding = self._native_file_module('magnolie_file_native_authority').AuthenticatedNativeFileBinding
                 if (type(file_binding) is not AuthenticatedNativeFileBinding or file_binding.store_owner is not self.store
                         or file_binding.generation != self._generation or file_binding.peer_id != peer_id):
                     raise OSError('file_authority_native_channel_changed')
@@ -8277,7 +8290,6 @@ class PhoneService:
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
         # Reserved frames use only the admitted native route, never ordinary replay/GUI handlers.
-        from magnolie_file_desktop_connection import is_reserved_file_message
         if is_reserved_file_message(payload):
             self._receive_native_file_message(peer, channel, payload)
             return

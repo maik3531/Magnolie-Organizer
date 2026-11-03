@@ -104,7 +104,7 @@ def test_real_postinst_hook_includes_same_version_reinstallation(tmp_path, argum
     fixture = tmp_path / "restart.py"
     fixture.write_text("from pathlib import Path\nPath(" + repr(str(marker)) + ").write_text('called')\n")
     hook = (ROOT / "debian/postinst").read_text().replace(
-        "/usr/bin/python3 -I /usr/lib/magnolie-organizer/restart-background.py",
+        "/usr/bin/python3 -I /usr/share/magnolie-organizer/maintenance/restart-background.py",
         sys.executable + " " + str(fixture))
     subprocess.run(["/bin/sh", "-c", hook, "postinst", *arguments], env={"PATH": str(tmp_path)}, check=True)
     assert marker.exists() == expected

@@ -17,6 +17,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "werkzeuge"))
 from release_sources import audit_binary, source_files, sync_contracts
+from runtime_pruefen import composition_policy
+from phone_features import stage
 
 MANDATORY = ["test_recurrence.py", "test_recurrence_oracle.py",
              "test_recurrence_integration.py", "test_recurrence_timezones.py"]
@@ -79,11 +81,14 @@ def test_installed_flags_and_or6_work_from_the_declared_payload(kind, prefix, tm
     bindir.mkdir(parents=True); webdir.mkdir(parents=True)
     for name in install_modules(kind):
         shutil.copyfile(ROOT / 'bin' / name, bindir / name)
+    shutil.copyfile(ROOT / 'bin/magnolie-organizer', bindir / 'magnolie-organizer')
     webfiles = install_web_files(kind)
     for name in ('country-flags.png', 'country-flags-LICENSE.txt', 'qr-decoder.js', 'qr-decoder-LICENSE.txt', 'qr-dialog.js', 'qr-dialog.css'):
         source = ROOT / 'web' / name
         assert source in webfiles, (kind, name)
         shutil.copyfile(source, webdir / name)
+    stage(bindir, webdir.parent)
+    runtime = webdir.parent / 'python'
     shared_contract = ROOT.parent / 'contracts/or6-native-fixtures.json'
     contract_path = shared_contract if shared_contract.is_file() else ROOT / 'contracts/or6-native-fixtures.json'
     contract = json.loads(contract_path.read_text())
@@ -108,7 +113,7 @@ print('Installed native flag and OR6 readers passed without source-tree fallback
     env = environment(tmp_path)
     env.pop('MAGNOLIE_ORGANIZER_WEB', None)
     env['PYTHONPATH'] = str(ROOT / 'bin')
-    result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(bindir), str(webdir), str(fixture)],
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(runtime), str(webdir), str(fixture)],
                             cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -117,11 +122,15 @@ print('Installed native flag and OR6 readers passed without source-tree fallback
                                         ("flatpak", "app"), ("appimage", "AppDir/usr")])
 def test_installed_imports_use_only_the_actual_package_file_list(kind, prefix, tmp_path):
     modules = install_modules(kind)
-    assert modules == {path.name for path in (ROOT / "bin").glob("magnolie_*.py")}
+    policy = composition_policy(ROOT)
+    assert modules == policy.selected_modules({path.name for path in (ROOT / "bin").glob("magnolie_*.py")}, policy.composition({}))
     bindir = tmp_path / prefix / "bin"
     bindir.mkdir(parents=True)
     for name in sorted(modules | {"magnolie-organizer"}):
         shutil.copyfile(ROOT / "bin" / name, bindir / name)
+    data = tmp_path / prefix / 'share/magnolie-organizer'; data.mkdir(parents=True)
+    stage(bindir, data)
+    runtime = data / 'python'
     audit_binary(tmp_path / prefix)
     env = environment(tmp_path)
     # Deliberately offer the canonical tree as an accidental fallback: -I and
@@ -148,10 +157,10 @@ for name in sys.argv[2:]:
 from magnolie_telefon import PhoneService
 assert PhoneService._actor_mixed_ready is False, 'Installing helpers must not enable the historical/mixed actor runtime'
 '''
-    result = subprocess.run([sys.executable, "-I", "-B", "-c", imports, str(bindir), *sorted(modules)],
+    result = subprocess.run([sys.executable, "-I", "-B", "-c", imports, str(runtime), *sorted(modules)],
                             cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
-    (bindir / "magnolie_recurrence.py").unlink()
+    (runtime / "magnolie_recurrence.py").unlink()
     missing = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
     assert missing.returncode != 0 and "magnolie_recurrence" in missing.stderr
 
@@ -212,14 +221,17 @@ raise SystemExit(pytest.main(["-q", "-p", "no:cacheprovider", *sys.argv[1:]], pl
 
 
 @pytest.mark.parametrize("explicit_installation", [False, True])
-def test_flatpak_builder_sees_explicit_installation_read_only(tmp_path, explicit_installation):
+@pytest.mark.parametrize("composition_profile", ['default', 'prepared', 'explicit'])
+def test_flatpak_builder_sees_explicit_installation_read_only(tmp_path, explicit_installation, composition_profile):
     source = tmp_path / "source"
-    for directory in ("werkzeuge", "debian", "flatpak"):
+    for directory in ("werkzeuge", "debian", "flatpak", "bin"):
         (source / directory).mkdir(parents=True)
     shutil.copyfile(ROOT / "werkzeuge/flatpak_bauen.sh", source / "werkzeuge/flatpak_bauen.sh")
     shutil.copyfile(ROOT / "debian/changelog", source / "debian/changelog")
+    shutil.copyfile(ROOT / 'bin/magnolie_optional_phone.py', source / 'bin/magnolie_optional_phone.py')
     (source / "flatpak/io.gitlab.maik3531.MagnolieOrganizer.json").write_text(
-        json.dumps({"modules": [{"build-commands": []}]}))
+        json.dumps({"modules": [{"build-commands": ['python3 -I -B werkzeuge/phone_features.py /app/bin /app/share/magnolie-organizer',
+            'python3 -I -B werkzeuge/runtime_pruefen.py /app/bin']}]}))
     tools = tmp_path / "tools"
     tools.mkdir()
     runtime = tmp_path / "runtime/files/bin/xgettext"
@@ -228,13 +240,25 @@ def test_flatpak_builder_sees_explicit_installation_read_only(tmp_path, explicit
     runtime.chmod(0o755)
     flatpak = tools / "flatpak"
     flatpak.write_text(f"#!{sys.executable}\n" + '''
-import json, os, pathlib, sys
+import json, os, pathlib, shlex, sys
 args = sys.argv[1:]
 with open(os.environ["SYNTHETIC_CALLS"], "a") as log:
     log.write(json.dumps(args) + "\\n")
 if args[0] == "info" and "--show-location" in args:
     print(os.environ["SYNTHETIC_RUNTIME"])
 elif args[0] == "run":
+    if '--run' not in args:
+        commands = json.loads(pathlib.Path(args[-1]).read_text())['modules'][-1]['build-commands']
+        configs = [index for index, command in enumerate(commands) if 'build-config.json' in command]
+        profile = os.environ['SYNTHETIC_COMPOSITION']
+        if profile == 'default': assert not configs
+        else:
+            assert len(configs) == 1
+            config = json.loads(shlex.split(commands[configs[0]])[2])
+            if profile == 'prepared': assert config == {'contributorHash': 'a'*64}
+            else: assert config == {'phoneFeatures': {'photo_sync': True, 'phone_camera': False}}
+            assert configs[0] < next(index for index, command in enumerate(commands) if 'phone_features.py' in command)
+        assert next(index for index, command in enumerate(commands) if 'phone_features.py' in command) < next(index for index, command in enumerate(commands) if 'runtime_pruefen.py' in command)
     if os.environ.get("FLATPAK_USER_DIR"):
         assert "--filesystem=" + os.environ["FLATPAK_USER_DIR"] + ":ro" in args
     if "--run" in args:
@@ -246,8 +270,11 @@ elif args[0] == "build-bundle":
     calls = tmp_path / "calls.jsonl"
     env = environment(tmp_path)
     env.update(PATH=str(tools) + os.pathsep + env["PATH"],
-               SYNTHETIC_CALLS=str(calls), SYNTHETIC_RUNTIME=str(runtime.parents[2]))
+               SYNTHETIC_CALLS=str(calls), SYNTHETIC_RUNTIME=str(runtime.parents[2]), SYNTHETIC_COMPOSITION=composition_profile)
     env.pop("MAGNOLIE_CONTRIBUTOR_HASH", None)
+    env.pop("MAGNOLIE_PHONE_FEATURES", None)
+    if composition_profile == 'prepared': env['MAGNOLIE_CONTRIBUTOR_HASH'] = 'a' * 64
+    elif composition_profile == 'explicit': env['MAGNOLIE_PHONE_FEATURES'] = json.dumps(dict(photo_sync=True, phone_camera=False))
     env.pop("FLATPAK_USER_DIR", None)
     if explicit_installation:
         env["FLATPAK_USER_DIR"] = str(tmp_path / "external installation")
