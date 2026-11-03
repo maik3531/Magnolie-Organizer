@@ -5,11 +5,12 @@ OFF, including when a protected enabled preference exists. Construction itself
 does not send packets, create preferences or start any worker.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 import threading
 import time
 import uuid
+from cryptography.exceptions import InvalidTag
 
 from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFileControlSession
 from magnolie_file_native_authority import NativeDesktopFileAuthority
@@ -80,7 +81,13 @@ class NativeDesktopFileConnection:
     def _local(self):
         self._ready()
         # Do not claim receiver readiness from preferences or control codecs.
-        return self._preferences.local_grant(self._data_handlers_ready)
+        grant,snapshot=self._preferences.native_local_state(self._data_handlers_ready)
+        if grant.grants.send_files or grant.grants.receive_files:
+            witness=snapshot.policy.mapping_store
+            if witness is not None:
+                try:self._mappings.validate_availability(witness)
+                except (TransferError,OSError,InvalidTag):return replace(grant,policy_ready=False)
+        return grant
 
     @contextmanager
     def _operation(self, *, incoming=False):

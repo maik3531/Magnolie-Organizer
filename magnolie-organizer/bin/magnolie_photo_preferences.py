@@ -402,6 +402,10 @@ class ProtectedPhotoPreferences:
                     raise
 
     def local_grant(self,handlers_ready):
+        return self.native_local_state(handlers_ready)[0]
+
+    def native_local_state(self,handlers_ready):
+        """One protected read for the grant and its exact native policy input."""
         if type(handlers_ready) is not bool:raise TransferError('photo_preferences_native_handlers_required')
         snapshot=self.read();peer=self._peer();policy=snapshot.policy
         # A requested bidirectional mode is not a half-ready one-way grant.
@@ -410,7 +414,7 @@ class ProtectedPhotoPreferences:
             and snapshot.direction=='phone_to_desktop')
         revision=policy.revision if policy is not None else 1
         epoch=policy.permission_epoch if snapshot.associated and policy is not None else sha256(canonical(dict(scope=self._scope,pairing=peer.pairing_epoch,closed=snapshot.version))).hexdigest()
-        return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready)
+        return NativeLocalFileGrant(FileGrantState(revision,epoch,False,enabled),self,handlers_ready),snapshot
 
     def _close_handles(self):
         if not self._gate.acquire(blocking=False):return False

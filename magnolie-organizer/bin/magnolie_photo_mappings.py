@@ -4,7 +4,9 @@ Reuse the existing native descriptor/SQLite/AEAD lifetime, in a separate store
 and protection domain. No delete/update/move API or implicit reconciliation.
 """
 from dataclasses import dataclass
+from contextlib import contextmanager
 from hashlib import sha256
+import threading
 
 from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import MAX_REVISION, _hex
@@ -111,6 +113,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
         self._name='photo-mappings-v1-'+self._scope
         self._domain='magnolie-photo-mappings-v1/'+self._scope+'/'
         self._absent=sha256((self._domain+'absent').encode()).hexdigest()
+        self._validation_lease=None
 
     def _initial_owner(self):
         return dict(revision=1,count=0,mappings_sha256=sha256(b'').hexdigest(),pairing_epoch=self._peer().pairing_epoch)
@@ -173,6 +176,31 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
         if type(choice) is not NativePhotoMappingStoreChoice or choice.owner is not self:
             raise TransferError('photo_mapping_store_foreign_choice')
         return self.verify_witness(choice.witness)
+
+    @contextmanager
+    def _validated_metadata_io(self,action):
+        """Exact held native metadata transaction, not a cached availability bit.
+        Only its current thread may revalidate a receiver binding while this
+        object's non-reentrant metadata gate is held. Other callers stay busy.
+        """
+        self._schema();snapshot=self._snapshot()
+        if self._validation_lease is not None or not snapshot.associated:
+            raise TransferError('photo_mappings_native_validation_busy')
+        action.validate(self)
+        lease=(threading.get_ident(),self._store_witness(),action)
+        self._validation_lease=lease
+        try:yield
+        finally:self._validation_lease=None
+
+    def validate_availability(self,witness):
+        lease=self._validation_lease
+        if lease is not None and lease[0]==threading.get_ident():
+            if type(witness) is not PhotoMappingStoreWitness or witness!=lease[1]:
+                raise TransferError('photo_mapping_store_original_changed')
+            lease[2].validate(self);self._fresh()
+            return True
+        self.verify_witness(witness)
+        return True
 
     def _rows_digest(self):
         digest=sha256();count=0
@@ -280,7 +308,7 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 wanted.append(proposed)
             with self._operation():
                 self._open(create=True,validate=lambda:action.validate(self))
-                with self._locked():
+                with self._locked(),self._validated_metadata_io(action):
                     self._schema();current=self._snapshot()
                     if history is not None and history.mapping_store is not None:self._require_checkpoint(history.mapping_store,current)
                     if current.version!=expected.version:raise TransferError('photo_mappings_cas_conflict')

@@ -1550,6 +1550,36 @@ private-backup rollback. Durable post-mapping receipts, trusted external monoton
 anchoring where required, legacy/native bootstrap/availability and the complete
 concurrent reconciliation/restart union remain open. No readiness/release gate changes.
 
+### Native metadata availability during held save I/O (Refs #337)
+
+For marked policies, a missing/corrupt/busy original mapping store now makes the
+native local projection policy-unready. The protected FileGrantState consent,
+revision and epoch are not rewritten at the same revision; the strict native
+equivocation guard is unchanged. An unready projection cannot produce a current
+receiver binding or claim packet/receive readiness.
+The grant and its exact mapping expectation use one fresh protected policy read,
+not an extra per-chunk preference sync or a cached readiness Boolean.
+
+Actual mapping insertion holds the protected metadata gate/OS lock across native
+receipt validation. Its exact current thread therefore receives a scoped internal
+validation lease only after authenticating the original store and associated owner.
+The lease binds original descriptor witnesses and the still-valid native one-shot
+action, rechecks live native authority, and ends in `finally` before actual gate
+release. Other threads remain busy/unready. This is not a serialized authority,
+Boolean readiness cache, new consent or renewed Android source READ.
+
+Six new native availability cases and 240 affected existing cases pass. Coverage
+includes missing/corrupt store without consent equivocation, one fresh policy read
+per projection, same-thread held-I/O validation versus another thread's busy state,
+expired metadata action without saved output, edit-preserving retry without
+publication, and actual connection close/revocation with descriptors/protection held
+until blocked I/O ends. Test threads join; no native VM/physical-phone acceptance
+is claimed. Full-store validation throughput at the maximum mapping size and the
+complete cancellation/recovery union still require acceptance, not a Boolean cache.
+
+The global production data-readiness gate, advanced UI, discovery 21, automatic
+runs and releases remain OFF; native UI/bootstrap and recovery union are not done.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
