@@ -538,6 +538,14 @@ class NativeDesktopFileConnection:
         with self._operation():
             return self._require_receiver().receiver.progress()
 
+    def observe_saved_photo(self, file_id):
+        """Native read-only conflict input; no wire/UI or deletion authority."""
+        with self._operation():
+            run = self._require_receiver()
+            result = run.receiver.observe_saved_photo(file_id)
+            self._receive_binding()
+            return result
+
     def publish_received(self, action, *, clock=now_ms):
         """Explicit native publication/readback only. Never overwrites a target;
         existing-file replacement/conflict/baseline union is not implied here.

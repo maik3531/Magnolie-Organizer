@@ -293,6 +293,22 @@ class NativeFileReceiveOperation:
             self._require()
             return result
 
+    def observe_saved_photo(self, file_id):
+        """Actual current target bytes, not historical receipt presence.
+        No baseline, tombstone, replacement right or quota release is created.
+        """
+        from magnolie_photo_target import observe_saved_target
+        with self._gate:
+            self._require()
+            receipt = next((item for item in self._index.saved_receipts() if item.file_id == file_id), None)
+            if receipt is None:
+                raise TransferError('file_receive_saved_photo_receipt_required')
+            result = observe_saved_target(self._accepted, receipt, self._current)
+            self._require()
+            if receipt not in self._index.saved_receipts():
+                raise TransferError('file_receive_saved_photo_receipt_changed')
+            return result
+
     def close(self):
         with self._gate:
             if self._closed:

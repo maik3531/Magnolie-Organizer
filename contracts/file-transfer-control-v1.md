@@ -1143,6 +1143,29 @@ or physical synchronization test. This adds one distinct case (87 affected Pytho
 cases including the previous codec/controller/receive evidence), not five repeats
 of the pre-existing crypto modes. It neither retires quota nor commits a baseline.
 
+### Current desktop target observation for conflict planning
+
+The Linux native receiver now reads a saved photo's current destination bytes
+through original-root/parent descriptor witnesses and a freshly authenticated
+local save receipt. The protected index is re-read after native target I/O; a
+constructed UI/remote receipt cannot enter the receiver API. Historical save and
+current file presence/content remain distinct. An unchanged original inode with
+new bytes is a managed local edit, and the existing phone→PC planner preserves
+it when the phone content is unchanged. Equal bytes in a replacement inode do
+not adopt that file as managed. Symlinks, FIFOs, unsafe permissions, replaced
+parents, oversized files and observed read races produce no usable content
+witness. A missing file/album returns unconfirmed missing, never deleted.
+
+The observation is read-only and grants no mutation/CAS authority, accepted
+baseline, tombstone, receipt update, source READ renewal or quota retirement. Native
+root/consent revocation is propagated, not disguised as valid conflict metadata.
+The actual desktop connection owns this operation on its existing native I/O lane;
+close revokes immediately but holds descriptors/resources until the read ends.
+The targeted joined run passes 64 Python cases (new target observations plus
+affected saved-receipt and desktop receive cases); a further actual blocked-read
+close case passes, for 65 distinct affected cases. No Android, Windows native
+receiver or installed GUI support is inferred from this Linux evidence.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

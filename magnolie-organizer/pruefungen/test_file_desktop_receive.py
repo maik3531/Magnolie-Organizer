@@ -116,6 +116,56 @@ def test_native_offer_is_metadata_until_exact_explicit_action_then_admission_and
     assert not (destination/'Camera/photo.jpg').exists()
 
 
+def test_desktop_native_saved_photo_observation_reads_pc_edits_without_wire_output_or_republication(receiving):
+    service, peer, channel, connection, destination = receiving
+    _, manifest = accept(receiving)
+    request = connection.request_next_chunk()
+    service._payload(peer, channel, chunk(request, b'hello'))
+    connection.publish_received(connection.issue_receive_action())
+    target = destination/'Camera/photo.jpg'
+    target.write_bytes(b'actual PC edit')
+    channel.send.reset_mock()
+    observed = connection.observe_saved_photo(manifest.files[0].id)
+    assert observed.observation.managed and observed.observation.content.sha256 == sha256(b'actual PC edit').hexdigest()
+    assert not observed.grants_write_authority and not observed.is_saved_receipt
+    channel.send.assert_not_called()
+    assert target.read_bytes() == b'actual PC edit' and len(connection._catalog.jobs()) == 1
+
+
+def test_target_observation_close_revokes_now_but_holds_native_resources_until_actual_read_ends(receiving, monkeypatch):
+    import os
+    service, peer, channel, connection, destination = receiving
+    _, manifest = accept(receiving)
+    service._payload(peer, channel, chunk(connection.request_next_chunk(), b'hello'))
+    connection.publish_received(connection.issue_receive_action())
+    target = destination/'Camera/photo.jpg'
+    original = os.read; key = (target.stat().st_dev, target.stat().st_ino)
+    entered = threading.Event(); release = threading.Event(); ended = threading.Event(); errors = []
+    def read(fd, count):
+        value = os.fstat(fd)
+        if (value.st_dev, value.st_ino) == key:
+            entered.set(); assert release.wait(5)
+        return original(fd, count)
+    monkeypatch.setattr(os, 'read', read)
+    def observe():
+        try: connection.observe_saved_photo(manifest.files[0].id)
+        except Exception as error: errors.append(error)
+        finally: ended.set()
+    worker = threading.Thread(target=observe); worker.start()
+    try:
+        assert entered.wait(5)
+        service._end_native_file_connection(channel)
+        assert not connection._authority.protection._closed
+        assert not ended.is_set()
+        release.set(); assert ended.wait(5); worker.join(5)
+        assert len(errors) == 1 and isinstance(errors[0], TransferError)
+        assert connection._authority.protection._closed
+        assert target.read_bytes() == b'hello'
+    finally:
+        release.set(); worker.join(5)
+        assert not worker.is_alive()
+
+
 @pytest.mark.parametrize('data', [b'hello', b'a'*CHUNK_BYTES+b'tail', b''], ids=['small', 'chunk-and-tail', 'empty'])
 def test_actual_dispatch_receives_durable_chunks_then_explicit_publication_and_saved_projection(receiving, data):
     service, peer, channel, connection, destination = receiving
