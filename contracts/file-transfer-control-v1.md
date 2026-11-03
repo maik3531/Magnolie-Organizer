@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit local-only renewed cache read (Refs #352, #337)
+
+After complete fresh native PFD/identity inspection, an explicit selection may now
+reopen the original encrypted source cache for local READ only. The authenticated
+historical source context supplies the original cipher associated-data namespace,
+not permissions. The gate retains the ACTUAL fresh native Gallery lease/scope,
+current workflow binding and exact original index/job/acceptance evidence. No old
+lease/owner object is deserialized and no original job, consent, ciphertext, key,
+epoch, proof or quota is rewritten. Normal restore/withSealedHead remains strict.
+
+Original root/file witnesses, exact entry inventory, encrypted owner/manifest and
+all original plaintext hashes are read back before returning a handle. Creation is
+monotonic-bounded; subsequent local reads require current native permission/lifecycle
+and original metadata. Missing/corrupt/unknown cache contents HOLD without repair.
+Revocation/exit prevents further reads. These remain frozen historical bytes, not
+a current-live-file-presence claim; later live edits are never overwritten.
+
+The distinct read-only handle has NO offer/acceptance/wire/publication/retirement
+API and explicitly permits no offer output. It does not start/resume a sync run or
+rebind original acceptance/offer TTLs. 77 distinct host cases pass (five new, 72
+affected), including actual fresh workflow/off-main inspection then separate local
+renewal, unchanged original ciphertext/job/proof, normal restore still rejecting
+old context, altered live bytes, cache loss/corruption/unknown entries, revocation,
+exit and preparation expiry/clock rollback; normal snapshot/index paths also pass.
+Fresh bounded resume-offer/acceptance attempts, runtime/wire/UI ownership and global
+convergence/platform acceptance remain unfinished. Production/auto/UI/releases OFF.
+
 ### Native live-source resume inspection, not renewal (Refs #351, #337)
 
 An explicit fresh native album selection can now inspect the original sealed job

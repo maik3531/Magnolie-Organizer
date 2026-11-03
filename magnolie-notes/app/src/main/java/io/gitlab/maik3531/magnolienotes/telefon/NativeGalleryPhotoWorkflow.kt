@@ -70,6 +70,25 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         })
     }
 
+    /** Explicit local-only reopen after full live-byte inspection and original
+     * encrypted-cache readback. This does not start/resume a transfer run. */
+    fun renewSource(selection: NativeGalleryAlbumSelection, expected: PhotoSourceJob,
+        cancellation: CancellationSignal = CancellationSignal()): NativeGalleryRenewedSource {
+        ready(); index.requireGalleryResumeOriginal(expected)
+        val observed = bound()
+        val album = selection.catalog.resolve(this, selection)
+        val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
+        val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        val inventory = reader.enumerate(lease, cancellation)
+        fun current() {
+            ready()
+            if (binding.get() !== observed) fail("gallery_resume_original_not_revalidated")
+        }
+        return index.renewGallerySource(expected, senderId, inventory, observed.scope, reader, cancellation, {
+            current(); selection.catalog.resolve(this, selection)
+        }, ::current)
+    }
+
     /** Called from native onCreate before STARTED, not from a wire/UI path.
      * Binding only registers an OS launcher; it never prompts on construction.
      */

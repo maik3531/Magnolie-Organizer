@@ -30,14 +30,15 @@ internal class PhotoSnapshotBuildFailure(val pending: ProtectedPhotoSourceSnapsh
 internal class ProtectedPhotoSourceSnapshot private constructor(
     private val root: File, private val protection: DeviceTransferProtection,
     private val scope: NativePhotoSourceAuthority, val lease: NativePhotoSourceLease, private val cancellation: CancellationSignal,
-    private val owner: String, private val rootKey: Any, private val boundary: (String) -> Unit
+    private val owner: String, private val rootKey: Any, private val boundary: (String) -> Unit,
+    originalContext: NativePhotoSourceContext? = null
 ) {
     private data class Witness(val key: String, val digest: String)
     private val owned = linkedMapOf<String, Witness>()
     private var sealedManifest: DeviceFileManifest? = null
     private var origins: GalleryPhotoOrigins? = null
     private var retired = false
-    private val sourceDomain = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
+    private val sourceDomain = originalContext?.snapshotDomain() ?: hash(TelefonKanonisch.bytes(JsonObject(mapOf(
         "tree" to JsonPrimitive(lease.sourceKey), "source_version" to JsonPrimitive(lease.version),
         "source_epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
         "receiver_identity" to JsonPrimitive(lease.receiver.identitySha256), "read_grant" to JsonPrimitive(lease.readGrantToken),
@@ -193,7 +194,23 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
          * never a peer or an arbitrary disk JSON. Re-read all original witnesses.
          */
         internal fun restore(root: File, record: JsonObject, senderId: String, scope: NativePhotoSourceAuthority, lease: NativePhotoSourceLease,
-            protection: DeviceTransferProtection, cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot {
+            protection: DeviceTransferProtection, cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot =
+            restoreChecked(root, record, senderId, scope, lease, protection, cancellation, null)
+
+        internal fun restoreRenewed(root: File, record: JsonObject, senderId: String, scope: NativeGalleryRenewalAuthority,
+            lease: GalleryPhotoSourceLease, originalContext: NativePhotoSourceContext, protection: DeviceTransferProtection,
+            cancellation: CancellationSignal): ProtectedPhotoSourceSnapshot {
+            if (!scope.isCurrent(lease) || originalContext.receiverId != lease.receiver.peerId ||
+                originalContext.receiverIdentitySha256 != lease.receiver.identitySha256 || originalContext.pairingEpoch == null ||
+                originalContext.pairingEpoch != lease.receiver.pairingEpoch || originalContext.permissionEpoch != lease.receiver.permissionEpoch ||
+                originalContext.record["tree"] != JsonPrimitive(lease.sourceKey) || originalContext.record["epoch"] != JsonPrimitive(lease.sourceEpoch))
+                fail("photo_snapshot_source_context_changed")
+            return restoreChecked(root, record, senderId, scope, lease, protection, cancellation, originalContext)
+        }
+
+        private fun restoreChecked(root: File, record: JsonObject, senderId: String, scope: NativePhotoSourceAuthority,
+            lease: NativePhotoSourceLease, protection: DeviceTransferProtection, cancellation: CancellationSignal,
+            originalContext: NativePhotoSourceContext?): ProtectedPhotoSourceSnapshot {
             fun text(value: JsonObject, field: String): String = (value[field] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 ?: fail("photo_snapshot_invalid_record")
             val hasOrigins = record["format"] == JsonPrimitive(2)
@@ -207,7 +224,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
             val actual = attributes(root)
             if (!actual.isDirectory || actual.fileKey()?.toString() != text(record, "root_key")) fail("photo_snapshot_directory_changed")
             val snapshot = ProtectedPhotoSourceSnapshot(root, protection, scope, lease, cancellation, owner,
-                actual.fileKey() ?: fail("photo_snapshot_directory_changed"), {})
+                actual.fileKey() ?: fail("photo_snapshot_directory_changed"), {}, originalContext)
             if (snapshot.sourceDomain != text(record, "source_domain")) fail("photo_snapshot_source_context_changed")
             val origins = if (hasOrigins) {
                 if (lease !is GalleryPhotoSourceLease) fail("photo_snapshot_wrong_source_kind")

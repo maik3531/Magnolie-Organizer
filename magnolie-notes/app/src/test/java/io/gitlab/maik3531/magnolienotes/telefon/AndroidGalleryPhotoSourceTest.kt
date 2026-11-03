@@ -168,6 +168,7 @@ class AndroidGalleryPhotoSourceTest {
             receiver = receiver!!.copy(owner = Any()) // Fresh authenticated channel ownership.
         }
         fun open(hook: (String) -> Unit = {}) = PhotoSourceJobIndex(directory, protection, hook)
+        fun restoreCache(): File = File(directory, "photo-source-" + job.id).also { check(held.renameTo(it)) }
         override fun close() { f.close() }
     }
 
@@ -393,7 +394,7 @@ class AndroidGalleryPhotoSourceTest {
         } }
     }
 
-    @Test fun freshNativeWorkflowInspectsExplicitResumeSelectionOffMainWithoutRestoringCacheAuthority() {
+    @Test fun freshNativeWorkflowInspectsThenExplicitlyRenewsOnlyLocalCacheReadOffMain() {
         Fixture().use { f ->
             val directory = Files.createTempDirectory(f.root.toPath(), "workflow-resume351-").toFile()
             val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -441,12 +442,101 @@ class AndroidGalleryPhotoSourceTest {
                 assertEquals(listOf(job), reopened.jobs()); assertFalse(cache.exists())
                 assertNull(Shadows.shadowOf(activity.get()).lastRequestedPermission)
                 assertEquals("hello", File(f.root, "source.bin").readText())
+                assertThrows(PhotoFolderScopeError::class.java) { reopened.source(job, catalog.source, selection.album, selection.desktopChoice) }
+                assertTrue(held.renameTo(cache))
+                val originalCipher = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+                val renewed = executor.submit<NativeGalleryRenewedSource> { reopened.renewSource(selection, job, cancellation) }
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS)
+                val member = renewed.manifest.files.single()
+                assertArrayEquals("hello".toByteArray(), renewed.readChunk(member.id, 0)); assertFalse(renewed.allowsOfferOutput)
+                assertEquals(listOf(job), reopened.jobs())
+                assertEquals(originalCipher, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                reopened.close()
+                assertThrows(PhotoFolderScopeError::class.java) { renewed.readChunk(member.id, 0).fill(0) }
             } finally {
                 cancellation.cancel(); executor.shutdownNow(); assertTrue(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS))
                 selectedCatalog?.close(); reopened.close(); activity.pause().stop().destroy()
-                assertTrue(held.renameTo(cache))
+                if (held.exists()) assertTrue(held.renameTo(cache)) else assertTrue(cache.isDirectory)
             }
         }
+    }
+
+    @Test fun renewedLocalSourceUsesFreshNativeLeaseAndOriginalCipherDomainWithoutRewritingJob() {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val cache = h.restoreCache(); val original = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val accepted = index.remoteAcceptance(h.job)!!.record
+            val inputs = resumeInputs(h)
+            assertThrows(PhotoFolderScopeError::class.java) {
+                index.restore(h.job, "sender_fixture_01", inputs.scope, inputs.inventory.lease)
+            } // The normal old-context guard remains strict.
+            val renewed = index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {})
+            val member = renewed.manifest.files.single()
+            assertArrayEquals("hello".toByteArray(), renewed.readChunk(member.id, 0))
+            assertFalse(renewed.allowsOfferOutput)
+            assertEquals(listOf(h.job), index.jobs()); assertEquals(accepted, index.remoteAcceptance(h.job)!!.record)
+            assertEquals(original, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            File(h.f.root, "source.bin").writeText("HELLO")
+            assertArrayEquals("hello".toByteArray(), renewed.readChunk(member.id, 0)) // Frozen historical bytes, not current presence.
+            assertEquals("HELLO", File(h.f.root, "source.bin").readText())
+        } }
+    }
+
+    @Test fun renewedSourceRejectsMissingCorruptOrUnfamiliarOriginalCacheWithoutRepairingIt() {
+        for (change in listOf("missing", "cipher", "extra")) HistoricalCase().use { h -> h.open().use { index ->
+            val cache = if (change == "missing") null else h.restoreCache()
+            var edited: File? = null; var preserved: ByteArray? = null
+            if (change == "cipher") {
+                edited = cache!!.listFiles()!!.single { it.name.endsWith("-0.enc") }
+                preserved = edited.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }; edited.writeBytes(preserved)
+            } else if (change == "extra") {
+                edited = File(cache, "preserve-user-file").apply { writeText("preserve") }; preserved = edited.readBytes()
+            }
+            val inputs = resumeInputs(h)
+            assertThrows(java.io.IOException::class.java) {
+                index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {})
+            }
+            if (edited != null) assertArrayEquals(preserved, edited.readBytes())
+            assertEquals(listOf(h.job), index.jobs()); assertNull(index.remoteSaved(h.job))
+            if (change == "missing") assertFalse(File(h.directory, "photo-source-" + h.job.id).exists())
+        } }
+    }
+
+    @Test fun renewedLocalSourceCannotSurviveNativeRevocationOrOriginalIndexExit() {
+        for (change in listOf("revoked", "closed")) HistoricalCase().use { h -> h.open().use { index ->
+            h.restoreCache(); val inputs = resumeInputs(h)
+            val renewed = index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {})
+            val member = renewed.manifest.files.single()
+            if (change == "revoked") h.f.request = null else index.close()
+            assertThrows(PhotoFolderScopeError::class.java) { renewed.readChunk(member.id, 0).fill(0) }
+            assertThrows(PhotoFolderScopeError::class.java) { renewed.manifest }
+        } }
+    }
+
+    @Test fun changedOrRevokedLiveSourceCannotMintRenewedCacheHandle() {
+        for (change in listOf("bytes", "revoked")) HistoricalCase().use { h -> h.open().use { index ->
+            val cache = h.restoreCache(); val original = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val inputs = resumeInputs(h)
+            if (change == "bytes") File(h.f.root, "source.bin").writeText("HELLO") else h.f.provider.onOpen = { h.f.request = null }
+            var renewed: NativeGalleryRenewedSource? = null
+            assertThrows(java.io.IOException::class.java) {
+                renewed = index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {})
+            }
+            assertNull(renewed); assertEquals(listOf(h.job), index.jobs())
+            assertEquals(original, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            if (change == "bytes") assertEquals("HELLO", File(h.f.root, "source.bin").readText())
+        } }
+    }
+
+    @Test fun renewedCachePreparationCannotOutliveItsBoundedIntentOrReviveAfterClockRollback() {
+        for (change in listOf("expired", "rollback")) HistoricalCase().use { h -> h.open().use { index ->
+            val cache = h.restoreCache(); val original = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val inputs = resumeInputs(h); var ticks = 0
+            assertThrows(PhotoFolderScopeError::class.java) {
+                index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {},
+                    { if (++ticks >= 10) (if (change == "expired") 61_000L else 999L) else 1000L })
+            }
+            assertEquals(listOf(h.job), index.jobs()); assertEquals(original, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+        } }
     }
 
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {

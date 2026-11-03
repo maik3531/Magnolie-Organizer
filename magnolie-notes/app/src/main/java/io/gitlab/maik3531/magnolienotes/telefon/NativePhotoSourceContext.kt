@@ -11,6 +11,13 @@ internal class NativePhotoSourceContext private constructor(val record: JsonObje
     val receiverIdentitySha256: String get() = (record["identity"] as JsonPrimitive).content
     val permissionEpoch: String get() = (record["permission_epoch"] as JsonPrimitive).content
     val pairingEpoch: String? get() = (record["pairing_epoch"] as? JsonPrimitive)?.content
+    /** Original cipher associated-data namespace, NOT a READ grant. */
+    internal fun snapshotDomain(): String = digest(JsonObject(mapOf(
+        "tree" to record.getValue("tree"), "source_version" to record.getValue("version"),
+        "source_epoch" to record.getValue("epoch"), "receiver" to record.getValue("receiver"),
+        "receiver_identity" to record.getValue("identity"), "read_grant" to record.getValue("read_grant"),
+        "permission_epoch" to record.getValue("permission_epoch")) +
+        (record["pairing_epoch"]?.let { mapOf("pairing_epoch" to it) } ?: emptyMap())))
     companion object {
         fun wire(lease: NativePhotoSourceLease) = JsonObject(mapOf(
             "tree" to JsonPrimitive(lease.sourceKey), "version" to JsonPrimitive(lease.version),
@@ -31,10 +38,11 @@ internal class NativePhotoSourceContext private constructor(val record: JsonObje
             if (!Regex("[A-Za-z0-9_-]{16,160}").matches(text("receiver"))) fail()
             for (name in listOf("version", "epoch", "identity", "permission_epoch") + if ("pairing_epoch" in record) listOf("pairing_epoch") else emptyList())
                 if (!DeviceFileControl.hash(text(name))) fail()
-            val actual = MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(record))
-                .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+            val actual = digest(record)
             if (!DeviceFileControl.hash(originalHash) || actual != originalHash) fail()
             return NativePhotoSourceContext(record)
         }
+        private fun digest(record: JsonObject) = MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(record))
+            .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
     }
 }

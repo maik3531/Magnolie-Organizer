@@ -210,6 +210,39 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         original
     }
 
+    internal fun renewGallerySource(expected: PhotoSourceJob, senderId: String, inventory: PhotoSourceInventory,
+        scope: GalleryPhotoSourceScope, reader: AndroidGalleryPhotoSource, cancellation: CancellationSignal,
+        preparingPermitted: () -> Unit, currentPermitted: () -> Unit,
+        elapsed: () -> Long = DeviceFileControl::monotonicMs): NativeGalleryRenewedSource {
+        val issued = elapsed(); var last = issued
+        fun preparationCurrent() {
+            val tick = elapsed()
+            if (issued < 0 || tick < last || tick - issued >= DeviceFileControl.MAX_TTL_MS) fail("gallery_resume_preparation_expired")
+            last = tick; preparingPermitted()
+        }
+        preparationCurrent()
+        val original = requireGalleryResumeOriginal(expected)
+        val lease = inventory.lease as? GalleryPhotoSourceLease ?: fail("photo_snapshot_wrong_source_kind")
+        fun originalCurrent() {
+            currentPermitted()
+            if (requireGalleryResumeOriginal(expected).record != original.record) fail("photo_jobs_cas_conflict")
+        }
+        NativeGalleryResumeInspection.inspect(senderId, expected, original, inventory, scope, reader, cancellation, {
+            preparationCurrent(); originalCurrent()
+        }, elapsed)
+        val preparing = java.util.concurrent.atomic.AtomicBoolean(true)
+        val renewed = NativeGalleryRenewalAuthority(scope, lease) {
+            if (preparing.get()) preparationCurrent()
+            originalCurrent()
+        }
+        val context = original.originalAuthority ?: fail("photo_jobs_remote_acceptance_repair_required")
+        val snapshot = ProtectedPhotoSourceSnapshot.restoreRenewed(rootFile(expected), expected.snapshot ?: fail("photo_jobs_snapshot_missing"),
+            senderId, renewed, lease, context, protection, cancellation)
+        preparationCurrent(); originalCurrent(); preparing.set(false)
+        snapshot.manifest // Actual current READ gate after the preparation ticket ends.
+        return NativeGalleryRenewedSource(expected, snapshot)
+    }
+
     fun issueHistoricalSavedAction(expected: PhotoSourceJob, current: () -> NativePhotoReceiver?,
         elapsed: () -> Long = DeviceFileControl::monotonicMs): NativeHistoricalSavedAction = gated {
         writableMembership()
