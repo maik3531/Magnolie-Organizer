@@ -2104,6 +2104,19 @@ class AndroidGalleryPhotoSourceTest {
             h.runtime.receiveChunkRequest(request, h.channel::send, { at + 2 })
             assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(h.drain().single()["body"]!!.jsonObject.string("data_base64")))
             h.inspect { assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record); assertEquals(2, it.jobs().size) }
+            h.runtime.observeRemoteSaved(TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("transfer_id", subset.transferId); put("manifest_sha256", subset.fingerprint)
+                put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", h.runtime.currentRequest()!!.receiver.permissionEpoch)
+                put("destination_token", "e".repeat(64)); put("receipts", JsonArray(listOf(buildJsonObject {
+                    put("file_id", chosen.id); put("size", chosen.size); put("sha256", chosen.sha256); put("receipt_sha256", "0".repeat(64))
+                })))
+            }, 60_000, at + 2), { at + 2 })
+            fun command(operation: String) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", operation); put("expected_version", h.runtime.savedPolicy().version); put("run_id", selected.id)
+            }, 60_000, at + 3)
+            h.runtime.receiveSourceCommand(command("cancel_run"), h.channel::send, { at + 3 }); h.drain()
+            h.runtime.receiveSourceCommand(command("end_run"), h.channel::send, { at + 3 }); h.drain()
+            h.inspect { assertEquals(listOf(h.job), it.jobs()) }
             assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
             assertEquals("hello", File(h.f.root, "source.bin").readText())
         }

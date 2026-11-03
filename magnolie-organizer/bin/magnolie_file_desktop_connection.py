@@ -807,6 +807,10 @@ class NativeDesktopFileConnection:
                             evidence = index.saved_mapping_receipt(); history = index.media_history
                             if evidence is None or history is None:
                                 raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+                            if job.saved_mapping_sha256 is not None:
+                                from hashlib import sha256
+                                if sha256(canonical(evidence.wire())).hexdigest() != job.saved_mapping_sha256:
+                                    raise TransferError('file_desktop_saved_mapping_receipt_changed')
                             self._verify_job_mapping_store(history); self._mappings.verify_checkpoint(evidence.store)
                             linked = next((item for item in evidence.entries if item.file_id == mapping.source_file_id), None)
                             receipt = next((item for item in index.saved_receipts() if item.file_id == mapping.source_file_id), None)
@@ -1238,10 +1242,12 @@ class NativeDesktopFileConnection:
             message = run.receiver.saved_receipt_message(now=clock())
             self._send_data(message, clock)
 
-    def finish_saved_receive(self, action):
+    def finish_saved_receive(self, action, *, retire_cache=False):
         """Close a fully saved native receiver, retaining original history/quota.
         This is local completion only, not proof that the phone saw the message.
         """
+        if type(retire_cache) is not bool:
+            raise TransferError('file_desktop_native_cache_choice_required')
         self._take_action(action)
         with self._operation():
             run = self._require_receiver()
@@ -1253,6 +1259,9 @@ class NativeDesktopFileConnection:
             if progress.verified_bytes != progress.total_bytes or progress.checkpoint_verified_bytes != progress.total_bytes:
                 raise TransferError('file_desktop_saved_receive_incomplete')
             action.validate(self)
+            if retire_cache:
+                run.job = self._catalog.retire_saved_cache(run.receiver)
+                action.validate(self)
             try:
                 run.receiver.close()
             except Exception as error:

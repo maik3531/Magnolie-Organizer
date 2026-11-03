@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Completed-cache capacity without dropping save history (Refs #330)
+
+An explicit native finish can now retire only a fully saved receiver's exact owned
+publication/staging caches after complete post-mapping receipts and checkpoint
+readback. An immutable catalog receipt binds the original job record, accepted
+context, saved-mapping hash and actual native cache identities. Both original cache
+locations must be absent before protected membership commits a zero active byte
+reservation. Unknown entries, reappeared caches, missing receipts or commit failures
+remain HOLD, not successful quota release. Original job records, index checkpoints,
+save/mapping history and public photo inode/bytes are retained.
+
+Historical metadata is bounded separately at 128 jobs within the existing metadata
+byte ceiling; the configured active-job and active-byte limits are unchanged. A
+historical retired job cannot reopen a receiver stage, but current native authority
+can still read its historical receipts and review the real saved target. Phone END
+can dispose of an exact stopped source cache once its complete authenticated Saved
+proof exists (or if it was never accepted), never original phone media.
+
+102 distinct host cases pass (six new, 96 affected): real publication/cache absence/
+fresh catalog read, original receipt/history and next unchanged review, a single
+active slot reused without dropping historical jobs, foreign cache preservation,
+missing/reappeared proof rejection, failed membership commit, actual phone Saved→
+cache cleanup and affected catalog/receiver/review/selection behavior. This is not
+an automatic global sync-completion claim or a physical phone/UI acceptance result.
+Album batching and actual runtime/UI/platform integration remain unfinished; gates
+for production/automatic/UI/releases are unchanged OFF.
+
 ### Mixed ordinary album: explicit frozen-member selection (Refs #330)
 
 select_run binds an exact unaccepted current preview run/manifest to a bounded,

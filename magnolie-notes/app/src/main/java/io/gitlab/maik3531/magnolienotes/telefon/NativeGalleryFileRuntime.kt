@@ -585,9 +585,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
                     fun current() { guard.checkCurrent(now()); authority() }
                     current()
                     val job = run.preparation.completedNativeJob()
-                    if (job != null && index.remoteAcceptance(job) == null && index.resumeAttempt(job) == null) {
-                        // Only this never-accepted, actually stopped native scan
-                        // cache is disposable. Original phone media is not touched.
+                    if (job != null && ((index.remoteAcceptance(job) == null && index.resumeAttempt(job) == null) || index.remoteSaved(job) != null)) {
+                        // This exact stopped native cache is either never accepted
+                        // or completely confirmed Saved by the authenticated receiver.
+                        // Original phone media is never touched.
                         current(); workflow.retireCached(job); current()
                     }
                     val body = kotlinx.serialization.json.buildJsonObject {

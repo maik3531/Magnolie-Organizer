@@ -65,7 +65,7 @@ class NativeFileReceiveOperation:
         """
         if type(catalog) is not ProtectedTransferJobCatalog:
             raise TransferError("file_receive_native_controller_required")
-        parent = catalog.require_reserved(job)
+        parent = catalog.require_recorded(job)
         job.accepted.verify(current_binding)
         with ProtectedTransferJobIndex(parent, job.accepted.manifest, job.accepted.binding, current_binding,
                 seal, unseal, owner=job.owner, accepted=job.accepted) as index:
@@ -78,7 +78,7 @@ class NativeFileReceiveOperation:
         """Original protected association only, no stage/publication reopen."""
         if type(catalog) is not ProtectedTransferJobCatalog:
             raise TransferError('file_receive_native_controller_required')
-        parent=catalog.require_reserved(job)
+        parent=catalog.require_recorded(job)
         job.accepted.verify(current_binding)
         with ProtectedTransferJobIndex(parent,job.accepted.manifest,job.accepted.binding,current_binding,
                 seal,unseal,owner=job.owner,accepted=job.accepted) as index:

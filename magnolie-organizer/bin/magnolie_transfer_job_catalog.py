@@ -57,6 +57,8 @@ class NativeReservedTransferJob:
     accepted: NativeAcceptedTransfer
     reserved_bytes: int
     protected_record_sha256: str
+    cache_retirement_sha256: str | None = None
+    saved_mapping_sha256: str | None = None
 
     @property
     def grants_write_authority(self):
@@ -71,6 +73,7 @@ class ProtectedTransferJobCatalog:
     NAME = "file-job-catalog"
     MAX_RECORD_BYTES = 2 * 1024 * 1024
     MAX_METADATA_BYTES = 128 * (MAX_RECORD_BYTES + 128) + 8192
+    MAX_HISTORICAL_JOBS = 128  # Metadata only; active allocation limits stay unchanged.
 
     def __init__(self, parent, identity, seal, unseal, *, create=False, limits=None,owner_only=False):
         if (type(identity) is not NativeJobCatalogIdentity or type(create) is not bool
@@ -277,18 +280,19 @@ class ProtectedTransferJobCatalog:
                 allowed={"owner.enc", "catalog.lock"}|({CatalogMembership.NAME} if self._registry_key is not None else set())
                 if self._registry is not None and self._registry.db.in_transaction:allowed.add(CatalogMembership.NAME+'-journal')
                 if (entry.name not in allowed
-                        and re.fullmatch(r"job-[0-9a-f]{32}\.enc", entry.name) is None):
+                        and re.fullmatch(r"(?:job|cache-retired)-[0-9a-f]{32}\.enc", entry.name) is None):
                     raise TransferError("file_job_catalog_unknown_entry_preserved")
                 value = entry.stat(follow_symlinks=False)
                 self._private(value)
                 total += value.st_size
-                if len(names) >= self._limits.max_jobs + len(allowed) or total > self.MAX_METADATA_BYTES+CatalogMembership.MAX_BYTES:
+                if len(names) >= 2 * self.MAX_HISTORICAL_JOBS + len(allowed) or total > self.MAX_METADATA_BYTES+CatalogMembership.MAX_BYTES:
                     raise TransferError("file_job_catalog_metadata_limit")
                 names.add(entry.name)
         if not {"owner.enc", "catalog.lock"} <= names or not set(self._known) <= names:
             raise TransferError("file_job_catalog_original_missing")
         jobs = []
-        for name in sorted(names - {"owner.enc", "catalog.lock",CatalogMembership.NAME,CatalogMembership.NAME+'-journal'}):
+        retirement_names = {name for name in names if name.startswith('cache-retired-')}
+        for name in sorted(names - {"owner.enc", "catalog.lock",CatalogMembership.NAME,CatalogMembership.NAME+'-journal'} - retirement_names):
             payload, digest = self._read(name)
             owner = name[4:-4]
             if (type(payload) is not dict or set(payload) != {"format", "owner", "accepted", "reserved_bytes"}
@@ -299,8 +303,27 @@ class ProtectedTransferJobCatalog:
                     or accepted.binding.receiver_identity_sha256 != self._identity.receiver_identity_sha256
                     or type(payload["reserved_bytes"]) is not int or payload["reserved_bytes"] != self.reservation_bytes(accepted)):
                 raise TransferError("file_job_catalog_invalid_reservation")
-            jobs.append(NativeReservedTransferJob(owner, accepted, payload["reserved_bytes"], digest))
-        if sum(job.reserved_bytes for job in jobs) > self._limits.max_reserved_bytes:
+            retired_name = 'cache-retired-' + owner + '.enc'
+            if retired_name in retirement_names:
+                receipt, receipt_hash = self._read(retired_name)
+                if (type(receipt) is not dict or set(receipt) != {'format', 'owner', 'job_record_sha256', 'accepted_sha256',
+                        'saved_mapping_sha256', 'stage_key', 'publication_key'} or type(receipt['format']) is not int or receipt['format'] != 1
+                        or receipt['owner'] != owner or receipt['job_record_sha256'] != digest
+                        or receipt['accepted_sha256'] != accepted.fingerprint
+                        or type(receipt['saved_mapping_sha256']) is not str or re.fullmatch('[0-9a-f]{64}', receipt['saved_mapping_sha256']) is None):
+                    raise TransferError('file_job_catalog_invalid_cache_retirement')
+                for key in ('stage_key', 'publication_key'):
+                    value = receipt[key]
+                    if type(value) is not list or len(value) != 2 or any(type(number) is not int or not 0 <= number < 2**64 for number in value) or value[1] == 0:
+                        raise TransferError('file_job_catalog_invalid_cache_retirement')
+                self._cache_absent(owner, accepted)
+                jobs.append(NativeReservedTransferJob(owner, accepted, 0, digest, receipt_hash, receipt['saved_mapping_sha256']))
+                retirement_names.remove(retired_name)
+            else:
+                jobs.append(NativeReservedTransferJob(owner, accepted, payload["reserved_bytes"], digest))
+        if (retirement_names or len(jobs) > self.MAX_HISTORICAL_JOBS
+                or sum(job.cache_retirement_sha256 is None for job in jobs) > self._limits.max_jobs
+                or sum(job.reserved_bytes for job in jobs) > self._limits.max_reserved_bytes):
             raise TransferError("file_job_catalog_quota_exceeded")
         if self._registry_key is not None and verify_membership:
             if self._registry is None:raise TransferError('file_job_catalog_membership_required')
@@ -358,13 +381,21 @@ class ProtectedTransferJobCatalog:
                 if self._jobs()!=jobs:raise TransferError('file_job_catalog_history_changed')
             finally:inspecting.remove(self._root_key)
 
+    def require_recorded(self, job):
+        """Exact historical job only; never a cache/resume/write grant."""
+        if self._owner_only:raise TransferError('file_job_catalog_owner_only')
+        with self._locked():
+            if type(job) is not NativeReservedTransferJob or job not in self._jobs():
+                raise TransferError('file_job_catalog_unknown_native_reservation')
+            return self._parent
+
     def require_reserved(self, job):
         """Authenticate exact native operation metadata and private parent.
         This does not start work, grant permission or release any reservation.
         """
         if self._owner_only:raise TransferError('file_job_catalog_owner_only')
         with self._locked():
-            if type(job) is not NativeReservedTransferJob or not any(value == job for value in self._jobs()):
+            if type(job) is not NativeReservedTransferJob or job.cache_retirement_sha256 is not None or not any(value == job for value in self._jobs()):
                 raise TransferError("file_job_catalog_unknown_native_reservation")
             return self._parent
 
@@ -404,7 +435,8 @@ class ProtectedTransferJobCatalog:
                     and job.accepted.binding.sender_id == accepted.binding.sender_id for job in jobs):
                 raise TransferError("file_job_catalog_existing_operation")
             amount = self.reservation_bytes(accepted)
-            if len(jobs) >= self._limits.max_jobs or amount + sum(job.reserved_bytes for job in jobs) > self._limits.max_reserved_bytes:
+            if (len(jobs) >= self.MAX_HISTORICAL_JOBS or sum(job.cache_retirement_sha256 is None for job in jobs) >= self._limits.max_jobs
+                    or amount + sum(job.reserved_bytes for job in jobs) > self._limits.max_reserved_bytes):
                 raise TransferError("file_job_catalog_quota_exceeded")
             owner = secrets.token_hex(16)  # Native reservation, never a peer transfer ID.
             accepted.verify(current_binding)
@@ -419,6 +451,76 @@ class ProtectedTransferJobCatalog:
                 raise TransferError("file_job_catalog_readback_failed")
             self._failed = False
             return job
+
+    def _cache_absent(self, owner, accepted):
+        """Only actual ENOENT at both original roots proves owned cache absence."""
+        self._directories()
+        try:
+            os.stat('file-transfer-' + owner, dir_fd=self._parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise TransferError('file_job_catalog_stage_cache_still_present')
+        accepted.destination.verify()
+        fd = os.open(accepted.destination.path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            if self._key(os.fstat(fd)) != accepted.destination.ancestor_keys[0]:
+                raise TransferError('file_job_catalog_cache_destination_changed')
+            try:
+                os.stat('.magnolie-publication-' + owner, dir_fd=fd, follow_symlinks=False)
+            except FileNotFoundError:
+                pass
+            else:
+                raise TransferError('file_job_catalog_publication_cache_still_present')
+        finally:
+            os.close(fd)
+        accepted.destination.verify(); self._directories()
+
+    def retire_saved_cache(self, receiver):
+        """Actual complete receiver only; preserve every original job/receipt.
+        No JSON cleanup claim, unproved absence or metadata-only saved flag.
+        """
+        from magnolie_file_receive import NativeFileReceiveOperation
+        if self._owner_only or type(receiver) is not NativeFileReceiveOperation:
+            raise TransferError('file_job_catalog_native_saved_receiver_required')
+        with receiver._gate, self._locked():
+            receiver._require()
+            job = receiver.job
+            if job.cache_retirement_sha256 is not None:
+                if job not in self._jobs(): raise TransferError('file_job_catalog_unknown_native_reservation')
+                return job
+            if (self._failed or self._registry is None or receiver._stage._parent != self._parent
+                    or job not in self._jobs() or receiver._publisher is None):
+                raise TransferError('file_job_catalog_native_saved_receiver_required')
+            with receiver._index._locked():
+                evidence = receiver._index.saved_mapping_receipt()
+                receipts = receiver._index.saved_receipts()
+                if evidence is None or len(receipts) != len(job.accepted.manifest.files):
+                    raise TransferError('file_job_catalog_complete_mapping_required')
+                before = self._registry.last
+                stage_key = self._key(os.fstat(receiver._stage._root_fd))
+                publication_key = self._key(os.fstat(receiver._publisher._cache_fd))
+                def current():
+                    receiver._require()
+                    if receiver._index.saved_mapping_receipt() != evidence or receiver._index.saved_receipts() != receipts:
+                        raise TransferError('file_job_catalog_saved_evidence_changed')
+                current(); self._failed = True
+                receiver._publisher.discard_owned_cache()
+                current(); receiver._stage.cleanup(); current()
+                self._cache_absent(job.owner, job.accepted)
+                mapping_hash = sha256(self._json(evidence.wire())).hexdigest()
+                self._write('cache-retired-' + job.owner + '.enc', dict(format=1, owner=job.owner,
+                    job_record_sha256=job.protected_record_sha256, accepted_sha256=job.accepted.fingerprint,
+                    saved_mapping_sha256=mapping_hash, stage_key=list(stage_key), publication_key=list(publication_key)))
+                current()
+                after = self._jobs(verify_membership=False)
+                self._registry.commit(after, before, validate=current)
+                retired = next(value for value in self._jobs() if value.owner == job.owner)
+                if retired.reserved_bytes != 0 or retired.saved_mapping_sha256 != mapping_hash:
+                    raise TransferError('file_job_catalog_cache_retirement_readback_failed')
+                current(); self._failed = False
+                receiver._job = retired
+                return retired
 
     def close(self):
         with self._gate:

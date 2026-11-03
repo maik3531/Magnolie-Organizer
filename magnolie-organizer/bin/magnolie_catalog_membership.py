@@ -51,7 +51,8 @@ class CatalogMembership:
             raise TransferError('file_job_catalog_membership_invalid_schema')
 
     def signature(self,jobs):
-        return sha256(self.catalog._json([dict(owner=j.owner,digest=j.protected_record_sha256,reserved_bytes=j.reserved_bytes)
+        return sha256(self.catalog._json([dict(owner=j.owner,digest=j.protected_record_sha256,reserved_bytes=j.reserved_bytes,
+            **({'cache_retirement_sha256': j.cache_retirement_sha256} if j.cache_retirement_sha256 is not None else {}))
             for j in sorted(jobs,key=lambda j:j.owner)])).hexdigest()
 
     def value(self,jobs,revision):
