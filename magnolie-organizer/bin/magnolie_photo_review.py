@@ -8,6 +8,7 @@ class NativePhotoReviewItem:
     photo_id: str
     decision: str
     original_job_owner: str | None = None
+    prior_mapping_sha256: str | None = None
 
 
 @dataclass(frozen=True)

@@ -23,12 +23,14 @@ from test_file_desktop_photo_review import end_normal_source
 
 
 @contextmanager
-def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None):
+def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None,
+        insertion_witness=False, content=b'hello', photo_ids=None):
     queue = Queue(); errors = []; chunks = []; saved = []
+    saved_targets={}
     entered = threading.Event(); release = threading.Event()
     run_ids = [str(uuid.uuid4()) for _ in batches]
     def phone():
-        index = 0; canceled = False
+        index = 0; canceled = False; selected={}
         try:
             while True:
                 message = queue.get()
@@ -40,17 +42,26 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                         metadata_handler(message);continue
                     if operation=='batch_run':
                         index=0;canceled=False
+                        selected.clear()
                         run_ids[:]=[str(uuid.uuid4()) for _ in batches]
                     if block_source and operation == 'batch_run':
                         entered.set(); assert release.wait(10)
                         if fixture[3]._closed.is_set(): return
                     if operation == 'next_batch': index += 1; canceled = False
                     if operation == 'cancel_run': canceled = True
-                    current = batches[index]; run = run_ids[index]; final = index == len(batches)-1
+                    current = selected.get(index,batches[index]); run = run_ids[index]; final = index == len(batches)-1
+                    if operation=='select_run':
+                        files=tuple(file for file in current.files if file.id in body['file_ids'])
+                        assert len(files)==len(body['file_ids'])
+                        current=replace(current,source_id=uuid.uuid4().hex,transfer_id=uuid.uuid4().hex,files=files,
+                            total_bytes=sum(file.size for file in files));selected[index]=current
+                        run=str(uuid.uuid4());run_ids[index]=run;canceled=False
                     if operation == 'media_page':
                         value = media(message, current, body['after']); value['body']['run_id'] = run
+                        value['body']['page']['insertion_witness']=insertion_witness
                         for entry in value['body']['page']['entries']:
-                            entry['photo_id'] = sha256(f'worker-photo-{index}'.encode()).hexdigest()
+                            path=next(file.path for file in current.files if file.id==entry['file_id'])
+                            entry['photo_id'] = photo_ids[path] if photo_ids is not None else sha256(f'worker-photo-{index}'.encode()).hexdigest()
                         dispatch(fixture, value)
                     elif operation == 'offer_run':
                         offered = create_offer(current); offered['expires_ms'] = min(offered['expires_ms'], message['expires_ms'])
@@ -64,13 +75,17 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                     chunks.append(body['file_id'])
                     if block_chunk is not None:
                         entered.set(); check = release.wait(10); assert check
-                    dispatch(fixture, chunk(message, b'hello'))
+                    dispatch(fixture, chunk(message, content))
                 elif kind == 'file_transfer.saved':
-                    assert all((fixture[4] / file.path).read_bytes() == b'hello' for file in batches[index].files)
+                    accepted=saved_targets[message['message_id']]
+                    assert all((fixture[4] / path).read_bytes() == content for _,path in accepted.targets)
                     saved.append(message)
         except BaseException as error:
             errors.append(error); fixture[3].close()
-    fixture[2].send.side_effect = queue.put
+    def enqueue(message):
+        if message['kind']=='file_transfer.saved':saved_targets[message['message_id']]=fixture[3]._run.accepted
+        queue.put(message)
+    fixture[2].send.side_effect = enqueue
     peer = threading.Thread(target=phone, name='fixture-native-album-peer', daemon=True); peer.start()
     try: yield chunks, saved, entered, release, errors
     finally:

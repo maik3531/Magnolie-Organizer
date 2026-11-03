@@ -1,5 +1,43 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Changed phone versions without replacing earlier files (Refs #330)
+
+The real album worker may now transfer a changed phone version when the native
+source proves stable insertion identity and the previous saved PC version is
+unchanged. The original accepted target is never overwritten or renamed. The new
+content is published through the existing no-replace publisher under a visible
+`Versionen` subdirectory, with deterministic association/content-based targets.
+An existing file at that target is not adopted, even if its bytes happen to match.
+PC-only edits remain local; edit/edit, missing targets, weak source identity and
+concurrent PC edits remain conflicts/HOLD rather than overwrite permission.
+
+The mapping store keeps the original encrypted row and all version records
+immutable. A separately protected head points to the newest saved record, whose
+authenticated predecessor chain must reach the original. The existing aggregate
+owner covers the extra rows without replacing the database/schema or loosening
+quotas. Historical SavedMappingReceipts continue to resolve their exact original
+records, not whatever record the current head selects. A repeated already-saved
+phone content version requests no duplicate chunks and preserves PC crops.
+
+Local protected NativeMediaHistory format 3 pins each version's prior mapping
+record together with the original job/destination/store witnesses. It is not a
+wire capability or renewed Android READ. Admission rechecks current native review,
+the selected frozen subset and fully saved earlier jobs; publication rechecks the
+old target before storing the new file. Mixed new/version batches use the same
+real source selection and worker. Missing history, corrupted/cyclic predecessor
+chains and moved roots fail closed. A lost post-mapping receipt may be repaired
+only from existing original save evidence, without re-publication.
+
+Actual source-host checks include two successive phone changes, repeat/no-download,
+old/new PC crop preservation, mixed batches, target collision, concurrent PC edit,
+encrypted history restart, retained original receipts, malformed/version-chain
+metadata and lost-receipt repair. Stop/resume retains the exact version job and
+verified staged bytes. **Restart publication remains HOLD without positive native
+proof that publication never began**; an empty journal or verified checkpoint is
+not that proof. This remaining #330 acceptance boundary is not weakened here.
+Installed/physical-phone acceptance, historical target re-association, deletion
+directions and grouping remain open. Production readiness is still OFF.
+
 ### Own-PC withdrawal and superseded receipt replay (Refs #373, #330)
 
 Both native file-authority adapters now retain the raw channel-scoped Own-PC

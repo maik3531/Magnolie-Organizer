@@ -154,8 +154,8 @@ def test_repair_rejects_native_record_with_wrong_original_context_before_index_c
     receiver=interrupted_save(receiving,monkeypatch)
     with reconnect(receiving) as fresh:
         connection=fresh[3];lookup=connection._mappings.lookup
-        def changed(associations):
-            snapshot,records=lookup(associations)
+        def changed(associations,**selection):
+            snapshot,records=lookup(associations,**selection)
             return snapshot,tuple(replace(record,**{field:value}) for record in records)
         monkeypatch.setattr(connection._mappings,'lookup',changed)
         with pytest.raises(TransferError,match='original_evidence_changed'):

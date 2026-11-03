@@ -864,15 +864,35 @@ class NativeDesktopFileConnection:
         entries = self._source_media_entries
         if entries is None:
             raise TransferError('file_desktop_source_media_not_correlated')
+        parents=self._version_admission_parents(resume_owner)
         for offset in range(0, len(entries), 128):
             associations = tuple(PhotoMappingAssociation(page.source_epoch, entry.photo_id, page.media_type)
                                  for entry in entries[offset:offset+128])
             current, records = self._mappings.lookup(associations)
             if current != before:
                 raise TransferError('file_desktop_photo_mapping_changed')
-            if any(record is not None for record in records):
-                raise TransferError('file_desktop_photo_mapping_requires_reconcile')
-        return self._require_unreserved_media_history(resume_owner)
+            if parents and resume_owner is None and (self._selected_source_id!=self._source_run.run_id
+                    or self._selected_preview.mapping_snapshot!=before):
+                raise TransferError('file_desktop_photo_version_not_current')
+            for association,record in zip(associations,records):
+                parent=parents.get(association.photo_id)
+                if record is not None and (parent is None or parent!=record.protected_record_sha256):
+                    raise TransferError('file_desktop_photo_mapping_requires_reconcile')
+                if parent is not None and record is None:raise TransferError('file_desktop_photo_version_not_current')
+        return self._require_unreserved_media_history(resume_owner,version_parents=parents)
+
+    def _version_admission_parents(self,resume_owner):
+        if resume_owner is None:
+            return dict(self._selected_preview.version_parents) if self._selected_preview is not None else {}
+        if not self._open_catalog(allow_create=False):return {}
+        job=next((job for job in self._catalog.jobs() if job.owner==resume_owner),None)
+        if job is None or job.accepted.binding!=self._receive_binding():
+            raise TransferError('file_desktop_resume_original_job_changed')
+        protection=self._authority.protection
+        history=NativeFileReceiveOperation.read_media_history(self._catalog,job,self._receive_binding,
+            protection.seal,protection.unseal)
+        self._verify_job_mapping_store(history)
+        return dict(history.version_parents) if history is not None else {}
 
     def review_pending_photos(self, action, *, clock=now_ms):
         """Compare the fresh phone manifest with original saves and current PC
@@ -896,7 +916,8 @@ class NativeDesktopFileConnection:
             first = self._source_media_pages[0]
             associations = tuple(PhotoMappingAssociation(first.source_epoch, entry.photo_id, first.media_type)
                 for entry in self._source_media_entries)
-            snapshot, records = self._mappings.lookup(associations)
+            contents=tuple((file.sha256,file.size) for file in manifest.files)
+            snapshot, records = self._mappings.lookup(associations,contents=contents)
             if not snapshot.associated:
                 raise TransferError('file_desktop_photo_mapping_reassociation_required')
             items = []
@@ -944,18 +965,22 @@ class NativeDesktopFileConnection:
                             decision = compare_photo(association, baseline, phone, desktop.observation)
                             if index.saved_mapping_receipt() != evidence or receipt not in index.saved_receipts():
                                 raise TransferError('file_desktop_saved_recovery_evidence_changed')
-                            items.append(NativePhotoReviewItem(file.id, entry.photo_id, decision.kind, job.owner))
-                if self._catalog.jobs() != jobs or self._mappings.lookup(associations) != (snapshot, records):
+                            kind='copy_phone_version' if decision.kind=='unsupported_desktop_replace' else decision.kind
+                            items.append(NativePhotoReviewItem(file.id, entry.photo_id, kind, job.owner,
+                                mapping.protected_record_sha256 if kind=='copy_phone_version' else None))
+                if self._catalog.jobs() != jobs or self._mappings.lookup(associations,contents=contents) != (snapshot, records):
                     raise TransferError('file_desktop_photo_mapping_changed')
             action.validate(self); self._receive_binding()
             if clock() >= self._offer['expires_ms']:
                 raise TransferError('file_desktop_offer_expired')
             return NativePhotoReview(manifest.fingerprint, tuple(items))
 
-    def select_pending_new_photos(self, action, *, clock=now_ms):
-        """Select only unmapped current phone members after a fresh native review.
-        Known photos retain their individual historical targets and local edits.
+    def select_pending_new_photos(self, action, *, clock=now_ms, include_versions=False):
+        """Select fresh native downloads, optionally preserving changed versions.
+        Known photos retain their individual historical targets and local edits;
+        a version intent retains the exact previous mapping, never a replace flag.
         """
+        if type(include_versions) is not bool:raise TransferError('file_desktop_native_version_choice_required')
         reviewed = self.review_pending_photos(action, clock=clock)
         with self._operation():
             action.validate(self)
@@ -968,13 +993,16 @@ class NativeDesktopFileConnection:
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
             if manifest.fingerprint != reviewed.manifest_sha256:
                 raise TransferError('file_desktop_photo_selection_not_current')
-            ids = tuple(sorted(item.file_id for item in reviewed.items if item.decision == 'new_photo'))
+            ids = tuple(sorted(item.file_id for item in reviewed.items
+                if item.decision == 'new_photo' or include_versions and item.decision=='copy_phone_version'))
             if not ids:
                 return None  # Explicit no-download review, not a Saved receipt.
             first = self._source_media_pages[0]
             entries = tuple(entry for entry in self._source_media_entries if entry.file_id in ids)
             self._selected_preview = _NativeDesktopPhotoSelection(manifest, self._source_run.run_id, ids, entries,
-                first.source_epoch, first.media_type, first.insertion_witness, self._mappings.read())
+                first.source_epoch, first.media_type, first.insertion_witness, self._mappings.read(),
+                tuple(sorted((item.photo_id,item.prior_mapping_sha256) for item in reviewed.items
+                    if include_versions and item.decision=='copy_phone_version')))
             message = source_messages.create_command('select_run', expected_version=self._source_status.version,
                 run_id=self._source_run.run_id, manifest_sha256=manifest.fingerprint, file_ids=list(ids), now=clock())
             command = source_messages.parse_command(message, now=clock())
@@ -983,7 +1011,7 @@ class NativeDesktopFileConnection:
             self._send_source_pending(clock, action)
             return message['message_id']
 
-    def _require_unreserved_media_history(self,resume_owner):
+    def _require_unreserved_media_history(self,resume_owner,*,version_parents=None):
         # Job anchors precede publication/mapping. Their absence/corruption is
         # not evidence of first use or permission to reserve another copy.
         if not self._open_catalog(allow_create=False):return ()
@@ -1004,8 +1032,13 @@ class NativeDesktopFileConnection:
                     # Historical metadata only: no target verification, source
                     # READ renewal, stage worker or publication is authorized.
                     with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,lambda:None,
-                            protection.seal,protection.unseal,owner=job.owner) as index:
+                            protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
                         history=index.media_history
+                        matching={(history.source_epoch,entry.photo_id,history.media_type) for entry in history.entries}&wanted if history else set()
+                        versions=version_parents or {}
+                        if matching and all(photo in versions for _,photo,_ in matching):
+                            self._verify_completed_mapping_job(index,job,history)
+                            continue
                 except Exception as error:
                     raise TransferError('file_desktop_photo_job_repair_pending') from error
                 self._ready()
@@ -1016,6 +1049,22 @@ class NativeDesktopFileConnection:
                 if any((history.source_epoch,entry.photo_id,history.media_type) in wanted for entry in history.entries):
                     raise TransferError('file_desktop_photo_job_requires_reconcile')
             return jobs
+
+    def _verify_completed_mapping_job(self,index,job,history):
+        """An older fully saved version is history, never a receive reservation."""
+        from hashlib import sha256
+        from magnolie_photo_mapping_receipt import SavedPhotoMappingReceipt
+        evidence=index.saved_mapping_receipt()
+        if (job.saved_mapping_sha256 is None or evidence is None
+                or sha256(canonical(evidence.wire())).hexdigest()!=job.saved_mapping_sha256):
+            raise TransferError('file_desktop_photo_version_original_job_held')
+        associations=tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type) for entry in history.entries)
+        _,records=self._mappings.lookup_saved(associations,tuple(entry.saved_receipt_sha256 for entry in evidence.entries))
+        receipts=index.saved_receipts()
+        if any(record is None for record in records) or SavedPhotoMappingReceipt.capture(
+                job.accepted,history,job.owner,receipts,records,evidence.store)!=evidence:
+            raise TransferError('file_desktop_saved_mapping_receipt_changed')
+        self._verify_job_mapping_store(history);self._mappings.verify_checkpoint(evidence.store)
 
     def _verify_expected_mapping_store(self):
         snapshot=self._receiving_policy()
@@ -1112,6 +1161,13 @@ class NativeDesktopFileConnection:
     def accept_pending_offer(self, action, offer_id, *, clock=now_ms):
         """Native I/O-lane admission only; no UI-thread work or implicit run."""
         self._take_action(action)
+        selection=self._selected_preview
+        if selection is not None and selection.version_parents:
+            reviewed=self.review_pending_photos(self.issue_receive_action(),clock=clock)
+            if (tuple(sorted((item.photo_id,item.prior_mapping_sha256) for item in reviewed.items
+                    if item.decision=='copy_phone_version'))!=selection.version_parents
+                    or any(item.decision not in ('new_photo','copy_phone_version') for item in reviewed.items)):
+                raise TransferError('file_desktop_photo_version_review_changed')
         with self._operation():
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
@@ -1131,12 +1187,24 @@ class NativeDesktopFileConnection:
                 entries={entry.file_id:entry for entry in self._source_media_entries}
                 targets={file.id:('Animationen/'+file.path if entries[file.id].media_kind=='animation' else file.path)
                     for file in manifest.files}
+            parents=selection.version_parents if selection is not None else ()
+            if parents:
+                from magnolie_photo_mappings import photo_version_path
+                first=self._source_media_pages[0];by_file={entry.file_id:entry for entry in self._source_media_entries}
+                for file in manifest.files:
+                    photo_id=by_file[file.id].photo_id
+                    if photo_id in dict(parents):
+                        association=PhotoMappingAssociation(first.source_epoch,photo_id,first.media_type)
+                        _,(original,)=self._mappings.lookup((association,))
+                        if original is None or original.destination!=snapshot.policy.destination:
+                            raise TransferError('file_desktop_photo_version_destination_changed')
+                        targets[file.id]=photo_version_path(association,file)
             accepted = NativeAcceptedTransfer.capture(manifest, binding, targets,
                 snapshot.policy.destination.path, self._receive_binding)
             if accepted.destination != snapshot.policy.destination:
                 raise TransferError('file_desktop_original_destination_changed')
             history = NativeMediaHistory.capture(accepted,self._source_media_pages,
-                mapping_store=self._verify_expected_mapping_store()) if self._source_media_pages else None
+                mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
             self._verify_job_mapping_store(history)
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, accepted)
@@ -1292,7 +1360,7 @@ class NativeDesktopFileConnection:
 
     def publish_received(self, action, *, clock=now_ms):
         """Explicit native publication/readback only. Never overwrites a target;
-        existing-file replacement/conflict/baseline union is not implied here.
+        changed versions use separate immutable targets, not an in-place replace.
         """
         self._take_action(action)
         with self._operation():
@@ -1302,6 +1370,7 @@ class NativeDesktopFileConnection:
             self._mutation_action = action
             try:
                 action.validate(self)
+                self._verify_version_parent_targets(run)
                 run.receiver.publish_completed()
                 self._receive_binding(); action.validate(self)
                 run.receiver.commit_saved_receipts()
@@ -1312,6 +1381,37 @@ class NativeDesktopFileConnection:
                 return run.receiver.progress()  # Local save != whole-sync END/quota release.
             finally:
                 self._mutation_action = None
+
+    def _verify_version_parent_targets(self,run):
+        """A PC edit during download is still a conflict, not a new baseline.
+
+        Only read the protected original target; publication always uses another
+        no-replace path. Never change, rename or lock the user's original file.
+        """
+        from magnolie_photo_target import observe_saved_target
+        history=run.receiver._index.media_history
+        if history is None or not history.version_parents:return
+        protection=self._authority.protection
+        with self._catalog.inspect_jobs() as (parent,jobs):
+            owners={job.owner:job for job in jobs}
+            for photo,expected in history.version_parents:
+                association=PhotoMappingAssociation(history.source_epoch,photo,history.media_type)
+                _,(mapping,)=self._mappings.lookup((association,))
+                if mapping is None or mapping.protected_record_sha256!=expected:
+                    raise TransferError('file_desktop_photo_version_parent_changed')
+                original=owners.get(mapping.job_owner)
+                if original is None or original.accepted.binding!=run.accepted.binding:
+                    raise TransferError('file_desktop_photo_version_parent_changed')
+                with ProtectedTransferJobIndex(parent,original.accepted.manifest,original.accepted.binding,self._receive_binding,
+                        protection.seal,protection.unseal,owner=original.owner,accepted=original.accepted) as index:
+                    self._verify_completed_mapping_job(index,original,index.media_history)
+                    receipt=next((receipt for receipt in index.saved_receipts() if receipt.file_id==mapping.source_file_id),None)
+                    if receipt is None:raise TransferError('file_desktop_photo_version_parent_changed')
+                    observed=observe_saved_target(original.accepted,receipt,self._receive_binding).observation
+                    if (observed.state!='present' or not observed.managed
+                            or (observed.content.sha256,observed.content.size)!=(mapping.saved_sha256,mapping.saved_size)):
+                        raise TransferError('file_desktop_photo_version_parent_edited')
+            self._receive_binding()
 
     def _commit_saved_media(self, run, *, action=None):
         # Use the original protected job anchor, never the current wire cache.
@@ -1333,8 +1433,8 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_saved_mapping_checkpoint_changed')
             run.receiver._index.commit_saved_mapping(records,checkpoint,run.receiver._lease)
         else:
-            _,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
-                for entry in history.entries))
+            _,records=self._mappings.lookup_saved(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                for entry in history.entries),tuple(entry.saved_receipt_sha256 for entry in existing.entries))
             if (any(record is None for record in records)
                     or tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in existing.entries)):
                 raise TransferError('file_desktop_saved_mapping_receipt_changed')
@@ -1415,8 +1515,8 @@ class NativeDesktopFileConnection:
                             raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
                         self._verify_expected_mapping_store();self._verify_job_mapping_store(history)
                         self._mappings.verify_checkpoint(evidence.store)
-                        _,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
-                            for entry in history.entries))
+                        _,records=self._mappings.lookup_saved(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                            for entry in history.entries),tuple(entry.saved_receipt_sha256 for entry in evidence.entries))
                         if (any(record is None for record in records)
                                 or tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in evidence.entries)):
                             raise TransferError('file_desktop_saved_mapping_receipt_changed')
@@ -1456,8 +1556,11 @@ class NativeDesktopFileConnection:
                         history=index.media_history
                         if history is None:raise TransferError('file_desktop_saved_recovery_original_history_required')
                         self._verify_expected_mapping_store();self._verify_job_mapping_store(history)
-                        snapshot,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
-                            for entry in history.entries))
+                        receipts={receipt.file_id:receipt for receipt in index.saved_receipts()}
+                        if set(receipts)!={entry.file_id for entry in history.entries}:
+                            raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+                        snapshot,records=self._mappings.lookup_saved(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                            for entry in history.entries),tuple(receipts[entry.file_id].protected_record_sha256 for entry in history.entries))
                         if any(record is None for record in records):
                             raise TransferError('file_desktop_saved_recovery_original_mappings_required')
                         checkpoint=self._mappings.checkpoint(self._mappings._store_witness())
@@ -1687,13 +1790,13 @@ class NativePhotoAlbumWorker:
                 if result.state != 'empty_ready':
                     offered = self._offer()
                     review = connection.review_pending_photos(connection.issue_receive_action())
-                    new = [item for item in review.items if item.decision == 'new_photo']
+                    new = [item for item in review.items if item.decision in ('new_photo','copy_phone_version')]
                     with self._state_gate:
                         self._known += sum(item.decision in ('unchanged', 'keep_local_edit') for item in review.items)
-                        self._conflicts.extend(item for item in review.items if item.decision not in ('new_photo', 'unchanged', 'keep_local_edit'))
+                        self._conflicts.extend(item for item in review.items if item.decision not in ('new_photo','copy_phone_version','unchanged','keep_local_edit'))
                     if new:
-                        if len(new) != len(review.items):
-                            request_id = connection.select_pending_new_photos(connection.issue_receive_action())
+                        if len(new) != len(review.items) or any(item.decision=='copy_phone_version' for item in new):
+                            request_id = connection.select_pending_new_photos(connection.issue_receive_action(),include_versions=True)
                             def selected():
                                 state = connection.source_state(); value = state['result']
                                 return value if not state['pending'] and getattr(value, 'request_id', None) == request_id else None
@@ -2014,6 +2117,7 @@ class _NativeDesktopPhotoSelection:
     media_type: str
     insertion_witness: bool
     mapping_snapshot: object
+    version_parents: tuple = ()
 
 
 @dataclass

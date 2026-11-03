@@ -115,8 +115,8 @@ def test_revocation_after_actual_mapping_lookup_prevents_any_recovery_socket_out
     connection.publish_received(connection.issue_receive_action());job=receiver.job
     with reconnect(receiving) as fresh:
         connection=fresh[3];lookup=connection._mappings.lookup
-        def revoke(associations):
-            result=lookup(associations);connection._authority.revoke();return result
+        def revoke(associations,**selection):
+            result=lookup(associations,**selection);connection._authority.revoke();return result
         monkeypatch.setattr(connection._mappings,'lookup',revoke)
         with pytest.raises(TransferError):connection.recover_saved_confirmation(connection.issue_receive_action(),job.owner)
         assert not saved_messages(fresh) and connection._run is None

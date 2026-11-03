@@ -1,11 +1,13 @@
 """Protected historical source→saved-target mappings, never current write grants.
 
 Reuse the existing native descriptor/SQLite/AEAD lifetime, in a separate store
-and protection domain. No delete/update/move API or implicit reconciliation.
+and protection domain. Original/version records remain immutable; only a separate
+authenticated head advances. No delete/move API or implicit reconciliation.
 """
 from dataclasses import dataclass
 from contextlib import contextmanager
 from hashlib import sha256
+from pathlib import PurePosixPath
 import threading
 
 from magnolie_file_acceptance import NativeAcceptedDestination
@@ -18,6 +20,15 @@ from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice,PhotoMappingStoreCheckpoint
 from magnolie_telefon import canonical
+
+
+def photo_version_path(association, file):
+    """Visible, deterministic no-replace target; never a replacement pathname."""
+    if type(association) is not PhotoMappingAssociation or not _hex(file.sha256):
+        raise TransferError('photo_mapping_invalid_version_target')
+    suffix=PurePosixPath(file.path).suffix.lower()
+    if suffix not in ('.jpg','.jpeg','.png','.gif','.webp','.heic','.heif','.avif','.bmp','.tif','.tiff','.dng','.mp4','.mov','.mkv','.webm'):suffix=''
+    return 'Versionen/'+association.photo_id+'/'+file.sha256+suffix
 
 
 @dataclass(frozen=True)
@@ -242,21 +253,89 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 self._uncertain=True
             raise
 
-    def _mapping(self,association):
-        row=self._db.execute('SELECT payload FROM mappings WHERE association=?',(association.key,)).fetchone()
-        if row is None:return None
-        blob=row[0]
-        return NativeSavedPhotoMapping.parse(self._unprotect(blob,'mapping/'+association.key),association,sha256(blob).hexdigest())
+    @staticmethod
+    def _head_key(association):
+        return sha256(('magnolie-photo-version-head-v1\0'+association.key).encode('ascii')).hexdigest()
 
-    def lookup(self,associations):
-        if type(associations) is not tuple or len(associations)>128 or any(type(item) is not PhotoMappingAssociation for item in associations):
+    @staticmethod
+    def _version_key(association,receipt):
+        return sha256(('magnolie-photo-version-record-v1\0'+association.key+'\0'+receipt).encode('ascii')).hexdigest()
+
+    def _mapping_records(self,association):
+        """Newest first, with every immutable predecessor authenticated.
+
+        The original v1 row and its ciphertext never change. Extra rows use
+        separate protection domains; the mutable head is not a save receipt.
+        The existing aggregate owner covers all rows without a schema migration.
+        """
+        row=self._db.execute('SELECT payload FROM mappings WHERE association=?',(association.key,)).fetchone()
+        head_key=self._head_key(association)
+        head_row=self._db.execute('SELECT payload FROM mappings WHERE association=?',(head_key,)).fetchone()
+        if row is None:
+            if head_row is not None:raise TransferError('photo_mapping_version_original_required')
+            return ()
+        root=NativeSavedPhotoMapping.parse(self._unprotect(row[0],'mapping/'+association.key),association,sha256(row[0]).hexdigest())
+        if head_row is None:return ((association.key,root),)
+        head=self._unprotect(head_row[0],'head/'+head_key)
+        if (type(head) is not dict or set(head)!={'format','association','record_key','record_sha256'}
+                or type(head['format']) is not int or head['format']!=1 or head['association']!=association.wire()
+                or not _hex(head['record_key']) or not _hex(head['record_sha256']) or head['record_key']==association.key):
+            raise TransferError('photo_mapping_invalid_version_head')
+        key=head['record_key'];expected=head['record_sha256'];seen=set();records=[]
+        while key!=association.key:
+            if key in seen or len(seen)>=self.MAX_MAPPINGS:raise TransferError('photo_mapping_version_chain_changed')
+            seen.add(key)
+            item=self._db.execute('SELECT payload FROM mappings WHERE association=?',(key,)).fetchone()
+            if item is None or sha256(item[0]).hexdigest()!=expected:raise TransferError('photo_mapping_version_chain_changed')
+            value=self._unprotect(item[0],'version/'+key)
+            if (type(value) is not dict or set(value)!={'format','mapping','previous_key','previous_sha256'}
+                    or type(value['format']) is not int or value['format']!=2
+                    or not _hex(value['previous_key']) or not _hex(value['previous_sha256'])):
+                raise TransferError('photo_mapping_invalid_version_record')
+            record=NativeSavedPhotoMapping.parse(value['mapping'],association,expected)
+            if (key!=self._version_key(association,record.receipt_sha256) or record.destination!=root.destination):
+                raise TransferError('photo_mapping_version_chain_changed')
+            records.append((key,record));key=value['previous_key'];expected=value['previous_sha256']
+            self._fresh()
+        if expected!=root.protected_record_sha256:raise TransferError('photo_mapping_version_chain_changed')
+        return tuple(records)+((association.key,root),)
+
+    def _mapping(self,association):
+        records=self._mapping_records(association)
+        return records[0][1] if records else None
+
+    def _saved_mapping(self,association,receipt):
+        return next((record for _,record in self._mapping_records(association) if record.receipt_sha256==receipt),None)
+
+    def lookup_saved(self,associations,receipts):
+        if (type(associations) is not tuple or type(receipts) is not tuple or len(receipts)!=len(associations)
+                or any(not _hex(receipt) for receipt in receipts)):
+            raise TransferError('photo_mappings_native_receipts_required')
+        return self.lookup(associations,saved_receipts=receipts)
+
+    def lookup(self,associations,*,contents=None,saved_receipts=None):
+        if (type(associations) is not tuple or len(associations)>128 or any(type(item) is not PhotoMappingAssociation for item in associations)
+                or contents is not None and (type(contents) is not tuple or len(contents)!=len(associations)
+                    or any(type(item) is not tuple or len(item)!=2 or not _hex(item[0]) or type(item[1]) is not int
+                        or not 0<=item[1]<=MAX_FILE_BYTES for item in contents))
+                or saved_receipts is not None and (type(saved_receipts) is not tuple or len(saved_receipts)!=len(associations)
+                    or any(not _hex(item) for item in saved_receipts))):
             raise TransferError('photo_mappings_native_associations_required')
         try:
             with self._operation():
                 if not self._open():return PhotoMappingsSnapshot(self._absent,0,0,False),tuple(None for _ in associations)
                 with self._locked():
                     self._schema();before=self._snapshot()
-                    result=tuple(self._mapping(association) for association in associations)
+                    if saved_receipts is not None:
+                        result=tuple(self._saved_mapping(association,receipt) for association,receipt in zip(associations,saved_receipts))
+                    elif contents is not None:
+                        chosen=[]
+                        for association,content in zip(associations,contents):
+                            records=self._mapping_records(association)
+                            chosen.append(next((record for _,record in records
+                                if (record.saved_sha256,record.saved_size)==content),records[0][1] if records else None))
+                        result=tuple(chosen)
+                    else:result=tuple(self._mapping(association) for association in associations)
                     if self._snapshot()!=before:raise TransferError('photo_mappings_lookup_changed')
                     self._sync();return before,result
         except Exception as error:
@@ -287,7 +366,8 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 entries=history.entries;source_epoch=history.source_epoch;media_type=history.media_type
             else:
                 entries=correlate_media_pages(pages,accepted.manifest)
-                if history is not None and NativeMediaHistory.capture(accepted,pages,mapping_store=history.mapping_store)!=history:
+                if history is not None and NativeMediaHistory.capture(accepted,pages,mapping_store=history.mapping_store,
+                        version_parents=history.version_parents)!=history:
                     raise TransferError('photo_mappings_media_history_changed')
                 source_epoch=pages[0].source_epoch;media_type=pages[0].media_type
             peer=self._peer()
@@ -313,33 +393,57 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                     if history is not None and history.mapping_store is not None:self._require_checkpoint(history.mapping_store,current)
                     if current.version!=expected.version:raise TransferError('photo_mappings_cas_conflict')
                     if not current.associated:raise TransferError('photo_mappings_reassociation_required')
-                    pending=[]
+                    pending=[];parents=dict(history.version_parents) if history is not None else {}
                     for proposed in wanted:
                         existing=self._mapping(proposed.association)
-                        if existing is not None:
-                            if existing.wire()!=proposed.wire():raise TransferError('photo_mapping_existing_requires_reconcile')
-                        else:pending.append(proposed)
-                    if current.count+len(pending)>self.MAX_MAPPINGS or current.revision>=MAX_REVISION:raise TransferError('photo_mappings_limit')
+                        saved=self._saved_mapping(proposed.association,proposed.receipt_sha256)
+                        parent=parents.get(proposed.association.photo_id)
+                        if saved is not None:
+                            if saved.wire()!=proposed.wire():raise TransferError('photo_mapping_existing_requires_reconcile')
+                        elif parent is not None:
+                            file=next(file for file in accepted.manifest.files if file.id==proposed.source_file_id)
+                            if (existing is None or existing.protected_record_sha256!=parent
+                                    or existing.destination!=proposed.destination
+                                    or proposed.relative_path!=photo_version_path(proposed.association,file)
+                                    or (existing.saved_sha256,existing.saved_size)==(proposed.saved_sha256,proposed.saved_size)):
+                                raise TransferError('photo_mapping_version_parent_changed')
+                            pending.append((proposed,self._mapping_records(proposed.association)[0]))
+                        elif existing is not None:raise TransferError('photo_mapping_existing_requires_reconcile')
+                        else:pending.append((proposed,None))
+                    added=sum(1 if parent is None else 1+int(self._db.execute('SELECT 1 FROM mappings WHERE association=?',
+                        (self._head_key(item.association),)).fetchone() is None) for item,parent in pending)
+                    if current.count+added>self.MAX_MAPPINGS or current.revision>=MAX_REVISION:raise TransferError('photo_mappings_limit')
                     def fresh():
                         receiver._require();self._fresh();action.validate(self)
                         if self._peer().pairing_epoch!=peer.pairing_epoch:raise TransferError('photo_mappings_pairing_changed')
                         if receiver._index.saved_receipts()!=receipts:raise TransferError('photo_mappings_saved_receipts_changed')
                         if receiver._index.media_history!=history:raise TransferError('photo_mappings_media_history_changed')
                     fresh()
-                    if not pending:return current,tuple(self._mapping(item.association) for item in wanted)
+                    if not pending:return current,tuple(self._saved_mapping(item.association,item.receipt_sha256) for item in wanted)
                     mutated=False
                     try:
-                        protected=[(item.association.key,self._protect(item.wire(),'mapping/'+item.association.key)) for item in pending]
+                        protected=[];heads=[]
+                        for item,parent in pending:
+                            if parent is None:protected.append((item.association.key,self._protect(item.wire(),'mapping/'+item.association.key)))
+                            else:
+                                key=self._version_key(item.association,item.receipt_sha256);head_key=self._head_key(item.association)
+                                blob=self._protect(dict(format=2,mapping=item.wire(),previous_key=parent[0],
+                                    previous_sha256=parent[1].protected_record_sha256),'version/'+key)
+                                protected.append((key,blob))
+                                head=self._protect(dict(format=1,association=item.association.wire(),record_key=key,
+                                    record_sha256=sha256(blob).hexdigest()),'head/'+head_key)
+                                heads.append((head_key,head))
                         fresh()
                         self._db.execute('BEGIN IMMEDIATE')
                         mutated=True
                         self._db.executemany('INSERT INTO mappings VALUES(?,?)',protected)
+                        self._db.executemany('INSERT INTO mappings VALUES(?,?) ON CONFLICT(association) DO UPDATE SET payload=excluded.payload',heads)
                         count,digest=self._rows_digest()
                         owner=self._protect(dict(revision=current.revision+1,count=count,mappings_sha256=digest,pairing_epoch=peer.pairing_epoch),'owner')
                         self._db.execute('UPDATE owner SET payload=? WHERE id=1',(owner,))
                         fresh()
                         self._db.commit();self._sync()
-                        after=self._snapshot();result=tuple(self._mapping(item.association) for item in wanted)
+                        after=self._snapshot();result=tuple(self._saved_mapping(item.association,item.receipt_sha256) for item in wanted)
                         fresh()
                         return after,result
                     except BaseException:
