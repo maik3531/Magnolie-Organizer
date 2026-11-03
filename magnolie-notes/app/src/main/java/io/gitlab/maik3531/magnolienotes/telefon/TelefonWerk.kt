@@ -137,6 +137,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
     // Native production acceptance gate, never a phone setting or wire claim.
     // Notes always ships the implementation; this is not ContributorKey gating.
     @Volatile private var nativeGalleryHandlersReady = false
+    private data class NativeFileOwnDecision(val own: Boolean, val message: JsonObject)
+    private val nativeFileOwnDecisions = java.util.WeakHashMap<TelefonSecureChannel, NativeFileOwnDecision>()
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()
     private val galleryRunCommands = NativeGalleryRunCommands()
     private val galleryResumeCommands = NativeGalleryResumeCommands()
@@ -764,8 +766,27 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun currentNativeFileTransportPeer(peerId: String, publicKey: String,
         channel: TelefonSecureChannel, generation: Long): TelefonPeer? {
         if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
-            generation != pairingGeneration || activeTransport == null) return null
+            generation != pairingGeneration || activeTransport == null || nativeFileOwnDecisions[channel]?.own == false) return null
         return runCatching { storage.fileAuthorityPeers().peer }.getOrNull()?.takeIf { it.device_id == peerId && it.static_public == publicKey }
+    }
+
+    @Synchronized private fun observeNativeFileOwnDecision(sessionPeer: TelefonPeer, message: JsonObject,
+        reply: JsonObject, channel: TelefonSecureChannel, generation: Long, sent: Boolean) {
+        if (message["kind"] != JsonPrimitive("personal_sync.settings") ||
+            activeChannel !== channel || generation != pairingGeneration || !serviceRunning || !storage.enabled() ||
+            reply["type"] != JsonPrimitive("ack") || reply["message_id"] != message["message_id"] ||
+            reply["status"] !in setOf(JsonPrimitive("accepted"), JsonPrimitive("duplicate")) ||
+            System.currentTimeMillis() >= message.long("expires_ms") || !queue.receivedMatches(sessionPeer.device_id, message)) return
+        val peer = runCatching { storage.fileAuthorityPeers().peer }.getOrNull() ?: return
+        if (peer.device_id != sessionPeer.device_id || peer.static_public != sessionPeer.static_public) return
+        val own = (message["body"] as? JsonObject)?.get("own_device") as? JsonPrimitive ?: return
+        val value = own.content.toBooleanStrictOrNull() ?: return
+        if (value && !sent) return // Failed secure writes never create positive evidence.
+        val previous = nativeFileOwnDecisions[channel]
+        // Exact retry of the current receipt is harmless. An older positive
+        // receipt must never undo a later withdrawal on the same channel.
+        if (value && reply["status"] == JsonPrimitive("duplicate") && previous != null && previous.message != message) return
+        nativeFileOwnDecisions[channel] = NativeFileOwnDecision(value, message)
     }
 
     /** Only the explicit native own-PC activation command may initialize a
@@ -2560,12 +2581,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val permissions = identifierPermissionMask()
         peerEffect(sessionPeer, generation) { receiveMessage(it, message, replies::add, noteSessions[channel]) }
         replies.forEach { reply ->
+            observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, false)
             if ((reply["body"] as? JsonObject)?.containsKey("identifiers") == true) {
                 peerEffect(sessionPeer, generation) { current ->
                     if (epoch == identifierEpoch && permissions == identifierPermissionMask() && identifiersAllowed(current) &&
                         System.currentTimeMillis() < message.long("expires_ms")) channel.send(reply)
                 }
             } else channel.send(reply)
+            observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, true)
         }
     }
 

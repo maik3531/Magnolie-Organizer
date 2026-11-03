@@ -37,10 +37,10 @@ class NativeFilePairingBootstrapTest {
     @After fun cleanup() { instance().set(null, null); Security.removeProvider(provider.name) }
 
     private fun field(type: Class<*>, name: String) = type.getDeclaredField(name).also { it.isAccessible = true }
-    private fun withNativeTransport(action: (TelefonWerk, TelefonSecureChannel, Long) -> Unit) {
+    private fun withNativeTransport(output: java.io.OutputStream? = null, action: (TelefonWerk, TelefonSecureChannel, Long) -> Unit) {
         field(TelefonWerk::class.java, "instance").set(null, null)
         val work = TelefonWerk.get(ApplicationProvider.getApplicationContext())
-        val bytes = ByteArrayOutputStream()
+        val bytes = output ?: ByteArrayOutputStream()
         val pipe = object : TelefonRoehre {
             override val input = ByteArrayInputStream(byteArrayOf())
             override val output = bytes
@@ -147,6 +147,105 @@ class NativeFilePairingBootstrapTest {
         }
     }
 
+    @Test fun freshOwnPcWithdrawalMustCloseFileAuthorityDespiteLegacyPersonalNormalization() {
+        withNativeTransport { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+            assertNotNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            val message = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", false)
+            }, 60_000)
+            work.receiveMessage(peer, message, channel, generation)
+            val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
+            assertTrue(queue.receivedMatches(peer.device_id, message))
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            assertThrows(PhotoFolderScopeError::class.java) {
+                work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            }
+        }
+    }
+
+    @Test fun oldPositiveOwnReceiptCannotUndoNewerWithdrawalOrChangePhoneMetadata() {
+        withNativeTransport { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+            fun decision(own: Boolean) = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", own)
+            }, 60_000)
+            val positive = decision(true)
+            work.receiveMessage(peer, positive, channel, generation)
+            work.receiveMessage(peer, positive, channel, generation) // Current exact duplicate is harmless.
+            assertNotNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            val withdrawal = decision(false)
+            work.receiveMessage(peer, withdrawal, channel, generation)
+            work.receiveMessage(peer, positive, channel, generation) // Valid but superseded receipt.
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            val altered = JsonObject(withdrawal + ("body" to buildJsonObject { put("format", 1); put("own_device", true) }))
+            work.receiveMessage(peer, altered, channel, generation)
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            assertEquals(peer, storage.fileAuthorityPeers().peer)
+            work.receiveMessage(peer, decision(true), channel, generation) // New, actually acknowledged decision.
+            assertNotNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            assertEquals(peer, storage.fileAuthorityPeers().peer)
+        }
+    }
+
+    @Test fun failedOwnAckCannotRestoreConsentAndWithdrawalDoesNotWaitForOutputRecovery() {
+        val bytes = object : java.io.OutputStream() {
+            var fail = false
+            val saved = ByteArrayOutputStream()
+            override fun write(value: Int) { if (fail) throw java.io.IOException("Fixture secure ACK failed"); saved.write(value) }
+        }
+        withNativeTransport(bytes) { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+            fun decision(own: Boolean) = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", own)
+            }, 60_000)
+            bytes.fail = true
+            assertThrows(java.io.IOException::class.java) { work.receiveMessage(peer, decision(false), channel, generation) }
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            assertThrows(java.io.IOException::class.java) { work.receiveMessage(peer, decision(true), channel, generation) }
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            bytes.fail = false
+            work.receiveMessage(peer, decision(true), channel, generation)
+            assertNotNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            assertEquals(peer, storage.fileAuthorityPeers().peer)
+        }
+    }
+
+    @Test fun expiredOrReplacedChannelOwnDecisionsCannotRestoreRevokedFileAuthority() {
+        withNativeTransport { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+            val withdrawal = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", false)
+            }, 60_000)
+            work.receiveMessage(peer, withdrawal, channel, generation)
+            val expired = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", true)
+            }, 60_000, System.currentTimeMillis() - 120_000)
+            work.receiveMessage(peer, expired, channel, generation)
+            assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+            val replacement = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), ByteArrayOutputStream(),
+                ByteArray(16), ByteArray(32), ByteArray(4), ByteArray(32), ByteArray(4))
+            try {
+                field(TelefonWerk::class.java, "activeChannel").set(work, replacement)
+                val positive = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                    put("format", 1); put("own_device", true)
+                }, 60_000)
+                work.receiveMessage(peer, positive, channel, generation)
+                assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+                field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                assertNull(work.currentNativeFilePeer(peer.device_id, peer.static_public, channel, generation, true))
+                assertEquals(peer, storage.fileAuthorityPeers().peer)
+            } finally {
+                field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                replacement.close()
+            }
+        }
+    }
+
     @Test fun stoppingNativeHandlersDuringBootstrapIsRecheckedBeforeProtectedPeerWrite() {
         withNativeTransport { work, channel, generation ->
             val legacy = storage.peers().peer!!
@@ -214,6 +313,14 @@ class NativeFilePairingBootstrapTest {
                     java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
                 val packet = DeviceFileControlEnvelope.validate(Json.parseToJsonElement(clear.decodeToString()).jsonObject)
                 assertFalse(packet.grants.sendFiles); assertFalse(packet.grants.receiveFiles)
+                val withdrawal = TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                    put("format", 1); put("own_device", false)
+                }, 60_000)
+                work.receiveMessage(saved, withdrawal, channel, generation)
+                assertNull(work.currentNativeFilePeer(saved.device_id, saved.static_public, channel, generation, true))
+                assertThrows(PhotoFolderScopeError::class.java) { connection.runtime.sendControls() }
+                assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(saved, message, channel, generation) }
+                assertEquals(saved, storage.fileAuthorityPeers().peer)
             } finally { connection.close() }
         }
     }

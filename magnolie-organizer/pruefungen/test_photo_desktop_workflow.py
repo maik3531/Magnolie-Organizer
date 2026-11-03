@@ -365,6 +365,48 @@ def test_file_availability_waits_for_real_control_ack_and_fresh_own_pc_metadata(
     finally:authority.close()
 
 
+def test_replayed_positive_own_receipt_cannot_undo_later_file_withdrawal(native,monkeypatch):
+    service,peer,_=native;channel,_=bind(service,peer)
+    monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',True)
+    converge_controls(service,peer,channel)
+    at=phone.now_ms()
+    def decision(own):
+        return dict(type='message',v=1,message_id=str(uuid.uuid4()),kind='personal_sync.settings',
+            created_ms=at,expires_ms=at+60_000,body=dict(format=1,own_device=own))
+    positive=decision(True)
+    service._payload(peer,channel,positive)
+    service._payload(peer,channel,decision(False))
+    assert service.photo_sync_state(peer['device_id']) is None
+    service._payload(peer,channel,positive)
+    assert service.photo_sync_state(peer['device_id']) is None
+    service._payload(peer,channel,decision(True))
+    assert service.photo_sync_state(peer['device_id'])['available']
+
+
+def test_native_own_withdrawal_precedes_ack_and_failed_positive_ack_cannot_restore(native,monkeypatch):
+    service,peer,_=native;channel,_=bind(service,peer)
+    monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',True)
+    converge_controls(service,peer,channel)
+    assert service.photo_sync_state(peer['device_id'])['available']
+    def decision(own,at=None):
+        at=phone.now_ms() if at is None else at
+        return dict(type='message',v=1,message_id=str(uuid.uuid4()),kind='personal_sync.settings',
+            created_ms=at,expires_ms=at+60_000,body=dict(format=1,own_device=own))
+    channel.send.side_effect=OSError('Fixture secure ACK failed')
+    with pytest.raises(OSError):service._payload(peer,channel,decision(False))
+    assert service.photo_sync_state(peer['device_id']) is None
+    failed_positive=decision(True)
+    with pytest.raises(OSError):service._payload(peer,channel,failed_positive)
+    assert service.photo_sync_state(peer['device_id']) is None
+    channel.send.side_effect=None
+    service._payload(peer,channel,failed_positive) # Old receipt is not a new consent decision.
+    assert service.photo_sync_state(peer['device_id']) is None
+    service._payload(peer,channel,decision(True,phone.now_ms()-120_000))
+    assert service.photo_sync_state(peer['device_id']) is None
+    service._payload(peer,channel,decision(True))
+    assert service.photo_sync_state(peer['device_id'])['available']
+
+
 def test_permission_reply_alone_never_exposes_an_album_or_starts_a_download(native,tmp_path,monkeypatch):
     service,peer,_=native;channel,_=bind(service,peer);converge_controls(service,peer,channel)
     monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',True)

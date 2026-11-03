@@ -2729,6 +2729,7 @@ class PhoneService:
         self._file_channel_bindings = weakref.WeakKeyDictionary()
         self._native_file_connections = weakref.WeakKeyDictionary()
         self._native_file_controls = weakref.WeakKeyDictionary()
+        self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
@@ -2930,13 +2931,21 @@ class PhoneService:
             connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
         return connection.desktop_session().start(request['action'],request.get('album_id'))
 
-    def _observe_native_file_control(self, peer, channel, kind, body):
-        # Connection-scoped metadata AFTER actual secure ACK completion. It is
-        # neither a Notes-content grant nor a file/Android READ grant. Persisted
+    def _observe_native_file_control(self, peer, channel, kind, message, *, duplicate=False, acknowledged=True):
+        # Positive connection metadata requires actual secure ACK completion.
+        # A validated withdrawal revokes immediately, even if ACK output fails.
+        # This is neither a Notes-content grant nor a file/Android READ grant. Persisted
         # capabilities alone must not start a file session during FS1 warmup.
         if kind not in ('capabilities.update','grants.update','personal_sync.settings'):return
+        body=message['body']
+        if not acknowledged and not (kind=='personal_sync.settings' and body.get('own_device') is False):return
         with self.lock:
+            receipts=self._native_file_control_receipts.setdefault(channel,{})
+            previous=receipts.get(kind)
+            if (kind=='personal_sync.settings' and body.get('own_device') is True
+                    and duplicate and previous is not None and previous!=message):return
             self._native_file_controls.setdefault(channel,{})[kind]=json.loads(json.dumps(body))
+            receipts[kind]=json.loads(json.dumps(message))
         if self._native_photo_built:
             self._resume_automatic_photos(peer,channel)
             self.callback('photo_sync',{})
@@ -8828,13 +8837,16 @@ class PhoneService:
                     channel.send({"type": "ack", "message_id": payload["message_id"],
                                   "status": "rejected", "error": "not_granted"})
                     return
+            if (previous[0]=='accepted' and self.store.received_matches(peer['device_id'],payload)
+                    and now_ms()<=payload['expires_ms']):
+                self._observe_native_file_control(peer,channel,kind,payload,duplicate=True,acknowledged=False)
             channel.send({"type": "ack", "message_id": payload["message_id"],
                           "status": ("accepted" if payload["kind"] == "personal_sync.batch"
                                      else "duplicate") if previous[0] == "accepted" else "rejected",
                            "error": "none" if previous[0] == "accepted" else previous[1]})
             if (previous[0]=='accepted' and self.store.received_matches(peer['device_id'],payload)
                     and now_ms()<=payload['expires_ms']):
-                self._observe_native_file_control(peer,channel,kind,payload['body'])
+                self._observe_native_file_control(peer,channel,kind,payload,duplicate=True)
             return
         status, error = "accepted", "none"
         if payload["expires_ms"] + CLOCK_SKEW_MS < received:
@@ -9251,10 +9263,12 @@ class PhoneService:
                 self._queue_note_settings(peer["device_id"], channel)
             if kind in {"capabilities.update", "personal_sync.settings"}:
                 self._queue_desktop_features(peer["device_id"], channel)
+        if status=='accepted' and now_ms()<=payload['expires_ms']:
+            self._observe_native_file_control(peer,channel,kind,payload,acknowledged=False)
         channel.send({"type": "ack", "message_id": payload["message_id"],
                       "status": status, "error": error})
         if status=='accepted' and now_ms()<=payload['expires_ms']:
-            self._observe_native_file_control(peer,channel,kind,payload['body'])
+            self._observe_native_file_control(peer,channel,kind,payload)
 
     def _emit_personal_sync(self, payload):
         with self.lock:

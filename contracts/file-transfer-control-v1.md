@@ -1,5 +1,22 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Own-PC withdrawal and superseded receipt replay (Refs #373, #330)
+
+Both native file-authority adapters now retain the raw channel-scoped Own-PC
+decision separately from legacy personal-sync normalization. An authenticated,
+validated withdrawal revokes file authority before ACK output and still revokes
+if that output fails. Positive evidence requires successful secure ACK output.
+An exact current retry is harmless; a superseded positive receipt cannot undo a
+later withdrawal. Only a new valid acknowledged decision can restore consent.
+Expired, altered and replaced-channel messages cannot restore it. No stored peer,
+pairing epoch, key, personal grant, source cache or save-history reset is involved.
+
+The failures were reproduced independently through the actual Notes dispatcher
+and desktop payload path before correction. Tests also cover a live Notes Gallery
+runtime refusing further controls after withdrawal, failed ACK output, current
+retry, older positive replay, altered/expired receipts and replaced channels.
+These are source-host tests, not installed physical-phone acceptance.
+
 ### Integrated Organizer activation and native background READ (Refs #330)
 
 The Organizer's Notes-only advanced photo controls now call the daemon-owned
