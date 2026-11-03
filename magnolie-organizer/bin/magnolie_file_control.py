@@ -12,6 +12,7 @@ import json
 import re
 import secrets
 import threading
+import time
 
 from magnolie_file_transfer import NativeTransferBinding, TransferError
 from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
@@ -132,9 +133,25 @@ class NativeFilePeer:
         return self.ready and self.paired and self.own_device and self.remote_own_device and self.control_supported
 
 
+class NativeReceiverCommandTicket:
+    """Exact in-process receiver command attempt, never a wire permission."""
+
+
+@dataclass
+class _ReceiverCommandScope:
+    local_permission: dict
+    remote_session: str
+    remote_sequence: int
+    issued: int
+    expires: int
+    last_checked: int
+    invalidated: bool = False
+
+
 class NativeFileControlSession:
-    def __init__(self, identity, current_peer, current_local):
-        if type(identity) is not NativeJobCatalogIdentity or not callable(current_peer) or not callable(current_local):
+    def __init__(self, identity, current_peer, current_local, *, monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
+        if (type(identity) is not NativeJobCatalogIdentity or not callable(current_peer) or not callable(current_local)
+                or not callable(monotonic_ms)):
             raise TransferError("file_control_native_scope_required")
         peer, local = current_peer(), current_local()
         if (type(peer) is not NativeFilePeer or not peer.allowed or peer.peer_id == identity.receiver_id
@@ -150,6 +167,8 @@ class NativeFileControlSession:
         self._sent_echo = None
         self._faulted = False
         self._gate = threading.RLock()
+        self._monotonic_ms = monotonic_ms
+        self._receiver_commands = {}
 
     def _scope(self):
         peer, local = self._current_peer(), self._current_local()
@@ -222,21 +241,95 @@ class NativeFileControlSession:
                     raise TransferError("file_control_equivocation")
                 if same_session and packet == previous:
                     return False
+                if not same_session:
+                    for held in self._receiver_commands.values():
+                        held.invalidated = True
             self._remote = packet
             return True
 
+    def _agreed(self):
+        scope = self._scope()
+        if scope is None:
+            return None
+        peer, local = scope
+        remote = self._remote
+        local_challenge = FileControlPacket(local.grants, self._session_epoch, 1, None).challenge
+        if (not local.handlers_ready or not local.policy_ready or remote is None or remote.echo != local_challenge
+                or self._sent_grants != local.grants or self._sent_echo != remote.challenge
+                or 1 not in local.grants.manifest_versions or 1 not in remote.grants.manifest_versions):
+            return None
+        return peer, local, remote
+
+    def receiver_command_ticket(self):
+        """Bootstrap a source metadata/configuration command from the receiver.
+        Own native receive consent and completed bilateral control echo are needed;
+        remote send may still be OFF. No source READ/scan/data grant is implied.
+        """
+        with self._gate:
+            agreed = self._agreed()
+            if agreed is None or not agreed[1].grants.receive_files or self._receiver_commands:
+                raise TransferError('file_control_receiver_command_not_ready')
+            at = self._monotonic_ms()
+            if type(at) is not int or not 0 <= at <= 2**63-1-MAX_TTL_MS:
+                raise TransferError('file_control_receiver_command_clock')
+            ticket = NativeReceiverCommandTicket()
+            self._receiver_commands[ticket] = _ReceiverCommandScope(agreed[1].grants.permission_wire(),
+                agreed[2].session_epoch, agreed[2].sequence, at, at+MAX_TTL_MS, at)
+            return ticket
+
+    def receiver_command_witness(self, ticket):
+        """Captured native control position, not authority or completion."""
+        with self._gate:
+            if type(ticket) is not NativeReceiverCommandTicket or ticket not in self._receiver_commands:
+                raise TransferError('file_control_foreign_receiver_command_ticket')
+            held = self._receiver_commands[ticket]
+            return held.remote_session, held.remote_sequence
+
+    def remote_control_witness(self):
+        with self._gate:
+            if self._scope() is None or self._remote is None:
+                return None
+            return self._remote.session_epoch, self._remote.sequence
+
+    def receiver_command_current(self, ticket):
+        with self._gate:
+            if type(ticket) is not NativeReceiverCommandTicket:
+                return False
+            held = self._receiver_commands.get(ticket)
+            if held is None or held.invalidated:
+                return False
+            try:
+                scope = self._scope()
+                remote = self._remote
+                at = self._monotonic_ms()
+                if (scope is None or remote is None or type(at) is not int or at < held.last_checked or at >= held.expires
+                        or not scope[1].handlers_ready or not scope[1].policy_ready or not scope[1].grants.receive_files
+                        or scope[1].grants.permission_wire() != held.local_permission
+                        or remote.session_epoch != held.remote_session
+                        or 1 not in scope[1].grants.manifest_versions or 1 not in remote.grants.manifest_versions):
+                    held.invalidated = True
+                    return False
+                held.last_checked = at
+                # The source may change its own send policy during this exact
+                # command. Do not mistake that intended update for local receive
+                # consent, and do not require a new data echo to read its result.
+                return True
+            except Exception:
+                held.invalidated = True
+                raise
+
+    def finish_receiver_command(self, ticket):
+        with self._gate:
+            if type(ticket) is not NativeReceiverCommandTicket or ticket not in self._receiver_commands:
+                raise TransferError('file_control_foreign_receiver_command_ticket')
+            del self._receiver_commands[ticket]
+
     def binding(self, destination_token, *, sender_is_local=False):
         with self._gate:
-            scope = self._scope()
-            if scope is None or type(sender_is_local) is not bool:
+            agreed = self._agreed()
+            if agreed is None or type(sender_is_local) is not bool:
                 return None
-            peer, local = scope
-            remote = self._remote
-            local_challenge = FileControlPacket(local.grants, self._session_epoch, 1, None).challenge
-            if (not local.handlers_ready or not local.policy_ready or remote is None or remote.echo != local_challenge
-                    or self._sent_grants != local.grants or self._sent_echo != remote.challenge
-                    or 1 not in local.grants.manifest_versions or 1 not in remote.grants.manifest_versions):
-                return None
+            peer, local, remote = agreed
             sender = (self._identity.receiver_id, self._identity.receiver_identity_sha256) if sender_is_local else (peer.peer_id, peer.identity_sha256)
             receiver = (peer.peer_id, peer.identity_sha256) if sender_is_local else (self._identity.receiver_id, self._identity.receiver_identity_sha256)
             if not ((local.grants.send_files and remote.grants.receive_files) if sender_is_local
@@ -252,5 +345,7 @@ class NativeFileControlSession:
     def close(self):
         with self._gate:
             self._faulted = True
+            for held in self._receiver_commands.values():
+                held.invalidated = True
             self._remote = None
             self._pending_packet = None

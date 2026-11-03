@@ -22,7 +22,7 @@ from test_file_authenticated_desktop import native, bind
 
 
 @pytest.fixture
-def receiving(native, tmp_path, monkeypatch):
+def receiving(native, tmp_path, monkeypatch, request):
     service, peer, _ = native
     # Private release gate overridden before native control-session construction.
     # Never a wire setting or an enabled production capability.
@@ -35,16 +35,16 @@ def receiving(native, tmp_path, monkeypatch):
         choice = chooser.choose_custom(chooser.issue_action(), destination)
         prefs = connection._preferences
         prefs.configure(prefs.issue_action(), prefs.read(), enabled=True, mode='manual', destination_choice=choice)
-        negotiate(service, peer, channel, connection)
+        negotiate(service, peer, channel, connection, source_send=getattr(request, 'param', True))
         yield service, peer, channel, connection, destination
     finally:
         chooser.close(); service._end_native_file_connection(channel)
 
 
-def negotiate(service, peer, channel, connection):
+def negotiate(service, peer, channel, connection, *, source_send=True):
     local = connection._authority.identity
     remote_peer = NativeFilePeer(local.receiver_id, local.receiver_identity_sha256, object(), True, True, True, True, True)
-    remote_local = NativeLocalFileGrant(FileGrantState(1, 'a'*64, True, False), object(), True)
+    remote_local = NativeLocalFileGrant(FileGrantState(1, 'a'*64, source_send, False), object(), True)
     remote = NativeFileControlSession(NativeJobCatalogIdentity(peer['device_id'], sha256(phone.unb64(peer['static_public'], 32)).hexdigest()),
                                      lambda:remote_peer, lambda:remote_local)
     assert connection.send_controls()
@@ -56,7 +56,10 @@ def negotiate(service, peer, channel, connection):
     remote.mark_sent(packet)
     remote.observe_remote(FileControlPacket.parse(channel.send.call_args.args[0]['body']), remote_peer)
     token = connection._preferences.read().policy.destination_token
-    assert connection._receive_binding() == remote.binding(token, sender_is_local=True)
+    if source_send:
+        assert connection._receive_binding() == remote.binding(token, sender_is_local=True)
+    else:
+        assert connection._controls.binding(token) is None and remote.binding(token, sender_is_local=True) is None
     channel.send.reset_mock()
 
 

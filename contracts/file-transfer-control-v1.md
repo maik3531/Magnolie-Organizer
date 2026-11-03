@@ -1033,6 +1033,49 @@ metadata checks pass, including 80/4000-character limits and existing image-only
 manifest scope. This is no F-Droid approval/scanner, APK build, signing or submission
 evidence, and no Android permission was added or enabled by the text changes.
 
+### Native desktop receiver-command authority and source dispatch
+
+The Linux control session now issues one exact process-local receiver-command
+ticket only after native own receive consent and completed bilateral actual
+control echo. Remote source send may still be OFF: this is the source-policy
+bootstrap, not an Android READ proof or file-data permission. The ticket binds
+the original local permission bytes/native peer owner and remote session, with a
+maximum monotonic 60-second lifetime. Source send-policy changes during that exact
+configuration are allowed; local consent, lifecycle, pairing, manifest support,
+policy-pending state, observed clock rollback or I/O uncertainty fence the attempt
+without revival. Foreign/copied tickets cannot adopt it, and close does not remove
+its outstanding attempt before actual I/O-finally cleanup.
+
+Behind the unchanged private readiness-OFF gate, the actual desktop owner can
+explicitly send status/configure/discover/catalog-page/request-read and
+run/run-status/cancel-run commands, using a native one-shot action rather than a
+personal queue. It keeps one exact correlated outstanding attempt. Lost output
+retains the original command/ticket for exact retry, never silently starts a new
+scan. Both original wall-clock command expiry and native ticket authority are
+rechecked around actual output and result parsing. Immediate responses wait on
+the native I/O lane. Close revokes now but retains ticket/resources until actual
+work ends. Serialized permission-attempt results do not grant OS READ.
+
+Configuration metadata alone does not make the next command safe: the phone
+writes its changed native controls after its policy reply. The PC therefore waits
+for an advanced native remote-control witness and the actual completed new echo
+before issuing the next command. Returned policy versions/revisions cannot roll
+back; album selection and paging use only the exact native returned catalog/IDs/
+cursor. Duplicate album IDs across pages are rejected. Native source run ID and
+whole-run ownership remain held after snapshot-ready, failure or cancellation;
+later metadata cannot revive canceled/failed runs or undo source-I/O end.
+
+The joined targeted run passes 101 Python cases (source dispatch 12, native ticket
+13, control 26, native receive/resume 21, default-OFF desktop controls 25, actual
+crypto modes 4). A further source-state fence extends/replaces the 12 source cases
+with 14 passing cases, including legitimate failed-held→canceled-held cleanup
+without revival, for 103 distinct current affected cases. Windows/Android
+wire schemas are unchanged in this step; no source offer-trigger operation or
+full app-to-app photo synchronization is claimed. Actual offer-request correlation,
+native advanced UI bridge, baseline/conflict/tombstone/quota union, phone restart
+READ renewal and physical acceptance remain outstanding. No timer, automatic
+worker, discovery 21 or package is enabled.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

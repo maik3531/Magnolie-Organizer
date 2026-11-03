@@ -14,6 +14,7 @@ import uuid
 from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFileControlSession
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_sources import _body
+import magnolie_file_sources as source_messages
 from magnolie_file_transfer import TransferError
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
@@ -48,6 +49,9 @@ class NativeDesktopFileConnection:
         self._controls = None
         self._catalog = self._run = self._offer = self._mutation_action = None
         self._offer_binding = self._offer_policy_version = None
+        self._source_pending = self._source_status = self._source_catalog = self._source_run = self._source_result = None
+        self._source_albums = {}
+        self._source_control_required = None
         self._preferences = ProtectedPhotoPreferences(authority)
         self._destination = NativePhotoDestinationController(authority)
         try:
@@ -111,6 +115,10 @@ class NativeDesktopFileConnection:
 
     def receive(self, message, *, clock=now_ms):
         with self._operation(incoming=True):
+            if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
+                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT):
+                self._receive_source_result(message, clock)
+                return
             if self._data_handlers_ready and message.get('kind') == OFFER:
                 self._observe_offer(message, clock)
                 return
@@ -126,6 +134,143 @@ class NativeDesktopFileConnection:
     def issue_receive_action(self):
         self._ready()
         return NativePhotoDestinationAction(self, lambda: time.monotonic_ns()//1_000_000)
+
+    def source_state(self):
+        """Native UI metadata only; no serialized status/album grants OS READ."""
+        with self._operation():
+            return dict(status=self._source_status, catalog=self._source_catalog, albums=tuple(self._source_albums.values()),
+                        run=self._source_run, result=self._source_result, pending=self._source_pending is not None)
+
+    def _source_command_authority(self, pending, clock):
+        self._receiving_policy()
+        if not self._controls.receiver_command_current(pending.ticket):
+            raise TransferError('file_desktop_source_command_authority_changed')
+        _body(pending.message, source_messages.REQUEST, clock())
+
+    def _send_source_pending(self, clock, action=None):
+        pending = self._source_pending
+        if pending is None:
+            raise TransferError('file_desktop_source_command_not_current')
+        self._source_command_authority(pending, clock)
+        if action is not None:
+            action.validate(self)
+        self._channel.send(pending.message)
+        self._source_command_authority(pending, clock)
+        if action is not None:
+            action.validate(self)
+        pending.sent = True
+
+    def request_source(self, action, operation, *, enabled=None, kinds=(), album_id=None, desktop_choice=None, clock=now_ms):
+        """One explicit native source command, not a personal queue or scheduler.
+        Native receive consent/actual control echo may bootstrap source send-OFF.
+        Exact remote catalog selections remain metadata, never an Android read grant.
+        """
+        self._take_action(action)
+        with self._operation():
+            self._receiving_policy()
+            if self._source_pending is not None:
+                raise TransferError('file_desktop_source_command_busy')
+            if self._source_control_required is not None:
+                witness = self._controls.remote_control_witness()
+                required = self._source_control_required
+                if witness is None or witness[0] != required[0] or witness[1] <= required[1]:
+                    raise TransferError('file_desktop_source_controls_pending')
+            options = {}
+            if operation != 'status':
+                if self._source_status is None or self._source_status.repair_pending:
+                    raise TransferError('file_desktop_source_status_required')
+                options['expected_version'] = self._source_status.version
+            if operation != 'configure' and (enabled is not None or kinds != ()):
+                raise TransferError('file_desktop_source_invalid_options')
+            if operation != 'run' and (album_id is not None or desktop_choice is not None):
+                raise TransferError('file_desktop_source_invalid_options')
+            if operation == 'configure':
+                if self._run is not None or self._source_run is not None:
+                    raise TransferError('file_desktop_receive_run_held')
+                options.update(enabled=enabled, kinds=kinds)
+            elif operation in ('discover', 'request_read', 'run', 'catalog_page'):
+                if not self._source_status.enabled or not self._source_status.associated:
+                    raise TransferError('file_desktop_source_not_configured')
+                if operation == 'catalog_page':
+                    if self._source_catalog is None or self._source_catalog.next_cursor is None:
+                        raise TransferError('file_desktop_source_catalog_not_current')
+                    options.update(catalog_id=self._source_catalog.catalog_id, after=self._source_catalog.next_cursor)
+                elif operation == 'run':
+                    if self._run is not None or self._source_run is not None:
+                        raise TransferError('file_desktop_receive_run_held')
+                    album = self._source_albums.get(album_id)
+                    if (album is None or self._source_catalog is None or type(desktop_choice) is not bool
+                            or album.needs_choice and not desktop_choice):
+                        raise TransferError('file_desktop_source_album_not_current')
+                    options.update(catalog_id=self._source_catalog.catalog_id, album_id=album.album_id, desktop_choice=desktop_choice)
+            elif operation in ('run_status', 'cancel_run'):
+                if self._source_run is None:
+                    raise TransferError('file_desktop_source_run_not_current')
+                options['run_id'] = self._source_run.run_id
+            message = source_messages.create_command(operation, now=clock(), **options)
+            command = source_messages.parse_command(message, now=clock())
+            ticket = self._controls.receiver_command_ticket()
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_control_required = None
+            self._send_source_pending(clock, action)
+            return message['message_id']
+
+    def retry_source_command(self, *, clock=now_ms):
+        with self._operation():
+            self._send_source_pending(clock)
+
+    def _receive_source_result(self, message, clock):
+        pending = self._source_pending
+        if pending is None or not pending.sent:
+            raise TransferError('file_desktop_source_result_not_requested')
+        self._source_command_authority(pending, clock)
+        command = pending.command
+        at = clock()
+        if command.operation in ('status', 'configure'):
+            result = source_messages.parse_result(message, expected_request_id=command.request_id,
+                expected_operation=command.operation, now=at)
+            old = self._source_status
+            if old is not None and (result.revision < old.revision or result.revision == old.revision
+                    and (result.version, result.enabled, result.associated, result.kinds) != (old.version, old.enabled, old.associated, old.kinds)):
+                raise TransferError('file_desktop_source_status_rollback')
+        elif command.operation in ('discover', 'catalog_page'):
+            result = source_messages.parse_catalog(message, expected_request_id=command.request_id, expected_operation=command.operation,
+                expected_version=command.expected_version, expected_catalog_id=command.catalog_id, expected_after=command.after, now=at)
+            if command.operation == 'catalog_page' and any(album.album_id in self._source_albums for album in result.albums):
+                raise TransferError('file_desktop_source_duplicate_album')
+        elif command.operation == 'request_read':
+            result = source_messages.parse_permission_result(message, expected_request_id=command.request_id,
+                expected_version=command.expected_version, now=at)
+        else:
+            result = source_messages.parse_run_result(message, expected_request_id=command.request_id, expected_operation=command.operation,
+                expected_version=command.expected_version, expected_run_id=command.run_id, now=at)
+            old = self._source_run
+            if old is not None and old.run_id == result.run_id and (
+                    old.source_io_ended and not result.source_io_ended
+                    or old.state in ('cancel_pending', 'canceled_held') and result.state not in ('cancel_pending', 'canceled_held')
+                    or old.state == 'failed_held' and result.state not in ('failed_held', 'canceled_held')):
+                raise TransferError('file_desktop_source_run_state_rollback')
+        self._source_command_authority(pending, clock)
+        self._controls.finish_receiver_command(pending.ticket)
+        self._source_pending = None
+        if command.operation in ('status', 'configure'):
+            if self._source_status is None or self._source_status.version != result.version:
+                self._source_catalog = None
+                self._source_albums = {}
+            self._source_status = result
+            if command.operation == 'configure':
+                # The phone changes native send state in this transaction and
+                # writes its updated controls after the metadata reply. That
+                # reply alone cannot authorize a following source command.
+                self._source_control_required = pending.remote_witness
+        elif command.operation in ('discover', 'catalog_page'):
+            if command.operation == 'discover':
+                self._source_albums = {}
+            self._source_catalog = result
+            self._source_albums.update((album.album_id, album) for album in result.albums)
+        elif command.operation in ('run', 'run_status', 'cancel_run'):
+            self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
+        self._source_result = result
 
     def _take_action(self, action):
         if type(action) is not NativePhotoDestinationAction:
@@ -396,6 +541,12 @@ class NativeDesktopFileConnection:
             return False
         try:
             failure = None
+            if self._source_pending is not None and self._controls is not None:
+                try:
+                    self._controls.finish_receiver_command(self._source_pending.ticket)
+                    self._source_pending = None
+                except Exception as error:
+                    failure = error
             receiver = self._run.receiver if self._run is not None else None
             for resource in (receiver, self._catalog, self._destination, self._preferences, self._controls, self._authority):
                 if resource is not None:
@@ -428,3 +579,12 @@ class _NativeDesktopReceiveRun:
     request: dict | None = None
     request_sent: bool = False
     last_request: dict | None = None
+
+
+@dataclass
+class _NativeDesktopSourceCommand:
+    ticket: object
+    message: dict
+    command: source_messages.SourceCommand
+    remote_witness: tuple
+    sent: bool = False
