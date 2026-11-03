@@ -12,6 +12,7 @@ internal class NativeGalleryResumeRun internal constructor(internal val selectio
     private val stopped = AtomicBoolean(false)
     internal val attempt = AtomicReference<NativeGalleryResumeAttempt?>()
     internal val acceptance = AtomicReference<NativeResumeAcceptanceProjection?>()
+    internal val remoteSaved = AtomicReference<RemoteSavedConfirmation?>()
     val cancelRequested: Boolean get() = stopped.get() || preparation.cancelRequested
     internal fun cancel() { stopped.set(true); attempt.get()?.cancel(); preparation.cancel() }
     internal fun source(): NativeGalleryRenewedSource {

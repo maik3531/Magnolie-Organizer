@@ -1,5 +1,27 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Durable native resume Saved observation (Refs #358, #337)
+
+An explicit native Saved API now validates the actual accepted resume run/source,
+current READ/peer/lifecycle and exact durable child acceptance before accepting a
+fresh complete saved envelope. The new negotiation command digest does NOT replace
+the original acceptance. The historical saved record retains original accepted
+job/context/offer/command bindings after checking the real child acceptance, and is
+committed with membership before its RAM result. Same proof repeats are immutable;
+different receipts/bindings reject. Only this Saved path allows an already-saved
+original for idempotence; offer and Chunk paths remain blocked by saved history.
+
+No automatic run END, cache cleanup/quota retirement, baseline or ACK follows.
+Transaction failure rolls back without success; lost sync or exit/expiry after commit
+can leave a readable historical proof but no run success or adoption authority.
+21 distinct host cases pass (six new, 15 affected): actual encrypted Chunk then Saved,
+original versus new command digest preservation, exact proof-before-RAM inspection,
+idempotence/conflicts, foreign/binding/receipt/expiry rejection, transaction retry,
+postcommit sync loss and during/after-commit exit/expiry, plus existing offer/Chunk
+ownership and normal runtime routes. Jobs/ciphertext/original consent/quotas stay
+held. Wire/source-command/UI, pending-head repair, convergence and physical/platform
+acceptance remain unfinished. Production/automatic/UI/releases remain OFF.
+
 ### Explicit native accepted resume Chunk output (Refs #357, #337)
 
 A separate native-only Chunk API now requires the exact active resume run and its

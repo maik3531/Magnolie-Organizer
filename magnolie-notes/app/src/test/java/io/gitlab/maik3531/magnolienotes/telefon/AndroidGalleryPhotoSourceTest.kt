@@ -1007,8 +1007,11 @@ class AndroidGalleryPhotoSourceTest {
                 put("permission_epoch", original.permissionEpoch); put("destination_token", original.destinationToken)
             }, 60_000, at)
         }
-        fun assertOriginal() {
-            inspect { assertEquals(listOf(job), it.jobs()); assertEquals(originalAcceptance, it.remoteAcceptance(job)!!.record); assertNull(it.remoteSaved(job)) }
+        fun assertOriginal(saved: Boolean = false) {
+            inspect {
+                assertEquals(listOf(job), it.jobs()); assertEquals(originalAcceptance, it.remoteAcceptance(job)!!.record)
+                if (saved) assertNotNull(it.remoteSaved(job)) else assertNull(it.remoteSaved(job))
+            }
             assertEquals(cipher, File(root, "photo-source-" + job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
             assertEquals("hello", File(f.root, "source.bin").readText())
         }
@@ -1025,6 +1028,17 @@ class AndroidGalleryPhotoSourceTest {
                 put("format", 1); put("transfer_id", accepted.transferId); put("manifest_sha256", accepted.manifestSha256)
                 put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch)
                 put("destination_token", accepted.destinationToken); put("file_id", file.id); put("chunk_index", 0)
+            }, 60_000, at)
+        }
+        fun saved(run: NativeGalleryResumeRun, at: Long = now + 240_000): JsonObject {
+            val manifest = run.source().manifest; val accepted = run.acceptance.get()!!.accepted
+            return TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("transfer_id", accepted.transferId); put("manifest_sha256", accepted.manifestSha256)
+                put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch)
+                put("destination_token", accepted.destinationToken)
+                put("receipts", JsonArray(manifest.files.map { buildJsonObject {
+                    put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
+                } }))
             }, 60_000, at)
         }
         override fun close() {
@@ -1281,6 +1295,97 @@ class AndroidGalleryPhotoSourceTest {
             assertEquals(0, h.output.size())
             h.inspect { assertEquals(listOf(h.job), it.jobs()); assertNotNull(it.remoteSaved(h.job)); assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record) }
             assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+        }
+    }
+
+    @Test fun actualResumeSavedCommitsOriginalAcceptanceBeforeRamWithoutQuotaRetirement() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000
+            val request = h.chunk(run); val saved = h.saved(run)
+            h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }); h.drain()
+            val original = h.originalAcceptance["acceptance"]!!.jsonObject
+            assertNotEquals(original.string("command_digest"), run.acceptance.get()!!.accepted.commandDigest)
+            h.indexHook { if (it == "membership-committed") {
+                h.inspect { index -> assertNotNull(index.remoteSaved(h.job)) }
+                assertNull(run.remoteSaved.get())
+            } }
+            val proof = h.runtime.observeResumeRunRemoteSaved(run, saved, { at })
+            h.indexHook { }
+            assertEquals(original, proof.record["acceptance"])
+            assertEquals(proof.confirmation.fingerprint, run.remoteSaved.get()!!.fingerprint)
+            val prior = run.remoteSaved.get()
+            assertEquals(proof.record, h.runtime.observeResumeRunRemoteSaved(run, saved, { at }).record)
+            assertSame(prior, run.remoteSaved.get())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeRemoteSaved(saved, { at }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveResumeRunChunkRequest(run, request, h.channel::send, { at }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(h.selected) }
+            assertEquals(0, h.output.size()); h.assertOriginal(saved = true)
+        }
+    }
+
+    @Test fun resumeSavedForeignOwnerWrongBindingOrExpiredEnvelopeCannotCommit() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.saved(run); val body = message["body"]!!.jsonObject
+            val foreign = NativeGalleryResumeRun(h.selected, h.job, run.preparation)
+            foreign.attempt.set(run.attempt.get()); foreign.acceptance.set(run.acceptance.get())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(foreign, message, { at }) }
+            for (field in listOf("manifest_sha256", "acceptance_sha256", "permission_epoch", "destination_token")) {
+                val changed = JsonObject(message + ("body" to JsonObject(body + (field to JsonPrimitive("9".repeat(64))))))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, changed, { at }) }
+            }
+            val incomplete = JsonObject(message + ("body" to JsonObject(body + ("receipts" to JsonArray(emptyList())))))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, incomplete, { at }) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { at + 60_000 }) }
+            assertNull(run.remoteSaved.get()); h.assertOriginal()
+        }
+    }
+
+    @Test fun resumeSavedChangedReceiptCannotOverwriteOriginalOrItsRunProjection() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.saved(run)
+            val proof = h.runtime.observeResumeRunRemoteSaved(run, message, { at }); val prior = run.remoteSaved.get()
+            val body = message["body"]!!.jsonObject
+            val receipts = body["receipts"]!!.jsonArray.map { JsonObject(it.jsonObject + ("receipt_sha256" to JsonPrimitive("9".repeat(64)))) }
+            val changed = JsonObject(message + ("body" to JsonObject(body + ("receipts" to JsonArray(receipts)))))
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, changed, { at }) }
+            assertSame(prior, run.remoteSaved.get())
+            h.inspect { assertEquals(proof.record, it.remoteSaved(h.job)!!.record) }; h.assertOriginal(saved = true)
+        }
+    }
+
+    @Test fun resumeSavedTransactionFailureReturnsNoProjectionAndExactLiveOwnerCanRetry() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.saved(run)
+            h.indexHook { if (it == "membership-protect") throw java.io.IOException("fixture resume saved rollback") }
+            assertThrows(java.io.IOException::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { at }) }
+            assertNull(run.remoteSaved.get()); h.assertOriginal()
+            h.indexHook { }
+            assertNotNull(h.runtime.observeResumeRunRemoteSaved(run, message, { at }))
+            h.assertOriginal(saved = true)
+        }
+    }
+
+    @Test fun resumeSavedPostcommitSyncLossLeavesHistoricalProofButNoRunSuccessOrQuotaRelease() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.saved(run)
+            h.indexHook { if (it == "membership-sync") throw java.io.IOException("fixture resume saved sync lost") }
+            assertThrows(java.io.IOException::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { at }) }
+            assertNull(run.remoteSaved.get()); h.assertOriginal(saved = true)
+            h.indexHook { }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { at }) }
+            assertNull(run.remoteSaved.get())
+        }
+    }
+
+    @Test fun resumeSavedRevocationOrExpiryDuringCommitCannotPublishLateRamSuccess() {
+        for (boundary in listOf("membership-protect", "membership-committed")) for (change in listOf("exit", "expired")) ResumeRuntimeCase().use { h ->
+            val run = h.acceptedRun(); val at = h.now + 240_000; val message = h.saved(run); var wall = at
+            h.indexHook { if (it == boundary) {
+                if (change == "exit") h.runtime.revokeControl() else wall += 60_000
+            } }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.observeResumeRunRemoteSaved(run, message, { wall }) }
+            assertNull(run.remoteSaved.get()); h.assertOriginal(saved = boundary == "membership-committed")
+            assertEquals(0, h.output.size())
         }
     }
 

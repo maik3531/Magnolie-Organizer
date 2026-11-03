@@ -99,11 +99,11 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
         resumeRun = null // No cache/proof/quota cleanup or successful sync assertion.
     }
 
-    private fun resumeSourceOwned(run: NativeGalleryResumeRun): NativeGalleryRenewedSource {
+    private fun resumeSourceOwned(run: NativeGalleryResumeRun, allowSaved: Boolean = false): NativeGalleryRenewedSource {
         ready()
         if (resumeRun !== run || run.cancelRequested || syncRun != null) DeviceFileControl.fail("gallery_resume_run_not_current")
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
-        if (index.remoteSaved(run.originalJob) != null) DeviceFileControl.fail("gallery_resume_original_already_saved")
+        if (!allowSaved && index.remoteSaved(run.originalJob) != null) DeviceFileControl.fail("gallery_resume_original_already_saved")
         val source = run.source()
         source.manifest // Recheck actual fresh native READ/peer/index ownership.
         return source
@@ -144,8 +144,8 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     /** Active native owner + exact durable accepted head, not a historical
      * projection's message lifetime, govern this data-run inspection. */
     private fun acceptedResumeSourceOwned(run: NativeGalleryResumeRun,
-        projection: NativeResumeAcceptanceProjection): NativeGalleryRenewedSource {
-        val source = resumeSourceOwned(run)
+        projection: NativeResumeAcceptanceProjection, allowSaved: Boolean = false): NativeGalleryRenewedSource {
+        val source = resumeSourceOwned(run, allowSaved)
         val attempt = run.attempt.get() ?: DeviceFileControl.fail("gallery_resume_offer_not_sent")
         if (run.acceptance.get() !== projection || projection.attemptId != attempt.id)
             DeviceFileControl.fail("gallery_resume_run_not_current")
@@ -187,6 +187,29 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             authority(); send(response); authority()
         } finally { data.fill(0) }
         // No Saved assertion, baseline, quota retirement or whole-run release.
+    }
+
+    /** Current native resume ownership validates the new observation; immutable
+     * original acceptance remains the persisted historical proof's context. */
+    internal fun observeResumeRunRemoteSaved(run: NativeGalleryResumeRun, message: JsonObject,
+        now: () -> Long = System::currentTimeMillis): PhotoSourceRemoteSaved = withOperation {
+        val projection = run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
+        val source = acceptedResumeSourceOwned(run, projection, allowSaved = true)
+        val confirmation = DeviceFileSavedEnvelope.parse(message, source.manifest, now())
+        val accepted = projection.accepted
+        if (confirmation.acceptanceSha256 != accepted.acceptanceSha256 || confirmation.permissionEpoch != accepted.permissionEpoch ||
+            confirmation.destinationToken != accepted.destinationToken) DeviceFileControl.fail("file_saved_acceptance_changed")
+        val prior = run.remoteSaved.get()
+        if (prior != null && prior.fingerprint != confirmation.fingerprint) DeviceFileControl.fail("photo_jobs_remote_saved_changed")
+        fun authority() {
+            if (now() >= confirmation.expires || acceptedResumeSourceOwned(run, projection, allowSaved = true) !== source)
+                DeviceFileControl.fail("file_saved_authority_changed")
+        }
+        authority()
+        val durable = index.commitResumeRemoteSaved(source, projection, message, ::authority)
+        authority()
+        run.remoteSaved.set(prior ?: durable.confirmation)
+        durable // Not a local receipt, baseline, quota retirement or run END.
     }
 
     /** Native-only offer path. An output receipt is not acceptance/publication.

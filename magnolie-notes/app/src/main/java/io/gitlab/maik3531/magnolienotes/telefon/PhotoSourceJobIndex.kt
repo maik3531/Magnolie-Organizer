@@ -384,6 +384,24 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             commitRemoteSavedRecord(expected, next, permitted)
         }
 
+    internal fun commitResumeRemoteSaved(source: NativeGalleryRenewedSource, projection: NativeResumeAcceptanceProjection,
+        message: JsonObject, permitted: () -> Unit): PhotoSourceRemoteSaved = gated {
+        writableMembership(); permitted()
+        val job = source.job
+        if (job.phase != "sealed" || readOne(job.id) != job) fail("photo_jobs_historical_original_job_required")
+        val original = readRemoteAcceptance(job) ?: fail("photo_jobs_remote_acceptance_required")
+        if (source.originalAcceptance().record != original.record) fail("photo_jobs_remote_acceptance_changed")
+        val head = readResumeAttempt(job) ?: fail("photo_jobs_resume_attempt_missing")
+        if (head.phase != "accepted" || head.id != projection.attemptId || head.record["acceptance"] != projection.message ||
+            DeviceFileAcceptanceEnvelope.parse(projection.message, head.record.long("accepted_at")) != projection.accepted)
+            fail("photo_jobs_resume_acceptance_changed")
+        // New negotiation's command digest is not the original accepted source
+        // witness. Preserve the old acceptance exactly after validating the child.
+        val next = PhotoSourceRemoteSaved.capture(job, original.historicalAcceptance(), message)
+        permitted()
+        commitRemoteSavedRecord(job, next, permitted)
+    }
+
     private fun commitRemoteSavedRecord(expected: PhotoSourceJob, next: PhotoSourceRemoteSaved, permitted: () -> Unit): PhotoSourceRemoteSaved {
         val original = readRemoteSaved(expected)
         if (original != null) {
