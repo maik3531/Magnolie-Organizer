@@ -5,16 +5,24 @@ OFF, including when a protected enabled preference exists. Construction itself
 does not send packets, create preferences or start any worker.
 """
 from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
 import threading
+import time
 import uuid
 
 from magnolie_file_control import KIND, MAX_TTL_MS, FileControlPacket, NativeFileControlSession
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_sources import _body
 from magnolie_file_transfer import TransferError
+from magnolie_file_acceptance import NativeAcceptedTransfer
+from magnolie_file_offer import KIND as OFFER, validate_offer
+from magnolie_file_chunk_message import RESULT as CHUNK
+from magnolie_file_receive import NativeFileReceiveOperation, NativeReceiveStartError
+from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
 from magnolie_photo_preferences import ProtectedPhotoPreferences
-from magnolie_photo_destination import NativePhotoDestinationController
-from magnolie_telefon import now_ms
+from magnolie_photo_destination import NativePhotoDestinationController, NativePhotoDestinationAction
+from magnolie_telefon import now_ms, canonical, strict_json
 
 
 def is_reserved_file_message(message):
@@ -22,15 +30,24 @@ def is_reserved_file_message(message):
 
 
 class NativeDesktopFileConnection:
-    def __init__(self, authority, channel):
+    # Private native release gate, never a serialized setting or UI preference.
+    # Full data/recovery/baseline and frontend acceptance is still outstanding.
+    _data_handlers_ready = False
+
+    def __init__(self, authority, channel, *, released=lambda owner:None):
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
-                or not callable(getattr(channel, 'send', None))):
+                or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
         self._authority = authority
         self._channel = channel
         self._closed = threading.Event()
+        self._released = released
+        self._release_reported = False
+        self._cleanup_error = None
         self._gate = threading.Lock()
         self._controls = None
+        self._catalog = self._run = self._offer = self._mutation_action = None
+        self._offer_binding = self._offer_policy_version = None
         self._preferences = ProtectedPhotoPreferences(authority)
         self._destination = NativePhotoDestinationController(authority)
         try:
@@ -52,11 +69,15 @@ class NativeDesktopFileConnection:
     def _local(self):
         self._ready()
         # Do not claim receiver readiness from preferences or control codecs.
-        return self._preferences.local_grant(False)
+        return self._preferences.local_grant(self._data_handlers_ready)
 
     @contextmanager
-    def _operation(self):
-        if not self._gate.acquire(blocking=False):
+    def _operation(self, *, incoming=False):
+        # The authenticated socket dispatcher is an I/O lane, not the UI. It
+        # waits boundedly behind an actual outbound write so an immediate reply
+        # is not discarded just because send() has not returned to its caller.
+        acquired = self._gate.acquire(timeout=MAX_TTL_MS/1000) if incoming else self._gate.acquire(blocking=False)
+        if not acquired:
             raise TransferError('file_desktop_connection_busy')
         try:
             self._ready()
@@ -89,12 +110,277 @@ class NativeDesktopFileConnection:
             return self._send_controls(clock)
 
     def receive(self, message, *, clock=now_ms):
-        with self._operation():
+        with self._operation(incoming=True):
+            if self._data_handlers_ready and message.get('kind') == OFFER:
+                self._observe_offer(message, clock)
+                return
+            if self._data_handlers_ready and message.get('kind') == CHUNK:
+                self._receive_chunk(message, clock)
+                return
             # Unsupported/reserved data never falls through to personal staging.
             body = _body(message, KIND, clock())
             packet = FileControlPacket.parse(body)
             self._controls.observe_remote(packet, self._peer())
             self._send_controls(clock)
+
+    def issue_receive_action(self):
+        self._ready()
+        return NativePhotoDestinationAction(self, lambda: time.monotonic_ns()//1_000_000)
+
+    def _take_action(self, action):
+        if type(action) is not NativePhotoDestinationAction:
+            raise TransferError('file_desktop_native_action_required')
+        action.consume(self)
+
+    def _receiving_policy(self):
+        self._ready()
+        if not self._data_handlers_ready:
+            raise TransferError('file_desktop_data_handlers_unavailable')
+        snapshot = self._preferences.read()
+        if (snapshot.policy is None or not snapshot.policy.enabled or not snapshot.associated
+                or not snapshot.destination_available):
+            raise TransferError('file_desktop_receive_consent_unavailable')
+        if self._run is not None and snapshot.version != self._run.policy_version:
+            raise TransferError('file_desktop_receive_policy_changed')
+        return snapshot
+
+    def _receive_binding(self):
+        snapshot = self._receiving_policy()
+        binding = self._controls.binding(snapshot.policy.destination_token)
+        if binding is None:
+            raise TransferError('file_desktop_receive_controls_not_agreed')
+        self._ready()
+        if self._mutation_action is not None:
+            self._mutation_action.validate(self)
+        return binding
+
+    def _observe_offer(self, message, clock):
+        snapshot = self._receiving_policy()
+        binding = self._receive_binding()
+        validate_offer(message, binding.sender_id, binding.receiver_id, now=clock())
+        if clock() >= message['expires_ms']:
+            raise TransferError('file_desktop_offer_expired')
+        if self._run is not None:
+            raise TransferError('file_desktop_receive_run_held')
+        frozen = canonical(message)
+        if self._offer is not None and canonical(self._offer) != frozen:
+            raise TransferError('file_desktop_offer_already_pending')
+        if self._offer is not None and (self._offer_binding != binding or self._offer_policy_version != snapshot.version):
+            raise TransferError('file_desktop_offer_authority_changed')
+        if self._receiving_policy().version != snapshot.version:
+            raise TransferError('file_desktop_offer_authority_changed')
+        self._offer = strict_json(frozen)  # Detach mutable dispatcher/wire input.
+        self._offer_binding = binding
+        self._offer_policy_version = snapshot.version
+
+    def _open_catalog(self, *, allow_create=True):
+        if self._catalog is None:
+            parent = Path(self._authority.binding.native_directory)
+            try:
+                (parent/ProtectedTransferJobCatalog.NAME).lstat()
+                create = False
+            except FileNotFoundError:
+                if not allow_create:
+                    return False
+                create = True
+            protection = self._authority.protection
+            self._receive_binding()
+            self._catalog = ProtectedTransferJobCatalog(parent, self._authority.identity,
+                protection.seal, protection.unseal, create=create)
+        return True
+
+    def native_receive_jobs(self):
+        """Existing jobs only, under freshly agreed current native consent.
+        No source reauthorization, worker start, reservation or implicit resume.
+        """
+        with self._operation():
+            snapshot = self._receiving_policy()
+            binding = self._receive_binding()
+            if not self._open_catalog(allow_create=False):
+                return ()
+            jobs = tuple(job for job in self._catalog.jobs()
+                         if job.accepted.binding == binding and job.accepted.destination == snapshot.policy.destination)
+            self._receive_binding()
+            return jobs
+
+    def _publication_gate(self, binding, mutation):
+        action = self._mutation_action
+        if action is None:
+            raise TransferError('file_desktop_native_publication_action_required')
+        if self._receive_binding() != binding:
+            raise TransferError('file_desktop_native_authority_changed')
+        action.validate(self)
+        result = mutation()
+        if self._receive_binding() != binding:
+            raise TransferError('file_desktop_native_authority_changed')
+        action.validate(self)
+        return result
+
+    def _send_data(self, message, clock, *, action=None):
+        self._receive_binding()
+        self._ready()
+        if action is not None:
+            action.validate(self)
+        if clock() >= message['expires_ms']:
+            raise TransferError('file_desktop_output_expired')
+        self._channel.send(message)
+        self._receive_binding()
+        if action is not None:
+            action.validate(self)
+        if clock() >= message['expires_ms']:
+            raise TransferError('file_desktop_output_expired')
+
+    def accept_pending_offer(self, action, offer_id, *, clock=now_ms):
+        """Native I/O-lane admission only; no UI-thread work or implicit run."""
+        self._take_action(action)
+        with self._operation():
+            if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
+                raise TransferError('file_desktop_offer_not_current')
+            snapshot = self._receiving_policy()
+            binding = self._receive_binding()
+            if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
+                raise TransferError('file_desktop_offer_authority_changed')
+            manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+            if clock() >= self._offer['expires_ms']:
+                raise TransferError('file_desktop_offer_expired')
+            accepted = NativeAcceptedTransfer.capture(manifest, binding, {file.id:file.path for file in manifest.files},
+                snapshot.policy.destination.path, self._receive_binding)
+            if accepted.destination != snapshot.policy.destination:
+                raise TransferError('file_desktop_original_destination_changed')
+            action.validate(self)
+            self._run = _NativeDesktopReceiveRun(snapshot.version, accepted)
+            self._mutation_action = action
+            try:
+                self._open_catalog()
+                self._receive_binding(); action.validate(self)
+                if clock() >= self._offer['expires_ms']:
+                    raise TransferError('file_desktop_offer_expired')
+                protection = self._authority.protection
+                self._run.receiver = NativeFileReceiveOperation.accept(self._catalog, accepted,
+                    self._receive_binding, protection.seal, protection.unseal, self._publication_gate)
+                self._run.job = self._run.receiver.job
+                self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
+                action.validate(self)
+                self._send_data(self._run.acceptance, clock, action=action)
+                self._run.acceptance_sent = True
+                return self._run.receiver.progress()
+            except NativeReceiveStartError as error:
+                self._run.job = error.job  # Reservation/cache stay held for recovery.
+                raise
+            finally:
+                self._mutation_action = None
+
+    def retry_acceptance(self, *, clock=now_ms):
+        with self._operation():
+            run = self._require_receiver()
+            if run.acceptance is None:
+                raise TransferError('file_desktop_acceptance_repair_pending')
+            self._send_data(run.acceptance, clock)
+            run.acceptance_sent = True
+
+    def resume_pending_offer(self, action, offer_id, native_job_owner, *, clock=now_ms):
+        """Exact current offer + existing native reservation, never bytes/totals.
+        Restores verified checkpoint/staged bytes without recreating publication
+        authority. Phone restart READ renewal must be proved separately there.
+        """
+        self._take_action(action)
+        with self._operation():
+            if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
+                raise TransferError('file_desktop_offer_not_current')
+            snapshot = self._receiving_policy()
+            binding = self._receive_binding()
+            if binding != self._offer_binding or snapshot.version != self._offer_policy_version:
+                raise TransferError('file_desktop_offer_authority_changed')
+            manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+            if clock() >= self._offer['expires_ms'] or not self._open_catalog(allow_create=False):
+                raise TransferError('file_desktop_resume_unavailable')
+            job = next((job for job in self._catalog.jobs() if job.owner == native_job_owner), None)
+            if (job is None or job.accepted.manifest != manifest or job.accepted.binding != binding
+                    or job.accepted.destination != snapshot.policy.destination):
+                raise TransferError('file_desktop_resume_not_current')
+            job.accepted.verify(self._receive_binding)
+            action.validate(self)
+            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job)
+            protection = self._authority.protection
+            self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
+                protection.seal, protection.unseal, self._publication_gate)
+            action.validate(self)
+            self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
+            self._send_data(self._run.acceptance, clock, action=action)
+            self._run.acceptance_sent = True
+            return self._run.receiver.progress()
+
+    def _require_receiver(self):
+        self._receive_binding()
+        if self._run is None or self._run.receiver is None:
+            raise TransferError('file_desktop_receive_repair_pending')
+        return self._run
+
+    def request_next_chunk(self, *, clock=now_ms):
+        with self._operation():
+            run = self._require_receiver()
+            if not run.acceptance_sent:
+                raise TransferError('file_desktop_acceptance_not_sent')
+            if run.request is None or clock() >= run.request['expires_ms']:
+                run.request = run.receiver.next_chunk_request_message(now=clock())
+                run.request_sent = False
+            if run.request is None:
+                return None  # No missing bytes is not publication/save/sync END.
+            self._send_data(run.request, clock)
+            run.request_sent = True
+            return strict_json(canonical(run.request))
+
+    def _receive_chunk(self, message, clock):
+        run = self._require_receiver()
+        request_id = message.get('body', {}).get('request_id') if type(message.get('body')) is dict else None
+        duplicate = run.last_request is not None and request_id == run.last_request['message_id']
+        request = run.last_request if duplicate else run.request
+        if request is None or not duplicate and not run.request_sent:
+            raise TransferError('file_desktop_chunk_not_requested')
+        run.receiver.receive_chunk_message(message, request, now=clock())
+        self._receive_binding()
+        checked = clock()
+        if checked >= request['expires_ms'] or checked >= message['expires_ms']:
+            raise TransferError('file_desktop_chunk_expired_during_native_io')
+        if not duplicate:
+            run.last_request = request
+            run.request = None
+            run.request_sent = False
+
+    def receive_progress(self):
+        with self._operation():
+            return self._require_receiver().receiver.progress()
+
+    def publish_received(self, action, *, clock=now_ms):
+        """Explicit native publication/readback only. Never overwrites a target;
+        existing-file replacement/conflict/baseline union is not implied here.
+        """
+        self._take_action(action)
+        with self._operation():
+            run = self._require_receiver()
+            if not run.acceptance_sent:
+                raise TransferError('file_desktop_acceptance_not_sent')
+            self._mutation_action = action
+            try:
+                action.validate(self)
+                run.receiver.publish_completed()
+                self._receive_binding(); action.validate(self)
+                run.receiver.commit_saved_receipts()
+                confirmation = run.receiver.saved_receipt_message(now=clock())
+                action.validate(self)
+                self._send_data(confirmation, clock, action=action)
+                return run.receiver.progress()  # Local save != whole-sync END/quota release.
+            finally:
+                self._mutation_action = None
+
+    def send_saved_confirmation(self, *, clock=now_ms):
+        """Retry historical protected receipts without re-publication or overwrite."""
+        with self._operation():
+            run = self._require_receiver()
+            if not run.acceptance_sent:
+                raise TransferError('file_desktop_acceptance_not_sent')
+            message = run.receiver.saved_receipt_message(now=clock())
+            self._send_data(message, clock)
 
     def read_preferences(self):
         with self._operation():
@@ -109,11 +395,36 @@ class NativeDesktopFileConnection:
         if not self._gate.acquire(blocking=False):
             return False
         try:
-            self._destination.close()
-            self._preferences.close()
-            if self._controls is not None:
-                self._controls.close()
-            self._authority.close()
+            failure = None
+            receiver = self._run.receiver if self._run is not None else None
+            for resource in (receiver, self._catalog, self._destination, self._preferences, self._controls, self._authority):
+                if resource is not None:
+                    try:
+                        resource.close()
+                    except Exception as error:
+                        if failure is None:
+                            failure = error
+            if failure is not None:
+                self._cleanup_error = type(failure).__name__
+                raise failure
+            if self._cleanup_error is not None:
+                return False  # A prior uncertain cleanup is not proof of release.
+            if not self._release_reported:
+                self._release_reported = True
+                self._released(self)
             return True
         finally:
             self._gate.release()
+
+
+@dataclass
+class _NativeDesktopReceiveRun:
+    policy_version: str
+    accepted: NativeAcceptedTransfer
+    receiver: NativeFileReceiveOperation | None = None
+    job: object = None
+    acceptance: dict | None = None
+    acceptance_sent: bool = False
+    request: dict | None = None
+    request_sent: bool = False
+    last_request: dict | None = None

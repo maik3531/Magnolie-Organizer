@@ -163,7 +163,7 @@ class NativeFileReceiveOperation:
         from magnolie_file_accept_message import create_acceptance
         with self._gate:
             self._require()
-            if self._phase != 'receiving':
+            if self._phase not in ('receiving', 'receiving_publication_repair_pending'):
                 raise TransferError('file_accept_receive_phase_changed')
             reply=create_acceptance(self._accepted,offer,self._current,now=now,message_id=message_id)
             self._require()

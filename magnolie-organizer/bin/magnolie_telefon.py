@@ -2805,7 +2805,11 @@ class PhoneService:
         # No native peer/key/preference I/O while holding the service monitor.
         authority = self.open_native_file_authority(peer_id, static_public, channel, generation)
         try:
-            connection = NativeDesktopFileConnection(authority, channel)
+            def released(owner):
+                with self.lock:
+                    if self._native_file_connections.get(channel) is owner:
+                        self._native_file_connections.pop(channel, None)
+            connection = NativeDesktopFileConnection(authority, channel, released=released)
         except BaseException:
             authority.close()
             raise
@@ -2826,9 +2830,15 @@ class PhoneService:
             owners = getattr(self, '_native_file_connections', None)
             if bindings is not None:
                 bindings.pop(channel, None)
-            connection = owners.pop(channel, None) if owners is not None else None
+            connection = owners.get(channel) if owners is not None else None
         if connection is not None:
-            connection.close()  # Revokes now; active owner releases only at actual I/O end.
+            try:
+                return connection.close()  # Native release callback removes owner only after actual I/O end.
+            except Exception:
+                # Revocation already happened. Keep the exact failed cleanup
+                # owner for retry, without blocking ordinary transport-finally
+                # cleanup or claiming resource release. No personal data logged.
+                return False
 
     def _receive_native_file_message(self, peer, channel, payload):
         with self.lock:

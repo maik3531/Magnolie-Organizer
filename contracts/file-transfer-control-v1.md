@@ -951,6 +951,63 @@ grant is created. Unrelated personal outbox producers remain inert in the fixtur
 no physical device, installed GUI or complete source/data/recovery handshake is
 claimed.
 
+### Guarded native desktop receive coordinator (release gate still OFF)
+
+The desktop owner now joins offer admission, the existing native receive operation
+and real reserved-message dispatch behind its private native data-readiness gate.
+The production gate remains **false**: no discovery advertisement, automatic run,
+frontend activation or released receive capability follows from this implementation.
+An offer is first frozen as detached metadata under the exact current consent,
+destination token and bilateral control binding. It creates no reservation or
+destination data. A fresh exact native one-shot action and offer ID admit one
+whole native run; changed policy, destination or binding cannot rebind a pending
+offer. Admission reserves the native catalog job and claims the actual staging
+lease before secure acceptance output. Lost output keeps the exact admitted job
+and acceptance message for explicit retry, never another reservation.
+
+Explicit native I/O-lane steps select missing chunks only from the authenticated
+ledger, retain one correlated outstanding request and record actual durable stage/
+readback/checkpoint results. Unrequested or mismatched responses fail before writes;
+duplicates do not recount bytes. A response that arrives before an actual outgoing
+write returns waits on the bounded native I/O gate rather than being discarded as
+busy. This is not UI-thread waiting. Revocation remains nonwaiting and descriptors/
+the native owner remain held through real I/O end. Cleanup uncertainty stays closed
+and is not treated as successful release; other resources are still closed.
+
+No missing bytes is not a save or synchronization END. A separate exact native
+publication action uses the guarded publisher, never overwrites existing targets,
+commits protected local saved receipts and sends their pathless historical
+projection only after readback. A later confirmation retry does not republish or
+overwrite subsequent PC edits. Whole-run/cache/quota ownership is not retired by
+chunk completion, publication or the remote confirmation.
+
+Existing-job discovery creates nothing. Explicit resume requires a fresh current
+offer, exact full manifest, original native binding/destination and a selected
+protected native job. It reopens the real exclusive lease and authenticated staged
+checkpoint, never trusts progress totals and never reserves a second job. Corrupt
+claimed bytes fence admission without reset. Resumed publication remains
+repair-pending: its old publication authority is not recreated automatically.
+Existing complete local receipts can still be projected historically without
+modifying later PC edits. This does not renew phone OS READ proof after restart.
+
+The joined targeted Python run passes 63 cases: native coordinator 21, existing
+desktop control/default-OFF fences 25, actual crypto-session modes 3 and accepted-
+message cases 14. The crypto fixture then passes all four modes including one new
+actual encrypted receive case, giving 64 distinct affected cases. That new mode
+exercises real session MAC/directional Ready, native policy/control binding, secure
+offer dispatch, actual acceptance/request output, encrypted chunk input, durable
+staging/readback, explicit publication, protected saved-confirmation output and
+transport-end cleanup. Its source is an isolated authenticated fixture, not a real
+Android Gallery source or physical phone. Readiness is overridden only inside the
+tests. Installed GUI, real power loss, full conflict/baseline/tombstone/quota union
+and physical phone acceptance remain outstanding.
+
+Architecture boundary: this protocol's current Android counterpart is the Notes
+app's native telephone/Gallery runtime. Notes-content synchronization need not be
+enabled, but stock KDE Connect alone does not implement these source/manifest/
+acceptance/chunk/receipt handlers. Placement of future desktop controls beneath
+KDE Connect does not make the current photo path a KDE-Connect-only backend.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
