@@ -12,8 +12,9 @@ internal class NativeGalleryRenewalAuthority(private val scope: GalleryPhotoSour
 /** Local read-only source. Deliberately has NO offer/acceptance/wire/cleanup API.
  * A separate native run and bounded resume-attempt protocol are still required. */
 internal class NativeGalleryRenewedSource internal constructor(val job: PhotoSourceJob,
-    private val snapshot: ProtectedPhotoSourceSnapshot) {
+    private val snapshot: ProtectedPhotoSourceSnapshot, private val original: PhotoSourceRemoteAcceptance) {
     val manifest: DeviceFileManifest get() = snapshot.manifest
     fun readChunk(fileId: String, chunk: Int): ByteArray = snapshot.readChunk(fileId, chunk)
     val allowsOfferOutput: Boolean get() = false
+    internal fun originalAcceptance(): PhotoSourceRemoteAcceptance { snapshot.manifest; return original }
 }

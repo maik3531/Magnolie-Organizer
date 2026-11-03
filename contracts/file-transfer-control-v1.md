@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Separate bounded resume-offer metadata attempt (Refs #353, #337)
+
+A new explicit native component prepares ONE immutable fresh offer from an actual
+renewed local source. It does not renew the historical offer/acceptance. Lost output
+can retry only that exact envelope; observed expiry, wall/elapsed rollback, cancellation
+or source revocation is sticky. Output ownership is nonreentrant and cancellation
+does not wait for a blocked write. Post-output validation prevents a late success;
+bytes already handed to transport cannot be retracted.
+
+A fresh acceptance must correlate to the new offer while retaining EXACT original
+transfer/manifest/acceptance-hash/permission/destination bindings. Changed fields,
+historical offer IDs and alternative acceptance envelopes cannot silently rebind.
+The returned projection explicitly grants NO Chunk output. This component has no
+durable resume-attempt CAS/run ownership, Chunk/Saved/baseline/retirement handler,
+runtime/wire/UI registration or automatic output. Those steps remain mandatory
+before production use. It never writes original job/proof/ciphertext/quota.
+
+Nine distinct host cases pass (eight new, one affected workflow): actual native
+renewed sources, historical TTL expired before a NEW offer, exact failed-write
+retry, original binding conflicts, clock/expiry stickiness, output revocation/cancel,
+blocked-write/reentrancy/cancellation fences, invalid native clocks and unchanged
+original metadata/ciphertext. These are native metadata-component fixtures, not
+complete resume or installed/physical acceptance. Production/auto/UI/releases OFF.
+
 ### Explicit local-only renewed cache read (Refs #352, #337)
 
 After complete fresh native PFD/identity inspection, an explicit selection may now

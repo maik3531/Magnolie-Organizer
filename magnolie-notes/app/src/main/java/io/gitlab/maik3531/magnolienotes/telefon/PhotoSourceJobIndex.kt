@@ -240,7 +240,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             senderId, renewed, lease, context, protection, cancellation)
         preparationCurrent(); originalCurrent(); preparing.set(false)
         snapshot.manifest // Actual current READ gate after the preparation ticket ends.
-        return NativeGalleryRenewedSource(expected, snapshot)
+        return NativeGalleryRenewedSource(expected, snapshot, original)
     }
 
     fun issueHistoricalSavedAction(expected: PhotoSourceJob, current: () -> NativePhotoReceiver?,

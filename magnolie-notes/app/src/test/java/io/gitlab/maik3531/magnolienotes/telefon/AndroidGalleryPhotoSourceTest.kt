@@ -539,6 +539,145 @@ class AndroidGalleryPhotoSourceTest {
         } }
     }
 
+    private fun withRenewedResumeSource(action: (HistoricalCase, PhotoSourceJobIndex, NativeGalleryRenewedSource, Long) -> Unit) {
+        HistoricalCase().use { h -> h.open().use { index ->
+            val cache = h.restoreCache(); val before = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            val original = index.remoteAcceptance(h.job)!!.record
+            val inputs = resumeInputs(h)
+            val source = index.renewGallerySource(h.job, "sender_fixture_01", inputs.inventory, inputs.scope, inputs.reader, CancellationSignal(), {}, {})
+            action(h, index, source, h.now + 120_000)
+            assertEquals(original, index.remoteAcceptance(h.job)!!.record); assertEquals(listOf(h.job), index.jobs())
+            assertNull(index.remoteSaved(h.job)); assertEquals(before, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+        } }
+    }
+
+    private fun resumeAcceptance(offerId: String, original: DeviceFileRemoteAcceptance, now: Long,
+        changes: Map<String, JsonElement> = emptyMap()) = TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND,
+        JsonObject(buildJsonObject {
+            put("format", 1); put("offer_id", offerId); put("manifest_sha256", original.manifestSha256)
+            put("transfer_id", original.transferId); put("acceptance_sha256", original.acceptanceSha256)
+            put("permission_epoch", original.permissionEpoch); put("destination_token", original.destinationToken)
+        } + changes), 60_000, now)
+
+    @Test fun freshResumeAttemptUsesNewOfferButNeverRenewsOrRebindsOriginalAcceptance() {
+        withRenewedResumeSource { _, _, source, now ->
+            val original = source.originalAcceptance().historicalAcceptance()
+            assertTrue(now > original.expires)
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L })
+            assertNotEquals(original.offerId, attempt.offerId)
+            var output: JsonObject? = null
+            attempt.sendOffer({ output = it }, { now })
+            val offered = DeviceFileOfferEnvelope.validate(output!!, source.manifest.senderId, source.manifest.receiverId, now)
+            assertEquals(source.manifest.fingerprint, offered.fingerprint)
+            assertEquals(now, output!!.long("created_ms")); assertEquals(now + 60_000, output!!.long("expires_ms"))
+            val message = resumeAcceptance(attempt.offerId, original, now)
+            val observed = attempt.observeAcceptance(message, { now })
+            assertFalse(observed.allowsChunkOutput)
+            assertEquals(original.acceptanceSha256, observed.accepted.acceptanceSha256)
+            assertEquals(now + 60_000, observed.validUntil)
+            assertSame(observed, attempt.observeAcceptance(message, { now }))
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({}, { now }) }
+        }
+    }
+
+    @Test fun uncertainResumeOfferOutputRetriesOnlyItsOriginalEnvelopeBeforeAcceptance() {
+        withRenewedResumeSource { _, _, source, now ->
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L }); val sent = mutableListOf<JsonObject>()
+            val message = resumeAcceptance(attempt.offerId, source.originalAcceptance().historicalAcceptance(), now)
+            assertThrows(java.io.IOException::class.java) { attempt.sendOffer({ sent += it; throw java.io.IOException("fixture resume output lost") }, { now }) }
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.observeAcceptance(message, { now }) }
+            attempt.sendOffer({ sent += it }, { now + 1 })
+            assertEquals(2, sent.size); assertEquals(sent[0], sent[1])
+            assertFalse(attempt.observeAcceptance(message, { now + 1 }).allowsChunkOutput)
+        }
+    }
+
+    @Test fun resumeAcceptanceCannotChangeAnyOriginalDestinationOrTransferBinding() {
+        withRenewedResumeSource { _, _, source, now ->
+            val original = source.originalAcceptance().historicalAcceptance()
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L }); attempt.sendOffer({}, { now })
+            val wrong = listOf("manifest_sha256" to "9".repeat(64), "transfer_id" to "9".repeat(32),
+                "acceptance_sha256" to "9".repeat(64), "permission_epoch" to "9".repeat(64), "destination_token" to "9".repeat(64),
+                "offer_id" to original.offerId)
+            for ((field, value) in wrong) assertThrows(PhotoFolderScopeError::class.java) {
+                attempt.observeAcceptance(resumeAcceptance(attempt.offerId, original, now, mapOf(field to JsonPrimitive(value))), { now })
+            }
+            val message = resumeAcceptance(attempt.offerId, original, now)
+            val accepted = attempt.observeAcceptance(message, { now })
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.observeAcceptance(resumeAcceptance(attempt.offerId, original, now), { now }) }
+            assertSame(accepted, attempt.observeAcceptance(message, { now }))
+        }
+    }
+
+    @Test fun resumeAttemptClockRollbackAndExpiryAreStickyWithoutOriginalTtlRenewal() {
+        for (change in listOf("wall", "elapsed", "wall-expired", "elapsed-expired")) withRenewedResumeSource { _, _, source, now ->
+            var wall = now; var tick = 1000L; var writes = 0
+            val attempt = NativeGalleryResumeAttempt.begin(source, wall, { tick })
+            wall += 10; tick = 1001L; attempt.sendOffer({ writes++ }, { wall })
+            when (change) {
+                "wall" -> wall--
+                "elapsed" -> tick--
+                "wall-expired" -> wall = now + 60_000
+                else -> tick = 61_000L
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({ writes++ }, { wall }) }
+            wall = now + 10; tick = 1001L
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({ writes++ }, { wall }) }
+            assertEquals(1, writes)
+        }
+    }
+
+    @Test fun resumeOfferCannotReturnLateSuccessAfterCancelRevocationOrExpiryDuringOutput() {
+        for (change in listOf("cancel", "revoked", "expired")) withRenewedResumeSource { h, _, source, now ->
+            var wall = now
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L }); var calls = 0
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({
+                calls++
+                when (change) { "cancel" -> attempt.cancel(); "revoked" -> h.f.request = null; else -> wall = now + 60_000 }
+            }, { wall }) }
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({ calls++ }, { now }) }
+            assertEquals(1, calls)
+        }
+    }
+
+    @Test fun blockedResumeOfferCanBeCanceledWithoutReentrancyOrLateSuccess() {
+        withRenewedResumeSource { _, _, source, now ->
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L })
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+            val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+            try {
+                val result = executor.submit<Exception?> {
+                    try { attempt.sendOffer({
+                        assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({}, { now }) }
+                        entered.countDown(); check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    }, { now }); null } catch (error: Exception) { error }
+                }
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                attempt.cancel(); release.countDown()
+                assertTrue(result.get(5, java.util.concurrent.TimeUnit.SECONDS) is PhotoFolderScopeError)
+            } finally { release.countDown(); executor.shutdownNow(); assertTrue(executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        }
+    }
+
+    @Test fun observedSourceRevocationCannotReviveAnOldResumeAttemptWhenFixturePermissionReturns() {
+        withRenewedResumeSource { h, _, source, now ->
+            val attempt = NativeGalleryResumeAttempt.begin(source, now, { 1000L })
+            val request = h.f.request
+            h.f.request = null
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({}, { now }) }
+            h.f.request = request
+            assertThrows(PhotoFolderScopeError::class.java) { attempt.sendOffer({}, { now }) }
+        }
+    }
+
+    @Test fun resumeAttemptRejectsUnsafeNativeElapsedClockWithoutPublishingAnyOffer() {
+        withRenewedResumeSource { _, _, source, now ->
+            for (tick in listOf(-1L, Long.MAX_VALUE)) assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryResumeAttempt.begin(source, now, { tick })
+            }
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
