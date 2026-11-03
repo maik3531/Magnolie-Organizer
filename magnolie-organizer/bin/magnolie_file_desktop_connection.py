@@ -41,10 +41,13 @@ class NativeDesktopFileConnection:
     # Full data/recovery/baseline and frontend acceptance is still outstanding.
     _data_handlers_ready = False
 
-    def __init__(self, authority, channel, *, released=lambda owner:None):
+    def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None):
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
                 or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
+        if activity_changed is not None and not callable(activity_changed):
+            raise TransferError('file_desktop_native_activity_callback_required')
+        self._activity_changed = activity_changed
         self._authority = authority
         self._channel = channel
         self._closed = threading.Event()
@@ -1583,8 +1586,10 @@ class NativePhotoAlbumWorker:
         self._connection._wake_album_worker()
 
     def _activity(self, active):
-        if self._activity_changed is not None:
-            try: self._activity_changed(self, active)
+        # The native service observer cannot be replaced by a frontend observer.
+        for observer in (self._connection._activity_changed, self._activity_changed):
+            if observer is None: continue
+            try: observer(self, active)
             except Exception as error:
                 with self._state_gate: self._activity_error = type(error).__name__
 

@@ -1,5 +1,25 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native worker activity and book tray (Refs #330)
+
+The actual native connection now always observes its album worker independently
+of any frontend observer. PhoneService retains exact active worker owners until
+their real worker END, including drain after a stop request. Foreign or repeated
+END callbacks cannot hide a different active worker. Construction, pairing and
+connection alone do not report synchronization activity. The daemon's existing
+ticket path carries an opaque refresh event; GTK reads current native status
+instead of trusting a delayed activity payload.
+
+The existing book tray now draws circular synchronization arrows on its cover
+and has a separate camera-in-book mark which can coexist with the arrows.
+All three tray backends retain their notification labels/tooltips; icon-render
+failure does not suppress those existing indicators. The camera producer remains
+false: no native camera/audio/OBS integration is claimed by rendering its mark.
+Tests include actual SVG decoding at tray size, native worker chunk-drain/END,
+observer failure isolation and the daemon-ticket/frontend refresh path. These
+are host/source integration checks, not installed tray/phone acceptance. Production
+handler readiness remains off and no automatic or unsolicited run is enabled.
+
 ### Desktop build composition and private Linux Python layout (Refs #330)
 
 Unconfigured Linux desktop source builds now omit the optional photo implementation

@@ -114,10 +114,18 @@ def test_actual_album_worker_saves_two_batches_then_repeat_preserves_pc_edit_wit
 
 def test_album_worker_cancel_waits_for_real_chunk_drain_and_close_without_publishing_or_freeing_quota(receiving, monkeypatch):
     connection = receiving[3]; batches = prepared(receiving); activity = []
+    service = receiving[0]; native_activity = []
+    def native_event(kind, payload):
+        if kind == 'media_activity':
+            assert not service.lock._is_owned()
+            native_activity.append(service._native_media_activity())
+    service.callback = native_event
+    assert service.report()['media_activity'] == {'synchronizing': False, 'camera': False}
     with phone_batches(receiving, batches, block_chunk=True) as (chunks, saved, entered, release, errors):
         worker = connection.start_album_worker(connection.issue_receive_action(), ALBUM, True,
             activity_changed=lambda owner, active: activity.append((owner, active)))
         assert entered.wait(10)
+        assert native_activity == [{'synchronizing': True, 'camera': False}]
         with pytest.raises(TransferError, match='busy'):
             connection.start_album_worker(connection.issue_receive_action(), ALBUM, True)
         assert connection._album_worker is worker
@@ -130,6 +138,7 @@ def test_album_worker_cancel_waits_for_real_chunk_drain_and_close_without_publis
         worker.stop()
         assert threading.current_thread() not in finishing_threads
         assert not worker.io_ended and activity == [(worker, True)]
+        assert service._native_media_activity()['synchronizing'] is True
         release.set(); assert worker.join(30), worker.progress()
         assert not errors and worker.progress()['state'] == 'canceled', worker.progress()
         state = connection.receive_stop_state()
@@ -138,6 +147,8 @@ def test_album_worker_cancel_waits_for_real_chunk_drain_and_close_without_publis
         assert len(connection._catalog.jobs()) == 1 and connection._catalog.jobs()[0].reserved_bytes > 0
         assert connection._run is None and connection._album_worker is None
         assert activity == [(worker, True), (worker, False)]
+        assert native_activity == [{'synchronizing': True, 'camera': False},
+                                   {'synchronizing': False, 'camera': False}]
         assert finishing_threads and threading.current_thread() not in finishing_threads
 
 
@@ -153,6 +164,20 @@ def test_empty_actual_worker_allocates_no_receiver_or_file_and_finishes_only_aft
         assert connection._source_run is None and connection._run is None
         assert not list(receiving[4].glob('**/*.jpg'))
         assert activity == [(worker, True), (worker, False)]
+
+
+def test_failing_frontend_observer_cannot_replace_native_owner_activity_or_prevent_end(receiving):
+    connection = receiving[3]; service = receiving[0]; prepared(receiving); states = []
+    service.callback = lambda event, payload: states.append(service._native_media_activity()) if event == 'media_activity' else None
+    def broken_frontend(owner, active):
+        raise RuntimeError('fixture frontend unavailable')
+    with phone_batches(receiving, [None]):
+        worker = connection.start_album_worker(connection.issue_receive_action(), ALBUM, True,
+            activity_changed=broken_frontend)
+        assert worker.join(30), worker.progress()
+        assert worker.progress()['state'] == 'complete'
+        assert worker.progress()['activity_error'] == 'RuntimeError'
+        assert states == [{'synchronizing': True, 'camera': False}, {'synchronizing': False, 'camera': False}]
 
 
 def test_phone_change_is_reported_as_conflict_not_overwritten_or_claimed_complete(receiving):

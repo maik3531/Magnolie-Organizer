@@ -2724,6 +2724,7 @@ class PhoneService:
         self.connections = {}
         self._file_channel_bindings = weakref.WeakKeyDictionary()
         self._native_file_connections = weakref.WeakKeyDictionary()
+        self._native_photo_activity = {}
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
@@ -2826,7 +2827,8 @@ class PhoneService:
                 with self.lock:
                     if self._native_file_connections.get(channel) is owner:
                         self._native_file_connections.pop(channel, None)
-            connection = NativeDesktopFileConnection(authority, channel, released=released)
+            connection = NativeDesktopFileConnection(authority, channel, released=released,
+                activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active))
         except BaseException:
             authority.close()
             raise
@@ -2856,6 +2858,25 @@ class PhoneService:
                 # owner for retry, without blocking ordinary transport-finally
                 # cleanup or claiming resource release. No personal data logged.
                 return False
+
+    def _native_photo_activity_changed(self, connection, owner, active):
+        # These are in-process native owners, never serialized client claims.
+        # Revocation does not manufacture END while the old I/O is still draining.
+        if type(active) is not bool: return
+        with self.lock:
+            if active:
+                if (self._native_file_connections.get(connection._channel) is not connection
+                        or connection._album_worker is not owner): return
+                self._native_photo_activity[owner] = connection
+            elif self._native_photo_activity.get(owner) is connection:
+                self._native_photo_activity.pop(owner)
+            else: return
+        # No UI/IPC callback while holding the native transport monitor.
+        self.callback('media_activity', {})
+
+    def _native_media_activity(self):
+        with self.lock:
+            return {'synchronizing': bool(self._native_photo_activity), 'camera': False}
 
     def _receive_native_file_message(self, peer, channel, payload):
         with self.lock:
@@ -2915,6 +2936,7 @@ class PhoneService:
                                self.store.active_auto_run(peer_id)),
                            "personal_sync_report": personal["last_report"]})
         return {"possible": True, "enabled": self.enabled,
+                "media_activity": self._native_media_activity(),
                 "desktop_features": self.store.desktop_features(),
                 "listening": bool(self.server), "port": PORT,
                 "device_id": self.store.identity["device_id"],
