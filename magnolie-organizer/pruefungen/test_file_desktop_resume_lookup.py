@@ -41,7 +41,9 @@ def history(request, job, **changes):
     manifest = job.accepted.manifest
     value = dict(job_id='b' * 32, job_version='c' * 64, phase='sealed', source_id=manifest.source_id,
         transfer_id=manifest.transfer_id, manifest_sha256=manifest.fingerprint,
-        remote_saved_history=False, attempt_phase='prepared')
+        remote_saved_history=False, attempt_phase='prepared',
+        attempt_id=None if changes.get('attempt_phase', 'prepared') is None else 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        attempt_sha256=None if changes.get('attempt_phase', 'prepared') is None else 'd' * 64)
     value.update(changes)
     result = response(request, sources.RESUME, version='b' * 64, history=value)
     result['expires_ms'] = min(result['expires_ms'], request['expires_ms'])

@@ -209,6 +209,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             put("source_id", sourceId); put("transfer_id", transferId); put("manifest_sha256", manifestSha256)
             put("remote_saved_history", readRemoteSaved(job) != null)
             put("attempt_phase", attempt?.phase?.let(::JsonPrimitive) ?: JsonNull)
+            put("attempt_id", attempt?.id?.let(::JsonPrimitive) ?: JsonNull)
+            put("attempt_sha256", attempt?.version?.let(::JsonPrimitive) ?: JsonNull)
         }
     }
 

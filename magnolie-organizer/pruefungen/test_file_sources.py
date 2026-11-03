@@ -94,7 +94,8 @@ def resume_history():
     command = deepcopy(resume_vector()['commands'][4]); command['kind'] = sources.RESUME
     command['body'] = dict(format=1, request_id=command['message_id'], operation='resume_lookup', version='a' * 64,
         history=dict(job_id='b' * 32, job_version='c' * 64, phase='sealed', source_id='d' * 32, transfer_id='e' * 32,
-                     manifest_sha256='f' * 64, remote_saved_history=False, attempt_phase='prepared'))
+                     manifest_sha256='f' * 64, remote_saved_history=False, attempt_phase='prepared',
+                     attempt_id=ID, attempt_sha256='d' * 64))
     return command
 
 
@@ -106,6 +107,7 @@ def history_options():
 @pytest.mark.parametrize('phase', [None, 'prepared', 'sent', 'accepted'])
 def test_resume_lookup_history_is_only_a_correlated_hint_not_read_or_run_readiness(phase):
     message = resume_history(); message['body']['history']['attempt_phase'] = phase
+    if phase is None: message['body']['history'].update(attempt_id=None, attempt_sha256=None)
     before = deepcopy(message); history = sources.parse_resume_history(message, **history_options())
     assert history.job_id == 'b' * 32 and history.attempt_phase == phase
     assert not hasattr(history, 'ready') and not hasattr(history, 'resumable') and not hasattr(history, 'allows_chunk_output')
@@ -125,6 +127,23 @@ def test_resume_lookup_rejects_foreign_manifest_or_fabricated_authority_and_hist
 def test_resume_lookup_context_cannot_be_injected_into_other_command_builders(operation):
     with pytest.raises(TransferError): sources.create_command(operation, expected_version='a' * 64,
         source_id='d' * 32, transfer_id='e' * 32, manifest_sha256='f' * 64, now=NOW)
+
+
+@pytest.mark.parametrize('field,value', [('attempt_id', None), ('attempt_id', True), ('attempt_id', 'not-a-native-attempt'),
+    ('attempt_sha256', None), ('attempt_sha256', True), ('attempt_sha256', 'd' * 63), ('attempt_phase', None)])
+def test_pending_resume_history_requires_exact_paired_native_attempt_tokens_not_phase_adoption(field, value):
+    message = resume_history(); message['body']['history'][field] = value
+    with pytest.raises(TransferError): sources.parse_resume_history(message, **history_options())
+
+
+def test_old_pending_history_without_tokens_is_hold_but_old_no_head_metadata_grants_nothing():
+    message = resume_history()
+    del message['body']['history']['attempt_id']; del message['body']['history']['attempt_sha256']
+    with pytest.raises(TransferError): sources.parse_resume_history(message, **history_options())
+    message['body']['history']['attempt_phase'] = None
+    parsed = sources.parse_resume_history(message, **history_options())
+    assert parsed.attempt_id is None and parsed.attempt_sha256 is None
+    assert not hasattr(parsed, 'repair_granted') and not hasattr(parsed, 'allows_chunk_output')
 
 
 @pytest.mark.parametrize('key,value', [('enabled', 1), ('enabled', 'true'), ('format', True),

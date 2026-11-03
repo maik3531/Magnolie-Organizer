@@ -323,6 +323,8 @@ class SourceResumeHistory:
     manifest_sha256: str
     remote_saved_history: bool
     attempt_phase: str | None
+    attempt_id: str | None = None
+    attempt_sha256: str | None = None
 
 
 def parse_resume_history(message, *, expected_request_id, expected_version, expected_source_id,
@@ -335,12 +337,19 @@ def parse_resume_history(message, *, expected_request_id, expected_version, expe
             or type(body['history']) is not dict):
         raise TransferError('file_sources_invalid_resume_history')
     value = body['history']
-    if (set(value) != {'job_id', 'job_version', 'phase', 'source_id', 'transfer_id', 'manifest_sha256', 'remote_saved_history', 'attempt_phase'}
+    fields = {'job_id', 'job_version', 'phase', 'source_id', 'transfer_id', 'manifest_sha256', 'remote_saved_history', 'attempt_phase'}
+    tokens = {'attempt_id', 'attempt_sha256'}
+    if (set(value) not in (fields, fields | tokens)
             or any(type(value[key]) is not str or re.fullmatch(r'[0-9a-f]{32}', value[key]) is None for key in ('job_id', 'source_id', 'transfer_id'))
             or not _hex(value['job_version']) or not _hex(value['manifest_sha256']) or value['phase'] not in ('sealed', 'retired')
             or value['source_id'] != expected_source_id or value['transfer_id'] != expected_transfer_id
             or value['manifest_sha256'] != expected_manifest_sha256 or type(value['remote_saved_history']) is not bool
             or value['attempt_phase'] not in (None, 'prepared', 'sent', 'accepted')):
+        raise TransferError('file_sources_invalid_resume_history')
+    if value['attempt_phase'] is None:
+        if value.get('attempt_id') is not None or value.get('attempt_sha256') is not None:
+            raise TransferError('file_sources_invalid_resume_history')
+    elif (set(value) != fields | tokens or not valid_uuid(value['attempt_id'], version=4) or not _hex(value['attempt_sha256'])):
         raise TransferError('file_sources_invalid_resume_history')
     return SourceResumeHistory(body['request_id'], body['version'], **value)
 

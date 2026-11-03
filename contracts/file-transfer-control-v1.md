@@ -1,5 +1,23 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Opaque exact pending-head identity, not repair authority (Refs #370, #337)
+
+Authorized historical lookup now includes an existing attempt's exact native UUID
+and domain-separated canonical protected-record hash alongside its phase. Both
+tokens are null when no head exists; neither identity is inferred from a receiver,
+clock or row enumeration. The hash is stable on fresh reads and changes with actual
+protected phase content. No new persisted row or original consent/version rewrite
+is introduced. Tokens reveal no native paths, read grants, keys or cipher witnesses.
+
+Linux requires both typed tokens for pending history. Older no-head metadata can
+remain non-granting history; older pending history without exact tokens stays HOLD.
+All prepared/sent/accepted heads still block a new source attempt regardless of
+tokens. 146 distinct host cases pass (nine new, 137 affected): actual phase commits/
+fresh-read identity/no-run adoption, privacy/no-head fields, strict token combinations
+and original desktop lookup/source/END compatibility. This does NOT abandon/delete/
+repair a head or grant READ/run/data authority; explicit peer-coordinated quiescent
+repair with durable receipt/CAS is still required. Production/UI/releases stay OFF.
+
 ### Exact remaining monotonic negotiation/media TTL (Refs #369, #337)
 
 Three native reproductions confirmed that short or partly elapsed offer/media

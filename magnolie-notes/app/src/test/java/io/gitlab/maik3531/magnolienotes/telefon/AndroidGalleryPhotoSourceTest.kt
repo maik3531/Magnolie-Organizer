@@ -1714,9 +1714,10 @@ class AndroidGalleryPhotoSourceTest {
                 h.runtime.receiveSourceCommand(message, h.channel::send, { h.now })
                 val result = h.drain().single(); assertEquals(DeviceFileSourceCommand.RESUME, result.string("kind"))
                 val history = result["body"]!!.jsonObject["history"]!!.jsonObject
-                assertEquals(setOf("job_id", "job_version", "phase", "source_id", "transfer_id", "manifest_sha256", "remote_saved_history", "attempt_phase"), history.keys)
+                assertEquals(setOf("job_id", "job_version", "phase", "source_id", "transfer_id", "manifest_sha256", "remote_saved_history", "attempt_phase", "attempt_id", "attempt_sha256"), history.keys)
                 assertEquals(h.job.id, history.string("job_id")); assertEquals(h.job.version, history.string("job_version"))
                 assertEquals(JsonPrimitive(false), history["remote_saved_history"]); assertEquals(JsonNull, history["attempt_phase"])
+                assertEquals(JsonNull, history["attempt_id"]); assertEquals(JsonNull, history["attempt_sha256"])
                 h.inspect { assertNull(it.resumeAttempt(h.job)) }
                 assertFalse(child.exists()); assertEquals(0, h.output.size())
             } finally { assertTrue(held.renameTo(child)) }
@@ -1756,6 +1757,10 @@ class AndroidGalleryPhotoSourceTest {
             h.runtime.receiveSourceCommand(lookup, h.channel::send, { h.now })
             val history = h.drain().single()["body"]!!.jsonObject["history"]!!.jsonObject
             assertEquals(JsonPrimitive("accepted"), history["attempt_phase"])
+            h.inspect { index ->
+                val head = index.resumeAttempt(h.job)!!
+                assertEquals(head.id, history.string("attempt_id")); assertEquals(head.version, history.string("attempt_sha256"))
+            }
             assertEquals(JsonPrimitive(false), history["remote_saved_history"])
             assertFalse(history.containsKey("ready")); assertFalse(history.containsKey("resumable"))
             assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveTransferMessage(h.acceptance(run), h.channel::send, { h.now + 120_000 }) }
@@ -1899,6 +1904,34 @@ class AndroidGalleryPhotoSourceTest {
             assertEquals(1, h.drain().size)
             assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command, h.channel::send, { at }) }
             assertEquals(0, h.output.size()); h.assertOriginal()
+        }
+    }
+
+    @Test fun pendingResumeLookupHeadIdentityIsStableOnFreshReadAndChangesOnlyWithActualPhase() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            fun lookup(): JsonObject {
+                h.runtime.receiveSourceCommand(h.lookup(), h.channel::send, { h.now })
+                return h.drain().single()["body"]!!.jsonObject["history"]!!.jsonObject
+            }
+            assertThrows(java.io.IOException::class.java) { h.runtime.sendResumeRunOffer(run, { throw java.io.IOException("fixture pending lookup head") }, { at }) }
+            val prepared = lookup()
+            assertEquals(JsonPrimitive("prepared"), prepared["attempt_phase"])
+            assertEquals(run.attempt.get()!!.id, prepared.string("attempt_id"))
+            h.inspect { assertEquals(it.resumeAttempt(h.job)!!.version, prepared.string("attempt_sha256")) }
+            assertEquals(prepared, lookup())
+            h.runtime.sendResumeRunOffer(run, h.channel::send, { at }); h.drain()
+            val sent = lookup(); assertEquals(prepared["attempt_id"], sent["attempt_id"])
+            assertNotEquals(prepared["attempt_sha256"], sent["attempt_sha256"])
+            h.runtime.observeResumeRunAcceptance(run, h.acceptance(run, at), { at })
+            val accepted = lookup(); assertEquals(sent["attempt_id"], accepted["attempt_id"])
+            assertNotEquals(sent["attempt_sha256"], accepted["attempt_sha256"])
+            h.inspect { assertEquals(it.resumeAttempt(h.job)!!.version, accepted.string("attempt_sha256")) }
+            assertFalse(accepted.containsKey("source_context")); assertFalse(accepted.containsKey("read_grant")); assertFalse(accepted.containsKey("repair_granted"))
+            h.runtime.cancelResumeRun(run); h.runtime.endStoppedResumeRun(run)
+            assertEquals(accepted, lookup())
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveTransferMessage(h.acceptance(run, at), h.channel::send, { at }) }
+            h.assertOriginal()
         }
     }
 

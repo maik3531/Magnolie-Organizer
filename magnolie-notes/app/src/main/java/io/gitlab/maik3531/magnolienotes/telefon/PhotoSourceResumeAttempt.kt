@@ -6,6 +6,7 @@ import kotlinx.serialization.json.*
 internal class PhotoSourceResumeAttempt private constructor(val record: JsonObject) {
     val phase: String get() = (record["phase"] as JsonPrimitive).content
     val id: String get() = (record["attempt_id"] as JsonPrimitive).content
+    val version: String get() = DeviceFileControl.digest("magnolie-gallery-resume-head-v1\u0000", record)
     val base: JsonObject get() = JsonObject(record - setOf("phase", "accepted_at", "acceptance"))
     val allowsChunkOutput: Boolean get() = false
 

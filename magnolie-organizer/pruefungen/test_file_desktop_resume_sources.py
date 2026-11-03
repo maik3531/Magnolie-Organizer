@@ -33,6 +33,8 @@ def selected(fixture, *, hints=None, partial=False):
         message = fresh[2].send.call_args.args[0]
         result = lookup_reply(message, job, attempt_phase=None)
         result['body']['history'].update(hints or {})
+        if result['body']['history']['attempt_phase'] is not None:
+            result['body']['history'].update(attempt_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', attempt_sha256='d' * 64)
         dispatch(fresh, result); catalog(fresh)
         yield fresh, job, original_history
 
