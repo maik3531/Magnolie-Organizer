@@ -1735,6 +1735,33 @@ owner rewrite, record reconstruction or reset occurs. Fifty-one targeted members
 catalog, root-witness and history cases pass, including both legacy variants. The
 explicit legacy upgrade/repair workflow itself is not implemented by this fence.
 
+### Explicit joint native storage bootstrap (Refs #340, #337)
+
+`NativeMediaStorageBootstrap.prepare` consumes one bounded native user action,
+checks the original paired authority and exact preference snapshot, authenticates
+or explicitly creates both stores, and binds both original root witnesses through
+one existing protected preference CAS/transaction. Sub-actions cannot renew the
+original action's lifetime. Missing/replaced expected roots and legacy catalogs
+are not reinitialized/adopted. Original metadata and unbound prepared roots remain
+preserved on failure; a retry authenticates and reuses them rather than resetting.
+
+Existing activation, schedule, direction, deletion choices, destinations, video
+and grouping preferences are preserved. First-use policy remains disabled/manual,
+phone-to-desktop and without deletion consent or destination. A new protected
+permission epoch requires a fresh native control agreement; bootstrap sends no
+controls/source commands, opens no transfer worker and publishes no target bytes.
+SQL failure rolls both witness bindings back together; lost post-commit sync is
+not reported as success. Fresh authenticated preference read exposes the actual
+committed joint binding, never an invented default or half-success.
+
+Fourteen new source-host cases pass: initial/default and existing-setting
+preservation, stale snapshot, action expiry/close/revocation, missing and valid
+replacement roots, legacy preservation, transaction rollback/retry, lost sync,
+and actual native media save plus receipt-only recovery after fresh reconnect.
+This explicit native API is not yet joined to the advanced UI or made a production
+admission prerequisite. Legacy completeness/repair, full recovery/convergence and
+installed/physical acceptance remain in #337; production/UI/automatic gates stay OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
