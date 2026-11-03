@@ -39,6 +39,7 @@ internal class NativeGallerySyncRun internal constructor(internal val selection:
     internal val offered = AtomicReference<String?>()
     internal val offerOutput = AtomicReference<NativeGalleryOfferOutput?>()
     internal val wireOfferAttempt = AtomicReference<NativeGalleryWireOfferAttempt?>()
+    internal val mediaAttempts = NativeGalleryMediaAttempts()
     internal val acceptance = AtomicReference<DeviceFileRemoteAcceptance?>()
     internal val remoteSaved = AtomicReference<RemoteSavedConfirmation?>()
     val cancelRequested: Boolean get() = stopped.get()

@@ -156,6 +156,10 @@ class AndroidGalleryPhotoSourceTest {
                 assertNotNull(restored.galleryOrigins)
                 assertArrayEquals("hello".toByteArray(), restored.readChunk(restored.manifest.files.single().id, 0))
                 assertThrows(PhotoFolderScopeError::class.java) { restored.observeImageAnimation(restored.manifest.files.single().id) }
+                val page = restored.mediaPage(0)
+                assertEquals("video", page.string("media_type"))
+                assertEquals("video", page["entries"]!!.jsonArray.single().jsonObject.string("media_kind"))
+                assertEquals(restored.manifest.fingerprint, page.string("manifest_sha256"))
                 assertEquals(opens, f.provider.opens.size)
                 f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA))
                 assertFalse(f.scope.isCurrent(lease))
@@ -268,6 +272,21 @@ class AndroidGalleryPhotoSourceTest {
                 assertEquals(source.manifest.fingerprint, observed.manifestSha256)
                 assertFalse(observed.grantsWriteAuthority); assertFalse(observed.isSavedReceipt)
                 assertArrayEquals(gif, source.readChunk(file.id, 0))
+                val page = source.mediaPage(0)
+                assertEquals(source.manifest.fingerprint, page.string("manifest_sha256"))
+                assertEquals("images", page.string("media_type"))
+                assertEquals(64, page.string("source_epoch").length)
+                val member = page["entries"]!!.jsonArray.single().jsonObject
+                assertEquals(file.id, member.string("file_id")); assertEquals("animation", member.string("media_kind"))
+                assertEquals(64, member.string("photo_id").length)
+                assertFalse(page.toString().contains("native_member")); assertFalse(page.toString().contains("/media/"))
+                assertTrue(source.mediaPage(1)["entries"]!!.jsonArray.isEmpty())
+                assertThrows(PhotoFolderScopeError::class.java) { source.mediaPage(2) }
+                var checks = 0
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    source.mediaPage(0) { if (++checks == 5) DeviceFileControl.fail("fixture_media_command_expired_during_read") }
+                }
+                assertEquals(5, checks)
                 assertEquals(opens, f.provider.opens.size)
                 assertEquals("sealed", index.jobs().single().phase)
                 f.request = null
@@ -668,6 +687,26 @@ class AndroidGalleryPhotoSourceTest {
                             }
                             return result
                         }
+                        val mediaCommand = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                            put("format",1); put("operation","media_page"); put("expected_version",runtime.savedPolicy().version)
+                            put("run_id",whole.id); put("after",0)
+                        },60_000,now)
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.receiveSourceCommand(mediaCommand, { throw java.io.IOException("media output lost") }, {now})
+                        }
+                        runtime.receiveSourceCommand(mediaCommand,channel::send,{now})
+                        val mediaResult = drainedWire().single()
+                        assertEquals(DeviceFileSourceCommand.MEDIA,mediaResult.string("kind"))
+                        val mediaBody = mediaResult["body"]!!.jsonObject
+                        assertEquals(mediaCommand.string("message_id"),mediaBody.string("request_id"))
+                        assertEquals(whole.id,mediaBody.string("run_id"))
+                        assertEquals(manifest!!.fingerprint,mediaBody["page"]!!.jsonObject.string("manifest_sha256"))
+                        assertEquals("unknown_image",mediaBody["page"]!!.jsonObject["entries"]!!.jsonArray.single().jsonObject.string("media_kind"))
+                        runtime.receiveSourceCommand(mediaCommand,channel::send,{now})
+                        assertEquals(mediaBody["page"],drainedWire().single()["body"]!!.jsonObject["page"])
+                        val changedMedia = JsonObject(mediaCommand+("created_ms" to JsonPrimitive(now+1)))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(changedMedia,channel::send,{now}) }
+                        assertEquals(providerOpens,f.provider.opens.size)
                         assertThrows(java.io.IOException::class.java) {
                             runtime.receiveSourceCommand(wireOfferCommand, {
                                 if(it.string("kind")==DeviceFileSourceCommand.RUN_RESULT) throw java.io.IOException("offer result output lost")

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
 
@@ -115,6 +116,64 @@ internal static class DeviceFileSourcesTests
         }
         TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseRunResult(offerReply,
             offerRequest["message_id"]!.GetValue<string>(), "offer_run", new string('a',64), now+60000, runId), "Expired offer result accepted.");
+        const string mediaVectorPath = "contracts/file-transfer-media-v1-vectors.json";
+        var mediaVector = JsonNode.Parse(File.ReadAllText(Path.Combine(TestSource.Root(mediaVectorPath), mediaVectorPath)))!.AsObject();
+        var mediaGolden = mediaVector["request"]!.AsObject();
+        var mediaCommand = DeviceFileSources.CreateRequest("media_page", now, new string('a',64),
+            messageId: mediaGolden["message_id"]!.GetValue<string>(), runId: "33333333-3333-4333-8333-333333333333", after: 0);
+        var mediaBytes = TelefonCrypto.Canonical(mediaCommand);
+        TestAssert.That(mediaBytes.SequenceEqual(TelefonCrypto.Canonical(mediaGolden)) && mediaBytes.Length == mediaVector["canonical_bytes"]!.GetValue<int>() &&
+            Convert.ToHexString(SHA256.HashData(mediaBytes)).ToLowerInvariant() == mediaVector["canonical_sha256"]!.GetValue<string>(), "Media page command golden mismatch.");
+        DeviceFileManifest MediaManifest(int count) => new(new string('1',32), new string('2',32), "sender_fixture_01", "receiver_fixture_01",
+            Enumerable.Range(0,count).Select(index => new DeviceManifestFile((index+1).ToString("x32"), $"image{index}.jpg", 1,
+                Convert.ToHexString(SHA256.HashData(new byte[] {120})).ToLowerInvariant())).ToArray(), count);
+        JsonObject MediaMessage(int count = 1, int after = 0)
+        {
+            var full = MediaManifest(count); var end = Math.Min(after+8,count);
+            var value = DeviceFileSources.CreateRequest("media_page", now, new string('a',64), runId: runId, after: after);
+            var requestId = value["message_id"]!.DeepClone(); value["kind"] = DeviceFileSources.MediaKind;
+            value["body"] = new JsonObject { ["format"] = 1, ["request_id"] = requestId, ["operation"] = "media_page",
+                ["version"] = new string('a',64), ["run_id"] = runId, ["page"] = new JsonObject {
+                    ["format"] = 1, ["manifest_sha256"] = full.Fingerprint, ["source_epoch"] = new string('b',64),
+                    ["media_type"] = "images", ["insertion_witness"] = true, ["after"] = after, ["next_cursor"] = end<count ? JsonValue.Create(end) : null,
+                    ["total_files"] = count, ["entries"] = new JsonArray(Enumerable.Range(after,end-after).Select(index => (JsonNode?)new JsonObject {
+                        ["file_id"] = full.Files[index].Id, ["photo_id"] = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"photo-{index}"))).ToLowerInvariant(),
+                        ["media_kind"] = "image" }).ToArray()) } };
+            return value;
+        }
+        DeviceFileMediaPage ReadMedia(JsonObject value, int after = 0) => DeviceFileSources.ParseMediaPage(value,
+            value["body"]!["request_id"]!.GetValue<string>(), new string('a',64), runId, now, after);
+        var media = ReadMedia(MediaMessage());
+        TestAssert.That(!media.GrantsWriteAuthority && !media.IsSavedReceipt &&
+            DeviceFileSources.CorrelateMediaPages([media],MediaManifest(1)).Count == 1, "Media metadata became authority or lost full manifest correlation.");
+        foreach (var (key,value) in new (string,JsonNode?)[] { ("format",JsonValue.Create(true)), ("after",JsonValue.Create(true)),
+            ("after",JsonValue.Create(1)), ("total_files",JsonValue.Create(0)), ("total_files",JsonValue.Create(129)),
+            ("next_cursor",JsonValue.Create(1)), ("next_cursor",JsonValue.Create(true)), ("insertion_witness",JsonValue.Create(1)),
+            ("source_epoch",JsonValue.Create("native-row-id")), ("manifest_sha256",JsonValue.Create(new string('A',64))),
+            ("media_type",JsonValue.Create("photos")), ("read_granted",JsonValue.Create(true)), ("entries",new JsonArray()) })
+        {
+            var invalid=MediaMessage();invalid["body"]!["page"]!.AsObject()[key]=value;
+            TestAssert.Throws<InvalidDataException>(() => ReadMedia(invalid), "Invalid bounded media page accepted.");
+        }
+        foreach (var (key,value) in new (string,JsonNode?)[] { ("file_id",JsonValue.Create("path")), ("photo_id",JsonValue.Create("raw-row-id")),
+            ("media_kind",JsonValue.Create("video")), ("native_member",JsonValue.Create("123:456")), ("camera_origin_proven",JsonValue.Create(true)) })
+        {
+            var invalid=MediaMessage();invalid["body"]!["page"]!["entries"]![0]!.AsObject()[key]=value;
+            TestAssert.Throws<InvalidDataException>(() => ReadMedia(invalid), "Media member adopted raw identity, video or camera claims.");
+        }
+        var firstMedia=ReadMedia(MediaMessage(9));var lastMedia=ReadMedia(MediaMessage(9,8),8);
+        TestAssert.That(DeviceFileSources.CorrelateMediaPages([firstMedia,lastMedia],MediaManifest(9)).Count==9, "Complete media paging rejected.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.CorrelateMediaPages([firstMedia],MediaManifest(9)), "Partial media page treated as complete.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.CorrelateMediaPages([lastMedia,firstMedia],MediaManifest(9)), "Out-of-order media pages accepted.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.CorrelateMediaPages([firstMedia,lastMedia with { SourceEpoch=new string('c',64) }],MediaManifest(9)), "Source namespace changed across media pages.");
+        var duplicate=lastMedia with { Entries=Array.AsReadOnly(new[] { lastMedia.Entries[0] with { PhotoId=firstMedia.Entries[0].PhotoId } }) };
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.CorrelateMediaPages([firstMedia,duplicate],MediaManifest(9)), "Duplicate opaque photo identity across pages accepted.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseMediaPage(MediaMessage(),Guid.NewGuid().ToString(),new string('a',64),runId,now), "Wrong media request accepted.");
+        var expiring=MediaMessage();
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseMediaPage(expiring,expiring["body"]!["request_id"]!.GetValue<string>(),new string('a',64),runId,now+60000), "Expired media result accepted.");
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseMediaPage(expiring,expiring["body"]!["request_id"]!.GetValue<string>(),new string('a',64),runId,now,expectedManifestSha256:new string('c',64)), "Wrong expected media manifest accepted.");
+        var invalidMediaRequest=(JsonObject)mediaGolden.DeepClone();invalidMediaRequest["body"]!["after"]=true;
+        TestAssert.Throws<InvalidDataException>(() => DeviceFileSources.ParseRequest(invalidMediaRequest,now), "Boolean native media cursor accepted.");
         return Task.CompletedTask;
     }
 }

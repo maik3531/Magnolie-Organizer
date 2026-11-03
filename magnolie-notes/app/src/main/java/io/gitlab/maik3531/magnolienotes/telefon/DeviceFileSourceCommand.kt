@@ -16,6 +16,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
         const val CATALOG = "file_transfer.sources.catalog"
         const val PERMISSION_RESULT = "file_transfer.sources.permission_result"
         const val RUN_RESULT = "file_transfer.sources.run_result"
+        const val MEDIA = "file_transfer.sources.media"
         fun parse(message: JsonObject, now: Long = System.currentTimeMillis()): DeviceFileSourceCommand {
             fun fail(): Nothing = DeviceFileControl.fail("file_sources_invalid_command")
             if (TelefonKanonisch.bytes(message).size > DeviceFileControl.MAX_WIRE_BYTES) fail()
@@ -30,6 +31,14 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
             fun opaque(name: String) = text(name).takeIf {
                 Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}").matches(it)
             } ?: fail()
+            if (operation == "media_page") {
+                if (body.keys != base + setOf("expected_version", "run_id", "after")) fail()
+                val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()
+                val after = (body["after"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
+                    ?.takeIf { it in 0..DeviceFileManifest.MAX_FILES } ?: fail()
+                return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
+                    message.long("expires_ms"), after = after, runId = opaque("run_id"))
+            }
             if (operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
                 if (body.keys != base + setOf("expected_version") +
                     (if (operation == "run") setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()

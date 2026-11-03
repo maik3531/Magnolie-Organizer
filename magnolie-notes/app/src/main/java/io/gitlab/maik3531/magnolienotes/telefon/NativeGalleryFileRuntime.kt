@@ -256,6 +256,29 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "media_page") {
+                val run = syncRun?.takeIf { it.id == command.runId && !it.cancelRequested }
+                    ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+                fun mediaAuthority() { authority(); run.mediaAttempts.check(command, message, now()) }
+                mediaAuthority()
+                if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+                val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
+                val selected = run.selection
+                val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
+                val page = source.mediaPage(command.after, ::mediaAuthority)
+                mediaAuthority()
+                val body = kotlinx.serialization.json.buildJsonObject {
+                    put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
+                    put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version))
+                    put("run_id", JsonPrimitive(run.id)); put("page", page)
+                }
+                val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                val reply = TelefonNachrichten.message(DeviceFileSourceCommand.MEDIA, body, ttl, at)
+                if (TelefonKanonisch.bytes(reply).size > DeviceFileControl.MAX_WIRE_BYTES) DeviceFileControl.fail("gallery_media_page_budget")
+                mediaAuthority(); send(reply); mediaAuthority()
+                return@withOperation
+            }
             if (command.operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
                 val run = if (command.operation == "run") {
                     if (owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")

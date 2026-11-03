@@ -1296,6 +1296,42 @@ limits, immutable per-file mappings, interaction with animation routing and real
 source/target acceptance remain open, so the prepared option is not exposed as an
 available supported feature. Existing files remain unmoved and unrenamed.
 
+### Opaque per-file media pages (Refs #330, #336)
+
+Native `media_page` source requests accept exactly format/operation, saved policy
+version, the original held native run UUID and an integer cursor. The phone checks
+ended source I/O, noncanceled native run, live protected snapshot/read scope and
+actual dedicated configuration authority. Pages contain at most eight opaque
+file/photo IDs, image/animation/video/unknown-image labels, hashed stable media
+namespace, insertion-witness metadata and the full immutable manifest fingerprint.
+No native row IDs, provider URIs, source paths, capture-device ownership assertion
+or source/target mutation grant is exposed. Image animation labels use the actual
+protected-byte observation, not an extension or supplied flag.
+
+Each run retains at most 128 exact bounded metadata command attempts, without
+eviction on lost output. Same request-ID retries must preserve the entire canonical
+command digest and original wall/monotonic deadlines. Observed clock rollback
+fences the run's media attempts; expired attempts cannot be refreshed by retry.
+The native command callback runs around protected reads and actual result output.
+No scan, provider content reopen, new transfer worker or quota release is implied.
+
+Python/C# strict immutable decoders enforce exact header/page/member shapes,
+original policy/run/request/cursor, bounded entries, media-domain labels, no native
+ID/path/permission claims, and unique opaque IDs. Whole-page correlation requires
+every ordered original manifest member, unchanged namespace/type and full hash;
+partial, repeated/out-of-order or mismatched pages never form a complete projection.
+This remains metadata, not native ownership, READ, write, saved receipt or baseline.
+
+Sixteen targeted Android cases pass (parser 9, bounded attempt 4, native protected
+image/video/runtime encrypted page output 3). Python codec evidence is 88 distinct
+cases including the old source codec tests and a new shared request golden;
+the Windows source-codec core group passes 1/1 after a bounded zero-warning/error
+build. New request golden: 358 canonical bytes, SHA-256
+`52f27a005d191e20768d1c7254e564e125858ec51d964dfed9621d0045a20a7e`.
+Existing configure/acceptance golden bytes are unchanged. The PC controller has
+not yet joined these pages to admission/routing; production gates/visibility stay
+closed. This is no physical synchronization or native Windows receiver acceptance.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte

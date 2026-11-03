@@ -103,4 +103,28 @@ class DeviceFileSourceCommandTest {
             }
         }
     }
+
+    @Test fun mediaPageRequiresExactNativeRunPolicyAndBoundedIntegerCursorWithoutSourcePathsOrFlags() {
+        val body = buildJsonObject {
+            put("format", 1); put("operation", "media_page"); put("expected_version", "a".repeat(64))
+            put("run_id", "33333333-3333-4333-8333-333333333333"); put("after", 0)
+        }
+        assertEquals(0, DeviceFileSourceCommand.parse(message(body), now).after)
+        for ((key, value) in listOf("after" to JsonPrimitive(true), "after" to JsonPrimitive("0"),
+            "after" to JsonPrimitive(-1), "after" to JsonPrimitive(129), "run_id" to JsonPrimitive("foreign"),
+            "expected_version" to JsonPrimitive("bad"), "media_kind" to JsonPrimitive("animation"),
+            "path" to JsonPrimitive("/private"), "read_granted" to JsonPrimitive(true))) {
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message(JsonObject(body + (key to value))), now) }
+        }
+    }
+
+    @Test fun mediaRequestGoldenBindsExactCanonicalBytesAcrossNativeCodecs() {
+        val vector = Json.parseToJsonElement(java.io.File("../contracts/file-transfer-media-v1-vectors.json").readText()).jsonObject
+        val message = vector["request"]!!.jsonObject
+        assertEquals("media_page", DeviceFileSourceCommand.parse(message, vector.long("now_ms")).operation)
+        val bytes = TelefonKanonisch.bytes(message)
+        assertEquals(vector.long("canonical_bytes"), bytes.size.toLong())
+        assertEquals(vector.string("canonical_sha256"), java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it.toInt() and 255) })
+    }
 }

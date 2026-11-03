@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -13,6 +14,13 @@ internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? N
 internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State);
 internal sealed record DeviceFileRunResult(string RequestId, string Operation, string Version, string RunId, string State, bool SourceIoEnded,
     string? OfferId = null, string? ManifestSha256 = null);
+internal sealed record DeviceFileMediaEntry(string FileId, string PhotoId, string MediaKind);
+internal sealed record DeviceFileMediaPage(string RequestId, string Version, string RunId, string ManifestSha256, string SourceEpoch,
+    string MediaType, bool InsertionWitness, int After, int? NextCursor, int TotalFiles, IReadOnlyList<DeviceFileMediaEntry> Entries)
+{
+    internal bool GrantsWriteAuthority => false;
+    internal bool IsSavedReceipt => false;
+}
 
 internal static class DeviceFileSources
 {
@@ -21,6 +29,7 @@ internal static class DeviceFileSources
     internal const string CatalogKind = "file_transfer.sources.catalog";
     internal const string PermissionResultKind = "file_transfer.sources.permission_result";
     internal const string RunResultKind = "file_transfer.sources.run_result";
+    internal const string MediaKind = "file_transfer.sources.media";
     private static readonly string[] Kinds = ["camera", "downloads", "screenshots", "whatsapp_received"];
     private static InvalidDataException Error() => new("file_sources_invalid_message");
     private static string Text(JsonObject value, string key) =>
@@ -56,6 +65,13 @@ internal static class DeviceFileSources
     internal static DeviceFileSourceRequest ParseRequest(JsonObject message, long now)
     {
         var body = Body(message, RequestKind, now); var operation = Text(body, "operation");
+        if (operation == "media_page")
+        {
+            Exact(body, "format", "operation", "expected_version", "run_id", "after");
+            var expected = Text(body, "expected_version"); var run = Text(body, "run_id"); var after = Number(body, "after");
+            if (!DeviceFileControl.Hash(expected) || !TelefonProtocolContract.IsUuidV4(run) || after is < 0 or > 128) throw Error();
+            return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), After: (int)after, RunId: run);
+        }
         if (operation is "run" or "run_status" or "cancel_run" or "offer_run")
         {
             Exact(body, operation == "run" ? ["format", "operation", "expected_version", "catalog_id", "album_id", "desktop_choice"] :
@@ -101,8 +117,13 @@ internal static class DeviceFileSources
     {
         if (now is < 0 or > 253402300739999) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
-        if (operation is not ("run" or "run_status" or "cancel_run" or "offer_run") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
-        if (operation is "run" or "run_status" or "cancel_run" or "offer_run")
+        if (operation is not ("run" or "run_status" or "cancel_run" or "offer_run" or "media_page") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
+        if (operation == "media_page")
+        {
+            if (enabled is not null || kinds is not null || catalogId is not null || albumId is not null || desktopChoice is not null) throw Error();
+            body["expected_version"] = expectedVersion; body["run_id"] = runId; body["after"] = after;
+        }
+        else if (operation is "run" or "run_status" or "cancel_run" or "offer_run")
         {
             if (enabled is not null || kinds is not null || after is not null) throw Error();
             body["expected_version"] = expectedVersion;
@@ -214,5 +235,58 @@ internal static class DeviceFileSources
             operation == "cancel_run" && state is not ("cancel_pending" or "canceled_held") ||
             operation == "offer_run" && (state != "snapshot_ready" || !TelefonProtocolContract.IsUuidV4(offer) || !DeviceFileControl.Hash(manifest))) throw Error();
         return new(id, operation, version, run, state, ended, offer, manifest);
+    }
+
+    internal static DeviceFileMediaPage ParseMediaPage(JsonObject message, string expectedRequestId, string expectedVersion,
+        string expectedRunId, long now, int expectedAfter = 0, string? expectedManifestSha256 = null, string? expectedSourceEpoch = null)
+    {
+        var body = Body(message, MediaKind, now);
+        Exact(body, "format", "request_id", "operation", "version", "run_id", "page");
+        var id = Text(body, "request_id"); var version = Text(body, "version"); var run = Text(body, "run_id");
+        if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || Text(body, "operation") != "media_page" ||
+            !DeviceFileControl.Hash(version) || version != expectedVersion || !TelefonProtocolContract.IsUuidV4(run) || run != expectedRunId ||
+            body["page"] is not JsonObject page || expectedAfter is < 0 or > 128) throw Error();
+        Exact(page, "format", "manifest_sha256", "source_epoch", "media_type", "insertion_witness", "after", "next_cursor", "total_files", "entries");
+        var manifest = Text(page, "manifest_sha256"); var epoch = Text(page, "source_epoch"); var mediaType = Text(page, "media_type");
+        var insertion = Flag(page, "insertion_witness"); var after = Number(page, "after"); var total = Number(page, "total_files");
+        if (Number(page, "format") != 1 || !DeviceFileControl.Hash(manifest) || !DeviceFileControl.Hash(epoch) ||
+            expectedManifestSha256 is not null && manifest != expectedManifestSha256 || expectedSourceEpoch is not null && epoch != expectedSourceEpoch ||
+            mediaType is not ("images" or "video") || total is < 1 or > 128 || after < 0 || after > total || after != expectedAfter ||
+            page["entries"] is not JsonArray raw || raw.Count > 8 || raw.Count == 0 && after < total || after + raw.Count > total) throw Error();
+        var end = after + raw.Count; int? next = null;
+        if (page["next_cursor"] is not null)
+        {
+            var cursor = Number(page, "next_cursor");
+            if (cursor is < 0 or > 128) throw Error();
+            next = (int)cursor;
+        }
+        if (end < total ? next != end : next is not null) throw Error();
+        var entries = new List<DeviceFileMediaEntry>(); var files = new HashSet<string>(StringComparer.Ordinal); var photos = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in raw)
+        {
+            if (item is not JsonObject entry) throw Error();
+            Exact(entry, "file_id", "photo_id", "media_kind");
+            var file = Text(entry, "file_id"); var photo = Text(entry, "photo_id"); var kind = Text(entry, "media_kind");
+            if (!Regex.IsMatch(file, "\\A[0-9a-f]{32}\\z", RegexOptions.CultureInvariant) || !DeviceFileControl.Hash(photo) ||
+                (mediaType == "video" ? kind != "video" : kind is not ("image" or "animation" or "unknown_image")) || !files.Add(file) || !photos.Add(photo)) throw Error();
+            entries.Add(new(file, photo, kind));
+        }
+        return new(id, version, run, manifest, epoch, mediaType, insertion, (int)after, next, (int)total, entries.AsReadOnly());
+    }
+
+    internal static IReadOnlyList<DeviceFileMediaEntry> CorrelateMediaPages(IReadOnlyList<DeviceFileMediaPage> pages, DeviceFileManifest manifest)
+    {
+        if (pages.Count == 0) throw Error();
+        var first = pages[0]; int? cursor = 0; var entries = new List<DeviceFileMediaEntry>();
+        foreach (var page in pages)
+        {
+            if (cursor is null || page.After != cursor || page.ManifestSha256 != manifest.Fingerprint || page.TotalFiles != manifest.Files.Count ||
+                page.Version != first.Version || page.RunId != first.RunId || page.SourceEpoch != first.SourceEpoch ||
+                page.MediaType != first.MediaType || page.InsertionWitness != first.InsertionWitness) throw Error();
+            entries.AddRange(page.Entries); cursor = page.NextCursor;
+        }
+        if (cursor is not null || !entries.Select(entry => entry.FileId).SequenceEqual(manifest.Files.Select(file => file.Id)) ||
+            entries.Select(entry => entry.PhotoId).Distinct(StringComparer.Ordinal).Count() != entries.Count) throw Error();
+        return entries.AsReadOnly();
     }
 }

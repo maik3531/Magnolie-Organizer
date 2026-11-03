@@ -16,6 +16,7 @@ RESULT = "file_transfer.sources.result"
 CATALOG = "file_transfer.sources.catalog"
 PERMISSION_RESULT = "file_transfer.sources.permission_result"
 RUN_RESULT = "file_transfer.sources.run_result"
+MEDIA = "file_transfer.sources.media"
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
 
 
@@ -63,6 +64,11 @@ def parse_command(message, *, now=None):
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
         return SourceCommand(message["message_id"], "status")
+    if body.get('operation') == 'media_page':
+        if (set(body) != base | {'expected_version', 'run_id', 'after'} or not _hex(body['expected_version'])
+                or not valid_uuid(body['run_id'], version=4) or type(body['after']) is not int or not 0 <= body['after'] <= 128):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'], 'media_page', body['expected_version'], after=body['after'], run_id=body['run_id'])
     if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run'):
         starting = body['operation'] == 'run'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
@@ -100,9 +106,13 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
-    if operation in ('run', 'run_status', 'cancel_run', 'offer_run'):
+    if operation == 'media_page':
+        if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, album_id, desktop_choice)):
+            raise TransferError('file_sources_invalid_command')
+        body.update(expected_version=expected_version, run_id=run_id, after=after)
+    elif operation in ('run', 'run_status', 'cancel_run', 'offer_run'):
         if enabled is not None or kinds != () or after is not None:
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
