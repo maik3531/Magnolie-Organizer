@@ -1035,6 +1035,20 @@ evidence, and no Android permission was added or enabled by the text changes.
 
 ### Native desktop receiver-command authority and source dispatch
 
+Visibility correction (supersedes the earlier always-rendered Notes placeholder):
+the user requires the Notes advanced section to be absent when the connection is
+disabled, only Organizer was upgraded, or the counterpart/device/system does not
+support it. There is currently no released native advanced-feature availability
+projection, so both frontends omit the unfinished section entirely, including
+loading and bridge-unavailable paths. Connection enablement, pairing and claimed
+device-status version 21 cannot expose it. Future visibility requires actual native
+handler/system/counterpart readiness, not a synthetic frontend capability flag.
+KDE controls remain independent. Twenty full-frontend source-host cases pass across
+Linux/Windows, including status transitions, disabled-but-paired, old counterpart,
+unsupported-system and claimed-capability fixtures, with stored data unchanged.
+Deterministic Linux POT extraction also passes. No installed/native GUI acceptance
+or positive supported-feature activation is claimed by these checks.
+
 The Linux control session now issues one exact process-local receiver-command
 ticket only after native own receive consent and completed bilateral actual
 control echo. Remote source send may still be OFF: this is the source-policy

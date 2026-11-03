@@ -28660,19 +28660,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
-  function baueTelefonErweiterteFunktionen() {
-    const erweitert = el("details", "einst-gruppe telefon-erweiterte-funktionen");
-    erweitert.id = "telefon-erweiterte-funktionen";
-    erweitert.dataset.telefonBackend = "magnolie-notes";
-    erweitert.append(el("summary", null, _("Advanced functions")));
-    // Native source/data/recovery acceptance is still pending. Rendering this
-    // section must not activate a connection, consent, scan or transfer.
-    const status = el("p", "einst-hinweis", _("Unavailable"));
-    status.id = "telefon-erweiterte-funktionen-status";
-    erweitert.append(status);
-    return erweitert;
-  }
-
   function baueTelefonverbindung(wurzel) {
     const ab = abschnitt(_("Magnolie Notes phone connection"),
       _("A separate encrypted connection for dial requests, device status and selected notifications."));
@@ -28685,20 +28672,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       _("Requires Magnolie Notes on Android. KDE Connect is not required.")));
     kdeAb.append(el("p", "einst-hinweis kde-app-voraussetzung",
       _("KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes.")));
-    const notesErweitert = baueTelefonErweiterteFunktionen();
+    // No released native advanced-feature availability projection exists yet.
+    // Keep the section absent, including during loading or with old counterparts;
+    // pairing, connection enablement or capability metadata alone is not readiness.
     if (!Bruecke.vorhanden) {
       ab.append(el("p", "einst-hinweis",
         _("The phone connection is available only in the installed application.")));
       kdeAb.append(el("p", "einst-hinweis",
         _("KDE Connect for SMS is available only in the installed application.")));
-      ab.append(notesErweitert);
       wurzel.append(ab, kdeAb); return;
     }
     if (!telefonStand) {
       ab.append(el("p", "sync-status", _("One moment…")));
       kdeAb.append(el("p", "sync-status", _("One moment…")));
       Bruecke.sende({ cmd: "telefon_stand" });
-      ab.append(notesErweitert);
       wurzel.append(ab, kdeAb); return;
     }
     if (telefonStand.error) ab.append(el("p", "einst-warnung", telefonStand.error));
@@ -28800,7 +28787,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     ab.append(liste, el("p", "einst-hinweis",
       _("WLAN has priority. Bluetooth data starts only after WLAN failure and carries the same encrypted phone frames.")));
-    ab.append(notesErweitert);
     wurzel.append(ab);
 
     const kde = telefonStand.kdeconnect || {};

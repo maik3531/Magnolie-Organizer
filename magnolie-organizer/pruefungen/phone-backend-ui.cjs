@@ -25,12 +25,18 @@ const state = (notes, kde) => ({ enabled: notes, listening: notes, port: 8741,
   kdeconnect: { available: kde, paired: kde ? 1 : 0, listening: true, listen_port: 1716,
     peer_id: kde ? "kde-fixture" : "", reason: kde ? "available" : "no_device" } });
 
+const claimed = state(true, true);
+claimed.peers[0].capabilities = { revision: 1, items: { device_status: { versions: [21] } } };
+const disabledPaired = { ...claimed, enabled: false, listening: false };
+
 (async () => {
   let passed = 0;
   for (const web of harness.exports.roots) {
     for (const [name, status, german] of [["notes-only", state(true, false)], ["kde-only", state(false, true)],
       ["both", state(true, true)], ["neither", state(false, false)], ["loading", null],
-      ["german", state(true, true), true]]) {
+      ["german", state(true, true), true], ["organizer-only-upgrade", state(true, false)],
+      ["unsupported-system", { ...state(true, true), error: "Unsupported fixture system" }],
+      ["claimed-capability-is-not-native-readiness", claimed], ["disabled-paired", disabledPaired]]) {
       const b = await harness.exports.boot(web, { notizen: [{ id: "keep", titel: "Keep", text: "Unchanged", html: "Unchanged" }],
         einstellungen: { adressen: { kommunikation: { anruf: { telefonId: "11111111-1111-4111-8111-111111111111" } } } } });
       try {
@@ -48,11 +54,9 @@ const state = (notes, kde) => ({ enabled: notes, listening: notes, port: 8741,
         assert.ok(notes && kde, name);
         assert.equal(notes.querySelector("h3, h2").textContent,
           german ? "Magnolie Notes-Telefonverbindung" : "Magnolie Notes phone connection");
-        const advanced = notes.querySelector("#telefon-erweiterte-funktionen");
-        assert.ok(advanced && !kde.contains(advanced));
-        assert.equal(advanced.querySelector("summary").textContent, german ? "Erweiterte Funktionen" : "Advanced functions");
-        assert.equal(advanced.open, false);
-        assert.equal(advanced.querySelectorAll("input, button, select").length, 0, "Unready features exposed activation controls");
+        assert.equal(d.querySelector("#telefon-erweiterte-funktionen"), null,
+          `${name}: unready Notes advanced section must be absent, not merely disabled`);
+        assert.equal(d.querySelector("#telefon-erweiterte-funktionen-status"), null);
         assert.equal(notes.querySelector(".telefon-app-voraussetzung").textContent,
           german ? "Benötigt Magnolie Notes auf Android. KDE Connect wird nicht benötigt." : notesHint);
         assert.equal(kde.querySelector(".kde-app-voraussetzung").textContent,
@@ -62,9 +66,12 @@ const state = (notes, kde) => ({ enabled: notes, listening: notes, port: 8741,
           assert.ok(kdeAdvanced && !notes.contains(kdeAdvanced));
           assert.ok(kdeAdvanced.querySelector("#kde-input") && kdeAdvanced.querySelector("#kde-local-players"));
         }
-        const commands = b.messages.length;
-        advanced.querySelector("summary").click();
-        assert.equal(b.messages.length, commands, "Opening Notes advanced functions issued a native command");
+        // Re-rendering after enable/disable/loading/claimed capability changes
+        // must not revive a stale advanced section or change stored consent.
+        for (const next of [claimed, disabledPaired, null, state(true, false)]) {
+          b.w.App.telefonStand(next);
+          assert.equal(d.querySelector("#telefon-erweiterte-funktionen"), null);
+        }
         assert.deepEqual(changedPaths(JSON.parse(before), JSON.parse(JSON.stringify(b.t.daten()))), [],
           `${name}: backend presentation changed user settings/data`);
         assert.equal(b.messages.some(message => /^(telefon_ein|kde_pairing_start|kde_pairing_complete|.*foto.*|.*photo.*|.*file_transfer.*)$/.test(message.cmd)), false);
