@@ -60,6 +60,7 @@ class NativeDesktopFileConnection:
         self._source_offer = None
         self._source_media_pages = ()
         self._source_media_entries = None
+        self._resume_lookup_selection = self._resume_history = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -149,7 +150,7 @@ class NativeDesktopFileConnection:
     def receive(self, message, *, clock=now_ms):
         with self._operation(incoming=True):
             if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
-                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA):
+                    source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA, source_messages.RESUME):
                 self._receive_source_result(message, clock)
                 return
             if self._data_handlers_ready and message.get('kind') == OFFER:
@@ -172,14 +173,63 @@ class NativeDesktopFileConnection:
         """Native UI metadata only; no serialized status/album grants OS READ."""
         with self._operation():
             return dict(status=self._source_status, catalog=self._source_catalog, albums=tuple(self._source_albums.values()),
-                        run=self._source_run, result=self._source_result, pending=self._source_pending is not None,
-                        media_pages=self._source_media_pages, media_manifest_correlated=self._source_media_entries is not None)
+                         run=self._source_run, result=self._source_result, pending=self._source_pending is not None,
+                         media_pages=self._source_media_pages, media_manifest_correlated=self._source_media_entries is not None,
+                         resume_history=self._resume_history)
 
     def _source_command_authority(self, pending, clock):
         self._receiving_policy()
         if not self._controls.receiver_command_current(pending.ticket):
             raise TransferError('file_desktop_source_command_authority_changed')
         _body(pending.message, source_messages.REQUEST, clock())
+        if pending.command.operation == 'resume_lookup':
+            self._require_resume_lookup_selection()
+
+    def _require_resume_lookup_selection(self):
+        selected = self._resume_lookup_selection
+        snapshot = self._receiving_policy()
+        if (selected is None or snapshot.version != selected.policy_version or self._run is not None or self._source_run is not None
+                or self._source_status is None or self._source_status.version != selected.source_version
+                or self._receive_binding() != selected.job.accepted.binding or snapshot.policy.destination != selected.job.accepted.destination
+                or not self._open_catalog(allow_create=False)):
+            raise TransferError('file_desktop_resume_lookup_not_current')
+        current = next((job for job in self._catalog.jobs() if job.owner == selected.job.owner), None)
+        if current != selected.job:
+            raise TransferError('file_desktop_resume_original_job_changed')
+        selected.job.accepted.verify(self._receive_binding)
+        return selected
+
+    def request_resume_lookup(self, action, native_job_owner, *, clock=now_ms):
+        """Explicit protected original-job selection; history is not a run grant."""
+        self._take_action(action)
+        with self._operation():
+            snapshot = self._receiving_policy()
+            if self._source_pending is not None or self._run is not None or self._source_run is not None or self._offer is not None:
+                raise TransferError('file_desktop_receive_run_held')
+            if (self._source_status is None or self._source_status.repair_pending or not self._source_status.enabled
+                    or not self._source_status.associated):
+                raise TransferError('file_desktop_source_status_required')
+            if self._source_control_required is not None:
+                witness = self._controls.remote_control_witness(); required = self._source_control_required
+                if witness is None or witness[0] != required[0] or witness[1] <= required[1]:
+                    raise TransferError('file_desktop_source_controls_pending')
+            if not self._open_catalog(allow_create=False):
+                raise TransferError('file_desktop_resume_unavailable')
+            job = next((job for job in self._catalog.jobs() if job.owner == native_job_owner), None)
+            if job is None:
+                raise TransferError('file_desktop_resume_original_job_changed')
+            self._resume_lookup_selection = _NativeDesktopResumeLookup(job, snapshot.version, self._source_status.version)
+            self._resume_history = None
+            self._require_resume_lookup_selection(); action.validate(self)
+            manifest = job.accepted.manifest
+            message = source_messages.create_command('resume_lookup', expected_version=self._source_status.version,
+                source_id=manifest.source_id, transfer_id=manifest.transfer_id, manifest_sha256=manifest.fingerprint, now=clock())
+            command = source_messages.parse_command(message, now=clock())
+            ticket = self._controls.receiver_command_ticket()
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_control_required = None
+            self._send_source_pending(clock, action)
+            return message['message_id']
 
     def _send_source_pending(self, clock, action=None):
         pending = self._source_pending
@@ -287,6 +337,14 @@ class NativeDesktopFileConnection:
         elif command.operation == 'request_read':
             result = source_messages.parse_permission_result(message, expected_request_id=command.request_id,
                 expected_version=command.expected_version, now=at)
+        elif command.operation == 'resume_lookup':
+            selected = self._require_resume_lookup_selection()
+            manifest = selected.job.accepted.manifest
+            result = source_messages.parse_resume_history(message, expected_request_id=command.request_id,
+                expected_version=command.expected_version, expected_source_id=manifest.source_id,
+                expected_transfer_id=manifest.transfer_id, expected_manifest_sha256=manifest.fingerprint, now=at)
+            if message['expires_ms'] > pending.message['expires_ms']:
+                raise TransferError('file_desktop_resume_lookup_deadline_changed')
         elif command.operation == 'media_page':
             first = self._source_media_pages[0] if self._source_media_pages else None
             result = parse_media_page(message, expected_request_id=command.request_id, expected_version=command.expected_version,
@@ -323,6 +381,7 @@ class NativeDesktopFileConnection:
                 self._source_albums = {}
                 self._source_media_pages = ()
                 self._source_media_entries = None
+                self._resume_lookup_selection = self._resume_history = None
             self._source_status = result
             if command.operation == 'configure':
                 # The phone changes native send state in this transaction and
@@ -344,6 +403,8 @@ class NativeDesktopFileConnection:
                 self._source_media_entries = None
         elif command.operation == 'media_page':
             self._source_media_pages += (result,)
+        elif command.operation == 'resume_lookup':
+            self._resume_history = result  # Historical hint only; no receive/run/READ authority.
         self._source_result = result
 
     def _take_action(self, action):
@@ -948,6 +1009,13 @@ class _NativeDesktopReceiveRun:
     request: dict | None = None
     request_sent: bool = False
     last_request: dict | None = None
+
+
+@dataclass(frozen=True)
+class _NativeDesktopResumeLookup:
+    job: object
+    policy_version: str
+    source_version: str
 
 
 @dataclass

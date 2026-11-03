@@ -1,5 +1,26 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Linux native original-job lookup action (Refs #365, #337)
+
+A separate explicit native lookup action now selects an existing protected receiver
+job, verifies current binding/destination/policy/catalog and source control echo,
+and derives the phone lookup request from that original manifest. It creates no
+catalog/job/stage and excludes active receive/source owners. The immutable pending
+request and ticket precede actual output; retries revalidate the same native job.
+Replies require exact request/policy/manifest and original-job ownership before
+projecting historical hints. Wrong/replayed/expired/unsolicited replies HOLD.
+
+92 distinct host cases pass (14 new, 78 affected): actual native service/catalog
+reconnect ownership, original manifest request, no stage resume/allocation, exact
+lost-send retry, foreign/deadline/authority/replay rejection, expired output, changed
+original job and active/foreign action guards, plus normal source/connection/receive
+paths. The original catalog record/quota and existing publication-journal identities
+are retained. Test channels are native-owner fixtures, not physical network/phone
+acceptance. Generic incomplete lookup emission stays blocked; historical projection
+does NOT open a resume run, accept an offer, read data or retire quota. Resume-source/
+fresh-media reconciliation, pending-head repair, desktop UI/Windows and physical
+acceptance remain unfinished. Production/automatic/UI/releases remain OFF.
+
 ### Exact original-manifest historical lookup (Refs #364, #337)
 
 Android's private source-job ID is independently generated, not the manifest source
