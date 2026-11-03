@@ -1,5 +1,25 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Inspectable original native source identity (Refs #349, #337)
+
+New acceptance-format-2 proofs retain the actual native source context fields,
+including original peer identity, optional pairing epoch, permission epoch, source
+version/policy epoch and read token. Their exact canonical hash must equal the
+source-context hash ALREADY protected by the original job. The shared canonical
+encoding remains byte-for-byte compatible; no job identity or consent is rewritten.
+Original native lease checks still precede capture. A parsed historical context
+is not a native lease and cannot manufacture its live owner object or READ rights.
+
+Older acceptance-format-1 remains historically readable with no invented context
+witness; native rebind/output/new-saved operations require separate repair instead
+of silently upgrading it. Typed/hash/context/pairing inconsistencies reject, and
+new-format metadata cannot be disguised as old format by changing one format field.
+145 distinct host cases pass (two new, 143 affected), including actual Gallery
+peer/pairing/permission binding before chunk output and absent-pairing SAF history.
+This only supplies verifiable original identity fields for future native recovery;
+restart READ renewal/post-restart incoming ownership and platform acceptance remain
+unfinished, with production/UI/automatic/release gates OFF.
+
 ### Durable original Android acceptance before output (Refs #348, #337)
 
 The actual native acceptance path now commits/readbacks original sealed job/source

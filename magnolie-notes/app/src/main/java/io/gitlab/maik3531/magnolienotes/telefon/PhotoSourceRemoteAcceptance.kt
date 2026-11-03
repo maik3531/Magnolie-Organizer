@@ -5,6 +5,9 @@ import kotlinx.serialization.json.*
 /** Historical native observation, not a restarted offer/READ/Chunk grant. */
 internal class PhotoSourceRemoteAcceptance private constructor(val record: JsonObject) {
     val acceptance: JsonObject get() = record["acceptance"] as JsonObject
+    val originalAuthority: NativePhotoSourceContext? get() = (record["source_authority"] as? JsonObject)?.let {
+        NativePhotoSourceContext.parse(it, (record["source_context"] as JsonPrimitive).content)
+    }
     companion object {
         fun acceptanceWire(accepted: DeviceFileRemoteAcceptance) = buildJsonObject {
             put("offer_id", accepted.offerId); put("manifest_sha256", accepted.manifestSha256)
@@ -13,9 +16,11 @@ internal class PhotoSourceRemoteAcceptance private constructor(val record: JsonO
             put("expires", accepted.expires); put("command_digest", accepted.commandDigest)
         }
 
-        fun capture(job: PhotoSourceJob, offer: NativeGalleryOfferOutput, accepted: DeviceFileRemoteAcceptance) = parse(buildJsonObject {
-            put("format", 1); put("job_id", job.id); put("source_job_sha256", job.version)
+        fun capture(job: PhotoSourceJob, offer: NativeGalleryOfferOutput, accepted: DeviceFileRemoteAcceptance,
+            lease: NativePhotoSourceLease) = parse(buildJsonObject {
+            put("format", 2); put("job_id", job.id); put("source_job_sha256", job.version)
             put("source_context", job.sourceContext); put("root_key", job.rootKey?.let(::JsonPrimitive) ?: JsonNull)
+            put("source_authority", NativePhotoSourceContext.parse(NativePhotoSourceContext.wire(lease), job.sourceContext).record)
             put("offer", buildJsonObject {
                 put("message_id", offer.messageId); put("transfer_id", offer.transferId)
                 put("manifest_sha256", offer.manifestSha256); put("expires", offer.expires)
@@ -28,9 +33,10 @@ internal class PhotoSourceRemoteAcceptance private constructor(val record: JsonO
             fun text(value: JsonObject, key: String) = (value[key] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
             fun expires(value: JsonObject) = (value["expires"] as? JsonPrimitive)?.takeIf { !it.isString && Regex("[1-9][0-9]*").matches(it.content) }
                 ?.content?.toLongOrNull()?.takeIf { it > 0 } ?: fail()
+            val witnessed = when (record["format"]) { JsonPrimitive(1) -> false; JsonPrimitive(2) -> true; else -> fail() }
             if (job.phase !in setOf("sealed", "retired") || job.snapshot == null || job.rootKey == null ||
-                record.keys != setOf("format", "job_id", "source_job_sha256", "source_context", "root_key", "offer", "acceptance") ||
-                record["format"] != JsonPrimitive(1) || record["job_id"] != JsonPrimitive(job.id) ||
+                record.keys != setOf("format", "job_id", "source_job_sha256", "source_context", "root_key", "offer", "acceptance") +
+                    (if (witnessed) setOf("source_authority") else emptySet()) || record["job_id"] != JsonPrimitive(job.id) ||
                 record["source_context"] != JsonPrimitive(job.sourceContext) || record["root_key"] != JsonPrimitive(job.rootKey)) fail()
             val jobHash = text(record, "source_job_sha256")
             if (!DeviceFileControl.hash(jobHash) || job.phase == "sealed" && jobHash != job.version) fail()
@@ -46,6 +52,10 @@ internal class PhotoSourceRemoteAcceptance private constructor(val record: JsonO
             expires(offer); expires(accepted)
             for (name in listOf("manifest_sha256", "acceptance_sha256", "permission_epoch", "destination_token", "command_digest"))
                 if (!DeviceFileControl.hash(text(accepted, name))) fail()
+            if (witnessed) {
+                val authority = NativePhotoSourceContext.parse(record["source_authority"] as? JsonObject ?: fail(), job.sourceContext)
+                if (authority.receiverId != manifest.receiverId || accepted["permission_epoch"] != JsonPrimitive(authority.permissionEpoch)) fail()
+            }
             return PhotoSourceRemoteAcceptance(record)
         }
     }

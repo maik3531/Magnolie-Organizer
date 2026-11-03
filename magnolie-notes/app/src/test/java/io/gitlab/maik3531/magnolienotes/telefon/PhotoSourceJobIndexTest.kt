@@ -87,6 +87,45 @@ class PhotoSourceJobIndexTest {
         }
     }
 
+    @Test fun originalNativeContextWitnessMustMatchEveryPreviouslyProtectedIdentityAndEpoch() {
+        Fixture().use { f -> f.open().use { index ->
+            val source = sealedSource(f, index); val (accepted, _) = remoteSaved(source)
+            val record = index.remoteAcceptance(source.job)!!
+            val authority = record.originalAuthority!!
+            assertEquals(f.native.receiver.peerId, authority.receiverId)
+            assertEquals(f.native.receiver.identitySha256, authority.receiverIdentitySha256)
+            assertEquals(f.native.receiver.permissionEpoch, authority.permissionEpoch)
+            assertNull(authority.pairingEpoch)
+            assertEquals(NativePhotoSourceContext.wire(f.native.lease), authority.record)
+            for (field in authority.record.keys) {
+                val wrong = if (field == "receiver") "foreign_receiver_01" else "9".repeat(64)
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativePhotoSourceContext.parse(JsonObject(authority.record + (field to JsonPrimitive(wrong))), source.job.sourceContext)
+                }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                NativePhotoSourceContext.parse(JsonObject(authority.record + ("pairing_epoch" to JsonPrimitive("9".repeat(64)))), source.job.sourceContext)
+            }
+            val badType = JsonObject(authority.record + ("version" to JsonPrimitive(true)))
+            val forgedHash = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(badType)).joinToString("") { "%02x".format(it.toInt() and 255) }
+            assertThrows(PhotoFolderScopeError::class.java) { NativePhotoSourceContext.parse(badType, forgedHash) }
+            source.requireRemoteAcceptance(accepted)
+        } }
+    }
+
+    @Test fun olderAcceptanceFormatRemainsHistoricalWithoutInventedSourceAuthorityWitness() {
+        Fixture().use { f -> f.open().use { index ->
+            val source = sealedSource(f, index); remoteSaved(source)
+            val original = index.remoteAcceptance(source.job)!!.record
+            val legacy = JsonObject((original - "source_authority") + ("format" to JsonPrimitive(1)))
+            val parsed = PhotoSourceRemoteAcceptance.parse(legacy, source.job)
+            assertEquals(legacy, parsed.record); assertNull(parsed.originalAuthority)
+            assertEquals(original, index.remoteAcceptance(source.job)!!.record)
+            val downgraded = JsonObject(original + ("format" to JsonPrimitive(1)))
+            assertThrows(PhotoFolderScopeError::class.java) { PhotoSourceRemoteAcceptance.parse(downgraded, source.job) }
+        } }
+    }
+
     @Test fun missingDurableAcceptanceCannotBeSuppliedByRemoteSavedOrAuthorizeChunkOutput() {
         Fixture().use { f -> f.open().use { index ->
             val source = sealedSource(f, index); val (accepted, message) = remoteSaved(source, false)
@@ -133,7 +172,7 @@ class PhotoSourceJobIndexTest {
                 val source = sealedSource(f, index); job = source.job
                 val (accepted, _) = remoteSaved(source, false)
                 val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
-                original = PhotoSourceRemoteAcceptance.capture(job, offer, accepted).record
+                original = PhotoSourceRemoteAcceptance.capture(job, offer, accepted, f.inventory().lease).record
                 interrupt = true
                 assertThrows(IOException::class.java) { source.commitRemoteAcceptance(offer, accepted) { } }
                 assertEquals(original, index.remoteAcceptance(job)!!.record)
@@ -189,7 +228,7 @@ class PhotoSourceJobIndexTest {
         Fixture().use { f -> f.open().use { index ->
             val source = sealedSource(f, index); val (accepted, _) = remoteSaved(source, false)
             val offer = NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires)
-            val record = PhotoSourceRemoteAcceptance.capture(source.job, offer, accepted).record
+            val record = PhotoSourceRemoteAcceptance.capture(source.job, offer, accepted, f.inventory().lease).record
             val originalOffer = record["offer"] as JsonObject
             val originalAcceptance = record["acceptance"] as JsonObject
             fun nested(name: String, original: JsonObject, key: String, value: JsonPrimitive) =

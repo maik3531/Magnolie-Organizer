@@ -739,6 +739,11 @@ class AndroidGalleryPhotoSourceTest {
                             val originalJob = inspected.jobs().single()
                             assertEquals(whole.acceptance.get()!!.acceptanceSha256,
                                 (inspected.remoteAcceptance(originalJob)!!.acceptance["acceptance_sha256"] as JsonPrimitive).content)
+                            val originalAuthority = inspected.remoteAcceptance(originalJob)!!.originalAuthority!!
+                            assertEquals(peer.peerId, originalAuthority.receiverId)
+                            assertEquals(peer.identitySha256, originalAuthority.receiverIdentitySha256)
+                            assertEquals(peer.pairingEpoch, originalAuthority.pairingEpoch)
+                            assertEquals(runtime.currentRequest()!!.receiver.permissionEpoch, originalAuthority.permissionEpoch)
                             assertNull(inspected.remoteSaved(originalJob))
                         } // No chunk has been returned yet.
                         assertEquals("e".repeat(64),whole.acceptance.get()!!.destinationToken)

@@ -84,6 +84,7 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
 
     fun requireRemoteAcceptance(accepted: DeviceFileRemoteAcceptance) = index.withSealedHead(job, scope, lease) {
         val original = index.remoteAcceptance(job) ?: DeviceFileControl.fail("photo_jobs_remote_acceptance_required")
+        if (original.originalAuthority == null) DeviceFileControl.fail("photo_jobs_remote_acceptance_repair_required")
         if (original.acceptance != PhotoSourceRemoteAcceptance.acceptanceWire(accepted)) DeviceFileControl.fail("photo_jobs_remote_acceptance_changed")
     }
 }
@@ -206,9 +207,10 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         withSealedHead(expected, scope, lease) {
             permitted()
             if (accepted.permissionEpoch != lease.receiver.permissionEpoch) fail("photo_jobs_remote_acceptance_authority_changed")
-            val next = PhotoSourceRemoteAcceptance.capture(expected, offer, accepted)
+            val next = PhotoSourceRemoteAcceptance.capture(expected, offer, accepted, lease)
             val original = readRemoteAcceptance(expected)
             if (original != null) {
+                if (original.originalAuthority == null) fail("photo_jobs_remote_acceptance_repair_required")
                 if (original.record != next.record) fail("photo_jobs_remote_acceptance_changed")
                 permitted(); original
             } else {
@@ -235,6 +237,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
             if (accepted.permissionEpoch != lease.receiver.permissionEpoch) fail("photo_jobs_remote_saved_authority_changed")
             val next = PhotoSourceRemoteSaved.capture(expected, accepted, message)
             val durableAcceptance = readRemoteAcceptance(expected) ?: fail("photo_jobs_remote_acceptance_required")
+            if (durableAcceptance.originalAuthority == null) fail("photo_jobs_remote_acceptance_repair_required")
             if (durableAcceptance.acceptance != PhotoSourceRemoteAcceptance.acceptanceWire(accepted)) fail("photo_jobs_remote_acceptance_changed")
             val original = readRemoteSaved(expected)
             if (original != null) {
@@ -668,12 +671,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         private val PRIVATE_DIRECTORY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
         private fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
-        private fun context(lease: NativePhotoSourceLease) = hash(TelefonKanonisch.bytes(JsonObject(mapOf(
-            "tree" to JsonPrimitive(lease.sourceKey), "version" to JsonPrimitive(lease.version),
-            "epoch" to JsonPrimitive(lease.sourceEpoch), "receiver" to JsonPrimitive(lease.receiver.peerId),
-            "identity" to JsonPrimitive(lease.receiver.identitySha256), "permission_epoch" to JsonPrimitive(lease.receiver.permissionEpoch),
-            "read_grant" to JsonPrimitive(lease.readGrantToken)) +
-            (lease.receiver.pairingEpoch?.let { mapOf("pairing_epoch" to JsonPrimitive(it)) } ?: emptyMap()))))
+        private fun context(lease: NativePhotoSourceLease) = hash(TelefonKanonisch.bytes(NativePhotoSourceContext.wire(lease)))
         private fun data(value: PhotoSourceJob) = JsonObject(mapOf("format" to JsonPrimitive(1), "source_context" to JsonPrimitive(value.sourceContext),
             "plain_bytes" to JsonPrimitive(value.plainBytes), "cipher_budget" to JsonPrimitive(value.cipherBudget),
             "root_key" to (value.rootKey?.let { JsonPrimitive(it) } ?: JsonNull), "phase" to JsonPrimitive(value.phase),
