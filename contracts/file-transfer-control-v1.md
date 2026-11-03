@@ -1,5 +1,36 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit real desktop album worker (Refs #330)
+
+An explicitly started native desktop worker now drives the full single-album
+batch lifecycle through the existing authenticated dispatcher: source preparation,
+media/offer correlation, real saved-target review, NEW-only subset selection when
+needed, native Chunk receive/publication/mapping/Saved, verified cache retirement,
+source cancel/END and exact next-batch continuation. Only one worker can own a
+connection. Import, construction, pairing and passive status reads start nothing.
+Unimplemented requested directions, deletion, video or grouping operations are
+rejected rather than silently ignored. Unresolved changes are reported as conflicts,
+not as a successful complete synchronization.
+
+Activity callbacks identify the exact real worker owner and remain active until
+its actual I/O ends, including cancellation. A UI stop sets a cancellation request;
+checkpoint/readback/descriptor close run on an I/O lane, not on the UI caller.
+An attempted Chunk must drain or reach its ordered source-cancel barrier before
+receiver release. Cancellation preserves incomplete jobs and quota. Closing the
+connection wakes a waiting worker; unknown command output is HOLD, not an implicit
+retry or successful completion. An explicitly ended scan with unknown batch-end
+metadata may be aborted but cannot be continued.
+
+182 distinct host cases pass (seven new, 175 affected): actual worker first sync
+over two batches, second scan with zero downloads and preserved PC crop/inode/
+historical mappings, real Chunk-drain cancellation and retained quota, no duplicate
+worker, empty album, truthful phone-change conflicts, connection-close cleanup,
+unready-production rejection, unknown-end abort and affected receiver/source/stop/
+batch behavior. These are actual desktop-worker host results, not an installed
+GUI, automatic-scheduler or physical-phone acceptance claim. Production registration,
+UI/tray wiring, platform acceptance and safe changed-phone-version execution remain
+unfinished. Production/automatic/UI/release gates remain OFF.
+
 ### Native whole-album batch ownership and desktop continuation (Refs #330)
 
 The explicit batch source path now uses the actual existing single source worker.

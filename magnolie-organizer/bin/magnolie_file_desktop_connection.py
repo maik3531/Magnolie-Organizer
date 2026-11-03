@@ -71,6 +71,9 @@ class NativeDesktopFileConnection:
         self._selected_preview = self._selected_source_id = None
         self._ended_batch = self._ended_batch_policy = None
         self._album_media_scope = None
+        self._update_condition = threading.Condition()
+        self._update_generation = 0
+        self._album_worker = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -138,6 +141,58 @@ class NativeDesktopFileConnection:
                 run = self._run
                 if run is not None and run.stop_requested.is_set():
                     self._finish_receive_stop()
+            if incoming:
+                self._wake_album_worker()
+
+    def _wake_album_worker(self):
+        with self._update_condition:
+            self._update_generation += 1
+            self._update_condition.notify_all()
+
+    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None):
+        """Explicit native worker start; construction/import/pairing starts nothing."""
+        self._take_action(action)
+        with self._operation():
+            snapshot = self._receiving_policy(); action.validate(self)
+            if (snapshot.direction != 'phone_to_desktop' or snapshot.include_videos or snapshot.separate_animations
+                    or snapshot.separate_own_recordings or snapshot.policy.phone_to_pc_delete or snapshot.policy.pc_to_phone_delete):
+                raise TransferError('file_desktop_album_options_unavailable')
+            if self._album_worker is not None or self._source_pending is not None or self._source_run is not None or self._run is not None:
+                raise TransferError('file_desktop_album_worker_busy')
+            if self._ended_batch is not None and self._ended_batch.batch_end is not True:
+                raise TransferError('file_desktop_album_worker_busy')
+            if type(album_id) is not str or type(desktop_choice) is not bool or album_id not in self._source_albums:
+                raise TransferError('file_desktop_source_album_not_current')
+            if activity_changed is not None and not callable(activity_changed):
+                raise TransferError('file_desktop_native_activity_callback_required')
+            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed)
+            self._album_worker = worker
+        try:
+            worker._thread.start() # Never race a first command against our held operation lock.
+        except BaseException:
+            with self._gate:
+                if self._album_worker is worker: self._album_worker = None
+            raise
+        return worker
+
+    def request_normal_receive_stop(self, action, *, finish=True):
+        """Ordinary receiver stop with the same drain/checkpoint/actual-close
+        requirements as resume. UI callers request only; the I/O worker finishes.
+        """
+        if type(finish) is not bool:
+            raise TransferError('file_desktop_native_stop_choice_required')
+        self._take_action(action)
+        with self._receive_stop_gate:
+            self._ready()
+            run = self._run
+            if (run is None or run.job is None or self._source_run is None or self._resume_source_id is not None):
+                raise TransferError('file_desktop_normal_receiver_required')
+            if not run.stop_requested.is_set():
+                self._receive_stop = NativeReceiveStop(run.job.owner, self._source_run.run_id, 'pending')
+                run.stop_requested.set()
+        if finish: self._finish_receive_stop()
+        self._wake_album_worker()
+        return self.receive_stop_state()
 
     def receive_stop_state(self):
         """Nonblocking-I/O historical status, never a saved/repair/quota grant."""
@@ -280,7 +335,7 @@ class NativeDesktopFileConnection:
                     or self._mappings.read() != selected.mapping_snapshot):
                 raise TransferError('file_desktop_photo_selection_not_current')
         elif pending.command.operation in ('next_batch', 'end_album'):
-            ended = self._require_ended_batch()
+            ended = self._require_ended_batch(require_more=pending.command.operation == 'next_batch')
             if pending.command.run_id != ended.run_id or pending.command.expected_version != ended.version:
                 raise TransferError('file_desktop_batch_continuation_not_current')
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
@@ -389,10 +444,11 @@ class NativeDesktopFileConnection:
             action.validate(self)
         pending.sent = True
 
-    def _require_ended_batch(self):
+    def _require_ended_batch(self, *, require_more=True):
         ended = self._ended_batch
         policy = self._receiving_policy()
-        if (ended is None or not ended.batched or ended.batch_end is not False or ended.state != 'canceled_held'
+        if (ended is None or not ended.batched or (ended.batch_end is not False if require_more else ended.batch_end is True)
+                or ended.state != 'canceled_held'
                 or not ended.source_io_ended or self._run is not None or self._source_run is not None
                 or self._selected_preview is not None or self._source_status is None
                 or not self._source_status.enabled or not self._source_status.associated
@@ -429,7 +485,7 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_receive_run_held')
                 options.update(enabled=enabled, kinds=kinds)
             elif operation in ('next_batch', 'end_album'):
-                options['run_id'] = self._require_ended_batch().run_id
+                options['run_id'] = self._require_ended_batch(require_more=operation == 'next_batch').run_id
             elif operation in ('discover', 'request_read', 'run', 'batch_run', 'resume_run', 'catalog_page'):
                 if not self._source_status.enabled or not self._source_status.associated:
                     raise TransferError('file_desktop_source_not_configured')
@@ -639,8 +695,9 @@ class NativeDesktopFileConnection:
                 if command.operation != 'next_batch':
                     self._album_media_scope = None
             if command.operation == 'resume_run': self._resume_source_id = result.run_id
-            if (command.operation == 'cancel_resume' and result.state == 'canceled_held' and result.source_io_ended
-                    and self._run is not None and self._run.stop_requested.is_set()):
+            if (command.operation in ('cancel_run', 'cancel_resume') and result.state == 'canceled_held' and result.source_io_ended
+                    and self._run is not None and self._run.stop_requested.is_set()
+                    and self._receive_stop is not None and self._receive_stop.source_run_id == result.run_id):
                 self._run.stop_barrier_confirmed = True
             if command.operation in ('offer_run', 'offer_resume'):
                 self._source_offer = result
@@ -1406,6 +1463,7 @@ class NativeDesktopFileConnection:
 
     def close(self):
         self._closed.set()
+        self._wake_album_worker()
         self._authority.revoke()  # Nonwaiting even during blocked native/socket I/O.
         return self._close_resources()
 
@@ -1485,6 +1543,176 @@ class _NativeDesktopResumeLookup:
     job: object
     policy_version: str
     source_version: str
+
+
+class NativePhotoAlbumWorker:
+    """Actual explicit native album I/O. No pairing-triggered start or dummy data.
+    Activity callbacks receive this exact owner, so an old END cannot clear a
+    newer worker's tray state. OS/UI consumers must marshal callbacks themselves.
+    """
+    def __init__(self, connection, album_id, desktop_choice, activity_changed):
+        self._connection = connection
+        self._album_id = album_id; self._desktop_choice = desktop_choice
+        self._activity_changed = activity_changed
+        self._stop = threading.Event(); self._ended = threading.Event()
+        self._state_gate = threading.Lock()
+        self._state = 'starting'; self._error = self._activity_error = None
+        self._saved = 0; self._known = 0; self._conflicts = []
+        self._thread = threading.Thread(target=self._run, name='magnolie-photo-album', daemon=True)
+
+    @property
+    def io_ended(self):
+        return self._ended.is_set()
+
+    def progress(self):
+        with self._state_gate:
+            return dict(state=self._state, saved_files=self._saved, known_files=self._known,
+                conflicts=tuple(self._conflicts), error=self._error, activity_error=self._activity_error,
+                io_ended=self.io_ended)
+
+    def join(self, timeout=None):
+        self._thread.join(timeout)
+        return self.io_ended
+
+    def stop(self):
+        self._stop.set()
+        try:
+            self._connection.request_normal_receive_stop(self._connection.issue_receive_action(), finish=False)
+        except TransferError:
+            pass # No receiver/offline is not proof of an END; _run still performs cleanup or reports held.
+        self._connection._wake_album_worker()
+
+    def _activity(self, active):
+        if self._activity_changed is not None:
+            try: self._activity_changed(self, active)
+            except Exception as error:
+                with self._state_gate: self._activity_error = type(error).__name__
+
+    def _wait(self, predicate, *, timeout=MAX_TTL_MS/1000):
+        connection = self._connection
+        deadline = time.monotonic() + timeout
+        while True:
+            with connection._update_condition:
+                generation = connection._update_generation
+            if connection._closed.is_set(): raise TransferError('file_desktop_connection_closed')
+            try:
+                value = predicate()
+                if value: return value
+            except TransferError as error:
+                if str(error) != 'file_desktop_connection_busy': raise
+            remaining = deadline - time.monotonic()
+            if remaining <= 0: raise TransferError('file_desktop_album_reply_timeout')
+            with connection._update_condition:
+                if generation == connection._update_generation:
+                    connection._update_condition.wait(min(remaining, 0.25))
+
+    def _command(self, operation, **options):
+        connection = self._connection
+        def send():
+            return connection.request_source(connection.issue_receive_action(), operation, **options)
+        request_id = self._wait(send)
+        def received():
+            state = connection.source_state(); result = state['result']
+            return result if not state['pending'] and getattr(result, 'request_id', None) == request_id else None
+        return self._wait(received)
+
+    def _prepared(self, result):
+        deadline = time.monotonic() + MAX_TTL_MS/1000
+        while result.state == 'preparing':
+            if self._stop.wait(0.25): raise TransferError('file_desktop_album_stop_requested')
+            if time.monotonic() >= deadline: raise TransferError('file_desktop_album_prepare_timeout')
+            result = self._command('run_status')
+        if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
+        if result.state not in ('snapshot_ready', 'empty_ready'):
+            raise TransferError('file_desktop_album_source_held')
+        return result
+
+    def _offer(self):
+        while True:
+            page = self._command('media_page')
+            if page.next_cursor is None: break
+        return self._command('offer_run')
+
+    def _end_source(self):
+        result = self._command('cancel_run')
+        deadline = time.monotonic() + MAX_TTL_MS/1000
+        while not result.source_io_ended:
+            if time.monotonic() >= deadline: raise TransferError('file_desktop_album_stop_timeout')
+            with self._connection._update_condition:
+                self._connection._update_condition.wait(0.25)
+            result = self._command('run_status')
+        return self._command('end_run')
+
+    def _cleanup(self):
+        connection = self._connection
+        state = connection.source_state()
+        if state['pending']: raise TransferError('file_desktop_album_command_held')
+        try: connection.request_normal_receive_stop(connection.issue_receive_action())
+        except TransferError as error:
+            if str(error) != 'file_desktop_normal_receiver_required': raise
+        if state['run'] is not None:
+            self._end_source()
+        if connection._ended_batch is not None and connection._ended_batch.batch_end is not True:
+            self._command('end_album')
+
+    def _run(self):
+        connection = self._connection
+        self._activity(True)
+        with self._state_gate: self._state = 'running'
+        try:
+            if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
+            result = self._prepared(self._command('batch_run', album_id=self._album_id, desktop_choice=self._desktop_choice))
+            while True:
+                if result.state != 'empty_ready':
+                    offered = self._offer()
+                    review = connection.review_pending_photos(connection.issue_receive_action())
+                    new = [item for item in review.items if item.decision == 'new_photo']
+                    with self._state_gate:
+                        self._known += sum(item.decision in ('unchanged', 'keep_local_edit') for item in review.items)
+                        self._conflicts.extend(item for item in review.items if item.decision not in ('new_photo', 'unchanged', 'keep_local_edit'))
+                    if new:
+                        if len(new) != len(review.items):
+                            request_id = connection.select_pending_new_photos(connection.issue_receive_action())
+                            def selected():
+                                state = connection.source_state(); value = state['result']
+                                return value if not state['pending'] and getattr(value, 'request_id', None) == request_id else None
+                            self._prepared(self._wait(selected)); offered = self._offer()
+                        if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
+                        connection.accept_pending_offer(connection.issue_receive_action(), offered.offer_id)
+                        while True:
+                            if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
+                            requested = connection.request_next_chunk()
+                            if requested is None: break
+                            def chunk_arrived():
+                                with connection._operation():
+                                    return connection._require_receiver().request is None
+                            self._wait(chunk_arrived)
+                        connection.publish_received(connection.issue_receive_action())
+                        connection.finish_saved_receive(connection.issue_receive_action(), retire_cache=True)
+                        with self._state_gate: self._saved += len(new)
+                final = connection.source_state()['run'].batch_end
+                self._end_source()
+                if self._stop.is_set():
+                    if final is False: self._command('end_album')
+                    with self._state_gate: self._state = 'canceled'
+                    break
+                if final is True:
+                    with self._state_gate: self._state = 'conflicts' if self._conflicts else 'complete'
+                    break
+                if final is not False: raise TransferError('file_desktop_album_completion_unknown')
+                result = self._prepared(self._command('next_batch'))
+        except Exception as error:
+            cleanup_error = None
+            try: self._cleanup()
+            except Exception as failure: cleanup_error = str(failure)
+            with self._state_gate:
+                self._state = 'canceled' if self._stop.is_set() and cleanup_error is None else 'held'
+                self._error = cleanup_error or str(error)
+        finally:
+            with connection._gate:
+                if connection._album_worker is self: connection._album_worker = None
+            self._ended.set() # All actual worker I/O has returned, not just a cancel request.
+            self._activity(False)
 
 
 @dataclass(frozen=True)
