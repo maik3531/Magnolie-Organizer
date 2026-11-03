@@ -75,6 +75,12 @@ msgstr "Albums vernieuwen"
 msgid "Phone album"
 msgstr "Telefoonalbum"
 
+msgid "Store new animations in a separate folder"
+msgstr "Nieuwe animaties in een aparte map opslaan"
+
+msgid "Existing files stay in their current folders."
+msgstr "Bestaande bestanden blijven in hun huidige mappen."
+
 msgid "Transfer recovery"
 msgstr "Overdrachten herstellen"
 

@@ -27,7 +27,7 @@ from test_file_desktop_resume_abandonment import receipt as abandonment_receipt
 
 @contextmanager
 def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, metadata_handler=None,
-        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None):
+        insertion_witness=False, content=b'hello', photo_ids=None, resume_job=None, resume_media=None,media_kinds=None):
     queue = Queue(); errors = []; chunks = []; saved = []
     saved_targets={}
     entered = threading.Event(); release = threading.Event()
@@ -54,6 +54,7 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                             value['body']['page']['insertion_witness']=resume_media.insertion_witness
                             for entry in value['body']['page']['entries']:
                                 entry['photo_id']=next(item.photo_id for item in resume_media.entries if item.file_id==entry['file_id'])
+                                entry['media_kind']=next(item.media_kind for item in resume_media.entries if item.file_id==entry['file_id'])
                             dispatch(fixture,value);continue
                         options={}
                         if operation=='end_resume':options['run_ended']=True
@@ -89,6 +90,7 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                         for entry in value['body']['page']['entries']:
                             path=next(file.path for file in current.files if file.id==entry['file_id'])
                             entry['photo_id'] = photo_ids[path] if photo_ids is not None else sha256(f'worker-photo-{index}'.encode()).hexdigest()
+                            if media_kinds is not None:entry['media_kind']=media_kinds[path]
                         dispatch(fixture, value)
                     elif operation == 'offer_run':
                         offered = create_offer(current); offered['expires_ms'] = min(offered['expires_ms'], message['expires_ms'])

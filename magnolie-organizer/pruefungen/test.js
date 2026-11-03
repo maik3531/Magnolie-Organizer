@@ -7558,6 +7558,20 @@ function knopfMit(text, wurzel) {
   Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Stopp").click();
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "stop"));
   assert.ok(!fotoGruppe.querySelector("[data-photo-recovery]"), "unangebundene Wiederherstellung bleibt unsichtbar");
+  assert.ok(!fotoGruppe.querySelector("[data-photo-animations]"), "unangebundene Gruppierung bleibt unsichtbar");
+  const groupingBefore = baumNachrichten.length;
+  fotoStand({ available: true, enabled: true, state: "layout", animation_grouping_supported: true, separate_animations: false, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  const animationCheck = fotoGruppe.querySelector("[data-photo-animations]");
+  assert.ok(animationCheck && !animationCheck.checked && !animationCheck.disabled);
+  assert.strictEqual(baumNachrichten.length, groupingBefore, "Gruppierungsanzeige startet weder Abgleich noch Migration");
+  animationCheck.checked = true; animationCheck.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), {
+    action: "animations_separate", historical_choice: "keep_existing"
+  }, "die ausdrückliche Zukunftswahl bewahrt vorhandene Zielzuordnungen");
+  fotoStand({ available: true, enabled: true, state: "syncing", busy: true, animation_grouping_supported: true, separate_animations: true, albums: [] });
+  assert.ok(bd.querySelector("[data-photo-animations]").checked && bd.querySelector("[data-photo-animations]").disabled,
+    "Layout wird nicht während tatsächlicher I/O umgestellt");
   const recoveryJobs = [
     { job_owner: "a".repeat(32), state: "saved_confirmation", files: 1 },
     { job_owner: "b".repeat(32), state: "mapping_receipt_repair", files: 2 },

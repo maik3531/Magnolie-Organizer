@@ -427,9 +427,25 @@ class ProtectedPhotoPreferences:
 
     def set_mode(self,action,expected,mode):
         """UI scheduling only: retain exact grants, destinations and baselines."""
+        return self._set_behavior(action,expected,dict(mode=mode))
+
+    def set_animation_layout(self,action,expected,*,separate,historical_choice):
+        """Explicit future-only layout; historical mappings always win.
+
+        No move/copy/migration choice is implemented here. In particular, a
+        boolean from a wire preference cannot silently choose for old files.
+        """
+        return self._set_behavior(action,expected,dict(separate_animations=separate),historical_choice=historical_choice)
+
+    def _set_behavior(self,action,expected,changes,*,historical_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
-        if type(expected) is not PhotoPreferencesSnapshot or mode not in ('manual','automatic'):
+        if set(changes)=={'separate_animations'}:
+            if type(changes['separate_animations']) is not bool or type(historical_choice) is not str or historical_choice!='keep_existing':
+                raise TransferError('photo_preferences_historical_layout_choice_required')
+        elif set(changes)!={'mode'} or changes['mode'] not in ('manual','automatic'):
+            raise TransferError('photo_preferences_invalid_settings')
+        if type(expected) is not PhotoPreferencesSnapshot:
             raise TransferError('photo_preferences_invalid_settings')
         with self._operation():
             if not self._open(create=False):raise TransferError('photo_preferences_destination_required')
@@ -438,11 +454,12 @@ class ProtectedPhotoPreferences:
                 if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
                 if policy is None or not current.associated or not policy.enabled:
                     raise TransferError('photo_preferences_authority_changed')
-                if policy.mode==mode:return current
+                if all(getattr(policy,key)==value for key,value in changes.items()):
+                    action.validate(self);self._peer();return current
                 revision=policy.revision+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
-                changed=replace(policy,revision=revision,mode=mode,
-                    permission_revision=policy.permission_revision if policy.permission_revision is not None else policy.revision)
+                changed=replace(policy,revision=revision,
+                    permission_revision=policy.permission_revision if policy.permission_revision is not None else policy.revision,**changes)
                 blob=self._protect(changed.wire(),'policy')
                 head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 mutated=False

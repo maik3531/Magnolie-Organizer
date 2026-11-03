@@ -2748,6 +2748,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr ""
 
+msgid "Existing files stay in their current folders."
+msgstr ""
+
 msgid "Expand day groups by default"
 msgstr ""
 
@@ -6320,6 +6323,9 @@ msgid "Stop retrying"
 msgstr ""
 
 msgid "Stopping photo synchronization…"
+msgstr ""
+
+msgid "Store new animations in a separate folder"
 msgstr ""
 
 msgid "Street"

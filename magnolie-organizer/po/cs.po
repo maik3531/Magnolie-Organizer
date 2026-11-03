@@ -75,6 +75,12 @@ msgstr "Obnovit alba"
 msgid "Phone album"
 msgstr "Album telefonu"
 
+msgid "Store new animations in a separate folder"
+msgstr "Ukládat nové animace do samostatné složky"
+
+msgid "Existing files stay in their current folders."
+msgstr "Stávající soubory zůstanou ve svých dosavadních složkách."
+
 msgid "Transfer recovery"
 msgstr "Obnova přenosů"
 

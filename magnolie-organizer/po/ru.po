@@ -76,6 +76,12 @@ msgstr "Обновить альбомы"
 msgid "Phone album"
 msgstr "Альбом телефона"
 
+msgid "Store new animations in a separate folder"
+msgstr "Сохранять новые анимации в отдельной папке"
+
+msgid "Existing files stay in their current folders."
+msgstr "Существующие файлы остаются в прежних папках."
+
 msgid "Transfer recovery"
 msgstr "Восстановление передач"
 

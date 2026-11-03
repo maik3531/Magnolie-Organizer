@@ -10011,6 +10011,12 @@ msgstr "Alben aktualisieren"
 msgid "Phone album"
 msgstr "Handyalbum"
 
+msgid "Store new animations in a separate folder"
+msgstr "Neue Animationen in separatem Ordner speichern"
+
+msgid "Existing files stay in their current folders."
+msgstr "Vorhandene Dateien bleiben in ihren bisherigen Ordnern."
+
 msgid "Transfer recovery"
 msgstr "Übertragungen wiederherstellen"
 

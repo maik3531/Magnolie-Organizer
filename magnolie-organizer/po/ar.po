@@ -76,6 +76,12 @@ msgstr "تحديث الألبومات"
 msgid "Phone album"
 msgstr "ألبوم الهاتف"
 
+msgid "Store new animations in a separate folder"
+msgstr "حفظ الرسوم المتحركة الجديدة في مجلد منفصل"
+
+msgid "Existing files stay in their current folders."
+msgstr "تبقى الملفات الموجودة في مجلداتها الحالية."
+
 msgid "Transfer recovery"
 msgstr "استعادة عمليات النقل"
 

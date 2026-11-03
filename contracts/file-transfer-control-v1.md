@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Future-only animation grouping with explicit historical choice (Refs #330)
+
+The actual album worker now supports the existing native animation target route
+for newly admitted photo identities. The Notes advanced-functions checkbox
+explicitly selects `keep_existing`: existing files keep their original folders.
+No historical move/copy option is exposed, and no migration is inferred from a
+boolean. GIF/animation members remain photos; ordinary images are not routed to
+the animation folder. Original accepted targets and protected historical mapping
+heads always take precedence, including after stop, layout change and resume.
+
+Layout changes use protected preference CAS while retaining exact file-grant
+revision/epoch, destination token, pairing, mapping/catalog witnesses and old
+receipts. Actual workers, receivers, offers and source commands exclude a layout
+change. An idempotent request still requires a live explicit native action.
+Changing the future layout starts no scan/transfer/migration and does not unpause
+automatic synchronization. The frontend exposes it only for native support and
+disables it while the action lane is busy. Both new labels are localized in all
+nineteen desktop catalogs.
+
+Source-host tests cover actual GTK/IPC changes, mixed animation/image publication,
+preserved original PC edits, disabling grouping without moving already grouped
+files, repeated sync without chunks, original stopped-job resume at its old
+target, invalid/implicit historical choices and in-flight exclusion. Grouping
+of own recordings, video routing, historical destination reassociation and
+journaled no-replace migration remain separate unimplemented joins; these checks
+grant no installed/physical-device or production acceptance.
+
 ### Explicit Organizer recovery overview and historical receipts (Refs #330)
 
 The existing Notes advanced-functions area exposes a bounded native recovery

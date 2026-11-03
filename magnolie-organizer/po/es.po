@@ -75,6 +75,12 @@ msgstr "Actualizar álbumes"
 msgid "Phone album"
 msgstr "Álbum del teléfono"
 
+msgid "Store new animations in a separate folder"
+msgstr "Guardar las nuevas animaciones en una carpeta separada"
+
+msgid "Existing files stay in their current folders."
+msgstr "Los archivos existentes permanecen en sus carpetas actuales."
+
 msgid "Transfer recovery"
 msgstr "Recuperación de transferencias"
 

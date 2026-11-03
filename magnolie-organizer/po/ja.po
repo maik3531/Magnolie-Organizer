@@ -75,6 +75,12 @@ msgstr "アルバムを更新"
 msgid "Phone album"
 msgstr "スマートフォンのアルバム"
 
+msgid "Store new animations in a separate folder"
+msgstr "新しいアニメーションを別のフォルダーに保存"
+
+msgid "Existing files stay in their current folders."
+msgstr "既存のファイルは現在のフォルダーにそのまま残ります。"
+
 msgid "Transfer recovery"
 msgstr "転送の復旧"
 

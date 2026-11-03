@@ -75,6 +75,12 @@ msgstr "刷新相册"
 msgid "Phone album"
 msgstr "手机相册"
 
+msgid "Store new animations in a separate folder"
+msgstr "将新动画保存到单独的文件夹"
+
+msgid "Existing files stay in their current folders."
+msgstr "现有文件保留在原来的文件夹中。"
+
 msgid "Transfer recovery"
 msgstr "传输恢复"
 

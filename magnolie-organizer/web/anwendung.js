@@ -28680,10 +28680,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
       erweitert.open = ansicht.offen; erweitert.append(el("summary", null, _("Advanced functions")));
       const gruppe = el("div", "notes-foto-sync");
-      const sende = (action, album_id, job_owner) => {
+      const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
         if (job_owner !== undefined) request.job_owner = job_owner;
+        if (historical_choice !== undefined) request.historical_choice = historical_choice;
         Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint, request });
       };
       const an = document.createElement("input"); an.type = "checkbox";
@@ -28707,6 +28708,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
         if (stand.destination) gruppe.append(formZeile(_("Destination folder"), el("span", null, stand.destination)));
+        if (stand.animation_grouping_supported === true) {
+          const animationen = document.createElement("input"); animationen.type = "checkbox";
+          animationen.dataset.photoAnimations = "true";
+          animationen.checked = stand.separate_animations === true; animationen.disabled = stand.busy === true;
+          animationen.addEventListener("change", () => sende(animationen.checked ? "animations_separate" : "animations_together", undefined, undefined, "keep_existing"));
+          const animationLabel = el("label", "hak");
+          animationLabel.append(animationen, document.createTextNode(" " + _("Store new animations in a separate folder")));
+          gruppe.append(animationLabel, el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+        }
         const status = {
           enable: _("Preparing photo synchronization…"), permission_required: _("Allow photo access on the phone, then refresh albums."),
           discover: _("Finding phone albums…"), albums: _("Phone albums are ready."), syncing: _("Photo synchronization active"),

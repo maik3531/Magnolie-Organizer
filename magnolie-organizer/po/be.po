@@ -76,6 +76,12 @@ msgstr "Абнавіць альбомы"
 msgid "Phone album"
 msgstr "Альбом тэлефона"
 
+msgid "Store new animations in a separate folder"
+msgstr "Захоўваць новыя анімацыі ў асобнай папцы"
+
+msgid "Existing files stay in their current folders."
+msgstr "Наяўныя файлы застаюцца ў сваіх цяперашніх папках."
+
 msgid "Transfer recovery"
 msgstr "Аднаўленне перадач"
 
