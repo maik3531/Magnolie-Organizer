@@ -24,6 +24,7 @@ from magnolie_file_transfer import FileManifest, NativeTransferBinding, Transfer
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_media_history import NativeMediaHistory
 from magnolie_file_receipt import NativeSavedFileReceipt
+from magnolie_photo_mapping_receipt import SavedPhotoMappingReceipt
 from magnolie_file_publish import inspect_publication_destination
 from magnolie_publication_journal import ProtectedPublicationJournal
 
@@ -65,6 +66,7 @@ class ProtectedTransferJobIndex:
     _SCHEMA = {"meta": "CREATE TABLE meta(id INTEGER PRIMARY KEY CHECK(id=1),payload BLOB NOT NULL)",
         "heads": "CREATE TABLE heads(revision INTEGER PRIMARY KEY,payload BLOB NOT NULL)"}
     _RECEIPT_SCHEMA = "CREATE TABLE receipts(file_id TEXT PRIMARY KEY,payload BLOB NOT NULL)"
+    _MAPPING_SCHEMA = "CREATE TABLE mapping_receipt(id INTEGER PRIMARY KEY CHECK(id=1),payload BLOB NOT NULL)"
 
     def __init__(self, parent, manifest, binding, current_binding, seal, unseal, *, owner, create=False, accepted=None, media_history=None):
         if (type(manifest) is not FileManifest or type(binding) is not NativeTransferBinding
@@ -255,12 +257,13 @@ class ProtectedTransferJobIndex:
         return value
 
     def _record_limit(self, suffix):
-        return self.MAX_OWNER_BYTES if suffix == "owner" else self.MAX_RECEIPT_BYTES if suffix.startswith("receipt/") else self.MAX_RECORD_BYTES
+        return self.MAX_OWNER_BYTES if suffix in ("owner","mapping-receipt") else self.MAX_RECEIPT_BYTES if suffix.startswith("receipt/") else self.MAX_RECORD_BYTES
 
     def _schema(self):
         actual = dict(self._db.execute("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"))
         version = self._db.execute("PRAGMA user_version").fetchone()[0]
-        wanted = self._SCHEMA if version == 1 else dict(self._SCHEMA, receipts=self._RECEIPT_SCHEMA) if version == 2 else None
+        wanted = (self._SCHEMA if version == 1 else dict(self._SCHEMA, receipts=self._RECEIPT_SCHEMA)
+            if version == 2 else dict(self._SCHEMA, receipts=self._RECEIPT_SCHEMA,mapping_receipt=self._MAPPING_SCHEMA) if version == 3 else None)
         if wanted is None or actual != wanted:
             raise TransferError("transfer_job_index_unknown_schema")
         if (self._db.execute("PRAGMA journal_mode").fetchone() != ("delete",)
@@ -269,6 +272,7 @@ class ProtectedTransferJobIndex:
         self._schema_version = version
 
     def _owner(self):
+        self._schema()
         rows = self._db.execute("SELECT id,payload FROM meta LIMIT 2").fetchall()
         if len(rows) != 1 or rows[0][0] != 1:
             raise TransferError("transfer_job_index_owner_missing")
@@ -276,9 +280,9 @@ class ProtectedTransferJobIndex:
         value = self._open(blob, "owner")
         if (type(value) is dict and type(value.get("context")) is dict
                 and type(value["context"].get("format")) is int
-                and value["context"].get("format") in (2,3) and value['context']['format'] > self._context['format']):
+                and value["context"].get("format") in (2,3,4) and value['context']['format'] > self._context['format']):
             stored = value["context"]
-            base = {key: item for key, item in stored.items() if key != "media_history"}
+            base = {key: item for key, item in stored.items() if key not in ("media_history","mapping_receipt_sha256")}
             if 'accepted' not in stored:
                 raise TransferError("transfer_job_index_acceptance_mismatch")
             accepted = NativeAcceptedTransfer.parse(stored["accepted"])
@@ -286,15 +290,22 @@ class ProtectedTransferJobIndex:
                 raise TransferError("transfer_job_index_acceptance_mismatch")
             if self._accepted is not None and self._accepted != accepted:
                 raise TransferError('transfer_job_index_acceptance_mismatch')
-            wanted_base=dict(self._context,format=2,accepted=accepted.wire())
+            wanted_base=dict({key:item for key,item in self._context.items() if key not in ('media_history','mapping_receipt_sha256')},format=2,accepted=accepted.wire())
             if dict(base,format=2)!=wanted_base:
                 raise TransferError('transfer_job_index_acceptance_mismatch')
             # Parsing authenticated metadata does not check a live destination
             # or grant. Mutation still goes through _fresh/accepted.verify.
             wanted_context = wanted_base
-            if stored['format']==3:
+            if stored['format']>=3:
                 history=NativeMediaHistory.parse(stored.get('media_history'),accepted)
+                if self._media_history is not None and self._media_history!=history:
+                    raise TransferError('transfer_job_index_media_history_changed')
                 wanted_context=dict(wanted_context,format=3,media_history=history.wire())
+                if stored['format']==4:
+                    digest=stored.get('mapping_receipt_sha256')
+                    if type(digest) is not str or re.fullmatch('[0-9a-f]{64}',digest) is None:
+                        raise TransferError('transfer_job_index_mapping_receipt_required')
+                    wanted_context=dict(wanted_context,format=4,mapping_receipt_sha256=digest)
             else:
                 history=None
         else:
@@ -307,6 +318,13 @@ class ProtectedTransferJobIndex:
             raise TransferError("transfer_job_index_owner_changed")
         self._context, self._accepted, self._media_history = wanted_context, accepted, history
         self._owner_cipher = blob
+        if (self._context['format']==4)!=(self._schema_version==3):
+            raise TransferError('transfer_job_index_mapping_receipt_schema_changed')
+        if self._context['format']==4:
+            rows=self._db.execute('SELECT id,payload FROM mapping_receipt LIMIT 2').fetchall()
+            if (len(rows)!=1 or rows[0][0]!=1 or type(rows[0][1]) is not bytes
+                    or sha256(rows[0][1]).hexdigest()!=self._context['mapping_receipt_sha256']):
+                raise TransferError('transfer_job_index_mapping_receipt_changed')
 
     @property
     def accepted_transfer(self):
@@ -433,7 +451,7 @@ class ProtectedTransferJobIndex:
 
     def _enable_receipts(self):
         self._snapshot()
-        if self._schema_version == 2:
+        if self._schema_version >= 2:
             return
         self._uncertain = True
         with self._db:
@@ -473,6 +491,53 @@ class ProtectedTransferJobIndex:
                 os.fsync(self._database_fd)
                 os.fsync(self._root_fd)
             return tuple(result)
+
+    def saved_mapping_receipt(self):
+        """Historical mapping evidence; no destination presence or wire authority."""
+        with self._locked():
+            receipts=self.saved_receipts()
+            if self._context['format']!=4:return None
+            blob=self._db.execute('SELECT payload FROM mapping_receipt WHERE id=1').fetchone()[0]
+            value=SavedPhotoMappingReceipt.parse(self._open(blob,'mapping-receipt'),self._accepted,
+                self._media_history,self._context['owner'],receipts)
+            os.fsync(self._database_fd);os.fsync(self._root_fd)
+            self._directories();self._owner()
+            return value
+
+    def commit_saved_mapping(self, records, store, lease):
+        """Owned explicit schema upgrade and one immutable post-mapping receipt."""
+        with self._locked():
+            self._require_receipt_worker(lease)
+            existing=self.saved_mapping_receipt()
+            if existing is not None:return existing
+            if self._schema_version!=2 or self._media_history is None:
+                raise TransferError('transfer_job_index_mapping_receipt_context_required')
+            evidence=SavedPhotoMappingReceipt.capture(self._accepted,self._media_history,self._context['owner'],
+                self.saved_receipts(),records,store)
+            blob=self._protect(evidence.wire(),'mapping-receipt')
+            context=dict(self._context,format=4,mapping_receipt_sha256=sha256(blob).hexdigest())
+            owner=self._protect(dict(context=context,root_key=self._root_key,database_key=self._database_key,
+                lock_key=self._lock_key),'owner')
+            self._require_receipt_worker(lease);self._snapshot()
+            self._uncertain=True
+            with self._db:
+                self._db.execute('BEGIN IMMEDIATE')
+                self._db.execute(self._MAPPING_SCHEMA)
+                self._db.execute('INSERT INTO mapping_receipt VALUES(1,?)',(blob,))
+                self._db.execute('UPDATE meta SET payload=? WHERE id=1',(owner,))
+                self._db.execute('PRAGMA user_version=3')
+                self._fresh()
+            os.fsync(self._database_fd);os.fsync(self._root_fd);self._fresh()
+            self._context=context;self._owner_cipher=owner
+            self._snapshot()
+            # Leave the object fenced on any post-commit readback failure.
+            self._uncertain=False
+            try:
+                result=self.saved_mapping_receipt()
+                if result!=evidence:raise TransferError('transfer_job_index_mapping_receipt_readback_failed')
+                self._fresh();return result
+            except BaseException:
+                self._uncertain=True;raise
 
     def commit_saved_file(self, journal, file_id, lease):
         """Explicit native save/recovery: authenticate original journal and

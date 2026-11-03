@@ -760,7 +760,22 @@ class NativeDesktopFileConnection:
         if action is not None:
             action.validate(self)
         self._receive_binding()
-        self._mappings.commit_saved_history(self._mappings.issue_action(),self._mappings.read(),run.receiver)
+        existing=run.receiver._index.saved_mapping_receipt()
+        if existing is None:
+            snapshot,records=self._mappings.commit_saved_history(self._mappings.issue_action(),self._mappings.read(),run.receiver)
+            checkpoint=self._mappings.checkpoint(self._mappings._store_witness())
+            if checkpoint.version!=snapshot.version:
+                raise TransferError('file_desktop_saved_mapping_checkpoint_changed')
+            run.receiver._index.commit_saved_mapping(records,checkpoint,run.receiver._lease)
+        else:
+            _,records=self._mappings.lookup(tuple(PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type)
+                for entry in history.entries))
+            if (any(record is None for record in records)
+                    or tuple(record.protected_record_sha256 for record in records)!=tuple(entry.mapping_record_sha256 for entry in existing.entries)):
+                raise TransferError('file_desktop_saved_mapping_receipt_changed')
+            self._mappings.verify_checkpoint(existing.store)
+        if run.receiver._index.saved_mapping_receipt() is None:
+            raise TransferError('file_desktop_saved_mapping_receipt_required')
         self._receive_binding()
         if action is not None:
             action.validate(self)

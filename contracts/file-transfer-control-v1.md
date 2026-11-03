@@ -1674,6 +1674,36 @@ sidecar links, uncertain commit recovery and unchanged legacy handling preserve
 the originals. Actual native receive/source/close paths and two encrypted fixture
 socketpair cases pass; this is not physical-phone or installed-platform acceptance.
 
+### Durable post-mapping evidence before saved output (Refs #337)
+
+The native media receive coordinator now joins the original authenticated media
+history, every protected local file-save receipt, every original protected mapping
+record and the actual mapping-store checkpoint. A bounded immutable historical
+receipt binds their exact ordered identities and hashes, accepted transfer and job
+owner. It is not evidence of current target presence, write/delete authority, a
+book SaveACK, remote confirmation, baseline convergence or quota retirement.
+
+The owned native job-index worker explicitly upgrades receipt schema 2 to 3 in
+one FULL SQLite transaction: the encrypted mapping receipt, owner context format 4
+with its protected receipt hash, and schema version commit together. DB/directory
+sync and protected readback precede native saved socket output. Historical reads
+do not create/upgrade tables. Older owner contexts remain readable; a missing or
+damaged new receipt or downgraded schema cannot become absent/default metadata.
+Transaction or post-commit sync failures emit no saved confirmation and preserve
+actual files and metadata for authenticated reopen, not destructive reconstruction.
+
+A retry with a durable receipt only looks up the original mappings, checks their
+protected hashes and original store checkpoint and re-reads the receipt. It does
+not create mappings, republish targets, replace later PC edits or release quotas.
+Complete consistent private-backup rollback still needs separate monotonic anchoring.
+
+201 distinct affected/new source-host cases pass (24 new, 177 affected): transaction
+rollback, loss/corruption, fresh index reopen, original history, revocation and
+immutable receipt-only retry, plus native control/receive paths and two encrypted
+socketpair fixture cases. These checks are not installed GUI, physical phone,
+OS-dialog or power-loss acceptance. Full restart/recovery ownership, legacy repair,
+baseline/conflict convergence and release/readiness/UI gates remain unfinished/OFF.
+
 The affected pairing-associated control/policy/source/index/snapshot suites pass
 89 cases. This includes actual protected-index legacy association/reassociation,
 same-ID/key re-pair fencing, no implicit default writes, pending-CAS grant-byte
