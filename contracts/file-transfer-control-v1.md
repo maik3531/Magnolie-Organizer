@@ -1,5 +1,30 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Local resumed-receiver stop/checkpoint/close (Refs #371, #337)
+
+An explicit native action can mark only the actual resumed receiver for local stop
+without waiting behind socket or stage I/O. New output/publication/request admission
+is blocked; already admitted work retains its native resources until actual return.
+An attempted outstanding request must drain through its correlated Chunk or an
+ordered, correlated canceled_held/source-I/O-ended reply before local closure.
+Uncertain socket output is not treated as an unsent request or silently discarded.
+
+After quiescence the runtime commits/reads back the actual receiver checkpoint and
+closes descriptors before releasing the local receiver owner. Failed checkpoint,
+revocation or uncertain/prior close keeps failed ownership rather than manufacturing
+successful cleanup. Stop metadata grants neither Saved, baseline, repair nor quota
+retirement; the source owner and original job/history/quota remain held. A late
+duplicate is discarded without reopening the stage only after strict correlation,
+current native binding and equality with the previously accepted Chunk hash.
+
+100 distinct host cases pass (13 new, 87 affected): blocked actual stage/socket I/O,
+pending drain/cancel barrier, checkpoint-before-close-before-owner-release, output
+preflight stop, uncertain cleanup, revocation, changed/foreign duplicates and normal
+versus resumed ownership, plus existing receive/source/lookup/END compatibility.
+These native host fixtures do not establish physical phone/network acceptance.
+Coordinated pending-head abandonment/receipt/CAS, overall convergence, UI/platform
+acceptance and production readiness remain unfinished; all release gates stay OFF.
+
 ### Opaque exact pending-head identity, not repair authority (Refs #370, #337)
 
 Authorized historical lookup now includes an existing attempt's exact native UUID

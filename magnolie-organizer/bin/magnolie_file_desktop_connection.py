@@ -5,7 +5,7 @@ OFF, including when a protected enabled preference exists. Construction itself
 does not send packets, create preferences or start any worker.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 import threading
 import time
@@ -22,6 +22,7 @@ from magnolie_file_transfer import TransferError
 from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_offer import KIND as OFFER, validate_offer
 from magnolie_file_chunk_message import RESULT as CHUNK
+from magnolie_file_chunk_message import parse_chunk
 from magnolie_file_receive import NativeFileReceiveOperation, NativeReceiveStartError
 from magnolie_transfer_job_catalog import ProtectedTransferJobCatalog
 from magnolie_transfer_job_index import ProtectedTransferJobIndex
@@ -63,6 +64,9 @@ class NativeDesktopFileConnection:
         self._resume_lookup_selection = self._resume_history = None
         self._resume_source_id = None
         self._resume_ended_manifest = None
+        self._receive_stop_gate = threading.Lock()
+        self._receive_stop = None
+        self._stopped_receive_run = None
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
@@ -126,6 +130,81 @@ class NativeDesktopFileConnection:
             self._gate.release()
             if self._closed.is_set():
                 self._close_resources()
+            else:
+                run = self._run
+                if run is not None and run.stop_requested.is_set():
+                    self._finish_receive_stop()
+
+    def receive_stop_state(self):
+        """Nonblocking-I/O historical status, never a saved/repair/quota grant."""
+        with self._receive_stop_gate:
+            return self._receive_stop
+
+    def request_receive_stop(self, action):
+        self._take_action(action)
+        with self._receive_stop_gate:
+            self._ready()
+            run = self._run
+            if (run is None or run.job is None or self._resume_source_id is None or self._source_run is None
+                    or self._source_run.run_id != self._resume_source_id or self._resume_lookup_selection is None
+                    or self._resume_lookup_selection.job.owner != run.job.owner):
+                raise TransferError('file_desktop_resumed_receiver_required')
+            if not run.stop_requested.is_set():
+                self._receive_stop = NativeReceiveStop(run.job.owner, self._resume_source_id, 'pending')
+                run.stop_requested.set()  # Never waits behind actual stage/socket I/O.
+        self._finish_receive_stop()
+        return self.receive_stop_state()
+
+    def _finish_receive_stop(self):
+        if not self._gate.acquire(blocking=False):
+            return False
+        try:
+            with self._receive_stop_gate:
+                run = self._run
+                state = self._receive_stop
+                if (self._closed.is_set() or run is None or state is None or not run.stop_requested.is_set()
+                        or state.owner != run.job.owner or state.state != 'pending'):
+                    return False
+                if run.request is not None and run.request_output_started and not run.stop_barrier_confirmed:
+                    return False  # Drain this known request or its ordered source-cancel barrier first.
+            progress = None; failure = None; closed = False
+            receiver = run.receiver
+            if receiver is None:
+                failure = TransferError('file_desktop_receive_repair_pending')
+            else:
+                already_closed = receiver._closed
+                try:
+                    self._receive_binding()
+                    progress = receiver.checkpoint()  # Includes protected commit/readback.
+                    if progress.checkpoint_verified_bytes != progress.verified_bytes:
+                        raise TransferError('file_desktop_stop_checkpoint_not_proven')
+                except Exception as error:
+                    failure = error
+                try:
+                    receiver.close()  # Actual descriptors close after native I/O, index last.
+                    closed = not already_closed  # A prior close no-op is not new cleanup proof.
+                except Exception as error:
+                    self._cleanup_error = type(error).__name__
+                    if failure is None: failure = error
+                try:
+                    self._receive_binding()
+                except Exception as error:
+                    if failure is None: failure = error
+                if not closed and failure is None:
+                    failure = TransferError('file_desktop_stop_cleanup_not_proven')
+            with self._receive_stop_gate:
+                self._receive_stop = NativeReceiveStop(state.owner, state.source_run_id, 'stopped' if failure is None else 'failed',
+                    io_ended=True, checkpoint_committed=progress is not None and progress.checkpoint_verified_bytes == progress.verified_bytes,
+                    resources_closed=closed, verified_bytes=progress.verified_bytes if progress else None,
+                    checkpoint_verified_bytes=progress.checkpoint_verified_bytes if progress else None,
+                    checkpoint_cleanup_pending=progress.checkpoint_cleanup_pending if progress else None)
+                if failure is None:
+                    self._stopped_receive_run = run
+                    self._run = None
+                    self._offer = self._offer_binding = self._offer_policy_version = self._source_offer = None
+            return failure is None
+        finally:
+            self._gate.release()
 
     def _send_controls(self, clock):
         if not self._controls.needs_packet:
@@ -187,12 +266,15 @@ class NativeDesktopFileConnection:
         if pending.command.operation == 'resume_lookup':
             self._require_resume_lookup_selection()
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
-            self._require_resume_lookup_selection(allow_source_run=True)
+            self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=pending.command.operation == 'cancel_resume')
 
-    def _require_resume_lookup_selection(self, *, allow_source_run=False):
+    def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False):
         selected = self._resume_lookup_selection
         snapshot = self._receiving_policy()
-        if (selected is None or snapshot.version != selected.policy_version or self._run is not None
+        receiver = self._run
+        stopping = (allow_stopping_receiver and receiver is not None and receiver.stop_requested.is_set()
+                    and selected is not None and receiver.job == selected.job)
+        if (selected is None or snapshot.version != selected.policy_version or receiver is not None and not stopping
                 or self._source_run is not None and (not allow_source_run or self._source_run.run_id != self._resume_source_id)
                 or (self._source_run is None) != (self._resume_source_id is None)
                 or self._source_status is None or self._source_status.version != selected.source_version
@@ -312,7 +394,12 @@ class NativeDesktopFileConnection:
                 resumed = operation in ('resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume')
                 if resumed != (self._resume_source_id is not None and self._source_run.run_id == self._resume_source_id):
                     raise TransferError('file_desktop_resume_source_owner_changed')
-                if resumed: self._require_resume_lookup_selection(allow_source_run=True)
+                if resumed:
+                    self._require_resume_lookup_selection(allow_source_run=True, allow_stopping_receiver=operation == 'cancel_resume')
+                stopped = self._receive_stop
+                if (resumed and stopped is not None and stopped.source_run_id == self._resume_source_id
+                        and operation in ('offer_resume', 'resume_media_page')):
+                    raise TransferError('file_desktop_receive_stop_requested')
                 if operation == 'end_resume' and (self._source_run.state != 'canceled_held' or not self._source_run.source_io_ended):
                     raise TransferError('file_desktop_resume_source_io_pending')
                 if operation in ('offer_run', 'media_page', 'offer_resume', 'resume_media_page') and (self._run is not None or self._offer is not None
@@ -432,6 +519,9 @@ class NativeDesktopFileConnection:
         elif command.operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
             if command.operation == 'resume_run': self._resume_source_id = result.run_id
+            if (command.operation == 'cancel_resume' and result.state == 'canceled_held' and result.source_io_ended
+                    and self._run is not None and self._run.stop_requested.is_set()):
+                self._run.stop_barrier_confirmed = True
             if command.operation in ('offer_run', 'offer_resume'):
                 self._source_offer = result
             elif result.state != 'snapshot_ready':
@@ -660,6 +750,8 @@ class NativeDesktopFileConnection:
             return jobs
 
     def _publication_gate(self, binding, mutation):
+        if self._run is not None and self._run.stop_requested.is_set():
+            raise TransferError('file_desktop_receive_stop_requested')
         action = self._mutation_action
         if action is None:
             raise TransferError('file_desktop_native_publication_action_required')
@@ -669,20 +761,33 @@ class NativeDesktopFileConnection:
         if self._run is not None and self._run.receiver is not None:
             self._verify_job_mapping_store(self._run.receiver._index.media_history)
         action.validate(self)
+        if self._run is not None and self._run.stop_requested.is_set():
+            raise TransferError('file_desktop_receive_stop_requested')
         result = mutation()
+        if self._run is not None and self._run.stop_requested.is_set():
+            raise TransferError('file_desktop_receive_stop_requested')
         if self._receive_binding() != binding:
             raise TransferError('file_desktop_native_authority_changed')
         action.validate(self)
         return result
 
-    def _send_data(self, message, clock, *, action=None):
+    def _send_data(self, message, clock, *, action=None, on_output=None):
+        run = self._run
+        if run is not None and run.stop_requested.is_set():
+            raise TransferError('file_desktop_receive_stop_requested')
         self._receive_binding()
         self._ready()
         if action is not None:
             action.validate(self)
         if clock() >= message['expires_ms']:
             raise TransferError('file_desktop_output_expired')
+        with self._receive_stop_gate:
+            if run is not None and run.stop_requested.is_set():
+                raise TransferError('file_desktop_receive_stop_requested')
+            if on_output is not None: on_output()
         self._channel.send(message)
+        if run is not None and run.stop_requested.is_set():
+            raise TransferError('file_desktop_receive_stop_requested')
         self._receive_binding()
         if action is not None:
             action.validate(self)
@@ -748,6 +853,7 @@ class NativeDesktopFileConnection:
             if run.acceptance is None:
                 raise TransferError('file_desktop_acceptance_repair_pending')
             self._send_data(run.acceptance, clock)
+            if run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
             run.acceptance_sent = True
 
     def resume_pending_offer(self, action, offer_id, native_job_owner, *, clock=now_ms):
@@ -794,16 +900,20 @@ class NativeDesktopFileConnection:
             self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job)
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
                 protection.seal, protection.unseal, self._publication_gate)
+            if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
             action.validate(self)
             self._run.acceptance = self._run.receiver.acceptance_message(self._offer, now=clock())
             self._send_data(self._run.acceptance, clock, action=action)
+            if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
             self._run.acceptance_sent = True
             return self._run.receiver.progress()
 
-    def _require_receiver(self):
+    def _require_receiver(self, *, allow_stopping=False):
         self._receive_binding()
         if self._run is None or self._run.receiver is None:
             raise TransferError('file_desktop_receive_repair_pending')
+        if self._run.stop_requested.is_set() and not allow_stopping:
+            raise TransferError('file_desktop_receive_stop_requested')
         return self._run
 
     def request_next_chunk(self, *, clock=now_ms):
@@ -814,18 +924,31 @@ class NativeDesktopFileConnection:
             if run.request is None or clock() >= run.request['expires_ms']:
                 run.request = run.receiver.next_chunk_request_message(now=clock())
                 run.request_sent = False
+                run.request_output_started = False
             if run.request is None:
                 return None  # No missing bytes is not publication/save/sync END.
-            self._send_data(run.request, clock)
+            self._send_data(run.request, clock, on_output=lambda:setattr(run, 'request_output_started', True))
+            if run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
             run.request_sent = True
             return strict_json(canonical(run.request))
 
     def _receive_chunk(self, message, clock):
-        run = self._require_receiver()
         request_id = message.get('body', {}).get('request_id') if type(message.get('body')) is dict else None
+        stopped = self._stopped_receive_run
+        if stopped is not None and stopped.last_request is not None and request_id == stopped.last_request['message_id']:
+            data = bytearray(parse_chunk(message, stopped.last_request, stopped.accepted, self._receive_binding, now=clock()))
+            try:
+                if stopped.last_chunk_sha256 is None or message['body']['data_sha256'] != stopped.last_chunk_sha256:
+                    raise TransferError('file_desktop_stopped_chunk_changed')
+            finally:
+                data[:] = b'\x00' * len(data)  # Verified old duplicate, no stage reopen or data authority.
+            return
+        run = self._require_receiver(allow_stopping=True)
         duplicate = run.last_request is not None and request_id == run.last_request['message_id']
         request = run.last_request if duplicate else run.request
-        if request is None or not duplicate and not run.request_sent:
+        draining = (run.stop_requested.is_set() and run.request_output_started and request is not None
+                    and request_id == request['message_id'])
+        if request is None or not duplicate and not run.request_sent and not draining:
             raise TransferError('file_desktop_chunk_not_requested')
         run.receiver.receive_chunk_message(message, request, now=clock())
         self._receive_binding()
@@ -834,8 +957,10 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_chunk_expired_during_native_io')
         if not duplicate:
             run.last_request = request
+            run.last_chunk_sha256 = message['body']['data_sha256']
             run.request = None
             run.request_sent = False
+            run.request_output_started = False
 
     def receive_progress(self):
         with self._operation():
@@ -1057,6 +1182,32 @@ class _NativeDesktopReceiveRun:
     request: dict | None = None
     request_sent: bool = False
     last_request: dict | None = None
+    last_chunk_sha256: str | None = None
+    stop_requested: threading.Event = field(default_factory=threading.Event)
+    request_output_started: bool = False
+    stop_barrier_confirmed: bool = False
+
+
+@dataclass(frozen=True)
+class NativeReceiveStop:
+    owner: str
+    source_run_id: str
+    state: str
+    io_ended: bool = False
+    checkpoint_committed: bool = False
+    resources_closed: bool = False
+    verified_bytes: int | None = None
+    checkpoint_verified_bytes: int | None = None
+    checkpoint_cleanup_pending: bool | None = None
+
+    @property
+    def is_saved_receipt(self): return False
+
+    @property
+    def grants_write_authority(self): return False
+
+    @property
+    def grants_repair_authority(self): return False
 
 
 @dataclass(frozen=True)
