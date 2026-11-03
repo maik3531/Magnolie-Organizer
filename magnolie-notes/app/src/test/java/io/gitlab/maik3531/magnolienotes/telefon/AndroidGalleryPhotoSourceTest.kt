@@ -2338,6 +2338,47 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun actualWorkflowVideoDomainRequiresExplicitPolicyThenFreezesVideoPfdAndRevokesWithoutPhotoEpochReset() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val root = Files.createTempDirectory(f.root.toPath(), "video-workflow330-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val receiver = f.receiver.copy(pairingEpoch = "1".repeat(64))
+            NativeGalleryPhotoWorkflow(f.context, root, "sender_fixture_01", protection) { receiver }.use { workflow ->
+                val photos = workflow.configure(workflow.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                assertNull(workflow.currentRequest(GalleryMediaType.VIDEO))
+                assertEquals(GalleryReadCoverage.NONE, workflow.discover(mediaType = GalleryMediaType.VIDEO).coverage)
+                assertTrue(f.provider.opens.isEmpty())
+                val enabled = workflow.configureVideos(photos, true)
+                val catalog = workflow.discoverSelectable(mediaType = GalleryMediaType.VIDEO)
+                val page = catalog.page(); assertEquals("full_videos", page.string("coverage"))
+                val selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                val job = workflow.freeze(selected)
+                val source = workflow.source(job, catalog.source, selected.album, true)
+                val file = source.manifest.files.single()
+                assertEquals("clip.mp4", file.path)
+                assertArrayEquals("hello".toByteArray(), source.readChunk(file.id, 0))
+                assertEquals("video", source.mediaPage(0).string("media_type"))
+                assertThrows(PhotoFolderScopeError::class.java) { source.observeImageAnimation(file.id) }
+                assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
+                val cache = File(root, "photo-source-" + job.id)
+                val bytes = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+                val disabled = workflow.configureVideos(enabled, false)
+                assertEquals(photos.policy!!.epoch, disabled.policy!!.epoch)
+                assertEquals(photos.policy!!.fileGrantRevision, disabled.policy!!.fileGrantRevision)
+                assertEquals(GalleryMediaType.IMAGES, workflow.currentRequest()!!.mediaType)
+                assertNull(workflow.currentRequest(GalleryMediaType.VIDEO))
+                assertThrows(PhotoFolderScopeError::class.java) { source.readChunk(file.id, 0) }
+                assertEquals(listOf(job), workflow.jobs())
+                assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                assertEquals("hello", File(f.root, "source.bin").readText())
+            }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun modernWorkflowVideoReadUsesDeclaredIndependentVideoPermissionAndActualProvider() {
+        actualWorkflowVideoDomainRequiresExplicitPolicyThenFreezesVideoPfdAndRevokesWithoutPhotoEpochReset()
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()

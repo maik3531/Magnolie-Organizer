@@ -2,6 +2,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,6 +15,19 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class AndroidGalleryReadPermissionsTest {
+    @Test fun actualManifestDeclaresIndependentVideoPermissionWithoutPhotoGrantFallback() {
+        val context = RuntimeEnvironment.getApplication()
+        @Suppress("DEPRECATION")
+        val declared = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty()
+        assertTrue(Manifest.permission.READ_MEDIA_VIDEO in declared)
+        assertTrue(Manifest.permission.READ_MEDIA_IMAGES in declared)
+        val shadow = Shadows.shadowOf(context as Application)
+        shadow.denyPermissions(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+        shadow.grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+        assertEquals(GalleryReadCoverage.FULL_IMAGES, AndroidGalleryReadPermissions.observe(context))
+        assertEquals(GalleryReadCoverage.NONE, AndroidGalleryReadPermissions.observe(context, GalleryMediaType.VIDEO))
+    }
+
     @Test fun actualModernPermissionFlagsDistinguishFullSelectedOnlyAndNoImageVisibility() {
         val context = RuntimeEnvironment.getApplication()
         val shadow = Shadows.shadowOf(context as Application)

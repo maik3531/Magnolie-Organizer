@@ -529,6 +529,15 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         if (next != oldPolicy && ((oldPolicy?.revision ?: 1L) > 1 && next.revision == 1L ||
                 next.revision > 1 && next.revision != (oldPolicy?.revision ?: 1L) + 1))
             fail("gallery_policy_revision_conflict")
+        if (oldPolicy != null) {
+            if (next.fileGrantRevision < oldPolicy.fileGrantRevision) fail("gallery_policy_permission_revision_rollback")
+            if (next.fileGrantRevision == oldPolicy.fileGrantRevision &&
+                (next.epoch != oldPolicy.epoch || next.enabled != oldPolicy.enabled || next.kinds != oldPolicy.kinds ||
+                    next.receiverId != oldPolicy.receiverId || next.receiverIdentitySha256 != oldPolicy.receiverIdentitySha256 ||
+                    next.pairingEpoch != oldPolicy.pairingEpoch)) fail("gallery_policy_permission_revision_conflict")
+            if (oldPolicy.videos != null && (next.videos == null || next.videos.revision < oldPolicy.videos.revision))
+                fail("gallery_video_policy_downgrade")
+        }
         if (!permitted()) fail("gallery_policy_revoked")
         val wanted = protection.seal(frame(next.wire()), "photo-source-jobs-v1/" + GALLERY_POLICY)
         val fence = protection.seal(frame(JsonObject(mapOf("format" to JsonPrimitive(1),

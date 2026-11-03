@@ -17,8 +17,12 @@ internal class GalleryPhotoPermissionTicket internal constructor(internal val ac
  * RequestMultiplePermissions launcher. No settings UI, automatic prompt, writes,
  * permission revocation, notification or background activity launch is added here.
  */
-internal class GalleryPhotoAccessController(context: Context, private val current: () -> NativeGalleryRequest?,
-    private val elapsedMs: () -> Long = { SystemClock.elapsedRealtime() }) {
+internal class GalleryPhotoAccessController private constructor(context: Context, private val current: () -> NativeGalleryRequest?,
+    private val elapsedMs: () -> Long, private val mediaType: GalleryMediaType) {
+    constructor(context: Context, current: () -> NativeGalleryRequest?, elapsedMs: () -> Long = { SystemClock.elapsedRealtime() }) :
+        this(context, current, elapsedMs, GalleryMediaType.IMAGES)
+    constructor(context: Context, current: () -> NativeGalleryRequest?, mediaType: GalleryMediaType,
+        elapsedMs: () -> Long = { SystemClock.elapsedRealtime() }) : this(context, current, elapsedMs, mediaType)
     private val app = context.applicationContext
     private var epoch = nonce()
     private var pending: GalleryPhotoPermissionTicket? = null
@@ -27,7 +31,7 @@ internal class GalleryPhotoAccessController(context: Context, private val curren
     private var resumedOnce = false
     private var closed = false
 
-    val environment: GalleryAccessEnvironment = AndroidGalleryAccessEnvironment(app) { accessEpoch() }
+    val environment: GalleryAccessEnvironment = AndroidGalleryAccessEnvironment(app, mediaType) { accessEpoch() }
 
     @Synchronized fun accessEpoch(): String {
         if (closed) fail("gallery_access_controller_closed")
@@ -60,10 +64,12 @@ internal class GalleryPhotoAccessController(context: Context, private val curren
         if (!foreground) fail("gallery_permission_foreground_required")
         if (pending != null) fail("gallery_permission_request_pending")
         val activation = current() ?: fail("gallery_source_not_activated")
+        if (activation.mediaType != mediaType) fail("gallery_media_scope_changed")
         if (!activation.receiver.allowed || activation.kinds.isEmpty()) fail("gallery_receiver_not_ready")
+        val mediaPermission = if (mediaType == GalleryMediaType.IMAGES) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_MEDIA_VIDEO
         val permissions = when {
-            Build.VERSION.SDK_INT >= 34 -> listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-            Build.VERSION.SDK_INT >= 33 -> listOf(Manifest.permission.READ_MEDIA_IMAGES)
+            Build.VERSION.SDK_INT >= 34 -> listOf(mediaPermission, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            Build.VERSION.SDK_INT >= 33 -> listOf(mediaPermission)
             else -> listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
         rotate()
@@ -93,7 +99,7 @@ internal class GalleryPhotoAccessController(context: Context, private val curren
         val allowed = valid(ticket)
         cancel()
         if (!allowed) fail("gallery_permission_source_changed")
-        val coverage = AndroidGalleryReadPermissions.observe(app)
+        val coverage = AndroidGalleryReadPermissions.observe(app, mediaType)
         if (!same(ticket.activation, current())) fail("gallery_permission_source_changed")
         return coverage
     }
@@ -108,6 +114,7 @@ internal class GalleryPhotoAccessController(context: Context, private val curren
     }
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
         first.receiver.allowed && second.receiver.allowed && first.kinds == second.kinds && first.policyEpoch == second.policyEpoch &&
+        first.mediaType == mediaType && second.mediaType == mediaType &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
         first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
         first.receiver.pairingEpoch == second.receiver.pairingEpoch

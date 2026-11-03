@@ -11,15 +11,18 @@ import java.util.concurrent.atomic.AtomicReference
  * Activity is already resumed never registers another launcher or recreates it.
  * No store/key access, settings screen or permission prompt on construction.
  */
-internal class GalleryPhotoPermissionHost(private val activity: ComponentActivity) : DefaultLifecycleObserver, AutoCloseable {
+internal class GalleryPhotoPermissionHost(private val activity: ComponentActivity,
+    internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : DefaultLifecycleObserver, AutoCloseable {
     private class Attachment(val workflow: NativeGalleryPhotoWorkflow, val onResult: (Result<GalleryReadCoverage>) -> Unit)
     private val attachment = AtomicReference<Attachment?>()
     private val pendingResult = AtomicReference<Attachment?>()
     private var closed = false
     internal val applicationContext get() = activity.applicationContext
-    private val launcher = GalleryPhotoPermissionLauncher(activity, { attachment.get()?.workflow?.currentRequest() }) { result ->
+    private val launcher = GalleryPhotoPermissionLauncher(activity, { attachment.get()?.workflow?.currentRequest(mediaType) }, mediaType) { result ->
         val original = pendingResult.getAndSet(null)
-        if (original != null && attachment.get() === original) original.onResult(result)
+        if (original != null && attachment.get() === original) {
+            original.workflow.nativeReadAccessChanged(); original.onResult(result)
+        }
     }
     internal val requestPending: Boolean get() = launcher.requestPending
     init { activity.lifecycle.addObserver(this) }

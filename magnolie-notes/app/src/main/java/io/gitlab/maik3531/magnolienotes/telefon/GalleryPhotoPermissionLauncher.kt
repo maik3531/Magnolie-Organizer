@@ -12,9 +12,14 @@ import androidx.lifecycle.LifecycleOwner
  * thread, or report foreground/notification-tap pending instead of bypassing
  * Android's background-start restrictions.
  */
-internal class GalleryPhotoPermissionLauncher(private val activity: ComponentActivity,
-    current: () -> NativeGalleryRequest?, private val onResult: (Result<GalleryReadCoverage>) -> Unit) : DefaultLifecycleObserver, AutoCloseable {
-    val access = GalleryPhotoAccessController(activity, current)
+internal class GalleryPhotoPermissionLauncher private constructor(private val activity: ComponentActivity,
+    current: () -> NativeGalleryRequest?, private val onResult: (Result<GalleryReadCoverage>) -> Unit,
+    mediaType: GalleryMediaType) : DefaultLifecycleObserver, AutoCloseable {
+    constructor(activity: ComponentActivity, current: () -> NativeGalleryRequest?, onResult: (Result<GalleryReadCoverage>) -> Unit) :
+        this(activity, current, onResult, GalleryMediaType.IMAGES)
+    constructor(activity: ComponentActivity, current: () -> NativeGalleryRequest?, mediaType: GalleryMediaType,
+        onResult: (Result<GalleryReadCoverage>) -> Unit) : this(activity, current, onResult, mediaType)
+    val access = GalleryPhotoAccessController(activity, current, mediaType = mediaType)
     private var ticket: GalleryPhotoPermissionTicket? = null
     private var closed = false
     internal val requestPending: Boolean get() = ticket != null

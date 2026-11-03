@@ -115,4 +115,23 @@ class GalleryPhotoAccessControllerTest {
         f.permission().grantPermissions(Manifest.permission.READ_EXTERNAL_STORAGE)
         assertEquals(GalleryReadCoverage.FULL_IMAGES, f.controller.complete(ticket))
     }
+
+    @Test fun typedVideoControllerRejectsImageActivationAndCrossMediaResultEvenWithSameOwnerAndEpoch() {
+        val f = Fixture()
+        GalleryPhotoAccessController(f.context, { f.request }, GalleryMediaType.VIDEO) { f.clock }.let { video ->
+            video.onResume()
+            val before = video.accessEpoch()
+            assertEquals("gallery_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) { video.preparePermissionRequest() }.code)
+            assertEquals(before, video.accessEpoch())
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), GalleryMediaType.VIDEO)
+            val ticket = video.preparePermissionRequest()
+            assertEquals(listOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED), ticket.permissions)
+            video.launch(ticket) { }
+            f.permission().grantPermissions(Manifest.permission.READ_MEDIA_VIDEO)
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), GalleryMediaType.IMAGES)
+            assertEquals("gallery_permission_source_changed", assertThrows(PhotoFolderScopeError::class.java) { video.complete(ticket) }.code)
+            assertEquals(GalleryReadCoverage.FULL_VIDEOS, AndroidGalleryReadPermissions.observe(f.context, GalleryMediaType.VIDEO))
+            video.close()
+        }
+    }
 }

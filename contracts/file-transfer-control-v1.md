@@ -1,5 +1,35 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Native independent video consent and typed READ workflow (Refs #330)
+
+The native policy has an optional strict format 4 with a separately disabled-by-
+default video policy and retained photo file-grant revision. Older policy formats
+keep their original shape. Explicit video policy CAS uses its own bounded epoch/
+revision without changing acknowledged photo file-grant bytes, pairing or existing
+jobs. Native index checks reject permission-counter rollback, changed base consent
+at an unchanged grant revision, and erasure/downgrade of existing video metadata.
+Policy uncertainty still holds READ rather than fabricating defaults or retiring
+cache/history.
+
+The native workflow can now discover, freeze and read the actual video collection
+only through its explicit video activation and typed OS READ observations. Video
+background access, activity bindings and early permission hosts are distinct from
+images. Android 13+ requests the declared `READ_MEDIA_VIDEO`, never image READ as
+a fallback. Callback Boolean maps are not permission authority; actual OS flags,
+native owner, media type, policy and deadline remain checked. One pending media
+dialog excludes another. Native permission-result/selection notifications revoke
+old READ observations in both media domains without rekeying their file grants.
+Video withdrawal blocks further cache reads while preserving the original cache,
+job and phone bytes. GIFs remain in the image domain.
+
+Source-host tests include actual protected-policy/index operations, native
+permission hosts and MediaStore/PFD/encrypted-cache workflow on legacy and modern
+Android runtimes, plus merged-manifest permission inspection. They do not prove
+physical permission dialogs or an installed phone transfer. The authenticated
+source-command/foreground-tap video join, independent desktop video destination
+and complete worker/UI integration are still absent. No video control or new
+production readiness is advertised from these native workflow checks alone.
+
 ### Native camera-album classification for future photo grouping (Refs #330)
 
 Future grouping of camera photos now uses the actual selected native album kind.

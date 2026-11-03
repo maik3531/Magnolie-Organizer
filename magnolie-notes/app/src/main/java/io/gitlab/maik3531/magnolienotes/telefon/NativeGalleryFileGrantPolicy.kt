@@ -28,7 +28,7 @@ internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> Nativ
             // identity only, never written as a fabricated enabled default.
             val offEpoch = DeviceFileControl.digest("magnolie-native-file-initial-off-v1\u0000", JsonArray(listOf(
                 JsonPrimitive(peer.peerId), JsonPrimitive(peer.identitySha256), JsonPrimitive(pairing))))
-            val off = DeviceFileGrantState(policy?.revision ?: 1L, offEpoch, false, false)
+            val off = DeviceFileGrantState(policy?.fileGrantRevision ?: 1L, offEpoch, false, false)
             if (saved.repairPending) {
                 // A restarted adapter has no authenticated pre-CAS grant in
                 // memory. Do not invent one at the pending policy's revision:
@@ -40,7 +40,7 @@ internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> Nativ
             }
             val associated = policy != null && policy.receiverId == peer.peerId && policy.receiverIdentitySha256 == peer.identitySha256 &&
                 policy.pairingEpoch == pairing
-            val next = if (associated) DeviceFileGrantState(policy!!.revision, policy.epoch, policy.enabled, false) else off
+            val next = if (associated) DeviceFileGrantState(policy!!.fileGrantRevision, policy.epoch, policy.enabled, false) else off
             val before = confirmed
             if (before != null && (next.revision < before.revision || next.revision == before.revision &&
                     next.permissionWire() != before.permissionWire())) { uncertain = true; return null }

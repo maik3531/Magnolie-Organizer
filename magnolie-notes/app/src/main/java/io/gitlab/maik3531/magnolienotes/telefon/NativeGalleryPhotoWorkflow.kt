@@ -36,16 +36,22 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope, val host: GalleryPhotoPermissionHost? = null)
     private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
     private val binding = AtomicReference<Binding?>()
+    private val videoBinding = AtomicReference<Binding?>()
     private val pending = ConcurrentHashMap<String, Pending>()
     private val closed = AtomicBoolean(false)
     private class ReadBinding(val access: GalleryPhotoAccessController, val scope: GalleryPhotoSourceScope,
-        val activity: Binding? = null)
+        val activity: Binding? = null, val mediaType: GalleryMediaType = GalleryMediaType.IMAGES)
     // App-wide OS READ and the dedicated current file policy may authorize a
     // fresh background lease without retaining an Activity or its prompt ticket.
     // Construction neither observes media nor requests a permission.
     private val backgroundAccess = GalleryPhotoAccessController(app, { if (closed.get()) null else policy.currentRequest() })
     private val backgroundRead = ReadBinding(backgroundAccess,
         GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() }, backgroundAccess.environment))
+    private val backgroundVideoAccess = GalleryPhotoAccessController(app,
+        { if (closed.get()) null else policy.currentRequest(GalleryMediaType.VIDEO) }, mediaType = GalleryMediaType.VIDEO)
+    private val backgroundVideoRead = ReadBinding(backgroundVideoAccess,
+        GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest(GalleryMediaType.VIDEO) }, backgroundVideoAccess.environment),
+        mediaType = GalleryMediaType.VIDEO)
 
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return index.galleryPolicy() }
     fun configure(expected: GalleryPhotoPolicySnapshot, enabled: Boolean, kinds: Set<GallerySourceKind>): GalleryPhotoPolicySnapshot {
@@ -56,7 +62,10 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         ready()
         return policy.disableLocally(expected)
     }
-    fun currentRequest(): NativeGalleryRequest? { ready(); return policy.currentRequest() }
+    fun configureVideos(expected: GalleryPhotoPolicySnapshot, enabled: Boolean): GalleryPhotoPolicySnapshot {
+        ready(); return policy.configureVideos(expected, enabled)
+    }
+    fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? { ready(); return policy.currentRequest(mediaType) }
     fun jobs(): List<PhotoSourceJob> { ready(); return index.jobs() }
 
     /** Blocking native inspection only, off the UI thread. It does not restore
@@ -65,7 +74,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         cancellation: CancellationSignal = CancellationSignal()): NativeGalleryResumeInspection {
         ready()
         val original = index.requireGalleryResumeOriginal(expected)
-        val observed = readBound()
+        val observed = readBound(mediaType(selection.catalog.source))
         val album = selection.catalog.resolve(this, selection)
         val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
         val reader = AndroidGalleryPhotoSource(app, observed.scope)
@@ -83,7 +92,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun renewSource(selection: NativeGalleryAlbumSelection, expected: PhotoSourceJob,
         cancellation: CancellationSignal = CancellationSignal()): NativeGalleryRenewedSource {
         ready(); index.requireGalleryResumeOriginal(expected)
-        val observed = readBound()
+        val observed = readBound(mediaType(selection.catalog.source))
         val album = selection.catalog.resolve(this, selection)
         val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
         val reader = AndroidGalleryPhotoSource(app, observed.scope)
@@ -101,12 +110,17 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
      * Binding only registers an OS launcher; it never prompts on construction.
      */
     fun bindActivity(activity: ComponentActivity, onResult: (Result<GalleryReadCoverage>) -> Unit) {
+        bindActivity(activity, GalleryMediaType.IMAGES, onResult)
+    }
+    fun bindActivity(activity: ComponentActivity, mediaType: GalleryMediaType, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         uiThread(); ready()
         if (activity.applicationContext !== app) fail("gallery_workflow_foreign_application")
-        backgroundAccess.onAccessChanged()
-        binding.getAndSet(null)?.let(::releaseBinding)
-        val launcher = GalleryPhotoPermissionLauncher(activity, { if (closed.get()) null else policy.currentRequest() }, onResult)
-        binding.set(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() }, launcher.access.environment)))
+        background(mediaType).access.onAccessChanged()
+        nativeBinding(mediaType).getAndSet(null)?.let(::releaseBinding)
+        val launcher = GalleryPhotoPermissionLauncher(activity, { if (closed.get()) null else policy.currentRequest(mediaType) }, mediaType) { result ->
+            nativeReadAccessChanged(); onResult(result)
+        }
+        nativeBinding(mediaType).set(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest(mediaType) }, launcher.access.environment)))
     }
 
     /** Host already registered during native Activity.onCreate; no late
@@ -115,41 +129,45 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun attachPermissionHost(host: GalleryPhotoPermissionHost, onResult: (Result<GalleryReadCoverage>) -> Unit) {
         uiThread(); ready()
         if (host.applicationContext !== app) fail("gallery_workflow_foreign_application")
-        backgroundAccess.onAccessChanged()
+        val mediaType = host.mediaType
+        background(mediaType).access.onAccessChanged()
         val launcher = host.attach(this, onResult)
-        binding.getAndSet(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest() },
+        nativeBinding(mediaType).getAndSet(Binding(launcher, GalleryPhotoSourceScope({ if (closed.get()) null else policy.currentRequest(mediaType) },
             launcher.access.environment), host))?.let { old -> if (old.host !== host) releaseBinding(old) }
     }
 
     internal fun detachPermissionHost(host: GalleryPhotoPermissionHost) {
-        val current = binding.get()?.takeIf { it.host === host } ?: return
-        if (binding.compareAndSet(current, null)) backgroundAccess.onAccessChanged()
+        val selected = nativeBinding(host.mediaType)
+        val current = selected.get()?.takeIf { it.host === host } ?: return
+        if (selected.compareAndSet(current, null)) background(host.mediaType).access.onAccessChanged()
     }
     private fun releaseBinding(value: Binding) { if (value.host == null) value.launcher.close() else value.host.detach(this) }
 
-    fun requestReadPermission() {
+    fun requestReadPermission(mediaType: GalleryMediaType = GalleryMediaType.IMAGES) {
         ready()
-        val current = bound()
+        if (binding.get()?.launcher?.requestPending == true || videoBinding.get()?.launcher?.requestPending == true)
+            fail("gallery_permission_request_pending")
+        val current = bound(mediaType)
         if (current.host == null) current.launcher.request() else current.host.request(this)
     }
 
-    fun discover(cancellation: CancellationSignal = CancellationSignal()): GalleryAlbumCatalog {
+    fun discover(cancellation: CancellationSignal = CancellationSignal(), mediaType: GalleryMediaType = GalleryMediaType.IMAGES): GalleryAlbumCatalog {
         ready()
-        if (policy.currentRequest() == null) return GalleryAlbumCatalog(GalleryReadCoverage.NONE, emptyList())
-        val observed = readBound()
-        return AndroidGalleryAlbumDiscovery(app, { policy.currentRequest() },
-            accessEpoch = { observed.access.accessEpoch() }).discover(cancellation)
+        if (policy.currentRequest(mediaType) == null) return GalleryAlbumCatalog(GalleryReadCoverage.NONE, emptyList())
+        val observed = readBound(mediaType)
+        return AndroidGalleryAlbumDiscovery(app, { policy.currentRequest(mediaType) },
+            accessEpoch = { observed.access.accessEpoch() }, mediaType = mediaType).discover(cancellation)
     }
 
-    fun discoverSelectable(cancellation: CancellationSignal = CancellationSignal()): NativeGalleryAlbumCatalog {
+    fun discoverSelectable(cancellation: CancellationSignal = CancellationSignal(), mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryAlbumCatalog {
         ready()
         index.requireMembershipReady()
-        val observed = readBound()
-        val catalog = discover(cancellation)
+        val observed = readBound(mediaType)
+        val catalog = discover(cancellation, mediaType)
         return NativeGalleryAlbumCatalog(catalog, this, {
             !closed.get() && readCurrent(observed) &&
                 catalog.accessEpoch?.let { it == observed.access.accessEpoch() } != false &&
-                AndroidGalleryReadPermissions.observe(app) == catalog.coverage && observed.scope.isCatalogCurrent(catalog)
+                AndroidGalleryReadPermissions.observe(app, mediaType) == catalog.coverage && observed.scope.isCatalogCurrent(catalog)
         })
     }
 
@@ -173,7 +191,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
      */
     internal inner class AlbumBatches internal constructor(private val selection: NativeGalleryAlbumSelection,
         private val maxFiles: Int) : AutoCloseable {
-        private val observed = readBound()
+        private val observed = readBound(mediaType(selection.catalog.source))
         private val album = selection.catalog.resolve(this@NativeGalleryPhotoWorkflow, selection)
         private val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
         private val reader = AndroidGalleryPhotoSource(app, observed.scope)
@@ -232,7 +250,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         cancellation: CancellationSignal = CancellationSignal()): PhotoSourceJob {
         ready()
         index.requireMembershipReady()
-        val observed = readBound()
+        val observed = readBound(mediaType(catalog))
         val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
         val reader = AndroidGalleryPhotoSource(app, observed.scope)
         val inventory = reader.enumerate(lease, cancellation)
@@ -260,7 +278,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     fun source(job: PhotoSourceJob, catalog: GalleryAlbumCatalog, album: GalleryAlbumCandidate,
         desktopAlbumChoice: Boolean = false, cancellation: CancellationSignal = CancellationSignal()): IndexedPhotoSource {
         ready()
-        val observed = readBound()
+        val observed = readBound(mediaType(catalog))
         val lease = observed.scope.capture(catalog, album, desktopAlbumChoice)
         return index.restore(job, senderId, observed.scope, lease, cancellation)
     }
@@ -281,23 +299,40 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     }
 
     fun retireCached(job: PhotoSourceJob) { ready(); index.retireCachedSnapshot(job) }
-    internal fun nativeReadAccessChanged() { if (!closed.get()) backgroundAccess.onAccessChanged() }
-    private fun readBound(): ReadBinding {
+    internal fun nativeReadAccessChanged() {
+        if (closed.get()) return
+        fun invalidate(access: GalleryPhotoAccessController) {
+            try { access.onAccessChanged() } catch (error: PhotoFolderScopeError) {
+                if (error.code != "gallery_access_controller_closed") throw error
+            }
+        }
+        invalidate(backgroundAccess); invalidate(backgroundVideoAccess)
+        binding.get()?.let { invalidate(it.launcher.access) }
+        videoBinding.get()?.let { invalidate(it.launcher.access) }
+    }
+    private fun mediaType(catalog: GalleryAlbumCatalog): GalleryMediaType = catalog.activation?.mediaType ?: fail("gallery_source_not_activated")
+    private fun nativeBinding(mediaType: GalleryMediaType) = if (mediaType == GalleryMediaType.IMAGES) binding else videoBinding
+    private fun background(mediaType: GalleryMediaType) = if (mediaType == GalleryMediaType.IMAGES) backgroundRead else backgroundVideoRead
+    private fun readBound(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): ReadBinding {
         ready()
-        val activity = binding.get()
-        return if (activity == null) backgroundRead.also { it.access.accessEpoch() }
-            else ReadBinding(activity.launcher.access, activity.scope, activity).also { it.access.accessEpoch() }
+        val activity = nativeBinding(mediaType).get()
+        return if (activity == null) background(mediaType).also { it.access.accessEpoch() }
+            else ReadBinding(activity.launcher.access, activity.scope, activity, mediaType).also { it.access.accessEpoch() }
     }
     private fun readCurrent(value: ReadBinding): Boolean = !closed.get() &&
-        if (value.activity == null) value === backgroundRead && binding.get() == null else binding.get() === value.activity
-    private fun bound(): Binding = binding.get()?.also { it.launcher.access.accessEpoch() }
+        if (value.activity == null) value === background(value.mediaType) && nativeBinding(value.mediaType).get() == null
+        else nativeBinding(value.mediaType).get() === value.activity
+    private fun bound(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): Binding = nativeBinding(mediaType).get()?.also { it.launcher.access.accessEpoch() }
         ?: fail("gallery_workflow_permission_host_missing")
     private fun ready() { if (closed.get()) fail("gallery_workflow_closed") }
     override fun close() {
         uiThread()
         if (!closed.compareAndSet(false, true)) return
         try { binding.getAndSet(null)?.let(::releaseBinding) }
-        finally { try { backgroundAccess.close() } finally { index.close() } }
+        finally {
+            try { videoBinding.getAndSet(null)?.let(::releaseBinding) }
+            finally { try { backgroundAccess.close() } finally { try { backgroundVideoAccess.close() } finally { index.close() } } }
+        }
     }
     private fun uiThread() { if (Looper.myLooper() != Looper.getMainLooper()) fail("gallery_permission_ui_thread_required") }
     private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
