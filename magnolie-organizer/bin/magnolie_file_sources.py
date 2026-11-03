@@ -112,7 +112,7 @@ def parse_command(message, *, now=None):
         if type(body['run_id']) is not str or not valid_uuid(body['run_id'], version=4):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], body['operation'], body['expected_version'], run_id=body['run_id'])
-    if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run'):
+    if body.get('operation') in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run'):
         starting = body['operation'] == 'run'
         if (set(body) != base | {'expected_version'} | ({'catalog_id', 'album_id', 'desktop_choice'} if starting else {'run_id'})
                 or not _hex(body['expected_version'])):
@@ -156,7 +156,7 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
         raise TransferError('file_sources_invalid_command')
     if operation not in ('resume_run', 'abandon_resume') and any(value is not None for value in (original_job_id, original_job_version)):
         raise TransferError('file_sources_invalid_command')
-    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
+    if operation not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'media_page', 'resume_media_page', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume', 'abandon_resume') and any(value is not None for value in (album_id, desktop_choice, run_id)):
         raise TransferError('file_sources_invalid_command')
     if operation == 'abandon_resume':
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, after, album_id, desktop_choice)):
@@ -184,7 +184,7 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
         if enabled is not None or kinds != () or any(value is not None for value in (catalog_id, album_id, desktop_choice)):
             raise TransferError('file_sources_invalid_command')
         body.update(expected_version=expected_version, run_id=run_id, after=after)
-    elif operation in ('run', 'run_status', 'cancel_run', 'offer_run'):
+    elif operation in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run'):
         if enabled is not None or kinds != () or after is not None:
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
@@ -408,11 +408,11 @@ def parse_run_result(message, *, expected_request_id, expected_operation, expect
                 or body['operation'] != 'resume_run' and type(expected_run_id) is not str):
             raise TransferError('file_sources_invalid_run_result')
     offering = body.get('operation') in ('offer_run', 'offer_resume')
-    ending = body.get('operation') == 'end_resume'
+    ending = body.get('operation') in ('end_run', 'end_resume')
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'state', 'source_io_ended'} |
             ({'offer_id', 'manifest_sha256'} if offering else {'run_ended'} if ending else set())
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
-            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
+            or body['operation'] not in ('run', 'run_status', 'cancel_run', 'offer_run', 'end_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume') or body['operation'] != expected_operation
             or not _hex(body['version']) or body['version'] != expected_version or not valid_uuid(body['run_id'], version=4)
             or body['operation'] not in ('run', 'resume_run') and (not valid_uuid(expected_run_id, version=4) or body['run_id'] != expected_run_id)
             or body['operation'] in ('run', 'resume_run') and expected_run_id is not None and body['run_id'] != expected_run_id

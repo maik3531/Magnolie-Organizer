@@ -24,6 +24,7 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     private var syncRun: NativeGallerySyncRun? = null // Access only through operationGate.
     private var resumeRun: NativeGalleryResumeRun? = null // Same whole-run owner, not disk metadata.
     private var resumeEnd: ResumeEndOutput? = null // Bounded metadata retry, never a live source owner.
+    private var normalEnd: Pair<NativeGalleryWireOfferAttempt, JsonObject>? = null
     private class ResumeEndOutput(val command: JsonObject, val reply: JsonObject, issuedWall: Long,
         val job: PhotoSourceJob, val headId: String?, val headSha256: String?) {
         var abandonmentCommand: NativeGalleryWireOfferAttempt? = null
@@ -487,6 +488,10 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
     /** Only an explicitly stopped run can end here. This neither reports sync
      * success nor retires source quota; data/publication receipts remain separate. */
     internal fun endStoppedSyncRun(run: NativeGallerySyncRun) = withOperation {
+        endStoppedSyncRunOwned(run)
+    }
+
+    private fun endStoppedSyncRunOwned(run: NativeGallerySyncRun) {
         if (syncRun !== run || !run.cancelRequested) DeviceFileControl.fail("gallery_sync_run_not_current")
         if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
         syncRun = null
@@ -526,6 +531,43 @@ internal class NativeGalleryFileRuntime(context: Context, directory: File, ident
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "end_run") {
+                val prior = normalEnd
+                val output = if (prior != null && prior.first.requestId == command.requestId) {
+                    if (prior.first.message != message) DeviceFileControl.fail("gallery_sync_end_command_changed")
+                    prior
+                } else {
+                    val run = syncRun?.takeIf { it.id == command.runId && it.cancelRequested }
+                        ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+                    if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
+                    val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
+                    if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
+                    val guard = NativeGalleryWireOfferAttempt(command.requestId,
+                        DeviceFileControl.digest("magnolie-gallery-normal-end-v1\u0000", message), message, at)
+                    fun current() { guard.checkCurrent(now()); authority() }
+                    current()
+                    val job = run.preparation.completedNativeJob()
+                    if (job != null && index.remoteAcceptance(job) == null && index.resumeAttempt(job) == null) {
+                        // Only this never-accepted, actually stopped native scan
+                        // cache is disposable. Original phone media is not touched.
+                        current(); workflow.retireCached(job); current()
+                    }
+                    val body = kotlinx.serialization.json.buildJsonObject {
+                        put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
+                        put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
+                        put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
+                    }
+                    val reply = TelefonNachrichten.message(DeviceFileSourceCommand.RUN_RESULT, body, ttl, at)
+                    current(); endStoppedSyncRunOwned(run)
+                    (guard to reply).also { normalEnd = it }
+                }
+                fun current() { output.first.checkCurrent(now()); authority() }
+                try { current(); send(output.second); current() } catch (error: Exception) {
+                    try { current() } catch (_: Exception) { }
+                    throw error
+                }
+                return@withOperation // Not Saved or permission to delete a phone image.
+            }
             if (command.operation == "end_resume") {
                 val prior = resumeEnd
                 val output = if (prior != null && prior.command.string("message_id") == command.requestId) {

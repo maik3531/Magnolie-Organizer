@@ -75,7 +75,7 @@ internal class DeviceFileSourceCommand private constructor(val requestId: String
                 return DeviceFileSourceCommand(message.string("message_id"), operation, version, null, emptySet(),
                     message.long("expires_ms"), after = after, runId = opaque("run_id"))
             }
-            if (operation in setOf("run", "run_status", "cancel_run", "offer_run")) {
+            if (operation in setOf("run", "run_status", "cancel_run", "offer_run", "end_run")) {
                 if (body.keys != base + setOf("expected_version") +
                     (if (operation == "run") setOf("catalog_id", "album_id", "desktop_choice") else setOf("run_id"))) fail()
                 val version = text("expected_version").takeIf(DeviceFileControl::hash) ?: fail()

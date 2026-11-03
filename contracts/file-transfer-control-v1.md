@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Ordinary repeated-photo review and normal source completion (Refs #330)
+
+The native desktop now compares the fresh phone manifest with the ORIGINAL protected
+save/mapping receipts and current descriptor-bound target bytes before considering
+another download. Known unchanged photos and local PC edits require no image data;
+missing/unmanaged/replaced targets and competing/unproven changes remain explicit
+non-writing decisions. Matching bytes alone never adopt an unknown target. Review
+opens no receive stage, reserves no new receiver job and changes no baseline/mapping.
+
+A fully saved local receiver can close only after complete post-mapping evidence
+and checkpoint readback; its original job/receipts/quota remain available. The exact
+stopped ordinary source owner can end with a correlated end_run result and immutable
+bounded output retry. Only that owner's never-accepted disposable scan cache is
+retired; accepted jobs and original phone photos remain untouched. Source END is not
+a remote Saved acknowledgment. An unchanged scan can therefore finish and a third
+scan start without duplicate PC files or accumulating unaccepted scan caches.
+
+192 distinct host cases pass (nine new, 183 affected): actual first native publication,
+second/third unchanged scans with ZERO new Chunk requests or stage allocation,
+current target inode/bytes/mapping/original-job preservation, PC edits/missing/
+replacement and phone/edit conflicts, exact normal END result types and native
+never-accepted-cache cleanup with lost-response retry while a new owner exists.
+This is a tested native controller path, not installed GUI/phone interoperability.
+Mixed known/new-photo selection, changed-photo execution, album batching, automatic
+controller/UI and platform acceptance are not completed by these review decisions.
+Production/automatic/UI/release gates remain OFF pending the actual integration.
+
 ### Explicit ended-owner abandonment and new attempt (Refs #372, #330)
 
 The connected native repair path now requires the desktop's actual receiver-stop/

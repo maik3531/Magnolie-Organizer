@@ -34,6 +34,10 @@ internal class NativeGallerySourceRun internal constructor() {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
         return failure.get() // Native handle only, never serialized to a peer.
     }
+    internal fun completedNativeJob(): PhotoSourceJob? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        return job.get() // Exact completed native owner; never a remote ID lookup.
+    }
     internal fun renewedSource(): NativeGalleryRenewedSource? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
         return renewed.get().takeIf { phase == "snapshot_ready" && !cancellation.isCanceled }

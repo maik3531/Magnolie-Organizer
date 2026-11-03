@@ -433,7 +433,7 @@ class NativeDesktopFileConnection:
                         self._verify_job_mapping_store(original)
                         options.update(original_job_id=history.job_id, original_job_version=history.job_version)
                         self._source_media_pages = (); self._source_media_entries = None; self._source_offer = None
-            elif operation in ('run_status', 'cancel_run', 'offer_run', 'media_page', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
+            elif operation in ('run_status', 'cancel_run', 'offer_run', 'media_page', 'end_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
                 if self._source_run is None:
                     raise TransferError('file_desktop_source_run_not_current')
                 resumed = operation in ('resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume')
@@ -447,6 +447,9 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_receive_stop_requested')
                 if operation == 'end_resume' and (self._source_run.state != 'canceled_held' or not self._source_run.source_io_ended):
                     raise TransferError('file_desktop_resume_source_io_pending')
+                if operation == 'end_run' and (self._run is not None or self._source_run.state != 'canceled_held'
+                        or not self._source_run.source_io_ended):
+                    raise TransferError('file_desktop_source_io_pending')
                 if operation in ('offer_run', 'media_page', 'offer_resume', 'resume_media_page') and (self._run is not None or self._offer is not None
                         or self._source_run.state != 'snapshot_ready' or not self._source_run.source_io_ended
                         or self._source_run.version != self._source_status.version
@@ -563,6 +566,10 @@ class NativeDesktopFileConnection:
                 self._source_albums = {}
             self._source_catalog = result
             self._source_albums.update((album.album_id, album) for album in result.albums)
+        elif command.operation == 'end_run':
+            self._source_run = self._source_offer = None
+            self._offer = self._offer_binding = self._offer_policy_version = None
+            self._source_media_pages = (); self._source_media_entries = None
         elif command.operation == 'end_resume':
             self._resume_end_confirmation = (self._resume_lookup_selection.job, result)
             self._resume_ended_manifest = self._resume_lookup_selection.job.accepted.manifest.fingerprint
@@ -723,6 +730,80 @@ class NativeDesktopFileConnection:
             if any(record is not None for record in records):
                 raise TransferError('file_desktop_photo_mapping_requires_reconcile')
         return self._require_unreserved_media_history(resume_owner)
+
+    def review_pending_photos(self, action, *, clock=now_ms):
+        """Compare the fresh phone manifest with original saves and current PC
+        bytes BEFORE requesting downloads. Never adopt a same-hash unknown file,
+        reopen a stage, overwrite an edit or turn absence into deletion evidence.
+        """
+        from magnolie_photo_plan import (NativePhotoAssociation, NativePhotoBaseline, NativePhotoObservation,
+            PhotoContentWitness, compare_photo)
+        from magnolie_photo_target import observe_saved_target
+        from magnolie_photo_review import NativePhotoReview, NativePhotoReviewItem
+        self._take_action(action)
+        with self._operation():
+            if self._run is not None or self._offer is None:
+                raise TransferError('file_desktop_offer_not_current')
+            self._require_source_offer(clock)
+            if not self._source_media_pages or self._source_media_entries is None:
+                raise TransferError('file_desktop_source_media_history_required')
+            self._verify_expected_mapping_store()
+            binding = self._receive_binding()
+            manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
+            first = self._source_media_pages[0]
+            associations = tuple(PhotoMappingAssociation(first.source_epoch, entry.photo_id, first.media_type)
+                for entry in self._source_media_entries)
+            snapshot, records = self._mappings.lookup(associations)
+            if not snapshot.associated:
+                raise TransferError('file_desktop_photo_mapping_reassociation_required')
+            items = []
+            if not self._open_catalog(allow_create=False):
+                raise TransferError('file_desktop_media_storage_bootstrap_required')
+            protection = self._authority.protection
+            with self._catalog.inspect_jobs() as (parent, jobs):
+                owners = {job.owner: job for job in jobs}
+                for file, entry, mapping in zip(manifest.files, self._source_media_entries, records):
+                    action.validate(self); self._receive_binding()
+                    if mapping is None:
+                        items.append(NativePhotoReviewItem(file.id, entry.photo_id, 'new_photo'))
+                        continue
+                    job = owners.get(mapping.job_owner)
+                    if job is None or job.accepted.binding != binding or mapping.destination != job.accepted.destination:
+                        raise TransferError('file_desktop_photo_review_original_job_required')
+                    job.accepted.verify(self._receive_binding)
+                    with ProtectedTransferJobIndex(parent, job.accepted.manifest, binding, self._receive_binding,
+                            protection.seal, protection.unseal, owner=job.owner, accepted=job.accepted) as index:
+                        with index._locked():
+                            evidence = index.saved_mapping_receipt(); history = index.media_history
+                            if evidence is None or history is None:
+                                raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+                            self._verify_job_mapping_store(history); self._mappings.verify_checkpoint(evidence.store)
+                            linked = next((item for item in evidence.entries if item.file_id == mapping.source_file_id), None)
+                            receipt = next((item for item in index.saved_receipts() if item.file_id == mapping.source_file_id), None)
+                            if (linked is None or receipt is None or linked.photo_id != entry.photo_id
+                                    or history.source_epoch != first.source_epoch or history.media_type != first.media_type
+                                    or linked.mapping_record_sha256 != mapping.protected_record_sha256
+                                    or linked.saved_receipt_sha256 != mapping.receipt_sha256
+                                    or receipt.protected_record_sha256 != mapping.receipt_sha256
+                                    or receipt.relative_path != mapping.relative_path or receipt.file_key != mapping.file_key
+                                    or receipt.parent_keys != mapping.parent_keys or receipt.sha256 != mapping.saved_sha256
+                                    or receipt.size != mapping.saved_size):
+                                raise TransferError('file_desktop_saved_mapping_receipt_changed')
+                            desktop = observe_saved_target(job.accepted, receipt, self._receive_binding)
+                            association = NativePhotoAssociation(binding, first.source_epoch, entry.photo_id, mapping.protected_record_sha256)
+                            baseline = NativePhotoBaseline(association, PhotoContentWitness(receipt.sha256, receipt.size), receipt.protected_record_sha256)
+                            phone = NativePhotoObservation('present', PhotoContentWitness(file.sha256, file.size),
+                                insertion_proven=first.insertion_witness)
+                            decision = compare_photo(association, baseline, phone, desktop.observation)
+                            if index.saved_mapping_receipt() != evidence or receipt not in index.saved_receipts():
+                                raise TransferError('file_desktop_saved_recovery_evidence_changed')
+                            items.append(NativePhotoReviewItem(file.id, entry.photo_id, decision.kind, job.owner))
+                if self._catalog.jobs() != jobs or self._mappings.lookup(associations) != (snapshot, records):
+                    raise TransferError('file_desktop_photo_mapping_changed')
+            action.validate(self); self._receive_binding()
+            if clock() >= self._offer['expires_ms']:
+                raise TransferError('file_desktop_offer_expired')
+            return NativePhotoReview(manifest.fingerprint, tuple(items))
 
     def _require_unreserved_media_history(self,resume_owner):
         # Job anchors precede publication/mapping. Their absence/corruption is
@@ -1094,6 +1175,31 @@ class NativeDesktopFileConnection:
             self._commit_saved_media(run)
             message = run.receiver.saved_receipt_message(now=clock())
             self._send_data(message, clock)
+
+    def finish_saved_receive(self, action):
+        """Close a fully saved native receiver, retaining original history/quota.
+        This is local completion only, not proof that the phone saw the message.
+        """
+        self._take_action(action)
+        with self._operation():
+            run = self._require_receiver()
+            self._commit_saved_media(run, action=action)
+            evidence = run.receiver._index.saved_mapping_receipt()
+            if evidence is None:
+                raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+            progress = run.receiver.checkpoint()
+            if progress.verified_bytes != progress.total_bytes or progress.checkpoint_verified_bytes != progress.total_bytes:
+                raise TransferError('file_desktop_saved_receive_incomplete')
+            action.validate(self)
+            try:
+                run.receiver.close()
+            except Exception as error:
+                self._cleanup_error = type(error).__name__
+                raise
+            action.validate(self); self._receive_binding()
+            self._run = None
+            self._offer = self._offer_binding = self._offer_policy_version = None
+            return progress  # Never a remote ACK, baseline reset or quota cleanup.
 
     def recover_saved_confirmation(self, action, native_job_owner, *, clock=now_ms):
         """Explicit historical media ACK retry, never source/stage recovery.

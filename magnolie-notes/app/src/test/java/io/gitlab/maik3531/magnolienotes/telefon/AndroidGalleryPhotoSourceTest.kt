@@ -2029,6 +2029,35 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test fun ordinaryNoDownloadRunEndsActualOwnerAndDiscardsOnlyItsNeverAcceptedCache() {
+        ResumeRuntimeCase().use { h ->
+            val at = h.now + 120_000
+            fun command(operation: String, id: String) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", operation); put("expected_version", h.runtime.savedPolicy().version); put("run_id", id)
+            }, 60_000, at)
+            h.watchEnd(); val run = h.runtime.beginSyncRun(h.selected); h.awaitEnd()
+            val unused = run.preparation.completedNativeJob()!!
+            assertNotEquals(h.job.id, unused.id)
+            h.runtime.sendSyncRunOffer(run, h.channel::send, at); h.drain()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.receiveSourceCommand(command("end_run", run.id), h.channel::send, { at }) }
+            h.runtime.receiveSourceCommand(command("cancel_run", run.id), h.channel::send, { at }); h.drain()
+            val end = command("end_run", run.id)
+            assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(end, { message ->
+                assertFalse(File(h.root, "photo-source-" + unused.id).exists())
+                h.inspect { assertEquals(listOf(h.job), it.jobs()) }
+                h.channel.send(message); throw java.io.IOException("fixture ordinary END reply lost")
+            }, { at }) }
+            val first = h.drain().single()
+            assertEquals(JsonPrimitive(true), first["body"]!!.jsonObject["run_ended"])
+            h.watchEnd(); val next = h.runtime.beginSyncRun(h.selected); h.awaitEnd()
+            h.runtime.receiveSourceCommand(end, h.channel::send, { at + 1 })
+            assertEquals(first, h.drain().single()); assertFalse(next.cancelRequested)
+            h.runtime.receiveSourceCommand(command("cancel_run", next.id), h.channel::send, { at + 1 }); h.drain()
+            h.runtime.receiveSourceCommand(command("end_run", next.id), h.channel::send, { at + 1 }); h.drain()
+            h.assertOriginal() // The earlier accepted job/proof/cipher and real phone file survive both scans.
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
