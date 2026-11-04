@@ -9508,17 +9508,50 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
     if not anzeige_bereit():
         return False
     try:
+        schleife = GLib.MainLoop() if eigene_schleife else None
+        zeitgeber = set()
+
+        def spaeter(warte, ausfuehren, sekunden=False):
+            quelle = {}
+
+            def aufrufen():
+                kennung = quelle["id"]
+                if kennung not in zeitgeber:
+                    return False
+                try:
+                    wiederholen = bool(ausfuehren())
+                except Exception:
+                    zeitgeber.discard(kennung)
+                    raise
+                if not wiederholen:
+                    zeitgeber.discard(kennung)
+                return wiederholen and kennung in zeitgeber
+
+            quelle["id"] = (GLib.timeout_add_seconds if sekunden else GLib.timeout_add)(warte, aufrufen)
+            zeitgeber.add(quelle["id"])
+            return quelle["id"]
+
+        def zeitgeber_beenden():
+            for kennung in tuple(zeitgeber):
+                zeitgeber.discard(kennung)
+                GLib.source_remove(kennung)
+
         def eigene_schleife_beenden():
-            try:
-                if Gtk.main_level() > 0:
-                    Gtk.main_quit()
-            except Exception:
-                pass
+            # An expired/closed reminder owns only THIS loop. Gtk.main_quit()
+            # would quit whichever other reminder is currently nested on top.
+            if schleife is not None:
+                schleife.quit()
             return False
 
         fenster = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
-        if bei_schliessen is not None:
-            fenster.connect("destroy", lambda *_egal: bei_schliessen())
+
+        def bei_ende(*_egal):
+            zeitgeber_beenden()
+            eigene_schleife_beenden()
+            if bei_schliessen is not None:
+                bei_schliessen()
+
+        fenster.connect("destroy", bei_ende)
         fenster.get_style_context().add_class("magnolie-meldung")
         fenster.set_title(FENSTER_TITEL)
         fenster.set_decorated(False)
@@ -9602,21 +9635,20 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
             auf.get_style_context().add_class("papier")
             auf.connect("clicked", lambda *_egal: (
                 aktion() if aktion else organizer_starten(),
-                fenster.destroy() if not eigene_schleife else eigene_schleife_beenden()))
+                fenster.destroy()))
             knoepfe.pack_start(auf, False, False, 0)
         zu = Gtk.Button(label=_("Close"))
         zu.get_style_context().add_class("papier")
-        zu.connect("clicked", lambda *_egal: (
-            fenster.destroy() if not eigene_schleife else eigene_schleife_beenden()))
+        zu.connect("clicked", lambda *_egal: fenster.destroy())
         knoepfe.pack_start(zu, False, False, 0)
         blatt.pack_start(knoepfe, False, False, 2)
 
         rahmen = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         rahmen.get_style_context().add_class("rahmen")
-        rahmen.add(blatt)
+        # Window managers may allocate more than the paper's natural height.
+        # Fill that space with paper, not an expanding lower leather border.
+        rahmen.pack_start(blatt, True, True, 0)
         fenster.add(rahmen)
-        if eigene_schleife:
-            fenster.connect("destroy", lambda *_egal: eigene_schleife_beenden())
 
         erschienen = {"ja": False}
 
@@ -9646,7 +9678,7 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
                         fenster.destroy()
                         return False
                     return True
-                GLib.timeout_add(300, aktualisieren)
+                spaeter(300, aktualisieren)
             if bei_ausbleiben is not None:
                 def ausbleiben():
                     if not erschienen["ja"] and fenster.get_visible():
@@ -9654,12 +9686,12 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
                         if gueltig is None or gueltig():
                             bei_ausbleiben()
                     return False
-                GLib.timeout_add(1500, ausbleiben)
+                spaeter(1500, ausbleiben)
             # Der Organizer läuft bereits – seine Fensterschleife zeigt das
             # Blatt; eine zweite Schleife darf es hier nicht geben.
             if wartezeit:
-                GLib.timeout_add_seconds(max(5, wartezeit), lambda: (
-                    fenster.destroy(), False)[1])
+                spaeter(max(5, wartezeit), lambda: (
+                    fenster.destroy(), False)[1], sekunden=True)
             return True
 
         # Notausstieg: Bleibt das Blatt unsichtbar, wird nicht ewig
@@ -9669,17 +9701,20 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
                 eigene_schleife_beenden()
             return False
 
-        GLib.timeout_add_seconds(3, nachsehen)
+        spaeter(3, nachsehen, sekunden=True)
         if wartezeit:
-            GLib.timeout_add_seconds(max(5, wartezeit),
-                                     eigene_schleife_beenden)
-        Gtk.main()
+            spaeter(max(5, wartezeit), lambda: (fenster.destroy(), False)[1], sekunden=True)
+        try:
+            schleife.run()
+        finally:
+            zeitgeber_beenden()
+            fenster.destroy()
+        return erschienen["ja"]
+    except Exception:
         try:
             fenster.destroy()
         except Exception:
             pass
-        return erschienen["ja"]
-    except Exception:
         return False
 
 
