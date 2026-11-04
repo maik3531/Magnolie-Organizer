@@ -1095,6 +1095,7 @@ class NativeDesktopFileConnection:
         if self._source_media_pages:
             first=self._source_media_pages[0]
             wanted={(first.source_epoch,entry.photo_id,first.media_type) for entry in self._source_media_entries}
+        video_epochs={photo:epoch for epoch,photo,media in wanted if media=='video'}
         protection=self._authority.protection
         with self._catalog.inspect_jobs() as (parent,jobs):
             for job in jobs:
@@ -1108,14 +1109,23 @@ class NativeDesktopFileConnection:
                     with ProtectedTransferJobIndex(parent,job.accepted.manifest,binding,lambda:None,
                             protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
                         history=index.media_history
+                        changed_video_epoch=bool(history is not None and history.media_type=='video' and any(
+                            entry.photo_id in video_epochs and video_epochs[entry.photo_id]!=history.source_epoch
+                            for entry in history.entries))
                         matching={(history.source_epoch,entry.photo_id,history.media_type) for entry in history.entries}&wanted if history else set()
                         versions=version_parents or {}
-                        if matching and all(photo in versions for _,photo,_ in matching):
+                        if not changed_video_epoch and matching and all(photo in versions for _,photo,_ in matching):
                             self._verify_completed_mapping_job(index,job,history)
                             continue
                 except Exception as error:
                     raise TransferError('file_desktop_photo_job_repair_pending') from error
                 self._ready()
+                if changed_video_epoch:
+                    # Video off/on renews source epoch but not native media IDs.
+                    # An old accepted anchor is not first use in the new scope,
+                    # even when a caller offers version-parent hints. Metadata
+                    # inspection above supplies no historical READ authority.
+                    raise TransferError('file_desktop_video_source_reassociation_required')
                 if history is None:
                     if wanted:raise TransferError('file_desktop_photo_job_history_required')
                     continue # Limited generic legacy file path, not media readiness.

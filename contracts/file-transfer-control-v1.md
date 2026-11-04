@@ -1,5 +1,19 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Video history across renewed source epochs (Refs #330, inert guard)
+
+Protected desktop job-history inspection now holds overlapping native video IDs
+when an earlier accepted video anchor has a different source epoch. Video off/on
+must not make those files look new or permit a second reservation. Version-parent
+hints cannot bypass this hold. Same-epoch conflicts retain the existing reconcile
+guard; unrelated IDs and the separate image namespace are unchanged.
+
+The guard reads protected original metadata with no historical binding callback
+that grants READ, no accepted-target renewal, no stage reopen and no publication.
+Five native-index cases verify unchanged protected bytes/jobs and no source sends;
+eleven affected image-history cases remain green. This is not yet full saved-video
+worker/off-on acceptance or explicit historical reassociation; those remain open.
+
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
 Desktop authority exposes read-only video availability separately from the base
