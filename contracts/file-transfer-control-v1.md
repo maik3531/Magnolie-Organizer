@@ -1,6 +1,43 @@
 # Dedicated own-peer file controls (integration in #330)
 
-### Explicit typed desktop album worker (Refs #330; session/UI still unjoined)
+### Native desktop video session (Refs #330; production gates OFF)
+
+The existing local native action lane accepts explicit video enable/disable,
+discover, permission-request and album-sync actions. It retains a saved custom
+video destination or chooses the native Videos/`<phone>-Videos` default only on
+explicit first enable. An already enabled/associated photo transport is required;
+video actions never bootstrap absent/off photo consent. Video preference changes
+do not rotate photo grants, tokens, destinations or historical jobs.
+
+Every video discover/sync first proves CURRENT protected video consent/root and
+the actual acknowledged data binding, then sends a fresh positive native video
+configuration even when saved source status says ON. Metadata-only control
+agreement cannot substitute for the source data grant. Enabling queries actual
+coverage without prompting or downloading; permission is requested only by its
+explicit typed action and the following native coverage query, not its reply,
+determines availability. Construction/status inspection starts no I/O.
+
+The session retains separate image/video album lists and refreshes the actual
+single native catalog when switching media. Manual video sync and the existing
+automatic mode share one native schedule/action/worker lane. Automatic mode runs
+photos then enabled/available videos serially, with a fresh video handshake, and
+is not enabled by a video toggle. Unsupported native video controls are omitted
+using the CURRENT acknowledged capability/private gate, not cached session flags.
+
+Disable during I/O stops the worker and waits for real drain/close/source END;
+then local protected video consent closes before remote disable output. A remote
+failure remains HOLD with local consent OFF, not a claimed remote OFF ACK. Jobs,
+checkpoints and quota remain governed by existing receipt/END rules.
+
+Native action/source-host proofs cover default/custom destinations, current
+handshake, manual chunks/Saved/repeat with retained local edits, explicit native
+permission without READ fallback, stop/disable while a chunk is outstanding,
+metadata-only/no-source-data refusal, disable failure, current capability loss,
+and actual sequential IMAGE/VIDEO workers under the explicit automatic mode.
+Public video UI and installed/physical acceptance remain separate unfinished
+work; these source tests do not enable production gates or publish packages.
+
+### Explicit typed desktop album worker (Refs #330; public UI still unjoined)
 
 The existing native album worker now accepts an explicit `media_type: video`
 action under the private data gate and current video consent/root/capability.
@@ -18,7 +55,7 @@ remain independent when video preferences are enabled but the video data gate is
 off. Existing IMAGE worker tests pass. These are native desktop/source-host tests,
 not an installed Android/desktop end-to-end claim.
 
-The user-facing session, schedule and UI remain unjoined for videos. They must
+The public UI remains unjoined for videos. The native session/schedule must
 establish the native owner's fresh positive configuration after data ACK before
 starting this worker, from the CURRENT protected video choice only. All production
 gates remain OFF; adding this private worker entry does not expose a video toggle
@@ -79,7 +116,7 @@ Actual native-stage tests cover original video chunks/Saved, END-before-retireme
 three withdrawal modes with real cancel/drain/checkpoint/close, saved END after
 capability withdrawal, exact uncertain-END retry, explicit typed attempt abandonment
 without job/cache release, and changed-epoch rejection. Existing image resume/stop
-paths remain green. Worker/session/UI and installed/physical acceptance remain
+paths remain green. Public UI and installed/physical acceptance remain
 separate unfinished work; all production gates remain OFF.
 
 ### Explicit original-video history lookup (Refs #330, resume data still pending)

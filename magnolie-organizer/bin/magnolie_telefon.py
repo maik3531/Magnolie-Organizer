@@ -2952,15 +2952,26 @@ class PhoneService:
                     or controls.get('grants.update')!=peers[0].get('grants')
                     or controls.get('personal_sync.settings')!={'format':1,'own_device':True}):return None
             connection=self._native_file_connections.get(channel)
+            video_available=(connection_type._video_data_handlers_ready
+                and self._current_native_video_metadata(peer_id,binding.static_public,channel,binding.generation))
         if connection is None:return dict(available=True,state='off',enabled=False,mode='manual',albums=[])
-        return connection.desktop_snapshot()
+        state=connection.desktop_snapshot()
+        if video_available:
+            state['video_supported']=True
+            for field,default in (('video_enabled',False),('video_destination',None),('video_albums',[]),('video_permission',None)):
+                state.setdefault(field,default)
+        else:
+            for field in tuple(state):
+                if field.startswith('video_'):state.pop(field)
+        return state
 
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
-                or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
-                    'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together')
-                or ('album_id' in request) != (request['action']=='sync')
+                 or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
+                    'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
+                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync')
+                or ('album_id' in request) != (request['action'] in ('sync','videos_sync'))
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
                 or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together','captures_separate','captures_together'))
                 or 'historical_choice' in request and (type(request['historical_choice']) is not str or request['historical_choice']!='keep_existing')

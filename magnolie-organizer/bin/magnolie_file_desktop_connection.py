@@ -2271,6 +2271,9 @@ class NativePhotoDesktopSession:
         self._state='off'; self._error=None; self._enabled=False
         self._destination=None; self._albums=[]; self._permission=None
         self._disable_pending=False
+        self._video_disable_pending=False
+        self._video_supported=False; self._video_enabled=False
+        self._video_destination=None; self._video_albums=[]; self._video_permission=None
         self._mode='manual';self._pending_mode=None;self._automatic_paused=False
         self._timer=None;self._sync_active=False
         self._recovery=[];self._recovery_result=None
@@ -2286,6 +2289,9 @@ class NativePhotoDesktopSession:
             value.update(recovery_supported=True,recovery=[dict(item) for item in self._recovery],recovery_result=self._recovery_result)
             value.update(animation_grouping_supported=True,separate_animations=self._separate_animations)
             value.update(capture_grouping_supported=True,separate_own_recordings=self._separate_captures)
+            if self._video_supported:
+                value.update(video_supported=True,video_enabled=self._video_enabled,video_destination=self._video_destination,
+                    video_albums=[dict(album) for album in self._video_albums],video_permission=self._video_permission)
             worker=self._worker
         if worker is not None:
             progress=worker.progress()
@@ -2300,7 +2306,8 @@ class NativePhotoDesktopSession:
 
     def start(self, operation, album_id=None, *, schedule_run=None, job_owner=None,historical_choice=None):
         if operation not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic','automatic','resume_automatic',
-                'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together'):
+                'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
+                'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync'):
             raise TransferError('photo_sync_invalid_action')
         if operation in ('animations_separate','animations_together','captures_separate','captures_together'):
             if type(historical_choice) is not str or historical_choice!='keep_existing':
@@ -2314,8 +2321,9 @@ class NativePhotoDesktopSession:
             if operation.startswith('mode_') and running:
                 self._pending_mode=operation.removeprefix('mode_')
                 self._schedule.set_mode(self._pending_mode) # Stop repeats now; commit UI mode after real I/O END.
-            elif operation in ('stop','disable') and running:
+            elif operation in ('stop','disable','videos_disable') and running:
                 self._disable_pending=operation=='disable' or self._disable_pending
+                self._video_disable_pending=operation=='videos_disable' or self._video_disable_pending
                 self._automatic_paused=True
                 self._stop.set(); worker=self._worker; self._state='stopping'
                 if worker is not None:worker.stop()
@@ -2326,10 +2334,12 @@ class NativePhotoDesktopSession:
                 if running:raise TransferError('photo_sync_busy')
                 if operation=='sync' and not any(album['album_id']==album_id for album in self._albums):
                     raise TransferError('file_desktop_source_album_not_current')
+                if operation=='videos_sync' and not any(album['album_id']==album_id for album in self._video_albums):
+                    raise TransferError('file_desktop_source_album_not_current')
                 if operation=='automatic' and (schedule_run is None or self._schedule.active is not schedule_run
                         or self._schedule.mode!='automatic'):
                     raise TransferError('photo_sync_invalid_action')
-                if operation=='sync':schedule_run=self._schedule.request_now()
+                if operation in ('sync','videos_sync'):schedule_run=self._schedule.request_now()
                 self._stop.clear(); self._error=None; self._state=operation;self._recovery_result=None
                 if operation not in ('automatic','inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together',
                         'captures_separate','captures_together'):
@@ -2429,7 +2439,7 @@ class NativePhotoDesktopSession:
             finally:bootstrap.close()
             before=preferences.read()
         policy=before.policy
-        if enabled and (before.direction!='phone_to_desktop' or before.include_videos
+        if enabled and (before.direction!='phone_to_desktop'
                 or policy is not None and (policy.phone_to_pc_delete or policy.pc_to_phone_delete)):
             raise TransferError('file_desktop_album_options_unavailable')
         choice=None
@@ -2445,19 +2455,74 @@ class NativePhotoDesktopSession:
             self._enabled=enabled;self._mode=before.mode;self._separate_animations=before.separate_animations
             self._separate_captures=before.separate_own_recordings
             self._destination=before.policy.destination.path if before.policy and before.policy.destination else None
+            self._video_enabled=bool(before.policy and before.policy.videos and before.policy.videos.enabled)
+            self._video_destination=before.policy.videos.destination.path if before.policy and before.policy.videos and before.policy.videos.destination else None
         self._schedule.set_mode(before.mode if enabled else 'manual')
         connection.send_controls()
 
-    def _discover(self):
-        state=self._command('discover')
-        while state['catalog'].next_cursor is not None:state=self._command('catalog_page')
+    def _local_video_enabled(self, enabled):
+        connection=self.connection; preferences=connection._preferences; before=preferences.read()
+        if enabled:
+            if not connection._video_data_handlers_ready or not connection._authority.video_available():
+                raise TransferError('file_desktop_video_data_join_unavailable')
+            if (before.policy is None or not before.policy.enabled or not before.associated
+                    or before.direction!='phone_to_desktop' or before.policy.mapping_store is None or before.policy.job_catalog is None
+                    or before.policy.phone_to_pc_delete or before.policy.pc_to_phone_delete):
+                raise TransferError('file_desktop_album_options_unavailable')
+            # Restore only the already enabled/associated base session. This
+            # never enables an absent/off photo policy or changes its mode.
+            self._local_enabled(True)
+            before=preferences.read()
+        chooser=None
+        try:
+            choice=None
+            if enabled and (before.policy.videos is None or before.policy.videos.destination is None):
+                from magnolie_photo_destination import NativeVideoDestinationController
+                chooser=NativeVideoDestinationController(connection._authority)
+                choice=chooser.choose_default(chooser.issue_action())
+            saved=preferences.set_video_scope(preferences.issue_action(),before,enabled=enabled,destination_choice=choice)
+        finally:
+            if chooser is not None:chooser.close()
+        with self._lock:
+            self._video_enabled=bool(saved.policy.videos and saved.policy.videos.enabled)
+            self._video_destination=saved.policy.videos.destination.path if saved.policy.videos and saved.policy.videos.destination else None
+            if enabled:self._video_supported=True
+            if not enabled:self._video_albums=[];self._video_permission=None
+        return saved
+
+    def _prepare_video(self):
+        connection=self.connection
+        if not connection._video_data_handlers_ready:
+            raise TransferError('file_desktop_video_data_join_unavailable')
+        connection._require_video_metadata_scope()
+        state=self._command('status')
+        if state['status'].repair_pending:raise TransferError('photo_sync_source_repair_pending')
+        # Metadata tickets alone are not a data-ACK witness. This exact current
+        # native binding must exist BEFORE the positive session configuration.
+        connection._receive_binding(media_type='video')
+        self._command('configure_videos',enabled=True) # Required even for saved ON/idempotent policy.
+        with self._lock:self._video_supported=True
+
+    def _disable_video(self):
+        saved=self._local_video_enabled(False) # Local consent closes before any remote output or failure.
+        if saved.policy.enabled:
+            self._command('status')
+            self._command('configure_videos',enabled=False)
+        with self._lock:self._state='videos_off'
+
+    def _discover(self, media_type='images'):
+        options={'media_type':'video'} if media_type=='video' else {}
+        state=self._command('discover',**options)
+        while state['catalog'].next_cursor is not None:state=self._command('catalog_page',**options)
         albums=[dict(album_id=album.album_id,display_name=album.display_name,kind=album.kind,
             visible_images=album.visible_images,needs_choice=album.needs_choice) for album in state['albums']]
         with self._lock:
-            self._albums=albums;self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
+            if media_type=='video':self._video_albums=albums
+            else:self._albums=albums
+            self._state='albums' if state['catalog'].coverage!='none' else 'permission_required'
 
     def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None):
-        syncing=operation in ('sync','automatic')
+        syncing=operation in ('sync','videos_sync','automatic')
         if syncing:self._sync_activity(True)
         try:
             if operation in ('enable','resume_automatic'):
@@ -2465,13 +2530,15 @@ class NativePhotoDesktopSession:
                     before=self.connection._preferences.read();policy=before.policy
                     if (policy is None or not before.associated or not policy.enabled or before.mode!='automatic'
                             or not before.destination_available or policy.mapping_store is None or policy.job_catalog is None
-                            or before.direction!='phone_to_desktop' or before.include_videos
+                            or before.direction!='phone_to_desktop'
                             or policy.phone_to_pc_delete or policy.pc_to_phone_delete):
                         raise TransferError('photo_sync_resume_consent_changed')
                     with self._lock:
                         self._enabled=True;self._mode=before.mode;self._destination=policy.destination.path
                         self._separate_animations=before.separate_animations
                         self._separate_captures=before.separate_own_recordings
+                        self._video_enabled=bool(policy.videos and policy.videos.enabled)
+                        self._video_destination=policy.videos.destination.path if policy.videos and policy.videos.destination else None
                     self._schedule.set_mode(before.mode)
                     self.connection.send_controls()
                 else:self._local_enabled(True)
@@ -2498,6 +2565,14 @@ class NativePhotoDesktopSession:
                 state=self._command('request_read')
                 with self._lock:self._permission=state['result'].state; self._state='permission_required'
             elif operation=='discover':self._discover()
+            elif operation in ('videos_enable','videos_discover','videos_request_read'):
+                if operation=='videos_enable':self._local_video_enabled(True)
+                self._prepare_video()
+                if operation=='videos_request_read':
+                    state=self._command('request_read',media_type='video')
+                    with self._lock:self._video_permission=state['result'].state
+                self._discover('video') # Actual native coverage, never a permission reply as READ.
+            elif operation=='videos_disable':self._disable_video()
             elif operation in ('animations_separate','animations_together','captures_separate','captures_together'):
                 if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
                 setter=self.connection.set_future_animation_layout if operation.startswith('animations_') else self.connection.set_future_capture_layout
@@ -2521,30 +2596,46 @@ class NativePhotoDesktopSession:
                 self._apply_mode(operation.removeprefix('mode_'))
                 with self._lock:self._state='albums' if self._albums else 'permission_required'
             elif syncing:
-                if operation=='automatic':
-                    self._discover() # Fresh catalogue, never stale opaque album IDs.
-                    albums=[album['album_id'] for album in self._albums if not album['needs_choice']]
-                else:albums=[album_id]
-                for selected in albums:
+                media_types=['video'] if operation=='videos_sync' else ['images']
+                if (operation=='automatic' and self._video_enabled and self.connection._video_data_handlers_ready
+                        and self.connection._authority.video_available()):media_types.append('video')
+                for media_type in media_types:
                     if self._stop.is_set():break
-                    worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,
-                        activity_changed=lambda owner,active:self._notify())
-                    with self._lock:self._worker=worker; self._state='syncing'
-                    self._notify()
-                    while not worker.join(.25):
-                        if self._stop.is_set():worker.stop()
-                    progress=worker.progress()
-                    with self._lock:self._state=progress['state'];self._error=progress['error']
-                    if progress['state']!='complete':break
+                    if media_type=='video':self._prepare_video()
+                    catalog=self.connection._source_catalog
+                    if operation=='automatic' or media_type=='video' or catalog is None or catalog.media_type!=media_type:
+                        self._discover(media_type)
+                    current=self._video_albums if media_type=='video' else self._albums
+                    albums=[album['album_id'] for album in current if not album['needs_choice']] if operation=='automatic' else [album_id]
+                    if any(selected not in {album['album_id'] for album in current} for selected in albums):
+                        raise TransferError('file_desktop_source_album_not_current')
+                    complete=True
+                    for selected in albums:
+                        if self._stop.is_set():break
+                        worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,
+                            media_type=media_type,activity_changed=lambda owner,active:self._notify())
+                        with self._lock:self._worker=worker; self._state='syncing'
+                        self._notify()
+                        while not worker.join(.25):
+                            if self._stop.is_set():worker.stop()
+                        progress=worker.progress()
+                        with self._lock:self._state=progress['state'];self._error=progress['error']
+                        if progress['state']!='complete':complete=False;break
+                    if not complete:break
         except Exception as error:
             with self._lock:self._state='held';self._error=str(error)
         finally:
             try:
-                with self._lock:disable=self._disable_pending;self._disable_pending=False
+                with self._lock:
+                    disable=self._disable_pending;self._disable_pending=False
+                    disable_video=self._video_disable_pending;self._video_disable_pending=False
                 if disable:
                     self._local_enabled(False)
                     with self._lock:self._state='off'
-                elif self._pending_mode is not None:self._apply_mode(self._pending_mode)
+                if disable_video:
+                    self._stop.clear() # Worker has really ended; only decrease metadata follows.
+                    self._disable_video()
+                if not disable and self._pending_mode is not None:self._apply_mode(self._pending_mode)
             except Exception as error:
                 with self._lock:self._state='held';self._error=str(error)
             if syncing:self._sync_activity(False)

@@ -66,7 +66,7 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                             state='canceled_held' if resume_canceled else 'snapshot_ready',source_io_ended=True,**options)
                         value['expires_ms']=min(value['expires_ms'],message['expires_ms'])
                         dispatch(fixture,value);continue
-                    if metadata_handler is not None and operation in ('status','configure','discover','catalog_page','request_read'):
+                    if metadata_handler is not None and operation in ('status','configure','configure_videos','discover','catalog_page','request_read'):
                         metadata_handler(message);continue
                     if operation=='batch_run':
                         index=0;canceled=False
@@ -107,7 +107,7 @@ def phone_batches(fixture, batches, *, block_chunk=None, block_source=False, met
                     dispatch(fixture, chunk(message, content))
                 elif kind == 'file_transfer.saved':
                     accepted=saved_targets[message['message_id']]
-                    assert all((fixture[4] / path).read_bytes() == content for _,path in accepted.targets)
+                    assert all((Path(accepted.destination.path) / path).read_bytes() == content for _,path in accepted.targets)
                     saved.append(message)
         except BaseException as error:
             errors.append(error); fixture[3].close()

@@ -50,12 +50,14 @@ def video_phone(fixture, target, batches, monkeypatch, **options):
         if message.get('kind') in (sources.RUN_RESULT,sources.MEDIA,sources.RESUME,sources.ABANDONED):
             message = deepcopy(message)
             pending = connection._source_pending
-            assert pending is not None and pending.command.media_type == 'video'
-            body = message['body']; body['media_type'] = 'video'
+            assert pending is not None
+            body = message['body']
             body['version'] = pending.command.expected_version
-            if message['kind'] == sources.MEDIA:
-                body['page']['media_type'] = 'video'
-                for entry in body['page']['entries']: entry['media_kind'] = 'video'
+            if pending.command.media_type == 'video':
+                body['media_type'] = 'video'
+                if message['kind'] == sources.MEDIA:
+                    body['page']['media_type'] = 'video'
+                    for entry in body['page']['entries']: entry['media_kind'] = 'video'
         return original(peer,channel,message)
     with monkeypatch.context() as patch:
         patch.setattr(service,'_payload',typed)
