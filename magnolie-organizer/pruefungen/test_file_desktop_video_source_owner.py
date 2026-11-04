@@ -12,8 +12,16 @@ from magnolie_file_transfer import TransferError
 import magnolie_file_sources as sources
 
 
-def begin(fixture,tmp_path,monkeypatch,*,batched=False):
-    target=prepare(fixture,tmp_path,monkeypatch);status(fixture)
+def begin(fixture,tmp_path,monkeypatch,*,batched=False,storage=False,default=False):
+    target=prepare(fixture,tmp_path,monkeypatch,default=default)
+    if storage:
+        from magnolie_media_storage_bootstrap import NativeMediaStorageBootstrap
+        from test_file_desktop_receive import negotiate
+        connection=fixture[3];owner=NativeMediaStorageBootstrap(connection._authority)
+        try:owner.prepare(owner.issue_action(),connection._preferences.read())
+        finally:owner.close()
+        negotiate(*fixture[:4])
+    status(fixture)
     monkeypatch.setattr(NativeDesktopFileConnection,'_video_data_handlers_ready',True)
     req=request(fixture,'discover',media_type='video')
     fixture[0]._payload(fixture[1],fixture[2],response(req,sources.CATALOG,version='3'*64,media_type='video',
@@ -24,18 +32,18 @@ def begin(fixture,tmp_path,monkeypatch,*,batched=False):
     return target
 
 
-def run_reply(fixture,req,state='snapshot_ready',**fields):
+def run_reply(fixture,req,state='snapshot_ready',*,run_id=RUN,**fields):
     old=fixture[3]._source_run
     if (req['body']['operation']=='batch_run' or old is not None and old.batched
             and req['body']['operation'] not in ('end_run','end_album')):fields.setdefault('batch_end',False)
-    reply=response(req,sources.RUN_RESULT,version='3'*64,run_id=RUN,state=state,source_io_ended=True,
+    reply=response(req,sources.RUN_RESULT,version=req['body']['expected_version'],run_id=run_id,state=state,source_io_ended=True,
         media_type='video',**fields)
     reply['expires_ms']=min(reply['expires_ms'],req['expires_ms'])
     fixture[0]._payload(fixture[1],fixture[2],reply)
     return reply
 
 
-def test_typed_video_source_owner_selects_video_token_for_offer_and_cannot_admit_unjoined_receiver(receiving,tmp_path,monkeypatch):
+def test_typed_video_source_owner_selects_video_token_for_offer_and_requires_explicit_storage_bootstrap(receiving,tmp_path,monkeypatch):
     target=begin(receiving,tmp_path,monkeypatch);connection=receiving[3]
     scope=connection._preferences.read()
     assert connection._source_run.media_type=='video'
@@ -53,7 +61,7 @@ def test_typed_video_source_owner_selects_video_token_for_offer_and_cannot_admit
     receiving[0]._payload(receiving[1],receiving[2],offered)
     run_reply(receiving,req,offer_id=offered['message_id'],manifest_sha256=full.fingerprint)
     assert connection._offer_binding.destination_token==scope.policy.videos.destination_token
-    with pytest.raises(TransferError,match='media_target_routing_unavailable'):
+    with pytest.raises(TransferError,match='media_storage_bootstrap_required'):
         connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
     assert connection._run is None and connection._catalog is None
     assert not list(target.iterdir()) and not list(receiving[4].iterdir())
@@ -109,3 +117,17 @@ def test_video_batch_scan_end_after_capability_withdrawal_uses_exact_typed_ended
     run_reply(receiving,req,state='canceled_held',run_ended=True)
     assert connection._ended_batch is None and connection._source_pending is None
     assert connection._run is None and connection._catalog is None and not list(target.iterdir())
+
+
+def test_uncertain_video_end_output_retries_exact_original_command_after_video_capability_withdrawal(receiving,tmp_path,monkeypatch):
+    begin(receiving,tmp_path,monkeypatch);connection=receiving[3]
+    req=request(receiving,'cancel_run');run_reply(receiving,req,state='canceled_held')
+    receiving[2].send.side_effect=OSError('fixture uncertain VIDEO END output')
+    with pytest.raises(OSError):request(receiving,'end_run')
+    pending=connection._source_pending;original=pending.message
+    assert original['body']['media_type']=='video' and connection._source_run is not None
+    receiving[1]['capabilities']['items']['device_status']['versions'].remove(22);receiving[0].store.save_peers()
+    receiving[2].send.side_effect=None;connection.retry_source_command()
+    assert connection._source_pending is pending and receiving[2].send.call_args.args[0]==original
+    run_reply(receiving,original,state='canceled_held',run_ended=True)
+    assert connection._source_run is None and connection._source_pending is None

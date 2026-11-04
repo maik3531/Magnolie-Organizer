@@ -1,6 +1,38 @@
 # Dedicated own-peer file controls (integration in #330)
 
-### Typed desktop video source owner (Refs #330, receiver admission pending)
+### Ordinary desktop video receive and owned stop (Refs #330, partial join)
+
+The private-gated ordinary desktop video path now joins typed source ownership,
+complete media/offer correlation, explicit native mapping/catalog bootstrap and
+the original independent video root/token to the real encrypted receive stage.
+Native publication commits video mapping/Saved evidence and emits the existing
+protected Saved envelope. Cache retirement requires that actual saved evidence;
+an unsaved stop keeps the original job, stage and reservation. Original video
+resume through a new ordinary source run remains explicitly refused pending its
+dedicated original-owner join. No video worker/session/UI or production gate is
+enabled by this partial path.
+
+After video capability, local video consent or private readiness withdrawal,
+positive data operations remain closed. Stop waits for an outstanding request's
+actual ordered source-cancel barrier before checkpoint/close. Only that exact
+local owner, on the gate-held checkpoint/close thread, may derive current base
+control authority with the current protected original video token/root. The old
+accepted binding is compared, never returned as authority. The narrow checkpoint
+context is removed in `finally`; another thread and ordinary READ cannot use it.
+Uncertain checkpoint/close retains a failed owner and its full reservation.
+
+Source-host tests cover actual video chunk bytes, encrypted stage, custom and
+native Videos/`<Telefonname>-Videos` destinations, publication, Saved mapping,
+local retirement and typed source END. Three withdrawal modes retain the exact
+unsaved job after real drain/close without Saved output. Further cases verify
+checkpoint-thread isolation, failure holds, independent photo reception while
+video data stays OFF, and no generic video-resume fallback. A real saved-video
+case performs local/source video OFF/ON metadata, then supplies a fresh typed
+source epoch: known native IDs HOLD before another reservation or chunk, while
+the user's PC edit/inode and original saved job remain unchanged. These are
+desktop/native-sourcehost proofs, not installed Android/R8 or physical acceptance.
+
+### Typed desktop video source owner (Refs #330, worker integration pending)
 
 Under the still-OFF private video-data gate, the desktop source lane now joins
 typed ordinary/batch starts and their media/offer/status/cancel/END commands.
@@ -14,11 +46,11 @@ token/root, never the photo fallback. Positive commands recheck private readines
 current capability and consent; exact already-owned video status/cancel/END can
 finish after video capability, local consent or private readiness withdrawal
 under unchanged base configuration authority. No new local READ is authorized
-by these closing commands. Receiver admission still rejects the unfinished video
-target/transfer join, and no video worker/UI is exposed.
+by these closing commands. Ordinary receive admission is described above;
+original video resume and video worker/UI remain unjoined.
 
-Source-owner tests cover typed pages/offers and refusal before native receiver
-reservation, correct video binding, three withdrawal directions, conflicting
+Source-owner tests cover typed pages/offers and mandatory storage-bootstrap
+refusal before reservation, correct video binding, three withdrawal directions, conflicting
 image cancellation, post-withdrawal END, pending-command gate withdrawal and
 invalid scope aliases. Existing native photo receive/source and original-stage
 stop/resume/Saved-END paths remain green. These desktop protocol fixtures are not
@@ -37,10 +69,10 @@ Seven native binding cases cover default refusal, original root/token, unchanged
 photo grants, lower-level accepted-destination verification, video withdrawal,
 local OFF, missing/replaced roots and withdrawal during root verification. The
 23 existing actual photo receiver cases still pass. These are binding checks,
-not an admitted video receiver/worker: positive source commands require the
-private gate, and receiver admission remains closed pending the transfer join.
+not video worker acceptance: positive source/receive paths require the private
+gate, and the ordinary receiver proof is documented separately above.
 
-### Live desktop video metadata commands (Refs #330, data join still closed)
+### Live desktop video metadata commands (Refs #330, production gates OFF)
 
 The actual reserved desktop lane can now issue separate `configure_videos` and
 typed video discovery/catalog-page/permission attempts. Positive video commands
@@ -54,9 +86,8 @@ same-revision mutation as well as the existing global policy witness. Dedicated
 video configuration does not wait for a changed photo FileControl echo; its
 successful metadata reply alone still grants no READ. Explicit video OFF can
 complete after capability withdrawal with the native legacy-shaped reply.
-Video catalogs cannot be used by image run selection. Video receiver/worker
-admission remains explicitly closed pending the remaining target/transfer join;
-typed source ownership is described above.
+Video catalogs cannot be used by image run selection. Original video resume and
+worker/session/UI integration remain closed; ordinary receive is described above.
 
 ### Video history across renewed source epochs (Refs #330, inert guard)
 
@@ -129,9 +160,10 @@ CAS/readback/reopen, stale/replayed/expired actions, wrong choice/authority type
 token alias rejection, missing/replaced roots and uncertain writes. A real saved
 photo job case verifies original protected mapping receipt, mapping/catalog
 state, native binding and user-edited file bytes/inode after video metadata
-change, without a new control packet or source request. This is not yet the
-desktop video source codec/session/worker/UI join; video controls remain absent
-and production readiness remains OFF.
+change, without a new control packet or source request. The codec/current binding
+and ordinary receiver join are documented above; original video resume and
+session/worker/UI remain pending. Video controls remain absent and production
+readiness remains OFF.
 
 ### Typed authenticated video runs and original-job continuation (Refs #330)
 
@@ -160,7 +192,7 @@ They include modern Android READ, capability withdrawal, cross-media rejection,
 two batches across the unchanged sixteen-file working boundary, album-scan END
 without opening remaining media and native subset selection. Source epoch
 guards are unchanged: video disable/re-enable does not implicitly reassociate
-an old accepted job. Independent desktop video destinations/worker/UI and all
+an old accepted job. Desktop original-video-resume/worker/UI and all
 installed/physical-device acceptance remain separate work; production gates
 remain OFF.
 
@@ -198,7 +230,8 @@ interleave with an actual source owner. Capability loss/uncertain CAS permits no
 positive READ, and explicit video decrease remains possible after withdrawal.
 
 Discovery alone opens no media PFD and creates no job. The typed native run join
-is described above; desktop video target/worker integration remains absent.
+is described above; desktop ordinary target/receive is partially joined above,
+while original video resume and worker/UI integration remain absent.
 These native joins alone are not usable desktop video synchronization and do
 not activate production readiness.
 
@@ -256,7 +289,7 @@ Source-host tests include actual protected-policy/index operations, native
 permission hosts and MediaStore/PFD/encrypted-cache workflow on legacy and modern
 Android runtimes, plus merged-manifest permission inspection. They do not prove
 physical permission dialogs or an installed phone transfer. The independent
-desktop video destination and complete worker/UI integration remain absent.
+desktop original video resume and complete worker/UI integration remain absent.
 No video control or new production readiness is advertised from these native
 workflow checks alone.
 

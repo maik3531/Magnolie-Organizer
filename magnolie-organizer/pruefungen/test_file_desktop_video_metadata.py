@@ -1,4 +1,5 @@
-"""Actual reserved desktop video metadata lane, with data admission still shut."""
+"""Actual reserved desktop video metadata lane, with production gates still shut."""
+from pathlib import Path
 import pytest
 
 from test_file_authenticated_desktop import native
@@ -10,15 +11,17 @@ from magnolie_file_transfer import TransferError
 from magnolie_photo_destination import NativeVideoDestinationController
 
 
-def prepare(fixture,tmp_path,monkeypatch):
+def prepare(fixture,tmp_path,monkeypatch,*,default=False):
     service,peer,channel,connection,_=fixture
     monkeypatch.setattr(service,'_resume_automatic_photos',lambda *args:None)
     peer['capabilities']['items']['device_status']['versions'].append(22)
     service.store.save_peers();ack_all(service,peer,channel)
-    target=tmp_path/'native-independent-videos';target.mkdir(mode=0o700)
+    target=tmp_path/'native-independent-videos'
+    if not default:target.mkdir(mode=0o700)
     chooser=NativeVideoDestinationController(connection._authority)
     try:
-        selected=chooser.choose_custom(chooser.issue_action(),target)
+        selected=chooser.choose_default(chooser.issue_action()) if default else chooser.choose_custom(chooser.issue_action(),target)
+        target=Path(selected.destination.path)
         prefs=connection._preferences
         prefs.set_video_scope(prefs.issue_action(),prefs.read(),enabled=True,destination_choice=selected)
     finally:chooser.close()

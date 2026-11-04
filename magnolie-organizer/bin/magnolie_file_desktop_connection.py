@@ -79,6 +79,7 @@ class NativeDesktopFileConnection:
         self._receive_stop_gate = threading.Lock()
         self._receive_stop = None
         self._stopped_receive_run = None
+        self._checkpoint_binding_owner = None
         self._resume_end_confirmation = self._resume_abandonment = None
         self._selected_preview = self._selected_source_id = None
         self._ended_batch = self._ended_batch_policy = None
@@ -246,23 +247,27 @@ class NativeDesktopFileConnection:
                 failure = TransferError('file_desktop_receive_repair_pending')
             else:
                 already_closed = receiver._closed
+                if run.media_type=='video':self._checkpoint_binding_owner=(run,threading.get_ident())
                 try:
-                    self._receive_binding()
-                    progress = receiver.checkpoint()  # Includes protected commit/readback.
-                    if progress.checkpoint_verified_bytes != progress.verified_bytes:
-                        raise TransferError('file_desktop_stop_checkpoint_not_proven')
-                except Exception as error:
-                    failure = error
-                try:
-                    receiver.close()  # Actual descriptors close after native I/O, index last.
-                    closed = not already_closed  # A prior close no-op is not new cleanup proof.
-                except Exception as error:
-                    self._cleanup_error = type(error).__name__
-                    if failure is None: failure = error
-                try:
-                    self._receive_binding()
-                except Exception as error:
-                    if failure is None: failure = error
+                    try:
+                        self._receive_binding()
+                        progress = receiver.checkpoint()  # Includes protected commit/readback.
+                        if progress.checkpoint_verified_bytes != progress.verified_bytes:
+                            raise TransferError('file_desktop_stop_checkpoint_not_proven')
+                    except Exception as error:
+                        failure = error
+                    try:
+                        receiver.close()  # Actual descriptors close after native I/O, index last.
+                        closed = not already_closed  # A prior close no-op is not new cleanup proof.
+                    except Exception as error:
+                        self._cleanup_error = type(error).__name__
+                        if failure is None: failure = error
+                    try:
+                        self._receive_binding()
+                    except Exception as error:
+                        if failure is None: failure = error
+                finally:
+                    self._checkpoint_binding_owner=None
                 if not closed and failure is None:
                     failure = TransferError('file_desktop_stop_cleanup_not_proven')
             with self._receive_stop_gate:
@@ -342,8 +347,8 @@ class NativeDesktopFileConnection:
         return session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
 
     def _source_command_authority(self, pending, clock):
-        self._receiving_policy()
         closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album')
+        self._receiving_policy(closing=closing)
         if pending.command.media_type=='video' and closing:
             owner=self._ended_batch if pending.command.operation=='end_album' else self._source_run
             if owner is None or owner.run_id!=pending.command.run_id or owner.media_type!='video':
@@ -516,7 +521,7 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         if type(operation) is not str:raise TransferError('file_desktop_source_invalid_options')
         with self._operation():
-            self._receiving_policy()
+            self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album'))
             if self._source_pending is not None:
                 raise TransferError('file_desktop_source_command_busy')
             if self._source_control_required is not None:
@@ -822,7 +827,7 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_native_action_required')
         action.consume(self)
 
-    def _receiving_policy(self):
+    def _receiving_policy(self,*,closing=False):
         self._ready()
         if not self._data_handlers_ready:
             raise TransferError('file_desktop_data_handlers_unavailable')
@@ -830,7 +835,7 @@ class NativeDesktopFileConnection:
         if (snapshot.policy is None or not snapshot.policy.enabled or not snapshot.associated
                 or not snapshot.destination_available):
             raise TransferError('file_desktop_receive_consent_unavailable')
-        if self._run is not None and snapshot.version != self._run.policy_version:
+        if not closing and self._run is not None and snapshot.version != self._run.policy_version:
             raise TransferError('file_desktop_receive_policy_changed')
         return snapshot
 
@@ -850,6 +855,9 @@ class NativeDesktopFileConnection:
         if media_type is not None and owned is not None and media_type!=owned:
             raise TransferError('file_desktop_source_media_scope_changed')
         media_type=media_type or owned or 'images'
+        checkpoint=self._checkpoint_binding_owner
+        if checkpoint is not None and checkpoint[1]==threading.get_ident() and media_type=='video':
+            return self._owned_video_checkpoint_binding(checkpoint[0])
         snapshot = self._receiving_policy()
         destination=self._receive_destination(snapshot,media_type=media_type)
         token=snapshot.policy.destination_token if media_type=='images' else snapshot.policy.videos.destination_token
@@ -864,6 +872,34 @@ class NativeDesktopFileConnection:
         self._ready()
         if self._mutation_action is not None:
             self._mutation_action.validate(self)
+        return binding
+
+    def _owned_video_checkpoint_binding(self,run):
+        """Exact drained owner on the checkpoint/close stack only, never READ.
+
+        Derive current base transport authority and current protected destination;
+        the accepted historical binding is compared, never returned as a grant.
+        """
+        state=self._receive_stop
+        if (self._checkpoint_binding_owner is None or self._checkpoint_binding_owner[0] is not run
+                or self._checkpoint_binding_owner[1]!=threading.get_ident() or self._run is not run
+                or not run.stop_requested.is_set() or run.media_type!='video' or run.job is None
+                or state is None or state.state!='pending' or state.owner!=run.job.owner
+                or self._source_run is None or self._source_run.media_type!='video'
+                or self._source_run.run_id!=state.source_run_id
+                or run.request is not None and run.request_output_started and not run.stop_barrier_confirmed):
+            raise TransferError('file_desktop_video_checkpoint_owner_changed')
+        self._ready();snapshot=self._preferences.read()
+        policy=snapshot.policy
+        if (policy is None or not policy.enabled or not snapshot.associated or not snapshot.destination_available
+                or policy.videos is None or policy.videos.destination!=run.accepted.destination):
+            raise TransferError('file_desktop_video_checkpoint_scope_changed')
+        binding=self._controls.binding(policy.videos.destination_token)
+        if binding is None or binding!=run.accepted.binding:
+            raise TransferError('file_desktop_video_checkpoint_scope_changed')
+        policy.videos.destination.verify();self._ready()
+        if self._preferences.read()!=snapshot or self._controls.binding(policy.videos.destination_token)!=binding:
+            raise TransferError('file_desktop_video_checkpoint_scope_changed')
         return binding
 
     def _observe_offer(self, message, clock):
@@ -921,19 +957,20 @@ class NativeDesktopFileConnection:
         snapshot = self._receiving_policy()
         if snapshot.direction != 'phone_to_desktop':
             raise TransferError('file_desktop_reverse_handlers_unavailable')
-        if snapshot.include_videos:
-            if self._source_media_entries is None:
-                raise TransferError('file_desktop_source_media_not_correlated')
-            # The independent native video source/destination join is absent.
-            # Never silently ignore an explicitly selected unsupported option.
-            raise TransferError('file_desktop_media_target_routing_unavailable')
+        media_type=self._source_run.media_type if self._source_run is not None else 'images'
+        if media_type=='video':
+            if not self._video_data_handlers_ready:raise TransferError('file_desktop_video_data_join_unavailable')
+            self._require_video_metadata_scope()
+        if (media_type=='video' or snapshot.include_videos) and (
+                self._source_run is None or not self._source_media_pages or self._source_media_entries is None):
+            raise TransferError('file_desktop_source_media_not_correlated')
         if snapshot.separate_own_recordings and (self._source_album_kind not in source_messages.KINDS
                 or self._source_media_entries is None or self._source_run is None):
             raise TransferError('file_desktop_source_album_kind_required')
         if snapshot.separate_animations and self._source_media_entries is None:
             raise TransferError('file_desktop_source_media_not_correlated')
         if self._source_media_pages:
-            if self._offer is None or self._source_media_pages[0].media_type != 'images':
+            if self._offer is None or self._source_media_pages[0].media_type != media_type:
                 raise TransferError('file_desktop_media_target_routing_unavailable')
             binding = self._receive_binding()
             manifest = validate_offer(self._offer, binding.sender_id, binding.receiver_id, now=clock())
@@ -1344,6 +1381,8 @@ class NativeDesktopFileConnection:
             if clock() >= self._offer['expires_ms']:
                 raise TransferError('file_desktop_offer_expired')
             targets={file.id:file.path for file in manifest.files}
+            media_type=self._source_run.media_type if self._source_run is not None else 'images'
+            destination=self._receive_destination(snapshot,media_type=media_type)
             if snapshot.separate_animations:
                 # Only fresh, correlated animation members are routed. Known
                 # historical associations were fenced before deriving paths.
@@ -1361,12 +1400,12 @@ class NativeDesktopFileConnection:
                     if photo_id in dict(parents):
                         association=PhotoMappingAssociation(first.source_epoch,photo_id,first.media_type)
                         _,(original,)=self._mappings.lookup((association,))
-                        if original is None or original.destination!=snapshot.policy.destination:
+                        if original is None or original.destination!=destination:
                             raise TransferError('file_desktop_photo_version_destination_changed')
                         targets[file.id]=photo_version_path(association,file)
             accepted = NativeAcceptedTransfer.capture(manifest, binding, targets,
-                snapshot.policy.destination.path, self._receive_binding)
-            if accepted.destination != snapshot.policy.destination:
+                destination.path, self._receive_binding)
+            if accepted.destination != destination:
                 raise TransferError('file_desktop_original_destination_changed')
             history = NativeMediaHistory.capture(accepted,self._source_media_pages,
                 mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
@@ -1415,6 +1454,8 @@ class NativeDesktopFileConnection:
         with self._operation():
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
+            if self._source_run is not None and self._source_run.media_type=='video':
+                raise TransferError('file_desktop_video_original_resume_join_unavailable')
             if self._resume_source_id is not None:
                 selected = self._require_resume_lookup_selection(allow_source_run=True)
                 if native_job_owner != selected.job.owner:
