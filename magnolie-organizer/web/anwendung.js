@@ -6392,7 +6392,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           !["icsRoundtrip", "icsAusnahmen"].includes(exclusion.field) || typeof exclusion.value !== "string" ||
           (exclusion.field === "icsRoundtrip" ? !/^EXDATE[;:]/i.test(exclusion.value) : !gueltigesISO(exclusion.value)) ||
           !(master[exclusion.field] || []).includes(exclusion.value)) return false;
+      const replacement = exclusion.replacement && DATEN.termine.find(item => item.id === exclusion.replacement.id);
+      if (exclusion.replacement && (!replacement || replacement.icsReadOnly || replacement.sync || replacement.syncKalenderUid ||
+          kanonischerEntwurf(replacement) !== kanonischerEntwurf(exclusion.replacement))) return false;
       master[exclusion.field] = master[exclusion.field].filter(value => value !== exclusion.value);
+      if (replacement) DATEN.termine = DATEN.termine.filter(item => item !== replacement);
       master.geaendert = Date.now();
       DATEN.papierkorb = DATEN.papierkorb.filter(item => item.id !== stueck.id);
       if (!privat) terminIndexVeraltet = true;
@@ -16870,18 +16874,64 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { field: "icsRoundtrip", value: "EXDATE:" + stamp };
   }
 
-  function loescheTerminVorkommen(termin, vorkommen, erwarteterStand) {
+  function bereiteTerminErsatz(termin, vorkommen, ersatz) {
+    if (!ersatz) return null;
+    if (!gueltigesISO(ersatz.datum)) throw new Error(_("Choose a valid replacement date and time."));
+    const zone = eigeneIanaZeitzone() || organizerZeitzone();
+    let zeit = "", endZeit = "", endDatum = "";
+    const temporal = [], stamp = instant => new Date(instant).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    if (vorkommen.zeit) {
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(ersatz.zeit || ""))
+        throw new Error(_("Choose a valid replacement date and time."));
+      zeit = ersatz.zeit;
+      const originalStart = Number.isFinite(vorkommen.icsStartUtc) ? vorkommen.icsStartUtc : zeitOrtszeitpunkt(vorkommen.datum, vorkommen.zeit, zone);
+      const originalEnd = Number.isFinite(vorkommen.icsEndUtc) ? vorkommen.icsEndUtc :
+        zeitOrtszeitpunkt(vorkommen.endDatum || vorkommen.datum, vorkommen.endZeit || vorkommen.zeit, zone);
+      const start = zeitOrtszeitpunkt(ersatz.datum, zeit, zone);
+      const duration = originalEnd - originalStart;
+      if (duration < 0) throw new Error(_("Choose a valid replacement date and time."));
+      temporal.push("DTSTART:" + stamp(start));
+      if (vorkommen.endZeit || vorkommen.icsEndUtc > vorkommen.icsStartUtc) {
+        temporal.push("DTEND:" + stamp(start + duration));
+        const parts = zeitDatumTeile((start + duration) / 60000, zone);
+        const day = String(parts.year).padStart(4, "0") + "-" + pad2(parts.month) + "-" + pad2(parts.day);
+        if (!gueltigesISO(day)) throw new Error(_("Choose a valid replacement date and time."));
+        endDatum = day !== ersatz.datum ? day : "";
+        endZeit = pad2(parts.hour) + ":" + pad2(parts.minute) + (parts.second ? ":" + pad2(parts.second) : "");
+      }
+    } else {
+      const days = tageDiff(vorkommen.datum, vorkommen.endDatum || vorkommen.datum);
+      if (days < 0) throw new Error(_("Choose a valid replacement date and time."));
+      const day = ausISO(ersatz.datum);
+      if (days) endDatum = isoVon(new Date(day.getFullYear(), day.getMonth(), day.getDate() + days));
+      if (endDatum && !gueltigesISO(endDatum)) throw new Error(_("Choose a valid replacement date and time."));
+    }
+    const werte = {};
+    // A replacement is an explicitly separate one-off appointment, never a
+    // second owner of the series UID or its persisted provider bindings.
+    for (const field of ["titel", "ort", "notiz", "kategorien", "akzentFarbe", "vertraulich", "vorlaeufig",
+        "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung", "alarme", "kalenderQuelle",
+        "syncKalenderUid", "organisator", "teilnehmer", "kalenderAnhaenge", "aufgaben"])
+      if (vorkommen[field] !== undefined) werte[field] = kopie(vorkommen[field]);
+    return normalisiereTermine([neuerTerminDaten({ ...werte, datum: ersatz.datum, zeit, endDatum, endZeit,
+      wiederholung: { art: "none", bis: "" }, icsRoundtrip: temporal, icsAnzeigeZeitzone: zone, geaendert: Date.now() })])[0];
+  }
+
+  function loescheTerminVorkommen(termin, vorkommen, erwarteterStand, ersatz = null) {
     if (!DATEN.termine.includes(termin) || kanonischerEntwurf(termin) !== erwarteterStand) return false;
     const exclusion = terminVorkommenAusnahme(termin, vorkommen);
     if (!exclusion || (termin[exclusion.field] || []).includes(exclusion.value)) return false;
     if ((termin[exclusion.field] || []).length >= (exclusion.field === "icsRoundtrip" ? 512 : 256)) return false;
+    // Build/validate the complete replacement before changing the original.
+    const replacement = bereiteTerminErsatz(termin, vorkommen, ersatz);
     const trash = inDenPapierkorb("termin", termin, fmtPunkt(vorkommen.datum) + " – " + termin.titel, termin.id);
-    if (trash) trash.appointment_occurrence = exclusion;
+    if (trash) trash.appointment_occurrence = { ...exclusion, ...(replacement ? { replacement: kopie(replacement) } : {}) };
     const values = (termin[exclusion.field] || []).slice();
     const end = exclusion.field === "icsRoundtrip" ? values.findIndex(line => /^END:VEVENT\s*$/i.test(line)) : -1;
     values.splice(end < 0 ? values.length : end, 0, exclusion.value);
     termin[exclusion.field] = values;
     termin.geaendert = Date.now();
+    if (replacement) DATEN.termine.push(replacement);
     terminIndexVeraltet = true;
     return true;
   }
@@ -17775,10 +17825,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const confirmation = DATEN.einstellungen.papierkorb.an
             ? uebersetzt("Delete appointment “%(title)s”?", { title: fmtPunkt(vorkommen.datum) + " – " + termin.titel })
             : _("Recycle bin disabled: Delete the selected items permanently?");
-          frage(confirmation,
-            _("Delete this occurrence"), null, _("Later occurrences remain unchanged.")).then(ja => {
+          const answer = frage(confirmation,
+            _("Delete this occurrence"), null, _("Later occurrences remain unchanged."));
+          const replacement = document.createElement("input"); replacement.type = "checkbox";
+          replacement.id = "tb-ersatz-an";
+          const label = el("label"); label.append(replacement, document.createTextNode(" " + _("Create a replacement appointment")));
+          const date = eingabe("date", ""); date.id = "tb-ersatz-datum"; date.disabled = true;
+          const replacementZone = eigeneIanaZeitzone() || organizerZeitzone();
+          const projectedClock = Number.isFinite(vorkommen.icsStartUtc) ? zeitDatumTeile(vorkommen.icsStartUtc / 60000, replacementZone) : null;
+          const clock = projectedClock ? pad2(projectedClock.hour) + ":" + pad2(projectedClock.minute) +
+            (projectedClock.second ? ":" + pad2(projectedClock.second) : "") : vorkommen.zeit;
+          const time = vorkommen.zeit ? eingabe("time", clock) : null;
+          if (time) { time.id = "tb-ersatz-zeit"; time.disabled = true; }
+          const fields = el("div"); fields.append(formZeile(_("Date"), date));
+          if (time) fields.append(formZeile(_("Time"), time));
+          if (time) fields.append(el("p", null, _("Time zone") + ": " + zeitzonenName(replacementZone)));
+          replacement.addEventListener("change", () => { date.disabled = !replacement.checked;
+            if (time) time.disabled = !replacement.checked; });
+          $("#dialog-hinweis").append(label, fields,
+            el("p", null, _("The replacement is a separate appointment; the series keeps its schedule.")));
+          answer.then(ja => {
             if (!ja) return;
-            if (!loescheTerminVorkommen(termin, vorkommen, serienStand)) { zettel(_("Conflict")); return; }
+            const choice = replacement.checked ? { datum: datumswert(date), zeit: time ? time.value : "" } : null;
+            try {
+              if (!loescheTerminVorkommen(termin, vorkommen, serienStand, choice)) { zettel(_("Conflict")); return; }
+            } catch (error) { zettel(error.message); return; }
             planeSpeichern(); aktiverEditor = null; schliessen(); zeichneAlles();
           });
         });

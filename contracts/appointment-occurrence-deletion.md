@@ -40,3 +40,34 @@ Das ist keine installierte Paket-/Live-Provider-Abnahme und keine Aussage über
 die noch unbekannte konkrete Kalenderquelle des weitergeleiteten Nutzerberichts.
 Die native Provider-/Randfallabnahme und die bewusst ausgesparten alten
 Mehrfach-Uhrzeiten werden unter #382 weitergeführt.
+
+## Optionaler Ersatztermin (Refs #383)
+
+Die Bestätigung der Einzel-Löschung bietet jetzt optional **Ersatztermin anlegen**.
+Der Schalter ist anfangs aus; ohne Auswahl bleibt es bei der reinen Ausnahme.
+Datum und gegebenenfalls Uhrzeit werden ausdrücklich gewählt. Die angezeigte
+Uhrzeit und Zeitzonenbeschriftung verwenden die eigene Zeitzone. Der Ersatz wird
+als **eigenständiger einmaliger Termin** mit neuer ID/UID angelegt; der Dialog
+erklärt ausdrücklich, dass die Serie ihren bisherigen Rhythmus behält.
+
+Vor der ersten Mutation werden Ausnahme, aktueller Serienstand und vollständiger
+Ersatz geprüft. Abbruch, ungültige Eingabe, zwischenzeitliche Änderung oder eine
+nicht existierende lokale Uhrzeit lassen die Ausgangsdaten unverändert. Dauer
+(auch sekundengenau oder über eine Zeitumstellung), ganztägige Tageslänge und
+gewöhnliche Terminfelder bleiben erhalten. Zeitgebundene Ersatzeinträge speichern
+ihre exakten neuen UTC-Zeitfelder im üblichen iCalendar-Roundtrip; sie übernehmen
+keine Serienregel, Serien-UID oder historischen Providerbindungen.
+
+Der Papierkorbbeleg archiviert zusätzlich den geplanten Ersatzeintrag.
+Wiederherstellen entfernt beide zusammen nur bei einem unveränderten,
+weiterhin lokalen Ersatzeintrag und unveränderter Serienform. Ein bearbeiteter,
+fehlender, bereits synchronisierter oder einem Provider zugeordneter Ersatz
+bleibt mitsamt Ausnahme gesperrt, statt fremde Änderungen oder unsicher
+veröffentlichte Termine zu löschen. Der native Provider-/Rücknahme-Rest bleibt
+in #382; keine plattformübergreifende Providertransaktion wird behauptet.
+
+28 duale Ersatzterminfälle prüfen lokale/UTC/TZID-Quellen, deutsche Bedienung,
+präzise Dauer, ganztägige Länge, DST-Lücke/-Dauer, Abbruch, ungültige und veraltete
+Eingabe, gekoppelte Rücknahme, Provider-HOLD und tatsächliches Wiederöffnen.
+Die bestehenden Einzel-Löschfälle und Desktopregressionen bleiben zusätzlich
+geprüft. Drei neue Texte sind in allen 19 Sprachen beider Desktops enthalten.

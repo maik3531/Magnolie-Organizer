@@ -9436,3 +9436,18 @@ msgstr "后续重复日程保持不变。"
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "回收站已禁用：是否永久删除所选条目？"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "创建替代日程"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "替代日程是单独的日程，系列的重复周期保持不变。"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "请选择有效的替代日期和时间。"

@@ -8277,3 +8277,18 @@ msgstr "以降の予定は変更されません。"
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "代わりの予定を作成"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "代わりの予定は単独の予定です。繰り返しの周期は変わりません。"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "代わりの予定の有効な日付と時刻を選択してください。"

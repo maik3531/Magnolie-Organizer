@@ -10021,3 +10021,18 @@ msgstr "Latere herhalingen blijven ongewijzigd."
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "Prullenbak uitgeschakeld: de geselecteerde items definitief verwijderen?"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "Een vervangende afspraak maken"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "De vervanging is een aparte afspraak; het ritme van de reeks blijft ongewijzigd."
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "Kies een geldige datum en tijd voor de vervangende afspraak."

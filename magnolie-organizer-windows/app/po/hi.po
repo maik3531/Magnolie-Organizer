@@ -8210,3 +8210,18 @@ msgstr "बाद की आवृत्तियाँ अपरिवर्त
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "रीसायकल बिन अक्षम है: चयनित प्रविष्टियाँ स्थायी रूप से हटाएँ?"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "वैकल्पिक अपॉइंटमेंट बनाएँ"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "विकल्प एक अलग अपॉइंटमेंट है; शृंखला का समयक्रम नहीं बदलेगा।"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "वैकल्पिक अपॉइंटमेंट के लिए मान्य तारीख और समय चुनें।"

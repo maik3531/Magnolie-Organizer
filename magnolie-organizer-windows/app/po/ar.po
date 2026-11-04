@@ -8446,3 +8446,18 @@ msgstr "تبقى التكرارات اللاحقة دون تغيير."
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "سلة المحذوفات معطلة: هل تريد حذف العناصر المحددة نهائيًا؟"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "إنشاء موعد بديل"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "الموعد البديل منفصل؛ تبقى مواعيد السلسلة دون تغيير."
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "اختر تاريخًا ووقتًا صالحين للموعد البديل."

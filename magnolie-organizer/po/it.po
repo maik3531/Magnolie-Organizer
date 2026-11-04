@@ -10067,3 +10067,18 @@ msgstr "Le occorrenze successive restano invariate."
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "Cestino disattivato: eliminare definitivamente le voci selezionate?"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "Crea un appuntamento sostitutivo"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "La sostituzione è un appuntamento separato; la serie mantiene la sua cadenza."
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "Scegli una data e un'ora valide per l'appuntamento sostitutivo."

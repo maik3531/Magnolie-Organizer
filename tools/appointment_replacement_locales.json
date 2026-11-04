@@ -1,0 +1,22 @@
+{
+  "en": ["Create a replacement appointment", "The replacement is a separate appointment; the series keeps its schedule.", "Choose a valid replacement date and time."],
+  "de": ["Ersatztermin anlegen", "Der Ersatz ist ein einzelner Termin; der Rhythmus der Serie bleibt unverändert.", "Bitte gültiges Datum und Uhrzeit für den Ersatztermin wählen."],
+  "ar": ["إنشاء موعد بديل", "الموعد البديل منفصل؛ تبقى مواعيد السلسلة دون تغيير.", "اختر تاريخًا ووقتًا صالحين للموعد البديل."],
+  "be": ["Стварыць заменны запіс", "Замена — асобны запіс; расклад серыі не зменіцца.", "Выберыце сапраўдныя дату і час для замены."],
+  "cs": ["Vytvořit náhradní termín", "Náhrada je samostatný termín; rozvrh řady se nezmění.", "Vyberte platné datum a čas náhradního termínu."],
+  "da": ["Opret en erstatningsaftale", "Erstatningen er en særskilt aftale; seriens tidsplan ændres ikke.", "Vælg en gyldig dato og tid for erstatningsaftalen."],
+  "es": ["Crear una cita de sustitución", "La sustitución es una cita independiente; la serie mantiene su calendario.", "Elija una fecha y hora válidas para la cita de sustitución."],
+  "fr": ["Créer un rendez-vous de remplacement", "Le remplacement est un rendez-vous distinct ; le rythme de la série reste inchangé.", "Choisissez une date et une heure valides pour le remplacement."],
+  "hi": ["वैकल्पिक अपॉइंटमेंट बनाएँ", "विकल्प एक अलग अपॉइंटमेंट है; शृंखला का समयक्रम नहीं बदलेगा।", "वैकल्पिक अपॉइंटमेंट के लिए मान्य तारीख और समय चुनें।"],
+  "hsb": ["Narunanski termin załožić", "Narunanje je samostatny termin; rytmus serije wostanje njezměnjeny.", "Wubjerće płaćiwy datum a čas za narunanski termin."],
+  "it": ["Crea un appuntamento sostitutivo", "La sostituzione è un appuntamento separato; la serie mantiene la sua cadenza.", "Scegli una data e un'ora valide per l'appuntamento sostitutivo."],
+  "ja": ["代わりの予定を作成", "代わりの予定は単独の予定です。繰り返しの周期は変わりません。", "代わりの予定の有効な日付と時刻を選択してください。"],
+  "nb": ["Opprett en erstatningsavtale", "Erstatningen er en egen avtale; seriens tidsplan forblir uendret.", "Velg gyldig dato og klokkeslett for erstatningsavtalen."],
+  "nl": ["Een vervangende afspraak maken", "De vervanging is een aparte afspraak; het ritme van de reeks blijft ongewijzigd.", "Kies een geldige datum en tijd voor de vervangende afspraak."],
+  "pl": ["Utwórz termin zastępczy", "Zastępstwo jest osobnym terminem; harmonogram serii pozostaje bez zmian.", "Wybierz prawidłową datę i godzinę terminu zastępczego."],
+  "pt": ["Criar um compromisso de substituição", "A substituição é um compromisso separado; a série mantém o seu calendário.", "Escolha uma data e hora válidas para o compromisso de substituição."],
+  "ru": ["Создать заменяющую встречу", "Замена — отдельная встреча; расписание серии не изменится.", "Выберите допустимые дату и время заменяющей встречи."],
+  "tr": ["Yerine yeni bir randevu oluştur", "Yeni randevu ayrıdır; serinin düzeni değişmez.", "Yeni randevu için geçerli bir tarih ve saat seçin."],
+  "uk": ["Створити зустріч на заміну", "Заміна — окрема зустріч; розклад серії не зміниться.", "Виберіть дійсні дату й час зустрічі на заміну."],
+  "zh_CN": ["创建替代日程", "替代日程是单独的日程，系列的重复周期保持不变。", "请选择有效的替代日期和时间。"]
+}

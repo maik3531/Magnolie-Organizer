@@ -9913,3 +9913,18 @@ msgstr "Pozdější výskyty zůstanou beze změny."
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "Koš je vypnutý: trvale smazat vybrané položky?"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "Vytvořit náhradní termín"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Náhrada je samostatný termín; rozvrh řady se nezmění."
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "Vyberte platné datum a čas náhradního termínu."

@@ -9951,3 +9951,18 @@ msgstr "Наступныя паўторы застануцца без змен."
 #. Single recurring appointment deletion (Refs #379).
 msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr "Кошык адключаны: выдаліць выбраныя запісы назаўсёды?"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Create a replacement appointment"
+msgstr "Стварыць заменны запіс"
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Замена — асобны запіс; расклад серыі не зменіцца."
+
+
+#. Single recurring appointment actions (Refs #379, #383).
+msgid "Choose a valid replacement date and time."
+msgstr "Выберыце сапраўдныя дату і час для замены."
