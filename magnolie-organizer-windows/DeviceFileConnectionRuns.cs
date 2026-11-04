@@ -14,6 +14,8 @@ internal sealed partial class TelefonConnection
         internal readonly List<DeviceFileMediaPage> Pages = [];
         internal (string SourceEpoch, string MediaType, bool InsertionWitness)? AlbumScope;
         internal NativeMediaResumeLookup? Resume;
+        internal TelefonStore.NativeMediaReceiveJob? Recovered;
+        internal NativeMediaTransfer? Transfer;
         internal DeviceFileManifest? OfferedManifest { get; private set; }
         internal string? OfferedMessageId { get; private set; }
         internal long OfferedExpires { get; private set; }
@@ -97,10 +99,12 @@ internal sealed partial class TelefonConnection
         {
             RequireOwnedMediaRun(run, ended); read?.Invoke();
             var state = run.Result;
+            if ((offering || operation is "end_run" or "end_resume" or "end_album") && run.Transfer?.ActiveIo == true)
+                throw DeviceFileControl.Error("file_receive_native_io_pending");
             if (offering && (state.State != "snapshot_ready" || !state.SourceIoEnded) ||
                 offering && run.Pages.Count != 0 && run.Pages[^1].NextCursor is not null ||
                 operation == "offer_resume" && run.Pages.Count == 0 ||
-                (operation is "end_run" or "end_resume") && !state.SourceIoEnded || ended && (!state.RunEnded || run.Resume is not null))
+                (operation is "end_run" or "end_resume") && (!state.SourceIoEnded || state.State != "canceled_held") || ended && (!state.RunEnded || run.Resume is not null))
                 throw DeviceFileControl.Error("file_sources_native_run_not_quiescent");
         }
         Require();
@@ -111,6 +115,12 @@ internal sealed partial class TelefonConnection
             Require, token, cleanup ? run.Lease : null, accept: (ticket, value) =>
             {
                 var result = (DeviceFileRunResult)value;
+                if ((operation is "end_run" or "end_resume") && result.RunEnded && run.Transfer is { SavedOutputConfirmed: true } transfer)
+                    transfer.Job.RecordNativeSavedSourceEnd(run.Lease, result, () =>
+                    {
+                        Require();
+                        if (!run.Owner.ReceiverCommandCurrent(ticket)) throw DeviceFileControl.Error("file_receive_original_source_end_required");
+                    });
                 lock (fileRouteGate)
                 {
                     var old = run.Result;
@@ -241,7 +251,7 @@ internal sealed partial class TelefonConnection
                 lock (fileRouteGate)
                 {
                     var lease = choice.Owner.RetainSourceRun(ticket, result.RunId, result.Version, selected.MediaType);
-                    retained = new(choice.Owner, lease, catalogId, albumId, desktopChoice, result) { Resume = original };
+                    retained = new(choice.Owner, lease, catalogId, albumId, desktopChoice, result) { Resume = original, Recovered = recovered };
                     nativeMediaSourceRun = retained;
                 }
             });

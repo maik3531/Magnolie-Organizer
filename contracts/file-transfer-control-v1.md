@@ -410,9 +410,8 @@ rerun as a substitute for the new command's actual timeout. These are synthetic
 source replies through the real Windows native secure writer/dispatcher, not a
 physical Android provider or installed Organizer GUI acceptance.
 
-Run/batch/END and original-source lookup ownership are now joined below. Still
-unjoined: actual resumed receive ownership, the incoming offer/chunk
-route and operative album/worker/UI. No new background worker, startup READ,
+Run/batch/END, original-source lookup and the explicit wire receive operation are
+joined below. Still unjoined: operative album/worker/UI. No new background worker, startup READ,
 Android permission dialog, native public bridge action or production gate is
 introduced by these explicit native APIs.
 
@@ -529,9 +528,9 @@ errors. Linux grammar/non-Windows rejection is separately tested and is not
 substituted for those native Windows proofs.
 
 The native receive-job owner below now joins protected stage/publication history.
-Still unjoined: actual original-job resumed receiving and receipt-driven retirement,
-receive routing and working media UI. These filesystem/storage APIs are not wire handlers or a completed
-receiver. No installed Organizer acceptance, package delivery, new APK/EXE or
+Original-job resumed receiving and receipt-driven retirement are joined below;
+working media UI remains unjoined. These filesystem/storage APIs alone are not a
+complete user-facing sync. No installed Organizer acceptance, package delivery, new APK/EXE or
 production gate activation is claimed.
 
 ### Windows protected native receive jobs (Refs #330, #335)
@@ -556,8 +555,9 @@ blocks a new ordinary job rather than inventing empty history or another owner.
 
 The native media batch remains bounded to 16 flat gallery members. Held jobs
 reserve at most 32 active jobs / 1 GiB, with a separate 128-job historical ceiling;
-all reserved bytes count even before they arrive. There is currently no source-END
-retirement API, so published jobs conservatively keep that active budget. No
+all reserved bytes count even before they arrive. Published jobs retain their
+active budget until the local Saved proof, confirmed Saved output and actual
+stopped-source END are joined as described below. No
 quota is widened and no old job is evicted. Ordinary creation cannot substitute
 for original-job recovery or reuse a historical target slot. Native media DB
 opens now use existing-only read/write mode: missing `phone.db` is not recreated
@@ -574,8 +574,8 @@ corrupt ciphertext and actual 32-job / 1 GiB reservation exhaustion. The staged
 bytes in these tests are supplied to the explicit native API, not yet incoming
 encrypted file-data envelopes; this is not a network sync or installed GUI proof.
 
-Still missing: the original resume/END owner and cache retirement, wire offer/chunk
-routing, source resumed-run transport, album-layout/mapping orchestration
+The explicit wire operation below joins original resume/END and earned active
+budget retirement. Still missing: album-layout/mapping orchestration
 and operational media UI. No new automatic worker or production gate is enabled.
 
 ### Windows owned batch, media metadata, END and original-source lookup (Refs #330, #335)
@@ -637,8 +637,7 @@ a physical phone provider or installed application acceptance. Existing unchange
 quota and real no-reply timeout proofs are retained, not rerun. Build: zero
 warnings/errors. Source/video golden and pure lifecycle tests also pass on Linux.
 
-Native checkpoint/source-resume operations are added below. Still missing:
-incoming offer/chunk/Saved routing and original-job/cache END retirement, native
+Native checkpoint/source-resume and wire operations are added below. Still missing: native
 album/mapping/worker/UI join and Android recoverable trash/restore. No APK/EXE,
 installed-system update or gate activation is claimed by this source change.
 
@@ -685,8 +684,8 @@ file handles, DPAPI and encrypted control output/dispatch with synthetic source
 replies; local resumed chunks enter the explicit native API, not yet a wired
 incoming Android data route. No full phone sync/installed GUI proof is claimed.
 
-Still missing: incoming offer/chunk/Saved transport, receipt-driven original-job
-and source cache retirement, legacy/uncertain publication recovery UI, native
+The explicit receive operation below adds wire chunks/Saved/END and local active
+budget retirement. Still missing: legacy/uncertain publication recovery UI, native
 album/mapping/worker/UI and Android recoverable trash/restore. Gates stay OFF;
 no APK/EXE, installed-system update or public release is produced by these APIs.
 
@@ -707,8 +706,72 @@ Two native Windows groups pass for actual encrypted offer-before-result dispatch
 and for wrong result ID, duplicate offer, expired offer and unsolicited offer.
 The valid ordering does not finish the pending command early or emit acceptance;
 every failed case leaves destination and receive history untouched. This is an
-incoming source-offer **preflight**, not yet the wire acceptance/chunk/Saved
-receiver. Production gates, installed programs and delivery artifacts are unchanged.
+incoming source-offer **preflight**; the wire acceptance/chunk/Saved receiver is
+joined below. Production gates, installed programs and delivery artifacts are unchanged.
+
+### Windows explicit wire receive, local Saved proof and stopped-source END (Refs #330, #335)
+
+`ReceiveNativeMediaRunAsync` now joins the owned source offer to one explicit native
+receive operation: protected original admission, actual encrypted acceptance and
+single-chunk requests, incoming chunk response dispatch, held-file readback/flushed
+checkpoints, no-replace publication, local durable Saved receipts, actual Saved
+output, acknowledged source stop and correlated source END. A packet ID, remote
+Saved assertion or saved preference cannot construct this owner. Resumed runs use
+the actual recovered original job and request only its missing chunks.
+
+The Windows-local acceptance context binds the original job, manifest, current
+native binding, 128-bit destination identity, target paths and correlated source
+epoch/media/photo IDs. It is committed/read back before outgoing acceptance.
+Windows-local receipt digests bind those accepted targets to the verified native
+published file/parent identities, full flushed prefix checkpoints and publication
+proof. They are committed/read back before outgoing `file_transfer.saved`. These
+private Windows representations do not pretend to be POSIX destination keys and
+do not add/change public wire fields: the existing opaque acceptance/receipt
+SHA-256 fields carry their proofs. A remote Saved parser is only wire preflight,
+never the source of a local receipt or native write grant.
+
+Each requested chunk has an exact request/transfer/manifest/acceptance/epoch/token/
+file/index binding and a bounded wallclock/monotonic deadline. Wrong/unsolicited
+replies cannot enter the book inbox. Cancellation drains the actual I/O lane
+before closing native handles. At most one exact in-flight retired response may
+be consumed and zeroed without writing, ACKing, recreating grants or destroying
+the metadata cleanup channel. Source cancellation and END do not by themselves
+retire interrupted data. The same protected original can be selected, looked up,
+reopened and renewed under `resume_run` without another reservation or a new job.
+
+The actual Android runtime requires `cancelRequested` before `end_run` and
+`end_resume`. The complete Windows Saved path therefore performs and validates
+`cancel_run`/`cancel_resume` first, then END. The native END API also refuses a
+merely finished snapshot that has not acknowledged its stop. The initial source
+fixtures had allowed direct END; they were corrected against the Android runtime,
+not treated as proof that the real phone accepted that sequence.
+
+Only a confirmed secure Saved write plus an actual matching stopped-source END
+records the durable original `source_end` marker and frees that job's active
+reservation. History and file/version proofs remain intact: 32 active jobs / 1 GiB
+and 128 historical jobs are not widened or evicted. Publication, local Saved alone,
+an uncertain Saved write, cancellation or a false END keep the active budget.
+Metadata-only END after receive/handler/choice withdrawal can complete the exact
+already-saved original without reviving data permission.
+
+Current physical Windows proof: six complete-operation groups pass: two real native
+files across multiple incoming chunks through the production dispatcher and local
+Saved/stop/END; four invalid chunk bindings retaining the original stage; Saved
+END after receive withdrawal; actual stop/drain/old-response discard and original
+wire resume skipping the verified 64-KiB prefix; failed Saved output/false END
+retaining published bytes and budget; independently positively activated video
+using only its separate native destination. Thirteen affected lifecycle groups
+also pass after the Android stop-before-END correction. The tests use actual
+Windows handles, DPAPI, SQLite and encrypted outgoing frames, with synthetic source
+messages injected after the existing secure decoder. They are not a physical
+Android-provider, real media-decoder or installed GUI acceptance. Existing unchanged
+quota/60-second proofs are retained rather than repeated. Current build: zero
+warnings/errors.
+
+Still missing for user-facing media sync: managed album layout/mappings, three-way
+incremental reconciliation and recoverable replacement/deletion adapters, retention,
+operative coordinator/worker/UI, Android recoverable trash/restore and native package
+acceptance/delivery. No automatic startup READ or production gate is enabled here.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 

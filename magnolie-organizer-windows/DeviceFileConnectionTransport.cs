@@ -100,6 +100,11 @@ internal sealed partial class TelefonConnection
     private async Task ReceiveNativeFileControlAsync(JsonObject message)
     {
         var kind = message["kind"]?.GetValue<string>();
+        if (kind == DeviceFileChunkEnvelope.ResultKind)
+        {
+            await ReceiveNativeMediaChunkAsync(message);
+            return;
+        }
         if (kind == DeviceFileOfferEnvelope.Kind)
         {
             await ReceiveNativeSourceOfferAsync(message);
@@ -134,6 +139,7 @@ internal sealed partial class TelefonConnection
             owner.ObserveRemote(packet, current);
             CheckNativeSourceStatusControl(owner);
             CheckNativeSourceCommandControl(owner);
+            CheckNativeMediaTransferControl();
             await SendNativeFileControlsCoreAsync(owner);
         }
         catch { CloseNativeFileRoute(); throw; }
@@ -150,6 +156,7 @@ internal sealed partial class TelefonConnection
         }
         CloseNativeSourceStatus();
         CloseNativeSourceCommands();
+        CloseNativeMediaData();
         owner?.Dispose();
     }
 }

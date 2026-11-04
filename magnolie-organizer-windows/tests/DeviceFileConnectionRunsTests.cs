@@ -7,13 +7,13 @@ internal static class DeviceFileConnectionRunsTests
 {
     private static readonly string Version = new('d', 64);
     private static readonly string Catalog = Guid.NewGuid().ToString("D"), Album = Guid.NewGuid().ToString("D");
-    private static JsonObject Request(DeviceFileReceiveJobTests.Fixture f)
+    internal static JsonObject Request(DeviceFileReceiveJobTests.Fixture f)
     {
         var request = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single();
         _ = DeviceFileSources.ParseRequest(request, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); return request;
     }
-    private static void Clear(DeviceFileReceiveJobTests.Fixture f) { f.Native.Stream.SetLength(0); f.Native.Stream.Position = 0; }
-    private static JsonObject Reply(JsonObject request, string runId, string state, bool? batchEnd = null)
+    internal static void Clear(DeviceFileReceiveJobTests.Fixture f) { f.Native.Stream.SetLength(0); f.Native.Stream.Position = 0; }
+    internal static JsonObject Reply(JsonObject request, string runId, string state, bool? batchEnd = null)
     {
         var operation = request["body"]!["operation"]!.GetValue<string>();
         var ending = operation is "end_run" or "end_album" or "end_resume";
@@ -24,22 +24,33 @@ internal static class DeviceFileConnectionRunsTests
         if (ending) body["run_ended"] = true;
         else if (!operation.Contains("resume", StringComparison.Ordinal)) body["batch_end"] = batchEnd;
         if (operation is "offer_run" or "offer_resume") { body["offer_id"] = Guid.NewGuid().ToString("D"); body["manifest_sha256"] = new string('a', 64); }
+        if (request["body"]!["media_type"] is JsonNode mediaType) body["media_type"] = mediaType.DeepClone();
         return new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
             ["kind"] = DeviceFileSources.RunResultKind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body };
     }
     private static Task Fails(Task task) => DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(task, "Unsafe source lifecycle was admitted.");
-    private static JsonObject Media(JsonObject request, string runId, int after = 0, bool more = false, string? epoch = null)
+    private static async Task Quiesce(DeviceFileReceiveJobTests.Fixture f, TelefonConnection.NativeMediaSourceRun run)
+    {
+        Clear(f); var cancel = f.Native.Connection.CancelNativeMediaRunAsync(run); var request = Request(f);
+        await f.Native.Connection.HandlePlainAsync(Reply(request, run.Lease.RunId, "canceled_held", run.Result.BatchEnd)); await cancel; Clear(f);
+    }
+    internal static JsonObject Media(JsonObject request, string runId, int after = 0, bool more = false, string? epoch = null)
     {
         var reply = Reply(request, runId, "snapshot_ready", false); reply["kind"] = DeviceFileSources.MediaKind;
         reply["body"] = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = request["body"]!["operation"]!.DeepClone(), ["version"] = Version,
             ["run_id"] = runId, ["page"] = new JsonObject { ["format"] = 1, ["manifest_sha256"] = new string('a', 64), ["source_epoch"] = epoch ?? new string('e', 64),
                 ["media_type"] = "images", ["insertion_witness"] = true, ["after"] = after, ["next_cursor"] = more ? after + 1 : null,
                 ["total_files"] = 2, ["entries"] = new JsonArray(new JsonObject { ["file_id"] = (after + 1).ToString("x32"), ["photo_id"] = new string(after == 0 ? 'b' : 'c', 64), ["media_kind"] = "image" }) } };
+        if (request["body"]!["media_type"] is JsonNode mediaType)
+        {
+            reply["body"]!["media_type"] = mediaType.DeepClone(); reply["body"]!["page"]!["media_type"] = mediaType.DeepClone();
+            reply["body"]!["page"]!["entries"]![0]!["media_kind"] = "video";
+        }
         return reply;
     }
-    private static async Task<TelefonConnection.NativeMediaSourceRun> Start(DeviceFileReceiveJobTests.Fixture f, string state, bool? batchEnd)
+    private static async Task<TelefonConnection.NativeMediaSourceRun> Start(DeviceFileReceiveJobTests.Fixture f, string state, bool? batchEnd, string mediaType = "images")
     {
-        Clear(f); var pending = f.Native.Connection.StartNativeMediaBatchAsync(Version, Catalog, Album, true);
+        Clear(f); var pending = f.Native.Connection.StartNativeMediaBatchAsync(Version, Catalog, Album, true, mediaType);
         var request = Request(f); var id = Guid.NewGuid().ToString("D");
         await f.Native.Connection.HandlePlainAsync(Reply(request, id, state, batchEnd)); var run = await pending;
         TestAssert.That(run.Result.RunId == id && !run.GrantsReadAuthority && !run.Result.RunEnded, "Starting reply fabricated END or lost original identity.");
@@ -91,7 +102,7 @@ internal static class DeviceFileConnectionRunsTests
         var offering = f.Native.Connection.OfferNativeMediaRunAsync(run); var offerRequest = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(offerRequest, run.Lease.RunId, "snapshot_ready", false));
         TestAssert.That((await offering).OfferId is not null, "Correlated original offer not retained.");
-        Clear(f); var ending = f.Native.Connection.EndNativeMediaRunAsync(run); var endRequest = Request(f);
+        await Quiesce(f, run); var ending = f.Native.Connection.EndNativeMediaRunAsync(run); var endRequest = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(endRequest, run.Lease.RunId, "canceled_held")); await ending;
         TestAssert.That(run.Result.RunEnded && run.Result.BatchEnd is false, "END discarded the album cursor.");
         Clear(f); var advancing = f.Native.Connection.NextNativeMediaBatchAsync(run); var nextRequest = Request(f);
@@ -100,7 +111,7 @@ internal static class DeviceFileConnectionRunsTests
         TestAssert.That(next.Lease.RunId == nextId && next.CatalogId == Catalog && next.AlbumId == Album && next.DesktopChoice, "Advancement lost original album provenance.");
         Clear(f); await Fails(f.Native.Connection.CancelNativeMediaRunAsync(run));
         TestAssert.That(f.Native.Stream.Length == 0, "Old run lease survived cursor advancement.");
-        var nextEnd = f.Native.Connection.EndNativeMediaRunAsync(next); var request = Request(f);
+        await Quiesce(f, next); var nextEnd = f.Native.Connection.EndNativeMediaRunAsync(next); var request = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(request, nextId, "canceled_held")); await nextEnd;
         Clear(f); await Fails(f.Native.Connection.NextNativeMediaBatchAsync(next));
         var albumEnd = f.Native.Connection.EndNativeMediaAlbumAsync(next); request = Request(f);
@@ -133,7 +144,7 @@ internal static class DeviceFileConnectionRunsTests
     internal static async Task WindowsRejectReusedNextAsync()
     {
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var run = await Start(f, "snapshot_ready", false);
-        Clear(f); var end = f.Native.Connection.EndNativeMediaRunAsync(run); var request = Request(f);
+        await Quiesce(f, run); var end = f.Native.Connection.EndNativeMediaRunAsync(run); var request = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(request, run.Lease.RunId, "canceled_held")); await end;
         Clear(f); var next = f.Native.Connection.NextNativeMediaBatchAsync(run); request = Request(f);
         await Fails(f.Native.Connection.HandlePlainAsync(Reply(request, run.Lease.RunId, "snapshot_ready", false))); await Fails(next);
@@ -152,7 +163,7 @@ internal static class DeviceFileConnectionRunsTests
         Clear(f); await Fails(f.Native.Connection.ReadNativeMediaPageAsync(run));
         var offer = f.Native.Connection.OfferNativeMediaRunAsync(run); request = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(request, run.Lease.RunId, "snapshot_ready", false)); await offer;
-        Clear(f); var end = f.Native.Connection.EndNativeMediaRunAsync(run); request = Request(f);
+        await Quiesce(f, run); var end = f.Native.Connection.EndNativeMediaRunAsync(run); request = Request(f);
         await f.Native.Connection.HandlePlainAsync(Reply(request, run.Lease.RunId, "canceled_held")); await end;
         Clear(f); var next = f.Native.Connection.NextNativeMediaBatchAsync(run); request = Request(f); var nextId = Guid.NewGuid().ToString("D");
         await f.Native.Connection.HandlePlainAsync(Reply(request, nextId, "snapshot_ready", false)); var nextRun = await next;
@@ -165,6 +176,7 @@ internal static class DeviceFileConnectionRunsTests
         foreach (var badEnd in new[] { true, false })
         {
             using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var run = await Start(f, "snapshot_ready", false);
+            if (badEnd) await Quiesce(f, run);
             Clear(f);
             var pending = badEnd ? f.Native.Connection.EndNativeMediaRunAsync(run) : f.Native.Connection.ReadNativeMediaRunAsync(run);
             var request = Request(f); var reply = Reply(request, run.Lease.RunId, badEnd ? "canceled_held" : "preparing", badEnd ? null : false);
@@ -174,7 +186,7 @@ internal static class DeviceFileConnectionRunsTests
         }
     }
 
-    private static JsonObject Resume(JsonObject request, DeviceFileManifest manifest, string phoneJobId)
+    internal static JsonObject Resume(JsonObject request, DeviceFileManifest manifest, string phoneJobId)
     {
         var reply = Reply(request, Guid.NewGuid().ToString("D"), "snapshot_ready"); reply["kind"] = DeviceFileSources.ResumeKind;
         reply["expires_ms"] = request["expires_ms"]!.DeepClone();
@@ -333,9 +345,9 @@ internal static class DeviceFileConnectionRunsTests
             f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Phase == "receiving", "Metadata resume END retired/erased local bytes or left a stale source owner.");
     }
 
-    private static async Task<TelefonConnection.NativeMediaSourceRun> OfferReady(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest)
+    internal static async Task<TelefonConnection.NativeMediaSourceRun> OfferReady(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest, string mediaType = "images")
     {
-        var run = await Start(f, "snapshot_ready", false);
+        var run = await Start(f, "snapshot_ready", false, mediaType);
         foreach (var after in new[] { 0, 1 })
         {
             Clear(f); var pageTask = f.Native.Connection.ReadNativeMediaPageAsync(run); var request = Request(f);

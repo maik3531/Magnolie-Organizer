@@ -18,7 +18,7 @@ internal static class DeviceFileConnectionCommandsTests
         return new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = kind,
             ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body };
     }
-    private static JsonObject Configuration(JsonObject request, bool video, bool enabled = true)
+    internal static JsonObject Configuration(JsonObject request, bool video, bool enabled = true)
         => Reply(DeviceFileSources.ResultKind, new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(),
             ["operation"] = video ? "configure_videos" : "configure", ["version"] = SourceVersion, ["revision"] = 2,
             ["enabled"] = true, ["associated"] = true, ["repair_pending"] = false,

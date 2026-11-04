@@ -82,6 +82,17 @@ internal sealed partial class TelefonStore
         }
     }
 
+    internal (int HistoryJobs, int ActiveJobs, long ReservedBytes) NativeMediaReceiveBudget(string peerId)
+    {
+        lock (gate)
+        {
+            var scope = MediaPreferenceScope(peerId); using var db = OpenNativeMediaDatabase(); db.Open();
+            var heads = ReceiveHeads(db, null, scope); var active = heads.Where(head => !head.Body.ContainsKey("source_end")).ToArray();
+            if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_receive_history_binding_changed");
+            return (heads.Count, active.Length, active.Sum(head => TelefonProtocolContract.Integer(head.Body["manifest"]!["total_bytes"])));
+        }
+    }
+
     private void CheckReceiveStageInventory(string peerId, NativeMediaDestination destination, DeviceFileNativeDirectory root, Action current)
     {
         lock (gate)
@@ -113,8 +124,9 @@ internal sealed partial class TelefonStore
             if (before is null)
             {
                 long Budget(JsonObject record) => TelefonProtocolContract.Integer(record["manifest"]!["total_bytes"]);
-                if (heads.Count >= NativeReceiveHistoryLimit || heads.Count >= NativeReceiveActiveLimit ||
-                    heads.Sum(head => Budget(head.Body)) + Budget(body) > NativeReceiveCacheLimit)
+                var active = heads.Where(head => !head.Body.ContainsKey("source_end")).ToArray();
+                if (heads.Count >= NativeReceiveHistoryLimit || active.Length >= NativeReceiveActiveLimit ||
+                    active.Sum(head => Budget(head.Body)) + Budget(body) > NativeReceiveCacheLimit)
                     throw DeviceFileControl.Error("file_receive_history_quota_reached");
                 if (TelefonMessagingContract.String(body, "phase") != "reserved") throw DeviceFileControl.Error("file_receive_original_reservation_required");
                 var transfer = TelefonMessagingContract.String(body["manifest"]!.AsObject(), "transfer_id");
@@ -134,6 +146,9 @@ internal sealed partial class TelefonStore
                     if (!JsonNode.DeepEquals(before.Body[key], body[key])) throw DeviceFileControl.Error("file_receive_original_job_changed");
                 if (before.Body.ContainsKey("source_job") && !JsonNode.DeepEquals(before.Body["source_job"], body["source_job"]))
                     throw DeviceFileControl.Error("file_receive_original_source_history_changed");
+                foreach (var key in new[] { "media", "acceptance", "saved", "source_end" })
+                    if (before.Body.ContainsKey(key) && !JsonNode.DeepEquals(before.Body[key], body[key]))
+                        throw DeviceFileControl.Error("file_receive_original_receipt_changed");
                 if (before.Revision >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_receive_history_revision_exhausted");
             }
             var result = new ReceiveHead(jobId, (before?.Revision ?? 0) + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), body);
@@ -321,6 +336,7 @@ internal sealed partial class TelefonStore
                 if (sourceId.Length != 32 || sourceId.Any(c => !char.IsAsciiHexDigitLower(c)) ||
                     !DeviceFileControl.Hash(TelefonMessagingContract.String(sourceJob, "job_version"))) throw DeviceFileControl.Error("file_receive_history_invalid");
             }
+            foreach (var key in new[] { "media", "acceptance", "saved", "source_end" }) if (body.ContainsKey(key)) fields.Add(key);
             TelefonProtocolContract.ExactObject(body, fields.ToArray());
             using var document = JsonDocument.Parse(body["manifest"]!.ToJsonString()); var manifest = DeviceFileManifest.Parse(document.RootElement);
             var kind = TelefonMessagingContract.String(body, "media_type"); MediaDestinationKind(kind);
@@ -382,6 +398,8 @@ internal sealed partial class TelefonStore
             }
             var publishing = members.OfType<JsonObject>().Count(member => TelefonMessagingContract.String(member, "phase") == "publishing");
             if (publishing != (phase == "publishing" ? 1 : 0)) throw DeviceFileControl.Error("file_receive_history_invalid");
+            ValidateNativeMediaContext(body, manifest);
+            ValidateReceipts(body, jobId);
         }
 
         public void Dispose()

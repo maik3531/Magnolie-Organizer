@@ -300,6 +300,12 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native run lifecycle / Windows recovered source resume and metadata cleanup", DeviceFileConnectionRunsTests.WindowsRecoveredSourceResumeAndCleanupAsync);
     runner.Add("Device file native offer routing / Windows offer before correlated command result", DeviceFileConnectionRunsTests.WindowsOfferBeforeCommandResultAsync);
     runner.Add("Device file native offer routing / Windows early offer scope and expiry HOLD", DeviceFileConnectionRunsTests.WindowsEarlyOfferCorrelationHoldAsync);
+    runner.Add("Device file native wire receive / Windows actual admission chunks Saved END", DeviceFileConnectionReceiveTests.WindowsActualReceiveSavedEndAsync);
+    runner.Add("Device file native wire receive / Windows invalid chunks preserve original stage", DeviceFileConnectionReceiveTests.WindowsBadChunkAndPartialHistoryAsync);
+    runner.Add("Device file native wire receive / Windows Saved END after receive withdrawal", DeviceFileConnectionReceiveTests.WindowsEndAfterReceiveWithdrawalAsync);
+    runner.Add("Device file native wire receive / Windows stop drain original wire resume", DeviceFileConnectionReceiveTests.WindowsWireStopDrainAndOriginalResumeAsync);
+    runner.Add("Device file native wire receive / Windows uncertain Saved or END retains budget", DeviceFileConnectionReceiveTests.WindowsUncertainSavedOrEndKeepsBudgetAsync);
+    runner.Add("Device file native wire receive / Windows independently activated video destination", DeviceFileConnectionReceiveTests.WindowsSeparateVideoWireReceiveAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

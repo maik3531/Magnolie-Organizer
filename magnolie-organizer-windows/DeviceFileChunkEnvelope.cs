@@ -57,8 +57,12 @@ internal static class DeviceFileChunkEnvelope
         var encoded = Text(body, "data_base64"); byte[] bytes;
         try { bytes = Convert.FromBase64String(encoded); }
         catch (FormatException) { throw Error(); }
-        if (bytes.Length != length || Convert.ToBase64String(bytes) != encoded ||
-            Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() != Hash(body, "data_sha256")) throw Error();
-        return bytes; // Caller must still check actual native grants and durable staging/readback.
+        try
+        {
+            if (bytes.Length != length || Convert.ToBase64String(bytes) != encoded ||
+                Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() != Hash(body, "data_sha256")) throw Error();
+            return bytes; // Caller must still check actual native grants and durable staging/readback.
+        }
+        catch { CryptographicOperations.ZeroMemory(bytes); throw; }
     }
 }

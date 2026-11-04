@@ -53,11 +53,13 @@
     <Compile Include="..\DeviceFileNativeDirectory.cs" Link="DeviceFileNativeDirectory.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Receive.cs" Link="DeviceFileNativeDirectory.Receive.cs" />
     <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
+    <Compile Include="..\DeviceFileReceiveReceipts.cs" Link="DeviceFileReceiveReceipts.cs" />
     <Compile Include="..\DeviceFileReceiveResume.cs" Link="DeviceFileReceiveResume.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />
     <Compile Include="..\DeviceFileConnectionCommands.cs" Link="DeviceFileConnectionCommands.cs" />
     <Compile Include="..\DeviceFileConnectionRuns.cs" Link="DeviceFileConnectionRuns.cs" />
+    <Compile Include="..\DeviceFileConnectionReceive.cs" Link="DeviceFileConnectionReceive.cs" />
     <Compile Include="..\NativeFilePairingIdentity.cs" Link="NativeFilePairingIdentity.cs" />
     <Compile Include="..\DeviceFileSources.cs" Link="DeviceFileSources.cs" />
     <Compile Include="..\DeviceFileAcceptanceEnvelope.cs" Link="DeviceFileAcceptanceEnvelope.cs" />
