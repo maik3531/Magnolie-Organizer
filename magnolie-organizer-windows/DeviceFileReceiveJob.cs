@@ -13,7 +13,7 @@ internal sealed partial class TelefonStore
     private const long NativeReceiveCacheLimit = 1024L * 1024 * 1024;
     private sealed record ReceiveHead(string JobId, long Revision, string Version, JsonObject Body);
 
-    private void RequireReceiveStorageKey()
+    internal void RequireNativeMediaStorageKey()
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("file_receive_windows_required");
         var encrypted = files.Read(paths.TelefonStorageKey, 4096) ?? throw DeviceFileControl.Error("file_receive_existing_storage_key_required");
@@ -197,7 +197,7 @@ internal sealed partial class TelefonStore
             if (uncertain || currentBinding() != binding || binding.DestinationToken != destination.DestinationToken ||
                 binding.SenderId != Manifest.SenderId || binding.ReceiverId != Manifest.ReceiverId)
                 throw DeviceFileControl.Error("file_receive_current_binding_changed");
-            store.RequireReceiveStorageKey();
+            store.RequireNativeMediaStorageKey();
             var scope = store.MediaPreferenceScope(peerId);
             if (scope.PeerId != binding.SenderId || scope.PeerKey != binding.SenderIdentitySha256 ||
                 scope.LocalId != binding.ReceiverId || scope.LocalKey != binding.ReceiverIdentitySha256 ||

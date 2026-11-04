@@ -6,14 +6,16 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileReceiveJobTests
 {
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         internal readonly DeviceFileConnectionMetadataTests.Fixture Native = new();
         internal NativeLocalFileGrant Local = new(new(7, new string('b', 64), false, true), new object(), true);
+        internal NativeLocalFileGrant RemoteLocal = new(new(3, new string('a', 64), true, false), new object(), true);
+        internal NativeFileControlPeer RemotePeer = null!;
         internal NativeFileControlSession Owner = null!, Phone = null!;
         internal NativeMediaDestination Destination = null!;
         internal string Root => Destination.NativePath;
-        internal static async Task<Fixture> CreateAsync()
+        internal static async Task<Fixture> CreateAsync(bool sourceSend = true)
         {
             var f = new Fixture();
             try
@@ -32,8 +34,9 @@ internal static class DeviceFileReceiveJobTests
                 var local = f.Native.Store.ReadFileIdentity(); f.Owner = f.Native.Connection.OpenNativeFileControls(() => f.Local);
                 var remoteIdentity = new NativeFileControlIdentity(f.Native.Peer.Id, Convert.ToHexString(SHA256.HashData(f.Native.Peer.PublicKey)).ToLowerInvariant());
                 var peer = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(), true, true, true, true, true, f.Native.Peer.FilePairingEpoch);
-                var remoteGrant = new NativeLocalFileGrant(new(3, new string('a', 64), true, false), new object(), true);
-                f.Phone = new NativeFileControlSession(remoteIdentity, () => peer, () => remoteGrant);
+                f.RemotePeer = peer;
+                f.RemoteLocal = new(new(3, new string('a', 64), sourceSend, false), f.RemoteLocal.Owner, true);
+                f.Phone = new NativeFileControlSession(remoteIdentity, () => peer, () => f.RemoteLocal);
                 f.Native.Stream.SetLength(0); f.Native.Stream.Position = 0;
                 TestAssert.That(await f.Native.Connection.SendNativeFileControlsAsync(), "No actual secure control output.");
                 var first = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single();
@@ -43,7 +46,7 @@ internal static class DeviceFileReceiveJobTests
                 await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(response, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
                 var echo = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single();
                 f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(echo, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), peer);
-                TestAssert.That(f.Current() is not null && f.Current() == f.Phone.Binding(f.Destination.DestinationToken, senderIsLocal: true), "Actual bilateral secure file agreement did not join native destination token.");
+                TestAssert.That((f.Current() is not null) == sourceSend && f.Current() == f.Phone.Binding(f.Destination.DestinationToken, senderIsLocal: true), "Actual bilateral secure file agreement did not join native destination token.");
                 return f;
             }
             catch { f.Dispose(); throw; }

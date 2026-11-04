@@ -1,0 +1,256 @@
+using System.Text.Json.Nodes;
+
+namespace MagnolieOrganizer.Windows;
+
+internal sealed partial class TelefonConnection
+{
+    private sealed record NativeSourceChoice(NativeFileControlSession Owner, string MediaType,
+        NativeMediaPreferences Preferences, NativeMediaDestination? Destination, bool Positive, bool DataReady, DeviceTransferBinding? DataBinding);
+    private sealed record NativeVideoSourceActivation(NativeSourceChoice Choice, string SourceVersion, string RemoteEpoch);
+    private NativeVideoSourceActivation? nativeVideoSourceActivation;
+    private object? nativeVideoConfigurationAttempt;
+    private sealed class NativeSourceCommandPending(NativeSourceChoice choice, NativeReceiverCommandTicket ticket,
+        JsonObject message, (string SessionEpoch, long Sequence) witness, string resultKind, Func<JsonObject, object> parse,
+        Action require)
+    {
+        internal readonly NativeSourceChoice Choice = choice;
+        internal readonly NativeReceiverCommandTicket Ticket = ticket;
+        internal readonly JsonObject Message = message;
+        internal readonly (string SessionEpoch, long Sequence) Witness = witness;
+        internal readonly string ResultKind = resultKind;
+        internal readonly Func<JsonObject, object> Parse = parse;
+        internal readonly Action RequireChoice = require;
+        internal readonly TaskCompletionSource<object> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal bool OutputConfirmed;
+    }
+    private NativeSourceCommandPending? nativeSourceCommand;
+
+    private NativeSourceChoice CaptureNativeSourceChoice(string mediaType, bool positive, bool dataReady)
+    {
+        if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("file_sources_native_media_invalid");
+        var owner = RequireNativeFileControls(); var destination = store.ReadNativeMediaDestination(peer.Id, mediaType);
+        var choice = new NativeSourceChoice(owner, mediaType, store.ReadNativeMediaPreferences(peer.Id), destination, positive, dataReady,
+            dataReady && destination is not null ? owner.Binding(destination.DestinationToken) : null);
+        RequireNativeSourceChoice(choice); return choice;
+    }
+
+    private void RequireNativeSourceChoice(NativeSourceChoice choice)
+    {
+        RequireNativeFileControls(choice.Owner);
+        try { store.RequireNativeMediaStorageKey(); }
+        catch { CloseNativeSourceCommands("file_sources_native_storage_key_changed"); throw; }
+        if (choice.MediaType == "video" && !FileMetadataReady(videos: true)) throw DeviceFileControl.Error("file_sources_native_video_metadata_changed");
+        if (store.ReadNativeMediaPreferences(peer.Id) != choice.Preferences || store.ReadNativeMediaDestination(peer.Id, choice.MediaType) != choice.Destination)
+            throw DeviceFileControl.Error("file_sources_native_choice_changed");
+        if (choice.Positive)
+        {
+            if (!(choice.MediaType == "video" ? choice.Preferences.VideosEnabled : choice.Preferences.PhotosEnabled) || choice.Destination is null)
+                throw DeviceFileControl.Error("file_sources_native_positive_choice_required");
+            using var root = choice.Destination.OpenNative(); _ = root.CurrentIdentity();
+        }
+        if (choice.DataReady && (choice.Destination is null || choice.DataBinding is null || choice.Owner.Binding(choice.Destination.DestinationToken) != choice.DataBinding))
+            throw DeviceFileControl.Error("file_sources_native_data_echo_required");
+    }
+
+    internal async Task<DeviceFileSourceStatus> ConfigureNativeMediaSourceAsync(string expectedVersion, string mediaType,
+        bool enabled, CancellationToken token = default)
+    {
+        object? attempt = null;
+        if (mediaType == "video") lock (fileRouteGate)
+        { attempt = new object(); nativeVideoConfigurationAttempt = attempt; nativeVideoSourceActivation = null; }
+        var choice = CaptureNativeSourceChoice(mediaType, enabled, mediaType == "video" && enabled);
+        void Require()
+        {
+            RequireNativeSourceChoice(choice);
+            if (mediaType == "video") lock (fileRouteGate)
+                if (!ReferenceEquals(nativeVideoConfigurationAttempt, attempt)) throw DeviceFileControl.Error("file_sources_native_video_configuration_superseded");
+        }
+        var expectVideos = FileMetadataReady(videos: true);
+        var operation = mediaType == "video" ? "configure_videos" : "configure";
+        var message = DeviceFileSources.CreateRequest(operation, Now(), expectedVersion, enabled,
+            mediaType == "images" ? new[] { "camera", "downloads", "screenshots", "whatsapp_received" } : null);
+        var result = await ExchangeNativeSourceCommandAsync<DeviceFileSourceStatus>(choice, message, DeviceFileSources.ResultKind, raw =>
+        {
+            var status = DeviceFileSources.ParseResult(raw, message["message_id"]!.GetValue<string>(), operation, Now(), expectVideos);
+            if (status.RepairPending || (mediaType == "video" ? status.Videos?.Enabled : status.Enabled) != enabled || enabled && !status.Associated)
+                throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
+            if (mediaType == "images" && enabled && !status.Kinds.SequenceEqual(new[] { "camera", "downloads", "screenshots", "whatsapp_received" }))
+                throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
+            return status;
+        }, Require, token);
+        Require();
+        if (mediaType == "video" && enabled)
+        {
+            var witness = choice.Owner.RemoteControlWitness() ?? throw DeviceFileControl.Error("file_sources_native_control_changed");
+            lock (fileRouteGate)
+            {
+                if (!ReferenceEquals(nativeVideoConfigurationAttempt, attempt)) throw DeviceFileControl.Error("file_sources_native_video_configuration_superseded");
+                nativeVideoSourceActivation = new(choice, result.Version, witness.SessionEpoch);
+            }
+        }
+        return result;
+    }
+
+    private Action NativeSourceReadGuard(NativeSourceChoice choice, string sourceVersion)
+    {
+        NativeVideoSourceActivation? activation;
+        lock (fileRouteGate) activation = nativeVideoSourceActivation;
+        void Require()
+        {
+            RequireNativeSourceChoice(choice);
+            if (choice.MediaType != "video") return;
+            var witness = choice.Owner.RemoteControlWitness();
+            lock (fileRouteGate)
+                if (activation is null || !ReferenceEquals(nativeVideoSourceActivation, activation) ||
+                    !ReferenceEquals(activation.Choice.Owner, choice.Owner) || activation.Choice.Preferences != choice.Preferences ||
+                    activation.Choice.Destination != choice.Destination || activation.SourceVersion != sourceVersion ||
+                    activation.Choice.DataBinding != choice.DataBinding ||
+                    witness is null || witness.Value.SessionEpoch != activation.RemoteEpoch)
+                    throw DeviceFileControl.Error("file_sources_native_fresh_video_configuration_required");
+        }
+        Require(); return Require;
+    }
+
+    internal Func<DeviceTransferBinding?> CaptureNativeMediaReceiveBinding(string sourceVersion, string mediaType = "images")
+    {
+        var choice = CaptureNativeSourceChoice(mediaType, true, true); var require = NativeSourceReadGuard(choice, sourceVersion);
+        var original = choice.Owner.Binding(choice.Destination!.DestinationToken) ?? throw DeviceFileControl.Error("file_sources_native_data_echo_required");
+        var bindingGate = new object(); var revoked = false;
+        return () =>
+        {
+            lock (bindingGate)
+            {
+                if (revoked) return null;
+                try
+                {
+                    require(); var current = choice.Owner.Binding(choice.Destination.DestinationToken);
+                    if (current == original) return current;
+                }
+                catch { revoked = true; throw; }
+                revoked = true; return null;
+            }
+        };
+    }
+
+    internal async Task<DeviceFileCatalogPage> DiscoverNativeMediaAlbumsAsync(string expectedVersion, string mediaType = "images",
+        string? catalogId = null, int after = 0, CancellationToken token = default)
+    {
+        var choice = CaptureNativeSourceChoice(mediaType, true, true); var current = NativeSourceReadGuard(choice, expectedVersion);
+        var operation = catalogId is null ? "discover" : "catalog_page";
+        if (catalogId is null && after != 0) throw DeviceFileControl.Error("file_sources_native_catalog_invalid");
+        var message = DeviceFileSources.CreateRequest(operation, Now(), expectedVersion, catalogId: catalogId,
+            after: catalogId is null ? null : after, mediaType: mediaType);
+        return await ExchangeNativeSourceCommandAsync<DeviceFileCatalogPage>(choice, message, DeviceFileSources.CatalogKind,
+            raw => DeviceFileSources.ParseCatalog(raw, message["message_id"]!.GetValue<string>(), operation, expectedVersion, Now(), catalogId, after, mediaType), current, token);
+    }
+
+    internal async Task<DeviceFilePermissionResult> RequestNativeMediaReadAsync(string expectedVersion, string mediaType = "images", CancellationToken token = default)
+    {
+        var choice = CaptureNativeSourceChoice(mediaType, true, true); var current = NativeSourceReadGuard(choice, expectedVersion);
+        var message = DeviceFileSources.CreateRequest("request_read", Now(), expectedVersion, mediaType: mediaType);
+        return await ExchangeNativeSourceCommandAsync<DeviceFilePermissionResult>(choice, message, DeviceFileSources.PermissionResultKind,
+            raw => DeviceFileSources.ParsePermissionResult(raw, message["message_id"]!.GetValue<string>(), expectedVersion, Now(), mediaType), current, token);
+    }
+
+    private async Task<T> ExchangeNativeSourceCommandAsync<T>(NativeSourceChoice choice, JsonObject message, string resultKind,
+        Func<JsonObject, object> parse, Action require, CancellationToken callerCancellation)
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellation, callerCancellation);
+        lifetime.CancelAfter(TimeSpan.FromMilliseconds(DeviceFileControl.MaximumTtlMs)); lifetime.Token.ThrowIfCancellationRequested();
+        require(); var ticket = choice.Owner.ReceiverCommandTicket(); NativeSourceCommandPending? pending = null;
+        try
+        {
+            pending = new(choice, ticket, message, choice.Owner.ReceiverCommandWitness(ticket), resultKind, parse, require);
+            lock (fileRouteGate)
+            {
+                if (fileRouteFaulted || !ReferenceEquals(fileControls, choice.Owner) || nativeSourceCommand is not null || nativeSourceStatus is not null)
+                    throw DeviceFileControl.Error("file_sources_native_command_busy");
+                nativeSourceCommand = pending;
+            }
+            await fileControlIo.WaitAsync(lifetime.Token);
+            try { await SendNativeSourceCommandAsync(pending, lifetime.Token); }
+            finally { fileControlIo.Release(); }
+            return (T)await pending.Completion.Task.WaitAsync(lifetime.Token);
+        }
+        catch (OperationCanceledException error) when (!cancellation.IsCancellationRequested && !callerCancellation.IsCancellationRequested)
+        { throw new TimeoutException("file_sources_native_command_timeout", error); }
+        finally
+        {
+            lock (fileRouteGate) if (ReferenceEquals(nativeSourceCommand, pending)) nativeSourceCommand = null;
+            if (pending is not null)
+            {
+                pending.Completion.TrySetCanceled();
+                if (pending.Completion.Task.IsFaulted) _ = pending.Completion.Task.Exception;
+            }
+            choice.Owner.FinishReceiverCommand(ticket);
+        }
+    }
+
+    private void RequireNativeSourceCommand(NativeSourceCommandPending pending)
+    {
+        pending.RequireChoice(); RequireNativeFileControls(pending.Choice.Owner);
+        lock (fileRouteGate) if (!ReferenceEquals(nativeSourceCommand, pending)) throw DeviceFileControl.Error("file_sources_native_command_changed");
+        if (!pending.Choice.Owner.ReceiverCommandCurrent(pending.Ticket)) throw DeviceFileControl.Error("file_sources_native_command_expired");
+        var witness = pending.Choice.Owner.RemoteControlWitness();
+        if (witness is null || witness.Value.SessionEpoch != pending.Witness.SessionEpoch || witness.Value.Sequence < pending.Witness.Sequence)
+            throw DeviceFileControl.Error("file_sources_native_control_changed");
+        _ = DeviceFileSources.ParseRequest(pending.Message, Now());
+    }
+
+    private async Task SendNativeSourceCommandAsync(NativeSourceCommandPending pending, CancellationToken token)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        await writer.WaitAsync(deadline.Token); var started = false;
+        try
+        {
+            RequireNativeSourceCommand(pending); var envelope = Seal(pending.Message); started = true;
+            await TelefonCoordinator.WriteFrameAsync(stream, envelope, deadline.Token); lastSentMs = Now();
+            RequireNativeSourceCommand(pending);
+            lock (fileRouteGate)
+            {
+                if (!ReferenceEquals(nativeSourceCommand, pending)) throw DeviceFileControl.Error("file_sources_native_command_changed");
+                pending.OutputConfirmed = true;
+            }
+        }
+        catch { CloseNativeFileRoute(); if (started) stream.Dispose(); throw; }
+        finally { writer.Release(); }
+    }
+
+    private async Task ReceiveNativeSourceCommandAsync(JsonObject message)
+    {
+        await fileControlIo.WaitAsync(cancellation);
+        try
+        {
+            NativeSourceCommandPending pending;
+            lock (fileRouteGate)
+            {
+                pending = nativeSourceCommand ?? throw DeviceFileControl.Error("file_sources_native_unsolicited_result");
+                if (!pending.OutputConfirmed || message["kind"]?.GetValue<string>() != pending.ResultKind)
+                    throw DeviceFileControl.Error("file_sources_native_unconfirmed_or_wrong_result");
+            }
+            RequireNativeSourceCommand(pending); var result = pending.Parse(message); RequireNativeSourceCommand(pending);
+            if (!pending.Completion.TrySetResult(result)) throw DeviceFileControl.Error("file_sources_native_duplicate_result");
+        }
+        catch { CloseNativeFileRoute(); throw; }
+        finally { fileControlIo.Release(); }
+    }
+
+    private void CheckNativeSourceCommandControl(NativeFileControlSession owner)
+    {
+        NativeSourceCommandPending? pending;
+        lock (fileRouteGate) pending = nativeSourceCommand;
+        if (pending is not null && ReferenceEquals(pending.Choice.Owner, owner) && !owner.ReceiverCommandCurrent(pending.Ticket))
+            CloseNativeSourceCommands("file_sources_native_control_changed", pending);
+    }
+
+    private void CloseNativeSourceCommands(string reason = "file_sources_native_owner_closed", NativeSourceCommandPending? expected = null)
+    {
+        NativeSourceCommandPending? pending;
+        lock (fileRouteGate)
+        {
+            if (expected is not null && !ReferenceEquals(nativeSourceCommand, expected)) return;
+            pending = nativeSourceCommand; nativeSourceCommand = null; nativeVideoSourceActivation = null; nativeVideoConfigurationAttempt = null;
+        }
+        pending?.Completion.TrySetException(DeviceFileControl.Error(reason));
+    }
+}

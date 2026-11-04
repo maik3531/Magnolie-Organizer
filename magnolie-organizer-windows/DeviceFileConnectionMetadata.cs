@@ -28,6 +28,7 @@ internal sealed partial class TelefonConnection
         }
         attempt = current;
         CloseNativeSourceStatus("file_sources_native_metadata_changed");
+        CloseNativeSourceCommands("file_sources_native_metadata_changed");
     }
 
     private bool FileMetadataChannelCurrent(TelefonPeer? current)

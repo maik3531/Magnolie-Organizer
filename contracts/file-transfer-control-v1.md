@@ -370,9 +370,50 @@ Five initial native-source groups pass for secure SEND-OFF status, correlation,
 cancellation, closure and a real 60-second timeout; two further groups cover
 uncertain secure output and prompt metadata/control-session withdrawal. Tests use
 the actual secure writer and reply dispatcher, with synthetic native local grants.
-Protected preferences/receiver admission in production and other source-command
-transport actions are still pending. Unsupported data is held, not parsed as image
+Production UI/receiver routing and run/resume transport remain pending; explicit
+configuration/catalog/permission APIs are now joined below. Unsupported data is held, not parsed as image
 authority or presented as ready. Gates stay OFF.
+
+### Windows native configuration, catalog and permission commands (Refs #330, #335)
+
+Separate typed native APIs now send actual encrypted `configure`,
+`configure_videos`, `discover`, `catalog_page` and `request_read` commands. The
+status API remains status-only. Each new command uses the same current native
+receiver-ticket discipline, actual secure writer/output confirmation and exact
+request/op/version/media-scoped reply decoding. Only one command, including the
+status API, can own a receiver ticket. No generic inbox/outbox or ACK retry is used.
+The receive lane is released while awaiting a reply; close, cancellation,
+metadata/control withdrawal and the bounded deadline retire the exact pending
+owner. Current saved native choice, original protected root and existing actual
+DPAPI key are checked around I/O; a saved enabled flag is not sufficient.
+
+Video requires a successful positive native `configure_videos` after the current
+bilateral **data** ACK, not just metadata availability or a saved/status `enabled`
+flag. Activation is volatile and bound to the exact owner, saved choice/root,
+source policy version, remote session and actual data-permission binding. A new
+data ACK cannot inherit the old activation. Observed key loss clears activation;
+returning old key bytes cannot revive a captured binding. An overlapping newer
+video choice invalidates the earlier attempt even if the earlier positive reply
+arrives late. Capture of a receive binding permanently holds that witness after
+observed withdrawal. Image/video catalogs and permission replies remain distinct;
+permission `foreground_required`/`requested` is never interpreted as OS READ.
+
+Eight new native command groups now have physical Windows proofs: seven current
+guard/operation cases plus one real 60.24-second no-reply timeout. They cover
+configuration, catalog, foreground permission, saved-OFF rejection without output,
+mid-write choice loss, actual fresh video configuration, key loss/no revival,
+wrong request/close, cancellation/stale reply, superseded positive completion and
+video configuration only after actual data ACK (including rejection after a
+changed data-permission ACK). Six existing source-status groups also pass after
+the dispatcher/metadata hooks changed. The older unchanged status timeout is not
+rerun as a substitute for the new command's actual timeout. These are synthetic
+source replies through the real Windows native secure writer/dispatcher, not a
+physical Android provider or installed Organizer GUI acceptance.
+
+Still unjoined: run/batch/resume/END command ownership, the incoming offer/chunk
+route and operative album/worker/UI. No new background worker, startup READ,
+Android permission dialog, native public bridge action or production gate is
+introduced by these explicit native APIs.
 
 ### Windows explicit video metadata codecs (Refs #330, #335, partial join)
 
@@ -487,7 +528,7 @@ errors. Linux grammar/non-Windows rejection is separately tested and is not
 substituted for those native Windows proofs.
 
 The native receive-job owner below now joins protected stage/publication history.
-Still unjoined: original-job resume/END, source-command transport beyond status,
+Still unjoined: original-job resume/END and run/batch transport,
 receive routing and working media UI. These filesystem/storage APIs are not wire handlers or a completed
 receiver. No installed Organizer acceptance, package delivery, new APK/EXE or
 production gate activation is claimed.
@@ -533,7 +574,7 @@ bytes in these tests are supplied to the explicit native API, not yet incoming
 encrypted file-data envelopes; this is not a network sync or installed GUI proof.
 
 Still missing: the original resume/END owner and cache retirement, wire offer/chunk
-routing, source-command transport beyond status, album-layout/mapping orchestration
+routing, source run/batch/resume transport, album-layout/mapping orchestration
 and operational media UI. No new automatic worker or production gate is enabled.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)

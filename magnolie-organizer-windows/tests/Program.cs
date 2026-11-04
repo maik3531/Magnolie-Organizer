@@ -277,6 +277,14 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native receive job / Windows missing history and occupied target", DeviceFileReceiveJobTests.WindowsMissingHistoryAndOccupiedAsync);
     runner.Add("Device file native receive job / Windows key withdrawal and corrupt history", DeviceFileReceiveJobTests.WindowsKeyWithdrawalAndCorruptionAsync);
     runner.Add("Device file native receive job / Windows reserved job and byte bounds", DeviceFileReceiveJobTests.WindowsReservationBoundsAsync);
+    runner.Add("Device file native media commands / Windows configure catalog permission", DeviceFileConnectionCommandsTests.WindowsConfigureDiscoverPermissionAsync);
+    runner.Add("Device file native media commands / Windows choice and output withdrawal", DeviceFileConnectionCommandsTests.WindowsChoiceAndOutputWithdrawalAsync);
+    runner.Add("Device file native media commands / Windows fresh positive video only", DeviceFileConnectionCommandsTests.WindowsVideoNeedsCurrentPositiveAsync);
+    runner.Add("Device file native media commands / Windows wrong scope and close cleanup", DeviceFileConnectionCommandsTests.WindowsPendingCloseAndWrongScopeAsync);
+    runner.Add("Device file native media commands / Windows cancellation and no old reply", DeviceFileConnectionCommandsTests.WindowsCancellationAsync);
+    runner.Add("Device file native media commands / Windows superseded positive video", DeviceFileConnectionCommandsTests.WindowsSupersededVideoAsync);
+    runner.Add("Device file native media commands / Windows actual bounded timeout", DeviceFileConnectionCommandsTests.WindowsActualTimeoutAsync);
+    runner.Add("Device file native media commands / Windows video after current data ACK", DeviceFileConnectionCommandsTests.WindowsVideoAfterActualDataAckAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

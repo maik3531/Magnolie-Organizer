@@ -55,6 +55,7 @@
     <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />
+    <Compile Include="..\DeviceFileConnectionCommands.cs" Link="DeviceFileConnectionCommands.cs" />
     <Compile Include="..\NativeFilePairingIdentity.cs" Link="NativeFilePairingIdentity.cs" />
     <Compile Include="..\DeviceFileSources.cs" Link="DeviceFileSources.cs" />
     <Compile Include="..\DeviceFileAcceptanceEnvelope.cs" Link="DeviceFileAcceptanceEnvelope.cs" />
