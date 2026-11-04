@@ -21,6 +21,12 @@ msgctxt "photo synchronization"
 msgid "Manual"
 msgstr "手动"
 
+msgid "Also synchronize videos"
+msgstr "同时同步视频"
+
+msgid "Allow video access on phone"
+msgstr "允许访问手机上的视频"
+
 msgid "Synchronize photos"
 msgstr "同步照片"
 

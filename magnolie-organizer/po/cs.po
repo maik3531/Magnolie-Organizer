@@ -21,6 +21,12 @@ msgctxt "photo synchronization"
 msgid "Manual"
 msgstr "Ručně"
 
+msgid "Also synchronize videos"
+msgstr "Synchronizovat také videa"
+
+msgid "Allow video access on phone"
+msgstr "Povolit přístup k videím v telefonu"
+
 msgid "Synchronize photos"
 msgstr "Synchronizovat fotografie"
 

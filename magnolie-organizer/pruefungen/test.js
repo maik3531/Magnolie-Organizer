@@ -7560,6 +7560,39 @@ function knopfMit(text, wurzel) {
   assert.ok(!fotoGruppe.querySelector("[data-photo-recovery]"), "unangebundene Wiederherstellung bleibt unsichtbar");
   assert.ok(!fotoGruppe.querySelector("[data-photo-animations]"), "unangebundene Gruppierung bleibt unsichtbar");
   assert.ok(!fotoGruppe.querySelector("[data-photo-captures]"), "unangebundene Kameraalbum-Gruppierung bleibt unsichtbar");
+  assert.ok(!fotoGruppe.querySelector("[data-video-enabled]"), "nicht nativ unterstützte Videos bleiben unsichtbar");
+  const videoVorher = baumNachrichten.length;
+  fotoStand({ available: true, enabled: true, state: "albums", mode: "manual", video_supported: true,
+    video_enabled: false, albums: [] });
+  let videoGruppe = bd.querySelector(".notes-video-sync");
+  assert.ok(videoGruppe && videoGruppe.textContent.includes("Auch Videos synchronisieren") &&
+    !videoGruppe.querySelector("[data-video-enabled]").checked && !videoGruppe.querySelector("[data-video-action]"));
+  assert.strictEqual(baumNachrichten.length, videoVorher, "Videoanzeige startet weder Freigabe noch I/O");
+  videoGruppe.querySelector("[data-video-destination]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
+    cmd: "telefon_videoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint
+  }, "Der native Ordnerdialog erhält keinen Webpfad und keine historische Zielautorität");
+  videoGruppe.querySelector("[data-video-enabled]").checked = true;
+  videoGruppe.querySelector("[data-video-enabled]").dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_enable" });
+  const videoStand = { available: true, enabled: true, state: "albums", mode: "manual", video_supported: true,
+    video_enabled: true, video_destination: "/native/Videos/Notes-Videos", albums: [],
+    video_albums: [{ album_id: "video-native-1", display_name: "Camera videos", visible_images: 1 }] };
+  fotoStand(videoStand); videoGruppe = bd.querySelector(".notes-video-sync");
+  assert.ok(videoGruppe.textContent.includes(videoStand.video_destination));
+  videoGruppe.querySelector("[data-video-action='read']").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_request_read" });
+  videoGruppe.querySelector("[data-video-action='sync']").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_sync", album_id: "video-native-1" });
+  fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
+  videoGruppe = bd.querySelector(".notes-video-sync");
+  assert.ok(videoGruppe.querySelector("[data-video-action='sync']").disabled &&
+    !videoGruppe.querySelector("[data-video-enabled]").disabled && !bd.querySelector(".notes-foto-sync").textContent.includes("Fotoabgleich aktiv"));
+  videoGruppe.querySelector("[data-video-enabled]").checked = false;
+  videoGruppe.querySelector("[data-video-enabled]").dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "videos_disable" });
+  fotoStand({ ...videoStand, video_supported: false });
+  assert.ok(!bd.querySelector(".notes-video-sync"), "Fähigkeitsentzug entfernt die Video-Bedienelemente");
   const capturesBefore = baumNachrichten.length;
   fotoStand({ available: true, enabled: true, state: "layout", capture_grouping_supported: true, separate_own_recordings: false, albums: [] });
   const captureCheck = bd.querySelector("[data-photo-captures]");

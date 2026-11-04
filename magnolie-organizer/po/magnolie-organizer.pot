@@ -6435,6 +6435,12 @@ msgstr ""
 msgid "Synchronize permanently"
 msgstr ""
 
+msgid "Also synchronize videos"
+msgstr ""
+
+msgid "Allow video access on phone"
+msgstr ""
+
 msgid "Synchronize photos"
 msgstr ""
 

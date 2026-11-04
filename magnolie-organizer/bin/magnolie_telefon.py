@@ -2965,6 +2965,24 @@ class PhoneService:
                 if field.startswith('video_'):state.pop(field)
         return state
 
+    def photo_sync_video_destination(self, peer_id, expected_fingerprint, path):
+        """Private local IPC from the native GTK folder picker, never wire/JS paths.
+
+        The public photo_sync_action schema deliberately does not accept this
+        operation or a path. The native owner still validates the current pairing,
+        protected preference CAS, explicit directory witness and OFF-only choice.
+        """
+        if type(path) is not str or not path or len(path)>4096:raise ValueError('photo_sync_invalid_action')
+        if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+        with self.lock:
+            channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+            if (binding is None or type(expected_fingerprint) is not str
+                    or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                raise ValueError('phone_control_conflict')
+            connection=self._native_file_connections.get(channel)
+        if connection is None:raise ValueError('photo_sync_not_enabled')
+        return connection.desktop_session().start('videos_destination',destination_path=path)
+
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}

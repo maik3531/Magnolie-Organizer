@@ -21,6 +21,12 @@ msgctxt "photo synchronization"
 msgid "Manual"
 msgstr "手動"
 
+msgid "Also synchronize videos"
+msgstr "動画も同期"
+
+msgid "Allow video access on phone"
+msgstr "スマートフォンで動画へのアクセスを許可"
+
 msgid "Synchronize photos"
 msgstr "写真を同期"
 

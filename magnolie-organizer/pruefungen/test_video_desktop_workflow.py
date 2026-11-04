@@ -212,3 +212,19 @@ def test_video_controls_projection_uses_current_acknowledged_capability_not_cach
     state=service.photo_sync_state(peer['device_id'])
     assert state is not None and not any(field.startswith('video_') for field in state)
     assert connection._preferences.read().include_videos and session.snapshot()['video_supported']
+
+
+def test_actual_organizer_gtk_ipc_video_actions_reach_typed_session_and_saved_bytes(receiving,tmp_path,monkeypatch,request):
+    from test_photo_desktop_workflow import native_ui
+    target,batches=prepared_video(receiving,tmp_path,monkeypatch);batches=batches[:1]
+    service,peer,_,connection=receiving[:4];session=connection.desktop_session()
+    ui=native_ui(service,peer,request)
+    with session_phone(receiving,target,batches,monkeypatch) as (commands,(chunks,saved,_,_,errors)):
+        ui(dict(action='videos_enable'));assert session.join(20),session.snapshot()
+        assert session.snapshot()['state']=='albums',session.snapshot()
+        ui(dict(action='videos_sync',album_id=ALBUM));assert session.join(45),session.snapshot()
+        assert session.snapshot()['state']=='complete' and session.snapshot()['active_media']=='video',session.snapshot()
+        assert not errors and len(chunks)==len(saved)==1
+        assert (target/batches[0].files[0].path).read_bytes()==b'hello'
+        assert not list(receiving[4].iterdir())
+        assert sum(body['operation']=='configure_videos' and body['enabled'] for body in commands)==2

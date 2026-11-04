@@ -1,5 +1,43 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Supported desktop video UI and native destination choice (Refs #330, #335)
+
+The existing Linux native media frontend now exposes **Also synchronize videos**
+only inside Notes phone connection → Advanced functions and only with current
+native `video_supported` readiness. It starts OFF, retains separate photo/video
+album selections, uses only native destination/status metadata, blocks overlapping
+positive actions, and still permits explicit OFF while stopping an active worker.
+No pairing/status/rendering operation enables videos, requests permission or starts
+a transfer. KDE Connect and Notes content-sync grants remain separate.
+
+The destination picker is an explicit native GTK operation while video scope is
+OFF. JavaScript can request the picker with peer/fingerprint only, never submit a
+path. The native callback uses a separate private local IPC method; the public
+sync-action schema rejects both destination actions and path injection. The native
+owner then verifies current pairing/capability, protected preference CAS and an
+actual native directory choice. First custom selection stays OFF and does not
+change photo grants or destinations. Cancel/lock writes nothing. Re-selecting the
+exact original keeps its token; another historical root remains HOLD pending the
+explicit reassociation/journal flow, never an implicit move or overwrite.
+
+The two new labels are translated in all nineteen existing Linux catalogs and
+validated with the canonical catalog generator. Tests cover English/German UI,
+no rendering side effects, typed actions without paths, separate selections,
+escaping native album names, busy/OFF/capability boundaries, and actual GTK callback
+→ private IPC → protected choice/real session/worker bytes. They do not replace
+installed native chooser or physical Notes acceptance.
+
+Windows still omits these media controls: its current source has codec/control,
+resume-ledger, plan/schedule and native folder-projection primitives, but no joined
+coordinator/receiver/session/bridge path. The Linux frontend is not copied over to
+pretend that native implementation exists. This remains part of #330/#335 before
+claiming cross-platform completion. Production gates remain OFF.
+
+User sequencing: finish video synchronization, then perform native installed tests
+and the requested local Organizer/Notes-APK/Windows-EXE handoff using the existing
+release procedure; camera/microphone and mirroring remain postponed until after
+that native-test stage. A local handoff is not a public release.
+
 ### Native desktop video session (Refs #330; production gates OFF)
 
 The existing local native action lane accepts explicit video enable/disable,
@@ -34,10 +72,11 @@ handshake, manual chunks/Saved/repeat with retained local edits, explicit native
 permission without READ fallback, stop/disable while a chunk is outstanding,
 metadata-only/no-source-data refusal, disable failure, current capability loss,
 and actual sequential IMAGE/VIDEO workers under the explicit automatic mode.
-Public video UI and installed/physical acceptance remain separate unfinished
-work; these source tests do not enable production gates or publish packages.
+The supported Linux UI is joined as above; Windows integration and installed/
+physical acceptance remain unfinished. Source tests do not enable production gates
+or publish packages.
 
-### Explicit typed desktop album worker (Refs #330; public UI still unjoined)
+### Explicit typed desktop album worker (Refs #330; production gates OFF)
 
 The existing native album worker now accepts an explicit `media_type: video`
 action under the private data gate and current video consent/root/capability.
@@ -55,11 +94,11 @@ remain independent when video preferences are enabled but the video data gate is
 off. Existing IMAGE worker tests pass. These are native desktop/source-host tests,
 not an installed Android/desktop end-to-end claim.
 
-The public UI remains unjoined for videos. The native session/schedule must
+The native session/schedule must
 establish the native owner's fresh positive configuration after data ACK before
 starting this worker, from the CURRENT protected video choice only. All production
-gates remain OFF; adding this private worker entry does not expose a video toggle
-or start anything from pairing, construction or status inspection.
+gates remain OFF; adding this private worker entry never starts anything from
+pairing, construction or status inspection.
 
 ### Video decrease at exhausted counters and fresh native owner (Refs #376, #377)
 

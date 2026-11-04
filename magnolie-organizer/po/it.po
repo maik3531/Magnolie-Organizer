@@ -21,6 +21,12 @@ msgctxt "photo synchronization"
 msgid "Manual"
 msgstr "Manuale"
 
+msgid "Also synchronize videos"
+msgstr "Sincronizza anche i video"
+
+msgid "Allow video access on phone"
+msgstr "Consenti l'accesso ai video sul telefono"
+
 msgid "Synchronize photos"
 msgstr "Sincronizza foto"
 

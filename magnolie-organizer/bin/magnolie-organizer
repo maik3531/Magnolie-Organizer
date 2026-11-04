@@ -22314,6 +22314,9 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_foto_aktion(nachricht),
                              name="magnolie-photo-native-ui", daemon=True).start()
 
+        elif befehl == "telefon_videoziel_waehlen":
+            self._telefon_videoziel_waehlen(nachricht)
+
         elif befehl == "telefon_pairing_oeffnen":
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
@@ -24712,6 +24715,34 @@ class Fenster(_FENSTER_BASIS):
         if current_call and not self._gesperrt:
             self._telefon_ereignis("incoming_call", current_call)
         GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), self._tray_medien_aktualisieren(), False)[2])
+
+    def _telefon_videoziel_waehlen(self, nachricht):
+        kennung=nachricht.get("kennung")
+        try:
+            if (self._gesperrt or not self._telefon or set(nachricht)!={"cmd","kennung","fingerprint"}
+                    or nachricht.get("cmd")!="telefon_videoziel_waehlen" or getattr(self,"_telefon_videoziel_dialog",False)
+                    or type(kennung) is not str or type(nachricht.get("fingerprint")) is not str):
+                raise ValueError("photo_sync_invalid_action")
+            self._telefon_videoziel_dialog=True
+            try:
+                pfad=self._ordner_waehlen(_("Destination folder"),standard=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
+            finally:self._telefon_videoziel_dialog=False
+            if not pfad:
+                self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung, "canceled": True})
+                return
+            def annehmen():
+                try:
+                    if self._gesperrt or not self._telefon:raise ValueError("photo_sync_unavailable")
+                    self._telefon.photo_sync_video_destination(kennung,nachricht["fingerprint"],pfad)
+                    self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung})
+                except (ValueError, RuntimeError, OSError):
+                    self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung, "error": _("Synchronization failed.")})
+                self._telefon_stand_melden()
+            worker=threading.Thread(target=annehmen,name="magnolie-video-native-choice",daemon=True)
+            worker.start()
+            return worker
+        except (ValueError, RuntimeError, OSError):
+            self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung, "error": _("Synchronization failed.")})
 
     def _telefon_foto_aktion(self, nachricht):
         kennung=nachricht.get("kennung")

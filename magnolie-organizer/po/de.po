@@ -9953,6 +9953,12 @@ msgstr "＋ Termin hinzufügen"
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
 
+msgid "Also synchronize videos"
+msgstr "Auch Videos synchronisieren"
+
+msgid "Allow video access on phone"
+msgstr "Videozugriff auf Handy erlauben"
+
 msgid "Synchronize photos"
 msgstr "Fotos synchronisieren"
 

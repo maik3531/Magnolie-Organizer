@@ -28705,7 +28705,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const wurzel of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-notes-photo-root]")) {
       const alt = wurzel.querySelector("details");
       if (alt && wurzel.dataset.photoPeer) telefonFotoAnsichten.set(wurzel.dataset.photoPeer, {
-        offen: alt.open, album: wurzel.querySelector("select[data-photo-album]")?.value || ""
+        offen: alt.open, album: wurzel.querySelector("select[data-photo-album]")?.value || "",
+        videoAlbum: wurzel.querySelector("select[data-video-album]")?.value || ""
       });
       wurzel.replaceChildren();
       const peers = telefonStand?.peers || [];
@@ -28775,6 +28776,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           recovery: _("Transfer recovery"), inspect_recovery: _("Transfer recovery"),
           recover_saved: _("Transfer recovery"), repair_receipt: _("Transfer recovery")
         };
+        if (stand.active_media === "video") Object.assign(status, {
+          videos_enable: _("One moment…"), videos_disable: _("One moment…"), videos_discover: _("Finding phone albums…"),
+          videos_request_read: _("Allow video access on phone"), videos_sync: _("Synchronizing …"),
+          permission_required: _("Allow video access on phone"), syncing: _("Synchronizing …"), stopping: _("One moment…"),
+          held: _("Uncertain transfer: no automatic retry or file changes."), videos_off: _("Off")
+        });
         gruppe.append(el("p", stand.state === "held" || stand.state === "conflicts" ? "einst-warnung" : "einst-hinweis", status[stand.state] || ""));
         const reihe = el("div", "knopfreihe");
         const lesen = knopf(_("Allow photo access on phone"), "", () => sende("request_read"));
@@ -28815,6 +28822,40 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }
           if (stand.recovery_result === "confirmation_sent") gruppe.append(el("p", "einst-hinweis", _("Historical confirmation sent. This does not confirm a new transfer.")));
           if (stand.recovery_result === "receipt_repaired") gruppe.append(el("p", "einst-hinweis", _("Receipt completed. Send its historical confirmation separately.")));
+        }
+        if (stand.video_supported === true) {
+          const videos = el("div", "notes-video-sync");
+          const videoAn = document.createElement("input"); videoAn.type = "checkbox"; videoAn.dataset.videoEnabled = "true";
+          videoAn.checked = stand.video_enabled === true;
+          videoAn.disabled = stand.busy === true && !videoAn.checked;
+          videoAn.addEventListener("change", () => sende(videoAn.checked ? "videos_enable" : "videos_disable"));
+          const videoLabel = el("label", "hak"); videoLabel.append(videoAn, document.createTextNode(" " + _("Also synchronize videos")));
+          videos.append(videoLabel);
+          if (stand.video_destination) videos.append(formZeile(_("Destination folder"), el("span", null, stand.video_destination)));
+          const videoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_videoziel_waehlen",
+            kennung: peer.device_id, fingerprint: peer.fingerprint }));
+          videoZiel.dataset.videoDestination = "true"; videoZiel.disabled = stand.busy === true || stand.video_enabled === true;
+          videos.append(videoZiel);
+          if (stand.video_enabled === true) {
+            const videoReihe = el("div", "knopfreihe");
+            const videoLesen = knopf(_("Allow video access on phone"), "", () => sende("videos_request_read"));
+            videoLesen.dataset.videoAction = "read";
+            const videoAlben = knopf(_("Refresh albums"), "", () => sende("videos_discover")); videoAlben.dataset.videoAction = "discover";
+            videoLesen.disabled = videoAlben.disabled = stand.busy === true;
+            videoReihe.append(videoLesen, videoAlben); videos.append(videoReihe);
+            const videoAuswahl = document.createElement("select"); videoAuswahl.dataset.videoAlbum = "true";
+            videoAuswahl.setAttribute("aria-label", _("Phone album"));
+            for (const album of stand.video_albums || []) {
+              const option = document.createElement("option"); option.value = album.album_id;
+              option.textContent = album.display_name + " (" + album.visible_images + ")"; videoAuswahl.append(option);
+            }
+            if ([...videoAuswahl.options].some(option => option.value === ansicht.videoAlbum)) videoAuswahl.value = ansicht.videoAlbum;
+            if (videoAuswahl.options.length) videos.append(formZeile(_("Phone album"), videoAuswahl));
+            const videoJetzt = knopf(_("Synchronize now"), "hauptknopf", () => sende("videos_sync", videoAuswahl.value));
+            videoJetzt.dataset.videoAction = "sync"; videoJetzt.disabled = stand.busy === true || !videoAuswahl.options.length;
+            videos.append(videoJetzt);
+          }
+          gruppe.append(videos);
         }
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
