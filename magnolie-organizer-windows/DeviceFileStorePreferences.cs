@@ -21,6 +21,9 @@ internal sealed record NativeMediaPreferences(long Revision, string? Version,
 
 internal sealed partial class TelefonStore
 {
+    private SqliteConnection OpenNativeMediaDatabase() => new(new SqliteConnectionStringBuilder
+    { DataSource = paths.TelefonDatabase, Mode = SqliteOpenMode.ReadWrite }.ToString());
+
     private sealed record NativeMediaPreferenceScope(string PeerId, string PeerKey, string PairingEpoch,
         string LocalId, string LocalKey);
 
@@ -53,7 +56,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
-            using var connection = OpenDatabase(); connection.Open();
+            using var connection = OpenNativeMediaDatabase(); connection.Open();
             var result = ReadNativeMediaPreferences(connection, null, scope);
             if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_preferences_scope_changed");
             return result;
@@ -104,7 +107,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
-            using var connection = OpenDatabase(); connection.Open();
+            using var connection = OpenNativeMediaDatabase(); connection.Open();
             using var transaction = connection.BeginTransaction();
             var previous = ReadNativeMediaPreferences(connection, transaction, scope);
             if (previous.Version != expectedVersion) throw DeviceFileControl.Error("file_preferences_stale_choice");

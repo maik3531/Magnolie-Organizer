@@ -80,6 +80,12 @@ internal sealed partial class DeviceFileNativeDirectory
         });
     }
 
+    internal Identity? ExistingFileIdentity(string nativeName)
+    {
+        try { return FileIdentityAt(nativeName); }
+        catch (IOException error) when (error.InnerException is Win32Exception { NativeErrorCode: 2 }) { return null; }
+    }
+
     private static SafeFileHandle OpenRelative(SafeFileHandle parent, string name, uint access,
         uint share, uint disposition, uint options)
     {
@@ -149,6 +155,32 @@ internal sealed partial class DeviceFileNativeDirectory
             var value = ReadFile(file);
             if (value.Identity != originalIdentity || value.Size != written)
                 throw DeviceFileControl.Error("file_destination_stage_changed");
+        }
+
+        internal Observation Observe()
+        {
+            lock (fileGate) { Current(); return ReadFile(file); }
+        }
+
+        internal byte[] ReadExact(long offset, int count)
+        {
+            lock (fileGate)
+            {
+                Current();
+                if (offset < 0 || count < 0 || count > DeviceFileManifest.ChunkBytes || offset > written - count)
+                    throw DeviceFileControl.Error("file_destination_stage_read_invalid");
+                var result = new byte[count]; var read = 0;
+                try
+                {
+                    while (read < count)
+                    {
+                        var amount = RandomAccess.Read(file, result.AsSpan(read), offset + read);
+                        if (amount == 0) throw DeviceFileControl.Error("file_destination_stage_short_read"); read += amount;
+                    }
+                    Current(); return result;
+                }
+                catch { CryptographicOperations.ZeroMemory(result); throw; }
+            }
         }
 
         internal void WriteChunk(long offset, ReadOnlySpan<byte> bytes)

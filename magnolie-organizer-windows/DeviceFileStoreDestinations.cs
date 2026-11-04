@@ -37,7 +37,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
-            using var connection = OpenDatabase(); connection.Open();
+            using var connection = OpenNativeMediaDatabase(); connection.Open();
             var result = ReadNativeMediaDestination(connection, null, scope, mediaType);
             if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_destination_scope_changed");
             return result;
@@ -96,7 +96,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId); var root = owner.CurrentReceiveIdentity();
-            using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+            using var connection = OpenNativeMediaDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
             var before = ReadNativeMediaDestination(connection, transaction, scope, mediaType);
             if (before?.Version != expectedVersion) throw DeviceFileControl.Error("file_destination_stale_choice");
             if (before is not null)

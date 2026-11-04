@@ -270,6 +270,13 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
     runner.Add("Device file native destination / Windows overlap and original-root reopen", DeviceFileStoreDestinationsTests.WindowsOverlapAndReopenAsync);
     runner.Add("Device file native destination / Windows binding and ciphertext HOLD", DeviceFileStoreDestinationsTests.WindowsBindingAndTamperAsync);
+    runner.Add("Device file native destination / Windows missing database never bootstraps", DeviceFileStoreDestinationsTests.WindowsMissingDatabaseAsync);
+    runner.Add("Device file native receive job / Windows secure agreement to protected publication", DeviceFileReceiveJobTests.WindowsActualReceiveAsync);
+    runner.Add("Device file native receive job / Windows interrupted original and withdrawal", DeviceFileReceiveJobTests.WindowsInterruptedAndWithdrawnAsync);
+    runner.Add("Device file native receive job / Windows partial publication preserves history", DeviceFileReceiveJobTests.WindowsPartialPublicationAsync);
+    runner.Add("Device file native receive job / Windows missing history and occupied target", DeviceFileReceiveJobTests.WindowsMissingHistoryAndOccupiedAsync);
+    runner.Add("Device file native receive job / Windows key withdrawal and corrupt history", DeviceFileReceiveJobTests.WindowsKeyWithdrawalAndCorruptionAsync);
+    runner.Add("Device file native receive job / Windows reserved job and byte bounds", DeviceFileReceiveJobTests.WindowsReservationBoundsAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

@@ -486,11 +486,55 @@ key/pairing/identity/unpair/tamper boundaries. The current build has no warnings
 errors. Linux grammar/non-Windows rejection is separately tested and is not
 substituted for those native Windows proofs.
 
-Still unjoined: the protected per-transfer stage/publication history, original-job
-resume/END, source-command transport beyond status, receive routing and working
-media UI. These filesystem/storage APIs are not wire handlers or a completed
+The native receive-job owner below now joins protected stage/publication history.
+Still unjoined: original-job resume/END, source-command transport beyond status,
+receive routing and working media UI. These filesystem/storage APIs are not wire handlers or a completed
 receiver. No installed Organizer acceptance, package delivery, new APK/EXE or
 production gate activation is claimed.
+
+### Windows protected native receive jobs (Refs #330, #335)
+
+`BeginNativeMediaReceiveJob` now joins the actual protected destination, existing
+saved native photo/video selection, fresh native data binding and filesystem
+staging/publication. It never constructs a file grant from stored metadata. The
+peer/local keys, pairing, actual destination and existing current-user DPAPI
+storage-key record are checked during I/O. Observed key/scope/choice withdrawal
+permanently holds that owner, including when an old key file later returns.
+
+The dedicated AEAD job table commits and reads back an original reservation before
+creating the stage, records the stage and file identities before receiving chunks,
+and commits/reads back each exact prepared publication before its NT rename. Real
+file chunk readback feeds the existing resume-ledger verifier; full size/hash is
+checked again at publication. Each published file keeps its original identity in
+the protected job. Partial publication preserves both already-visible files and
+unpublished payloads, with its uncertain original intent held. Dispose never
+deletes payloads or history. A newly occupied user slot fails before reservation;
+a later collision never replaces it. Missing history around an existing stage
+blocks a new ordinary job rather than inventing empty history or another owner.
+
+The native media batch remains bounded to 16 flat gallery members. Held jobs
+reserve at most 32 active jobs / 1 GiB, with a separate 128-job historical ceiling;
+all reserved bytes count even before they arrive. There is currently no source-END
+retirement API, so published jobs conservatively keep that active budget. No
+quota is widened and no old job is evicted. Ordinary creation cannot substitute
+for original-job recovery or reuse a historical target slot. Native media DB
+opens now use existing-only read/write mode: missing `phone.db` is not recreated
+by preferences, destinations or receive-history inspection.
+
+The current physical Windows run passes 27 groups: the prior filesystem/root
+groups, six actual receive-job groups, the missing-DB guard and all nine existing
+protected-preference groups. Receive-job cases start with the actual encrypted
+bilateral control exchange, then pass bytes through the real ledger, held files,
+encrypted history and NT publication. They cover duplicate/changed chunks,
+incomplete completion, interrupted-job preservation, withdrawn receive scope,
+two-file partial publication, lost history/unknown stage, key removal/no revival,
+corrupt ciphertext and actual 32-job / 1 GiB reservation exhaustion. The staged
+bytes in these tests are supplied to the explicit native API, not yet incoming
+encrypted file-data envelopes; this is not a network sync or installed GUI proof.
+
+Still missing: the original resume/END owner and cache retirement, wire offer/chunk
+routing, source-command transport beyond status, album-layout/mapping orchestration
+and operational media UI. No new automatic worker or production gate is enabled.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 

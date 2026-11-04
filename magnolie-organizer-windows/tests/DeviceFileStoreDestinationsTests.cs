@@ -115,4 +115,22 @@ internal static class DeviceFileStoreDestinationsTests
         }
         return Task.CompletedTask;
     }
+
+    internal static Task WindowsMissingDatabaseAsync()
+    {
+        using var f = Fixture(); using var images = Directory(f, "pictures");
+        var original = f.Store.SetNativeMediaDestination(f.Peer.Id, "images", null, images);
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        var path = f.Paths.TelefonDatabase; var held = path + ".fixture-held"; File.Move(path, held);
+        try
+        {
+            TestAssert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => f.Store.ReadNativeMediaDestination(f.Peer.Id, "images"), "Missing original DB was defaulted/created by destination read.");
+            TestAssert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => f.Store.ReadNativeMediaPreferences(f.Peer.Id), "Missing original DB was defaulted/created by preference read.");
+            TestAssert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => f.Store.NativeMediaReceiveHistory(f.Peer.Id), "Missing original DB was defaulted/created by receive-history read.");
+            TestAssert.That(!File.Exists(path), "A media inspection bootstrapped a replacement personal phone DB.");
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); File.Move(held, path); }
+        TestAssert.That(f.Store.ReadNativeMediaDestination(f.Peer.Id, "images") == original, "Original DB return lost native destination.");
+        return Task.CompletedTask;
+    }
 }

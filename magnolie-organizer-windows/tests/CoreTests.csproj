@@ -52,6 +52,7 @@
     <Compile Include="..\DeviceFileStoreDestinations.cs" Link="DeviceFileStoreDestinations.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.cs" Link="DeviceFileNativeDirectory.cs" />
     <Compile Include="..\DeviceFileNativeDirectory.Receive.cs" Link="DeviceFileNativeDirectory.Receive.cs" />
+    <Compile Include="..\DeviceFileReceiveJob.cs" Link="DeviceFileReceiveJob.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />
     <Compile Include="..\NativeFilePairingIdentity.cs" Link="NativeFilePairingIdentity.cs" />
