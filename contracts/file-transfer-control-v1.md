@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit typed desktop album worker (Refs #330; session/UI still unjoined)
+
+The existing native album worker now accepts an explicit `media_type: video`
+action under the private data gate and current video consent/root/capability.
+It rejects mismatched current catalogs; no inferred type or image fallback is
+allowed. Start, batched continuation, source status/cancel/END, original-job lookup
+and dedicated resume retain this immutable media scope. New-member selection is
+also typed and pins the current video preference revision through output/retry.
+Original resume-candidate destination checks use the actual per-media root.
+
+Actual worker tests cover two video batches through chunks/publication/Saved and
+source END, repeat without download preserving a local video edit, cancellation
+and original-job resume without redownloading its drained chunk, mixed known/new
+membership selecting only the new video, and no photo-root writes. IMAGE workers
+remain independent when video preferences are enabled but the video data gate is
+off. Existing IMAGE worker tests pass. These are native desktop/source-host tests,
+not an installed Android/desktop end-to-end claim.
+
+The user-facing session, schedule and UI remain unjoined for videos. They must
+establish the native owner's fresh positive configuration after data ACK before
+starting this worker, from the CURRENT protected video choice only. All production
+gates remain OFF; adding this private worker entry does not expose a video toggle
+or start anything from pairing, construction or status inspection.
+
 ### Video decrease at exhausted counters and fresh native owner (Refs #376, #377)
 
 An exact current authenticated video-decrease command that cannot advance its

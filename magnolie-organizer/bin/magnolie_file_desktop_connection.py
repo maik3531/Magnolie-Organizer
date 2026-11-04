@@ -162,23 +162,29 @@ class NativeDesktopFileConnection:
             self._update_generation += 1
             self._update_condition.notify_all()
 
-    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None):
+    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None, media_type='images'):
         """Explicit native worker start; construction/import/pairing starts nothing."""
         self._take_action(action)
         with self._operation():
             snapshot = self._receiving_policy(); action.validate(self)
-            if (snapshot.direction != 'phone_to_desktop' or snapshot.include_videos
+            source_messages._media_type(media_type)
+            if (snapshot.direction != 'phone_to_desktop'
                     or snapshot.policy.phone_to_pc_delete or snapshot.policy.pc_to_phone_delete):
                 raise TransferError('file_desktop_album_options_unavailable')
+            if media_type == 'video':
+                if not self._video_data_handlers_ready:
+                    raise TransferError('file_desktop_video_data_join_unavailable')
+                self._require_video_metadata_scope()
             if self._album_worker is not None or self._source_pending is not None or self._source_run is not None or self._run is not None:
                 raise TransferError('file_desktop_album_worker_busy')
             if self._ended_batch is not None and self._ended_batch.batch_end is not True:
                 raise TransferError('file_desktop_album_worker_busy')
-            if type(album_id) is not str or type(desktop_choice) is not bool or album_id not in self._source_albums:
+            if (type(album_id) is not str or type(desktop_choice) is not bool or album_id not in self._source_albums
+                    or self._source_catalog is None or self._source_catalog.media_type != media_type):
                 raise TransferError('file_desktop_source_album_not_current')
             if activity_changed is not None and not callable(activity_changed):
                 raise TransferError('file_desktop_native_activity_callback_required')
-            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed)
+            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed, media_type=media_type)
             self._album_worker = worker
         try:
             worker._thread.start() # Never race a first command against our held operation lock.
@@ -1211,7 +1217,7 @@ class NativeDesktopFileConnection:
                         last=next((value for value,_ in reversed(events) if value['owner']==job.owner),None)
                         if last is None or last['operation']!='closed':
                             raise TransferError('file_receive_publication_repair_required')
-                        if job.accepted.destination!=self._receiving_policy().policy.destination:
+                        if job.accepted.destination!=self._receive_destination(self._receiving_policy(),media_type=first.media_type):
                             raise TransferError('file_desktop_photo_resume_destination_changed')
                         candidates.append(job)
             if len(candidates)>1:raise TransferError('file_desktop_photo_resume_ambiguous')
@@ -1247,10 +1253,13 @@ class NativeDesktopFileConnection:
                 tuple(sorted((item.photo_id,item.prior_mapping_sha256) for item in reviewed.items
                     if include_versions and item.decision=='copy_phone_version')))
             message = source_messages.create_command('select_run', expected_version=self._source_status.version,
-                run_id=self._source_run.run_id, manifest_sha256=manifest.fingerprint, file_ids=list(ids), now=clock())
+                run_id=self._source_run.run_id, manifest_sha256=manifest.fingerprint, file_ids=list(ids), now=clock(),
+                **({'media_type': 'video'} if first.media_type == 'video' else {}))
             command = source_messages.parse_command(message, now=clock())
             ticket = self._controls.receiver_command_ticket()
-            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
+                video_negotiated=self._authority.video_available(),
+                video_policy_version=self._require_video_metadata_scope().version if first.media_type == 'video' else None)
             self._send_source_pending(clock, action)
             return message['message_id']
 
@@ -2019,9 +2028,10 @@ class NativePhotoAlbumWorker:
     Activity callbacks receive this exact owner, so an old END cannot clear a
     newer worker's tray state. OS/UI consumers must marshal callbacks themselves.
     """
-    def __init__(self, connection, album_id, desktop_choice, activity_changed):
+    def __init__(self, connection, album_id, desktop_choice, activity_changed, *, media_type='images'):
         self._connection = connection
         self._album_id = album_id; self._desktop_choice = desktop_choice
+        self._media_type = media_type
         self._activity_changed = activity_changed
         self._stop = threading.Event(); self._ended = threading.Event()
         self._state_gate = threading.Lock()
@@ -2081,6 +2091,8 @@ class NativePhotoAlbumWorker:
 
     def _command(self, operation, **options):
         connection = self._connection
+        if self._media_type == 'video':
+            options['media_type'] = self._media_type
         def send():
             return connection.request_source(connection.issue_receive_action(), operation, **options)
         request_id = self._wait(send)
@@ -2125,7 +2137,7 @@ class NativePhotoAlbumWorker:
 
     def _lookup(self, job):
         connection=self._connection
-        request_id=self._wait(lambda:connection.request_resume_lookup(connection.issue_receive_action(),job.owner))
+        request_id=self._wait(lambda:connection.request_resume_lookup(connection.issue_receive_action(),job.owner,media_type=self._media_type))
         return self._wait(lambda: self._reply(request_id))
 
     def _reply(self, request_id):
