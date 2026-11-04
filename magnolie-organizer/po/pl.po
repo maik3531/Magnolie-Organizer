@@ -10034,3 +10034,8 @@ msgstr "Nie udało się zaktualizować kosza multimediów. Istniejące pliki zos
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Oczekuje na przywrócenie"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Pliki multimedialne korzystają z ustawionego powyżej okresu przechowywania, w tym opcji „Nigdy”. Użyj „Usuń trwale”, aby od razu usunąć pojedynczy element multimedialny. Przywracanie nigdy nie zastępuje istniejącego pliku."

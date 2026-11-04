@@ -8245,3 +8245,8 @@ msgstr "मीडिया रीसायकल बिन अपडेट न�
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "पुनर्स्थापना लंबित"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "मीडिया फ़ाइलों पर ऊपर निर्धारित रखने की अवधि लागू होती है, जिसमें “कभी नहीं” भी शामिल है। किसी एक मीडिया प्रविष्टि को अभी हटाने के लिए “स्थायी रूप से हटाएँ” का उपयोग करें। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"

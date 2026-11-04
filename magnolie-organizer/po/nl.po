@@ -10056,3 +10056,8 @@ msgstr "De mediaprullenbak kon niet worden bijgewerkt. Bestaande bestanden zijn 
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Wacht op herstel"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Voor mediabestanden geldt de hierboven ingestelde bewaartermijn, inclusief ‘Nooit’. Gebruik ‘Permanent verwijderen’ om een afzonderlijk media-item nu te verwijderen. Herstellen vervangt nooit een bestaand bestand."

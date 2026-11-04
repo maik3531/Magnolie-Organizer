@@ -9948,3 +9948,8 @@ msgstr "Koš médií se nepodařilo aktualizovat. Existující soubory byly zach
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Čeká na obnovení"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Pro mediální soubory platí výše nastavená doba uchování včetně možnosti „Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale odstranit“. Obnovení nikdy nenahradí existující soubor."

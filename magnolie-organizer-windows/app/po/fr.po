@@ -8610,3 +8610,8 @@ msgstr "Impossible de mettre à jour la corbeille multimédia. Les fichiers exis
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Restauration en attente"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Les fichiers multimédias suivent la durée de conservation ci-dessus, y compris « Jamais ». Utilisez « Supprimer définitivement » pour supprimer immédiatement un élément multimédia individuel. La restauration ne remplace jamais un fichier existant."

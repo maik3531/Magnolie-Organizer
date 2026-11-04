@@ -9986,3 +9986,8 @@ msgstr "Не ўдалося абнавіць кошык медыяфайлаў. 
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Чакае аднаўлення"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Да медыяфайлаў прымяняецца зададзены вышэй тэрмін захоўвання, уключаючы «Ніколі». Каб адразу выдаліць асобны медыяэлемент, скарыстайцеся «Выдаліць назаўсёды». Аднаўленне ніколі не замяняе існуючы файл."

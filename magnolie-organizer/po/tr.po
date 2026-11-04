@@ -9917,3 +9917,8 @@ msgstr "Medya geri dönüşüm kutusu güncellenemedi. Mevcut dosyalar korundu."
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Geri yükleme bekleniyor"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek bir medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini kullanın. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."

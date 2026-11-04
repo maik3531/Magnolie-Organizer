@@ -10092,3 +10092,8 @@ msgstr "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so wobc
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Wobnowjenje wustaja"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje ženje eksistowacu dataju njenaruna."

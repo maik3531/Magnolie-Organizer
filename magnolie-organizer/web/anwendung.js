@@ -30565,6 +30565,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const request_id = uid(), request = { cmd: "medien_papierkorb", request_id, action };
     if (action === "list") request.cursor = cursor;
     else Object.assign(request, { scope: entry.scope, operation: entry.operation, version: entry.version });
+    if (action === "purge") request.confirmed = true;
     const pending = { request_id, action, entry, cursor, timer: null };
     medienPapierkorb.pending = pending; medienPapierkorb.error = false;
     pending.timer = setTimeout(() => {
@@ -30572,6 +30573,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       medienPapierkorb.pending = null; medienPapierkorb.error = true; zeichneMedienPapierkorb();
     }, 65000);
     Bruecke.sende(request); zeichneMedienPapierkorb();
+  }
+
+  async function medienPapierkorbEndgueltig(entry) {
+    if (gesperrt || medienPapierkorb.pending || !medienPapierkorb.entries.includes(entry)) return;
+    const rows = medienPapierkorb.entries;
+    const yes = await frage(entry.name + "\n\n" + uebersetztMehrzahl(
+      "Permanently delete the one item? This cannot be undone.",
+      "Permanently delete all %(count)s items? This cannot be undone.", 1), _("Delete permanently"));
+    if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) return;
+    medienPapierkorbAnfordern("purge", entry);
   }
 
   function zeichneMedienPapierkorb() {
@@ -30583,7 +30594,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (root.hidden) return;
     root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
       ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
-    root.append(el("p", "einst-hinweis", _("Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file.")));
+    root.append(el("p", "einst-hinweis", _("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.")));
     if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("The media recycle bin could not be updated. Existing files were kept.")));
     const refresh = knopf(_("Refresh"), "klein", () => medienPapierkorbAnfordern());
     refresh.disabled = !!medienPapierkorb.pending; refresh.id = "medien-papierkorb-aktualisieren"; root.append(refresh);
@@ -30594,6 +30605,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (entry.state !== "trashed") row.append(el("span", "pk-wann", _("Pending recovery")));
       const restore = knopf(_("Restore"), "klein", () => medienPapierkorbAnfordern("restore", entry));
       restore.disabled = !!medienPapierkorb.pending; restore.dataset.mediaRestore = entry.operation; row.append(restore);
+      if (["trashed", "purge_prepared"].includes(entry.state)) {
+        const purge = knopf(_("Delete permanently"), "klein", () => medienPapierkorbEndgueltig(entry));
+        purge.disabled = !!medienPapierkorb.pending; purge.dataset.mediaPurge = entry.operation; row.append(purge);
+      }
       if (entry.state === "prepared") {
         const cancel = knopf(_("Cancel"), "klein", () => medienPapierkorbAnfordern("cancel", entry));
         cancel.disabled = !!medienPapierkorb.pending; cancel.dataset.mediaCancel = entry.operation; row.append(cancel);
@@ -30622,7 +30637,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (pending.action !== "list") {
       const completed = value.completed;
       if (!completed || completed.scope !== pending.entry.scope || completed.operation !== pending.entry.operation ||
-          completed.state !== (pending.action === "restore" ? "restored" : "canceled")) { fail(); return; }
+          completed.state !== ({ restore: "restored", cancel: "canceled", purge: "purged" })[pending.action]) { fail(); return; }
       medienPapierkorb.entries = medienPapierkorb.entries.filter(entry => entry.scope !== completed.scope || entry.operation !== completed.operation);
       medienPapierkorb.total = Math.max(0, medienPapierkorb.total - 1); medienPapierkorb.next = null;
       if (pending.action === "restore") zettel(uebersetzt("“%(name)s” was restored.", { name: pending.entry.name }));

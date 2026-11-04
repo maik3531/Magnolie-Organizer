@@ -9840,3 +9840,8 @@ msgstr "メディアのごみ箱を更新できませんでした。既存のフ
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "復元待ち"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。個別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復元時に既存のファイルを置き換えることはありません。"

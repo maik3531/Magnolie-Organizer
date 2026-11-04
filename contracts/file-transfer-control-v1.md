@@ -579,8 +579,8 @@ The Linux source frontend now projects these external entries into a separate
 “Photos and videos” group inside the existing Settings → Security → Recycle bin
 section. It does **not** copy them into `DATEN.papierkorb`, book saves or the
 bounded Notes trash list. The same retention days apply through native maintenance
-rather than list eviction. Emptying the other entries currently cannot
-purge media; the group explains this and has no unsupported media purge control.
+rather than list eviction. Emptying the other entries does not purge media;
+the group now offers explicit confirmed permanent removal per media entry.
 Restore, pre-move cancellation, explicit refresh and bounded page loading use
 only scope/operation/version tokens. Filenames are displayed as text, and all
 four new labels have authored translations in every existing desktop locale.
@@ -683,8 +683,36 @@ initial automatic 0/7-day adoption without another save, a raced book during
 adoption, preserving a paused policy and actual native load/unlock helper calls
 for both plain and encrypted saved books despite conflicting in-memory UI days.
 
-Still pending: manual media-empty UI/API (including the 0/never case), and shared-retention help
-text once that manual flow is joined. An externally changed book currently HOLDs
+Manual removal is now implemented for individual media entries, including 0/never
+and legacy undated trash. It uses an exact scope/operation/version plus explicit
+confirmation, a native one-shot action and current unlocked UI guard. It has no
+browser paths or retention-day override and does not edit the saved policy. The
+same verified inode/capsule byte-release path is used, with an authenticated
+manual/zero-day marker distinguishing explicit removal from automatic expiry.
+Unmoved `prepared` originals are not purgeable. Interrupted manual cleanup needs
+a fresh current native confirmation to resume while bytes remain; automatic
+maintenance under 0 cannot inherit the earlier confirmation and release them.
+Restoration before byte release and retained terminal tombstones remain intact.
+
+The frontend requires confirmation identifying the selected filename, discards
+late confirmation after lock or overview replacement and removes a row only on
+the exact verified `purged` completion. Cancellation, errors and foreign completion
+keep the row; there is no manufactured book save or phone deletion ACK. A shared
+retention/manual-removal help message is translated into all 19 existing locales.
+The ordinary disabled-trash confirmation is unchanged. Bulk media emptying is not
+implemented; manual media removal is per entry.
+
+Current manual proof: nine native manual cases plus 13 automatic-retention core
+cases pass, including three manual crash boundaries, stale version, native guard
+withdrawal, no automatic inheritance under 0, unchanged newly created user file,
+strict manual journal shape and legacy undated trash. The current joined run
+passes 70 cases (nine manual, 20 policy/runtime/adoption, 21 native UI, 20 optional
+composition). Ten frontend/locale cases pass, including confirmation cancel,
+failure/foreign completion, overview replacement and late-lock confirmation. The
+19 tracked Windows runtime catalogs add only the one intended help key; existing
+messages/metadata remain unchanged. These are source proofs, not installed tests.
+
+An externally changed book currently HOLDs
 until a new native save publishes matching policy. Counterpart propagation,
 Android native trash receipts, Windows receiver and installed/native acceptance
 remain open. This source checkpoint is not complete media synchronization,

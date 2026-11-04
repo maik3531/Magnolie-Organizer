@@ -8,12 +8,14 @@ harness.filename = harnessPath; harness.paths = Module._nodeModulePaths(path.dir
 harness._compile(fs.readFileSync(harnessPath, "utf8").split("async function run(web)")[0] + "\nmodule.exports = {boot, roots};", harnessPath);
 const linux = path.resolve(__dirname, "../web");
 const messages = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../tools/media_trash_locales.json"), "utf8"));
+const retentionMessages = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../tools/media_trash_retention_locales.json"), "utf8"));
 for (const locale of Object.keys(messages).filter(locale => locale !== "en")) {
   let catalog;
   vm.runInNewContext(fs.readFileSync(path.join(linux, "i18n", locale + ".js"), "utf8"), {
     window: { MagnolieI18n: { registerCatalog: (_, value) => { catalog = value; } } }
   });
   messages.en.forEach((key, index) => assert.equal(catalog.messages[key], messages[locale][index], `${locale}: ${key}`));
+  retentionMessages.en.forEach((key, index) => assert.equal(catalog.messages[key], retentionMessages[locale][index], `${locale}: ${key}`));
 }
 const row = (index = 1) => ({ scope: "a".repeat(64), operation: index.toString(16).padStart(32, "0"), version: "b".repeat(64),
   name: index === 1 ? "<img src=x onerror=bad>.mp4" : `video-${index}.mp4`, media_type: "video", state: "trashed" });
@@ -58,6 +60,31 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.equal(b.saves().length, saves, "Native media restore must not manufacture a book save");
       cases++;
 
+      const tick = () => new Promise(resolve => setImmediate(resolve));
+      d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
+      assert.ok(root().textContent.includes(locale === "de" ? "Aufbewahrungsfrist" : "retention period"));
+      const purge = () => root().querySelector("[data-media-purge]");
+      let called = calls().length;
+      purge().click(); assert.equal(calls().length, called, "Showing confirmation cannot release bytes");
+      assert.ok(d.querySelector("#dialog-text").textContent.includes(row().name));
+      d.querySelector("#dialog-nein").click(); await tick(); assert.equal(calls().length, called);
+      purge().click(); d.querySelector("#dialog-ja").click(); await tick();
+      assert.equal(calls().at(-1).action, "purge"); assert.equal(calls().at(-1).confirmed, true);
+      assert.deepEqual(Object.keys(calls().at(-1)).sort(), ["action", "cmd", "confirmed", "operation", "request_id", "scope", "version"]);
+      answer({ completed: { scope: row().scope, operation: row().operation, state: "canceled" } });
+      assert.ok(purge(), "Only a verified purged completion may remove the media row");
+      purge().click(); d.querySelector("#dialog-ja").click(); await tick(); answer({ ok: false });
+      assert.ok(purge(), "Failed permanent deletion must retain the media row");
+      purge().click(); d.querySelector("#dialog-ja").click(); await tick();
+      answer({ completed: { scope: row().scope, operation: row().operation, state: "purged" } });
+      assert.equal(purge(), null); answer({ entries: [], total: 0, next_cursor: null });
+      assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves);
+      d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [row()], total: 1, next_cursor: null });
+      purge().click(); d.querySelector("#medien-papierkorb-aktualisieren").click();
+      answer({ entries: [row(2)], total: 1, next_cursor: null }); called = calls().length;
+      d.querySelector("#dialog-ja").click(); await tick();
+      assert.equal(calls().length, called, "A confirmation for an older overview must not target the refreshed entry"); cases++;
+
       d.querySelector("#medien-papierkorb-aktualisieren").click();
       answer({ entries: Array.from({ length: 128 }, (_, index) => row(index + 1)), total: 129, next_cursor: 128 });
       const more = root().lastElementChild;
@@ -76,6 +103,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.equal(root().querySelector("[data-media-cancel]"), null);
       const pendingRow = { ...row(2), state: "prepared" };
       d.querySelector("#medien-papierkorb-aktualisieren").click(); answer({ entries: [pendingRow], total: 1, next_cursor: null });
+      assert.equal(root().querySelector("[data-media-purge]"), null, "An unmoved original is not purgeable trash");
       assert.ok(root().querySelector("[data-media-cancel]")); root().querySelector("[data-media-cancel]").click();
       answer({ completed: { scope: pendingRow.scope, operation: pendingRow.operation, state: "canceled" } });
       answer({ entries: [], total: 0, next_cursor: null });
@@ -85,7 +113,11 @@ const plain = value => JSON.parse(JSON.stringify(value));
       b.w.App.init({ daten: plain(b.t.daten()), neu: false, regional: { language: locale, timeZone: "UTC" } });
       b.t.oeffneEinstellungen(); d.querySelector("#einst-tab-sicherheit").click();
       const old = calls().at(-1);
+      answer({ entries: [row()], total: 1, next_cursor: null }); purge().click();
+      called = calls().length;
       b.w.App.init({ gesperrt: true });
+      d.querySelector("#dialog-ja")?.click(); await tick();
+      assert.equal(calls().length, called, "A late confirmation after lock cannot dispatch permanent deletion");
       answer({ entries: [row()], total: 1, next_cursor: null }, old);
       assert.ok(!root() || root().hidden); assert.equal(d.querySelectorAll("[data-media-restore]").length, 0,
         "Lock/book initialization must discard private native rows and stale callbacks"); cases++;

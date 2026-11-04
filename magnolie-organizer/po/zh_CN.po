@@ -9471,3 +9471,8 @@ msgstr "无法更新媒体回收站。现有文件已保留。"
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "等待恢复"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体项目。恢复绝不会替换现有文件。"

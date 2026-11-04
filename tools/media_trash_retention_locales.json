@@ -1,0 +1,22 @@
+{
+  "en": ["Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."],
+  "de": ["Für Medien gilt die oben eingestellte Aufbewahrungsfrist, einschließlich „Nie“. Mit „Endgültig löschen“ entfernen Sie einen einzelnen Medieneintrag sofort. Beim Wiederherstellen wird keine vorhandene Datei ersetzt."],
+  "ar": ["تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». استخدم «الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي ملف موجود."],
+  "be": ["Да медыяфайлаў прымяняецца зададзены вышэй тэрмін захоўвання, уключаючы «Ніколі». Каб адразу выдаліць асобны медыяэлемент, скарыстайцеся «Выдаліць назаўсёды». Аднаўленне ніколі не замяняе існуючы файл."],
+  "cs": ["Pro mediální soubory platí výše nastavená doba uchování včetně možnosti „Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale odstranit“. Obnovení nikdy nenahradí existující soubor."],
+  "da": ["Mediefiler bruger opbevaringsperioden ovenfor, inklusive „Aldrig“. Brug „Slet permanent“ til at fjerne en enkelt mediepost nu. Gendannelse erstatter aldrig en eksisterende fil."],
+  "es": ["Los archivos multimedia usan el plazo de conservación indicado arriba, incluido «Nunca». Use «Eliminar permanentemente» para eliminar ahora un elemento multimedia individual. La restauración nunca sustituye un archivo existente."],
+  "fr": ["Les fichiers multimédias suivent la durée de conservation ci-dessus, y compris « Jamais ». Utilisez « Supprimer définitivement » pour supprimer immédiatement un élément multimédia individuel. La restauration ne remplace jamais un fichier existant."],
+  "hi": ["मीडिया फ़ाइलों पर ऊपर निर्धारित रखने की अवधि लागू होती है, जिसमें “कभी नहीं” भी शामिल है। किसी एक मीडिया प्रविष्टि को अभी हटाने के लिए “स्थायी रूप से हटाएँ” का उपयोग करें। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"],
+  "hsb": ["Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje ženje eksistowacu dataju njenaruna."],
+  "it": ["Ai file multimediali si applica il periodo di conservazione indicato sopra, compresa l’opzione «Mai». Usa «Elimina definitivamente» per rimuovere subito un singolo elemento multimediale. Il ripristino non sostituisce mai un file esistente."],
+  "ja": ["メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。個別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復元時に既存のファイルを置き換えることはありません。"],
+  "nb": ["Mediefiler bruker oppbevaringstiden ovenfor, inkludert «Aldri». Bruk «Slett permanent» for å fjerne én medieoppføring nå. Gjenoppretting erstatter aldri en eksisterende fil."],
+  "nl": ["Voor mediabestanden geldt de hierboven ingestelde bewaartermijn, inclusief ‘Nooit’. Gebruik ‘Permanent verwijderen’ om een afzonderlijk media-item nu te verwijderen. Herstellen vervangt nooit een bestaand bestand."],
+  "pl": ["Pliki multimedialne korzystają z ustawionego powyżej okresu przechowywania, w tym opcji „Nigdy”. Użyj „Usuń trwale”, aby od razu usunąć pojedynczy element multimedialny. Przywracanie nigdy nie zastępuje istniejącego pliku."],
+  "pt": ["Os ficheiros multimédia usam o período de conservação definido acima, incluindo «Nunca». Use «Eliminar permanentemente» para remover agora um elemento multimédia individual. O restauro nunca substitui um ficheiro existente."],
+  "ru": ["Для медиафайлов действует указанный выше срок хранения, включая «Никогда». Чтобы сразу удалить отдельный медиаэлемент, используйте «Удалить навсегда». Восстановление никогда не заменяет существующий файл."],
+  "tr": ["Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek bir medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini kullanın. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."],
+  "uk": ["Для медіафайлів діє встановлений вище термін зберігання, зокрема «Ніколи». Щоб одразу видалити окремий медіаелемент, скористайтеся «Видалити назавжди». Відновлення ніколи не замінює наявний файл."],
+  "zh_CN": ["媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体项目。恢复绝不会替换现有文件。"]
+}

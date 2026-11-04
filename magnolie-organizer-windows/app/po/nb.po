@@ -8410,3 +8410,8 @@ msgstr "Mediepapirkurven kunne ikke oppdateres. Eksisterende filer ble beholdt."
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Venter på gjenoppretting"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Mediefiler bruker oppbevaringstiden ovenfor, inkludert «Aldri». Bruk «Slett permanent» for å fjerne én medieoppføring nå. Gjenoppretting erstatter aldri en eksisterende fil."

@@ -10081,3 +10081,8 @@ msgstr "Não foi possível atualizar a reciclagem multimédia. Os ficheiros exis
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Restauro pendente"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Os ficheiros multimédia usam o período de conservação definido acima, incluindo «Nunca». Use «Eliminar permanentemente» para remover agora um elemento multimédia individual. O restauro nunca substitui um ficheiro existente."

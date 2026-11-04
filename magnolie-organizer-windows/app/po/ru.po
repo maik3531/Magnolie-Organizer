@@ -8484,3 +8484,8 @@ msgstr "Не удалось обновить корзину медиафайло
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Ожидает восстановления"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Для медиафайлов действует указанный выше срок хранения, включая «Никогда». Чтобы сразу удалить отдельный медиаэлемент, используйте «Удалить навсегда». Восстановление никогда не заменяет существующий файл."

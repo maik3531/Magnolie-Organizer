@@ -8481,3 +8481,8 @@ msgstr "تعذر تحديث سلة محذوفات الوسائط. تم الاح�
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "في انتظار الاستعادة"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». استخدم «الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي ملف موجود."

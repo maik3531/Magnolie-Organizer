@@ -10103,3 +10103,8 @@ msgstr "No se pudo actualizar la papelera multimedia. Se conservaron los archivo
 #. Recoverable local media trash (Refs #330, #335).
 msgid "Pending recovery"
 msgstr "Restauración pendiente"
+
+
+#. Shared media trash retention and explicit manual removal (Refs #330, #335).
+msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
+msgstr "Los archivos multimedia usan el plazo de conservación indicado arriba, incluido «Nunca». Use «Eliminar permanentemente» para eliminar ahora un elemento multimedia individual. La restauración nunca sustituye un archivo existente."

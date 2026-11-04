@@ -119,18 +119,25 @@ class NativeMediaPurgeLocation:
     name: str
     key: tuple
     retention_days: int
+    manual: bool = False
 
-    def wire(self):return dict(name=self.name,key=list(self.key),retention_days=self.retention_days)
+    def wire(self):
+        value=dict(name=self.name,key=list(self.key),retention_days=self.retention_days)
+        if self.manual:value['manual']=True
+        return value
 
     @classmethod
     def parse(cls,value,operation,mapping):
-        if (type(value) is not dict or set(value)!={'name','key','retention_days'} or value['name']!='.magnolie-purge-'+operation
-                or type(value['retention_days']) is not int or value['retention_days'] not in (7,30,90,365)
+        fields={'name','key','retention_days'}
+        if (type(value) is not dict or not fields<=set(value) or not set(value)<=fields|{'manual'}
+                or 'manual' in value and value['manual'] is not True or value['name']!='.magnolie-purge-'+operation
+                or type(value['retention_days']) is not int
+                or value['retention_days'] not in ((0,) if value.get('manual') is True else (7,30,90,365))
                 or type(value['key']) is not list or len(value['key'])!=2
                 or any(type(number) is not int or not 0<=number<2**64 for number in value['key'])
                 or value['key'][1]==0 or value['key'][0]!=mapping.file_key[0]):
             raise TransferError('media_trash_invalid_purge_location')
-        return cls(value['name'],tuple(value['key']),value['retention_days'])
+        return cls(value['name'],tuple(value['key']),value['retention_days'],value.get('manual',False))
 
 
 class NativeMediaRetentionPermit:
@@ -147,6 +154,23 @@ class NativeMediaRetentionPermit:
         if self._revoked or type(current) is not int or current!=self.days:
             self._revoked=True;raise TransferError('media_trash_retention_changed')
         return self.days
+
+
+class _ManualMediaPurgePermit:
+    """Only the selected original operation, while the native UI is current."""
+    days=0
+
+    def __init__(self,owner,operation,current):
+        if not callable(current):raise TransferError('media_trash_native_confirmation_required')
+        self.owner=owner;self.operation=operation;self._current=current;self._revoked=False
+
+    def require_current(self):
+        try:allowed=self._current()
+        except BaseException:
+            self._revoked=True;raise
+        if self._revoked or allowed is not True:
+            self._revoked=True;raise TransferError('media_trash_native_confirmation_changed')
+        return 0
 
 
 @dataclass(frozen=True)
@@ -305,7 +329,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                     or previous.purge is not None and previous.purge!=purge)
                     or purge is None and (value['state'] in ('purge_prepared','purged') or previous is not None and previous.purge is not None)):
                 raise TransferError('media_trash_purge_chain_changed')
-            if value['state']=='purge_prepared' and (previous.trashed_ms is None or changed_ms is None
+            if value['state']=='purge_prepared' and not purge.manual and (previous.trashed_ms is None or changed_ms is None
                     or changed_ms<previous.trashed_ms+purge.retention_days*86400000):
                 raise TransferError('media_trash_purge_time_unproven')
             trashed_ms=changed_ms if value['state']=='trashed' else previous.trashed_ms if previous else None
@@ -551,7 +575,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         try:check();yield fd,check
         finally:os.close(fd)
 
-    def _prepare_purge(self,entry,fresh,days):
+    def _prepare_purge(self,entry,fresh,permit):
         with self._target_context(entry,fresh) as (parent,_,directories,opened):
             with opened(entry.payload_name,links=(1,)):
                 directories();self._boundary('before_purge_prepare');directories()
@@ -562,7 +586,9 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                     value=os.fstat(fd);self._private(value,directory=True)
                     named=os.stat(name,dir_fd=parent,follow_symlinks=False)
                     if self._key(value)!=self._key(named):raise TransferError('media_trash_original_purge_changed')
-                    location=NativeMediaPurgeLocation.parse(dict(name=name,key=list(self._key(value)),retention_days=days),entry.operation,entry.mapping)
+                    value=dict(name=name,key=list(self._key(value)),retention_days=permit.days)
+                    if type(permit) is _ManualMediaPurgePermit:value['manual']=True
+                    location=NativeMediaPurgeLocation.parse(value,entry.operation,entry.mapping)
                     os.fsync(fd);os.fsync(parent);directories();return location
                 finally:os.close(fd)
 
@@ -570,8 +596,26 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         """Configured local retention only; retain the tombstone and a zero-byte
         private completion marker. No pathname unlink can delete a raced file.
         """
-        self._action(action,expected);action.consume(self)
         if type(permit) is not NativeMediaRetentionPermit:raise TransferError('media_trash_native_retention_required')
+        return self._purge(action,expected,operation,permit)
+
+    def purge_manual(self,action,expected,operation,native_gate):
+        """Explicit selected-entry confirmation, including never/undated trash.
+        Does not edit settings or confer a remote deletion permission.
+        """
+        return self._purge(action,expected,operation,_ManualMediaPurgePermit(self,operation,native_gate))
+
+    def _purge_due(self,entry,permit):
+        if type(permit) is _ManualMediaPurgePermit:
+            if permit.owner is not self or permit.operation!=entry.operation:
+                raise TransferError('media_trash_foreign_confirmation')
+            permit.require_current();return True
+        return entry.expired(permit.days,self._wall_clock_ms())
+
+    def _purge(self,action,expected,operation,permit):
+        self._action(action,expected);action.consume(self)
+        if type(permit) not in (NativeMediaRetentionPermit,_ManualMediaPurgePermit):
+            raise TransferError('media_trash_native_retention_required')
         with self._operation():
             if not self._open():raise TransferError('media_trash_original_operation_required')
             with self._locked():
@@ -582,8 +626,8 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                     action.validate(self);self._fresh();permit.require_current()
                 fresh()
                 if entry.state=='trashed':
-                    if not entry.expired(permit.days,self._wall_clock_ms()):return current,entry
-                    location=self._prepare_purge(entry,fresh,permit.days)
+                    if not self._purge_due(entry,permit):return current,entry
+                    location=self._prepare_purge(entry,fresh,permit)
                     fresh();current,entry=self._append(action,current,operation,'purge_prepared',entry.mapping,purge=location)
                     self._boundary('purge_prepared')
                 if not self._purge_payload(entry,fresh,permit):return current,entry
@@ -597,10 +641,10 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                 if source and target:raise TransferError('media_trash_purge_move_conflict')
                 if not target:
                     if not source:raise TransferError('media_trash_purge_payload_missing')
-                    if not entry.expired(permit.days,self._wall_clock_ms()):return False
+                    if not self._purge_due(entry,permit):return False
                     with opened(entry.payload_name,links=(1,)):pass
                     check();self._boundary('before_purge_move');check()
-                    if not entry.expired(permit.days,self._wall_clock_ms()):return False
+                    if not self._purge_due(entry,permit):return False
                     _move_no_replace(parent,entry.payload_name,'payload',target_parent=capsule)
                     self._boundary('purge_moved')
                     try:
@@ -612,15 +656,15 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                             os.fsync(capsule);os.fsync(parent)
                         except (OSError,TransferError):pass
                         raise
-                due=entry.expired(permit.days,self._wall_clock_ms())
+                due=self._purge_due(entry,permit)
                 peek=os.stat('payload',dir_fd=capsule,follow_symlinks=False)
                 if not due and (peek.st_size or entry.mapping.saved_size==0):return False
                 with opened('payload',parent=capsule,links=(1,),empty=True,writable=due) as (fd,signature):
                     check();value=os.fstat(fd)
                     if value.st_size or entry.mapping.saved_size==0:
-                        if not entry.expired(permit.days,self._wall_clock_ms()):return False
+                        if not self._purge_due(entry,permit):return False
                         self._boundary('before_purge_bytes');check()
-                        if not entry.expired(permit.days,self._wall_clock_ms()):return False
+                        if not self._purge_due(entry,permit):return False
                         value=os.fstat(fd)
                         actual=(value.st_dev,value.st_ino,value.st_size,value.st_mode,value.st_uid,value.st_gid,
                             value.st_nlink,value.st_mtime_ns,value.st_ctime_ns)
