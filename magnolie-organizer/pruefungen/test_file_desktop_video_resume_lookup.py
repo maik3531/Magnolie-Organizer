@@ -43,8 +43,8 @@ def test_explicit_video_lookup_uses_current_video_scope_and_projects_only_origin
     receiving[0]._payload(receiving[1],receiving[2],reply(req,job))
     assert connection._resume_history.media_type=='video' and connection._resume_lookup_selection.media_type=='video'
     assert connection._catalog.jobs()==(job,) and connection._run is None and connection._source_run is None
-    with pytest.raises(TransferError,match='video_data_join_unavailable'):
-        request(receiving,'resume_run',media_type='video',album_id=ALBUM,desktop_choice=True)
+    resumed=request(receiving,'resume_run',media_type='video',album_id=ALBUM,desktop_choice=True)
+    assert resumed['body']['media_type']=='video' and resumed['body']['original_job_id']=='b'*32
 
 
 def test_video_lookup_cannot_consume_legacy_image_reply_or_silently_relabel_it(receiving,tmp_path,monkeypatch):

@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Original desktop video resume (Refs #330, production gates OFF)
+
+Dedicated video resume now follows the explicit original-job lookup and current
+native video catalog, then correlates resumed pages/offer with the exact original
+manifest and protected media association before reopening the original stage.
+An ordinary source run cannot substitute for this flow, and changed source epochs
+HOLD before stage reopen. Current video scope authorizes positive data operations;
+history supplies neither READ nor an old-policy-epoch override.
+
+Exact resumed status/cancel/END uses a separate configuration-only comparison of
+current base controls and the original current video destination. It never becomes
+a data callback or widens checkpoint authority. Saved END uses the exact native
+metadata lease and protected mapping receipt, not renewed READ after withdrawal.
+The local receive owner captures its resume source ID; closing/retiring its cache
+is refused until the exact source END confirmation has arrived. This ordering is
+also enforced for existing dedicated image resume, not merely left to the worker.
+
+Actual native-stage tests cover original video chunks/Saved, END-before-retirement,
+three withdrawal modes with real cancel/drain/checkpoint/close, saved END after
+capability withdrawal, exact uncertain-END retry, explicit typed attempt abandonment
+without job/cache release, and changed-epoch rejection. Existing image resume/stop
+paths remain green. Worker/session/UI and installed/physical acceptance remain
+separate unfinished work; all production gates remain OFF.
+
 ### Explicit original-video history lookup (Refs #330, resume data still pending)
 
 The native original-job action may explicitly select `media_type: video` for
@@ -12,9 +36,9 @@ selected job/root/binding and policy version are rechecked before command output
 Lookup replies must echo video scope and the exact original manifest tuple. Local
 OFF/ON or withdrawal invalidates pending positive lookup; omitted image-shaped
 replies cannot be relabeled. Seven video cases and fourteen existing image lookup
-cases verify no receive stage admission/reopen. The dedicated video resume run,
-its Saved/END and capability-withdrawal cleanup are still unjoined; a new ordinary
-run cannot substitute for that workflow. Existing native source-epoch rejection
+cases verify no stage admission/reopen by lookup itself. The dedicated video resume
+join is described above; a new ordinary run cannot substitute for that workflow.
+Existing native source-epoch rejection
 after video OFF/ON remains mandatory.
 
 ### Ordinary desktop video receive and owned stop (Refs #330, partial join)
@@ -25,8 +49,8 @@ the original independent video root/token to the real encrypted receive stage.
 Native publication commits video mapping/Saved evidence and emits the existing
 protected Saved envelope. Cache retirement requires that actual saved evidence;
 an unsaved stop keeps the original job, stage and reservation. Original video
-resume through a new ordinary source run remains explicitly refused pending its
-dedicated original-owner join. No video worker/session/UI or production gate is
+resume through a new ordinary source run remains explicitly refused; its separate
+dedicated original-owner join is described above. No video worker/session/UI or production gate is
 enabled by this partial path.
 
 After video capability, local video consent or private readiness withdrawal,

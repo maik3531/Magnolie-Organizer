@@ -347,7 +347,7 @@ class NativeDesktopFileConnection:
         return session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
 
     def _source_command_authority(self, pending, clock):
-        closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album')
+        closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume')
         self._receiving_policy(closing=closing)
         if pending.command.media_type=='video' and closing:
             owner=self._ended_batch if pending.command.operation=='end_album' else self._source_run
@@ -381,7 +381,7 @@ class NativeDesktopFileConnection:
         elif pending.command.operation in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'resume_media_page', 'end_resume'):
             ending=pending.command.operation in ('cancel_resume','resume_status','end_resume')
             self._require_resume_lookup_selection(allow_source_run=True,
-                allow_stopping_receiver=pending.command.operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending)
+                allow_stopping_receiver=pending.command.operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending,closing=ending)
 
     def _require_video_metadata_scope(self):
         if not self._authority.video_available():raise TransferError('file_desktop_video_metadata_unavailable')
@@ -391,10 +391,30 @@ class NativeDesktopFileConnection:
         if not self._authority.video_available():raise TransferError('file_desktop_video_metadata_unavailable')
         return scope
 
-    def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False, allow_saved_receiver=False):
+    def _video_resume_closing_scope(self,selected):
+        # Configuration-only comparison. Never install this as a data callback
+        # or widen the separately owned checkpoint/close stack authority.
+        snapshot=self._receiving_policy(closing=True);policy=snapshot.policy
+        if (policy.videos is None or policy.videos.destination!=selected.job.accepted.destination
+                or self._source_run is None or self._source_run.media_type!='video'
+                or self._source_run.run_id!=self._resume_source_id):
+            raise TransferError('file_desktop_video_resume_closing_scope_changed')
+        binding=self._controls.binding(policy.videos.destination_token)
+        if binding is None or binding!=selected.job.accepted.binding:
+            raise TransferError('file_desktop_video_resume_closing_scope_changed')
+        policy.videos.destination.verify()
+        if self._preferences.read()!=snapshot or self._controls.binding(policy.videos.destination_token)!=binding:
+            raise TransferError('file_desktop_video_resume_closing_scope_changed')
+        return snapshot,policy.videos.destination,binding
+
+    def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False, allow_saved_receiver=False,closing=False):
         selected = self._resume_lookup_selection
-        snapshot = self._receiving_policy()
-        destination=self._receive_destination(snapshot,media_type=selected.media_type) if selected is not None else None
+        video_closing=closing and selected is not None and selected.media_type=='video'
+        if video_closing:snapshot,destination,binding=self._video_resume_closing_scope(selected)
+        else:
+            snapshot = self._receiving_policy()
+            destination=self._receive_destination(snapshot,media_type=selected.media_type) if selected is not None else None
+            binding=self._receive_binding() if selected is not None else None
         receiver = self._run
         stopping = (allow_stopping_receiver and receiver is not None and receiver.stop_requested.is_set()
                      and selected is not None and receiver.job == selected.job)
@@ -402,19 +422,22 @@ class NativeDesktopFileConnection:
         if (allow_saved_receiver and receiver is not None and selected is not None and receiver.job==selected.job
                 and receiver.saved_mapping_ready and receiver.request is None and receiver.receiver is not None):
             native=receiver.receiver
-            native._require();native._index._require_receipt_worker(native._lease)
+            if video_closing:
+                if native._closed or native._failed:raise TransferError('file_desktop_video_resume_saved_owner_changed')
+                native._index._require_end_worker(native._lease)
+            else:native._require();native._index._require_receipt_worker(native._lease)
             saved=native._phase=='saved_locally' and native._index.saved_mapping_receipt() is not None
-        if (selected is None or snapshot.version != selected.policy_version or receiver is not None and not (stopping or saved)
+        if (selected is None or not video_closing and snapshot.version != selected.policy_version or receiver is not None and not (stopping or saved)
                 or self._source_run is not None and (not allow_source_run or self._source_run.run_id != self._resume_source_id)
                 or (self._source_run is None) != (self._resume_source_id is None)
                 or self._source_status is None or self._source_status.version != selected.source_version
-                or self._receive_binding() != selected.job.accepted.binding or destination != selected.job.accepted.destination
-                or not self._open_catalog(allow_create=False)):
+                or binding != selected.job.accepted.binding or destination != selected.job.accepted.destination
+                or (self._catalog is None if video_closing else not self._open_catalog(allow_create=False))):
             raise TransferError('file_desktop_resume_lookup_not_current')
         current = next((job for job in self._catalog.jobs() if job.owner == selected.job.owner), None)
         if current != selected.job:
             raise TransferError('file_desktop_resume_original_job_changed')
-        selected.job.accepted.verify(self._receive_binding)
+        if not video_closing:selected.job.accepted.verify(self._receive_binding)
         return selected
 
     def request_resume_lookup(self, action, native_job_owner, *, media_type='images', clock=now_ms):
@@ -502,10 +525,12 @@ class NativeDesktopFileConnection:
             action.validate(self)
             message = source_messages.create_command('abandon_resume', expected_version=self._source_status.version,
                 run_id=state.source_run_id, original_job_id=history.job_id, original_job_version=history.job_version,
-                attempt_id=history.attempt_id, attempt_sha256=history.attempt_sha256, now=clock())
+                attempt_id=history.attempt_id, attempt_sha256=history.attempt_sha256,
+                media_type='video' if selected.media_type=='video' else None,now=clock())
             command = source_messages.parse_command(message, now=clock())
             ticket = self._controls.receiver_command_ticket()
-            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
+                video_policy_version=selected.policy_version if selected.media_type=='video' else None)
             self._send_source_pending(clock, action)
             return message['message_id']
 
@@ -543,7 +568,7 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         if type(operation) is not str:raise TransferError('file_desktop_source_invalid_options')
         with self._operation():
-            self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album'))
+            self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume'))
             if self._source_pending is not None:
                 raise TransferError('file_desktop_source_command_busy')
             if self._source_control_required is not None:
@@ -552,19 +577,24 @@ class NativeDesktopFileConnection:
                 if witness is None or witness[0] != required[0] or witness[1] <= required[1]:
                     raise TransferError('file_desktop_source_controls_pending')
             options = {}
-            follow=('run_status','cancel_run','offer_run','media_page','end_run')
+            follow=('run_status','cancel_run','offer_run','media_page','end_run','resume_status','cancel_resume','offer_resume','resume_media_page','end_resume')
             owner=self._source_run if operation in follow else self._ended_batch if operation in ('next_batch','end_album') else None
             if owner is not None:
                 if media_type is not None and media_type!=owner.media_type:
                     raise TransferError('file_desktop_source_media_scope_changed')
                 if owner.media_type=='video':media_type='video'
+            if operation=='resume_run' and self._resume_lookup_selection is not None:
+                selected_media=self._resume_lookup_selection.media_type
+                if media_type is not None and media_type!=selected_media:raise TransferError('file_desktop_source_media_scope_changed')
+                if selected_media=='video':media_type='video'
             if media_type is not None:
                 source_messages._media_type(media_type)
                 if operation not in source_messages.SCOPED_OPERATIONS:
                     raise TransferError('file_desktop_source_invalid_options')
                 if media_type=='video' and operation not in ('discover','catalog_page','request_read'):
-                    closing=operation in ('run_status','cancel_run','end_run','end_album') and owner is not None
-                    if (operation not in ('run','batch_run','next_batch','run_status','cancel_run','offer_run','media_page','end_run','end_album')
+                    closing=operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume') and owner is not None
+                    if (operation not in ('run','batch_run','next_batch','run_status','cancel_run','offer_run','media_page','end_run','end_album',
+                            'resume_run','resume_status','cancel_resume','offer_resume','resume_media_page','end_resume')
                             or not closing and not self._video_data_handlers_ready):
                         raise TransferError('file_desktop_video_data_join_unavailable')
                 options['media_type']=media_type
@@ -632,7 +662,7 @@ class NativeDesktopFileConnection:
                 if resumed:
                     ending=operation in ('cancel_resume','resume_status','end_resume')
                     self._require_resume_lookup_selection(allow_source_run=True,
-                        allow_stopping_receiver=operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending)
+                        allow_stopping_receiver=operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending,closing=ending)
                 stopped = self._receive_stop
                 if (resumed and stopped is not None and stopped.source_run_id == self._resume_source_id
                         and operation in ('offer_resume', 'resume_media_page')):
@@ -660,7 +690,7 @@ class NativeDesktopFileConnection:
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
             video_policy_version=None
-            if (command.media_type=='video' and operation not in ('run_status','cancel_run','end_run','end_album')
+            if (command.media_type=='video' and operation not in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume')
                     or operation=='configure_videos' and command.enabled):
                 video_policy_version=self._require_video_metadata_scope().version
             ticket = self._controls.receiver_command_ticket()
@@ -1477,7 +1507,9 @@ class NativeDesktopFileConnection:
         with self._operation():
             if self._run is not None or self._offer is None or self._offer['message_id'] != offer_id:
                 raise TransferError('file_desktop_offer_not_current')
-            if self._source_run is not None and self._source_run.media_type=='video':
+            if self._source_run is not None and self._source_run.media_type=='video' and (
+                    self._resume_source_id!=self._source_run.run_id or self._resume_lookup_selection is None
+                    or self._resume_lookup_selection.media_type!='video'):
                 raise TransferError('file_desktop_video_original_resume_join_unavailable')
             if self._resume_source_id is not None:
                 selected = self._require_resume_lookup_selection(allow_source_run=True)
@@ -1495,8 +1527,9 @@ class NativeDesktopFileConnection:
             current_jobs=self._catalog.jobs()
             if current_jobs!=observed_jobs:raise TransferError('file_desktop_photo_job_history_changed')
             job = next((job for job in current_jobs if job.owner == native_job_owner), None)
+            destination=self._receive_destination(snapshot,media_type=self._source_run.media_type if self._source_run is not None else 'images')
             if (job is None or job.accepted.manifest != manifest or job.accepted.binding != binding
-                    or job.accepted.destination != snapshot.policy.destination):
+                    or job.accepted.destination != destination):
                 raise TransferError('file_desktop_resume_not_current')
             job.accepted.verify(self._receive_binding)
             action.validate(self)
@@ -1512,7 +1545,8 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_resume_media_association_changed')
             action.validate(self)
             self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,
-                media_type=self._source_run.media_type if self._source_run is not None else 'images')
+                media_type=self._source_run.media_type if self._source_run is not None else 'images',
+                resume_source_run_id=self._resume_source_id)
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
                 protection.seal, protection.unseal, self._publication_gate)
             if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
@@ -1696,6 +1730,12 @@ class NativeDesktopFileConnection:
         self._take_action(action)
         with self._operation():
             run = self._require_receiver()
+            if run.resume_source_run_id is not None:
+                ended=self._resume_end_confirmation
+                if (self._resume_source_id is not None or ended is None or ended[0]!=run.job
+                        or ended[1].run_id!=run.resume_source_run_id or not ended[1].run_ended
+                        or not ended[1].source_io_ended):
+                    raise TransferError('file_desktop_resume_source_end_required')
             self._commit_saved_media(run, action=action)
             evidence = run.receiver._index.saved_mapping_receipt()
             if evidence is None:
@@ -1941,6 +1981,7 @@ class _NativeDesktopReceiveRun:
     stop_barrier_confirmed: bool = False
     saved_mapping_ready: bool = False
     media_type: str = 'images'
+    resume_source_run_id: str | None = None
 
 
 @dataclass(frozen=True)
