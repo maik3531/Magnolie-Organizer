@@ -332,4 +332,59 @@ internal static class DeviceFileConnectionRunsTests
         TestAssert.That(run.Result.RunEnded && f.Native.Connection.CurrentNativeMediaSourceRun is null &&
             f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Phase == "receiving", "Metadata resume END retired/erased local bytes or left a stale source owner.");
     }
+
+    private static async Task<TelefonConnection.NativeMediaSourceRun> OfferReady(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest)
+    {
+        var run = await Start(f, "snapshot_ready", false);
+        foreach (var after in new[] { 0, 1 })
+        {
+            Clear(f); var pageTask = f.Native.Connection.ReadNativeMediaPageAsync(run); var request = Request(f);
+            var page = Media(request, run.Lease.RunId, after, after == 0); page["body"]!["page"]!["manifest_sha256"] = manifest.Fingerprint;
+            await f.Native.Connection.HandlePlainAsync(page); await pageTask;
+        }
+        Clear(f); return run;
+    }
+
+    internal static async Task WindowsOfferBeforeCommandResultAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var manifest = f.Manifest(("first.jpg", "hello"u8.ToArray()), ("second.jpg", "world"u8.ToArray()));
+        var run = await OfferReady(f, manifest); var pending = f.Native.Connection.OfferNativeMediaRunAsync(run); var request = Request(f);
+        var offer = DeviceFileOfferEnvelope.Create(manifest, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); offer["expires_ms"] = request["expires_ms"]!.DeepClone();
+        await f.Native.Connection.HandlePlainAsync(offer);
+        TestAssert.That(!pending.IsCompleted && run.OfferedManifest is null && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 &&
+            !Directory.EnumerateFileSystemEntries(f.Root).Any(), "Early source offer created a grant/job/file or completed before correlated result.");
+        var result = Reply(request, run.Lease.RunId, "snapshot_ready", false); result["body"]!["offer_id"] = offer["message_id"]!.DeepClone(); result["body"]!["manifest_sha256"] = manifest.Fingerprint;
+        await f.Native.Connection.HandlePlainAsync(result); await pending;
+        TestAssert.That(run.OfferedManifest?.Fingerprint == manifest.Fingerprint && run.OfferedMessageId == offer["message_id"]!.GetValue<string>() &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 && DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Count == 1,
+            "Correlated buffered offer was lost or emitted an implicit receive acceptance.");
+    }
+
+    internal static async Task WindowsEarlyOfferCorrelationHoldAsync()
+    {
+        foreach (var change in new[] { "result_id", "duplicate", "expired", "unsolicited" })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var manifest = f.Manifest(("first.jpg", "hello"u8.ToArray()), ("second.jpg", "world"u8.ToArray()));
+            var run = await OfferReady(f, manifest);
+            var pending = change == "unsolicited" ? null : f.Native.Connection.OfferNativeMediaRunAsync(run);
+            var request = pending is null ? null : Request(f);
+            var offer = DeviceFileOfferEnvelope.Create(manifest, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            if (request is not null) offer["expires_ms"] = request["expires_ms"]!.DeepClone();
+            if (change == "expired") { offer["created_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 2000; offer["expires_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 1000; }
+            if (change is "expired" or "unsolicited") await Fails(f.Native.Connection.HandlePlainAsync(offer));
+            else
+            {
+                await f.Native.Connection.HandlePlainAsync(offer);
+                if (change == "duplicate") await Fails(f.Native.Connection.HandlePlainAsync(offer));
+                else
+                {
+                    var result = Reply(request!, run.Lease.RunId, "snapshot_ready", false); result["body"]!["manifest_sha256"] = manifest.Fingerprint;
+                    await Fails(f.Native.Connection.HandlePlainAsync(result));
+                }
+            }
+            if (pending is not null) await Fails(pending);
+            TestAssert.That(run.OfferedManifest is null && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0 && !Directory.EnumerateFileSystemEntries(f.Root).Any(),
+                "Invalid early source offer acquired bytes/history/acceptance: " + change);
+        }
+    }
 }

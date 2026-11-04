@@ -690,6 +690,26 @@ and source cache retirement, legacy/uncertain publication recovery UI, native
 album/mapping/worker/UI and Android recoverable trash/restore. Gates stay OFF;
 no APK/EXE, installed-system update or public release is produced by these APIs.
 
+### Windows incoming source-offer ordering (Refs #330, #335)
+
+The Android source sends the sealed file offer **before** its correlated
+`offer_run`/`offer_resume` result. Windows now retains exactly one bounded early
+offer while that actual confirmed-output command owns the slot. Current data
+binding and request operation, native sender/receiver, envelope/manifest limits,
+strict current expiry (no historical grace) and the original command deadline
+are checked. Nothing is accepted, staged or inserted in receive history at this
+point. The later typed run result must identify that exact offer ID/fingerprint,
+and the completed media pages must correlate to the offered manifest. Only then
+is the offered manifest retained on the owned source run, with its ID/expiry.
+A newer offer attempt clears that earlier in-memory offer witness.
+
+Two native Windows groups pass for actual encrypted offer-before-result dispatch
+and for wrong result ID, duplicate offer, expired offer and unsolicited offer.
+The valid ordering does not finish the pending command early or emit acceptance;
+every failed case leaves destination and receive history untouched. This is an
+incoming source-offer **preflight**, not yet the wire acceptance/chunk/Saved
+receiver. Production gates, installed programs and delivery artifacts are unchanged.
+
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 
 User clarification: targeted photo/video deletions must propagate in both

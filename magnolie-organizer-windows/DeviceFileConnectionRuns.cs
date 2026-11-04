@@ -14,12 +14,17 @@ internal sealed partial class TelefonConnection
         internal readonly List<DeviceFileMediaPage> Pages = [];
         internal (string SourceEpoch, string MediaType, bool InsertionWitness)? AlbumScope;
         internal NativeMediaResumeLookup? Resume;
+        internal DeviceFileManifest? OfferedManifest { get; private set; }
+        internal string? OfferedMessageId { get; private set; }
+        internal long OfferedExpires { get; private set; }
         internal DeviceFileRunResult Result { get; private set; }
         internal NativeMediaSourceRun(NativeFileControlSession owner, NativeFileControlSession.SourceRunLease lease,
             string catalogId, string albumId, bool desktopChoice, DeviceFileRunResult result)
         { Owner = owner; Lease = lease; CatalogId = catalogId; AlbumId = albumId; DesktopChoice = desktopChoice; Result = result; }
         internal bool GrantsReadAuthority => false;
         internal void Update(DeviceFileRunResult result) => Result = result;
+        internal void RememberOffer(DeviceFileManifest? manifest, string? messageId = null, long expires = 0)
+        { OfferedManifest = manifest; OfferedMessageId = messageId; OfferedExpires = expires; }
     }
     private NativeMediaSourceRun? nativeMediaSourceRun, nativeEndedMediaBatch;
 
@@ -99,10 +104,11 @@ internal sealed partial class TelefonConnection
                 throw DeviceFileControl.Error("file_sources_native_run_not_quiescent");
         }
         Require();
+        if (offering) lock (fileRouteGate) run.RememberOffer(null);
         var message = DeviceFileSources.CreateRequest(operation, Now(), run.Lease.Version, runId: run.Lease.RunId, mediaType: run.Lease.MediaType);
         return await ExchangeNativeSourceCommandAsync<DeviceFileRunResult>(choice, message, DeviceFileSources.RunResultKind,
             raw => DeviceFileSources.ParseRunResult(raw, message["message_id"]!.GetValue<string>(), operation, run.Lease.Version, Now(), run.Lease.RunId, run.Lease.MediaType),
-            Require, token, cleanup ? run.Lease : null, accept: (_, value) =>
+            Require, token, cleanup ? run.Lease : null, accept: (ticket, value) =>
             {
                 var result = (DeviceFileRunResult)value;
                 lock (fileRouteGate)
@@ -110,6 +116,11 @@ internal sealed partial class TelefonConnection
                     var old = run.Result;
                     if (offering && run.Pages.Count != 0 && result.ManifestSha256 != run.Pages[0].ManifestSha256)
                         throw DeviceFileControl.Error("file_sources_native_offer_manifest_changed");
+                    if (offering && NativeSourceOfferedManifest(ticket) is { } offered)
+                    {
+                        DeviceFileSources.CorrelateMediaPages(run.Pages, offered.Manifest);
+                        run.RememberOffer(offered.Manifest, result.OfferId, offered.Expires);
+                    }
                     if (!result.RunEnded && (old.Batched != result.Batched || old.Batched && old.BatchEnd is not null && old.BatchEnd != result.BatchEnd) ||
                         old.SourceIoEnded && !result.SourceIoEnded ||
                         (old.State is "cancel_pending" or "canceled_held") && result.State is not ("cancel_pending" or "canceled_held") ||

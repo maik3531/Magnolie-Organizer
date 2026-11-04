@@ -100,6 +100,11 @@ internal sealed partial class TelefonConnection
     private async Task ReceiveNativeFileControlAsync(JsonObject message)
     {
         var kind = message["kind"]?.GetValue<string>();
+        if (kind == DeviceFileOfferEnvelope.Kind)
+        {
+            await ReceiveNativeSourceOfferAsync(message);
+            return;
+        }
         bool commandPending;
         lock (fileRouteGate) commandPending = nativeSourceCommand is not null;
         if (kind is DeviceFileSources.CatalogKind or DeviceFileSources.PermissionResultKind or DeviceFileSources.RunResultKind or DeviceFileSources.MediaKind or DeviceFileSources.ResumeKind || kind == DeviceFileSources.ResultKind && commandPending)

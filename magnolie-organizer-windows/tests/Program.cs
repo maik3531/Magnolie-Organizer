@@ -298,6 +298,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native run lifecycle / Windows actual original checkpoint recovery", DeviceFileConnectionRunsTests.WindowsActualCheckpointRecoveryAsync);
     runner.Add("Device file native run lifecycle / Windows checkpoint mutation preserves bytes", DeviceFileConnectionRunsTests.WindowsCheckpointMutationHoldAsync);
     runner.Add("Device file native run lifecycle / Windows recovered source resume and metadata cleanup", DeviceFileConnectionRunsTests.WindowsRecoveredSourceResumeAndCleanupAsync);
+    runner.Add("Device file native offer routing / Windows offer before correlated command result", DeviceFileConnectionRunsTests.WindowsOfferBeforeCommandResultAsync);
+    runner.Add("Device file native offer routing / Windows early offer scope and expiry HOLD", DeviceFileConnectionRunsTests.WindowsEarlyOfferCorrelationHoldAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

@@ -23,6 +23,8 @@ internal sealed partial class TelefonConnection
         internal readonly Action<NativeReceiverCommandTicket, object>? Accept = accept;
         internal readonly TaskCompletionSource<object> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool OutputConfirmed;
+        internal JsonObject? SourceOffer;
+        internal DeviceFileManifest? SourceOfferManifest;
     }
     private NativeSourceCommandPending? nativeSourceCommand;
 
@@ -232,11 +234,61 @@ internal sealed partial class TelefonConnection
                     throw DeviceFileControl.Error("file_sources_native_unconfirmed_or_wrong_result");
             }
             RequireNativeSourceCommand(pending); var result = pending.Parse(message); RequireNativeSourceCommand(pending);
+            if (pending.SourceOffer is not null)
+            {
+                if (result is not DeviceFileRunResult run || run.OfferId != pending.SourceOffer["message_id"]!.GetValue<string>() ||
+                    run.ManifestSha256 != pending.SourceOfferManifest?.Fingerprint || Now() >= TelefonProtocolContract.Integer(pending.SourceOffer["expires_ms"]))
+                    throw DeviceFileControl.Error("file_sources_native_offer_correlation_changed");
+            }
             pending.Accept?.Invoke(pending.Ticket, result);
             if (!pending.Completion.TrySetResult(result)) throw DeviceFileControl.Error("file_sources_native_duplicate_result");
         }
         catch { CloseNativeFileRoute(); throw; }
         finally { fileControlIo.Release(); }
+    }
+
+    // Android sends the sealed offer BEFORE the correlated offer_run result.
+    // Retain one bounded envelope only; this is not native acceptance/staging.
+    private async Task ReceiveNativeSourceOfferAsync(JsonObject message)
+    {
+        await fileControlIo.WaitAsync(cancellation);
+        try
+        {
+            NativeSourceCommandPending pending;
+            lock (fileRouteGate)
+            {
+                pending = nativeSourceCommand ?? throw DeviceFileControl.Error("file_sources_native_unsolicited_offer");
+                if (!pending.OutputConfirmed || pending.ResultKind != DeviceFileSources.RunResultKind || pending.SourceOffer is not null)
+                    throw DeviceFileControl.Error("file_sources_native_offer_not_requested");
+            }
+            RequireNativeSourceCommand(pending);
+            var request = DeviceFileSources.ParseRequest(pending.Message, Now());
+            if (request.Operation is not ("offer_run" or "offer_resume")) throw DeviceFileControl.Error("file_sources_native_offer_not_requested");
+            var binding = pending.Choice.DataBinding ?? throw DeviceFileControl.Error("file_sources_native_data_echo_required");
+            var manifest = DeviceFileOfferEnvelope.Validate(message, binding.SenderId, binding.ReceiverId, Now());
+            if (Now() >= TelefonProtocolContract.Integer(message["expires_ms"]) ||
+                TelefonProtocolContract.Integer(message["expires_ms"]) > TelefonProtocolContract.Integer(pending.Message["expires_ms"]))
+                throw DeviceFileControl.Error("file_sources_native_offer_expired");
+            RequireNativeSourceCommand(pending);
+            lock (fileRouteGate)
+            {
+                if (!ReferenceEquals(nativeSourceCommand, pending)) throw DeviceFileControl.Error("file_sources_native_command_changed");
+                pending.SourceOffer = message.DeepClone().AsObject(); pending.SourceOfferManifest = manifest;
+            }
+        }
+        catch { CloseNativeFileRoute(); throw; }
+        finally { fileControlIo.Release(); }
+    }
+
+    private (DeviceFileManifest Manifest, long Expires)? NativeSourceOfferedManifest(NativeReceiverCommandTicket ticket)
+    {
+        lock (fileRouteGate)
+        {
+            if (nativeSourceCommand is null || !ReferenceEquals(nativeSourceCommand.Ticket, ticket))
+                throw DeviceFileControl.Error("file_sources_native_command_changed");
+            return nativeSourceCommand.SourceOfferManifest is DeviceFileManifest manifest && nativeSourceCommand.SourceOffer is JsonObject message
+                ? (manifest, TelefonProtocolContract.Integer(message["expires_ms"])) : null;
+        }
     }
 
     private void CheckNativeSourceCommandControl(NativeFileControlSession owner)
