@@ -278,6 +278,24 @@ Five native-index cases verify unchanged protected bytes/jobs and no source send
 eleven affected image-history cases remain green. This is not yet full saved-video
 worker/off-on acceptance or explicit historical reassociation; those remain open.
 
+### Windows native metadata-command ownership (Refs #330, #335, partial join)
+
+`NativeFileControlSession` admits one native receiver metadata command only after
+the current bilateral file-control echoes agree and local receive permission is
+present. The nonserializable ticket captures its remote control position and a
+bounded monotonic lifetime. Foreign, overlapping, expired, withdrawn or replaced
+owners cannot use it; exact cleanup remains possible after session disposal.
+Source send may remain OFF for configuration metadata, or change during that
+exact command. Neither a ticket nor a control-position witness is a data grant
+or transport ACK: `Binding()` still requires the actual current data-policy echo.
+
+Two native-source test groups cover bootstrap without data authority, exact
+ownership, policy transition, withdrawal, clock failure/rollback/expiry and cleanup;
+the existing file-control regression group also passes. This foundation is not
+yet connected to the Windows secure transport, receiver, protected destinations
+or media UI. It does not establish current-channel capability/grant ACK receipts
+or enable production gates.
+
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
 Desktop authority exposes read-only video availability separately from the base

@@ -128,8 +128,20 @@ internal sealed record NativeFileControlPeer(string PeerId, string IdentitySha25
         Ready && Paired && OwnDevice && RemoteOwnDevice && ControlSupported && (PairingEpoch is null || DeviceFileControl.Hash(PairingEpoch));
 }
 
+// Only this native object identity can finish/retry its metadata command. It has
+// no JSON representation and grants neither a source READ nor Saved completion.
+internal sealed class NativeReceiverCommandTicket { }
+
 internal sealed class NativeFileControlSession : IDisposable
 {
+    private sealed class ReceiverCommandScope(DeviceFileGrantState local, DeviceFileControlPacket remote, long now)
+    {
+        internal readonly DeviceFileGrantState LocalPermission = local;
+        internal readonly string RemoteSession = remote.SessionEpoch;
+        internal readonly long RemoteSequence = remote.Sequence, Issued = now, Expires = now + DeviceFileControl.MaximumTtlMs;
+        internal long LastChecked = now;
+        internal bool Invalidated;
+    }
     private readonly NativeFileControlIdentity identity;
     private readonly Func<NativeFileControlPeer?> currentPeer;
     private readonly Func<NativeLocalFileGrant?> currentLocal;
@@ -137,15 +149,19 @@ internal sealed class NativeFileControlSession : IDisposable
     private NativeLocalFileGrant local;
     private readonly string sessionEpoch = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
     private readonly object gate = new();
+    private readonly Func<long> monotonicMs;
+    private readonly Dictionary<NativeReceiverCommandTicket, ReceiverCommandScope> receiverCommands = new();
     private long sequence;
     private DeviceFileControlPacket? remote;
     private DeviceFileControlPacket? pending;
     private DeviceFileGrantState? sentGrants;
     private string? sentEcho;
     private bool faulted;
-    internal NativeFileControlSession(NativeFileControlIdentity identity, Func<NativeFileControlPeer?> currentPeer, Func<NativeLocalFileGrant?> currentLocal)
+    internal NativeFileControlSession(NativeFileControlIdentity identity, Func<NativeFileControlPeer?> currentPeer, Func<NativeLocalFileGrant?> currentLocal,
+        Func<long>? monotonicMs = null)
     {
         this.identity = identity; this.currentPeer = currentPeer; this.currentLocal = currentLocal;
+        this.monotonicMs = monotonicMs ?? (() => Environment.TickCount64);
         peer = currentPeer() ?? throw DeviceFileControl.Error("file_control_native_scope_required");
         local = currentLocal() ?? throw DeviceFileControl.Error("file_control_native_scope_required");
         if (!peer.Allowed || peer.PeerId == identity.DeviceId) throw DeviceFileControl.Error("file_control_native_scope_required");
@@ -199,23 +215,94 @@ internal sealed class NativeFileControlSession : IDisposable
                 if (same && packet.Sequence == remote.Sequence && !packet.Same(remote) || packet.Grants.Revision == remote.Grants.Revision && !packet.Grants.SamePermission(remote.Grants))
                 { faulted = true; throw DeviceFileControl.Error("file_control_equivocation"); }
                 if (same && packet.Same(remote)) return false;
+                if (!same) foreach (var held in receiverCommands.Values) held.Invalidated = true;
             }
             remote = packet;
             return true;
         }
     }
+    private (NativeFileControlPeer Peer, NativeLocalFileGrant Local, DeviceFileControlPacket Remote)? Agreed()
+    {
+        var scope = Scope(); var observed = remote;
+        if (scope is null || observed is null) return null;
+        var (current, state) = scope.Value;
+        var challenge = new DeviceFileControlPacket(state.Grants, sessionEpoch, 1, null).Challenge;
+        if (!state.HandlersReady || !state.PolicyReady || observed.Echo != challenge || !state.Grants.Same(sentGrants) || sentEcho != observed.Challenge ||
+            !state.Grants.ManifestVersions.Contains(1) || !observed.Grants.ManifestVersions.Contains(1)) return null;
+        return (current, state, observed);
+    }
+
+    internal NativeReceiverCommandTicket ReceiverCommandTicket()
+    {
+        lock (gate)
+        {
+            var agreed = Agreed();
+            if (agreed is null || !agreed.Value.Local.Grants.ReceiveFiles || receiverCommands.Count != 0)
+                throw DeviceFileControl.Error("file_control_receiver_command_not_ready");
+            var at = monotonicMs();
+            if (at < 0 || at > long.MaxValue - DeviceFileControl.MaximumTtlMs)
+                throw DeviceFileControl.Error("file_control_receiver_command_clock");
+            var ticket = new NativeReceiverCommandTicket();
+            receiverCommands.Add(ticket, new(agreed.Value.Local.Grants, agreed.Value.Remote, at));
+            return ticket;
+        }
+    }
+
+    // A captured control position is not current authority or an ACK receipt.
+    internal (string SessionEpoch, long Sequence) ReceiverCommandWitness(NativeReceiverCommandTicket ticket)
+    {
+        lock (gate)
+        {
+            if (ticket is null || !receiverCommands.TryGetValue(ticket, out var held))
+                throw DeviceFileControl.Error("file_control_foreign_receiver_command_ticket");
+            return (held.RemoteSession, held.RemoteSequence);
+        }
+    }
+
+    internal (string SessionEpoch, long Sequence)? RemoteControlWitness()
+    {
+        lock (gate) return Scope() is not null && remote is not null ? (remote.SessionEpoch, remote.Sequence) : null;
+    }
+
+    internal bool ReceiverCommandCurrent(NativeReceiverCommandTicket? ticket)
+    {
+        lock (gate)
+        {
+            if (ticket is null || !receiverCommands.TryGetValue(ticket, out var held) || held.Invalidated) return false;
+            try
+            {
+                var scope = Scope(); var observed = remote; var at = monotonicMs();
+                if (scope is null || observed is null || at < held.LastChecked || at >= held.Expires ||
+                    !scope.Value.Local.HandlersReady || !scope.Value.Local.PolicyReady || !scope.Value.Local.Grants.ReceiveFiles ||
+                    !scope.Value.Local.Grants.SamePermission(held.LocalPermission) || observed.SessionEpoch != held.RemoteSession ||
+                    !scope.Value.Local.Grants.ManifestVersions.Contains(1) || !observed.Grants.ManifestVersions.Contains(1))
+                { held.Invalidated = true; return false; }
+                held.LastChecked = at;
+                // The source may change its send policy DURING this exact
+                // configure command. The metadata reply can finish before its
+                // new data echo; it cannot make Binding() return data authority.
+                return true;
+            }
+            catch { held.Invalidated = true; throw; }
+        }
+    }
+
+    internal void FinishReceiverCommand(NativeReceiverCommandTicket ticket)
+    {
+        lock (gate)
+            if (ticket is null || !receiverCommands.Remove(ticket))
+                throw DeviceFileControl.Error("file_control_foreign_receiver_command_ticket");
+    }
+
     internal DeviceTransferBinding? Binding(string destinationToken, bool senderIsLocal = false)
     {
         lock (gate)
         {
-            var scope = Scope(); if (scope is null || remote is null) return null;
-            var (current, state) = scope.Value;
-            var challenge = new DeviceFileControlPacket(state.Grants, sessionEpoch, 1, null).Challenge;
-            if (!state.HandlersReady || !state.PolicyReady || remote.Echo != challenge || !state.Grants.Same(sentGrants) || sentEcho != remote.Challenge ||
-                !state.Grants.ManifestVersions.Contains(1) || !remote.Grants.ManifestVersions.Contains(1) ||
-                !(senderIsLocal ? state.Grants.SendFiles && remote.Grants.ReceiveFiles : remote.Grants.SendFiles && state.Grants.ReceiveFiles)) return null;
+            var agreed = Agreed(); if (agreed is null) return null;
+            var (current, state, observed) = agreed.Value;
+            if (!(senderIsLocal ? state.Grants.SendFiles && observed.Grants.ReceiveFiles : observed.Grants.SendFiles && state.Grants.ReceiveFiles)) return null;
             var entries = new[] { (Id: identity.DeviceId, Value: new JsonArray(identity.DeviceId, identity.IdentitySha256, state.Grants.PermissionWire())),
-                (Id: current.PeerId, Value: new JsonArray(current.PeerId, current.IdentitySha256, remote.Grants.PermissionWire())) };
+                (Id: current.PeerId, Value: new JsonArray(current.PeerId, current.IdentitySha256, observed.Grants.PermissionWire())) };
             var epoch = DeviceFileControl.Digest("magnolie-file-permission-v1\0", new JsonArray(entries.OrderBy(entry => entry.Id, StringComparer.Ordinal).Select(entry => (JsonNode)entry.Value).ToArray()));
             var result = senderIsLocal ? new DeviceTransferBinding(identity.DeviceId, current.PeerId, identity.IdentitySha256, current.IdentitySha256, epoch, destinationToken)
                 : new DeviceTransferBinding(current.PeerId, identity.DeviceId, current.IdentitySha256, identity.IdentitySha256, epoch, destinationToken);
@@ -223,5 +310,12 @@ internal sealed class NativeFileControlSession : IDisposable
             return result;
         }
     }
-    public void Dispose() { lock (gate) { faulted = true; remote = null; pending = null; } }
+    public void Dispose()
+    {
+        lock (gate)
+        {
+            faulted = true; remote = null; pending = null;
+            foreach (var held in receiverCommands.Values) held.Invalidated = true;
+        }
+    }
 }

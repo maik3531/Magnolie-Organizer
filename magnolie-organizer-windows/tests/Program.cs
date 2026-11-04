@@ -227,6 +227,8 @@ runner.Add("Device file offer / complete envelope / native peer binding / exact 
 runner.Add("Photo sync schedule / manual default / explicit automatic / no overlapping native work", PhotoSyncScheduleTests.RunAsync);
 runner.Add("Photo sync plan / shared three-way cases / preserve edits and missing-photo uncertainty", PhotoSyncPlanTests.RunAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
+runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
+runner.Add("Device file metadata commands / withdrawal / monotonic TTL / exact cleanup", DeviceFileMetadataCommandTests.WithdrawalAsync);
 runner.Add("Device file source settings / strict metadata codecs", DeviceFileSourcesTests.RunAsync);
 runner.Add("Device file acceptance / exact offer metadata", DeviceFileAcceptanceEnvelopeTests.RunAsync);
 runner.Add("Device file chunks / exact accepted source bytes", DeviceFileChunkEnvelopeTests.RunAsync);
