@@ -137,6 +137,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     // Native production acceptance gate, never a phone setting or wire claim.
     // Notes always ships the implementation; this is not ContributorKey gating.
     @Volatile private var nativeGalleryHandlersReady = false
+    @Volatile private var nativeGalleryVideoHandlersReady = false
     private data class NativeFileOwnDecision(val own: Boolean, val message: JsonObject)
     private val nativeFileOwnDecisions = java.util.WeakHashMap<TelefonSecureChannel, NativeFileOwnDecision>()
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()
@@ -564,7 +565,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
-    internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1(fileHandlersReady = nativeGalleryHandlersReady) }
+    internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = {
+        TelefonCapabilities.phase1(fileHandlersReady = nativeGalleryHandlersReady, videoHandlersReady = nativeGalleryVideoHandlersReady)
+    }
     private val sharedPreferences by lazy { queue.sharedSettingsStorage({
         safePeer()?.takeIf { it.state == "paired" }?.let { SharedSettingsBinding(sharedActor, it.device_id, it.static_public) }
     }, { !Ablage.hole(context).synchronisationsSchreibbar() }) }
@@ -691,8 +694,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 return path
             }
             val directory = directory(directory(root, "native-file-sources-v1"), name).toFile()
-            val runtime = NativeGalleryFileRuntime(context, directory, identity, protection, channel,
-                { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }, handlersReady)
+            val runtime = NativeGalleryFileRuntime.withVideoHandlers(context, directory, identity, protection, channel,
+                { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) },
+                handlersReady, { nativeGalleryVideoHandlersReady })
             connection.bind(runtime)
             if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
                 currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)
@@ -4524,7 +4528,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     contactGroupsWrite = peer.contact_groups_write_enabled && contactGroupWriter.permission(),
                     contactValuesWrite = contactValueWritesEnabled && peer.contacts_write_enabled && contactValueWriter.permission(),
                      contactGroupTitlesWrite = contactGroupTitleWritesEnabled && peer.contacts_write_enabled && contactGroupTitleWriter.permission(),
-                     fileHandlersReady = nativeGalleryHandlersReady)), 86_400_000)
+                      fileHandlersReady = nativeGalleryHandlersReady, videoHandlersReady = nativeGalleryVideoHandlersReady)), 86_400_000)
         }
         if (!queue.hasKind(peer.device_id, "grants.update")) {
             peer = peer.copy(grants_revision = peer.grants_revision + 1); storage.savePeer(peer)

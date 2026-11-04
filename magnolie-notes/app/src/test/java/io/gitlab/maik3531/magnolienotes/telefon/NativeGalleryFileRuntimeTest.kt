@@ -249,6 +249,29 @@ class NativeGalleryFileRuntimeTest {
         }
     }
 
+    @Test fun videoScopeStillRequiresTheActualDedicatedControlAcknowledgementNotOnlyPeerMarkerAndConsent() {
+        negotiatedRuntime(videoReady = { true }, peerVideo = { true }) { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            val before = runtime.savedPolicy()
+            assertEquals("file_control_configuration_not_ready", assertThrows(PhotoFolderScopeError::class.java) {
+                runtime.configureVideosFromAuthenticatedCommand(before, true)
+            }.code)
+            assertEquals(before, runtime.savedPolicy()); assertNull(runtime.savedPolicy().policy!!.videos)
+            assertNull(runtime.currentRequest()); assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+            val discover = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "discover"); put("media_type", "video"); put("expected_version", runtime.savedPolicy().version)
+            }, 60_000, now)
+            var writes = 0
+            assertEquals("file_control_configuration_not_ready", assertThrows(PhotoFolderScopeError::class.java) {
+                runtime.receiveSourceCommand(discover, { writes++ }, { now })
+            }.code)
+            assertEquals(0, writes); assertTrue(runtime.historicalSourceJobs().isEmpty())
+            echo()
+            runtime.configureVideosFromAuthenticatedCommand(runtime.savedPolicy(), true)
+            assertNotNull(runtime.currentRequest()); assertNotNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+        }
+    }
+
     @Test fun sourceCommandExpiryReachesTheNativeConfigurerBeforePolicyPublicationAndReleasesItsTicket() {
         negotiatedRuntime { runtime, _ ->
             val before = runtime.savedPolicy()

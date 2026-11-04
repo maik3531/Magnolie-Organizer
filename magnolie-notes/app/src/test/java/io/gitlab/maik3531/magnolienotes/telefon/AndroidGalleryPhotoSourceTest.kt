@@ -2396,12 +2396,22 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
-    @Test fun authenticatedVideoCatalogQueriesOnlyVideoCollectionAndStillCannotStartAnUnjoinedDataRun() = videoCatalogRuntimeCase()
+    @Test fun authenticatedVideoCatalogRejectsImageRunSubstitutionBeforeAnySourceIo() = videoCatalogRuntimeCase()
     @Test fun nativeVideoRunUsesItsOwnActivationForActualOfferChunkAndSavedWithoutImageFallback() = videoCatalogRuntimeCase(nativeData = true)
     @Test fun nativeVideoCapabilityWithdrawalBlocksOwnedVideoChunksButStillAllowsActualNativeCancelEnd() = videoCatalogRuntimeCase(nativeData = true, withdraw = true)
+    @Test fun videoWireStopThenOriginalResumeUsesVideoLookupMediaSavedAndExactRetriedEnd() = videoCatalogRuntimeCase(nativeData = true, resume = true)
+    @Test fun videoWireOriginalResumeCanCancelAndEndAfterCapabilityWithdrawalWithoutReadingOrRetiring() = videoCatalogRuntimeCase(nativeData = true, withdraw = true, resume = true)
+    @Test @Config(sdk = [35]) fun modernVideoWireOriginalResumeUsesActualVideoReadAndSavedEnd() = videoCatalogRuntimeCase(nativeData = true, resume = true)
+    @Test @Config(sdk = [35]) fun modernVideoWireWithdrawalKeepsExactOriginalUntilActualCancelEnd() = videoCatalogRuntimeCase(nativeData = true, withdraw = true, resume = true)
+    @Test fun videoWireBatchesKeepMediaScopeAcrossSixteenFileBoundaryAndEndEachSavedCache() = videoCatalogRuntimeCase(nativeData = true, nextBatch = true)
+    @Test fun videoWireAlbumScanCanEndAfterCapabilityWithdrawalWithoutOpeningRemainingMembers() = videoCatalogRuntimeCase(nativeData = true, nextBatch = true, endAlbum = true)
+    @Test fun videoWireSubsetKeepsVideoIdentityAndRejectsImageSelectionBeforeChangingOriginalPreview() = videoCatalogRuntimeCase(nativeData = true, subset = true)
 
-    private fun videoCatalogRuntimeCase(nativeData: Boolean = false, withdraw: Boolean = false) {
+    private fun videoCatalogRuntimeCase(nativeData: Boolean = false, withdraw: Boolean = false, resume: Boolean = false,
+        nextBatch: Boolean = false, endAlbum: Boolean = false, subset: Boolean = false) {
         Fixture(GalleryMediaType.VIDEO).use { f ->
+            if (nextBatch) f.provider.rows = (1..17).map { Row(id = it.toLong(), name = "clip-$it.mp4", mime = "video/mp4") }
+            if (subset) f.provider.rows = (1..2).map { Row(id = it.toLong(), name = "clip-$it.mp4", mime = "video/mp4") }
             val root = Files.createTempDirectory(f.root.toPath(), "video-catalog-wire330-").toFile()
             val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
             val now = 1_800_000_000_000L; val output = ByteArrayOutputStream()
@@ -2440,67 +2450,242 @@ class AndroidGalleryPhotoSourceTest {
                     assertTrue(f.provider.requests.isNotEmpty()) // Video fixture rejects every non-video query URI itself.
                     assertTrue(f.provider.opens.isEmpty())
                     var writes = 0
-                    assertEquals("gallery_video_wire_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                    assertEquals("gallery_catalog_not_current", assertThrows(PhotoFolderScopeError::class.java) {
                         runtime.receiveSourceCommand(command("run", buildJsonObject {
-                            put("media_type", "video"); put("catalog_id", page.string("catalog_id"))
+                            put("catalog_id", page.string("catalog_id"))
                             put("album_id", page["albums"]!!.jsonArray.single().jsonObject.string("album_id")); put("desktop_choice", true)
                         }), { writes++ }, { now })
                     }.code)
                     assertEquals(0, writes); assertTrue(f.provider.opens.isEmpty())
                     PhotoSourceJobIndex(root, protection).use { assertTrue(it.jobs().isEmpty()) }
                     if (nativeData) {
-                        val nativeCatalog = runtime.discoverSelectable(mediaType = GalleryMediaType.VIDEO)
-                        val nativePage = nativeCatalog.page()
-                        val selection = nativeCatalog.select(nativePage.string("catalog_id"), nativePage["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
                         val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime) as NativeGallerySourceWorker
                         val onEnded = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
                         @Suppress("UNCHECKED_CAST") val original = onEnded.get(worker) as (NativeGallerySourceRun) -> Unit
-                        val ended = java.util.concurrent.CountDownLatch(1)
+                        var ended = java.util.concurrent.CountDownLatch(1)
                         onEnded.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { ended.countDown() } })
-                        val run = runtime.beginSyncRun(selection)
-                        assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
-                        val job = run.preparation.snapshotJob()!!
-                        assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
                         val replies = mutableListOf<JsonObject>()
-                        runtime.sendSyncRunOffer(run, { replies += it }, now)
-                        val offer = replies.single(); replies.clear()
+                        var previousRunId: String? = null
+                        val seenFiles = mutableSetOf<String>()
+                        for (batchIndex in 0..(if (nextBatch && !endAlbum) 1 else 0)) {
+                        ended = java.util.concurrent.CountDownLatch(1); replies.clear()
+                        if (previousRunId != null) assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                            runtime.receiveSourceCommand(command("next_batch", buildJsonObject { put("run_id", previousRunId) }), { replies += it }, { now })
+                        }.code)
+                        runtime.receiveSourceCommand(command(if (previousRunId != null) "next_batch" else if (nextBatch) "batch_run" else "run", buildJsonObject {
+                            put("media_type", "video")
+                            if (previousRunId != null) put("run_id", previousRunId) else {
+                                put("catalog_id", page.string("catalog_id"))
+                                put("album_id", page["albums"]!!.jsonArray.single().jsonObject.string("album_id")); put("desktop_choice", true)
+                            }
+                        }), { replies += it }, { now })
+                        val started = replies.single()["body"]!!.jsonObject; replies.clear()
+                        assertEquals("video", started.string("media_type"))
+                        var run = NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }.get(runtime) as NativeGallerySyncRun
+                        assertEquals(run.id, started.string("run_id"))
+                        // Reuse the existing batchCommandCase multi-photo bound;
+                        // the one-photo/ordinary-resume guard remains five seconds.
+                        assertTrue(ended.await(if (nextBatch) 60 else 5, java.util.concurrent.TimeUnit.SECONDS))
+                        var job = run.preparation.snapshotJob()!!
+                        assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
+                        var currentRunId = run.id
+                        fun runCommand(operation: String, media: String? = "video", extra: JsonObject = JsonObject(emptyMap())) = command(operation,
+                            JsonObject(mapOf("run_id" to JsonPrimitive(currentRunId)) + (if (media == null) emptyMap() else mapOf("media_type" to JsonPrimitive(media))) + extra))
+                        for (operation in listOf("run_status", "cancel_run", "offer_run")) {
+                            assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(runCommand(operation, null), { replies += it }, { now })
+                            }.code)
+                        }
+                        assertTrue(replies.isEmpty()); assertFalse(run.cancelRequested)
+                        var cursor: Int? = 0
+                        var previewHash: String? = null; var selectedFile: String? = null
+                        do {
+                            runtime.receiveSourceCommand(runCommand("media_page", extra = buildJsonObject { put("after", cursor) }), { replies += it }, { now })
+                            val media = replies.single()["body"]!!.jsonObject; replies.clear()
+                            assertEquals("video", media.string("media_type")); assertEquals("video", media["page"]!!.jsonObject.string("media_type"))
+                            previewHash = media["page"]!!.jsonObject.string("manifest_sha256")
+                            if (selectedFile == null) selectedFile = media["page"]!!.jsonObject["entries"]!!.jsonArray.first().jsonObject.string("file_id")
+                            val next = media["page"]!!.jsonObject["next_cursor"]!!
+                            cursor = if (next == JsonNull) null else next.jsonPrimitive.int
+                        } while (cursor != null)
+                        if (subset) {
+                            val originalPreview = job; val originalRun = run; val opens = f.provider.opens.size
+                            val fields = buildJsonObject { put("manifest_sha256", previewHash); put("file_ids", JsonArray(listOf(JsonPrimitive(selectedFile)))) }
+                            assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(runCommand("select_run", null, fields), { replies += it }, { now })
+                            }.code)
+                            assertFalse(originalRun.cancelRequested)
+                            PhotoSourceJobIndex(root, protection).use { assertEquals(listOf(originalPreview), it.jobs()) }
+                            ended = java.util.concurrent.CountDownLatch(1)
+                            runtime.receiveSourceCommand(runCommand("select_run", extra = fields), { replies += it }, { now })
+                            val result = replies.single()["body"]!!.jsonObject; replies.clear()
+                            assertEquals("video", result.string("media_type")); currentRunId = result.string("run_id")
+                            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                            run = NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }.get(runtime) as NativeGallerySyncRun
+                            job = run.preparation.snapshotJob()!!
+                            assertEquals(currentRunId, run.id); assertNotEquals(originalPreview.id, job.id)
+                            assertEquals(opens, f.provider.opens.size)
+                            runtime.receiveSourceCommand(runCommand("media_page", extra = buildJsonObject { put("after", 0) }), { replies += it }, { now })
+                            val selected = replies.single()["body"]!!.jsonObject; replies.clear()
+                            assertEquals("video", selected.string("media_type"))
+                            assertEquals(selectedFile, selected["page"]!!.jsonObject["entries"]!!.jsonArray.single().jsonObject.string("file_id"))
+                        }
+                        runtime.receiveSourceCommand(runCommand("offer_run"), { replies += it }, { now })
+                        val offer = replies.single { it.string("kind") == DeviceFileOfferEnvelope.KIND }
+                        assertEquals("video", replies.single { it.string("kind") == DeviceFileSourceCommand.RUN_RESULT }["body"]!!.jsonObject.string("media_type"))
+                        replies.clear()
                         val manifest = DeviceFileOfferEnvelope.validate(offer, identity.deviceId, peer.peerId, now)
+                        if (nextBatch) assertEquals(if (batchIndex == 0) 16 else 1, manifest.files.size)
+                        for (file in manifest.files) assertTrue(seenFiles.add(file.id))
                         val grant = runtime.currentRequest(GalleryMediaType.VIDEO)!!.receiver.permissionEpoch
-                        runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
-                            put("format", 1); put("offer_id", offer.string("message_id")); put("transfer_id", manifest.transferId)
-                            put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
-                            put("permission_epoch", grant); put("destination_token", "e".repeat(64))
-                        }, 60_000, now), { now })
-                        val request = TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                        fun accept(selectedOffer: JsonObject) = runtime.receiveTransferMessage(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                                put("format", 1); put("offer_id", selectedOffer.string("message_id")); put("transfer_id", manifest.transferId)
+                                put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
+                                put("permission_epoch", grant); put("destination_token", "e".repeat(64))
+                            }, 60_000, now), { replies += it }, { now })
+                        accept(offer)
+                        if (resume) {
+                            runtime.receiveSourceCommand(runCommand("cancel_run"), { replies += it }, { now }); replies.clear()
+                            runtime.receiveSourceCommand(runCommand("end_run"), { replies += it }, { now }); replies.clear()
+                            PhotoSourceJobIndex(root, protection).use { assertEquals(listOf(job), it.jobs()); assertNull(it.remoteSaved(job)) }
+                            assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(command("resume_lookup", buildJsonObject {
+                                    put("source_id", manifest.sourceId); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                                }), { replies += it }, { now })
+                            }
+                            assertTrue(replies.isEmpty())
+                            runtime.receiveSourceCommand(command("resume_lookup", buildJsonObject {
+                                put("media_type", "video"); put("source_id", manifest.sourceId); put("transfer_id", manifest.transferId)
+                                put("manifest_sha256", manifest.fingerprint)
+                            }), { replies += it }, { now })
+                            val history = replies.single()["body"]!!.jsonObject; replies.clear()
+                            assertEquals("video", history.string("media_type")); assertEquals(job.id, history["history"]!!.jsonObject.string("job_id"))
+                            runtime.receiveSourceCommand(command("discover", buildJsonObject { put("media_type", "video") }), { replies += it }, { now })
+                            val fresh = replies.single()["body"]!!.jsonObject["page"]!!.jsonObject; replies.clear()
+                            ended = java.util.concurrent.CountDownLatch(1)
+                            runtime.receiveSourceCommand(command("resume_run", buildJsonObject {
+                                put("media_type", "video"); put("catalog_id", fresh.string("catalog_id"))
+                                put("album_id", fresh["albums"]!!.jsonArray.single().jsonObject.string("album_id")); put("desktop_choice", true)
+                                put("original_job_id", job.id); put("original_job_version", job.version)
+                            }), { replies += it }, { now })
+                            val resumed = replies.single()["body"]!!.jsonObject; replies.clear()
+                            currentRunId = resumed.string("run_id"); assertEquals("video", resumed.string("media_type"))
+                            assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                            val originalOwner = NativeGalleryFileRuntime::class.java.getDeclaredField("resumeRun").also { it.isAccessible = true }.get(runtime) as NativeGalleryResumeRun
+                            assertEquals(job, originalOwner.originalJob)
+                            for (operation in listOf("resume_status", "cancel_resume", "offer_resume")) assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(runCommand(operation, null), { replies += it }, { now })
+                            }
+                            assertTrue(replies.isEmpty()); assertFalse(originalOwner.cancelRequested)
+                            runtime.receiveSourceCommand(runCommand("resume_media_page", extra = buildJsonObject { put("after", 0) }), { replies += it }, { now })
+                            assertEquals("video", replies.single()["body"]!!.jsonObject.string("media_type")); replies.clear()
+                            runtime.receiveSourceCommand(runCommand("offer_resume"), { replies += it }, { now })
+                            val renewedOffer = replies.single { it.string("kind") == DeviceFileOfferEnvelope.KIND }
+                            assertEquals("video", replies.single { it.string("kind") == DeviceFileSourceCommand.RUN_RESULT }["body"]!!.jsonObject.string("media_type"))
+                            replies.clear(); accept(renewedOffer)
+                        }
+                        fun chunkRequest(file: DeviceManifestFile) = TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
                             put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
                             put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", grant); put("destination_token", "e".repeat(64))
-                            put("file_id", manifest.files.single().id); put("chunk_index", 0)
+                            put("file_id", file.id); put("chunk_index", 0)
                         }, 60_000, now)
                         val cache = File(root, "photo-source-" + job.id)
                         val bytes = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
                         if (withdraw) {
                             videoReady = false
                             assertNotNull(runtime.currentRequest()); assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
-                            assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveChunkRequest(request, { replies += it }, { now }) }
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveTransferMessage(chunkRequest(manifest.files.first()), { replies += it }, { now }) }
                             assertTrue(replies.isEmpty())
                         } else {
-                            runtime.receiveChunkRequest(request, { replies += it }, { now })
-                            assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(replies.single()["body"]!!.jsonObject.string("data_base64")))
-                            runtime.observeRemoteSaved(TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                            for (file in manifest.files) {
+                                runtime.receiveTransferMessage(chunkRequest(file), { replies += it }, { now })
+                                assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(replies.single()["body"]!!.jsonObject.string("data_base64")))
+                                replies.clear()
+                            }
+                            runtime.receiveTransferMessage(TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
                                 put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
                                 put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", grant); put("destination_token", "e".repeat(64))
                                 put("receipts", JsonArray(manifest.files.map { buildJsonObject {
                                     put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
                                 } }))
-                            }, 60_000, now), { now })
+                            }, 60_000, now), { replies += it }, { now })
                         }
-                        runtime.cancelSyncRun(run); runtime.endStoppedSyncRun(run)
                         PhotoSourceJobIndex(root, protection).use {
                             assertEquals(listOf(job), it.jobs()); assertNotNull(it.remoteAcceptance(job))
                             if (withdraw) assertNull(it.remoteSaved(job)) else assertNotNull(it.remoteSaved(job))
                         }
                         assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                        runtime.receiveSourceCommand(runCommand(if (resume) "resume_status" else "run_status"), { replies += it }, { now })
+                        if (nextBatch) assertEquals(JsonPrimitive(batchIndex == 1), replies.single()["body"]!!.jsonObject["batch_end"])
+                        replies.clear()
+                        runtime.receiveSourceCommand(runCommand(if (resume) "cancel_resume" else "cancel_run"), { replies += it }, { now }); replies.clear()
+                        assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                            runtime.receiveSourceCommand(runCommand(if (resume) "end_resume" else "end_run", null), { replies += it }, { now })
+                        }.code)
+                        assertTrue(replies.isEmpty())
+                        PhotoSourceJobIndex(root, protection).use { assertEquals(listOf(job), it.jobs()) }
+                        assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                        val end = runCommand(if (resume) "end_resume" else "end_run")
+                        assertThrows(java.io.IOException::class.java) {
+                            runtime.receiveSourceCommand(end, { replies += it; throw java.io.IOException("fixture video END reply lost") }, { now })
+                        }
+                        val endedReply = replies.single(); replies.clear()
+                        assertEquals("video", endedReply["body"]!!.jsonObject.string("media_type"))
+                        assertEquals(JsonPrimitive(true), endedReply["body"]!!.jsonObject["run_ended"])
+                        val changedType = JsonObject(end + ("body" to JsonObject(end["body"]!!.jsonObject - "media_type")))
+                        assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(changedType, { replies += it }, { now }) }
+                        assertTrue(replies.isEmpty())
+                        runtime.receiveSourceCommand(end, { replies += it }, { now })
+                        assertEquals(endedReply, replies.single())
+                        PhotoSourceJobIndex(root, protection).use { assertEquals(if (withdraw) listOf(job) else emptyList<PhotoSourceJob>(), it.jobs()) }
+                        if (withdraw) assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() }) else assertFalse(cache.exists())
+                        if (withdraw && resume) {
+                            // Capability return is not consent-epoch renewal. The
+                            // original policy remains unchanged; only explicit
+                            // metadata abandonment of the actually ended head follows.
+                            videoReady = true; replies.clear()
+                            val head = PhotoSourceJobIndex(root, protection).use { it.resumeAttempt(job)!! }
+                            fun abandonment(media: Boolean) = command("abandon_resume", buildJsonObject {
+                                if (media) put("media_type", "video")
+                                put("run_id", currentRunId); put("original_job_id", job.id); put("original_job_version", job.version)
+                                put("attempt_id", head.id); put("attempt_sha256", head.version)
+                            })
+                            assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(abandonment(false), { replies += it }, { now })
+                            }.code)
+                            assertTrue(replies.isEmpty())
+                            val abandon = abandonment(true)
+                            runtime.receiveSourceCommand(abandon, { replies += it }, { now })
+                            val receipt = replies.single(); replies.clear()
+                            assertEquals("video", receipt["body"]!!.jsonObject.string("media_type"))
+                            runtime.receiveSourceCommand(abandon, { replies += it }, { now })
+                            assertEquals(receipt["body"], replies.single()["body"])
+                            PhotoSourceJobIndex(root, protection).use {
+                                assertEquals(listOf(job), it.jobs()); assertEquals(head.record, it.resumeAttempt(job)!!.record); assertNull(it.remoteSaved(job))
+                                assertEquals(head.record, it.resumeAbandonments(job).single().head)
+                            }
+                            assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                        }
                         assertEquals("hello", File(f.root, "source.bin").readText())
+                        previousRunId = run.id
+                        }
+                        if (nextBatch) assertEquals(if (endAlbum) 16 else 17, seenFiles.size)
+                        if (endAlbum) {
+                            val opens = f.provider.opens.size; videoReady = false; replies.clear()
+                            assertEquals("gallery_source_media_scope_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                                runtime.receiveSourceCommand(command("end_album", buildJsonObject { put("run_id", previousRunId) }), { replies += it }, { now })
+                            }.code)
+                            assertTrue(replies.isEmpty())
+                            val end = command("end_album", buildJsonObject { put("media_type", "video"); put("run_id", previousRunId) })
+                            assertThrows(java.io.IOException::class.java) {
+                                runtime.receiveSourceCommand(end, { replies += it; throw java.io.IOException("fixture video album END reply lost") }, { now })
+                            }
+                            val reply = replies.single(); replies.clear()
+                            assertEquals("video", reply["body"]!!.jsonObject.string("media_type"))
+                            runtime.receiveSourceCommand(end, { replies += it }, { now })
+                            assertEquals(reply, replies.single()); assertEquals(opens, f.provider.opens.size)
+                            PhotoSourceJobIndex(root, protection).use { assertTrue(it.jobs().isEmpty()) }
+                        }
                     }
                 }
             }

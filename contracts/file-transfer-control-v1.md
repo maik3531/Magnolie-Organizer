@@ -1,5 +1,36 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Typed authenticated video runs and original-job continuation (Refs #330)
+
+The native authenticated source-command lane now binds ordinary/video-batch,
+subset and original-resume commands to the exact native catalog/run media type.
+This check applies before mutation or READ and after idempotent start lookup.
+Image commands cannot adopt, cancel, select, continue or end a video owner.
+Source replies carry `media_type: video` only for video; legacy image reply
+shapes remain unchanged. Video lookup/abandonment uses the current video policy
+epoch, never an old epoch recovered from history.
+
+Positive video READ still needs current local/peer support and actual dedicated
+control acknowledgement. Capability withdrawal permits only exact-owner status,
+cancellation and END under current base configuration authority; no new media
+READ is granted. Completed normal/resumed END retains the exact command/reply
+for bounded retry after uncertain output. Changing the media type of an END
+retry cannot retire another job or substitute an image owner. Only actual Saved
+proof permits the existing guarded cache retirement; unsaved END retains the
+original protected job/cache/receipts. Explicit attempt abandonment after actual
+END preserves the full original head and its protected abandonment history.
+
+Native source-host cases exercise actual MediaStore video PFDs and encrypted
+snapshots through wire run/media/offer, transfer-dispatch acceptance/chunk/Saved,
+stop, fresh video lookup/catalog, original-job resume and lost-END exact retry.
+They include modern Android READ, capability withdrawal, cross-media rejection,
+two batches across the unchanged sixteen-file working boundary, album-scan END
+without opening remaining media and native subset selection. Source epoch
+guards are unchanged: video disable/re-enable does not implicitly reassociate
+an old accepted job. Independent desktop video destinations/worker/UI and all
+installed/physical-device acceptance remain separate work; production gates
+remain OFF.
+
 ### Video negotiation and scoped command codec (Refs #330, partial join)
 
 Discovery marker 22 is reserved for video handlers alongside required base-file
@@ -33,11 +64,10 @@ through fresh status, not a replay of stale configuration. Scope changes cannot
 interleave with an actual source owner. Capability loss/uncertain CAS permits no
 positive READ, and explicit video decrease remains possible after withdrawal.
 
-The video run/resume/data wire lane is still deliberately closed before tickets
-or source I/O until exact media/run/END correlation is joined. Discovery alone
-opens no media PFD and creates no job. Desktop video target/worker integration
-also remains absent. These metadata joins are not usable video synchronization
-and do not activate production readiness.
+Discovery alone opens no media PFD and creates no job. The typed native run join
+is described above; desktop video target/worker integration remains absent.
+These native joins alone are not usable desktop video synchronization and do
+not activate production readiness.
 
 Direct native run entry points and normal offer/acceptance/chunk/Saved validation
 now derive their activation from the selected catalog's native media type rather
@@ -45,9 +75,8 @@ than defaulting to images. Source-host checks exercise a real owned video run
 through encrypted snapshot, offer, acceptance, actual chunk bytes and protected
 Saved proof. Capability withdrawal blocks further owned video chunks while image
 activation remains available; native cancel and actual quiescent END still work.
-These direct native END calls alone retire no cache or quota. This does not open
-the still-gated video run/resume wire lane or replace its pending correlation
-and end-retry acceptance.
+Direct native END calls alone retire no cache or quota; the separate guarded
+wire-END path uses actual Saved proof before cache retirement as described above.
 
 ### Typed native foreground owners and permission taps (Refs #330)
 
@@ -65,8 +94,8 @@ launch. One actually pending OS dialog still excludes the other media domain.
 An image wire request while only a video dialog is pending reports foreground
 interaction required, not image permission requested. Actual native typed-tap
 tests exercise legacy and modern Android permission hosts and notification
-coexistence. The video data-run wire lane remains closed, so this native route
-alone does not expose video synchronization or constitute physical acceptance.
+coexistence. This native route alone does not expose complete desktop video
+synchronization or constitute physical acceptance.
 
 ### Native independent video consent and typed READ workflow (Refs #330)
 
@@ -93,10 +122,10 @@ job and phone bytes. GIFs remain in the image domain.
 Source-host tests include actual protected-policy/index operations, native
 permission hosts and MediaStore/PFD/encrypted-cache workflow on legacy and modern
 Android runtimes, plus merged-manifest permission inspection. They do not prove
-physical permission dialogs or an installed phone transfer. The authenticated
-source-command data-run video join, independent desktop video destination
-and complete worker/UI integration are still absent. No video control or new
-production readiness is advertised from these native workflow checks alone.
+physical permission dialogs or an installed phone transfer. The independent
+desktop video destination and complete worker/UI integration remain absent.
+No video control or new production readiness is advertised from these native
+workflow checks alone.
 
 ### Native camera-album classification for future photo grouping (Refs #330)
 

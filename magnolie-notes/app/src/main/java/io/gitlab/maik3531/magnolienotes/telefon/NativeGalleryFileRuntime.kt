@@ -624,10 +624,11 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         resumeCommands: NativeGalleryResumeCommands = localResumeCommands): Unit = withOperation {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
-        // Metadata/permission routing is typed. Data runs stay closed until the
-        // original-owner/run/END join is complete; never substitute images.
-        if (command.mediaType == GalleryMediaType.VIDEO &&
-            (command.operation !in setOf("discover", "catalog_page", "request_read") || !videoAvailable()))
+        // Revoked video READ must not prevent exact-owner cancellation/status/END.
+        // These paths still need current base configuration authority and match
+        // the native media owner before any mutation below.
+        val closing = command.operation in setOf("run_status", "cancel_run", "end_run", "end_album", "resume_status", "cancel_resume", "end_resume")
+        if (command.mediaType == GalleryMediaType.VIDEO && !closing && !videoAvailable())
             DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (command.operation == "configure_videos" && command.enabled == true && !videoAvailable())
             DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
@@ -641,9 +642,17 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         commandLive.set { now() < command.expires }
         fun authority(): NativeGalleryConfigurer {
             if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")
-            if ((command.mediaType == GalleryMediaType.VIDEO || command.operation == "configure_videos" && command.enabled == true) && !videoAvailable())
+            if ((command.mediaType == GalleryMediaType.VIDEO && !closing || command.operation == "configure_videos" && command.enabled == true) && !videoAvailable())
                 DeviceFileControl.fail("gallery_video_handlers_unavailable")
             return controls.session.configurationAuthority(issued) ?: DeviceFileControl.fail("file_sources_authority_changed")
+        }
+        fun requireMedia(selection: NativeGalleryAlbumSelection) {
+            if (selection.catalog.source.activation?.mediaType != command.mediaType)
+                DeviceFileControl.fail("gallery_source_media_scope_changed")
+        }
+        fun replyBody(block: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit): JsonObject = kotlinx.serialization.json.buildJsonObject {
+            block()
+            if (command.mediaType == GalleryMediaType.VIDEO) put("media_type", JsonPrimitive("video"))
         }
         try {
             val owner = authority()
@@ -658,6 +667,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                     prior
                 } else {
                     val batch = albumBatchOwner ?: DeviceFileControl.fail("gallery_album_batch_not_current")
+                    requireMedia(batch.selection)
                     val run = batch.run ?: DeviceFileControl.fail("gallery_album_batch_not_current")
                     val endedId = normalEnd?.second?.get("body")?.let { it as? JsonObject }?.get("run_id")
                     if (run.id != command.runId || syncRun != null || resumeRun != null || !sourceWorker.isQuiescent ||
@@ -667,7 +677,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                     if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
                     val guard = NativeGalleryWireOfferAttempt(command.requestId,
                         DeviceFileControl.digest("magnolie-gallery-album-end-v1\u0000", message), message, at)
-                    val body = kotlinx.serialization.json.buildJsonObject {
+                    val body = replyBody {
                         put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                         put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                         put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
@@ -688,6 +698,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 } else {
                     val run = syncRun?.takeIf { it.id == command.runId && it.cancelRequested }
                         ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+                    requireMedia(run.selection)
                     if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
                     val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
                     if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
@@ -702,7 +713,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                         // Original phone media is never touched.
                         current(); workflow.retireCached(job); current()
                     }
-                    val body = kotlinx.serialization.json.buildJsonObject {
+                    val body = replyBody {
                         put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                         put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                         put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
@@ -725,9 +736,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                     prior
                 } else {
                     val run = resumeRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_resume_run_not_current")
+                    requireMedia(run.selection)
                     if (!run.cancelRequested) DeviceFileControl.fail("gallery_resume_run_not_current")
                     if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
-                    val body = kotlinx.serialization.json.buildJsonObject {
+                    val body = replyBody {
                         put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                         put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                         put("state", JsonPrimitive("canceled_held")); put("source_io_ended", JsonPrimitive(true)); put("run_ended", JsonPrimitive(true))
@@ -758,6 +770,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             }
             if (command.operation == "abandon_resume") {
                 val ended = resumeEnd ?: DeviceFileControl.fail("gallery_resume_end_proof_required")
+                if (DeviceFileSourceCommand.parse(ended.command, ended.command.long("created_ms")).mediaType != command.mediaType)
+                    DeviceFileControl.fail("gallery_source_media_scope_changed")
                 fun abandonmentAuthority() {
                     authority()
                     if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent)
@@ -766,7 +780,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                         ended.command["body"]?.let { (it as? JsonObject)?.get("run_id") } != JsonPrimitive(command.runId) ||
                         ended.headId != command.attemptId || ended.headSha256 != command.attemptSha256)
                         DeviceFileControl.fail("gallery_resume_end_proof_changed")
-                    val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+                    val request = workflow.currentRequest(command.mediaType) ?: DeviceFileControl.fail("gallery_source_not_activated")
                     val manifest = DeviceFileManifest.parse(ended.job.snapshot!!["manifest"] as JsonObject)
                     index.lookupGalleryResume(localIdentity.deviceId, manifest.sourceId, manifest.transferId, manifest.fingerprint,
                         request.receiver, request.policyEpoch)
@@ -783,7 +797,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 permitted()
                 val receipt = index.abandonResumeAttempt(ended.job, message, now(), ::permitted)
                 permitted()
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("operation", JsonPrimitive(command.operation)); put("request_id", JsonPrimitive(command.requestId))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(command.runId))
                     put("job_id", JsonPrimitive(ended.job.id)); put("job_version", JsonPrimitive(ended.job.version))
@@ -801,11 +815,11 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 return@withOperation
             }
             if (command.operation == "resume_lookup") {
-                val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+                val request = workflow.currentRequest(command.mediaType) ?: DeviceFileControl.fail("gallery_source_not_activated")
                 val history = index.lookupGalleryResume(localIdentity.deviceId, command.lookupSourceId!!, command.lookupTransferId!!, command.lookupManifestSha256!!,
                     request.receiver, request.policyEpoch)
                 authority()
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("history", history)
                 }
@@ -825,12 +839,14 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                         val original = index.jobs().singleOrNull { it.id == command.originalJobId && it.version == command.originalJobVersion }
                             ?: DeviceFileControl.fail("photo_jobs_historical_original_job_required")
                         if (index.remoteSaved(original) != null) DeviceFileControl.fail("gallery_resume_original_already_saved")
-                        val catalog = wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
+                        val catalog = wireCatalog(command.mediaType).get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                         val selection = catalog.select(command.catalogId!!, command.albumId!!, command.desktopChoice!!)
+                        requireMedia(selection)
                         beginResumeRunOwned(selection, original) { authority(); Unit }
                     }
                 } else resumeRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_resume_run_not_current")
                 if (resumeRun !== run) DeviceFileControl.fail("gallery_resume_run_not_current")
+                requireMedia(run.selection)
                 authority()
                 if (command.operation == "cancel_resume") run.cancel()
                 val offered = if (command.operation == "offer_resume") sendResumeRunOfferOwned(run, send, now,
@@ -838,7 +854,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 val ended = run.preparation.ioEnded
                 val state = if (run.cancelRequested && !ended) "cancel_pending"
                     else if (run.cancelRequested) "canceled_held" else if (ended) run.preparation.phase else "preparing"
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                     put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ended))
@@ -862,6 +878,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             }
             if (command.operation == "resume_media_page") {
                 val run = resumeRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_resume_run_not_current")
+                requireMedia(run.selection)
                 val source = resumeSourceOwned(run)
                 fun mediaAuthority() {
                     run.mediaAttempts.check(command, message, now()); authority()
@@ -869,7 +886,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 }
                 mediaAuthority()
                 val page = source.mediaPage(command.after, ::mediaAuthority)
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
                     put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version))
                     put("run_id", JsonPrimitive(run.id)); put("page", page)
@@ -887,6 +904,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             if (command.operation == "media_page") {
                 val run = syncRun?.takeIf { it.id == command.runId && !it.cancelRequested }
                     ?: DeviceFileControl.fail("gallery_sync_run_not_current")
+                requireMedia(run.selection)
                 fun mediaAuthority() { authority(); run.mediaAttempts.check(command, message, now()) }
                 mediaAuthority()
                 if (!sourceWorker.isQuiescent || !run.preparation.ioEnded) DeviceFileControl.fail("gallery_source_worker_io_pending")
@@ -895,7 +913,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
                 val page = source.mediaPage(command.after, ::mediaAuthority)
                 mediaAuthority()
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
                     put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version))
                     put("run_id", JsonPrimitive(run.id)); put("page", page)
@@ -915,15 +933,23 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                         JsonPrimitive(owner.identitySha256), JsonPrimitive(owner.pairingEpoch))))
                     runCommands.start(scope, this, command, message) {
                         authority()
-                        if (command.operation == "select_run") return@start selectSyncRunOwned(command) { authority(); Unit }
-                        if (command.operation == "next_batch") return@start nextAlbumBatchOwned(command) { authority(); Unit }
-                        val catalog = wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
+                        if (command.operation == "select_run") {
+                            requireMedia(syncRun?.selection ?: DeviceFileControl.fail("gallery_sync_run_not_current"))
+                            return@start selectSyncRunOwned(command) { authority(); Unit }
+                        }
+                        if (command.operation == "next_batch") {
+                            requireMedia(albumBatchOwner?.selection ?: DeviceFileControl.fail("gallery_album_batch_not_current"))
+                            return@start nextAlbumBatchOwned(command) { authority(); Unit }
+                        }
+                        val catalog = wireCatalog(command.mediaType).get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                         val selection = catalog.select(command.catalogId!!, command.albumId!!, command.desktopChoice!!)
+                        requireMedia(selection)
                         if (command.operation == "batch_run") return@start beginAlbumBatchOwned(selection) { authority(); Unit }
                         beginSyncRunOwned(selection) { authority(); Unit }
                     }
                 } else syncRun?.takeIf { it.id == command.runId } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
                 if (syncRun !== run) DeviceFileControl.fail("gallery_sync_run_not_current")
+                requireMedia(run.selection)
                 if (command.operation == "cancel_run") {
                     run.stopped.set(true); run.preparation.cancel()
                 }
@@ -933,7 +959,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 val ioEnded = run.preparation.ioEnded
                 val state = if (run.cancelRequested && !ioEnded) "cancel_pending"
                     else if (run.cancelRequested) "canceled_held" else if (ioEnded) run.preparation.phase else "preparing"
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("run_id", JsonPrimitive(run.id))
                     put("state", JsonPrimitive(state)); put("source_io_ended", JsonPrimitive(ioEnded))
@@ -978,10 +1004,9 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 authority()
                 val at = now(); val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
                 if (ttl <= 0) DeviceFileControl.fail("file_sources_command_expired")
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("state", JsonPrimitive(state))
-                    if (command.mediaType == GalleryMediaType.VIDEO) put("media_type", JsonPrimitive("video"))
                 }
                 send(TelefonNachrichten.message(DeviceFileSourceCommand.PERMISSION_RESULT, body, ttl, at))
                 authority()
@@ -996,10 +1021,9 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 } else selectedCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                 val page = catalog.page(command.catalogId, command.after)
                 authority()
-                val body = kotlinx.serialization.json.buildJsonObject {
+                val body = replyBody {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
                     put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version)); put("page", page)
-                    if (command.mediaType == GalleryMediaType.VIDEO) put("media_type", JsonPrimitive("video"))
                 }
                 val at = now()
                 val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
@@ -1022,7 +1046,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             val policy = saved.policy
             val associated = policy != null && policy.receiverId == owner.peerId && policy.receiverIdentitySha256 == owner.identitySha256 &&
                 policy.pairingEpoch == owner.pairingEpoch
-            val body = kotlinx.serialization.json.buildJsonObject {
+            val body = replyBody {
                 put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
                 put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(saved.version))
                 put("revision", JsonPrimitive(policy?.revision ?: 0)); put("enabled", JsonPrimitive(policy?.enabled ?: false))

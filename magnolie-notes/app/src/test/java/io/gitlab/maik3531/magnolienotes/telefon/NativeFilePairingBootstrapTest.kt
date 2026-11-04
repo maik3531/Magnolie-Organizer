@@ -516,6 +516,34 @@ class NativeFilePairingBootstrapTest {
         }
     }
 
+    @Test fun actualFactoryKeepsVideoOffByDefaultAndCannotUpgradeAnImageOnlyPeerFromLocalReadiness() {
+        withNativeTransport { work, channel, generation ->
+            assertFalse(work.sharedLocalCapabilities().getValue("device_status").versions.contains(DeviceFileControl.VIDEO_DISCOVERY_VERSION))
+            assertFalse(field(TelefonWerk::class.java, "nativeGalleryVideoHandlersReady").getBoolean(work))
+            captureFileIdentity(work, channel)
+            val peer = storage.fileAuthorityPeers().peer!!
+            work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { connection ->
+                val before = connection.runtime.savedPolicy()
+                val command = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", "configure_videos"); put("expected_version", before.version); put("enabled", true)
+                }, 60_000, System.currentTimeMillis())
+                var writes = 0
+                assertEquals("gallery_video_wire_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                    connection.runtime.receiveSourceCommand(command, { writes++ })
+                }.code)
+                field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
+                field(TelefonWerk::class.java, "nativeGalleryVideoHandlersReady").setBoolean(work, true)
+                assertTrue(work.sharedLocalCapabilities().getValue("device_status").versions.contains(DeviceFileControl.VIDEO_DISCOVERY_VERSION))
+                assertEquals("gallery_video_wire_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                    connection.runtime.receiveSourceCommand(command, { writes++ })
+                }.code)
+                assertEquals(0, writes); assertEquals(before, connection.runtime.savedPolicy())
+                assertNull(connection.runtime.currentRequest(GalleryMediaType.VIDEO))
+            }
+        }
+    }
+
     @Test fun actualMessageDispatcherKeepsFileStatusAndConfigurationOutOfPersonalStagingAndOsRead() {
         withNativeTransport { work, channel, generation ->
             captureFileIdentity(work, channel)
