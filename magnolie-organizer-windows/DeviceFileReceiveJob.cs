@@ -166,7 +166,7 @@ internal sealed partial class TelefonStore
 
     // Explicit native owner only. No route registration, file grant fabrication,
     // automatic worker or original-job resume is performed by construction.
-    internal sealed class NativeMediaReceiveJob : IDisposable
+    internal sealed partial class NativeMediaReceiveJob : IDisposable
     {
         private readonly TelefonStore store; private readonly string peerId, mediaType;
         private readonly NativeMediaDestination destination; private readonly DeviceTransferBinding binding;
@@ -174,14 +174,15 @@ internal sealed partial class TelefonStore
         private readonly object jobGate = new(); private bool disposed, uncertain;
         private ReceiveHead? head; private DeviceFileNativeDirectory? root, stage;
         private readonly Dictionary<string, DeviceFileNativeDirectory.DeviceFileNativeStagedFile> files = [];
-        internal string JobId { get; } = Guid.NewGuid().ToString("N");
+        internal string JobId { get; }
         internal string Version => head?.Version ?? throw DeviceFileControl.Error("file_receive_original_reservation_required");
         internal DeviceFileManifest Manifest { get; }
 
         private NativeMediaReceiveJob(TelefonStore store, string peerId, string mediaType, DeviceFileManifest manifest,
-            NativeMediaDestination destination, Func<DeviceTransferBinding?> currentBinding)
+            NativeMediaDestination destination, Func<DeviceTransferBinding?> currentBinding, string? originalJobId = null)
         {
             this.store = store; this.peerId = peerId; this.mediaType = mediaType; Manifest = manifest;
+            JobId = originalJobId ?? Guid.NewGuid().ToString("N");
             this.destination = destination; this.currentBinding = currentBinding;
             binding = currentBinding() ?? throw DeviceFileControl.Error("file_receive_current_binding_required");
             binding.Validate(); ledger = new(manifest, binding, currentBinding); Current();
@@ -252,6 +253,7 @@ internal sealed partial class TelefonStore
                 foreach (var file in receiving["files"]!.AsArray().OfType<JsonObject>())
                 {
                     file["phase"] = "receiving"; file["identity"] = Key(owner.files[TelefonMessagingContract.String(file, "id")].Observe().Identity);
+                    file["checkpoint"] = new JsonObject { ["size"] = 0, ["sha256"] = Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant() };
                 }
                 owner.Save(receiving); return owner;
             }
@@ -264,8 +266,21 @@ internal sealed partial class TelefonStore
             {
                 Current();
                 if (TelefonMessagingContract.String(head!.Body, "phase") != "receiving") throw DeviceFileControl.Error("file_receive_not_receiving");
-                ledger.Record(fileId, index, bytes, (id, offset, data) => { Current(); files[id].WriteChunk(offset, data); Current(); },
+                ledger.Record(fileId, index, bytes, (id, offset, data) =>
+                {
+                    try { Current(); files[id].WriteChunk(offset, data); Current(); }
+                    catch { uncertain = true; throw; }
+                },
                     (id, offset, count) => { Current(); var data = files[id].ReadExact(offset, count); Current(); return data; });
+                try
+                {
+                    var checkpoint = files[fileId].DurableCheckpoint(); Current();
+                    var body = Change();
+                    var member = body["files"]!.AsArray().OfType<JsonObject>().Single(value => TelefonMessagingContract.String(value, "id") == fileId);
+                    var progress = new JsonObject { ["size"] = checkpoint.Size, ["sha256"] = checkpoint.Sha256 };
+                    if (!JsonNode.DeepEquals(member["checkpoint"], progress)) { member["checkpoint"] = progress; Save(body); }
+                }
+                catch { uncertain = true; throw; }
             }
         }
 
@@ -341,13 +356,25 @@ internal sealed partial class TelefonStore
                 binding.DestinationToken != TelefonMessagingContract.String(destination, "token")) throw DeviceFileControl.Error("file_receive_history_invalid");
             for (var index = 0; index < members.Count; index++)
             {
-                var member = TelefonProtocolContract.ExactObject(members[index]!, "id", "phase", "identity");
+                var hasCheckpoint = members[index] is JsonObject item && item.ContainsKey("checkpoint");
+                var member = TelefonProtocolContract.ExactObject(members[index]!, hasCheckpoint ? ["id", "phase", "identity", "checkpoint"] : ["id", "phase", "identity"]);
                 var state = TelefonMessagingContract.String(member, "phase");
                 if (TelefonMessagingContract.String(member, "id") != manifest.Files[index].Id || state is not ("pending" or "receiving" or "publishing" or "published") ||
                     (state == "pending") != (member["identity"] is null) || phase == "published" && state != "published" ||
                     phase is "reserved" or "staging" && state != "pending" || phase is "receiving" or "publishing" && state == "pending")
                     throw DeviceFileControl.Error("file_receive_history_invalid");
                 if (member["identity"] is not null) Identity(member["identity"]);
+                if (hasCheckpoint)
+                {
+                    var checkpoint = TelefonProtocolContract.ExactObject(member["checkpoint"]!, "size", "sha256");
+                    var size = TelefonProtocolContract.Integer(checkpoint["size"]);
+                    var hash = TelefonMessagingContract.String(checkpoint, "sha256");
+                    if (state == "pending" || size < 0 || size > manifest.Files[index].Size ||
+                        size != manifest.Files[index].Size && size % DeviceFileManifest.ChunkBytes != 0 || !DeviceFileControl.Hash(hash) ||
+                        size == 0 && hash != Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant() ||
+                        state is "publishing" or "published" && size != manifest.Files[index].Size)
+                        throw DeviceFileControl.Error("file_receive_checkpoint_invalid");
+                }
                 if (member["identity"] is not null && !JsonNode.DeepEquals(member["identity"]!["volume"], destination["identity"]!["volume"]) ||
                     body["stage_identity"] is not null && !JsonNode.DeepEquals(body["stage_identity"]!["volume"], destination["identity"]!["volume"]))
                     throw DeviceFileControl.Error("file_receive_history_invalid");

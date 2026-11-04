@@ -13,6 +13,7 @@ internal sealed partial class TelefonConnection
         internal readonly bool DesktopChoice;
         internal readonly List<DeviceFileMediaPage> Pages = [];
         internal (string SourceEpoch, string MediaType, bool InsertionWitness)? AlbumScope;
+        internal NativeMediaResumeLookup? Resume;
         internal DeviceFileRunResult Result { get; private set; }
         internal NativeMediaSourceRun(NativeFileControlSession owner, NativeFileControlSession.SourceRunLease lease,
             string catalogId, string albumId, bool desktopChoice, DeviceFileRunResult result)
@@ -66,19 +67,20 @@ internal sealed partial class TelefonConnection
     }
 
     internal Task<DeviceFileRunResult> ReadNativeMediaRunAsync(NativeMediaSourceRun run, CancellationToken token = default)
-        => ExchangeOwnedMediaRunAsync(run, "run_status", token);
+        => ExchangeOwnedMediaRunAsync(run, run.Resume is null ? "run_status" : "resume_status", token);
     internal Task<DeviceFileRunResult> CancelNativeMediaRunAsync(NativeMediaSourceRun run, CancellationToken token = default)
-        => ExchangeOwnedMediaRunAsync(run, "cancel_run", token);
+        => ExchangeOwnedMediaRunAsync(run, run.Resume is null ? "cancel_run" : "cancel_resume", token);
     internal Task<DeviceFileRunResult> OfferNativeMediaRunAsync(NativeMediaSourceRun run, CancellationToken token = default)
-        => ExchangeOwnedMediaRunAsync(run, "offer_run", token);
+        => ExchangeOwnedMediaRunAsync(run, run.Resume is null ? "offer_run" : "offer_resume", token);
     internal Task<DeviceFileRunResult> EndNativeMediaRunAsync(NativeMediaSourceRun run, CancellationToken token = default)
-        => ExchangeOwnedMediaRunAsync(run, "end_run", token);
+        => ExchangeOwnedMediaRunAsync(run, run.Resume is null ? "end_run" : "end_resume", token);
     internal Task<DeviceFileRunResult> EndNativeMediaAlbumAsync(NativeMediaSourceRun run, CancellationToken token = default)
         => ExchangeOwnedMediaRunAsync(run, "end_album", token);
 
     private async Task<DeviceFileRunResult> ExchangeOwnedMediaRunAsync(NativeMediaSourceRun run, string operation, CancellationToken token)
     {
-        var ended = operation == "end_album"; var cleanup = operation != "offer_run";
+        var ended = operation == "end_album"; var offering = operation is "offer_run" or "offer_resume";
+        var cleanup = !offering;
         RequireOwnedMediaRun(run, ended);
         // Cleanup deliberately bypasses saved positive choice/root/data/video
         // readiness: only this retained source lease can address this exact run.
@@ -90,9 +92,10 @@ internal sealed partial class TelefonConnection
         {
             RequireOwnedMediaRun(run, ended); read?.Invoke();
             var state = run.Result;
-            if (operation == "offer_run" && (state.State != "snapshot_ready" || !state.SourceIoEnded) ||
-                operation == "offer_run" && run.Pages.Count != 0 && run.Pages[^1].NextCursor is not null ||
-                operation == "end_run" && !state.SourceIoEnded || ended && !state.RunEnded)
+            if (offering && (state.State != "snapshot_ready" || !state.SourceIoEnded) ||
+                offering && run.Pages.Count != 0 && run.Pages[^1].NextCursor is not null ||
+                operation == "offer_resume" && run.Pages.Count == 0 ||
+                (operation is "end_run" or "end_resume") && !state.SourceIoEnded || ended && (!state.RunEnded || run.Resume is not null))
                 throw DeviceFileControl.Error("file_sources_native_run_not_quiescent");
         }
         Require();
@@ -105,7 +108,7 @@ internal sealed partial class TelefonConnection
                 lock (fileRouteGate)
                 {
                     var old = run.Result;
-                    if (operation == "offer_run" && run.Pages.Count != 0 && result.ManifestSha256 != run.Pages[0].ManifestSha256)
+                    if (offering && run.Pages.Count != 0 && result.ManifestSha256 != run.Pages[0].ManifestSha256)
                         throw DeviceFileControl.Error("file_sources_native_offer_manifest_changed");
                     if (!result.RunEnded && (old.Batched != result.Batched || old.Batched && old.BatchEnd is not null && old.BatchEnd != result.BatchEnd) ||
                         old.SourceIoEnded && !result.SourceIoEnded ||
@@ -114,7 +117,7 @@ internal sealed partial class TelefonConnection
                         throw DeviceFileControl.Error("file_sources_native_run_state_rollback");
                     // END replies omit batch_end; retain album cursor provenance.
                     run.Update(result.RunEnded ? result with { Batched = old.Batched, BatchEnd = old.BatchEnd } : result);
-                    if (operation == "end_run")
+                    if (operation is "end_run" or "end_resume")
                     {
                         nativeMediaSourceRun = null;
                         if (old.Batched) nativeEndedMediaBatch = run;
@@ -178,10 +181,11 @@ internal sealed partial class TelefonConnection
                     throw DeviceFileControl.Error("file_sources_native_media_page_not_ready");
         }
         Require();
-        var message = DeviceFileSources.CreateRequest("media_page", Now(), run.Lease.Version, runId: run.Lease.RunId, after: after, mediaType: run.Lease.MediaType);
+        var operation = run.Resume is null ? "media_page" : "resume_media_page";
+        var message = DeviceFileSources.CreateRequest(operation, Now(), run.Lease.Version, runId: run.Lease.RunId, after: after, mediaType: run.Lease.MediaType);
         return await ExchangeNativeSourceCommandAsync<DeviceFileMediaPage>(choice, message, DeviceFileSources.MediaKind,
             raw => DeviceFileSources.ParseMediaPage(raw, message["message_id"]!.GetValue<string>(), run.Lease.Version, run.Lease.RunId, Now(), after,
-                expectedMediaType: run.Lease.MediaType), Require, token, accept: (_, value) =>
+                expectedManifestSha256: run.Resume?.Selection.Manifest.Fingerprint, expectedMediaType: run.Lease.MediaType, expectedOperation: operation), Require, token, accept: (_, value) =>
             {
                 var page = (DeviceFileMediaPage)value;
                 lock (fileRouteGate)
@@ -192,12 +196,46 @@ internal sealed partial class TelefonConnection
                         run.Pages.SelectMany(old => old.Entries).Any(old => page.Entries.Any(entry => old.FileId == entry.FileId || old.PhotoId == entry.PhotoId)) ||
                         run.Result.ManifestSha256 is not null && run.Result.ManifestSha256 != page.ManifestSha256)
                         throw DeviceFileControl.Error("file_sources_native_media_scope_changed");
+                    if (run.Resume is not null && page.NextCursor is null)
+                        DeviceFileSources.CorrelateMediaPages(run.Pages.Append(page).ToArray(), run.Resume.Selection.Manifest);
                     run.AlbumScope = scope; run.Pages.Add(page);
                 }
             });
     }
 
     internal sealed record NativeMediaResumeLookup(TelefonStore.NativeMediaResumeSelection Selection, DeviceFileResumeHistory History);
+
+    internal async Task<NativeMediaSourceRun> StartNativeMediaResumeAsync(NativeMediaResumeLookup original,
+        TelefonStore.NativeMediaReceiveJob recovered, string catalogId, string albumId, bool desktopChoice, CancellationToken token = default)
+    {
+        var selected = original.Selection; var remote = original.History;
+        if (selected.PeerId != peer.Id) throw DeviceFileControl.Error("file_receive_foreign_resume_selection");
+        var choice = CaptureNativeSourceChoice(selected.MediaType, true, true); var read = NativeSourceReadGuard(choice, remote.Version);
+        void Require()
+        {
+            read(); recovered.RequireRecoveredSourceResume(selected, remote);
+            lock (fileRouteGate)
+                if (nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null || choice.Destination?.Version != selected.DestinationVersion)
+                    throw DeviceFileControl.Error("file_sources_native_original_run_pending");
+        }
+        Require();
+        var message = DeviceFileSources.CreateRequest("resume_run", Now(), remote.Version, catalogId: catalogId, albumId: albumId,
+            desktopChoice: desktopChoice, mediaType: selected.MediaType, originalJobId: remote.JobId, originalJobVersion: remote.JobVersion);
+        NativeMediaSourceRun? retained = null;
+        await ExchangeNativeSourceCommandAsync<DeviceFileRunResult>(choice, message, DeviceFileSources.RunResultKind,
+            raw => DeviceFileSources.ParseRunResult(raw, message["message_id"]!.GetValue<string>(), "resume_run", remote.Version, Now(), expectedMediaType: selected.MediaType),
+            Require, token, accept: (ticket, value) =>
+            {
+                var result = (DeviceFileRunResult)value;
+                lock (fileRouteGate)
+                {
+                    var lease = choice.Owner.RetainSourceRun(ticket, result.RunId, result.Version, selected.MediaType);
+                    retained = new(choice.Owner, lease, catalogId, albumId, desktopChoice, result) { Resume = original };
+                    nativeMediaSourceRun = retained;
+                }
+            });
+        return retained ?? throw DeviceFileControl.Error("file_sources_native_original_run_required");
+    }
 
     internal async Task<NativeMediaResumeLookup> LookupNativeMediaResumeAsync(TelefonStore.NativeMediaResumeSelection selected,
         string sourceVersion, CancellationToken token = default)

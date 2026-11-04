@@ -624,8 +624,9 @@ Later replies cannot replace those original source IDs. Stale local versions,
 another source manifest, wrong request/media, extended reply lifetime or missing
 attempt tokens HOLD. Historical selection/remote Saved hints grant neither
 resume nor current file access. This does not yet reopen/recover staged files or
-start `resume_run`; partial-byte recovery and receipt-driven END retirement remain
-unjoined and must not be replaced by an ordinary new job.
+start `resume_run`; the native checkpoint/source-resume join below adds those
+explicit operations without replacing the original job. Receipt-driven END
+retirement remains unjoined.
 
 Current physical Windows proof: ten new lifecycle groups (including pure grammar
 and cleanup-lease boundaries), seven changed shared-command guard regressions and
@@ -636,10 +637,58 @@ a physical phone provider or installed application acceptance. Existing unchange
 quota and real no-reply timeout proofs are retained, not rerun. Build: zero
 warnings/errors. Source/video golden and pure lifecycle tests also pass on Linux.
 
-Still missing: stage/chunk checkpoint recovery, actual resumed-run receiving,
+Native checkpoint/source-resume operations are added below. Still missing:
 incoming offer/chunk/Saved routing and original-job/cache END retirement, native
 album/mapping/worker/UI join and Android recoverable trash/restore. No APK/EXE,
 installed-system update or gate activation is claimed by this source change.
+
+### Windows durable original-stage recovery and resumed source commands (Refs #330, #335)
+
+Native receiving now flushes each verified chunk to its actual held file before
+committing and reading back a bounded `{size, sha256}` prefix checkpoint in that
+same original file member. Exact duplicate chunks do not rotate the job version.
+The live prefix digest is incremental; recovery rereads the actual held prefix,
+not a sender buffer or serialized hash state. A write/checkpoint commit failure
+holds the owner and preserves bytes. This adds no per-chunk unbounded history or
+larger job/cache quotas.
+
+`RecoverNativeMediaReceiveJob` requires exact protected original history,
+correlated saved phone job identity, current native choice/data binding and the
+original destination. It opens the recorded stage/file identities via the held
+parent handles using **open-only**, not create/truncate. Inventory, plain-file
+link count, original file IDs, exact checkpoint size and actual prefix SHA-256
+must all match. Only those authenticated held bytes rebuild the original ledger;
+new chunks continue at its missing offset in the same job. A changed prefix,
+uncommitted tail, replacement file, unknown child or missing member HOLD without
+deleting, trimming, adopting or recreating files. Legacy uncheckpointed jobs and
+uncertain partially published jobs are conservatively held, not auto-migrated.
+
+`StartNativeMediaResumeAsync` requires that actual live recovered owner and its
+exact original lookup selection; a disposed/unrecovered/new ordinary job is not
+a substitute. It sends the phone's correlated original job ID/version in
+`resume_run`, and retains source ownership only after a validated reply. Resumed
+metadata/offer/status/cancel/END use their dedicated operation names. Complete
+resumed media pages must correlate with the original manifest's file IDs/count
+and fingerprint before offer. Status/cancel/END retain the metadata-only cleanup
+path after receive withdrawal. Actual source END still does not retire local
+bytes, historical jobs or cache reservations.
+
+Physical Windows proof: the combined run passes 23 groups (13 lifecycle, seven
+shared-command regressions, three receive/publication/key regressions). After the
+additional original-manifest media guard, the three affected recovery groups
+pass again: actual 64-KiB interrupted-prefix reopen/duplicate/new chunk/original
+publication; five byte/identity/inventory mutation HOLDs preserving every file
+and history version; actual original-source resume command/media/offer followed
+by post-withdrawal dedicated cancel/END, including rejection of a wrong resumed
+file ID. The current build has zero warnings/errors. The tests use real Windows
+file handles, DPAPI and encrypted control output/dispatch with synthetic source
+replies; local resumed chunks enter the explicit native API, not yet a wired
+incoming Android data route. No full phone sync/installed GUI proof is claimed.
+
+Still missing: incoming offer/chunk/Saved transport, receipt-driven original-job
+and source cache retirement, legacy/uncertain publication recovery UI, native
+album/mapping/worker/UI and Android recoverable trash/restore. Gates stay OFF;
+no APK/EXE, installed-system update or public release is produced by these APIs.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 

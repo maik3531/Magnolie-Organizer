@@ -295,6 +295,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native run lifecycle / Windows correlated original source resume history", DeviceFileConnectionRunsTests.WindowsOriginalSourceResumeHistoryAsync);
     runner.Add("Device file native run lifecycle / Windows resume correlation and expiry HOLD", DeviceFileConnectionRunsTests.WindowsResumeCorrelationAndExpiryAsync);
     runner.Add("Device file native run lifecycle / Windows stale local resume owner HOLD", DeviceFileConnectionRunsTests.WindowsResumeStaleLocalOwnerAsync);
+    runner.Add("Device file native run lifecycle / Windows actual original checkpoint recovery", DeviceFileConnectionRunsTests.WindowsActualCheckpointRecoveryAsync);
+    runner.Add("Device file native run lifecycle / Windows checkpoint mutation preserves bytes", DeviceFileConnectionRunsTests.WindowsCheckpointMutationHoldAsync);
+    runner.Add("Device file native run lifecycle / Windows recovered source resume and metadata cleanup", DeviceFileConnectionRunsTests.WindowsRecoveredSourceResumeAndCleanupAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

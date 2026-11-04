@@ -16,14 +16,14 @@ internal static class DeviceFileConnectionRunsTests
     private static JsonObject Reply(JsonObject request, string runId, string state, bool? batchEnd = null)
     {
         var operation = request["body"]!["operation"]!.GetValue<string>();
-        var ending = operation is "end_run" or "end_album";
+        var ending = operation is "end_run" or "end_album" or "end_resume";
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var body = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = operation,
             ["version"] = Version, ["run_id"] = runId, ["state"] = state,
             ["source_io_ended"] = state is "snapshot_ready" or "empty_ready" or "canceled_held" or "failed_held" };
         if (ending) body["run_ended"] = true;
-        else body["batch_end"] = batchEnd;
-        if (operation == "offer_run") { body["offer_id"] = Guid.NewGuid().ToString("D"); body["manifest_sha256"] = new string('a', 64); }
+        else if (!operation.Contains("resume", StringComparison.Ordinal)) body["batch_end"] = batchEnd;
+        if (operation is "offer_run" or "offer_resume") { body["offer_id"] = Guid.NewGuid().ToString("D"); body["manifest_sha256"] = new string('a', 64); }
         return new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
             ["kind"] = DeviceFileSources.RunResultKind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body };
     }
@@ -31,7 +31,7 @@ internal static class DeviceFileConnectionRunsTests
     private static JsonObject Media(JsonObject request, string runId, int after = 0, bool more = false, string? epoch = null)
     {
         var reply = Reply(request, runId, "snapshot_ready", false); reply["kind"] = DeviceFileSources.MediaKind;
-        reply["body"] = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = "media_page", ["version"] = Version,
+        reply["body"] = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = request["body"]!["operation"]!.DeepClone(), ["version"] = Version,
             ["run_id"] = runId, ["page"] = new JsonObject { ["format"] = 1, ["manifest_sha256"] = new string('a', 64), ["source_epoch"] = epoch ?? new string('e', 64),
                 ["media_type"] = "images", ["insertion_witness"] = true, ["after"] = after, ["next_cursor"] = more ? after + 1 : null,
                 ["total_files"] = 2, ["entries"] = new JsonArray(new JsonObject { ["file_id"] = (after + 1).ToString("x32"), ["photo_id"] = new string(after == 0 ? 'b' : 'c', 64), ["media_kind"] = "image" }) } };
@@ -236,5 +236,100 @@ internal static class DeviceFileConnectionRunsTests
         await Fails(f.Native.Connection.HandlePlainAsync(reply)); await Fails(pending);
         TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Version == newer.Version,
             "A delayed source history reply overwrote a newer original local history owner.");
+    }
+
+    private static async Task<TelefonStore.NativeMediaResumeSelection> Original(DeviceFileReceiveJobTests.Fixture f, string jobId, string version, DeviceFileManifest manifest)
+    {
+        var selected = f.Native.Store.SelectNativeMediaResume(f.Native.Peer.Id, jobId, version);
+        Clear(f); var pending = f.Native.Connection.LookupNativeMediaResumeAsync(selected, Version); var request = Request(f);
+        await f.Native.Connection.HandlePlainAsync(Resume(request, manifest, Guid.NewGuid().ToString("N")));
+        return (await pending).Selection;
+    }
+
+    internal static async Task WindowsActualCheckpointRecoveryAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+        var bytes = Enumerable.Range(0, 70000).Select(index => (byte)(index % 251)).ToArray(); var manifest = f.Manifest(("recovered.jpg", bytes));
+        var original = f.Begin(manifest); var id = original.JobId;
+        original.ReceiveChunk(manifest.Files[0].Id, 0, bytes[..DeviceFileManifest.ChunkBytes]); var version = original.Version; original.Dispose();
+        var selected = await Original(f, id, version, manifest);
+        using var recovered = f.Native.Store.RecoverNativeMediaReceiveJob(selected, f.Current);
+        TestAssert.That(recovered.JobId == id && recovered.Version == selected.Version, "Recovery fabricated a new job or progress version.");
+        recovered.ReceiveChunk(manifest.Files[0].Id, 0, bytes[..DeviceFileManifest.ChunkBytes]); // Exact old duplicate from rebuilt original ledger.
+        TestAssert.That(recovered.Version == selected.Version, "Exact duplicate checkpoint rewrote original history.");
+        recovered.ReceiveChunk(manifest.Files[0].Id, 1, bytes[DeviceFileManifest.ChunkBytes..]); recovered.PublishAll(); recovered.Dispose();
+        TestAssert.That(File.ReadAllBytes(Path.Combine(f.Root, "recovered.jpg")).SequenceEqual(bytes) &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().JobId == id, "Recovered original bytes/job did not publish correctly.");
+        TestAssert.Throws<InvalidDataException>(() => f.Native.Store.RecoverNativeMediaReceiveJob(selected, f.Current), "Stale original checkpoint owner reopened published bytes.");
+    }
+
+    internal static async Task WindowsCheckpointMutationHoldAsync()
+    {
+        foreach (var change in new[] { "prefix", "tail", "replacement", "unknown", "missing" })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+            var bytes = new byte[70000]; var manifest = f.Manifest(("held-recovery.jpg", bytes));
+            var job = f.Begin(manifest); job.ReceiveChunk(manifest.Files[0].Id, 0, bytes[..DeviceFileManifest.ChunkBytes]);
+            var id = job.JobId; var version = job.Version; job.Dispose();
+            var selected = await Original(f, id, version, manifest);
+            var stage = Path.Combine(f.Root, ".magnolie-receive-" + id); var payload = Path.Combine(stage, manifest.Files[0].Id + ".part");
+            if (change == "prefix") { using var edit = File.OpenWrite(payload); edit.WriteByte(1); }
+            if (change == "tail") { using var edit = new FileStream(payload, FileMode.Append); edit.WriteByte(1); }
+            if (change == "replacement") { File.Move(payload, payload + ".original"); File.WriteAllBytes(payload, bytes[..DeviceFileManifest.ChunkBytes]); File.Move(payload + ".original", Path.Combine(f.Root, "held-original-part")); }
+            if (change == "unknown") File.WriteAllText(Path.Combine(stage, "unknown"), "keep unrelated original evidence");
+            if (change == "missing") File.Move(payload, Path.Combine(f.Root, "held-original-part"));
+            var before = Directory.EnumerateFiles(f.Root, "*", SearchOption.AllDirectories).ToDictionary(path => path, File.ReadAllBytes);
+            try { using var unexpected = f.Native.Store.RecoverNativeMediaReceiveJob(selected, f.Current); throw new InvalidOperationException("Mutated original checkpoint was recovered: " + change); }
+            catch (InvalidDataException) { }
+            TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Version == selected.Version &&
+                before.All(item => File.ReadAllBytes(item.Key).SequenceEqual(item.Value)) && Directory.EnumerateFiles(f.Root, "*", SearchOption.AllDirectories).Count() == before.Count,
+                "Recovery HOLD changed/recreated/truncated original files/history: " + change);
+        }
+    }
+
+    internal static async Task WindowsRecoveredSourceResumeAndCleanupAsync()
+    {
+        await RecoveredSourceResumeAsync(false);
+        await RecoveredSourceResumeAsync(true);
+    }
+
+    private static async Task RecoveredSourceResumeAsync(bool invalidMember)
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var bytes = "original cache"u8.ToArray(); var manifest = f.Manifest(("resume-source.jpg", bytes));
+        var original = f.Begin(manifest); original.ReceiveChunk(manifest.Files[0].Id, 0, bytes);
+        var selected = f.Native.Store.SelectNativeMediaResume(f.Native.Peer.Id, original.JobId, original.Version); original.Dispose();
+        Clear(f); var lookupTask = f.Native.Connection.LookupNativeMediaResumeAsync(selected, Version); var request = Request(f);
+        var phoneJobId = Guid.NewGuid().ToString("N"); await f.Native.Connection.HandlePlainAsync(Resume(request, manifest, phoneJobId)); var lookup = await lookupTask;
+        using var recovered = f.Native.Store.RecoverNativeMediaReceiveJob(lookup.Selection, f.Current);
+        Clear(f); var start = f.Native.Connection.StartNativeMediaResumeAsync(lookup, recovered, Catalog, Album, true); request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "resume_run" && request["body"]!["original_job_id"]!.GetValue<string>() == phoneJobId &&
+            request["body"]!["original_job_version"]!.GetValue<string>() == lookup.History.JobVersion && phoneJobId != recovered.JobId,
+            "Resumed source command substituted desktop/new job identity.");
+        var runId = Guid.NewGuid().ToString("D"); await f.Native.Connection.HandlePlainAsync(Reply(request, runId, "snapshot_ready")); var run = await start;
+        Clear(f); await Fails(f.Native.Connection.OfferNativeMediaRunAsync(run));
+        var pages = f.Native.Connection.ReadNativeMediaPageAsync(run); request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "resume_media_page", "Resumed source metadata used ordinary-run scope.");
+        var page = Media(request, runId); page["body"]!["page"]!["total_files"] = 1; page["body"]!["page"]!["manifest_sha256"] = manifest.Fingerprint;
+        if (invalidMember)
+        {
+            page["body"]!["page"]!["entries"]![0]!["file_id"] = new string('2', 32);
+            await Fails(f.Native.Connection.HandlePlainAsync(page)); await Fails(pages);
+            return;
+        }
+        await f.Native.Connection.HandlePlainAsync(page); await pages;
+        Clear(f); var offer = f.Native.Connection.OfferNativeMediaRunAsync(run); request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "offer_resume", "Original source resume fell back to ordinary offer.");
+        var offered = Reply(request, runId, "snapshot_ready"); offered["body"]!["manifest_sha256"] = manifest.Fingerprint;
+        await f.Native.Connection.HandlePlainAsync(offered); await offer;
+        var before = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id); f.Native.Store.SetNativeMediaPreferences(f.Native.Peer.Id, before.Version, false, false, false);
+        f.Local = new(new(8, new string('e', 64), false, false), f.Local.Owner, false);
+        Clear(f); var cancel = f.Native.Connection.CancelNativeMediaRunAsync(run); request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "cancel_resume", "Resume cleanup lost original operation.");
+        await f.Native.Connection.HandlePlainAsync(Reply(request, runId, "canceled_held")); await cancel;
+        Clear(f); var end = f.Native.Connection.EndNativeMediaRunAsync(run); request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "end_resume", "Resume END used ordinary cleanup.");
+        await f.Native.Connection.HandlePlainAsync(Reply(request, runId, "canceled_held")); await end;
+        TestAssert.That(run.Result.RunEnded && f.Native.Connection.CurrentNativeMediaSourceRun is null &&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Phase == "receiving", "Metadata resume END retired/erased local bytes or left a stale source owner.");
     }
 }

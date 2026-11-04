@@ -68,6 +68,34 @@ internal sealed partial class DeviceFileNativeDirectory
         });
     }
 
+    internal DeviceFileNativeDirectory OpenOriginalChild(string nativeName, Identity expected)
+    {
+        var name = ReceiveLeaf(nativeName);
+        return WithHandle(parent =>
+        {
+            RequireReceive();
+            var child = new DeviceFileNativeDirectory(OpenRelative(parent, name, ReadDirectoryAccess | 6,
+                ShareDirectory, OpenOnly, DirectorySynchronousNoReparse), true);
+            try
+            {
+                if (child.CurrentIdentity() != expected) throw DeviceFileControl.Error("file_destination_original_stage_required");
+                return child;
+            }
+            catch { child.Dispose(); throw; }
+        });
+    }
+
+    internal DeviceFileNativeStagedFile OpenOriginalStagedFile(string nativeName, Identity expected, long size, string prefixSha256)
+    {
+        var name = ReceiveLeaf(nativeName);
+        return WithHandle(parent =>
+        {
+            RequireReceive();
+            return new DeviceFileNativeStagedFile(this, OpenRelative(parent, name, 0xc0110000,
+                ShareRead, OpenOnly, FileSynchronousNoReparse), expected, size, prefixSha256);
+        });
+    }
+
     internal Identity FileIdentityAt(string nativeName)
     {
         var name = ReceiveLeaf(nativeName);
@@ -133,19 +161,44 @@ internal sealed partial class DeviceFileNativeDirectory
         private readonly SafeFileHandle file;
         private readonly object fileGate = new();
         private readonly Identity originalIdentity;
+        private readonly IncrementalHash prefix = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         private long written;
         private bool closed, published;
         internal sealed record Observation(Identity Identity, long Size);
 
-        internal DeviceFileNativeStagedFile(DeviceFileNativeDirectory parent, SafeFileHandle file)
+        internal DeviceFileNativeStagedFile(DeviceFileNativeDirectory parent, SafeFileHandle file,
+            Identity? expectedIdentity = null, long expectedSize = 0, string? expectedPrefix = null)
         {
             originalParent = parent; this.file = file;
             try
             {
                 var observed = ReadFile(file); originalIdentity = observed.Identity;
-                if (observed.Size != 0) throw DeviceFileControl.Error("file_destination_new_stage_not_empty");
+                if (expectedIdentity is null)
+                {
+                    if (observed.Size != 0) throw DeviceFileControl.Error("file_destination_new_stage_not_empty");
+                }
+                else
+                {
+                    if (observed.Identity != expectedIdentity || observed.Size != expectedSize || expectedSize < 0 || expectedSize > DeviceFileManifest.MaxFileBytes ||
+                        !DeviceFileControl.Hash(expectedPrefix)) throw DeviceFileControl.Error("file_destination_original_checkpoint_required");
+                    written = expectedSize;
+                    var buffer = new byte[DeviceFileManifest.ChunkBytes]; long position = 0;
+                    try
+                    {
+                        while (position < written)
+                        {
+                            var count = RandomAccess.Read(file, buffer.AsSpan(0, (int)Math.Min(buffer.Length, written - position)), position);
+                            if (count == 0) throw DeviceFileControl.Error("file_destination_stage_short_read");
+                            prefix.AppendData(buffer.AsSpan(0, count)); position += count;
+                        }
+                    }
+                    finally { CryptographicOperations.ZeroMemory(buffer); }
+                    if (Convert.ToHexString(prefix.GetCurrentHash()).ToLowerInvariant() != expectedPrefix)
+                        throw DeviceFileControl.Error("file_destination_original_checkpoint_changed");
+                    Current();
+                }
             }
-            catch { file.Dispose(); throw; }
+            catch { prefix.Dispose(); file.Dispose(); throw; }
         }
 
         private void Current()
@@ -160,6 +213,16 @@ internal sealed partial class DeviceFileNativeDirectory
         internal Observation Observe()
         {
             lock (fileGate) { Current(); return ReadFile(file); }
+        }
+
+        internal (long Size, string Sha256) DurableCheckpoint()
+        {
+            lock (fileGate)
+            {
+                Current();
+                if (!FlushFileBuffers(file)) throw NativeFailure("file_destination_stage_flush_failed");
+                Current(); return (written, Convert.ToHexString(prefix.GetCurrentHash()).ToLowerInvariant());
+            }
         }
 
         internal byte[] ReadExact(long offset, int count)
@@ -194,6 +257,7 @@ internal sealed partial class DeviceFileNativeDirectory
                 RandomAccess.Write(file, bytes, offset);
                 written += bytes.Length;
                 Current();
+                prefix.AppendData(bytes);
             }
         }
 
@@ -279,7 +343,7 @@ internal sealed partial class DeviceFileNativeDirectory
 
         public void Dispose()
         {
-            lock (fileGate) { if (closed) return; closed = true; file.Dispose(); }
+            lock (fileGate) { if (closed) return; closed = true; prefix.Dispose(); file.Dispose(); }
         }
     }
 
