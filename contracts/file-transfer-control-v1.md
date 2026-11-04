@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Typed desktop video source owner (Refs #330, receiver admission pending)
+
+Under the still-OFF private video-data gate, the desktop source lane now joins
+typed ordinary/batch starts and their media/offer/status/cancel/END commands.
+Follow-up scope derives from the correlated source owner, not a filename or an
+incoming token. An explicit conflicting scope is rejected before output. Active
+source and receive owners must agree on media type; the local receive owner
+captures its media scope independently of later source-owner retirement.
+
+The actual offer observer resolves video through the independent current video
+token/root, never the photo fallback. Positive commands recheck private readiness,
+current capability and consent; exact already-owned video status/cancel/END can
+finish after video capability, local consent or private readiness withdrawal
+under unchanged base configuration authority. No new local READ is authorized
+by these closing commands. Receiver admission still rejects the unfinished video
+target/transfer join, and no video worker/UI is exposed.
+
+Source-owner tests cover typed pages/offers and refusal before native receiver
+reservation, correct video binding, three withdrawal directions, conflicting
+image cancellation, post-withdrawal END, pending-command gate withdrawal and
+invalid scope aliases. Existing native photo receive/source and original-stage
+stop/resume/Saved-END paths remain green. These desktop protocol fixtures are not
+new Android/physical-device acceptance or complete video synchronization.
+
 ### Independent native desktop video binding (Refs #330, admission still closed)
 
 The native binding resolver now accepts an explicit media scope. Video resolves
@@ -13,8 +37,8 @@ Seven native binding cases cover default refusal, original root/token, unchanged
 photo grants, lower-level accepted-destination verification, video withdrawal,
 local OFF, missing/replaced roots and withdrawal during root verification. The
 23 existing actual photo receiver cases still pass. These are binding checks,
-not an admitted video source/worker: typed video data commands and the receiver
-admission guard remain closed until per-run media ownership and stop/END join.
+not an admitted video receiver/worker: positive source commands require the
+private gate, and receiver admission remains closed pending the transfer join.
 
 ### Live desktop video metadata commands (Refs #330, data join still closed)
 
@@ -30,8 +54,9 @@ same-revision mutation as well as the existing global policy witness. Dedicated
 video configuration does not wait for a changed photo FileControl echo; its
 successful metadata reply alone still grants no READ. Explicit video OFF can
 complete after capability withdrawal with the native legacy-shaped reply.
-Video catalogs cannot be used by image run selection. Video run/worker admission
-remains explicitly closed until its independent target/binding join is complete.
+Video catalogs cannot be used by image run selection. Video receiver/worker
+admission remains explicitly closed pending the remaining target/transfer join;
+typed source ownership is described above.
 
 ### Video history across renewed source epochs (Refs #330, inert guard)
 

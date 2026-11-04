@@ -343,7 +343,15 @@ class NativeDesktopFileConnection:
 
     def _source_command_authority(self, pending, clock):
         self._receiving_policy()
-        if (pending.command.media_type=='video' or pending.command.operation=='configure_videos' and pending.command.enabled):
+        closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album')
+        if pending.command.media_type=='video' and closing:
+            owner=self._ended_batch if pending.command.operation=='end_album' else self._source_run
+            if owner is None or owner.run_id!=pending.command.run_id or owner.media_type!='video':
+                raise TransferError('file_desktop_video_source_owner_changed')
+        elif (pending.command.media_type=='video' or pending.command.operation=='configure_videos' and pending.command.enabled):
+            if (pending.command.media_type=='video' and pending.command.operation not in ('discover','catalog_page','request_read')
+                    and not self._video_data_handlers_ready):
+                raise TransferError('file_desktop_video_data_join_unavailable')
             scope=self._require_video_metadata_scope()
             if scope.version!=pending.video_policy_version:raise TransferError('file_desktop_video_policy_changed')
         if not self._controls.receiver_command_current(pending.ticket):
@@ -517,12 +525,21 @@ class NativeDesktopFileConnection:
                 if witness is None or witness[0] != required[0] or witness[1] <= required[1]:
                     raise TransferError('file_desktop_source_controls_pending')
             options = {}
+            follow=('run_status','cancel_run','offer_run','media_page','end_run')
+            owner=self._source_run if operation in follow else self._ended_batch if operation in ('next_batch','end_album') else None
+            if owner is not None:
+                if media_type is not None and media_type!=owner.media_type:
+                    raise TransferError('file_desktop_source_media_scope_changed')
+                if owner.media_type=='video':media_type='video'
             if media_type is not None:
                 source_messages._media_type(media_type)
                 if operation not in source_messages.SCOPED_OPERATIONS:
                     raise TransferError('file_desktop_source_invalid_options')
                 if media_type=='video' and operation not in ('discover','catalog_page','request_read'):
-                    raise TransferError('file_desktop_video_data_join_unavailable')
+                    closing=operation in ('run_status','cancel_run','end_run','end_album') and owner is not None
+                    if (operation not in ('run','batch_run','next_batch','run_status','cancel_run','offer_run','media_page','end_run','end_album')
+                            or not closing and not self._video_data_handlers_ready):
+                        raise TransferError('file_desktop_video_data_join_unavailable')
                 options['media_type']=media_type
             if operation != 'status':
                 if self._source_status is None or self._source_status.repair_pending:
@@ -616,7 +633,8 @@ class NativeDesktopFileConnection:
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
             video_policy_version=None
-            if command.media_type=='video' or operation=='configure_videos' and command.enabled:
+            if (command.media_type=='video' and operation not in ('run_status','cancel_run','end_run','end_album')
+                    or operation=='configure_videos' and command.enabled):
                 video_policy_version=self._require_video_metadata_scope().version
             ticket = self._controls.receiver_command_ticket()
             self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
@@ -824,7 +842,14 @@ class NativeDesktopFileConnection:
         if scope.version!=snapshot.version:raise TransferError('file_desktop_video_policy_changed')
         return scope.policy.videos.destination
 
-    def _receive_binding(self,*,media_type='images'):
+    def _receive_binding(self,*,media_type=None):
+        if media_type is not None:source_messages._media_type(media_type)
+        owned=self._run.media_type if self._run is not None else self._source_run.media_type if self._source_run is not None else None
+        if self._run is not None and self._source_run is not None and self._source_run.media_type!=owned:
+            raise TransferError('file_desktop_source_media_scope_changed')
+        if media_type is not None and owned is not None and media_type!=owned:
+            raise TransferError('file_desktop_source_media_scope_changed')
+        media_type=media_type or owned or 'images'
         snapshot = self._receiving_policy()
         destination=self._receive_destination(snapshot,media_type=media_type)
         token=snapshot.policy.destination_token if media_type=='images' else snapshot.policy.videos.destination_token
@@ -1347,7 +1372,8 @@ class NativeDesktopFileConnection:
                 mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
             self._verify_job_mapping_store(history)
             action.validate(self)
-            self._run = _NativeDesktopReceiveRun(snapshot.version, accepted)
+            self._run = _NativeDesktopReceiveRun(snapshot.version, accepted,
+                media_type=self._source_run.media_type if self._source_run is not None else 'images')
             self._mutation_action = action
             try:
                 self._open_catalog()
@@ -1421,7 +1447,8 @@ class NativeDesktopFileConnection:
                 if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
                     raise TransferError('file_desktop_resume_media_association_changed')
             action.validate(self)
-            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job)
+            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,
+                media_type=self._source_run.media_type if self._source_run is not None else 'images')
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
                 protection.seal, protection.unseal, self._publication_gate)
             if self._run.stop_requested.is_set(): raise TransferError('file_desktop_receive_stop_requested')
@@ -1849,6 +1876,7 @@ class _NativeDesktopReceiveRun:
     request_output_started: bool = False
     stop_barrier_confirmed: bool = False
     saved_mapping_ready: bool = False
+    media_type: str = 'images'
 
 
 @dataclass(frozen=True)
