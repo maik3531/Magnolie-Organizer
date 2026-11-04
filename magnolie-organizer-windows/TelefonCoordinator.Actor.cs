@@ -1309,7 +1309,8 @@ internal sealed partial class TelefonCoordinator
         }
         var summary = completion.Summary();
         if (summary["saved"]!.GetValue<int>() == summary["expected"]!.GetValue<int>())
-        { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+        { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true;
+            store.RememberPersonalSuccess(admission.PeerId, admission.PublicKey, admission.Handle.ActorId, "manual", Now()); }
     }
 
     private static bool DeferPersonalActorPeerAcknowledgment(ActorAdmission admission, JsonObject message)
@@ -1625,7 +1626,8 @@ internal sealed partial class TelefonCoordinator
                     claimed.Completion.RecordPersisted(wire);
                     admission.NativeAcknowledgments.Remove(wire["message_id"]!.GetValue<string>());
                     if (claimed.Completion.Validator("finish", null) == true)
-                    { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true; }
+                    { registry.FinishCompletion(admission.Handle); admission.PhonePersisted = true;
+                        store.RememberPersonalSuccess(admission.PeerId, admission.PublicKey, admission.Handle.ActorId, "manual", Now()); }
                     return true;
                 });
                 if (!recorded) return;

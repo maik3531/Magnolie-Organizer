@@ -55,6 +55,33 @@ assert.equal(layouts[0], layouts[1], "Linux/Windows device-status DOM layout dri
       assert.ok(dialog.querySelector(".geraet-koerper > .geraet-seite > .geraet-telefon"));
       assert.ok(dialog.querySelector(".geraet-seite > .geraet-akku-zeile"));
       assert.equal(dialog.querySelectorAll(".geraet-dialog-knoepfe button").length, 2);
+      const statusNode = () => dialog.querySelector('.geraet-sync-status');
+      const unknown = locale === 'de' ? 'Unbekannt' : 'Unknown';
+      assert.ok(statusNode().textContent.includes(unknown), 'Legacy history must remain unknown');
+      const update = extra => b.w.App.telefonStand({ enabled: true, listening: true, peers: [{ ...peer, ...extra }],
+        bluetooth: { available: false, devices: [] }, kdeconnect: { available: false, paired: false, reason: 'no_device' } });
+      const finished = Date.UTC(2026, 10, 4, 13, 42);
+      for (const trigger of ['manual', 'auto_wifi', 'auto_connection']) {
+        update({ auto_wifi: trigger === 'manual', personal_sync_last_success: { format: 1, trigger, finished_ms: finished } });
+        const text = statusNode().textContent;
+        assert.ok(text.includes('2026') && /\d{2}:\d{2}/.test(text), 'Confirmed date/time missing');
+        assert.ok(text.includes(trigger === 'manual' ? (locale === 'de' ? 'Manuell' : 'Manually') :
+          (locale === 'de' ? 'Automatisch' : 'Automatic')), 'Actual trigger replaced by configured mode');
+        assert.ok(!text.includes('Handbuch'), 'Manual mistranslated as handbook');
+      }
+      for (const invalid of [null, {}, { format: 1, trigger: 'manual', finished_ms: true },
+        { format: 1, trigger: 'manual', finished_ms: -1 }, { format: 1, trigger: 'automatic', finished_ms: finished }]) {
+        update({ personal_sync_last_success: invalid, last_contact_ms: finished,
+          personal_sync_report: { state: 'complete', trigger: 'manual', finished_ms: finished } });
+        assert.ok(statusNode().textContent.includes(unknown), 'Raw report/contact or malformed metadata invented success');
+      }
+      update({ device_id: 'different-phone', personal_sync_last_success: { format: 1, trigger: 'manual', finished_ms: finished } });
+      assert.ok(statusNode().textContent.includes(unknown), 'Another phone supplied last success');
+      update({ personal_sync_last_success: { format: 1, trigger: 'manual', finished_ms: finished } });
+      const beforeRefresh = b.messages.length;
+      dialog.querySelector('.geraet-dialog-knoepfe button').click();
+      assert.ok(b.messages.slice(beforeRefresh).some(message => message.cmd === 'telefon_stand'),
+        'Refresh must fetch confirmed native sync metadata, including offline');
       assert.equal(JSON.stringify(b.t.daten()), before, "opening connection/status changed saved user data or grants");
       // Existing startup capability advertisement is not a grant/settings/run.
       assert.deepEqual(b.messages.filter(message => message.cmd !== "personal_sync_desktop_features" &&

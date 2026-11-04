@@ -364,6 +364,7 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
     admission = service.personal_actor_admissions[handle.actor_id]
     admission.update(completion=completion,save_receipt=copy.deepcopy(completion.saved_book),phone_data_persisted=True,
         completion_native_acks={ack['message_id']:copy.deepcopy(ack)})
+    assert service.store.personal_success(peer['device_id']) is None
     if fault!='scope_wait': advance([])
     original = channel.send
     failures = [fault=='send']
@@ -383,6 +384,7 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
     if fault in ('send','metadata'):
         with pytest.raises(OSError if fault=='send' else sqlite3.DatabaseError): service.advance_personal_actor_completion(registry,handle)
         assert completion.summary()['saved']==0 and not admission.get('phone_persisted')
+        assert service.store.personal_success(peer['device_id']) is None
         assert registry.read_completion_controls(handle)==[]
         if fault=='metadata':
             with sqlite3.connect(service.store.database_path) as db: db.execute('DROP TRIGGER dispatch_ack_failure')
@@ -394,6 +396,7 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
         service.advance_personal_actor_completion(registry,handle)
         assert completion.summary()['saved']==0 and not admission.get('phone_persisted')
         assert registry.status(handle)['phase']=='cancelled'
+        assert service.store.personal_success(peer['device_id']) is None
         with sqlite3.connect(service.store.database_path) as db:
             assert db.execute('SELECT COUNT(*) FROM personal_actor_completion_wire').fetchone()[0]==0
         assert len(channel.sent)==(1 if fault=='post_send_book' else 0) and not events
@@ -401,6 +404,7 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
     elif fault in ('scope_wait','missing_data_receipt'):
         service.advance_personal_actor_completion(registry,handle)
         assert not channel.sent and completion.summary()['saved']==0
+        assert service.store.personal_success(peer['device_id']) is None
         if fault=='scope_wait': advance([])
         else: admission['phone_data_persisted']=True
         admission['completion_native_ack_next']=0
@@ -409,6 +413,8 @@ def test_native_ack_dispatch_uses_real_channel_return_and_protected_write(tmp_pa
     assert completion.summary()['saved']==1 and registry.read_completion_controls(handle)==[ack]
     assert all(wire==ack for wire in channel.sent) and not admission['completion_native_acks']
     assert book.save_state('native-completion-profile',True)==completion.saved_book and not events
+    assert service.store.personal_success(peer['device_id']) == dict(format=1,trigger='manual',finished_ms=
+        peer['personal_sync']['last_success']['finished_ms'])
 
 
 def test_native_ack_partial_claim_retries_only_unsent_frame_and_fences_reentry(tmp_path,monkeypatch):

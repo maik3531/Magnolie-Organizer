@@ -287,6 +287,16 @@ def _atomic(path, data, mode=0o600):
             pass
 
 
+def _personal_success_record(value):
+    if (type(value) is not dict or set(value) != {"format", "run_id", "peer_fingerprint", "trigger", "finished_ms"}
+            or type(value["format"]) is not int or value["format"] != 1 or not valid_uuid(value["run_id"], 4)
+            or type(value["peer_fingerprint"]) is not str or re.fullmatch("[0-9a-f]{64}", value["peer_fingerprint"]) is None
+            or type(value["trigger"]) is not str or value["trigger"] not in ("manual", "auto_wifi", "auto_connection")
+            or type(value["finished_ms"]) is not int or not 0 < value["finished_ms"] <= 253402300799999):
+        raise ValueError("invalid_personal_success_record")
+    return dict(value)
+
+
 class PhoneStore:
     """Phone-only identity, peer blob and SQLite queue."""
 
@@ -518,8 +528,8 @@ class PhoneStore:
                 or bluetooth["enabled"] != bool(bluetooth["address"])):
             raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
         personal = peer.get("personal_sync")
-        if (not isinstance(personal, dict) or set(personal) != {
-                "own_device", "remote_own_device", "auto_wifi", "last_report"}
+        if (not isinstance(personal, dict) or not {"own_device", "remote_own_device", "auto_wifi", "last_report"}<=set(personal)
+                or not set(personal)<={"own_device", "remote_own_device", "auto_wifi", "last_report", "last_success"}
                 or not isinstance(personal["own_device"], bool)
                 or not isinstance(personal["remote_own_device"], bool)
                 or not isinstance(personal["auto_wifi"], bool)
@@ -1295,6 +1305,41 @@ class PhoneStore:
         expected = durable or ("wifi_only" if trigger_bound and body.get("trigger") == "auto_wifi"
                                else "any" if trigger_bound and body.get("trigger") == "manual" else None)
         return row[0] if expected == row[0] else "invalid"
+
+    def personal_success(self, peer_id):
+        peers = [peer for peer in self.peers if peer.get("device_id") == peer_id and peer.get("state") == "paired"]
+        if len(peers) != 1:
+            return None
+        peer = peers[0]
+        stored = peer.get("personal_sync", {}).get("last_success")
+        if stored is None:
+            return None
+        try:
+            record = _personal_success_record(stored)
+        except ValueError:
+            return None  # Display metadata cannot renew or revoke data grants.
+        if record["peer_fingerprint"] != hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest():
+            return None
+        return {key: record[key] for key in ("format", "trigger", "finished_ms")}
+
+    def remember_personal_success(self, peer_id, static_public, run_id, trigger, finished_ms):
+        """Native confirmed-completion sink only; no queue/report receive calls."""
+        if len(self.peers) != 1:
+            return False
+        peer = self.peers[0]
+        if peer.get("device_id") != peer_id or peer.get("static_public") != static_public or peer.get("state") != "paired":
+            return False
+        value = _personal_success_record(dict(format=1, run_id=run_id, trigger=trigger, finished_ms=finished_ms,
+            peer_fingerprint=hashlib.sha256(unb64(static_public, 32)).hexdigest()))
+        old = peer["personal_sync"].get("last_success")
+        if old is not None:
+            old = _personal_success_record(old)
+            if old["peer_fingerprint"] == value["peer_fingerprint"] and (
+                    old["run_id"] == run_id or old["finished_ms"] >= finished_ms):
+                return False
+        peer["personal_sync"]["last_success"] = value
+        self.save_peers()
+        return True
 
     def outbox_message(self, peer_id, message_id):
         with sqlite3.connect(self.database_path) as db:
@@ -3085,7 +3130,8 @@ class PhoneService:
                             "auto_wifi": personal["auto_wifi"],
                            "personal_sync_active_auto": bool(
                                self.store.active_auto_run(peer_id)),
-                           "personal_sync_report": personal["last_report"]})
+                           "personal_sync_report": personal["last_report"],
+                           "personal_sync_last_success": self.store.personal_success(peer["device_id"])})
         for value in peers:
             photos=self.photo_sync_state(value['device_id'])
             if photos is not None:value['photo_sync']=photos
@@ -5803,6 +5849,7 @@ class PhoneService:
                     if completion.validate("finish", None) is True:
                         registry.finish_completion(handle)
                         admission["phone_persisted"] = True
+                        self._record_personal_success(admission["peer"],admission["key"],handle.actor_id,"manual",channel)
         finally:
             with self.lock:
                 admission["completion_native_ack_inflight"] = False
@@ -6122,6 +6169,7 @@ class PhoneService:
                         if completion.validate("finish", None) is True:
                             registry.finish_completion(handle)
                             admission["phone_persisted"] = True
+                            self._record_personal_success(admission["peer"],admission["key"],handle.actor_id,"manual",channel)
                     except (PermissionError, sqlite3.Error) as error:
                         from magnolie_personal_actor_completion import NativeBookProofPending
                         deferred = admission.get("completion_deferred_controls")
@@ -6518,7 +6566,8 @@ class PhoneService:
                     "transport": self.connection_transports.get(peer_id), "settings": settings,
                     "scope": reference, "local_capabilities": local,
                     "remote_capabilities": peer.get("capabilities"), "local_grants": peer.get("local_grants"),
-                    "remote_grants": peer.get("grants"), "own": peer.get("personal_sync", {})}
+                    "remote_grants": peer.get("grants"), "own": {key:value for key,value in peer.get("personal_sync", {}).items()
+                        if key!="last_success"}}
                 if completion_only:
                     del snapshot["scope"]
                     snapshot["purpose"] = "actor_terminal_receipt_only"
@@ -7174,13 +7223,26 @@ class PhoneService:
         peer["personal_sync"] = {"own_device": bool(own_device),
             "remote_own_device": True,
             "auto_wifi": bool(auto_wifi) if own_device else False,
-            "last_report": previous.get("last_report", {})}
+            "last_report": previous.get("last_report", {}),
+            **({"last_success":previous["last_success"]} if "last_success" in previous else {})}
         self.store.save_peers()
         self.store.remove_kind(peer_id, "personal_sync.settings")
         self.store.queue(peer_id, "personal_sync.settings",
                          {"format": 1, "own_device": bool(own_device)}, DAY_MS)
         self._queue_desktop_features(peer_id)
         self.callback("status", self.report())
+
+    def _record_personal_success(self, peer_id, static_public, run_id, trigger, channel):
+        # Called only after native actor completion or accepted report ACK.
+        # Reports received from the phone, queueing and failed attempts do not call it.
+        try:
+            with self.lock:
+                if self.connections.get(peer_id) is not channel:
+                    return False
+                changed = self.store.remember_personal_success(peer_id, static_public, run_id, trigger, now_ms())
+            return changed
+        except (OSError, ValueError, RuntimeError, sqlite3.Error):
+            return False # A display-metadata failure cannot roll back a completed data run.
 
     def send_personal_sync(self, peer_id, kind, body, trigger="manual"):
         with self.lock:
@@ -8521,12 +8583,23 @@ class PhoneService:
                         "status": payload["status"], "error": payload["error"]}
             if payload["status"] == "rejected" and payload["error"] == "temporary_failure":
                 return
+            success = None
+            if payload["status"] in {"accepted", "duplicate"} and queued and queued.get("kind") == "personal_sync.report":
+                try:
+                    report = validate_personal_sync_body("personal_sync.report", queued["body"])
+                    run = self.store.personal_run(peer["device_id"], report["run_id"])
+                    if report["state"] == "complete" and report["error"] == "none" and run.get("trigger") == report["trigger"]:
+                        success = (report["run_id"], report["trigger"])
+                except (ValueError, KeyError):
+                    pass
             decision_id = self.store.acknowledge(peer["device_id"], payload["message_id"],
                 (lambda body: self.callback("personal_custom_ack", {"device_id": peer["device_id"], "body": body}))
                 if payload["status"] in {"accepted", "duplicate"} else None)
             if decision_id and payload["status"] in {"accepted", "duplicate"}:
                 self.callback("personal_decision_accepted", {"device_id": peer["device_id"],
                               "decision_id": decision_id})
+            if success:
+                self._record_personal_success(peer["device_id"], peer["static_public"], *success, channel)
             return
         if payload.get("type") != "message":
             raise ValueError("unsupported secure payload")

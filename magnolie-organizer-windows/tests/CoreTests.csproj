@@ -70,6 +70,7 @@
     <Compile Include="..\NativeBookJson.cs" Link="NativeBookJson.cs" />
     <Compile Include="..\PersonalActorIncomingTargetChoiceReview.cs" Link="PersonalActorIncomingTargetChoiceReview.cs" />
     <Compile Include="..\TelefonStore.ActorProducer.cs" Link="TelefonStore.ActorProducer.cs" />
+    <Compile Include="..\TelefonStore.SyncStatus.cs" Link="TelefonStore.SyncStatus.cs" />
     <Compile Include="..\TelefonStore.ActorFixedDecisions.cs" Link="TelefonStore.ActorFixedDecisions.cs" />
     <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />
     <Compile Include="..\ProfileLease.cs" Link="ProfileLease.cs" />

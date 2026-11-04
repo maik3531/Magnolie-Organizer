@@ -2541,6 +2541,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const requestId = anrufClientRef();
       geraeteKennungen.delete(kennung); geraeteKennungenAnfragen.set(kennung, { id: requestId, deadline: performance.now() + 60000 }); zeichneGeraeteKennungen();
       Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
+      Bruecke.sende({ cmd: "telefon_stand" });
     });
     const zu = knopf(_("Close"), "", schliessen);
     const knoepfe = el("div", "dialog-knoepfe geraet-dialog-knoepfe");
@@ -2548,14 +2549,36 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const koerper = baueGeraeteStatusKoerper(details, telefon, akkuZeile);
     knoepfe.append(aktualisieren, zu);
     const inhalt = el("div", "geraet-dialog-inhalt");
-    inhalt.append(online, koerper, freigaben,
+    const syncStand = el("p", "geraet-sync-status");
+    inhalt.append(online, syncStand, koerper, freigaben,
       el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")));
     dialog.append(titel, inhalt, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
     registriereModal(schleier, dialog, { anfang: aktualisieren, schliessen: schliessen });
     zeichneGeraeteStatus(nutzlast.status);
+    aktualisiereGeraeteSyncStatus();
     Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
+    Bruecke.sende({ cmd: "telefon_stand" });
+  }
+
+  function aktualisiereGeraeteSyncStatus() {
+    const node = document.querySelector("#geraet-dialog .geraet-sync-status");
+    if (!node) return;
+    const peer = (telefonStand?.peers || []).find(p => p.device_id === offenesGeraet);
+    const saved = peer?.personal_sync_last_success;
+    let text = _("Unknown");
+    if (saved?.format === 1 && Number.isSafeInteger(saved.finished_ms) && saved.finished_ms > 0 &&
+        saved.finished_ms <= 253402300799999 && ["manual", "auto_wifi", "auto_connection"].includes(saved.trigger)) {
+      const date = new Date(saved.finished_ms), options = { hour: "2-digit", minute: "2-digit" };
+      const cycle = DATEN.einstellungen.regional.hourCycle;
+      if (cycle && cycle !== "system") options.hourCycle = cycle;
+      text = uebersetzt("Last synchronized: %(date)s, %(time)s.", {
+        date: datumText(date, { day: "2-digit", month: "2-digit", year: "numeric" }, true),
+        time: datumText(date, options, true)
+      }) + " · " + (saved.trigger === "manual" ? _("Manually") : _("Automatic"));
+    }
+    node.textContent = _("Personal synchronization") + ": " + text;
   }
 
   function baueGeraeteStatusKoerper(details, telefon, akkuZeile) {
@@ -34066,6 +34089,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         eigenesProfilNummerAnfordern();
       initialisiereGemeinsameSyncWerte();
       aktualisiereGemeinsameSyncFelder();
+      aktualisiereGeraeteSyncStatus();
       zeitAbgleichVonNotesAktivieren();
       personalSyncBetriebPruefen();
       personalDesktopFeaturesSenden();

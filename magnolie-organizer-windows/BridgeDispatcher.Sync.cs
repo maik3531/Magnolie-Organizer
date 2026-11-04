@@ -1173,6 +1173,7 @@ internal sealed partial class BridgeDispatcher
                 ["remote_own_device"] = personal.RemoteOwnDevice,
                 ["auto_wifi"] = personal.AutoWifi,
                 ["personal_sync_active_auto"] = false,
+                ["personal_sync_last_success"] = telefon.PersonalSuccess(peer.Id),
                 ["status"] = telefon.CachedDeviceStatus(peer.Id),
                 ["bluetooth_enabled"] = TelefonBluetoothClient.ValidAddress(bluetoothAddress),
                 ["bluetooth_address"] = bluetoothAddress,

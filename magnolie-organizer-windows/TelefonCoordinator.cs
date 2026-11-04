@@ -117,6 +117,16 @@ internal sealed partial class TelefonCoordinator : IDisposable
     internal TelefonPeer[] StatusPeers { get { store.Cleanup(Now()); return store.LoadPeers().ToArray(); } }
     internal JsonObject LocalGrants() => store.LocalGrants();
     internal (bool OwnDevice, bool RemoteOwnDevice, bool AutoWifi) PersonalSettings(string id) => store.PersonalSettings(id);
+    internal JsonObject? PersonalSuccess(string id) => store.PersonalSuccess(id);
+    internal void RecordConfirmedPersonalSuccess(TelefonConnection source, TelefonPeer peer, JsonObject report)
+    {
+        lock (gate)
+        {
+            if (!online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(source, current)) return;
+            store.RememberPersonalSuccess(peer.Id, Convert.ToBase64String(peer.PublicKey), report["run_id"]!.GetValue<string>(),
+                report["trigger"]!.GetValue<string>(), Now());
+        }
+    }
     internal bool InitialSkipDeletions => store.StoredGrantMatches("personal_deletions_sync", false);
     internal void ClearDeviceIdentifiers(string id) => store.PurgeIdentifiers(id);
     internal JsonObject CurrentDeviceStatus(JsonObject status)
@@ -1631,6 +1641,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
+                    PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
                     ContactGroupReportReceived = (source, message) => AcceptContactGroupRead(source, peer, message),
                     CallContextObserved = ObserveCallContext,
@@ -2208,6 +2219,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
+    internal Action<TelefonConnection, JsonObject>? PersonalSuccessConfirmed { get; set; }
     internal Func<TelefonConnection, JsonObject, Task>? TimerControlReportReceived { get; set; }
     internal Func<TelefonConnection, JsonObject, TelefonAck>? ContactGroupReportReceived { get; set; }
     internal Action<TelefonConnection, JsonObject>? ControlPongObserved { get; set; }
@@ -2253,7 +2265,17 @@ internal sealed partial class TelefonConnection : IDisposable
             if (queued?["kind"]?.GetValue<string>() is string queuedKind && TelefonProtocolContract.PersonalKinds.Contains(queuedKind) && queuedKind != "personal_sync.settings")
             {
                 DataContentScope(queuedKind, queued["body"]!.AsObject());
-                store.AcknowledgePersonalOutbox(peer.Id, id!, status!, error!, Now()); return;
+                JsonObject? success = null;
+                if (status is "accepted" or "duplicate" && queuedKind == "personal_sync.report")
+                {
+                    var report = queued["body"]!.AsObject(); PersonalSyncContract.ValidateBody(queuedKind, report);
+                    var run = new PersonalSyncStore(store).LoadRun(peer.Id, report["run_id"]!.GetValue<string>(), Now());
+                    if (report["state"]!.GetValue<string>() == "complete" && report["error"]!.GetValue<string>() == "none" &&
+                        run?.Request["trigger"]?.GetValue<string>() == report["trigger"]!.GetValue<string>()) success = report;
+                }
+                if (store.AcknowledgePersonalOutbox(peer.Id, id!, status!, error!, Now()) && success is not null)
+                    PersonalSuccessConfirmed?.Invoke(this, success);
+                return;
             }
             if (status == "rejected" && error == "temporary_failure")
             {

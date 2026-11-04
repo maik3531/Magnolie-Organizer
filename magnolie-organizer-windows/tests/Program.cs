@@ -102,6 +102,8 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
+runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
 runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
 runner.Add("Notes contact group title / strict preparation and saved identity", PhoneContactGroupTitleWriteTests.RunAsync);
 runner.Add("Shared preference storage / encryption / binding / restore", SharedSyncStorageTests.RunAsync);
