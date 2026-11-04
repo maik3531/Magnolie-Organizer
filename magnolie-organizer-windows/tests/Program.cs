@@ -228,6 +228,11 @@ runner.Add("Photo sync schedule / manual default / explicit automatic / no overl
 runner.Add("Photo sync plan / shared three-way cases / preserve edits and missing-photo uncertainty", PhotoSyncPlanTests.RunAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
+runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);
+runner.Add("Device file native transport / uncertain write / scope withdrawal", DeviceFileConnectionTransportTests.FailureAsync);
+runner.Add("Device file native transport / OFF handlers / reserved data isolation", DeviceFileConnectionTransportTests.ReservedAsync);
+runner.Add("Device file native transport / strict envelope / no expired grace", DeviceFileConnectionTransportTests.EnvelopeAsync);
+runner.Add("Device file native transport / lost protected identity / no owner revival", DeviceFileConnectionTransportTests.LostIdentityAsync);
 runner.Add("Device file metadata commands / withdrawal / monotonic TTL / exact cleanup", DeviceFileMetadataCommandTests.WithdrawalAsync);
 runner.Add("Device file channel metadata / successful secure ACK only", DeviceFileConnectionMetadataTests.SecureAckAsync);
 runner.Add("Device file channel metadata / withdrawal / superseded replay / replacement", DeviceFileConnectionMetadataTests.WithdrawalAsync);

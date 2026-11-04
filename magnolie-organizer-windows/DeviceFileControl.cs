@@ -168,6 +168,7 @@ internal sealed class NativeFileControlSession : IDisposable
     }
     private (NativeFileControlPeer Peer, NativeLocalFileGrant Local)? Scope()
     {
+        if (faulted) return null;
         var nextPeer = currentPeer(); var nextLocal = currentLocal();
         if (nextPeer is not null && (!ReferenceEquals(nextPeer.Owner, peer.Owner) || nextPeer.PeerId != peer.PeerId || nextPeer.IdentitySha256 != peer.IdentitySha256 || nextPeer.PairingEpoch != peer.PairingEpoch) ||
             nextLocal is not null && !ReferenceEquals(nextLocal.Owner, local.Owner)) faulted = true;

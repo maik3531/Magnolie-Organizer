@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileConnectionMetadataTests
 {
-    private sealed class ProbeStream : MemoryStream
+    internal sealed class ProbeStream : MemoryStream
     {
         internal bool Fail;
         internal Action? BeforeWrite;
@@ -20,10 +20,11 @@ internal static class DeviceFileConnectionMetadataTests
         protected override void Dispose(bool disposing) { }
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "file-metadata-ack-" + Guid.NewGuid().ToString("N"));
         internal readonly TelefonStore Store;
+        internal readonly WindowsPaths Paths;
         internal readonly TelefonPeer Peer;
         internal readonly ProbeStream Stream = new();
         internal readonly TelefonConnection Connection;
@@ -31,7 +32,8 @@ internal static class DeviceFileConnectionMetadataTests
         internal Action? DuringReceive;
         internal Fixture()
         {
-            Store = new(new WindowsPaths(root), Enumerable.Repeat((byte)29, 32).ToArray());
+            Paths = new(root);
+            Store = new(Paths, Enumerable.Repeat((byte)29, 32).ToArray());
             Store.Enabled = true;
             Peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", Enumerable.Repeat((byte)13, 32).ToArray(),
                 FilePairingEpoch: new string('e', 64));

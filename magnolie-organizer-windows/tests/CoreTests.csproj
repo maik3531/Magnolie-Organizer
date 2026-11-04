@@ -46,6 +46,9 @@
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />
     <Compile Include="..\DeviceFileControl.cs" Link="DeviceFileControl.cs" />
     <Compile Include="..\DeviceFileConnectionMetadata.cs" Link="DeviceFileConnectionMetadata.cs" />
+    <Compile Include="..\DeviceFileControlEnvelope.cs" Link="DeviceFileControlEnvelope.cs" />
+    <Compile Include="..\DeviceFileStoreIdentity.cs" Link="DeviceFileStoreIdentity.cs" />
+    <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\NativeFilePairingIdentity.cs" Link="NativeFilePairingIdentity.cs" />
     <Compile Include="..\DeviceFileSources.cs" Link="DeviceFileSources.cs" />
     <Compile Include="..\DeviceFileAcceptanceEnvelope.cs" Link="DeviceFileAcceptanceEnvelope.cs" />

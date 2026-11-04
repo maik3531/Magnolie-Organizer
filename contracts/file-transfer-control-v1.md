@@ -291,9 +291,9 @@ or transport ACK: `Binding()` still requires the actual current data-policy echo
 
 Two native-source test groups cover bootstrap without data authority, exact
 ownership, policy transition, withdrawal, clock failure/rollback/expiry and cleanup;
-the existing file-control regression group also passes. This foundation is not
-yet connected to a Windows file-control transport handler, receiver, protected
-destinations or media UI, and does not enable production gates.
+the existing file-control regression group also passes. The native control
+transport below now connects this foundation to secure output, but receiver,
+protected destinations and media UI remain unjoined. Production gates stay OFF.
 
 The optional `DeviceFileConnectionMetadata` partial now hooks the actual Windows
 metadata receive/secure-ACK path, separately from the existing `fresh*` flags.
@@ -314,6 +314,39 @@ ACK output. Existing shared-control, actor-source and accepted-report-ACK tests
 also pass. Unconfigured project evaluation excludes this partial with the other
 `DeviceFile*.cs` implementations; absent partial hooks supply no fallback media
 implementation. This remains a read-only metadata witness, not a joined transfer.
+
+### Windows dedicated native control transport (Refs #330, #335, partial join)
+
+`DeviceFileConnectionTransport` attaches exactly one native control owner to the
+current metadata-confirmed connection. Its local grant provider is a native object
+callback, not a web/wire policy. Opening requires the existing protected local
+identity: the new read-only reader verifies public/private key correspondence,
+never creates keys or refreshes the saved display name, and clears temporary
+private key bytes after verification.
+
+Controls use the actual encrypted writer directly, serialized with other secure
+output and with native control handling. Only successful output followed by fresh
+scope validation calls `MarkSent`; queue acceptance is not enough. Uncertain
+output, owner/pairing/key changes or a failed identity read revoke the native
+route. Disposed native sessions no longer invoke protected callbacks. Restoring
+an old identity cannot revive a failed owner on the same channel.
+
+The reserved `file_transfer.*` route cannot fall through to the generic Notes
+inbox, dedupe or outbox. Only control packets are joined so far; unsupported data
+holds the native route. Control envelopes require exact fields/types, bounded
+size/TTL and an unexpired timestamp, without legacy expired-message grace.
+Absent optional implementations simply omit the partial handlers; project
+evaluation confirms all `DeviceFile*.cs` files are excluded in unconfigured builds.
+
+Five new native-source groups exercise actual encrypted frame output/decryption,
+bilateral echoes with matching native bindings, OFF handlers, no generic inbox
+receipt, strict envelopes, uncertainty/withdrawal during output and protected
+identity loss/restoration. Existing metadata, command-ticket, base control,
+shared-control and actor-source groups also pass. The positive test grant provider
+is a synthetic native fixture, **not** proof of a production receiver or protected
+destination. The runtime still needs its protected preference/receiver owner,
+source-command/session, staging/publication/history and UI integration before
+actual photo/video availability or native installed acceptance can be claimed.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

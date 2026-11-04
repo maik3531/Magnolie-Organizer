@@ -2229,6 +2229,13 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
+        if (plain["kind"]?.GetValue<string>()?.StartsWith("file_transfer.", StringComparison.Ordinal) == true)
+        {
+            Task? nativeFileHandling = null;
+            ReceiveNativeFileMessage(plain, ref nativeFileHandling);
+            if (nativeFileHandling is not null) await nativeFileHandling;
+            return;
+        }
         // Reserved frames never fall through to legacy storage/callbacks.
         if (PersonalSyncActorContract.IsReservedMessage(plain))
         {
@@ -2451,6 +2458,8 @@ internal sealed partial class TelefonConnection : IDisposable
     }
     // Optional implementation is omitted entirely in builds without media.
     partial void BeginFileMetadataReceipt(JsonObject message, ref object? attempt);
+    partial void ReceiveNativeFileMessage(JsonObject message, ref Task? handling);
+    partial void CloseNativeFileRoute();
     partial void ObserveFileMetadataWithdrawal(JsonObject message, TelefonAck ack, object? attempt);
     partial void CompleteFileMetadataReceipt(JsonObject message, TelefonAck ack, object? attempt);
     private string? AuthorizePersonal(string kind, JsonObject body)
@@ -2613,5 +2622,5 @@ internal sealed partial class TelefonConnection : IDisposable
     private JsonObject Header(long sequence, string direction) => new() { ["p"] = TelefonCrypto.Protocol, ["sid"] = Convert.ToBase64String(sid), ["seq"] = sequence, ["dir"] = direction };
     private static byte[] LongBytes(long value) { var result = new byte[8]; BinaryPrimitives.WriteInt64BigEndian(result, value); return result; }
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    public void Dispose() { if (disposed) return; disposed = true; store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
+    public void Dispose() { if (disposed) return; disposed = true; CloseNativeFileRoute(); store.PurgeIdentifiers(peer.Id); try { stream.Dispose(); } catch { } CryptographicOperations.ZeroMemory(receiveKey); CryptographicOperations.ZeroMemory(sendKey); writer.Dispose(); }
 }
