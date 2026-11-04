@@ -473,7 +473,7 @@ deleting. The shared vectors cover reverse-trash consent independently of conten
 direction, default OFF, missing adapter, permanent-delete rejection and identity
 uncertainty.
 
-Execution remains unjoined: it must durably retain recoverable bytes/native trash
+Counterpart execution remains unjoined: it must durably retain recoverable bytes/native trash
 identity plus original phone/media/destination association, content witness and
 deletion operation/version, and record counterpart completion before any
 retirement. Restore needs exact no-replace checks and a newer recorded restore
@@ -484,8 +484,65 @@ these changes do not bypass that confirmation or execute such a deletion.
 
 Current proof is protected intent plus pure planning only: 9 Windows preference
 groups, the shared Windows comparison group and 32 Python comparison tests pass.
-There is still no joined runtime media trash journal/restore or physical phone
+The Linux native local journal/restore below now joins actual local file moves;
+there is still no counterpart propagation, Organizer trash UI or physical phone
 trash proof, so no actual cross-device deletion success is claimed.
+
+### Linux native local photo/video trash and restore (Refs #330, #335)
+
+`ProtectedMediaTrash` creates actual recoverable local entries only from explicit
+native actions and the original protected saved-mapping store. A separate
+existing-key-encrypted, append-only journal retains every operation and mapping,
+including original parent/file identities, destination, media type, content hash
+and historical save receipts. It never turns missing scan members into deletion
+evidence and is not registered as a wire command or browser-path action.
+
+Before any move, `prepared` is committed and synced. The original private file is
+moved with descriptor-relative Linux `renameat2(RENAME_NOREPLACE)` to a random
+hidden trash-payload name in its original parent, preserving the inode and bytes
+on the same filesystem. This is an application-owned recoverable payload, not a
+claim that a freedesktop/Windows/Android system-trash API has run. No unlink or
+purge API exists. Original roots/parents, private regular-file identity and exact
+size/hash are checked around I/O; symlinks, edits and collisions HOLD. A raced
+candidate is preserved; any rollback is also no-replace and forbidden after
+native revocation. Parent sync and a committed `trashed` event precede local
+completion. A retained payload is not a counterpart deletion ACK.
+
+Restoring first commits `restore_prepared`, permanently disarming the old delete
+operation, then moves the exact payload back without replacing a newly created
+user file. `restored` is appended only after readback/sync. Restart can recover
+only the exact original operation and witnessed inode/bytes after an uncertain
+move. An explicit cancellation is allowed only for a proven not-yet-moved
+original; it appends `canceled`, never erases history or hides a post-move payload.
+
+A separate authenticated anchor under the existing native telephone root binds
+the original journal directory/database/lock inode identities. Missing journal,
+missing anchor, replaced directory or damaged history HOLD instead of creating an
+empty replacement. The history is bounded to 128 retained operations, with up to
+four lifecycle events reserved per operation; a full history blocks a new delete,
+never evicts earlier entries or prevents already-reserved restore transitions.
+
+The actual `NativeDesktopFileConnection` owns this resource lazily and serializes
+native inspect/prepare/move/restore/cancel actions on its existing I/O lane. Live
+receiver/source/album work or unavailable production data handlers block mutation.
+Connection closure revokes authority before closing the journal. No worker starts
+on construction/read, and unconfigured package composition omits the new module.
+
+Twenty-five targeted source-host cases pass using actual saved JPG files and the
+actual typed video worker/mappings/Saved/END path. They cover move/restore and old
+delete replay, five interruption boundaries, conflicts, revoked authority, racing
+replacement, encrypted history corruption, history limits, same-size edits,
+symlinks, missing/replaced journal anchors and cancellation. A real video rescan
+while trashed holds the existing missing-target conflict without downloading or
+resurrecting the file; after restore it is recognized unchanged without another
+download. Twenty optional-composition tests also pass.
+
+Still open: Organizer trash-list/restore UI, durable counterpart propagation and
+restore reconciliation, Android native trash consent/proof, offline local restore
+ownership and the Windows backend. The existing Linux skip-deletions preference
+must still be joined to actual counterpart actions; local explicit trash is not
+that propagation. Production gates remain OFF and no installed test or complete
+bidirectional deletion synchronization is claimed.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

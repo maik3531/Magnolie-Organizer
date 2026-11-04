@@ -90,6 +90,7 @@ class NativeDesktopFileConnection:
         self._catalog_expectation_uncertain = False
         self._preferences = ProtectedPhotoPreferences(authority)
         self._mappings = ProtectedPhotoMappings(authority)
+        self._media_trash = None
         self._destination = NativePhotoDestinationController(authority)
         try:
             self._controls = NativeFileControlSession(authority.identity, self._peer, self._local)
@@ -1935,6 +1936,60 @@ class NativeDesktopFileConnection:
         with self._operation():
             return self._preferences.read()
 
+    def _media_trash_owner(self):
+        if self._media_trash is None:
+            from magnolie_media_trash import ProtectedMediaTrash
+            self._media_trash=ProtectedMediaTrash(self._authority)
+        return self._media_trash
+
+    def _media_trash_gate(self,action):
+        self._ready();action.validate(self)
+        if not self._data_handlers_ready:
+            raise TransferError('file_desktop_data_handlers_unavailable')
+        if (self._album_worker is not None or self._run is not None or self._source_pending is not None
+                or self._source_run is not None or self._offer is not None):
+            raise TransferError('file_desktop_receive_already_active')
+        self._verify_expected_mapping_store()
+        self._ready();action.validate(self)
+        return True
+
+    def inspect_media_trash(self,action):
+        """Explicit native read only; no absent defaults, moves or remote ACK."""
+        self._take_action(action)
+        with self._operation():
+            action.validate(self)
+            result=self._media_trash_owner().read()
+            action.validate(self);return result
+
+    def prepare_media_trash(self,action,expected,association,mapping_sha256):
+        """Native selected mapping only, never a web path or scan absence."""
+        self._take_action(action)
+        with self._operation():
+            self._media_trash_gate(action);owner=self._media_trash_owner()
+            result=owner.prepare_local(owner.issue_action(),expected,self._mappings,association,mapping_sha256)
+            self._media_trash_gate(action);return result
+
+    def move_media_to_trash(self,action,expected,operation):
+        return self._move_local_media_trash(action,expected,operation,restore=False)
+
+    def restore_media_from_trash(self,action,expected,operation):
+        return self._move_local_media_trash(action,expected,operation,restore=True)
+
+    def cancel_prepared_media_trash(self,action,expected,operation):
+        self._take_action(action)
+        with self._operation():
+            self._media_trash_gate(action);owner=self._media_trash_owner()
+            result=owner.cancel_prepared(owner.issue_action(),expected,operation,lambda:self._media_trash_gate(action))
+            self._media_trash_gate(action);return result
+
+    def _move_local_media_trash(self,action,expected,operation,*,restore):
+        self._take_action(action)
+        with self._operation():
+            self._media_trash_gate(action);owner=self._media_trash_owner()
+            method=owner.restore if restore else owner.trash
+            result=method(owner.issue_action(),expected,operation,lambda:self._media_trash_gate(action))
+            self._media_trash_gate(action);return result
+
     def close(self):
         self._closed.set()
         self._wake_album_worker()
@@ -1953,7 +2008,7 @@ class NativeDesktopFileConnection:
                 except Exception as error:
                     failure = error
             receiver = self._run.receiver if self._run is not None else None
-            for resource in (receiver, self._catalog, self._destination, self._mappings, self._preferences, self._controls, self._authority):
+            for resource in (receiver, self._catalog, self._destination, self._media_trash, self._mappings, self._preferences, self._controls, self._authority):
                 if resource is not None:
                     try:
                         resource.close()
