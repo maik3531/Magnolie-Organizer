@@ -1,5 +1,22 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Explicit original-video history lookup (Refs #330, resume data still pending)
+
+The native original-job action may explicitly select `media_type: video` for
+lookup. It requires current enabled native video status, private data readiness,
+ACKed capability, local video consent and the current original video root/token.
+Protected original job metadata is inspected inertly to confirm its video type;
+no historical binding callback or recovered source epoch supplies READ. The
+selected job/root/binding and policy version are rechecked before command output.
+
+Lookup replies must echo video scope and the exact original manifest tuple. Local
+OFF/ON or withdrawal invalidates pending positive lookup; omitted image-shaped
+replies cannot be relabeled. Seven video cases and fourteen existing image lookup
+cases verify no receive stage admission/reopen. The dedicated video resume run,
+its Saved/END and capability-withdrawal cleanup are still unjoined; a new ordinary
+run cannot substitute for that workflow. Existing native source-epoch rejection
+after video OFF/ON remains mandatory.
+
 ### Ordinary desktop video receive and owned stop (Refs #330, partial join)
 
 The private-gated ordinary desktop video path now joins typed source ownership,

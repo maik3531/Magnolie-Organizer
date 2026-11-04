@@ -394,6 +394,7 @@ class NativeDesktopFileConnection:
     def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False, allow_saved_receiver=False):
         selected = self._resume_lookup_selection
         snapshot = self._receiving_policy()
+        destination=self._receive_destination(snapshot,media_type=selected.media_type) if selected is not None else None
         receiver = self._run
         stopping = (allow_stopping_receiver and receiver is not None and receiver.stop_requested.is_set()
                      and selected is not None and receiver.job == selected.job)
@@ -407,7 +408,7 @@ class NativeDesktopFileConnection:
                 or self._source_run is not None and (not allow_source_run or self._source_run.run_id != self._resume_source_id)
                 or (self._source_run is None) != (self._resume_source_id is None)
                 or self._source_status is None or self._source_status.version != selected.source_version
-                or self._receive_binding() != selected.job.accepted.binding or snapshot.policy.destination != selected.job.accepted.destination
+                or self._receive_binding() != selected.job.accepted.binding or destination != selected.job.accepted.destination
                 or not self._open_catalog(allow_create=False)):
             raise TransferError('file_desktop_resume_lookup_not_current')
         current = next((job for job in self._catalog.jobs() if job.owner == selected.job.owner), None)
@@ -416,9 +417,10 @@ class NativeDesktopFileConnection:
         selected.job.accepted.verify(self._receive_binding)
         return selected
 
-    def request_resume_lookup(self, action, native_job_owner, *, clock=now_ms):
+    def request_resume_lookup(self, action, native_job_owner, *, media_type='images', clock=now_ms):
         """Explicit protected original-job selection; history is not a run grant."""
         self._take_action(action)
+        source_messages._media_type(media_type)
         with self._operation():
             snapshot = self._receiving_policy()
             if self._source_pending is not None or self._run is not None or self._source_run is not None or self._offer is not None:
@@ -435,16 +437,36 @@ class NativeDesktopFileConnection:
             job = next((job for job in self._catalog.jobs() if job.owner == native_job_owner), None)
             if job is None:
                 raise TransferError('file_desktop_resume_original_job_changed')
-            self._resume_lookup_selection = _NativeDesktopResumeLookup(job, snapshot.version, self._source_status.version)
+            if media_type=='video':
+                if self._source_status.videos is None or not self._source_status.videos.enabled:
+                    raise TransferError('file_desktop_video_source_not_configured')
+                destination=self._receive_destination(snapshot,media_type='video')
+                binding=self._receive_binding(media_type='video')
+                if job.accepted.binding!=binding or job.accepted.destination!=destination:
+                    raise TransferError('file_desktop_video_resume_original_scope_changed')
+                # Inert protected metadata identifies the explicit original
+                # selection; it cannot supply an old READ/source epoch grant.
+                protection=self._authority.protection
+                with self._catalog.inspect_jobs() as (parent,jobs):
+                    if job not in jobs:raise TransferError('file_desktop_resume_original_job_changed')
+                    with ProtectedTransferJobIndex(parent,job.accepted.manifest,job.accepted.binding,lambda:None,
+                            protection.seal,protection.unseal,owner=job.owner,accepted=job.accepted) as index:
+                        history=index.media_history
+                        if history is None or history.media_type!='video':
+                            raise TransferError('file_desktop_video_resume_original_media_required')
+                if self._preferences.read()!=snapshot:raise TransferError('file_desktop_video_policy_changed')
+            self._resume_lookup_selection = _NativeDesktopResumeLookup(job, snapshot.version, self._source_status.version,media_type)
             self._resume_history = None
             self._resume_abandonment = None
             self._require_resume_lookup_selection(); action.validate(self)
             manifest = job.accepted.manifest
             message = source_messages.create_command('resume_lookup', expected_version=self._source_status.version,
-                source_id=manifest.source_id, transfer_id=manifest.transfer_id, manifest_sha256=manifest.fingerprint, now=clock())
+                source_id=manifest.source_id, transfer_id=manifest.transfer_id, manifest_sha256=manifest.fingerprint,
+                media_type='video' if media_type=='video' else None,now=clock())
             command = source_messages.parse_command(message, now=clock())
             ticket = self._controls.receiver_command_ticket()
-            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket))
+            self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
+                video_policy_version=snapshot.version if media_type=='video' else None)
             self._source_control_required = None
             self._send_source_pending(clock, action)
             return message['message_id']
@@ -849,10 +871,11 @@ class NativeDesktopFileConnection:
 
     def _receive_binding(self,*,media_type=None):
         if media_type is not None:source_messages._media_type(media_type)
-        owned=self._run.media_type if self._run is not None else self._source_run.media_type if self._source_run is not None else None
+        active=self._run.media_type if self._run is not None else self._source_run.media_type if self._source_run is not None else None
+        owned=active or (self._resume_lookup_selection.media_type if self._resume_lookup_selection is not None else None)
         if self._run is not None and self._source_run is not None and self._source_run.media_type!=owned:
             raise TransferError('file_desktop_source_media_scope_changed')
-        if media_type is not None and owned is not None and media_type!=owned:
+        if media_type is not None and active is not None and media_type!=active:
             raise TransferError('file_desktop_source_media_scope_changed')
         media_type=media_type or owned or 'images'
         checkpoint=self._checkpoint_binding_owner
@@ -1947,6 +1970,7 @@ class _NativeDesktopResumeLookup:
     job: object
     policy_version: str
     source_version: str
+    media_type: str = 'images'
 
 
 class NativePhotoAlbumWorker:
