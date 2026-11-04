@@ -34,10 +34,11 @@ class GalleryVideoPolicyTest {
             "f".repeat(64), true, true, true, true, "1".repeat(64))
         val peer = NativeFileControlPeer("receiver_fixture_01", "e".repeat(64), Any(), true, true, true, true, true, "1".repeat(64))
         var boundary: (String) -> Unit = {}
-        val index = PhotoSourceJobIndex(root, protection) { boundary(it) }
+        var index = PhotoSourceJobIndex(root, protection) { boundary(it) }
         val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { receiver }, { configurer })
         val grants = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
         fun enablePhotos() = controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+        fun reopenIndex() { index.close(); index = PhotoSourceJobIndex(root, protection) { boundary(it) } }
         // Test-only native construction of an otherwise valid boundary record.
         // Use the real protected writer AND membership transaction, not tampered
         // SQL rows, a fake snapshot, or a production revision-jump API.
@@ -134,8 +135,44 @@ class GalleryVideoPolicyTest {
             assertEquals(grant, f.grants.current()!!.grants)
             assertTrue(f.index.jobs().isEmpty())
             val freshOwner = GalleryPhotoPolicyController.forAuthenticatedConfigurer(f.index, { f.receiver }, { f.configurer })
-            if (point == "membership-protect") assertNotNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
-            else assertNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
+            assertNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
+            if (point == "membership-protect") {
+                assertEquals(held, freshOwner.configureVideos(held, true)) // Explicit fresh positive native command only.
+                assertNotNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
+            }
+        }
+    }
+
+    @Test fun savedVideoPreferenceCannotArmNewOwnerOrChangedDataReceiverWithoutFreshPositiveCommand() {
+        Fixture().use { f ->
+            val saved = f.controller.configureVideos(f.enablePhotos(), true)
+            val grant = f.grants.current()!!.grants
+            f.reopenIndex()
+            val fresh = GalleryPhotoPolicyController.forAuthenticatedConfigurer(f.index, { f.receiver }, { f.configurer })
+            assertNotNull(fresh.currentRequest())
+            assertNull(fresh.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(saved, fresh.configureVideos(saved, true))
+            assertNotNull(fresh.currentRequest(GalleryMediaType.VIDEO))
+            f.receiver = f.receiver!!.copy(owner = Any())
+            assertNull(fresh.currentRequest(GalleryMediaType.VIDEO))
+            assertNotNull(fresh.currentRequest())
+            assertEquals(saved, fresh.configureVideos(saved, true))
+            assertNotNull(fresh.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(grant, f.grants.current()!!.grants)
+            assertEquals(saved, f.index.galleryPolicy())
+        }
+    }
+
+    @Test fun positiveMetadataBeforeDataAckCannotBecomeLaterImplicitVideoRead() {
+        Fixture().use { f ->
+            val photos = f.enablePhotos(); val receiver = f.receiver
+            f.receiver = null
+            val saved = f.controller.configureVideos(photos, true)
+            assertNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+            f.receiver = receiver
+            assertNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(saved, f.controller.configureVideos(saved, true))
+            assertNotNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
         }
     }
 

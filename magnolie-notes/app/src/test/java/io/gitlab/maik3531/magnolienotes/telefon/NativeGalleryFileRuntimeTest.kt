@@ -64,6 +64,43 @@ class NativeGalleryFileRuntimeTest {
         }
     }, 60_000, now)
 
+    @Test fun savedVideoPolicyRequiresFreshPositiveCommandInEachActualRuntime() {
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "video-owner377-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        try {
+            repeat(2) { round ->
+                val link = Link()
+                val peer = NativeFileControlPeer(remote.deviceId, remote.identitySha256, link.channel,
+                    true, true, true, true, true, "1".repeat(64), videoSupported = true)
+                val desktopPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(),
+                    true, true, true, true, true, "1".repeat(64))
+                val state = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+                val desktop = NativeFileControlSession(remote, { desktopPeer }, { state })
+                val runtime = NativeGalleryFileRuntime.withVideoHandlers(org.robolectric.RuntimeEnvironment.getApplication(), root,
+                    identity, protection, link.channel, { peer }, { true }, { true })
+                try {
+                    fun echo() {
+                        if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
+                        val packet = desktop.packet(); desktop.markSent(packet)
+                        runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                        if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(link.sent(), now), desktopPeer)
+                    }
+                    echo()
+                    if (round == 0) {
+                        runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+                        echo()
+                    }
+                    assertNotNull(runtime.currentRequest())
+                    assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+                    val before = runtime.savedPolicy()
+                    val saved = runtime.configureVideosFromAuthenticatedCommand(before, true)
+                    assertNotNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+                    if (round == 1) assertEquals(before, saved) // No policy/epoch/grant rotation to rearm this session.
+                } finally { runtime.close(); desktop.close(); link.channel.close() }
+            }
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun unjoinedVideoCommandsCannotFallBackToImageCatalogPermissionOrConfiguration() {
         negotiatedRuntime { runtime, echo ->
             runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()

@@ -1,6 +1,6 @@
 # Dedicated own-peer file controls (integration in #330)
 
-### Video decrease at exhausted counters (Refs #376; restart blocker #377)
+### Video decrease at exhausted counters and fresh native owner (Refs #376, #377)
 
 An exact current authenticated video-decrease command that cannot advance its
 global/video revision now HOLDs the existing native policy controller before
@@ -12,10 +12,27 @@ owner-local HOLD is **not** a successful persisted OFF choice.
 Actual protected-index/controller tests reproduce the former continuing READ,
 verify the HOLD and stale/idempotent boundaries, and distinguish decrease-write
 errors before and after the existing durable repair fence. A first-write failure
-before that fence preserves the old enabled policy: the old controller holds, but
-a new controller can observe that old consent again. Errors after the fence hold
-new controllers too. The remaining cross-owner/restart/privacy decision is tracked
-in #377 and blocks production activation; this change does not claim to solve it.
+before that fence preserves the old enabled preference; it cannot be described as
+a persisted OFF choice. Errors after the fence hold new controllers too.
+
+Saved preference alone no longer activates VIDEO READ in a new native controller
+or runtime. An explicit, successful current `configure_videos(enabled=true)` must
+arm that owner with the already acknowledged native data receiver and exact video
+epoch. An unchanged positive command can do this without rewriting policy, epochs,
+grants or jobs. Metadata configuration before data ACK does not silently become
+READ when the ACK later arrives: another current positive command is required.
+An exact authenticated decrease clears the volatile activation even if its first
+policy write fails. A changed receiver owner/permission scope cannot inherit it.
+Photos keep their separate existing behavior.
+
+Tests include protected-index reopen, failed first-write/new-controller HOLD,
+explicit fresh rearm and two actual runtimes over the same protected storage with
+separate dedicated control handshakes. This is not durable OFF persistence and
+does not auto-retry or manufacture successful revocation. The still-unjoined desktop
+video session/worker must send the fresh positive command only from CURRENT native
+enabled video preferences after data ACK, never from old job/catalog history or a
+queued command invalidated by a decrease. That integration and installed/physical
+acceptance remain in #330; production gates remain OFF.
 
 ### Original desktop video resume (Refs #330, production gates OFF)
 

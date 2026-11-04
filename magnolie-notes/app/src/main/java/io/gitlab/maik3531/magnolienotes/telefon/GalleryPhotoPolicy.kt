@@ -108,6 +108,10 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, videoAvailable)
     }
     private var uncertain = false
+    // Saved video preference is not fresh session consent. Only an explicit
+    // successful positive command with an acknowledged native data receiver can
+    // arm this owner. Nothing here is serialized or recovered from job history.
+    private var videoActivation: Pair<String, NativePhotoReceiver>? = null
 
     private fun configurer(): NativeGalleryConfigurer? {
         if (currentConfigurer != null) return currentConfigurer.invoke()
@@ -161,8 +165,11 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         if (!old.enabled || old.receiverId != receiver.peerId || old.receiverIdentitySha256 != receiver.identitySha256 ||
             old.pairingEpoch == null || old.pairingEpoch != receiver.pairingEpoch) fail("gallery_video_photo_policy_required")
         fun allowed() = sameConfigurer(receiver, configurer()) && (!enabled || videoAvailable())
+        if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
+        if (!enabled) videoActivation = null
         if ((old.videos?.enabled ?: false) == enabled) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
+            if (enabled) armVideo(old)
             return expected
         }
         val exhausted = when {
@@ -186,6 +193,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             val saved = index.compareAndSetGalleryPolicy(expected, next, ::allowed)
             if (saved.repairPending || saved.policy != next || index.galleryPolicy() != saved || !allowed())
                 fail("gallery_policy_commit_readback_failed")
+            if (enabled) armVideo(next)
             return saved
         } catch (error: Exception) { uncertain = true; throw error }
     }
@@ -201,7 +209,18 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             return null
         if (!same(receiver, currentReceiver()) || index.galleryPolicy() != saved) return null
         val epoch = if (mediaType == GalleryMediaType.IMAGES) policy.epoch else policy.videos?.takeIf { it.enabled }?.epoch ?: return null
+        if (mediaType == GalleryMediaType.VIDEO) {
+            val activation = videoActivation ?: return null
+            if (activation.first != epoch || !same(activation.second, receiver)) return null
+        }
         return NativeGalleryRequest(receiver, epoch, policy.kinds, mediaType)
+    }
+
+    private fun armVideo(policy: GalleryPhotoPolicy) {
+        val video = policy.videos?.takeIf { it.enabled } ?: return
+        val receiver = currentReceiver()?.takeIf { it.allowed && it.peerId == policy.receiverId &&
+            it.identitySha256 == policy.receiverIdentitySha256 && it.pairingEpoch == policy.pairingEpoch }
+        videoActivation = receiver?.let { video.epoch to it }
     }
 
     /** Explicit native local decrease only, not a remote configure bypass.
