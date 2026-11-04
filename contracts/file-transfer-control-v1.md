@@ -433,26 +433,64 @@ authenticated corruption, strict schema/revision exhaustion and the actual
 restore fence/abort path, preserved deletion choices and the Notes-style common
 skip-deletions setting including stale/mixed-policy handling.
 These are storage proofs, not Windows installed tests.
-Native destination handles, staging/publication/history and the joined receiver
-are still missing; no UI, automatic worker or production gate is enabled.
+Native destination ownership and filesystem staging/publication are implemented
+below; durable transfer history and the joined receiver remain missing. No UI,
+automatic worker or production gate is enabled.
 
-### Windows native directory handle foundation (Refs #330, #335, not accepted yet)
+### Windows protected destinations and native filesystem receive operations (Refs #330, #335)
 
 `DeviceFileNativeDirectory` opens an existing local-drive directory via
 `NtCreateFile` with `OBJ_DONT_REPARSE` and directory/open-only options. It owns a
-non-inheritable handle, requests no write/delete sharing on that root, rejects a
+non-inheritable handle, denies delete sharing on that root, rejects a
 non-directory/reparse attribute and reads its volume plus 128-bit file identity.
-It does not create folders, write media, publish files or grant receive rights.
+It checks the current final native path and volume-GUID path as well as the file
+identity. Receive access is distinct from an ordinary read-only directory owner.
 Unsupported UNC/device/ADS/ambiguous path syntax holds rather than normalizing to
 another historical root. There is no bridge or production caller yet.
 
-The Linux source host passes only path-grammar and non-Windows rejection tests;
-the native interop compiles but has **not** been exercised on Windows. Separate
-Windows-only groups require real handle identity/rename exclusion, missing/file
-rejection and final/ancestor reparse rejection. The latter requires symlink
-creation rights; a missing prerequisite is not counted as a pass. Until those
-proofs and the handle-relative staging/publication integration exist, this is
-unaccepted groundwork, not a safe completed destination receiver.
+The receive partial creates new child directories/files through the held parent
+handle and `FILE_CREATE`, never by a path-based overwrite/open-or-create fallback.
+New objects receive protected ACLs allowing only the current Windows user and
+SYSTEM; a permissive parent Pictures/Videos ACL is not inherited for uncommitted
+media. A staged file has no write/delete sharing. Chunks must be sequential,
+bounded by the existing chunk/file limits and reread from that actual held file
+for complete size/SHA-256 verification. Publication uses handle-relative NT
+`FileRenameInformation` with replacement disabled. Its volume, file ID, native
+owner and target readback are checked; an uncertain successful rename is retained,
+not rolled back, replayed or deleted. Disposing an owner does not discard files.
+
+Directory handles allow WRITE sharing but still deny DELETE sharing. A real
+Windows test first reproduced a sharing violation with the earlier no-WRITE-share
+directory handles: they blocked the receiver's own NT rename. This is a targeted
+compatibility correction, not permission to overwrite children. Original root
+identity/path/reparse checks and the stage file's own no-WRITE/no-DELETE sharing
+remain enforced. The now-real reparse tests accept either NT traversal rejection
+or explicit reparse-attribute rejection; neither follows a reparse target.
+
+`Read/SetNativeMediaDestination` persists separate photo/video root identity and
+tokens under the existing local/peer keys and pairing epoch. Initial reads create
+no table or destination. Only an actual native receive-directory owner supplies a
+new choice. Exact-version CAS, no-op ciphertext/token preservation, independent
+media tokens and volume-GUID-path nonoverlap checks apply. Changed keys/pairing,
+unpairing, corrupt ciphertext and replacement directories HOLD. A saved destination
+is not receive consent. Existing roots cannot be reassigned without the still
+missing history/migration flow. The dedicated encrypted table survives generic
+Notes metadata cleanup; saving a destination enables neither photos nor videos.
+
+Eleven groups pass on actual physical Windows: three root/grammar/reparse groups,
+four staging/publication/private-ACL/hash/uncertain-completion groups and four
+protected-destination groups. These include real NT operations, root rename
+exclusion, existing user-file collision, reparse targets, independent owner
+readback, rejected nested/identical roots, original-inode reopen and five
+key/pairing/identity/unpair/tamper boundaries. The current build has no warnings or
+errors. Linux grammar/non-Windows rejection is separately tested and is not
+substituted for those native Windows proofs.
+
+Still unjoined: the protected per-transfer stage/publication history, original-job
+resume/END, source-command transport beyond status, receive routing and working
+media UI. These filesystem/storage APIs are not wire handlers or a completed
+receiver. No installed Organizer acceptance, package delivery, new APK/EXE or
+production gate activation is claimed.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 

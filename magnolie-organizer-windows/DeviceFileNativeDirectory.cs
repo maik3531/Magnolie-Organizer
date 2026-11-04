@@ -1,32 +1,44 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 
 namespace MagnolieOrganizer.Windows;
 
 // A live Windows directory handle, not a browser path or a persisted grant.
-// No path-based writes, directory creation or publication is implemented here.
-internal sealed class DeviceFileNativeDirectory : IDisposable
+// Receive operations use only held-handle-relative names in the partial class.
+internal sealed partial class DeviceFileNativeDirectory : IDisposable
 {
     private const uint ObjCaseInsensitive = 0x40, ObjDontReparse = 0x1000;
     private const uint ReadDirectoryAccess = 0x001000a1, ShareRead = 1, OpenOnly = 1;
+    private const uint ShareDirectory = 3; // READ/WRITE, never DELETE (rename/replacement).
     private const uint DirectorySynchronousNoReparse = 0x00200021;
     private readonly SafeFileHandle handle;
     private readonly object gate = new();
     private bool disposed;
+    private readonly bool receiveAccess;
     internal sealed record Identity(ulong VolumeSerial, ulong FileIdLow, ulong FileIdHigh);
     internal Identity OriginalIdentity { get; }
+    internal string NativePath { get; }
+    internal string VolumePath { get; }
 
-    private DeviceFileNativeDirectory(SafeFileHandle handle)
+    private DeviceFileNativeDirectory(SafeFileHandle handle, bool receiveAccess = false)
     {
         this.handle = handle;
-        try { OriginalIdentity = ReadIdentity(); }
+        this.receiveAccess = receiveAccess;
+        try { OriginalIdentity = ReadIdentity(); NativePath = ReadNativePath(); VolumePath = ReadFinalName(1); }
         catch { handle.Dispose(); throw; }
     }
 
     // Only the future native picker/default-folder owner may call this. In
     // particular this must never be registered as a web-selected-path action.
     internal static DeviceFileNativeDirectory OpenExisting(string nativePath)
+        => OpenDirectory(nativePath, false);
+
+    internal static DeviceFileNativeDirectory OpenExistingForReceive(string nativePath)
+        => OpenDirectory(nativePath, true);
+
+    private static DeviceFileNativeDirectory OpenDirectory(string nativePath, bool receiveAccess)
     {
         var name = NtDirectoryName(nativePath);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("file_destination_windows_required");
@@ -40,16 +52,17 @@ internal sealed class DeviceFileNativeDirectory : IDisposable
             var attributes = new ObjectAttributes { Length = (uint)Marshal.SizeOf<ObjectAttributes>(), ObjectName = pointer,
                 Attributes = ObjCaseInsensitive | ObjDontReparse };
             // FILE_LIST_DIRECTORY | FILE_TRAVERSE | FILE_READ_ATTRIBUTES | SYNCHRONIZE.
-            // Request no write/delete sharing on this root. This is not a
-            // substitute for the receiver's future handle-relative operations.
-            var status = NtCreateFile(out var opened, ReadDirectoryAccess, ref attributes, out _, IntPtr.Zero,
-                0, ShareRead, OpenOnly, DirectorySynchronousNoReparse, IntPtr.Zero, 0);
+            // Deny DELETE sharing so the held root cannot be renamed/replaced.
+            // Directory WRITE sharing is needed by NT's handle-relative rename;
+            // each child operation still verifies this exact non-reparse root.
+            var status = NtCreateFile(out var opened, ReadDirectoryAccess | (receiveAccess ? 6u : 0u), ref attributes, out _, IntPtr.Zero,
+                0, ShareDirectory, OpenOnly, DirectorySynchronousNoReparse, IntPtr.Zero, 0);
             if (status < 0)
             {
                 opened?.Dispose();
                 throw new IOException("file_destination_open_failed", new Win32Exception((int)RtlNtStatusToDosError(status)));
             }
-            return new(opened);
+            return new(opened, receiveAccess);
         }
         finally { Marshal.FreeHGlobal(pointer); Marshal.FreeHGlobal(text); }
     }
@@ -60,7 +73,9 @@ internal sealed class DeviceFileNativeDirectory : IDisposable
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             var current = ReadIdentity();
-            if (current != OriginalIdentity) throw DeviceFileControl.Error("file_destination_identity_changed");
+            if (current != OriginalIdentity || !string.Equals(ReadNativePath(), NativePath, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(ReadFinalName(1), VolumePath, StringComparison.OrdinalIgnoreCase))
+                throw DeviceFileControl.Error("file_destination_identity_changed");
             return current;
         }
     }
@@ -75,6 +90,28 @@ internal sealed class DeviceFileNativeDirectory : IDisposable
             throw new IOException("file_destination_identity_unavailable", new Win32Exception(Marshal.GetLastWin32Error()));
         if (id.Low == 0 && id.High == 0) throw DeviceFileControl.Error("file_destination_identity_unavailable");
         return new(id.Volume, id.Low, id.High);
+    }
+
+    private string ReadNativePath()
+    {
+        var value = ReadFinalName(0);
+        if (!value.StartsWith(@"\\?\", StringComparison.Ordinal)) throw DeviceFileControl.Error("file_destination_path_unsupported");
+        value = value[4..]; _ = NtDirectoryName(value);
+        return value;
+    }
+
+    private string ReadFinalName(uint flags)
+    {
+        var name = new StringBuilder(512);
+        var length = GetFinalPathNameByHandle(handle, name, (uint)name.Capacity, flags);
+        if (length >= name.Capacity)
+        {
+            if (length > 16004) throw DeviceFileControl.Error("file_destination_path_unsupported");
+            name = new StringBuilder((int)length + 1);
+            length = GetFinalPathNameByHandle(handle, name, (uint)name.Capacity, flags);
+        }
+        if (length == 0 || length >= name.Capacity) throw new IOException("file_destination_name_unavailable", new Win32Exception(Marshal.GetLastWin32Error()));
+        return name.ToString();
     }
 
     internal static string NtDirectoryName(string nativePath)
@@ -136,4 +173,6 @@ internal sealed class DeviceFileNativeDirectory : IDisposable
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetFileInformationByHandleEx(SafeFileHandle handle, int kind, out FileIdInformation information, uint size);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFinalPathNameByHandle(SafeFileHandle handle, StringBuilder name, uint size, uint flags);
 }

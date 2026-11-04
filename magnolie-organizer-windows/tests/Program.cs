@@ -258,10 +258,18 @@ runner.Add("Device file protected preferences / independent concurrent owners", 
 runner.Add("Device file protected preferences / selectable deletion directions / no runtime grant", DeviceFileStorePreferencesTests.DeletionChoicesAsync);
 runner.Add("Device file protected preferences / Notes-style skip deletions checkbox", DeviceFileStorePreferencesTests.NotesStyleDeletionModeAsync);
 runner.Add("Device file native directory / conservative local path grammar", DeviceFileNativeDirectoryTests.GrammarAsync);
+runner.Add("Device file native receive / conservative leaf grammar", DeviceFileNativeReceiveTests.LeafGrammarAsync);
+runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
+    runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);
+    runner.Add("Device file native receive / Windows actual content verification", DeviceFileNativeReceiveTests.WindowsVerificationAsync);
+    runner.Add("Device file native receive / Windows uncertain publication and reparse", DeviceFileNativeReceiveTests.WindowsUncertainAndReparseAsync);
+    runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
+    runner.Add("Device file native destination / Windows overlap and original-root reopen", DeviceFileStoreDestinationsTests.WindowsOverlapAndReopenAsync);
+    runner.Add("Device file native destination / Windows binding and ciphertext HOLD", DeviceFileStoreDestinationsTests.WindowsBindingAndTamperAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

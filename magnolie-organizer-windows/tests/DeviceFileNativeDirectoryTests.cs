@@ -63,8 +63,15 @@ internal static class DeviceFileNativeDirectoryTests
             // This acceptance test intentionally requires Windows symlink rights;
             // an unavailable prerequisite is a failed proof, never a fake pass.
             Directory.CreateSymbolicLink(alias, target);
-            TestAssert.Throws<IOException>(() => DeviceFileNativeDirectory.OpenExisting(alias), "Final reparse point was followed.");
-            TestAssert.Throws<IOException>(() => DeviceFileNativeDirectory.OpenExisting(Path.Combine(alias, "child")), "Ancestor reparse point was followed.");
+            void RejectReparse(string path)
+            {
+                try { using var unexpected = DeviceFileNativeDirectory.OpenExisting(path); }
+                catch (IOException) { return; } // NT refuses traversal.
+                catch (InvalidDataException) { return; } // Opened reparse handle is refused by attribute readback.
+                throw new InvalidOperationException("Native reparse point was followed: " + path);
+            }
+            RejectReparse(alias);
+            RejectReparse(Path.Combine(alias, "child"));
         }
         finally
         {
