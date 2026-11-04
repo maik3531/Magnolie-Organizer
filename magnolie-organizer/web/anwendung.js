@@ -30552,6 +30552,106 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
+  const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
+
+  function verwerfeMedienPapierkorb() {
+    if (medienPapierkorb.pending) clearTimeout(medienPapierkorb.pending.timer);
+    Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false });
+    const root = $("#medien-papierkorb"); if (root) { root.replaceChildren(); root.hidden = true; }
+  }
+
+  function medienPapierkorbAnfordern(action = "list", entry = null, cursor = 0) {
+    if (!Bruecke.vorhanden || gesperrt || medienPapierkorb.pending) return;
+    const request_id = uid(), request = { cmd: "medien_papierkorb", request_id, action };
+    if (action === "list") request.cursor = cursor;
+    else Object.assign(request, { scope: entry.scope, operation: entry.operation, version: entry.version });
+    const pending = { request_id, action, entry, cursor, timer: null };
+    medienPapierkorb.pending = pending; medienPapierkorb.error = false;
+    pending.timer = setTimeout(() => {
+      if (medienPapierkorb.pending !== pending) return;
+      medienPapierkorb.pending = null; medienPapierkorb.error = true; zeichneMedienPapierkorb();
+    }, 65000);
+    Bruecke.sende(request); zeichneMedienPapierkorb();
+  }
+
+  function zeichneMedienPapierkorb() {
+    const root = $("#medien-papierkorb");
+    if (!root) return;
+    root.replaceChildren(); root.hidden = medienPapierkorb.supported !== true;
+    const stand = $("#papierkorb-stand");
+    if (stand) stand.hidden = !DATEN.papierkorb.length && medienPapierkorb.supported === true && (medienPapierkorb.total > 0 || medienPapierkorb.error);
+    if (root.hidden) return;
+    root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
+      ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
+    root.append(el("p", "einst-hinweis", _("Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file.")));
+    if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("The media recycle bin could not be updated. Existing files were kept.")));
+    const refresh = knopf(_("Refresh"), "klein", () => medienPapierkorbAnfordern());
+    refresh.disabled = !!medienPapierkorb.pending; refresh.id = "medien-papierkorb-aktualisieren"; root.append(refresh);
+    const list = el("div", "papierkorb-liste");
+    for (const entry of medienPapierkorb.entries) {
+      const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
+      row.append(el("span", "pk-name", entry.name));
+      if (entry.state !== "trashed") row.append(el("span", "pk-wann", _("Pending recovery")));
+      const restore = knopf(_("Restore"), "klein", () => medienPapierkorbAnfordern("restore", entry));
+      restore.disabled = !!medienPapierkorb.pending; restore.dataset.mediaRestore = entry.operation; row.append(restore);
+      if (entry.state === "prepared") {
+        const cancel = knopf(_("Cancel"), "klein", () => medienPapierkorbAnfordern("cancel", entry));
+        cancel.disabled = !!medienPapierkorb.pending; cancel.dataset.mediaCancel = entry.operation; row.append(cancel);
+      }
+      list.append(row);
+    }
+    root.append(list);
+    if (medienPapierkorb.next !== null) {
+      const more = knopf(_("Show more"), "klein", () => medienPapierkorbAnfordern("list", null, medienPapierkorb.next));
+      more.disabled = !!medienPapierkorb.pending; root.append(more);
+    }
+  }
+
+  function medienPapierkorbErgebnis(value) {
+    const pending = medienPapierkorb.pending;
+    if (gesperrt) { verwerfeMedienPapierkorb(); return; }
+    if (!pending || value?.request_id !== pending.request_id) return;
+    clearTimeout(pending.timer); medienPapierkorb.pending = null;
+    if (value.supported === false) {
+      Object.assign(medienPapierkorb, { supported: false, entries: [], total: 0, next: null, error: false });
+      zeichneMedienPapierkorb(); return;
+    }
+    medienPapierkorb.supported = value.supported === true || medienPapierkorb.supported;
+    const fail = () => { medienPapierkorb.error = true; zeichneMedienPapierkorb(); };
+    if (value.ok !== true || value.action !== pending.action) { fail(); return; }
+    if (pending.action !== "list") {
+      const completed = value.completed;
+      if (!completed || completed.scope !== pending.entry.scope || completed.operation !== pending.entry.operation ||
+          completed.state !== (pending.action === "restore" ? "restored" : "canceled")) { fail(); return; }
+      medienPapierkorb.entries = medienPapierkorb.entries.filter(entry => entry.scope !== completed.scope || entry.operation !== completed.operation);
+      medienPapierkorb.total = Math.max(0, medienPapierkorb.total - 1); medienPapierkorb.next = null;
+      if (pending.action === "restore") zettel(uebersetzt("“%(name)s” was restored.", { name: pending.entry.name }));
+      zeichneMedienPapierkorb(); medienPapierkorbAnfordern(); return;
+    }
+    const valid = entry => entry && typeof entry.scope === "string" && /^[0-9a-f]{64}$/.test(entry.scope) &&
+      typeof entry.operation === "string" && /^[0-9a-f]{32}$/.test(entry.operation) && typeof entry.version === "string" && /^[0-9a-f]{64}$/.test(entry.version) &&
+      typeof entry.name === "string" && entry.name.length > 0 && entry.name.length <= 1024 && !/[\u0000-\u001f\u007f/\\]/.test(entry.name) &&
+      ["images", "video"].includes(entry.media_type) && ["prepared", "trashed", "restore_prepared"].includes(entry.state);
+    if (!Array.isArray(value.scopes) || value.scopes.length > 128 || new Set(value.scopes).size !== value.scopes.length ||
+        !value.scopes.every(scope => typeof scope === "string" && /^[0-9a-f]{64}$/.test(scope)) ||
+        medienPapierkorb.entries.some(entry => !value.scopes.includes(entry.scope)) ||
+        !Array.isArray(value.entries) || value.entries.length > 128 || !value.entries.every(valid) ||
+        value.entries.some(entry => !value.scopes.includes(entry.scope)) ||
+        new Set(value.entries.map(entry => entry.scope + "." + entry.operation)).size !== value.entries.length ||
+        !Number.isSafeInteger(value.total) || value.total < pending.cursor + value.entries.length || value.total > 16384 ||
+        value.next_cursor === null && value.total !== pending.cursor + value.entries.length ||
+        value.next_cursor !== null && (!Number.isSafeInteger(value.next_cursor) || value.next_cursor !== pending.cursor + 128 || value.next_cursor >= value.total)) {
+      fail(); return;
+    }
+    const rows = pending.cursor ? medienPapierkorb.entries.slice() : [];
+    for (const entry of value.entries) {
+      const index = rows.findIndex(old => old.scope === entry.scope && old.operation === entry.operation);
+      if (index >= 0) rows[index] = entry; else rows.push(entry);
+    }
+    Object.assign(medienPapierkorb, { entries: rows, total: value.total, next: value.next_cursor, error: false });
+    zeichneMedienPapierkorb();
+  }
+
   function baueSeiteSicherheit(wurzel) {
     baueHintergrunddienst(wurzel);
     baueSicherungsdateien(wurzel);
@@ -30650,7 +30750,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       reihe.append(leerKnopf);
       ab.append(reihe);
     }
-    wurzel.append(ab);
+    if (Bruecke.vorhanden) {
+      const media = el("div", "einst-gruppe"); media.id = "medien-papierkorb"; media.hidden = true; ab.append(media);
+      if (medienPapierkorb.supported === null && !medienPapierkorb.pending) medienPapierkorbAnfordern();
+    }
+    wurzel.append(ab); zeichneMedienPapierkorb();
 
     /* ----------------------------- Kennwortschutz ------------------------ */
     const ks = abschnitt(_("Password protection"),
@@ -33887,6 +33991,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     init(nutzlast) {
+      verwerfeMedienPapierkorb();
       kontaktFotoDialogSchliessen?.();
       kontaktDateiPruefungSchliessen?.();
       kontaktKartenAuswahlSchliessen?.();
@@ -34256,6 +34361,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         notes: new Set(value.members.notes), tasks: new Set(value.members.tasks) });
     },
     telefonEntwicklerDiagnose,
+    medienPapierkorbStand: medienPapierkorbErgebnis,
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;
       if (value.ok) telefonFotoFehler.delete(value.device_id);

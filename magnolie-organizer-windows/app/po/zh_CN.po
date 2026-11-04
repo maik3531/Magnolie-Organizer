@@ -7997,3 +7997,23 @@ msgstr "替代日程是单独的日程，系列的重复周期保持不变。"
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "请选择有效的替代日期和时间。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "照片和视频"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文件。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "无法更新媒体回收站。现有文件已保留。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "等待恢复"

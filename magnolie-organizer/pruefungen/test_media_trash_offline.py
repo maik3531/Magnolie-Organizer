@@ -87,3 +87,29 @@ def test_observed_online_history_cannot_reset_when_both_originals_disappear(tras
     for name in (owner._name,owner._anchor):
         (root/name).rename(root/(name+'.explicit-fixture-parked'))
     with pytest.raises(TransferError,match='original_anchor_required'):owner.read()
+
+
+@pytest.mark.parametrize('already_moved',[False,True])
+def test_offline_restore_prepared_confirms_only_already_moved_payload_never_deletes(trash,already_moved):
+    fixture,_,_,_,online=trash
+    snapshot,entry=prepare(trash);original,payload=paths(trash,entry);scope=online._scope
+    class Interrupted(Exception):pass
+    if already_moved:
+        def stop(at):
+            if at=='moved':raise Interrupted()
+        online._boundary=stop
+        with pytest.raises(Interrupted):online.trash(online.issue_action(),snapshot,entry.operation,lambda:True)
+    online.close();fixture[0]._end_native_file_connection(fixture[2])
+    authority=NativeLocalMediaTrashAuthority(str(fixture[0].store.root),scope)
+    owner=ProtectedMediaTrash(authority)
+    try:
+        current,_=owner.read()
+        if already_moved:
+            current,entry=owner.restore(owner.issue_action(),current,entry.operation,lambda:True)
+            assert entry.state=='restored' and not payload.exists()
+        else:
+            with pytest.raises(TransferError,match='restore_payload_unproven'):
+                owner.restore(owner.issue_action(),current,entry.operation,lambda:True)
+            assert owner.read()[1][0].state=='prepared' and not payload.exists()
+        assert original.read_bytes()==b'hello'
+    finally:owner.close();authority.close()

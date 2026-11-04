@@ -8464,3 +8464,23 @@ msgstr "Замена — отдельная встреча; расписание
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "Выберите допустимые дату и время заменяющей встречи."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "Фото и видео"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "Медиафайлы хранятся отдельно; очистка остальных элементов корзины их не удаляет. Восстановление никогда не заменяет существующий файл."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Не удалось обновить корзину медиафайлов. Существующие файлы сохранены."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "Ожидает восстановления"

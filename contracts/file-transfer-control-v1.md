@@ -537,10 +537,10 @@ while trashed holds the existing missing-target conflict without downloading or
 resurrecting the file; after restore it is recognized unchanged without another
 download. Twenty optional-composition tests also pass.
 
-Still open: Organizer trash-list/restore UI, durable counterpart propagation and
-restore reconciliation, Android native trash consent/proof and the Windows
-backend. Offline local restore ownership is now implemented below; its actual UI
-caller is still missing. The existing Linux skip-deletions preference
+Still open: durable counterpart propagation and restore reconciliation, Android
+native trash consent/proof and the Windows backend. Offline local restore and the
+source Organizer trash UI are now implemented below; installed/native GUI
+acceptance is still missing. The existing Linux skip-deletions preference
 must still be joined to actual counterpart actions; local explicit trash is not
 that propagation. Production gates remain OFF and no installed test or complete
 bidirectional deletion synchronization is claimed.
@@ -563,7 +563,8 @@ the underlying protected-store initialization with its authenticated historical
 subject. New trash/prepare operations are explicitly forbidden in recovery-only
 mode; local read, exact restore and proven pre-move cancellation remain possible
 under a one-shot native action. Local restore is never a counterpart ACK or phone
-undelete permission. There is still no browser-path factory or UI registration.
+undelete permission. There is no browser-provided-root factory; the source UI
+caller below supplies only its own native telephone root.
 
 Six new source-host cases pass, including actual file restoration after both
 disconnect and unpair without a phone message, absent-root/key/anchor no-bootstrap,
@@ -571,6 +572,59 @@ key withdrawal/no revival and observed-history loss. Forty-one existing protecte
 photo-preference/direction cases and five targeted online trash/video/anchor
 regressions also pass. The original journal/anchor format is unchanged; no
 historical store migration or pairing modification is performed by recovery.
+
+### Organizer media trash view and native offline restore (Refs #330, #335)
+
+The Linux source frontend now projects these external entries into a separate
+“Photos and videos” group inside the existing Settings → Security → Recycle bin
+section. It does **not** copy them into `DATEN.papierkorb`, book saves, normal
+auto-expiry or the bounded Notes trash list. Emptying the other entries cannot
+purge media; the group explains this and has no unsupported media purge control.
+Restore, pre-move cancellation, explicit refresh and bounded page loading use
+only scope/operation/version tokens. Filenames are displayed as text, and all
+four new labels have authored translations in every existing desktop locale.
+
+`NativeMediaTrashUi` strictly validates requests, scans only the known existing
+native telephone root and returns basename/type/state plus opaque IDs, never
+destination paths, keys or receipt blobs. It creates no root, storage key,
+PhoneService or listener. Pagination does not evict history. A verified operation
+completion is independent of a separate overview refresh, so an unrelated damaged
+scope cannot make a completed restore look failed. Prepared crash recovery may
+confirm an **already moved** original payload and restore it; it cannot turn an
+unmoved prepared entry into a new trash move under a restore request.
+
+The actual GTK handler admits one bounded native UI worker, checks the trusted
+unlocked frame, uses `daten_verzeichnis()/telefon` rather than a browser path,
+and rechecks UI lock/root/deadline during native I/O. A callable reply is checked
+again on actual UI delivery, and window destruction revokes the request. The
+implementation is loaded dynamically only after optional-build admission, just
+like the existing optional phone loader; omitted implementations are not static
+dependencies of unconfigured builds. Unsupported Windows controls remain absent.
+
+The frontend binds every reply to its exact pending request/action. Failed,
+foreign or malformed completions do not remove rows; only verified native
+completion does. A separate metadata refresh updates other row versions. The
+overview checks both original anchor and journal names; either missing half is
+held, not reported as empty. It projects the authenticated scope set as well:
+loss of a previously displayed scope preserves cached rows with an error rather
+than claiming those entries disappeared. Unknown/error counts do not display a
+false empty-bin message. Lock or
+book initialization clears private cached entries/timers and rejects late replies.
+No media action changes Notes contents/grants or manufactures a book-save ACK.
+
+Source proofs: 21 native facade/actual-handler cases, two additional prepared
+offline recovery boundaries, eight frontend/locale cases including Windows
+absence, 20 optional-composition cases and the full existing Linux UI suite pass.
+The exact handler is exercised through the established source/AST harness,
+including actual offline file restoration and late-lock response rejection; this
+is not a real installed GTK/WebKit acceptance claim. All catalog checks pass;
+the 19 tracked Windows catalogs add only these four keys with old values intact.
+
+The new view is local recovery, **not** completed phone deletion synchronization.
+Counterpart trash/restore transport, native Android consent/receipts and Windows
+receiver integration remain open; gates stay OFF. The one Notes-style
+“Löschungen auslassen” choice remains the intended propagation control, not two
+new direction switches, and the existing disabled-trash confirmation is unchanged.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

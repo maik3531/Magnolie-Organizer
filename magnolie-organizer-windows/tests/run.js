@@ -22,6 +22,7 @@ for (const test of ["time-zone-planning.js", "time-zone-settings.js", "ui-bugfix
    "phone-contact-preview-batches.js", "kde-receive-ui.js", "realm-data-assert-test.js",
    "../../magnolie-organizer/pruefungen/waste-holiday-authority.cjs",
    "../../magnolie-organizer/pruefungen/appointment-replacement.cjs",
+   "../../magnolie-organizer/pruefungen/media-trash-ui.cjs",
    "contact-group-write.js",
    "contact-value-write.js",
    "contact-group-title-write.js",

@@ -9820,3 +9820,23 @@ msgstr "代わりの予定は単独の予定です。繰り返しの周期は変
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "代わりの予定の有効な日付と時刻を選択してください。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "写真と動画"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除されません。復元時に既存のファイルを置き換えることはありません。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "復元待ち"

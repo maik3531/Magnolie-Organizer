@@ -18,6 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--messages', type=Path, default=Path(__file__).with_suffix('.json'))
+    parser.add_argument('--comment', default='Single recurring appointment actions (Refs #379, #383).')
     args = parser.parse_args()
     translations = json.loads(args.messages.read_text())
     spec = importlib.util.spec_from_file_location('occurrence_catalog', ROOT / 'magnolie-organizer/werkzeuge/desktop_pot_merge.py')
@@ -35,7 +36,7 @@ def main():
                 if key in existing:
                     assert existing[key]['msgstr'] == ('' if locale == 'en' else value), (target, key)
                 else:
-                    missing.append('\n\n#. Single recurring appointment actions (Refs #379, #383).\nmsgid ' + json.dumps(key, ensure_ascii=False) +
+                    missing.append('\n\n#. ' + args.comment.replace('\n', ' ').replace('\r', ' ') + '\nmsgid ' + json.dumps(key, ensure_ascii=False) +
                                    '\nmsgstr ' + json.dumps('' if locale == 'en' else value, ensure_ascii=False) + '\n')
             if args.apply and missing:
                 with target.open('a', encoding='utf-8') as stream:

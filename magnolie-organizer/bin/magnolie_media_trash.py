@@ -43,8 +43,10 @@ class NativeLocalMediaTrashAuthority:
     opaque anchor scope, never a path from the browser/phone. Authenticated local
     history is usable even after disconnect/unpair; no peer is impersonated.
     """
-    def __init__(self,native_directory,scope):
+    def __init__(self,native_directory,scope,*,local_guard=lambda:True):
         if not _hex(scope):raise TransferError('media_trash_local_scope_required')
+        if not callable(local_guard) or local_guard() is not True:raise TransferError('media_trash_local_guard_required')
+        self._local_guard=local_guard
         self.protection=ExistingFileTransferProtection(native_directory)
         self._revoked=threading.Event();self._history_epoch=None;self.scope=scope
         self.binding=_LocalTrashBinding(str(native_directory))
@@ -89,7 +91,10 @@ class NativeLocalMediaTrashAuthority:
         # A local historical namespace, deliberately not NativeFilePeerSnapshot:
         # there is no control_peer()/transport/grant conversion on this object.
         if self._revoked.is_set():return None
-        try:self.protection._read_key()
+        try:
+            if self._local_guard() is not True:
+                self.revoke();return None
+            self.protection._read_key()
         except BaseException:
             self.revoke();raise
         return _LocalTrashScope(self.subject['peer_id'],self.subject['peer_identity'],self._history_epoch)
@@ -350,21 +355,26 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
             with self._locked():
                 current=self._require(action,expected);entries,_,_=self._entries();entry=entries.get(operation)
                 if entry is None:raise TransferError('media_trash_original_operation_required')
+                def fresh():
+                    action.validate(self);self._fresh()
+                    if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
                 if restore:
+                    if entry.state=='prepared':
+                        # Local/offline recovery may confirm an ALREADY moved
+                        # original, never perform a new trash move as "restore".
+                        self._move(entry,fresh,restore=False,observe_moved=True)
+                        current,entry=self._append(action,current,operation,'trashed',entry.mapping)
                     if entry.state=='trashed':
                         current,entry=self._append(action,current,operation,'restore_prepared',entry.mapping)
                         self._boundary('restore_prepared')
                     if entry.state!='restore_prepared':raise TransferError('media_trash_restore_not_current')
                 elif entry.state!='prepared':raise TransferError('media_trash_delete_not_current')
-                def fresh():
-                    action.validate(self);self._fresh()
-                    if native_gate() is not True:raise TransferError('media_trash_native_gate_revoked')
                 self._move(entry,fresh,restore=restore)
                 fresh()
                 result=self._append(action,current,operation,'restored' if restore else 'trashed',entry.mapping)
                 self._boundary(result[1].state);return result
 
-    def _move(self,entry,fresh,*,restore,cancel=False):
+    def _move(self,entry,fresh,*,restore,cancel=False,observe_moved=False):
         mapping=entry.mapping;names=mapping.relative_path.split('/');fds=[]
         def directories():
             fresh();mapping.destination.verify()
@@ -416,6 +426,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
             if not source_exists and target_exists:
                 verify(target) # Exact post-move crash recovery, not a new move.
             else:
+                if observe_moved:raise TransferError('media_trash_restore_payload_unproven')
                 if not source_exists or target_exists:raise TransferError('media_trash_move_conflict')
                 verify(source);directories();self._boundary('before_move');directories()
                 _move_no_replace(fds[-1],source,target)

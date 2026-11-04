@@ -22352,6 +22352,9 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "telefon_videoziel_waehlen":
             self._telefon_videoziel_waehlen(nachricht)
 
+        elif befehl == "medien_papierkorb":
+            self._medien_papierkorb_aktion(nachricht)
+
         elif befehl == "telefon_pairing_oeffnen":
             threading.Thread(target=self._telefon_pairing_oeffnen, daemon=True).start()
 
@@ -24790,6 +24793,44 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung,
                 "error": _("Photo synchronization could not be started. Check the current phone connection and permissions.")})
         self._telefon_stand_melden()
+
+    def _medien_papierkorb_aktion(self, nachricht):
+        """Own native telephone root only; no PhoneService/listener bootstrap."""
+        request_id=nachricht.get("request_id") if isinstance(nachricht,dict) else None
+        failure={"ok":False,"supported":False,"request_id":request_id,"entries":[]}
+        if self._gesperrt or not self._organizer_vertraut():
+            self.antwort("App.medienPapierkorbStand",failure);return
+        from magnolie_optional_phone import available
+        if not available("photo_sync"):
+            self.antwort("App.medienPapierkorbStand",dict(failure,ok=True));return
+        # Match the existing optional phone-module loader: unconfigured builds
+        # must have no static dependency on an omitted implementation.
+        import importlib
+        try:NativeMediaTrashUi=importlib.import_module("magnolie_media_trash_ui").NativeMediaTrashUi
+        except ImportError:
+            self.antwort("App.medienPapierkorbStand",failure);return
+        try:
+            NativeMediaTrashUi.validate_request(nachricht)
+            if getattr(self,"_medien_papierkorb_busy",False):raise ValueError("media_trash_native_ui_busy")
+        except (ValueError,RuntimeError):
+            self.antwort("App.medienPapierkorbStand",dict(failure,supported=True));return
+        if not hasattr(self,"_medien_papierkorb_cancel"):
+            self._medien_papierkorb_cancel=threading.Event()
+            self.connect("destroy",lambda *_args:self._medien_papierkorb_cancel.set())
+        native_root=os.path.join(daten_verzeichnis(),"telefon")
+        def current():
+            return (not self._gesperrt and bool(self._organizer_geladen) and not self._medien_papierkorb_cancel.is_set()
+                and native_root==os.path.join(daten_verzeichnis(),"telefon"))
+        self._medien_papierkorb_busy=True
+        def work():
+            try:result=NativeMediaTrashUi(native_root,current).handle(nachricht)
+            except Exception:result=dict(failure,supported=True)
+            finally:self._medien_papierkorb_busy=False
+            # Callable payload is checked again on the actual GTK/JS delivery
+            # stack, not merely when a background read finished.
+            self.antwort("App.medienPapierkorbStand",lambda:result if current() and self._organizer_vertraut() else failure)
+        worker=threading.Thread(target=work,name="magnolie-media-trash-native-ui",daemon=True)
+        worker.start();return worker
 
     def _kde_legacy_einstellungen_migrieren(self):
         stand = background_settings_read()

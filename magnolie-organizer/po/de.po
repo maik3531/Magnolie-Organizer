@@ -10096,3 +10096,23 @@ msgstr "Der Ersatz ist ein einzelner Termin; der Rhythmus der Serie bleibt unver
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "Bitte gültiges Datum und Uhrzeit für den Ersatztermin wählen."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "Fotos und Videos"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "Medien werden getrennt aufbewahrt; das Leeren der übrigen Papierkorbeinträge entfernt sie nicht. Beim Wiederherstellen wird keine vorhandene Datei ersetzt."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Der Medienpapierkorb konnte nicht aktualisiert werden. Vorhandene Dateien bleiben erhalten."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "Wiederherstellung ausstehend"

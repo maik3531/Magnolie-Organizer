@@ -9717,3 +9717,23 @@ msgstr "विकल्प एक अलग अपॉइंटमेंट ह�
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "वैकल्पिक अपॉइंटमेंट के लिए मान्य तारीख और समय चुनें।"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "फ़ोटो और वीडियो"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "मीडिया फ़ाइलें अलग रखी जाती हैं; रीसायकल बिन की अन्य प्रविष्टियाँ खाली करने से ये नहीं हटतीं। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "मीडिया रीसायकल बिन अपडेट नहीं किया जा सका। मौजूदा फ़ाइलें सुरक्षित रखी गईं।"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "पुनर्स्थापना लंबित"

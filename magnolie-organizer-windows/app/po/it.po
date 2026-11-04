@@ -8508,3 +8508,23 @@ msgstr "La sostituzione è un appuntamento separato; la serie mantiene la sua ca
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "Scegli una data e un'ora valide per l'appuntamento sostitutivo."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "Foto e video"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "I file multimediali vengono conservati separatamente; svuotare gli altri elementi del cestino non li elimina. Il ripristino non sostituisce mai un file esistente."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Impossibile aggiornare il cestino multimediale. I file esistenti sono stati conservati."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "Ripristino in attesa"

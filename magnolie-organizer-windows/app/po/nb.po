@@ -8390,3 +8390,23 @@ msgstr "Erstatningen er en egen avtale; seriens tidsplan forblir uendret."
 #. Single recurring appointment actions (Refs #379, #383).
 msgid "Choose a valid replacement date and time."
 msgstr "Velg gyldig dato og klokkeslett for erstatningsavtalen."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Photos and videos"
+msgstr "Bilder og videoer"
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
+msgstr "Mediefiler oppbevares separat; tømming av de andre elementene i papirkurven fjerner dem ikke. Gjenoppretting erstatter aldri en eksisterende fil."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Mediepapirkurven kunne ikke oppdateres. Eksisterende filer ble beholdt."
+
+
+#. Recoverable local media trash (Refs #330, #335).
+msgid "Pending recovery"
+msgstr "Venter på gjenoppretting"
