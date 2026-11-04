@@ -309,7 +309,6 @@ def parse_result(message, *, expected_request_id, expected_operation, expect_vid
     if (set(body) != {"format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds"}
             or not valid_uuid(body["request_id"], version=4) or body["request_id"] != expected_request_id
             or body["operation"] not in ("status", "configure", "configure_videos") or body["operation"] != expected_operation
-            or body['operation']=='configure_videos' and not expect_videos
             or not _hex(body["version"]) or type(body["revision"]) is not int or not 0 <= body["revision"] <= MAX_REVISION
             or any(type(body[key]) is not bool for key in ("enabled", "associated", "repair_pending"))):
         raise TransferError("file_sources_invalid_result")

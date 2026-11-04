@@ -97,6 +97,8 @@ def test_video_status_extensions_require_explicit_negotiated_parser_and_legacy_a
     configured=status_message('configure_videos',dict(enabled=False,revision=2))
     assert sources.parse_result(configured,expected_request_id=REQUEST,expected_operation='configure_videos',expect_videos=True,now=NOW).videos.enabled is False
     with pytest.raises(TransferError):sources.parse_result(configured,expected_request_id=REQUEST,expected_operation='configure_videos',now=NOW)
+    configured['body'].pop('videos') # Explicit OFF may complete after marker withdrawal.
+    assert sources.parse_result(configured,expected_request_id=REQUEST,expected_operation='configure_videos',now=NOW).videos is None
 
 
 @pytest.mark.parametrize('value',[True,[],{},dict(enabled=1,revision=1),dict(enabled=True,revision=True),

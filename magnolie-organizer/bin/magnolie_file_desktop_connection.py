@@ -342,6 +342,9 @@ class NativeDesktopFileConnection:
 
     def _source_command_authority(self, pending, clock):
         self._receiving_policy()
+        if (pending.command.media_type=='video' or pending.command.operation=='configure_videos' and pending.command.enabled):
+            scope=self._require_video_metadata_scope()
+            if scope.version!=pending.video_policy_version:raise TransferError('file_desktop_video_policy_changed')
         if not self._controls.receiver_command_current(pending.ticket):
             raise TransferError('file_desktop_source_command_authority_changed')
         _body(pending.message, source_messages.REQUEST, clock())
@@ -365,6 +368,14 @@ class NativeDesktopFileConnection:
             ending=pending.command.operation in ('cancel_resume','resume_status','end_resume')
             self._require_resume_lookup_selection(allow_source_run=True,
                 allow_stopping_receiver=pending.command.operation in ('cancel_resume','resume_status'),allow_saved_receiver=ending)
+
+    def _require_video_metadata_scope(self):
+        if not self._authority.video_available():raise TransferError('file_desktop_video_metadata_unavailable')
+        scope=self._preferences.read()
+        if not scope.include_videos:raise TransferError('file_desktop_video_consent_unavailable')
+        scope.policy.videos.destination.verify()
+        if not self._authority.video_available():raise TransferError('file_desktop_video_metadata_unavailable')
+        return scope
 
     def _require_resume_lookup_selection(self, *, allow_source_run=False, allow_stopping_receiver=False, allow_saved_receiver=False):
         selected = self._resume_lookup_selection
@@ -487,12 +498,14 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_batch_continuation_not_current')
         return ended
 
-    def request_source(self, action, operation, *, enabled=None, kinds=(), album_id=None, desktop_choice=None, clock=now_ms):
+    def request_source(self, action, operation, *, enabled=None, kinds=(), album_id=None, desktop_choice=None,
+            media_type=None, clock=now_ms):
         """One explicit native source command, not a personal queue or scheduler.
         Native receive consent/actual control echo may bootstrap source send-OFF.
         Exact remote catalog selections remain metadata, never an Android read grant.
         """
         self._take_action(action)
+        if type(operation) is not str:raise TransferError('file_desktop_source_invalid_options')
         with self._operation():
             self._receiving_policy()
             if self._source_pending is not None:
@@ -503,15 +516,28 @@ class NativeDesktopFileConnection:
                 if witness is None or witness[0] != required[0] or witness[1] <= required[1]:
                     raise TransferError('file_desktop_source_controls_pending')
             options = {}
+            if media_type is not None:
+                source_messages._media_type(media_type)
+                if operation not in source_messages.SCOPED_OPERATIONS:
+                    raise TransferError('file_desktop_source_invalid_options')
+                if media_type=='video' and operation not in ('discover','catalog_page','request_read'):
+                    raise TransferError('file_desktop_video_data_join_unavailable')
+                options['media_type']=media_type
             if operation != 'status':
                 if self._source_status is None or self._source_status.repair_pending:
                     raise TransferError('file_desktop_source_status_required')
                 options['expected_version'] = self._source_status.version
-            if operation != 'configure' and (enabled is not None or kinds != ()):
+            if operation not in ('configure','configure_videos') and (enabled is not None or kinds != ()):
                 raise TransferError('file_desktop_source_invalid_options')
             if operation not in ('run', 'batch_run', 'resume_run') and (album_id is not None or desktop_choice is not None):
                 raise TransferError('file_desktop_source_invalid_options')
-            if operation == 'configure':
+            if operation == 'configure_videos':
+                if (self._album_worker is not None or self._run is not None or self._source_run is not None or self._ended_batch is not None
+                        and self._ended_batch.batch_end is not True):
+                    raise TransferError('file_desktop_receive_run_held')
+                if kinds!=():raise TransferError('file_desktop_source_invalid_options')
+                options['enabled']=enabled
+            elif operation == 'configure':
                 if self._run is not None or self._source_run is not None:
                     raise TransferError('file_desktop_receive_run_held')
                 options.update(enabled=enabled, kinds=kinds)
@@ -520,15 +546,19 @@ class NativeDesktopFileConnection:
             elif operation in ('discover', 'request_read', 'run', 'batch_run', 'resume_run', 'catalog_page'):
                 if not self._source_status.enabled or not self._source_status.associated:
                     raise TransferError('file_desktop_source_not_configured')
+                requested=media_type or 'images'
+                if requested=='video' and (self._source_status.videos is None or not self._source_status.videos.enabled):
+                    raise TransferError('file_desktop_video_source_not_configured')
                 if operation == 'catalog_page':
-                    if self._source_catalog is None or self._source_catalog.next_cursor is None:
+                    if (self._source_catalog is None or self._source_catalog.next_cursor is None
+                            or self._source_catalog.media_type!=requested):
                         raise TransferError('file_desktop_source_catalog_not_current')
                     options.update(catalog_id=self._source_catalog.catalog_id, after=self._source_catalog.next_cursor)
                 elif operation in ('run', 'batch_run', 'resume_run'):
                     if self._run is not None or self._source_run is not None:
                         raise TransferError('file_desktop_receive_run_held')
                     album = self._source_albums.get(album_id)
-                    if (album is None or self._source_catalog is None or type(desktop_choice) is not bool
+                    if (album is None or self._source_catalog is None or self._source_catalog.media_type!=requested or type(desktop_choice) is not bool
                             or album.needs_choice and not desktop_choice):
                         raise TransferError('file_desktop_source_album_not_current')
                     options.update(catalog_id=self._source_catalog.catalog_id, album_id=album.album_id, desktop_choice=desktop_choice)
@@ -584,9 +614,13 @@ class NativeDesktopFileConnection:
                 options['run_id'] = self._source_run.run_id
             message = source_messages.create_command(operation, now=clock(), **options)
             command = source_messages.parse_command(message, now=clock())
+            video_policy_version=None
+            if command.media_type=='video' or operation=='configure_videos' and command.enabled:
+                video_policy_version=self._require_video_metadata_scope().version
             ticket = self._controls.receiver_command_ticket()
             self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
-                album_kind=album.kind if operation in ('run','batch_run','resume_run') else None)
+                album_kind=album.kind if operation in ('run','batch_run','resume_run') else None,
+                video_negotiated=self._authority.video_available(),video_policy_version=video_policy_version)
             self._source_control_required = None
             self._send_source_pending(clock, action)
             return message['message_id']
@@ -602,12 +636,16 @@ class NativeDesktopFileConnection:
         self._source_command_authority(pending, clock)
         command = pending.command
         at = clock()
-        if command.operation in ('status', 'configure'):
+        if command.operation in ('status', 'configure', 'configure_videos'):
             result = source_messages.parse_result(message, expected_request_id=command.request_id,
-                expected_operation=command.operation, now=at)
+                expected_operation=command.operation,
+                expect_videos=pending.video_negotiated and self._authority.video_available(),now=at)
             old = self._source_status
             if old is not None and (result.revision < old.revision or result.revision == old.revision
-                    and (result.version, result.enabled, result.associated, result.kinds) != (old.version, old.enabled, old.associated, old.kinds)):
+                    and (result.version, result.enabled, result.associated, result.kinds) != (old.version, old.enabled, old.associated, old.kinds)
+                    or old.videos is not None and result.videos is not None and (result.videos.revision<old.videos.revision
+                        or result.revision==old.revision and result.videos!=old.videos
+                        or result.videos.revision==old.videos.revision and result.videos!=old.videos)):
                 raise TransferError('file_desktop_source_status_rollback')
         elif command.operation in ('discover', 'catalog_page'):
             result = source_messages.parse_catalog(message, expected_request_id=command.request_id, expected_operation=command.operation,
@@ -687,7 +725,7 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_source_album_kind_required')
         self._controls.finish_receiver_command(pending.ticket)
         self._source_pending = None
-        if command.operation in ('status', 'configure'):
+        if command.operation in ('status', 'configure', 'configure_videos'):
             if self._source_status is None or self._source_status.version != result.version:
                 self._source_catalog = None
                 self._source_albums = {}
@@ -2380,3 +2418,5 @@ class _NativeDesktopSourceCommand:
     remote_witness: tuple
     sent: bool = False
     album_kind: str | None = None
+    video_negotiated: bool = False
+    video_policy_version: str | None = None

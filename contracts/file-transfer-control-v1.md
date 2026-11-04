@@ -1,5 +1,22 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Live desktop video metadata commands (Refs #330, data join still closed)
+
+The actual reserved desktop lane can now issue separate `configure_videos` and
+typed video discovery/catalog-page/permission attempts. Positive video commands
+require current-channel ACKed availability, explicit protected local video scope
+and the original native video-directory witness. Their pending command pins the
+local policy version, so local off/on cannot silently resume an old command.
+Unsent refused operations allocate no command ticket or output.
+
+Negotiated status parsing checks independent video revision rollback and
+same-revision mutation as well as the existing global policy witness. Dedicated
+video configuration does not wait for a changed photo FileControl echo; its
+successful metadata reply alone still grants no READ. Explicit video OFF can
+complete after capability withdrawal with the native legacy-shaped reply.
+Video catalogs cannot be used by image run selection. Video run/worker admission
+remains explicitly closed until its independent target/binding join is complete.
+
 ### Video history across renewed source epochs (Refs #330, inert guard)
 
 Protected desktop job-history inspection now holds overlapping native video IDs
