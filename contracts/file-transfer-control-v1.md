@@ -1,5 +1,21 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Independent native desktop video binding (Refs #330, admission still closed)
+
+The native binding resolver now accepts an explicit media scope. Video resolves
+only the protected original video directory and its distinct video token under
+current consent/capability witnesses, with a separate data-readiness gate default
+OFF. It rechecks directory and policy after control binding. The existing photo
+binding keeps its default behavior and grant epoch; no incoming filename or
+historical binding selects a video root.
+
+Seven native binding cases cover default refusal, original root/token, unchanged
+photo grants, lower-level accepted-destination verification, video withdrawal,
+local OFF, missing/replaced roots and withdrawal during root verification. The
+23 existing actual photo receiver cases still pass. These are binding checks,
+not an admitted video source/worker: typed video data commands and the receiver
+admission guard remain closed until per-run media ownership and stop/END join.
+
 ### Live desktop video metadata commands (Refs #330, data join still closed)
 
 The actual reserved desktop lane can now issue separate `configure_videos` and

@@ -43,6 +43,7 @@ class NativeDesktopFileConnection:
     # Private native release gate, never a serialized setting or UI preference.
     # Full data/recovery/baseline and frontend acceptance is still outstanding.
     _data_handlers_ready = False
+    _video_data_handlers_ready = False
 
     def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None):
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
@@ -815,11 +816,26 @@ class NativeDesktopFileConnection:
             raise TransferError('file_desktop_receive_policy_changed')
         return snapshot
 
-    def _receive_binding(self):
+    def _receive_destination(self,snapshot,*,media_type='images'):
+        source_messages._media_type(media_type)
+        if media_type=='images':return snapshot.policy.destination
+        if not self._video_data_handlers_ready:raise TransferError('file_desktop_video_data_join_unavailable')
+        scope=self._require_video_metadata_scope()
+        if scope.version!=snapshot.version:raise TransferError('file_desktop_video_policy_changed')
+        return scope.policy.videos.destination
+
+    def _receive_binding(self,*,media_type='images'):
         snapshot = self._receiving_policy()
-        binding = self._controls.binding(snapshot.policy.destination_token)
+        destination=self._receive_destination(snapshot,media_type=media_type)
+        token=snapshot.policy.destination_token if media_type=='images' else snapshot.policy.videos.destination_token
+        if media_type=='video' and token==snapshot.policy.destination_token:
+            raise TransferError('file_desktop_video_destination_token_aliased')
+        binding = self._controls.binding(token)
         if binding is None:
             raise TransferError('file_desktop_receive_controls_not_agreed')
+        if media_type=='video':
+            destination.verify()
+            if self._require_video_metadata_scope()!=snapshot:raise TransferError('file_desktop_video_policy_changed')
         self._ready()
         if self._mutation_action is not None:
             self._mutation_action.validate(self)
