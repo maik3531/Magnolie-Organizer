@@ -538,11 +538,39 @@ resurrecting the file; after restore it is recognized unchanged without another
 download. Twenty optional-composition tests also pass.
 
 Still open: Organizer trash-list/restore UI, durable counterpart propagation and
-restore reconciliation, Android native trash consent/proof, offline local restore
-ownership and the Windows backend. The existing Linux skip-deletions preference
+restore reconciliation, Android native trash consent/proof and the Windows
+backend. Offline local restore ownership is now implemented below; its actual UI
+caller is still missing. The existing Linux skip-deletions preference
 must still be joined to actual counterpart actions; local explicit trash is not
 that propagation. Production gates remain OFF and no installed test or complete
 bidirectional deletion synchronization is claimed.
+
+### Local recovery authority independent of phone connectivity (Refs #330, #335)
+
+`NativeLocalMediaTrashAuthority` authenticates the original opaque anchor scope
+using only the existing private native telephone root/key. It creates no keys,
+identity, pairing or directory, needs no channel and never reads a phone grant.
+The original encrypted journal supplies its historical pairing namespace only
+after authentication; this remains usable after disconnect or unpairing for local
+restoration. The captured anchor/root identities and existing key are rechecked.
+Observed key withdrawal permanently revokes that instance, even if the old bytes
+are restored. Missing/replaced history is held, not defaulted or repaired.
+
+This authority exposes no channel or control-peer/grant conversion. The ordinary
+photo preference and mapping-store constructors continue to require the actual
+authenticated transport authority and reject it. Only the trash subclass reuses
+the underlying protected-store initialization with its authenticated historical
+subject. New trash/prepare operations are explicitly forbidden in recovery-only
+mode; local read, exact restore and proven pre-move cancellation remain possible
+under a one-shot native action. Local restore is never a counterpart ACK or phone
+undelete permission. There is still no browser-path factory or UI registration.
+
+Six new source-host cases pass, including actual file restoration after both
+disconnect and unpair without a phone message, absent-root/key/anchor no-bootstrap,
+key withdrawal/no revival and observed-history loss. Forty-one existing protected
+photo-preference/direction cases and five targeted online trash/video/anchor
+regressions also pass. The original journal/anchor format is unchanged; no
+historical store migration or pairing modification is performed by recovery.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

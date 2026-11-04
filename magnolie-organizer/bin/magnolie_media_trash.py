@@ -11,13 +11,93 @@ import os
 import secrets
 import stat
 import sys
+import threading
+import time
 
 from magnolie_file_control import MAX_REVISION, _hex
 from magnolie_file_transfer import CHUNK_BYTES, TransferError
+from magnolie_file_protection import ExistingFileTransferProtection
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation, NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_telefon import canonical, strict_json
+from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
+
+
+@dataclass(frozen=True)
+class _LocalTrashBinding:
+    native_directory: str
+
+
+@dataclass(frozen=True)
+class _LocalTrashScope:
+    peer_id: str
+    identity_sha256: str
+    pairing_epoch: str | None
+
+
+class NativeLocalMediaTrashAuthority:
+    """Existing local recovery only: no channel, peer grants, READ or new trash.
+
+    The native Organizer owner supplies its own existing telephone root and an
+    opaque anchor scope, never a path from the browser/phone. Authenticated local
+    history is usable even after disconnect/unpair; no peer is impersonated.
+    """
+    def __init__(self,native_directory,scope):
+        if not _hex(scope):raise TransferError('media_trash_local_scope_required')
+        self.protection=ExistingFileTransferProtection(native_directory)
+        self._revoked=threading.Event();self._history_epoch=None;self.scope=scope
+        self.binding=_LocalTrashBinding(str(native_directory))
+        self._anchor_name='media-trash-anchor-v1-'+scope+'.seal'
+        parent=None;fd=None
+        try:
+            parent=os.open(native_directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+            if (os.fstat(parent).st_dev,os.fstat(parent).st_ino)!=self.protection.native_directory_identity:
+                raise TransferError('media_trash_original_root_changed')
+            fd=os.open(self._anchor_name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=parent)
+            before=os.fstat(fd);ProtectedPhotoPreferences._private(before)
+            if not 28<=before.st_size<=8192:raise TransferError('media_trash_original_anchor_changed')
+            blob=os.read(fd,8193);after=os.fstat(fd);named=os.stat(self._anchor_name,dir_fd=parent,follow_symlinks=False)
+            signature=ExistingFileTransferProtection._signature
+            if len(blob)!=before.st_size or signature(before)!=signature(after) or signature(after)!=signature(named):
+                raise TransferError('media_trash_original_anchor_changed')
+            plain=self.protection.unseal(blob,'magnolie-media-trash-v1/'+scope+'/anchor')
+            value=strict_json(plain)
+            if (type(value) is not dict or set(value)!={'format','subject','root_key','database_key','lock_key'}
+                    or type(value['format']) is not int or value['format']!=1 or canonical(value)!=plain):
+                raise TransferError('media_trash_original_anchor_changed')
+            subject=value['subject']
+            if (type(subject) is not dict or set(subject)!={'local_id','local_identity','peer_id','peer_identity'}
+                    or sha256(canonical(subject)).hexdigest()!=scope):
+                raise TransferError('media_trash_local_scope_required')
+            self.identity=NativeJobCatalogIdentity(subject['local_id'],subject['local_identity'])
+            NativeJobCatalogIdentity(subject['peer_id'],subject['peer_identity'])
+            self.subject=dict(subject)
+            self._anchor_identity=((before.st_dev,before.st_ino),sha256(blob).hexdigest())
+        except BaseException:
+            self.close();raise
+        finally:
+            if fd is not None:os.close(fd)
+            if parent is not None:os.close(parent)
+
+    def bind_history_epoch(self,epoch):
+        if not _hex(epoch) or self._history_epoch is not None and epoch!=self._history_epoch:
+            raise TransferError('media_trash_local_history_changed')
+        self._history_epoch=epoch
+
+    def current_peer(self):
+        # A local historical namespace, deliberately not NativeFilePeerSnapshot:
+        # there is no control_peer()/transport/grant conversion on this object.
+        if self._revoked.is_set():return None
+        try:self.protection._read_key()
+        except BaseException:
+            self.revoke();raise
+        return _LocalTrashScope(self.subject['peer_id'],self.subject['peer_identity'],self._history_epoch)
+
+    def revoke(self):self._revoked.set()
+
+    def close(self):
+        self.revoke();self.protection.close()
 
 
 @dataclass(frozen=True)
@@ -66,7 +146,11 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         'trashed':('restore_prepared',),'restore_prepared':('restored',)}
 
     def __init__(self,authority,*,boundary=lambda _:None,**kwargs):
-        super().__init__(authority,**kwargs)
+        self._recovery_only=type(authority) is NativeLocalMediaTrashAuthority
+        if self._recovery_only:
+            if set(kwargs)-{'monotonic_ms'}:raise TransferError('media_trash_local_options_invalid')
+            self._initialize_store(authority,authority.subject,kwargs.get('monotonic_ms',lambda:time.monotonic_ns()//1_000_000))
+        else:super().__init__(authority,**kwargs)
         self._name='media-trash-v1-'+self._scope
         self._domain='magnolie-media-trash-v1/'+self._scope+'/'
         self._absent=sha256((self._domain+'absent').encode()).hexdigest()
@@ -109,7 +193,8 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                 try:os.stat(name,dir_fd=parent,follow_symlinks=False);return True
                 except FileNotFoundError:return False
             present,anchored=exists(self._name),exists(self._anchor)
-            if present!=anchored:raise TransferError('media_trash_original_anchor_required')
+            if present!=anchored or not present and (self._recovery_only or self._anchor_identity is not None):
+                raise TransferError('media_trash_original_anchor_required')
             if not present and not create:return False
             result=super()._open(create=create,validate=validate)
             if not present:
@@ -124,6 +209,8 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
             if strict_json(plain)!=self._anchor_value() or canonical(self._anchor_value())!=plain:
                 raise TransferError('media_trash_original_anchor_changed')
             identity=key,sha256(blob).hexdigest()
+            if self._recovery_only and identity!=self._authority._anchor_identity:
+                raise TransferError('media_trash_original_anchor_changed')
             if self._anchor_identity is not None and self._anchor_identity!=identity:
                 raise TransferError('media_trash_original_anchor_changed')
             self._anchor_identity=identity;self._fresh();return result
@@ -165,6 +252,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
                 or any(type(owner[key]) is not int for key in ('revision','count','events'))
                 or not 1<=owner['revision']<=MAX_REVISION or not _hex(owner['pairing_epoch']) or not _hex(owner['events_sha256'])):
             raise TransferError('media_trash_invalid_owner')
+        if self._recovery_only:self._authority.bind_history_epoch(owner['pairing_epoch'])
         entries,count,digest=self._entries()
         if (owner['count'],owner['events'],owner['events_sha256'],owner['revision'])!=(len(entries),count,digest,count+1):
             raise TransferError('media_trash_history_changed')
@@ -218,6 +306,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
     def prepare_local(self,action,expected,mappings,association,expected_mapping_sha256):
         """Explicit native selection, not a missing-scan inference or remote claim."""
         self._action(action,expected);action.consume(self)
+        if self._recovery_only:raise TransferError('media_trash_local_recovery_only')
         if type(mappings) is not ProtectedPhotoMappings or mappings._authority is not self._authority:
             raise TransferError('media_trash_original_mapping_store_required')
         mapping_snapshot,records=mappings.lookup((association,));mapping=records[0]
@@ -254,6 +343,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
 
     def _execute(self,action,expected,operation,native_gate,*,restore):
         self._action(action,expected);action.consume(self)
+        if self._recovery_only and not restore:raise TransferError('media_trash_local_recovery_only')
         if not callable(native_gate):raise TransferError('media_trash_native_gate_required')
         with self._operation():
             if not self._open():raise TransferError('media_trash_original_operation_required')

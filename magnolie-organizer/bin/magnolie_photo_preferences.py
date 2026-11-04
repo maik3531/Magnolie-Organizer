@@ -142,10 +142,15 @@ class ProtectedPhotoPreferences:
 
     def __init__(self,authority,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
         if type(authority) is not NativeDesktopFileAuthority:raise TransferError('photo_preferences_native_authority_required')
-        self._authority=authority;self._clock=monotonic_ms
         binding=authority.binding
-        self._subject=dict(local_id=authority.identity.receiver_id,local_identity=authority.identity.receiver_identity_sha256,
+        subject=dict(local_id=authority.identity.receiver_id,local_identity=authority.identity.receiver_identity_sha256,
                            peer_id=binding.peer_id,peer_identity=sha256(base64.b64decode(binding.static_public,validate=True)).hexdigest())
+        self._initialize_store(authority,subject,monotonic_ms)
+
+    def _initialize_store(self,authority,subject,monotonic_ms):
+        # Shared descriptor/AEAD lifetime only. Public preference construction
+        # above still accepts ONLY the actual authenticated transport authority.
+        self._authority=authority;self._clock=monotonic_ms;self._subject=dict(subject)
         self._scope=sha256(canonical(self._subject)).hexdigest()
         self._name='photo-preferences-v1-'+self._scope
         self._domain='magnolie-photo-preferences-v1/'+self._scope+'/'
