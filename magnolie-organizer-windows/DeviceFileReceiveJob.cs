@@ -132,6 +132,8 @@ internal sealed partial class TelefonStore
             {
                 foreach (var key in new[] { "manifest", "binding", "media_type", "destination_version", "destination", "stage_name" })
                     if (!JsonNode.DeepEquals(before.Body[key], body[key])) throw DeviceFileControl.Error("file_receive_original_job_changed");
+                if (before.Body.ContainsKey("source_job") && !JsonNode.DeepEquals(before.Body["source_job"], body["source_job"]))
+                    throw DeviceFileControl.Error("file_receive_original_source_history_changed");
                 if (before.Revision >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_receive_history_revision_exhausted");
             }
             var result = new ReceiveHead(jobId, (before?.Revision ?? 0) + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), body);
@@ -295,7 +297,16 @@ internal sealed partial class TelefonStore
 
         internal static void ValidateBody(JsonObject body, string jobId)
         {
-            TelefonProtocolContract.ExactObject(body, "manifest", "binding", "media_type", "destination_version", "destination", "phase", "stage_name", "stage_identity", "files");
+            var fields = new List<string> { "manifest", "binding", "media_type", "destination_version", "destination", "phase", "stage_name", "stage_identity", "files" };
+            if (body.ContainsKey("source_job"))
+            {
+                fields.Add("source_job");
+                var sourceJob = TelefonProtocolContract.ExactObject(body["source_job"]!, "job_id", "job_version");
+                var sourceId = TelefonMessagingContract.String(sourceJob, "job_id");
+                if (sourceId.Length != 32 || sourceId.Any(c => !char.IsAsciiHexDigitLower(c)) ||
+                    !DeviceFileControl.Hash(TelefonMessagingContract.String(sourceJob, "job_version"))) throw DeviceFileControl.Error("file_receive_history_invalid");
+            }
+            TelefonProtocolContract.ExactObject(body, fields.ToArray());
             using var document = JsonDocument.Parse(body["manifest"]!.ToJsonString()); var manifest = DeviceFileManifest.Parse(document.RootElement);
             var kind = TelefonMessagingContract.String(body, "media_type"); MediaDestinationKind(kind);
             var phase = TelefonMessagingContract.String(body, "phase");

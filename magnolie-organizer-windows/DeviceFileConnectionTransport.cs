@@ -102,7 +102,7 @@ internal sealed partial class TelefonConnection
         var kind = message["kind"]?.GetValue<string>();
         bool commandPending;
         lock (fileRouteGate) commandPending = nativeSourceCommand is not null;
-        if (kind is DeviceFileSources.CatalogKind or DeviceFileSources.PermissionResultKind || kind == DeviceFileSources.ResultKind && commandPending)
+        if (kind is DeviceFileSources.CatalogKind or DeviceFileSources.PermissionResultKind or DeviceFileSources.RunResultKind or DeviceFileSources.MediaKind or DeviceFileSources.ResumeKind || kind == DeviceFileSources.ResultKind && commandPending)
         {
             await ReceiveNativeSourceCommandAsync(message);
             return;

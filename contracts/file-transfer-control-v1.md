@@ -410,7 +410,8 @@ rerun as a substitute for the new command's actual timeout. These are synthetic
 source replies through the real Windows native secure writer/dispatcher, not a
 physical Android provider or installed Organizer GUI acceptance.
 
-Still unjoined: run/batch/resume/END command ownership, the incoming offer/chunk
+Run/batch/END and original-source lookup ownership are now joined below. Still
+unjoined: actual resumed receive ownership, the incoming offer/chunk
 route and operative album/worker/UI. No new background worker, startup READ,
 Android permission dialog, native public bridge action or production gate is
 introduced by these explicit native APIs.
@@ -437,7 +438,7 @@ channel opt-in/withdrawal and typed command/result separation. Five shared
 Python/Notes command vectors now match exact canonical bytes and SHA-256 values
 (configuration, discover, ordinary run, original resume and media page). Original
 resume requires its exact original-job ID/version; an ordinary run cannot carry
-or silently discard that intent. Original-job resume/lookup/abandonment transport
+or silently discard that intent. Original-job resumed-run/abandonment transport
 and completion metadata remain to be joined
 on Windows together with the protected receiver, native preferences/destinations
 and worker. The runtime API added so far sends only `status`; no positive video
@@ -528,7 +529,7 @@ errors. Linux grammar/non-Windows rejection is separately tested and is not
 substituted for those native Windows proofs.
 
 The native receive-job owner below now joins protected stage/publication history.
-Still unjoined: original-job resume/END and run/batch transport,
+Still unjoined: actual original-job resumed receiving and receipt-driven retirement,
 receive routing and working media UI. These filesystem/storage APIs are not wire handlers or a completed
 receiver. No installed Organizer acceptance, package delivery, new APK/EXE or
 production gate activation is claimed.
@@ -574,8 +575,71 @@ bytes in these tests are supplied to the explicit native API, not yet incoming
 encrypted file-data envelopes; this is not a network sync or installed GUI proof.
 
 Still missing: the original resume/END owner and cache retirement, wire offer/chunk
-routing, source run/batch/resume transport, album-layout/mapping orchestration
+routing, source resumed-run transport, album-layout/mapping orchestration
 and operational media UI. No new automatic worker or production gate is enabled.
+
+### Windows owned batch, media metadata, END and original-source lookup (Refs #330, #335)
+
+`StartNativeMediaBatchAsync` now sends a real encrypted `batch_run` and retains a
+native source lease only from its fully correlated, validated reply while the
+original command ticket is still live. Only one current run/ended album cursor
+may be owned. Typed status/cancel/offer/end APIs address that exact reference, run
+ID, source version, media type, control owner and remote session. A source lease
+has no READ authority and cannot be fabricated from a copied JSON/run ID. A
+remote-session change permanently invalidates retained leases.
+
+Status/cancel/END use a separate bounded metadata cleanup ticket for a registered
+original run. They do not demand positive saved receive/video choice, current
+data binding, handler readiness or manifest availability after withdrawal. They
+still require the current authenticated relationship/control session. Cleanup
+cannot create another source lease, issue an offer or authorize new media READ.
+`source_io_ended` means snapshot work has stopped; it is **not** `run_ended`.
+Actual `end_run`/`end_album` replies require `canceled_held`, `source_io_ended=true`
+and `run_ended=true`. No receive-job history, cache or quota is retired by these
+source-controller metadata operations.
+
+END of a batch retains its album provenance/cursor until a validated `next_batch`
+or `end_album`. Advancement requires positive current data/read scope again and
+a different run ID; only then is the previous lease released. `empty_ready` is
+accepted only with an explicit final-batch flag. Snapshot/batch/terminal state
+rollback, reused run IDs, unconfirmed END and a normal new batch while original
+ownership remains are refused. Cancel/timeout does not silently erase a retained
+original run; native inspection can retrieve that owned reference.
+
+Typed `media_page` requests advance the exact owned cursor and reject duplicate
+file/photo IDs, altered manifest/count, changed source epoch/media/insertion
+witness, and more than 16 members in a native batch. Album scope survives batch
+advancement. An incomplete media-page sequence blocks offer; a correlated offer
+must match the collected manifest fingerprint. These metadata pages grant no
+deletion authority and do not constitute a completed receiver/album mapping.
+
+Original source lookup starts from an exact-version selection of a protected
+existing desktop job, not a browser-supplied new manifest or guessed phone job
+ID. A real encrypted `resume_lookup` correlates request, version, original
+source/transfer/fingerprint, media and reply deadline. Typed source history
+strictly checks job/version, phase and optional attempt tokens. The phone's
+original job ID/version are committed and read back in the **same** protected
+desktop job without changing its manifest, stage identities, phase or bytes.
+Later replies cannot replace those original source IDs. Stale local versions,
+another source manifest, wrong request/media, extended reply lifetime or missing
+attempt tokens HOLD. Historical selection/remote Saved hints grant neither
+resume nor current file access. This does not yet reopen/recover staged files or
+start `resume_run`; partial-byte recovery and receipt-driven END retirement remain
+unjoined and must not be replaced by an ordinary new job.
+
+Current physical Windows proof: ten new lifecycle groups (including pure grammar
+and cleanup-lease boundaries), seven changed shared-command guard regressions and
+three receive/publication/key-corruption regressions all pass. They exercise real
+encrypted Windows control output/dispatch, native synthetic job bytes and actual
+protected history commits. Android source replies remain synthetic; this is not
+a physical phone provider or installed application acceptance. Existing unchanged
+quota and real no-reply timeout proofs are retained, not rerun. Build: zero
+warnings/errors. Source/video golden and pure lifecycle tests also pass on Linux.
+
+Still missing: stage/chunk checkpoint recovery, actual resumed-run receiving,
+incoming offer/chunk/Saved routing and original-job/cache END retirement, native
+album/mapping/worker/UI join and Android recoverable trash/restore. No APK/EXE,
+installed-system update or gate activation is claimed by this source change.
 
 ### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
 

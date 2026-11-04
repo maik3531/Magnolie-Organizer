@@ -132,4 +132,31 @@ internal static class DeviceFileMetadataCommandTests
         }
         return Task.CompletedTask;
     }
+
+    internal static Task SourceCleanupLeaseAsync()
+    {
+        using var pair = new Pair(); pair.Handshake(); var session = pair.Desktop.Session;
+        var ticket = session.ReceiverCommandTicket(); var id = Guid.NewGuid().ToString("D");
+        var lease = session.RetainSourceRun(ticket, id, new string('a', 64), "images");
+        TestAssert.Throws<InvalidDataException>(() => session.RetainSourceRun(ticket, id, new string('a', 64), "images"), "Duplicate retained source run admitted.");
+        session.FinishReceiverCommand(ticket);
+        var forged = new NativeFileControlSession.SourceRunLease(id, lease.Version, "images", lease.RemoteSession);
+        TestAssert.Throws<InvalidDataException>(() => session.CleanupCommandTicket(forged), "Unregistered copy of source-run metadata acquired cleanup authority.");
+        TestAssert.Throws<InvalidDataException>(() => session.ReleaseSourceRun(forged), "Foreign source lease removed original ownership.");
+        pair.Desktop.Local = new(new(8, new string('c', 64), false, false, [2]), pair.Desktop.Local.Owner, false, policyReady: false);
+        var cleanup = session.CleanupCommandTicket(lease);
+        TestAssert.That(session.ReceiverCommandCurrent(cleanup) && !lease.GrantsReadAuthority && session.Binding(new string('e', 64)) is null,
+            "Source cleanup required/restored data/handler/manifest/policy availability.");
+        TestAssert.Throws<InvalidDataException>(() => session.RetainSourceRun(cleanup, Guid.NewGuid().ToString("D"), lease.Version, "images"), "Cleanup command created new source READ ownership.");
+        TestAssert.Throws<InvalidDataException>(() => session.CleanupCommandTicket(lease), "Two cleanup commands overlapped.");
+        pair.Now += DeviceFileControl.MaximumTtlMs;
+        TestAssert.That(!session.ReceiverCommandCurrent(cleanup), "Cleanup ticket escaped its bounded deadline.");
+        session.FinishReceiverCommand(cleanup);
+        pair.Phone.Session.Dispose(); pair.Phone.Session = pair.Phone.NewSession(); Pair.Send(pair.Phone, pair.Desktop);
+        TestAssert.Throws<InvalidDataException>(() => session.CleanupCommandTicket(lease), "New source session inherited an old source lease.");
+        TestAssert.That(lease.Invalidated, "Session change did not permanently invalidate retained source ownership.");
+        session.ReleaseSourceRun(lease);
+        TestAssert.Throws<InvalidDataException>(() => session.ReleaseSourceRun(lease), "Released source lease was reusable.");
+        return Task.CompletedTask;
+    }
 }

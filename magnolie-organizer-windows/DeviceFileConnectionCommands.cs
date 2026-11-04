@@ -11,7 +11,7 @@ internal sealed partial class TelefonConnection
     private object? nativeVideoConfigurationAttempt;
     private sealed class NativeSourceCommandPending(NativeSourceChoice choice, NativeReceiverCommandTicket ticket,
         JsonObject message, (string SessionEpoch, long Sequence) witness, string resultKind, Func<JsonObject, object> parse,
-        Action require)
+        Action require, Action<NativeReceiverCommandTicket, object>? accept)
     {
         internal readonly NativeSourceChoice Choice = choice;
         internal readonly NativeReceiverCommandTicket Ticket = ticket;
@@ -20,6 +20,7 @@ internal sealed partial class TelefonConnection
         internal readonly string ResultKind = resultKind;
         internal readonly Func<JsonObject, object> Parse = parse;
         internal readonly Action RequireChoice = require;
+        internal readonly Action<NativeReceiverCommandTicket, object>? Accept = accept;
         internal readonly TaskCompletionSource<object> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool OutputConfirmed;
     }
@@ -153,14 +154,16 @@ internal sealed partial class TelefonConnection
     }
 
     private async Task<T> ExchangeNativeSourceCommandAsync<T>(NativeSourceChoice choice, JsonObject message, string resultKind,
-        Func<JsonObject, object> parse, Action require, CancellationToken callerCancellation)
+        Func<JsonObject, object> parse, Action require, CancellationToken callerCancellation,
+        NativeFileControlSession.SourceRunLease? cleanup = null, Action<NativeReceiverCommandTicket, object>? accept = null)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellation, callerCancellation);
         lifetime.CancelAfter(TimeSpan.FromMilliseconds(DeviceFileControl.MaximumTtlMs)); lifetime.Token.ThrowIfCancellationRequested();
-        require(); var ticket = choice.Owner.ReceiverCommandTicket(); NativeSourceCommandPending? pending = null;
+        require(); var ticket = cleanup is null ? choice.Owner.ReceiverCommandTicket() : choice.Owner.CleanupCommandTicket(cleanup);
+        NativeSourceCommandPending? pending = null;
         try
         {
-            pending = new(choice, ticket, message, choice.Owner.ReceiverCommandWitness(ticket), resultKind, parse, require);
+            pending = new(choice, ticket, message, choice.Owner.ReceiverCommandWitness(ticket), resultKind, parse, require, accept);
             lock (fileRouteGate)
             {
                 if (fileRouteFaulted || !ReferenceEquals(fileControls, choice.Owner) || nativeSourceCommand is not null || nativeSourceStatus is not null)
@@ -229,6 +232,7 @@ internal sealed partial class TelefonConnection
                     throw DeviceFileControl.Error("file_sources_native_unconfirmed_or_wrong_result");
             }
             RequireNativeSourceCommand(pending); var result = pending.Parse(message); RequireNativeSourceCommand(pending);
+            pending.Accept?.Invoke(pending.Ticket, result);
             if (!pending.Completion.TrySetResult(result)) throw DeviceFileControl.Error("file_sources_native_duplicate_result");
         }
         catch { CloseNativeFileRoute(); throw; }

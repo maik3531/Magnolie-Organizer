@@ -259,6 +259,8 @@ runner.Add("Device file protected preferences / selectable deletion directions /
 runner.Add("Device file protected preferences / Notes-style skip deletions checkbox", DeviceFileStorePreferencesTests.NotesStyleDeletionModeAsync);
 runner.Add("Device file native directory / conservative local path grammar", DeviceFileNativeDirectoryTests.GrammarAsync);
 runner.Add("Device file native receive / conservative leaf grammar", DeviceFileNativeReceiveTests.LeafGrammarAsync);
+runner.Add("Device file native run lifecycle / strict batch and END codec", DeviceFileConnectionRunsTests.CodecAsync);
+runner.Add("Device file native run lifecycle / retained cleanup lease boundaries", DeviceFileMetadataCommandTests.SourceCleanupLeaseAsync);
 runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
 if (OperatingSystem.IsWindows())
 {
@@ -285,6 +287,14 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native media commands / Windows superseded positive video", DeviceFileConnectionCommandsTests.WindowsSupersededVideoAsync);
     runner.Add("Device file native media commands / Windows actual bounded timeout", DeviceFileConnectionCommandsTests.WindowsActualTimeoutAsync);
     runner.Add("Device file native media commands / Windows video after current data ACK", DeviceFileConnectionCommandsTests.WindowsVideoAfterActualDataAckAsync);
+    runner.Add("Device file native run lifecycle / Windows original batch END and advance", DeviceFileConnectionRunsTests.WindowsBatchEndAndAdvanceAsync);
+    runner.Add("Device file native run lifecycle / Windows metadata cleanup after withdrawal", DeviceFileConnectionRunsTests.WindowsCleanupAfterWithdrawalAsync);
+    runner.Add("Device file native run lifecycle / Windows reused next owner HOLD", DeviceFileConnectionRunsTests.WindowsRejectReusedNextAsync);
+    runner.Add("Device file native run lifecycle / Windows media cursor and album provenance", DeviceFileConnectionRunsTests.WindowsMediaPagesAndAlbumScopeAsync);
+    runner.Add("Device file native run lifecycle / Windows unconfirmed END and rollback HOLD", DeviceFileConnectionRunsTests.WindowsUnconfirmedEndAndRollbackAsync);
+    runner.Add("Device file native run lifecycle / Windows correlated original source resume history", DeviceFileConnectionRunsTests.WindowsOriginalSourceResumeHistoryAsync);
+    runner.Add("Device file native run lifecycle / Windows resume correlation and expiry HOLD", DeviceFileConnectionRunsTests.WindowsResumeCorrelationAndExpiryAsync);
+    runner.Add("Device file native run lifecycle / Windows stale local resume owner HOLD", DeviceFileConnectionRunsTests.WindowsResumeStaleLocalOwnerAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

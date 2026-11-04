@@ -134,13 +134,22 @@ internal sealed class NativeReceiverCommandTicket { }
 
 internal sealed class NativeFileControlSession : IDisposable
 {
-    private sealed class ReceiverCommandScope(DeviceFileGrantState local, DeviceFileControlPacket remote, long now)
+    internal sealed class SourceRunLease
+    {
+        internal readonly string RunId, Version, MediaType, RemoteSession;
+        internal bool Invalidated;
+        internal SourceRunLease(string runId, string version, string mediaType, string remoteSession)
+        { RunId = runId; Version = version; MediaType = mediaType; RemoteSession = remoteSession; }
+        internal bool GrantsReadAuthority => false;
+    }
+    private sealed class ReceiverCommandScope(DeviceFileGrantState local, DeviceFileControlPacket remote, long now, SourceRunLease? cleanup = null)
     {
         internal readonly DeviceFileGrantState LocalPermission = local;
         internal readonly string RemoteSession = remote.SessionEpoch;
         internal readonly long RemoteSequence = remote.Sequence, Issued = now, Expires = now + DeviceFileControl.MaximumTtlMs;
         internal long LastChecked = now;
         internal bool Invalidated;
+        internal readonly SourceRunLease? Cleanup = cleanup;
     }
     private readonly NativeFileControlIdentity identity;
     private readonly Func<NativeFileControlPeer?> currentPeer;
@@ -151,6 +160,7 @@ internal sealed class NativeFileControlSession : IDisposable
     private readonly object gate = new();
     private readonly Func<long> monotonicMs;
     private readonly Dictionary<NativeReceiverCommandTicket, ReceiverCommandScope> receiverCommands = new();
+    private readonly HashSet<SourceRunLease> sourceRuns = new();
     private long sequence;
     private DeviceFileControlPacket? remote;
     private DeviceFileControlPacket? pending;
@@ -216,7 +226,11 @@ internal sealed class NativeFileControlSession : IDisposable
                 if (same && packet.Sequence == remote.Sequence && !packet.Same(remote) || packet.Grants.Revision == remote.Grants.Revision && !packet.Grants.SamePermission(remote.Grants))
                 { faulted = true; throw DeviceFileControl.Error("file_control_equivocation"); }
                 if (same && packet.Same(remote)) return false;
-                if (!same) foreach (var held in receiverCommands.Values) held.Invalidated = true;
+                if (!same)
+                {
+                    foreach (var held in receiverCommands.Values) held.Invalidated = true;
+                    foreach (var run in sourceRuns) run.Invalidated = true;
+                }
             }
             remote = packet;
             return true;
@@ -249,6 +263,45 @@ internal sealed class NativeFileControlSession : IDisposable
         }
     }
 
+    internal SourceRunLease RetainSourceRun(NativeReceiverCommandTicket ticket, string runId, string version, string mediaType)
+    {
+        lock (gate)
+        {
+            if (!ReceiverCommandCurrent(ticket) || receiverCommands[ticket].Cleanup is not null ||
+                !TelefonProtocolContract.IsUuidV4(runId) || !DeviceFileControl.Hash(version) || mediaType is not ("images" or "video") ||
+                sourceRuns.Count >= 4 || sourceRuns.Any(run => run.RunId == runId))
+                throw DeviceFileControl.Error("file_control_original_source_run_required");
+            var lease = new SourceRunLease(runId, version, mediaType, receiverCommands[ticket].RemoteSession);
+            sourceRuns.Add(lease); return lease;
+        }
+    }
+
+    private bool SourceRunCurrent(SourceRunLease lease)
+    {
+        var scope = Scope();
+        return sourceRuns.Contains(lease) && !lease.Invalidated && scope is not null && remote is not null && remote.SessionEpoch == lease.RemoteSession;
+    }
+
+    internal NativeReceiverCommandTicket CleanupCommandTicket(SourceRunLease lease)
+    {
+        lock (gate)
+        {
+            if (!SourceRunCurrent(lease) || receiverCommands.Count != 0) throw DeviceFileControl.Error("file_control_original_source_run_required");
+            var at = monotonicMs();
+            if (at < 0 || at > long.MaxValue - DeviceFileControl.MaximumTtlMs) throw DeviceFileControl.Error("file_control_receiver_command_clock");
+            var ticket = new NativeReceiverCommandTicket();
+            receiverCommands.Add(ticket, new(local.Grants, remote!, at, lease)); return ticket;
+        }
+    }
+
+    internal void ReleaseSourceRun(SourceRunLease lease)
+    {
+        lock (gate)
+        {
+            if (!sourceRuns.Remove(lease)) throw DeviceFileControl.Error("file_control_foreign_source_run");
+        }
+    }
+
     // A captured control position is not current authority or an ACK receipt.
     internal (string SessionEpoch, long Sequence) ReceiverCommandWitness(NativeReceiverCommandTicket ticket)
     {
@@ -273,6 +326,12 @@ internal sealed class NativeFileControlSession : IDisposable
             try
             {
                 var scope = Scope(); var observed = remote; var at = monotonicMs();
+                if (held.Cleanup is not null)
+                {
+                    if (at < held.LastChecked || at >= held.Expires || !SourceRunCurrent(held.Cleanup))
+                    { held.Invalidated = true; return false; }
+                    held.LastChecked = at; return true;
+                }
                 if (scope is null || observed is null || at < held.LastChecked || at >= held.Expires ||
                     !scope.Value.Local.HandlersReady || !scope.Value.Local.PolicyReady || !scope.Value.Local.Grants.ReceiveFiles ||
                     !scope.Value.Local.Grants.SamePermission(held.LocalPermission) || observed.SessionEpoch != held.RemoteSession ||
