@@ -8190,3 +8190,23 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "केवल यह आवृत्ति हटाएँ"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "पूरी शृंखला हटाएँ"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "बाद की आवृत्तियाँ अपरिवर्तित रहेंगी।"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "रीसायकल बिन अक्षम है: चयनित प्रविष्टियाँ स्थायी रूप से हटाएँ?"

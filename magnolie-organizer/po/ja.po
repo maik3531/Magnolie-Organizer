@@ -9785,3 +9785,23 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "この回のみ削除"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "繰り返し全体を削除"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "以降の予定は変更されません。"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"

@@ -9416,3 +9416,23 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "仅删除本次"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "删除整个系列"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "后续重复日程保持不变。"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "回收站已禁用：是否永久删除所选条目？"

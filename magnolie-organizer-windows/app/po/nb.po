@@ -8355,3 +8355,23 @@ msgstr "＋ Legg til avtale"
 #~ "det, serienummer og IMEI. Fra Android 10 er maskinvareidentifikatorer "
 #~ "begrenset for vanlige apper. Tillatelse til nummeret er valgfri; ingen "
 #~ "særskilt rolle forespørres."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Slett bare denne forekomsten"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Slett serien"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Senere forekomster forblir uendret."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papirkurven er deaktivert: Slett de valgte oppføringene permanent?"

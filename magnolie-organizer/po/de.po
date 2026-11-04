@@ -10061,3 +10061,23 @@ msgstr "Fotoabgleich konnte nicht gestartet werden."
 
 msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
 msgstr "Fotoabgleich konnte nicht gestartet werden. Aktuelle Handyverbindung und Berechtigungen prüfen."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Nur dieses Vorkommen löschen"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Terminserie löschen"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Spätere Vorkommen bleiben unverändert."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papierkorb deaktiviert: Die ausgewählten Einträge endgültig löschen?"

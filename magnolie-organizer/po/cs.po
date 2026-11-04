@@ -9893,3 +9893,23 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Smazat pouze tento výskyt"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Smazat celou řadu"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Pozdější výskyty zůstanou beze změny."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Koš je vypnutý: trvale smazat vybrané položky?"

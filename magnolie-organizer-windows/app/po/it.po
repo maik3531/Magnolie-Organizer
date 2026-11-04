@@ -8473,3 +8473,23 @@ msgstr "＋ Aggiungi appuntamento"
 #~ "consente, numero di serie e IMEI. Da Android 10 gli identificativi "
 #~ "hardware sono limitati per le app ordinarie. Il permesso per il numero è "
 #~ "facoltativo; non viene richiesto alcun ruolo speciale."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Elimina solo questa occorrenza"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Elimina la serie"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Le occorrenze successive restano invariate."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Cestino disattivato: eliminare definitivamente le voci selezionate?"

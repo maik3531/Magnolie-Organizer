@@ -1,0 +1,22 @@
+{
+  "en": ["Delete this occurrence", "Delete series", "Later occurrences remain unchanged.", "Recycle bin disabled: Delete the selected items permanently?"],
+  "de": ["Nur dieses Vorkommen löschen", "Terminserie löschen", "Spätere Vorkommen bleiben unverändert.", "Papierkorb deaktiviert: Die ausgewählten Einträge endgültig löschen?"],
+  "ar": ["حذف هذا التكرار فقط", "حذف السلسلة", "تبقى التكرارات اللاحقة دون تغيير.", "سلة المحذوفات معطلة: هل تريد حذف العناصر المحددة نهائيًا؟"],
+  "be": ["Выдаліць толькі гэты паўтор", "Выдаліць серыю", "Наступныя паўторы застануцца без змен.", "Кошык адключаны: выдаліць выбраныя запісы назаўсёды?"],
+  "cs": ["Smazat pouze tento výskyt", "Smazat celou řadu", "Pozdější výskyty zůstanou beze změny.", "Koš je vypnutý: trvale smazat vybrané položky?"],
+  "da": ["Slet kun denne forekomst", "Slet serien", "Senere forekomster forbliver uændrede.", "Papirkurven er deaktiveret: Slet de valgte poster permanent?"],
+  "es": ["Eliminar solo esta repetición", "Eliminar la serie", "Las repeticiones posteriores no cambiarán.", "Papelera desactivada: ¿Eliminar permanentemente las entradas seleccionadas?"],
+  "fr": ["Supprimer uniquement cette occurrence", "Supprimer la série", "Les occurrences suivantes restent inchangées.", "Corbeille désactivée : supprimer définitivement les éléments sélectionnés ?"],
+  "hi": ["केवल यह आवृत्ति हटाएँ", "पूरी शृंखला हटाएँ", "बाद की आवृत्तियाँ अपरिवर्तित रहेंगी।", "रीसायकल बिन अक्षम है: चयनित प्रविष्टियाँ स्थायी रूप से हटाएँ?"],
+  "hsb": ["Jenož tute wuskutkowanje zhašeć", "Cyłu seriju zhašeć", "Pozdźiše wuskutkowanja wostanu njezměnjene.", "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"],
+  "it": ["Elimina solo questa occorrenza", "Elimina la serie", "Le occorrenze successive restano invariate.", "Cestino disattivato: eliminare definitivamente le voci selezionate?"],
+  "ja": ["この回のみ削除", "繰り返し全体を削除", "以降の予定は変更されません。", "ごみ箱は無効です。選択した項目を完全に削除しますか？"],
+  "nb": ["Slett bare denne forekomsten", "Slett serien", "Senere forekomster forblir uendret.", "Papirkurven er deaktivert: Slett de valgte oppføringene permanent?"],
+  "nl": ["Alleen deze herhaling verwijderen", "Hele reeks verwijderen", "Latere herhalingen blijven ongewijzigd.", "Prullenbak uitgeschakeld: de geselecteerde items definitief verwijderen?"],
+  "pl": ["Usuń tylko to wystąpienie", "Usuń całą serię", "Późniejsze wystąpienia pozostaną bez zmian.", "Kosz jest wyłączony: trwale usunąć wybrane wpisy?"],
+  "pt": ["Eliminar apenas esta ocorrência", "Eliminar a série", "As ocorrências seguintes permanecem inalteradas.", "Reciclagem desativada: eliminar permanentemente as entradas selecionadas?"],
+  "ru": ["Удалить только это повторение", "Удалить всю серию", "Последующие повторения останутся без изменений.", "Корзина отключена: удалить выбранные записи безвозвратно?"],
+  "tr": ["Yalnızca bu tekrarı sil", "Seriyi sil", "Sonraki tekrarlar değişmeden kalır.", "Çöp kutusu devre dışı: Seçili kayıtlar kalıcı olarak silinsin mi?"],
+  "uk": ["Видалити лише це повторення", "Видалити всю серію", "Наступні повторення залишаться без змін.", "Кошик вимкнено: видалити вибрані записи назавжди?"],
+  "zh_CN": ["仅删除本次", "删除整个系列", "后续重复日程保持不变。", "回收站已禁用：是否永久删除所选条目？"]
+}

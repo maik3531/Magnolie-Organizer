@@ -9862,3 +9862,23 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Yalnızca bu tekrarı sil"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Seriyi sil"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Sonraki tekrarlar değişmeden kalır."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Çöp kutusu devre dışı: Seçili kayıtlar kalıcı olarak silinsin mi?"

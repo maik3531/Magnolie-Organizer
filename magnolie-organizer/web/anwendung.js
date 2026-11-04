@@ -6385,6 +6385,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function ausDemPapierkorbAusBestand(DATEN, stueck, privat) {
+    if (stueck.art === "appointment" && (stueck.parent_id || stueck.appointment_occurrence)) {
+      const master = DATEN.termine.find(item => item.id === stueck.parent_id);
+      const exclusion = stueck.appointment_occurrence;
+      if (!master || !exclusion || typeof exclusion !== "object" || master.icsReadOnly || terminSerienForm(master) !== terminSerienForm(stueck.eintrag) ||
+          !["icsRoundtrip", "icsAusnahmen"].includes(exclusion.field) || typeof exclusion.value !== "string" ||
+          (exclusion.field === "icsRoundtrip" ? !/^EXDATE[;:]/i.test(exclusion.value) : !gueltigesISO(exclusion.value)) ||
+          !(master[exclusion.field] || []).includes(exclusion.value)) return false;
+      master[exclusion.field] = master[exclusion.field].filter(value => value !== exclusion.value);
+      master.geaendert = Date.now();
+      DATEN.papierkorb = DATEN.papierkorb.filter(item => item.id !== stueck.id);
+      if (!privat) terminIndexVeraltet = true;
+      return true;
+    }
     if (stueck.art === "time_tracking") {
       const aktuell = DATEN.zeiterfassung.entries.find(wert => wert.id === stueck.eintrag.id) || null;
       if (aktuell && !aktuell.deleted) return false;
@@ -9202,6 +9215,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       d.papierkorb.push({ id: S(s.id) || uid(), art: art,
         name: S(s.name), geloescht: N(s.geloescht) || Date.now(),
         parent_id: S(s.parent_id), notiz_zuordnungen: s.notiz_zuordnungen || {}, eintrag: eintrag });
+      if (art === "appointment" && s.appointment_occurrence && typeof s.appointment_occurrence === "object")
+        d.papierkorb[d.papierkorb.length - 1].appointment_occurrence = Q(s.appointment_occurrence);
     }
     za.brief = ad.brief === undefined ? true : !!ad.brief;
     za.karte = ad.karte === undefined ? true : !!ad.karte;
@@ -16824,6 +16839,53 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return true;
   }
 
+  function terminSerienForm(termin) {
+    return kanonischerEntwurf([termin.uid, termin.syncKalenderUid, termin.icsSerienUid, termin.icsQuelleId,
+      termin.datum, termin.endDatum, termin.zeit, termin.endZeit, termin.wiederholung,
+      (termin.icsRoundtrip || []).filter(line => /^(DTSTART|DTEND|DURATION|RRULE|RDATE|EXRULE|RECURRENCE-ID)[;:]/i.test(line)),
+      termin.icsZusatzDaten || [], termin.icsZusatzTermine || [], termin.icsRangeOverrides || []]);
+  }
+
+  function terminVorkommenAusnahme(termin, vorkommen) {
+    if (!termin || termin.icsReadOnly || !istWiederkehrend(termin) || !vorkommen || vorkommen.id !== termin.id) return null;
+    if (!icsQuelle(termin)) {
+      // A date-only legacy exclusion cannot identify one of several clock times.
+      if ((termin.icsZusatzTermine || []).length || !gueltigesISO(vorkommen.datum)) return null;
+      return { field: "icsAusnahmen", value: vorkommen.datum };
+    }
+    if (!Number.isFinite(vorkommen.icsOccurrence)) return null;
+    const start = kalenderKernEigenschaften(termin.icsRoundtrip).find(value => value.name === "DTSTART");
+    if (!start) return null;
+    const instant = new Date(vorkommen.icsOccurrence);
+    if (start.params.VALUE === "DATE" || /^\d{8}$/.test(start.wert))
+      return { field: "icsRoundtrip", value: "EXDATE;VALUE=DATE:" + instant.toISOString().slice(0, 10).replace(/-/g, "") };
+    let stamp;
+    if (start.params.TZID || /Z$/i.test(start.wert)) stamp = instant.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    else {
+      const parts = zeitDatumTeile(vorkommen.icsOccurrence / 60000,
+        eigeneIanaZeitzone() || organizerZeitzone());
+      stamp = String(parts.year).padStart(4, "0") + pad2(parts.month) + pad2(parts.day) + "T" +
+        pad2(parts.hour) + pad2(parts.minute) + pad2(parts.second);
+    }
+    return { field: "icsRoundtrip", value: "EXDATE:" + stamp };
+  }
+
+  function loescheTerminVorkommen(termin, vorkommen, erwarteterStand) {
+    if (!DATEN.termine.includes(termin) || kanonischerEntwurf(termin) !== erwarteterStand) return false;
+    const exclusion = terminVorkommenAusnahme(termin, vorkommen);
+    if (!exclusion || (termin[exclusion.field] || []).includes(exclusion.value)) return false;
+    if ((termin[exclusion.field] || []).length >= (exclusion.field === "icsRoundtrip" ? 512 : 256)) return false;
+    const trash = inDenPapierkorb("termin", termin, fmtPunkt(vorkommen.datum) + " – " + termin.titel, termin.id);
+    if (trash) trash.appointment_occurrence = exclusion;
+    const values = (termin[exclusion.field] || []).slice();
+    const end = exclusion.field === "icsRoundtrip" ? values.findIndex(line => /^END:VEVENT\s*$/i.test(line)) : -1;
+    values.splice(end < 0 ? values.length : end, 0, exclusion.value);
+    termin[exclusion.field] = values;
+    termin.geaendert = Date.now();
+    terminIndexVeraltet = true;
+    return true;
+  }
+
   function loescheTerminDaten(termin) {
     if (termin.icsReadOnly || !DATEN.termine.includes(termin)) return null;
     merkeGeloescht("termine", termin);
@@ -16839,7 +16901,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     /* Ein errechnetes Mal einer Wiederholung führt zum Ursprungstermin –
        geändert wird immer die ganze Reihe. */
     const folge = !!(termin && termin.folge);
+    const vorkommen = termin ? kopie(termin) : null;
     termin = urTermin(termin);
+    const serienStand = termin ? kanonischerEntwurf(termin) : "";
     const neu = !termin;
     const tag = datum || (termin && termin.datum) || zustand.kalender.tag;
     const vorgabe = neu ? zeiten || vorgabeZeiten() : null;
@@ -17706,7 +17770,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         geaendert: Number(termin.geaendert) || Date.now()
       }), _("Share appointment"));
       if (freigabe) fuss.append(freigabe);
-      const weg = knopf(_("Delete"), "gefahr", () => {
+      if (terminVorkommenAusnahme(termin, vorkommen)) {
+        const einzel = knopf(_("Delete this occurrence"), "gefahr", () => {
+          const confirmation = DATEN.einstellungen.papierkorb.an
+            ? uebersetzt("Delete appointment “%(title)s”?", { title: fmtPunkt(vorkommen.datum) + " – " + termin.titel })
+            : _("Recycle bin disabled: Delete the selected items permanently?");
+          frage(confirmation,
+            _("Delete this occurrence"), null, _("Later occurrences remain unchanged.")).then(ja => {
+            if (!ja) return;
+            if (!loescheTerminVorkommen(termin, vorkommen, serienStand)) { zettel(_("Conflict")); return; }
+            planeSpeichern(); aktiverEditor = null; schliessen(); zeichneAlles();
+          });
+        });
+        einzel.id = "tb-vorkommen-loeschen"; fuss.append(einzel);
+      }
+      const weg = knopf(istWiederkehrend(termin) ? _("Delete series") : _("Delete"), "gefahr", () => {
         const wiederholt = istWiederkehrend(termin);
         frage(wiederholt
           ? uebersetzt("Delete appointment “%(title)s”? This removes every occurrence " +

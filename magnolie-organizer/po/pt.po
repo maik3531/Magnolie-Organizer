@@ -10026,3 +10026,23 @@ msgstr "＋ Adicionar compromisso"
 #~ "permitir, número de série e IMEI. Desde o Android 10, os identificadores "
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Eliminar apenas esta ocorrência"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Eliminar a série"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "As ocorrências seguintes permanecem inalteradas."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Reciclagem desativada: eliminar permanentemente as entradas selecionadas?"

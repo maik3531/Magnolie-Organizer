@@ -7352,3 +7352,23 @@ msgstr[1] ""
 
 msgid "＋ Add appointment"
 msgstr ""
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr ""
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr ""
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr ""
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr ""

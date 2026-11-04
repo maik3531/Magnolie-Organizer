@@ -8426,3 +8426,23 @@ msgstr "＋ إضافة موعد"
 #~ "الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد "
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "حذف هذا التكرار فقط"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "حذف السلسلة"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "تبقى التكرارات اللاحقة دون تغيير."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "سلة المحذوفات معطلة: هل تريد حذف العناصر المحددة نهائيًا؟"

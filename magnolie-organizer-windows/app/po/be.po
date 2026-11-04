@@ -8403,3 +8403,23 @@ msgstr "＋ Дадаць сустрэчу"
 #~ "серыйны нумар і IMEI. Пачынаючы з Android 10 апаратныя ідэнтыфікатары "
 #~ "абмежаваныя для звычайных праграм. Дазвол на нумар неабавязковы; "
 #~ "спецыяльныя ролі не запытваюцца."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Выдаліць толькі гэты паўтор"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Выдаліць серыю"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Наступныя паўторы застануцца без змен."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Кошык адключаны: выдаліць выбраныя запісы назаўсёды?"

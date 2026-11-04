@@ -10143,3 +10143,23 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ "identifiants matériels sont restreints pour les applications ordinaires. "
 #~ "L’autorisation du numéro est facultative ; aucun rôle spécial n’est "
 #~ "demandé."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Supprimer uniquement cette occurrence"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Supprimer la série"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Les occurrences suivantes restent inchangées."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Corbeille désactivée : supprimer définitivement les éléments sélectionnés ?"

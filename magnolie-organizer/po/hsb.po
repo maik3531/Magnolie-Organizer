@@ -10037,3 +10037,23 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Jenož tute wuskutkowanje zhašeć"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Cyłu seriju zhašeć"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Pozdźiše wuskutkowanja wostanu njezměnjene."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"

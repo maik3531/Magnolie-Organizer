@@ -10001,3 +10001,23 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Alleen deze herhaling verwijderen"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Hele reeks verwijderen"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Latere herhalingen blijven ongewijzigd."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Prullenbak uitgeschakeld: de geselecteerde items definitief verwijderen?"

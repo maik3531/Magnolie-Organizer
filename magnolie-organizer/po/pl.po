@@ -9979,3 +9979,23 @@ msgstr "＋ Dodaj spotkanie"
 #~ "pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są "
 #~ "ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest "
 #~ "opcjonalne; specjalne role nie są żądane."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete this occurrence"
+msgstr "Usuń tylko to wystąpienie"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Delete series"
+msgstr "Usuń całą serię"
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Later occurrences remain unchanged."
+msgstr "Późniejsze wystąpienia pozostaną bez zmian."
+
+
+#. Single recurring appointment deletion (Refs #379).
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Kosz jest wyłączony: trwale usunąć wybrane wpisy?"
