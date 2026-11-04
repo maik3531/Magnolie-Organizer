@@ -4,7 +4,7 @@ from hashlib import sha256
 from pathlib import Path
 import threading
 
-from magnolie_file_control import NativeFilePeer, DISCOVERY_VERSION
+from magnolie_file_control import NativeFilePeer, DISCOVERY_VERSION, VIDEO_DISCOVERY_VERSION
 from magnolie_file_protection import ExistingFileTransferProtection
 from magnolie_file_transfer import TransferError
 from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
@@ -36,11 +36,14 @@ class NativeDesktopFileAuthority:
     UI revocation uses revoke() only. Actual close belongs to the native I/O lane
     after its outstanding work ends, never an impatient UI ownership release.
     """
-    def __init__(self,binding,current_binding,*,channel):
+    def __init__(self,binding,current_binding,*,channel,video_witness=None):
         if type(binding) is not AuthenticatedNativeFileBinding or not callable(current_binding) or current_binding() is not binding:
             raise TransferError('file_authority_native_channel_changed')
         self.binding=binding;self.identity=binding.local_identity;self._current=current_binding
         self.native_channel=channel # Exact authenticated owner supplied by native factory.
+        if video_witness is not None and not callable(video_witness):
+            raise TransferError('file_authority_native_video_witness_required')
+        self._video_witness=video_witness or (lambda: False)
         self._revoked=threading.Event()
         self.protection=ExistingFileTransferProtection(binding.native_directory)
         try:
@@ -59,6 +62,14 @@ class NativeDesktopFileAuthority:
             return peer
         except Exception:
             self.revoke();raise
+
+    def video_available(self):
+        # Persisted discovery is not proof of ACK on this authenticated channel.
+        # Recheck after protected I/O, without holding the service monitor over it.
+        if self._revoked.is_set() or self._video_witness() is not True:return False
+        peer=self.current_peer()
+        return bool(peer is not None and peer.video_supported and self._video_witness() is True
+                    and not self._revoked.is_set())
 
     def revoke(self):
         self._revoked.set() # No metadata/key read or wait on its I/O gate.
@@ -84,6 +95,7 @@ class NativeFilePeerSnapshot:
     pairing_epoch: str
     metadata_supported: bool
     display_name: str = ''
+    video_supported: bool = False
 
     def control_peer(self,owner,*,ready,handlers_ready):
         if type(ready) is not bool or type(handlers_ready) is not bool:
@@ -106,5 +118,6 @@ def read_native_file_peer(protection,peer_id,static_public):
     epoch=current_native_file_pairing_epoch(peer)
     if epoch is None:return None
     status=peer['capabilities'].get('items',{}).get('device_status',{})
+    supported=status.get('available') is True and DISCOVERY_VERSION in status.get('versions',[])
     return NativeFilePeerSnapshot(peer_id,static_public,sha256(unb64(static_public,32)).hexdigest(),epoch,
-                                  status.get('available') is True and DISCOVERY_VERSION in status.get('versions',[]),peer['display_name'])
+                                  supported,peer['display_name'],supported and VIDEO_DISCOVERY_VERSION in status.get('versions',[]))

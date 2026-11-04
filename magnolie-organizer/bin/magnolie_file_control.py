@@ -20,6 +20,7 @@ from magnolie_transfer_job_catalog import NativeJobCatalogIdentity
 
 KIND = "file_transfer.control"
 DISCOVERY_VERSION = 21
+VIDEO_DISCOVERY_VERSION = 22
 MAX_REVISION = 2**53 - 1
 MAX_WIRE_BYTES = 8192
 MAX_TTL_MS = 60_000

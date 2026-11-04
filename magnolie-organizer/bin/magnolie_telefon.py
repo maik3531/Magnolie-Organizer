@@ -2818,7 +2818,26 @@ class PhoneService:
         if binding is None:
             raise ValueError('file_authority_native_channel_changed')
         # Disk/key/peer I/O deliberately happens outside the PhoneService monitor.
-        return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation), channel=channel)
+        return NativeDesktopFileAuthority(binding, lambda: self._current_native_file_binding(peer_id, static_public, channel, generation),
+            channel=channel,video_witness=lambda: self._current_native_video_metadata(peer_id,static_public,channel,generation))
+
+    def _current_native_video_metadata(self,peer_id,static_public,channel,generation):
+        """Read-only current-channel ACK witness, not video consent or OS READ."""
+        with self.lock:
+            if self._current_native_file_binding(peer_id,static_public,channel,generation) is None:return False
+            peers=self.store.peers
+            if len(peers)!=1:return False
+            peer=peers[0]
+            if peer.get('device_id')!=peer_id or peer.get('static_public')!=static_public:return False
+            personal=peer.get('personal_sync',{})
+            status=peer.get('capabilities',{}).get('items',{}).get('device_status',{})
+            controls=self._native_file_controls.get(channel,{})
+            return (peer.get('state')=='paired' and personal.get('own_device') is True
+                and personal.get('remote_own_device') is True and status.get('available') is True
+                and 21 in status.get('versions',[]) and 22 in status.get('versions',[])
+                and controls.get('capabilities.update')==peer.get('capabilities')
+                and controls.get('grants.update')==peer.get('grants')
+                and controls.get('personal_sync.settings')=={'format':1,'own_device':True})
 
     def open_native_file_connection(self, peer_id, static_public, channel, generation):
         NativeDesktopFileConnection = self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection
@@ -2944,12 +2963,21 @@ class PhoneService:
         # capabilities alone must not start a file session during FS1 warmup.
         if kind not in ('capabilities.update','grants.update','personal_sync.settings'):return
         body=message['body']
-        if not acknowledged and not (kind=='personal_sync.settings' and body.get('own_device') is False):return
+        if not acknowledged and not (kind=='personal_sync.settings' and body.get('own_device') is False):
+            # A changed/uncertain metadata exchange cannot reuse an older
+            # positive witness, even if a later persisted value looks identical.
+            with self.lock:
+                self._native_file_controls.get(channel,{}).pop(kind,None)
+            return
         with self.lock:
             receipts=self._native_file_control_receipts.setdefault(channel,{})
             previous=receipts.get(kind)
-            if (kind=='personal_sync.settings' and body.get('own_device') is True
-                    and duplicate and previous is not None and previous!=message):return
+            if (kind in ('capabilities.update','grants.update')
+                    and body!=peer.get('capabilities' if kind=='capabilities.update' else 'grants')):return
+            if duplicate and previous is not None and previous!=message:
+                if kind=='personal_sync.settings':
+                    if body.get('own_device') is not False:return
+                elif body.get('revision',-1)<=previous.get('body',{}).get('revision',-1):return
             self._native_file_controls.setdefault(channel,{})[kind]=json.loads(json.dumps(body))
             receipts[kind]=json.loads(json.dumps(message))
         if self._native_photo_built:

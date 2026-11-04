@@ -1,5 +1,23 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Current-channel video capability witness (Refs #330, no READ grant)
+
+Desktop authority exposes read-only video availability separately from the base
+photo control peer. It defaults false without an explicit native witness and
+requires protected base marker 21 plus video marker 22. The actual PhoneService
+witness verifies current channel/generation/identity and exact ACKed capability,
+grant and own-device metadata against the current peer. It is checked before and
+after protected peer I/O; that I/O does not hold the service monitor. Losing video
+support alone leaves base photo authority intact.
+
+Failed metadata ACK invalidates its previous witness. Superseded capability or
+grant receipts cannot replace current metadata; a duplicate may finish a newer
+revision's failed ACK only when it still matches current peer metadata. The
+stricter own-device withdrawal/reconsent rules remain unchanged. Tests exercise
+the real payload/secure-ACK failure path, withdrawal, superseded positive replay,
+fresh ACK retry, reconnect and revocation during protected I/O. Availability is
+neither video consent nor OS READ, and does not advertise production readiness.
+
 ### Desktop typed source codec (Refs #330, no video admission yet)
 
 The desktop codec now supports explicit video commands and correlated catalog,
