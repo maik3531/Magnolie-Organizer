@@ -292,9 +292,28 @@ or transport ACK: `Binding()` still requires the actual current data-policy echo
 Two native-source test groups cover bootstrap without data authority, exact
 ownership, policy transition, withdrawal, clock failure/rollback/expiry and cleanup;
 the existing file-control regression group also passes. This foundation is not
-yet connected to the Windows secure transport, receiver, protected destinations
-or media UI. It does not establish current-channel capability/grant ACK receipts
-or enable production gates.
+yet connected to a Windows file-control transport handler, receiver, protected
+destinations or media UI, and does not enable production gates.
+
+The optional `DeviceFileConnectionMetadata` partial now hooks the actual Windows
+metadata receive/secure-ACK path, separately from the existing `fresh*` flags.
+It invalidates the affected receipt before processing; positive evidence is
+recorded only after successful secure ACK output and exact current durable
+capability/grant metadata, peer key and native pairing epoch checks. Failed ACKs,
+rejected callbacks and superseded duplicates supply no current witness. A fresh
+matching capability/grant duplicate can finish an uncertain ACK, but an older
+own-device positive duplicate cannot undo withdrawal; a validated withdrawal
+holds even if its ACK fails. Observed channel/key/pairing replacement permanently
+revokes that connection's witness. Base marker 21 and video marker 22 remain
+independent of file consent and data readiness.
+
+Five native-source groups exercise the actual receive and encrypted writer,
+including failed ACKs for all three metadata kinds, current/superseded duplicates,
+video-only withdrawal, own-device replay, protected changes and replacement during
+ACK output. Existing shared-control, actor-source and accepted-report-ACK tests
+also pass. Unconfigured project evaluation excludes this partial with the other
+`DeviceFile*.cs` implementations; absent partial hooks supply no fallback media
+implementation. This remains a read-only metadata witness, not a joined transfer.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

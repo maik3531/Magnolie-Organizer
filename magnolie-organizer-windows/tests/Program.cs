@@ -229,6 +229,11 @@ runner.Add("Photo sync plan / shared three-way cases / preserve edits and missin
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file metadata commands / withdrawal / monotonic TTL / exact cleanup", DeviceFileMetadataCommandTests.WithdrawalAsync);
+runner.Add("Device file channel metadata / successful secure ACK only", DeviceFileConnectionMetadataTests.SecureAckAsync);
+runner.Add("Device file channel metadata / withdrawal / superseded replay / replacement", DeviceFileConnectionMetadataTests.WithdrawalAsync);
+runner.Add("Device file channel metadata / pairing changes during secure ACK", DeviceFileConnectionMetadataTests.ChangedDuringAckAsync);
+runner.Add("Device file channel metadata / protected changes cannot revive receipts", DeviceFileConnectionMetadataTests.DurableChangesAsync);
+runner.Add("Device file channel metadata / withdrawal ACK failure / no historical reconsent", DeviceFileConnectionMetadataTests.FailedWithdrawalAckAsync);
 runner.Add("Device file source settings / strict metadata codecs", DeviceFileSourcesTests.RunAsync);
 runner.Add("Device file acceptance / exact offer metadata", DeviceFileAcceptanceEnvelopeTests.RunAsync);
 runner.Add("Device file chunks / exact accepted source bytes", DeviceFileChunkEnvelopeTests.RunAsync);

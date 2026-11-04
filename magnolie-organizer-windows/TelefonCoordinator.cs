@@ -2311,6 +2311,8 @@ internal sealed partial class TelefonConnection : IDisposable
             await HandleDeveloperReportAsync(plain);
             return;
         }
+        object? fileMetadataAttempt = null;
+        BeginFileMetadataReceipt(plain, ref fileMetadataAttempt);
         var wasNoteReady = NotePolicyReady;
         var now = Now(); TelefonAck ack;
         if (plain["kind"]?.GetValue<string>() == PersonalSyncContract.NoteModeKind)
@@ -2426,6 +2428,7 @@ internal sealed partial class TelefonConnection : IDisposable
                 }
             }
         }
+        ObserveFileMetadataWithdrawal(plain, ack, fileMetadataAttempt);
         if (plain["kind"]?.GetValue<string>() == "incoming_call_state.event" && ack.Status == "accepted" && ack.Process)
             CallContextObserved?.Invoke(this, peer, plain["body"]!.AsObject());
         if (ack.Status == "accepted" && ack.Process && plain["kind"]?.GetValue<string>() is "dial_request.result" or "answer_call.result" or "end_call.result")
@@ -2443,8 +2446,13 @@ internal sealed partial class TelefonConnection : IDisposable
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
             await SendSharedSettingsAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
+        CompleteFileMetadataReceipt(plain, ack, fileMetadataAttempt);
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
+    // Optional implementation is omitted entirely in builds without media.
+    partial void BeginFileMetadataReceipt(JsonObject message, ref object? attempt);
+    partial void ObserveFileMetadataWithdrawal(JsonObject message, TelefonAck ack, object? attempt);
+    partial void CompleteFileMetadataReceipt(JsonObject message, TelefonAck ack, object? attempt);
     private string? AuthorizePersonal(string kind, JsonObject body)
     {
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) return
