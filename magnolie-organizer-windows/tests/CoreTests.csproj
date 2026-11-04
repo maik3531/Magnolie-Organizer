@@ -48,6 +48,7 @@
     <Compile Include="..\DeviceFileConnectionMetadata.cs" Link="DeviceFileConnectionMetadata.cs" />
     <Compile Include="..\DeviceFileControlEnvelope.cs" Link="DeviceFileControlEnvelope.cs" />
     <Compile Include="..\DeviceFileStoreIdentity.cs" Link="DeviceFileStoreIdentity.cs" />
+    <Compile Include="..\DeviceFileStorePreferences.cs" Link="DeviceFileStorePreferences.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />
     <Compile Include="..\NativeFilePairingIdentity.cs" Link="NativeFilePairingIdentity.cs" />

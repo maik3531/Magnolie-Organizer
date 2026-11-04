@@ -248,6 +248,13 @@ runner.Add("Device file channel metadata / protected changes cannot revive recei
 runner.Add("Device file channel metadata / withdrawal ACK failure / no historical reconsent", DeviceFileConnectionMetadataTests.FailedWithdrawalAckAsync);
 runner.Add("Device file source settings / strict metadata codecs", DeviceFileSourcesTests.RunAsync);
 runner.Add("Device file video metadata / configure golden / no image-kind coupling", DeviceFileVideoSourceMetadataTests.CodecAsync);
+runner.Add("Device file protected preferences / read-only defaults / no bootstrap", DeviceFileStorePreferencesTests.DefaultsAsync);
+runner.Add("Device file protected preferences / persistence / exact native choice", DeviceFileStorePreferencesTests.PersistenceAsync);
+runner.Add("Device file protected preferences / identity and pairing HOLD", DeviceFileStorePreferencesTests.BindingAsync);
+runner.Add("Device file protected preferences / authenticated corruption HOLD", DeviceFileStorePreferencesTests.CorruptionAsync);
+runner.Add("Device file protected preferences / strict schema / exhausted revision", DeviceFileStorePreferencesTests.SchemaAsync);
+runner.Add("Device file protected preferences / actual restore fence / retained intent", DeviceFileStorePreferencesTests.RestoreAsync);
+runner.Add("Device file protected preferences / independent concurrent owners", DeviceFileStorePreferencesTests.ConcurrentAsync);
 runner.Add("Device file video metadata / negotiated extension / strict counters", DeviceFileVideoSourceMetadataTests.StatusCodecAsync);
 runner.Add("Device file video metadata / actual current channel / no READ", DeviceFileVideoSourceMetadataTests.CurrentChannelAsync);
 runner.Add("Device file video metadata / withdrawal / base photo independence", DeviceFileVideoSourceMetadataTests.WithdrawalAsync);

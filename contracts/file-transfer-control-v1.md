@@ -402,6 +402,32 @@ on Windows together with the protected receiver, native preferences/destinations
 and worker. The runtime API added so far sends only `status`; no positive video
 configuration or READ action is exposed by these codec changes.
 
+### Windows protected native media intent (Refs #330, #335, no receiver grant)
+
+`DeviceFileStorePreferences` persists explicit native photo/video/manual-versus-WiFi
+choices as authenticated ciphertext in a dedicated SQLite table. Reads and an
+unchanged all-OFF choice do not create the table or write defaults. Both media
+choices initially remain OFF, automatic WiFi is OFF, the direction is fixed to
+phone inventory only, and neither deletion direction can be enabled by this API.
+This store has no bridge/wire registration and loading positive intent never
+constructs a local file grant or arms a receiver on a new connection.
+
+Each saved row binds the phone ID/key, pairing epoch and existing local identity.
+Changed bindings require explicit historical reassociation, not silent reset or
+replacement. Exact version compare-and-set in an immediate SQLite transaction
+protects choices from concurrent native store owners. Revisions cannot wrap;
+unchanged choices retain the same version and ciphertext. Authentication/schema
+failure holds the record without repairing or discarding historical bytes.
+The dedicated table survives generic Notes metadata cleanup; a profile restore
+fence blocks access, and actual restore-abort cleanup retains the original row.
+
+Seven native-source groups pass for defaults/no bootstrap, protected persistence,
+independent media choices, stale/concurrent owners, all identity binding changes,
+authenticated corruption, strict schema/revision exhaustion and the actual
+restore fence/abort path. These are storage proofs, not Windows installed tests.
+Native destination handles, staging/publication/history and the joined receiver
+are still missing; no UI, automatic worker or production gate is enabled.
+
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
 Desktop authority exposes read-only video availability separately from the base
