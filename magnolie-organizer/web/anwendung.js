@@ -2544,8 +2544,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     });
     const zu = knopf(_("Close"), "", schliessen);
     const knoepfe = el("div", "dialog-knoepfe geraet-dialog-knoepfe");
-    const peer = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
     const freigaben = el("div", "telefon-freigaben geraet-online-details");
+    const koerper = baueGeraeteStatusKoerper(details, telefon, akkuZeile);
+    knoepfe.append(aktualisieren, zu);
+    const inhalt = el("div", "geraet-dialog-inhalt");
+    inhalt.append(online, koerper, freigaben,
+      el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")));
+    dialog.append(titel, inhalt, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
+    registriereModal(schleier, dialog, { anfang: aktualisieren, schliessen: schliessen });
+    zeichneGeraeteStatus(nutzlast.status);
+    Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
+  }
+
+  function baueGeraeteStatusKoerper(details, telefon, akkuZeile) {
+    const seite = el("div", "geraet-seite");
+    seite.append(telefon, akkuZeile);
+    const koerper = el("div", "geraet-koerper");
+    koerper.append(details, seite);
+    return koerper;
+  }
+
+  function baueTelefonPersonalSync(peer) {
+    const kennung = String(peer.device_id);
     const personal = el("details", "telefon-freigaben einst-gruppe telefon-personal-sync");
     personal.open = false;
     personal.append(el("summary", null, _("Personal synchronization")),
@@ -2664,18 +2686,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       personalSyncKnopf.disabled = !personalSyncBereit(peer) && !zeitAbgleichPeer(kennung);
       personal.append(personalStand);
     }
-    if (personalSyncKnopf) knoepfe.append(personalSyncKnopf);
-    knoepfe.append(aktualisieren, zu);
-    const inhalt = el("div", "geraet-dialog-inhalt");
-    inhalt.append(
-      telefon, online, akkuZeile, details, freigaben, personal,
-      el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")));
-    dialog.append(titel, inhalt, knoepfe);
-    schleier.append(dialog); document.body.append(schleier);
-    schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
-    registriereModal(schleier, dialog, { anfang: aktualisieren, schliessen: schliessen });
-    zeichneGeraeteStatus(nutzlast.status);
-    Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
+    if (personalSyncKnopf) {
+      const knoepfe = el("div", "knopfreihe");
+      knoepfe.append(personalSyncKnopf); personal.append(knoepfe);
+    }
+    return personal;
   }
 
   function wendeZeitRichtungDatenAn(id, mode) {
@@ -28905,6 +28920,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (ja) Bruecke.sende({ cmd: "telefon_entfernen", kennung: telefon.device_id });
         });
       }));
+      if (telefon.device_id) zeile.append(baueTelefonPersonalSync(telefon));
       liste.append(zeile);
     }
     ab.append(liste, el("p", "einst-hinweis",

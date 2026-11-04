@@ -1208,10 +1208,12 @@ const statusButton = Array.from(window.document.querySelectorAll("button"))
   .find((button) => button.textContent.includes("Gerätestatus"));
 assert.ok(statusButton, "dynamic device status action is missing");
 statusButton.click();
-assert.ok(window.document.querySelector("#geraet-dialog [data-personal-auto-peer]") &&
-  window.document.querySelector("#geraet-dialog [data-personal-skip-deletions-peer]"),
+assert.strictEqual(window.document.querySelector("#geraet-dialog details.telefon-personal-sync"), null,
+  "personal synchronization belongs to the Notes connection, not device status");
+assert.ok(window.document.querySelector(".telefon-karte [data-personal-auto-peer]") &&
+  window.document.querySelector(".telefon-karte [data-personal-skip-deletions-peer]"),
   "automatic/manual operation or the deletion exception is missing");
-const personalDetails = window.document.querySelector("#geraet-dialog details.telefon-personal-sync");
+const personalDetails = window.document.querySelector(".telefon-karte details.telefon-personal-sync");
 assert.ok(personalDetails && !personalDetails.open &&
   personalDetails.querySelector("summary").textContent.includes(
     window.MagnolieI18n.gettext("Personal synchronization")),

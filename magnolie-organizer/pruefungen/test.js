@@ -9420,7 +9420,15 @@ function knopfMit(text, wurzel) {
     ["imei", "phone_number", "serial"]);
   assert.ok(kennungsFelder.every((feld) => feld.hidden && feld.previousElementSibling.hidden),
     "v4-Kennungen und ihre Beschriftungen muessen ohne Eigentumsfreigabe verborgen bleiben");
-  const personalBereich = geraetD.querySelector("details.telefon-personal-sync");
+  assert.strictEqual(geraetD.querySelector("#geraet-dialog details.telefon-personal-sync"), null,
+    "persönliche Synchronisation gehört zur Telefonverbindung, nicht zum Gerätestatus");
+  const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
+  assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
+    "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
+  Array.from(geraetFuss.querySelectorAll("button")).find(button => button.textContent === "Schließen").click();
+  geraetW.OrganizerTest.oeffneEinstellungen();
+  geraetD.querySelector("#einst-tab-baum").click();
+  const personalBereich = geraetD.querySelector('.telefon-karte details.telefon-personal-sync');
   assert.ok(personalBereich && !personalBereich.open && personalBereich.querySelector("summary"),
     "persönliche Synchronisierung ist nicht standardmäßig eingeklappt");
   assert.ok(personalBereich.querySelector("[data-personal-auto-peer]") &&
@@ -9443,10 +9451,7 @@ function knopfMit(text, wurzel) {
       personal_tasks_sync: true, personal_deletions_sync: true } },
     grants: { grants: { personal_notes_sync: true, personal_tasks_sync: false } } };
   geraetW.App.telefonStand({ peers: [konfigurierterPersonalPeer] });
-  const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
-  assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
-    "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
-  Array.from(geraetFuss.querySelectorAll("button"))
+  Array.from(geraetD.querySelectorAll(".telefon-karte .telefon-personal-sync button"))
     .find((button) => button.textContent === "Jetzt synchronisieren").click();
   await tick();
   const personalAngefordert = () => geraetNachrichten.some((nachricht) =>
@@ -9470,6 +9475,7 @@ function knopfMit(text, wurzel) {
     }
     return personalAngefordert();
   }, "current peer grants must start personal sync after its matching durable save ACK");
+  geraetW.App.geraetOeffnen({ kennung: "partner-intern-1", status: { online: false } });
   geraetW.App.geraetStatus({ kennung: "partner-intern-1", status: { online: false } });
   assert.ok(geraetD.querySelector(".geraet-details").classList.contains("verborgen") &&
     geraetD.querySelector("#geraet-dialog").textContent.includes("Offline"),
