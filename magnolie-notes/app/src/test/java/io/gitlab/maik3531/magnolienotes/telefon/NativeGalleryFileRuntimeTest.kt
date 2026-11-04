@@ -159,6 +159,96 @@ class NativeGalleryFileRuntimeTest {
         typedForegroundVideoTapUsesOnlyItsEarlyHostAndFeatureWithdrawalInvalidatesItsAction()
     }
 
+    @Test fun videoMetadataUsesSeparateCasWithoutPhotoControlEchoAndKeepsTwoNativeCatalogs() {
+        var supported = true
+        negotiatedRuntime(videoReady = { true }, peerVideo = { supported }) { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+            val image = runtime.currentRequest()!!; val before = runtime.savedPolicy()
+            fun command(operation: String, media: String? = null, catalog: String? = null, enabled: Boolean? = null) =
+                TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                    put("format", 1); put("operation", operation); put("expected_version", runtime.savedPolicy().version)
+                    if (media != null) put("media_type", media)
+                    if (enabled != null) put("enabled", enabled)
+                    if (catalog != null) { put("catalog_id", catalog); put("after", 0) }
+                }, 60_000, now)
+            fun reply(message: JsonObject): JsonObject {
+                var result: JsonObject? = null
+                runtime.receiveSourceCommand(message, { result = it }, { now })
+                return result!!["body"]!!.jsonObject
+            }
+            val enabled = reply(command("configure_videos", enabled = true))
+            assertTrue(enabled["videos"]!!.jsonObject["enabled"]!!.jsonPrimitive.boolean)
+            assertNotEquals(before.version, runtime.savedPolicy().version)
+            assertEquals(image.policyEpoch, runtime.currentRequest()!!.policyEpoch)
+            assertEquals(image.receiver.permissionEpoch, runtime.currentRequest(GalleryMediaType.VIDEO)!!.receiver.permissionEpoch)
+            assertFalse(runtime.sendControls(now)) // Video metadata did not rekey or await a new photo FileControl echo.
+            val video = reply(command("discover", "video")); val photo = reply(command("discover"))
+            assertEquals("video", video.string("media_type")); assertFalse("media_type" in photo)
+            val videoId = video["page"]!!.jsonObject.string("catalog_id")
+            val imageId = photo["page"]!!.jsonObject.string("catalog_id")
+            assertNotEquals(videoId, imageId)
+            assertEquals(videoId, reply(command("catalog_page", "video", videoId))["page"]!!.jsonObject.string("catalog_id"))
+            assertEquals(imageId, reply(command("catalog_page", catalog = imageId))["page"]!!.jsonObject.string("catalog_id"))
+            for ((media, wrong) in listOf("video" to imageId, "images" to videoId)) {
+                assertThrows(PhotoFolderScopeError::class.java) { reply(command("catalog_page", media, wrong)) }
+            }
+            supported = false
+            assertNull(runtime.currentRequest(GalleryMediaType.VIDEO)); assertNotNull(runtime.currentRequest())
+            assertThrows(PhotoFolderScopeError::class.java) { reply(command("catalog_page", "video", videoId)) }
+            val disabled = reply(command("configure_videos", enabled = false))
+            assertFalse("videos" in disabled) // A withdrawn marker cannot extend an old image client's status shape.
+            assertFalse(runtime.savedPolicy().policy!!.videos!!.enabled)
+            assertFalse(runtime.sendControls(now))
+        }
+    }
+
+    @Test fun lostVideoMetadataReplyRetainsCommittedConsentButDoesNotReplayItsStaleVersion() {
+        negotiatedRuntime(videoReady = { true }, peerVideo = { true }) { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+            val original = runtime.currentRequest()!!
+            val message = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "configure_videos"); put("expected_version", runtime.savedPolicy().version); put("enabled", true)
+            }, 60_000, now)
+            assertThrows(java.io.IOException::class.java) {
+                runtime.receiveSourceCommand(message, { throw java.io.IOException("fixture video metadata output lost") }, { now })
+            }
+            val committed = runtime.savedPolicy(); assertTrue(committed.policy!!.videos!!.enabled)
+            assertEquals(original.policyEpoch, runtime.currentRequest()!!.policyEpoch); assertFalse(runtime.sendControls(now))
+            var writes = 0
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveSourceCommand(message, { writes++ }, { now }) }
+            assertEquals(0, writes); assertEquals(committed, runtime.savedPolicy())
+            runtime.receiveSourceCommand(sourceCommand("status"), {
+                assertTrue(it["body"]!!.jsonObject["videos"]!!.jsonObject["enabled"]!!.jsonPrimitive.boolean); writes++
+            }, { now })
+            assertEquals(1, writes)
+        }
+    }
+
+    @Test fun typedVideoPermissionPreparationAndActualOutputRequireCurrentVideoScope() {
+        var supported = true
+        negotiatedRuntime(videoReady = { true }, peerVideo = { supported }) { runtime, echo ->
+            runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+            runtime.configureVideosFromAuthenticatedCommand(runtime.savedPolicy(), true)
+            val version = runtime.savedPolicy().version
+            val message = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "request_read"); put("media_type", "video"); put("expected_version", version)
+            }, 60_000, now)
+            val prepared = runtime.preparePermissionReply(message, NativeGalleryPermissionCommands(), { now })
+            val body = prepared["body"]!!.jsonObject
+            assertEquals("video", body.string("media_type"))
+            assertTrue(body.string("state") in setOf("notification_posted", "foreground_required"))
+            assertEquals(version, runtime.savedPolicy().version); assertFalse(runtime.sendControls(now))
+            var writes = 0
+            val substituted = JsonObject(prepared + ("body" to JsonObject(body - "media_type")))
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.sendPreparedPermissionReply(message, substituted, { writes++ }, { now }) }
+            assertEquals(0, writes)
+            runtime.sendPreparedPermissionReply(message, prepared, { assertEquals(prepared, it); writes++ }, { now })
+            supported = false
+            assertThrows(PhotoFolderScopeError::class.java) { runtime.sendPreparedPermissionReply(message, prepared, { writes++ }, { now }) }
+            assertEquals(1, writes); assertNotNull(runtime.currentRequest())
+        }
+    }
+
     @Test fun sourceCommandExpiryReachesTheNativeConfigurerBeforePolicyPublicationAndReleasesItsTicket() {
         negotiatedRuntime { runtime, _ ->
             val before = runtime.savedPolicy()

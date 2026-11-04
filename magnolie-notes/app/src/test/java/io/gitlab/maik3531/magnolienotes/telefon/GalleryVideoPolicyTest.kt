@@ -87,6 +87,24 @@ class GalleryVideoPolicyTest {
         }
     }
 
+    @Test fun capabilityWithdrawalDuringVideoCasCannotPublishPositiveReadOrRotatePhotoGrant() {
+        for (point in listOf("gallery-policy-fenced", "gallery-policy-published")) Fixture().use { f ->
+            var available = true
+            val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(f.index, { f.receiver }, { f.configurer }, { available })
+            val photos = f.enablePhotos(); val grant = f.grants.current()!!.grants
+            f.boundary = { if (it == point) available = false }
+            assertThrows(PhotoFolderScopeError::class.java) { controller.configureVideos(photos, true) }
+            val held = f.index.galleryPolicy(); assertTrue(held.repairPending)
+            assertEquals(photos.policy!!.epoch, held.policy!!.epoch)
+            assertEquals(photos.policy!!.fileGrantRevision, held.policy!!.fileGrantRevision)
+            assertNull(controller.currentRequest(GalleryMediaType.VIDEO)); assertNull(controller.currentRequest())
+            assertEquals(grant, f.grants.current()!!.grants); assertFalse(f.grants.current()!!.policyReady)
+            available = true
+            assertNull(controller.currentRequest(GalleryMediaType.VIDEO)) // An uncertain controller cannot be resurrected by a marker.
+            assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
     @Test fun videoDisableAndRenewalUseIndependentEpochWithoutPhotoConsentOrGrantChurn() {
         Fixture().use { f ->
             val photos = f.enablePhotos(); val grant = f.grants.current()!!.grants; val request = f.controller.currentRequest()!!

@@ -160,7 +160,7 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         val old = expected.policy ?: fail("gallery_video_photo_policy_required")
         if (!old.enabled || old.receiverId != receiver.peerId || old.receiverIdentitySha256 != receiver.identitySha256 ||
             old.pairingEpoch == null || old.pairingEpoch != receiver.pairingEpoch) fail("gallery_video_photo_policy_required")
-        fun allowed() = sameConfigurer(receiver, configurer())
+        fun allowed() = sameConfigurer(receiver, configurer()) && (!enabled || videoAvailable())
         if ((old.videos?.enabled ?: false) == enabled) {
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             return expected

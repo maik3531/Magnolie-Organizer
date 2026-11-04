@@ -66,6 +66,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
+    private val videoWireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
+    private fun wireCatalog(mediaType: GalleryMediaType) = if (mediaType == GalleryMediaType.IMAGES) wireCatalog else videoWireCatalog
     private val nativePeer = { if (closed.get() || revoked.get()) null else currentPeer() }
     private val videoAvailable = { handlersReady() && videoHandlersReady() && nativePeer()?.let { it.allowed && it.videoSupported } == true }
     private val index = PhotoSourceJobIndex(directory, protection)
@@ -619,9 +621,12 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         resumeCommands: NativeGalleryResumeCommands = localResumeCommands): Unit = withOperation {
         ready()
         val command = DeviceFileSourceCommand.parse(message, now())
-        // Typed parsing must never turn an unjoined video command into a legacy
-        // image request. Keep the wire lane closed until its owner/catalog join.
-        if (command.mediaType == GalleryMediaType.VIDEO || command.operation == "configure_videos")
+        // Metadata/permission routing is typed. Data runs stay closed until the
+        // original-owner/run/END join is complete; never substitute images.
+        if (command.mediaType == GalleryMediaType.VIDEO &&
+            (command.operation !in setOf("discover", "catalog_page", "request_read") || !videoAvailable()))
+            DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        if (command.operation == "configure_videos" && command.enabled == true && !videoAvailable())
             DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (command.operation == "request_read" && Looper.myLooper() != Looper.getMainLooper())
             DeviceFileControl.fail("gallery_permission_ui_thread_required")
@@ -633,12 +638,16 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         commandLive.set { now() < command.expires }
         fun authority(): NativeGalleryConfigurer {
             if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")
+            if ((command.mediaType == GalleryMediaType.VIDEO || command.operation == "configure_videos" && command.enabled == true) && !videoAvailable())
+                DeviceFileControl.fail("gallery_video_handlers_unavailable")
             return controls.session.configurationAuthority(issued) ?: DeviceFileControl.fail("file_sources_authority_changed")
         }
         try {
             val owner = authority()
             val before = workflow.savedPolicy()
             if (command.operation != "status" && before.version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
+            if (command.operation == "configure_videos" && (syncRun != null || resumeRun != null || albumBatchOwner != null || !sourceWorker.isQuiescent))
+                DeviceFileControl.fail("gallery_sync_run_busy")
             if (command.operation == "end_album") {
                 val prior = albumEnd
                 val output = if (prior != null && prior.first.requestId == command.requestId) {
@@ -940,13 +949,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 return@withOperation
             }
             if (command.operation == "request_read") {
-                if (workflow.currentRequest() == null || owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
+                if (workflow.currentRequest(command.mediaType) == null || owner.pairingEpoch == null) DeviceFileControl.fail("gallery_source_not_activated")
                 val scope = DeviceFileControl.digest("magnolie-gallery-permission-native-scope-v1\u0000", kotlinx.serialization.json.JsonArray(listOf(
                     JsonPrimitive(localIdentity.deviceId), JsonPrimitive(localIdentity.identitySha256), JsonPrimitive(owner.peerId),
                     JsonPrimitive(owner.identitySha256), JsonPrimitive(owner.pairingEpoch))))
                 val state = permissionCommands.execute(scope, command, message) {
                     authority()
-                    val foreground = attachForeground { }
+                    val foreground = attachForeground(command.mediaType) { }
                     val action = NativeGalleryForeground.permissionAction(foreground)
                     try {
                         authority()
@@ -969,22 +978,25 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 val body = kotlinx.serialization.json.buildJsonObject {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId)); put("operation", JsonPrimitive(command.operation))
                     put("version", JsonPrimitive(before.version)); put("state", JsonPrimitive(state))
+                    if (command.mediaType == GalleryMediaType.VIDEO) put("media_type", JsonPrimitive("video"))
                 }
                 send(TelefonNachrichten.message(DeviceFileSourceCommand.PERMISSION_RESULT, body, ttl, at))
                 authority()
                 return@withOperation
             }
             if (command.operation in setOf("discover", "catalog_page")) {
-                if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+                if (workflow.currentRequest(command.mediaType) == null) DeviceFileControl.fail("gallery_source_not_activated")
+                val selectedCatalog = wireCatalog(command.mediaType)
                 val catalog = if (command.operation == "discover") {
-                    wireCatalog.getAndSet(null)?.close()
-                    workflow.discoverSelectable().also { wireCatalog.set(it) }
-                } else wireCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
+                    selectedCatalog.getAndSet(null)?.close()
+                    workflow.discoverSelectable(mediaType = command.mediaType).also { selectedCatalog.set(it) }
+                } else selectedCatalog.get() ?: DeviceFileControl.fail("gallery_catalog_not_current")
                 val page = catalog.page(command.catalogId, command.after)
                 authority()
                 val body = kotlinx.serialization.json.buildJsonObject {
                     put("format", JsonPrimitive(1)); put("request_id", JsonPrimitive(command.requestId))
                     put("operation", JsonPrimitive(command.operation)); put("version", JsonPrimitive(before.version)); put("page", page)
+                    if (command.mediaType == GalleryMediaType.VIDEO) put("media_type", JsonPrimitive("video"))
                 }
                 val at = now()
                 val ttl = minOf(DeviceFileControl.MAX_TTL_MS, command.expires - at)
@@ -999,6 +1011,9 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             val saved = if (command.operation == "configure") {
                 authority()
                 workflow.configure(before, command.enabled!!, command.kinds)
+            } else if (command.operation == "configure_videos") {
+                authority()
+                workflow.configureVideos(before, command.enabled!!)
             } else before
             authority()
             val policy = saved.policy
@@ -1011,6 +1026,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 put("associated", JsonPrimitive(associated)); put("repair_pending", JsonPrimitive(saved.repairPending))
                 put("kinds", kotlinx.serialization.json.JsonArray((policy?.kinds ?: emptySet()).map { it.name.lowercase(java.util.Locale.ROOT) }
                     .sorted().map(::JsonPrimitive)))
+                if (videoAvailable()) put("videos", kotlinx.serialization.json.buildJsonObject {
+                    put("enabled", JsonPrimitive(policy?.videos?.enabled ?: false))
+                    put("revision", JsonPrimitive(policy?.videos?.revision ?: 0L))
+                })
             }
             val at = now()
             val reply = TelefonNachrichten.message(DeviceFileSourceCommand.RESULT, body,
@@ -1038,11 +1057,14 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         now: () -> Long = { System.currentTimeMillis() }): Unit = withOperation {
         val command = DeviceFileSourceCommand.parse(message, now())
         if (command.operation != "request_read") DeviceFileControl.fail("file_sources_invalid_command")
-        if (command.mediaType == GalleryMediaType.VIDEO) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        if (command.mediaType == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        if ((reply["body"] as? JsonObject)?.get("media_type") !=
+            (if (command.mediaType == GalleryMediaType.VIDEO) JsonPrimitive("video") else null))
+            DeviceFileControl.fail("file_sources_invalid_command")
         val issued = controls.session.configurationTicket()
         fun checkAuthority() {
             if (now() >= command.expires) DeviceFileControl.fail("file_sources_command_expired")
-            if (controls.session.configurationAuthority(issued) == null || workflow.currentRequest() == null)
+            if (controls.session.configurationAuthority(issued) == null || workflow.currentRequest(command.mediaType) == null)
                 DeviceFileControl.fail("file_sources_authority_changed")
             if (workflow.savedPolicy().version != command.expectedVersion) DeviceFileControl.fail("gallery_policy_cas_conflict")
         }
@@ -1109,6 +1131,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             closeCompletion = null
             ticket.set(null)
             wireCatalog.getAndSet(null)?.close()
+            videoWireCatalog.getAndSet(null)?.close()
             NativeGalleryForeground.detach(this)
             try { workflow.close() } finally { index.close() }
             return true

@@ -16,13 +16,28 @@ legacy images. `configure_videos` is a separate metadata-only operation with
 Legacy status/configure shapes reject media extensions; existing canonical
 image command vectors are unchanged.
 
-The runtime wire join is still deliberately closed: typed video commands and
-video configuration fail before acquiring a configuration ticket, emitting a
-reply or reaching any image catalog/permission path. Prepared permission output
-also rejects a video-to-image substitution. Scoped video catalogs, run matching,
-wire foreground dispatch and desktop video target/worker integration remain to be
-joined before enabling this lane. Parsing or marker support alone is not usable
-video synchronization, and old image status replies remain unchanged.
+The runtime now joins video metadata configuration, discovery/catalog paging and
+permission requests to separate native video scopes. Every video READ/catalog
+request requires current local/peer video support and acknowledged native data
+authority; no image fallback is allowed. Positive video configuration rechecks
+feature availability throughout its protected CAS. Permission output echoes the
+video media type and rechecks live authority independently of UI preparation.
+Image responses omit the media field. Status/configuration replies contain a
+`videos` object (`enabled`, `revision`) only with current negotiated video support;
+old image-only status shapes are unchanged.
+
+Native image/video catalogs are separate and reject each other's IDs. Video-only
+metadata changes retain photo file-grant bytes without waiting for a new photo
+control packet. A lost metadata reply leaves actual committed state available
+through fresh status, not a replay of stale configuration. Scope changes cannot
+interleave with an actual source owner. Capability loss/uncertain CAS permits no
+positive READ, and explicit video decrease remains possible after withdrawal.
+
+The video run/resume/data wire lane is still deliberately closed before tickets
+or source I/O until exact media/run/END correlation is joined. Discovery alone
+opens no media PFD and creates no job. Desktop video target/worker integration
+also remains absent. These metadata joins are not usable video synchronization
+and do not activate production readiness.
 
 ### Typed native foreground owners and permission taps (Refs #330)
 
@@ -40,7 +55,7 @@ launch. One actually pending OS dialog still excludes the other media domain.
 An image wire request while only a video dialog is pending reports foreground
 interaction required, not image permission requested. Actual native typed-tap
 tests exercise legacy and modern Android permission hosts and notification
-coexistence. The video wire command lane remains closed, so this native route
+coexistence. The video data-run wire lane remains closed, so this native route
 alone does not expose video synchronization or constitute physical acceptance.
 
 ### Native independent video consent and typed READ workflow (Refs #330)
@@ -69,7 +84,7 @@ Source-host tests include actual protected-policy/index operations, native
 permission hosts and MediaStore/PFD/encrypted-cache workflow on legacy and modern
 Android runtimes, plus merged-manifest permission inspection. They do not prove
 physical permission dialogs or an installed phone transfer. The authenticated
-source-command video join, independent desktop video destination
+source-command data-run video join, independent desktop video destination
 and complete worker/UI integration are still absent. No video control or new
 production readiness is advertised from these native workflow checks alone.
 

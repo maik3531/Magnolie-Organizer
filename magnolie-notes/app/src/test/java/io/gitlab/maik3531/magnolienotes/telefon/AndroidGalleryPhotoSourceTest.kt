@@ -2379,6 +2379,76 @@ class AndroidGalleryPhotoSourceTest {
         actualWorkflowVideoDomainRequiresExplicitPolicyThenFreezesVideoPfdAndRevokesWithoutPhotoEpochReset()
     }
 
+    @Test fun videoMetadataScopeChangeCannotInterleaveWithAnActuallyOwnedOriginalResumeRun() {
+        ResumeRuntimeCase().use { h ->
+            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000
+            val before = h.runtime.savedPolicy()
+            val command = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
+                put("format", 1); put("operation", "configure_videos"); put("expected_version", before.version); put("enabled", false)
+            }, 60_000, at)
+            var writes = 0
+            assertEquals("gallery_sync_run_busy", assertThrows(PhotoFolderScopeError::class.java) {
+                h.runtime.receiveSourceCommand(command, { writes++ }, { at })
+            }.code)
+            assertEquals(0, writes); assertEquals(before, h.runtime.savedPolicy()); h.assertOriginal()
+            assertTrue(run.preparation.ioEnded)
+            h.runtime.cancelResumeRun(run)
+        }
+    }
+
+    @Test fun authenticatedVideoCatalogQueriesOnlyVideoCollectionAndStillCannotStartAnUnjoinedDataRun() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            val root = Files.createTempDirectory(f.root.toPath(), "video-catalog-wire330-").toFile()
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+            val now = 1_800_000_000_000L; val output = ByteArrayOutputStream()
+            val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
+            val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
+            val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
+            val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64), true)
+            val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
+            val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
+            fun drainControl(): DeviceFileControlPacket {
+                val frame = TelefonRahmen.lesen(ByteArrayInputStream(output.toByteArray())); output.reset()
+                val header = JsonObject(frame - "ciphertext")
+                val plain = TelefonKrypto.entschluesseln(key, TelefonKrypto.nonce(prefix, header.long("seq")),
+                    java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                return DeviceFileControlEnvelope.validate(Json.parseToJsonElement(plain.decodeToString()).jsonObject, now)
+            }
+            NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState }).use { desktop ->
+                NativeGalleryFileRuntime.withVideoHandlers(f.context, root, identity, protection, channel, { peer }, { true }, { true }).use { runtime ->
+                    fun echo() {
+                        if (runtime.sendControls(now)) desktop.observeRemote(drainControl(), pcPeer)
+                        val packet = desktop.packet(); desktop.markSent(packet)
+                        runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+                        if (runtime.sendControls(now)) desktop.observeRemote(drainControl(), pcPeer)
+                    }
+                    echo(); runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
+                    fun command(operation: String, extra: JsonObject = JsonObject(emptyMap())) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST,
+                        JsonObject(mapOf("format" to JsonPrimitive(1), "operation" to JsonPrimitive(operation),
+                            "expected_version" to JsonPrimitive(runtime.savedPolicy().version)) + extra), 60_000, now)
+                    runtime.receiveSourceCommand(command("configure_videos", buildJsonObject { put("enabled", true) }), { }, { now })
+                    var catalog: JsonObject? = null
+                    runtime.receiveSourceCommand(command("discover", buildJsonObject { put("media_type", "video") }), { catalog = it["body"]!!.jsonObject }, { now })
+                    val page = catalog!!["page"]!!.jsonObject
+                    assertEquals("video", catalog!!.string("media_type")); assertEquals("full_videos", page.string("coverage"))
+                    assertEquals(1, page["albums"]!!.jsonArray.size)
+                    assertTrue(f.provider.requests.isNotEmpty()) // Video fixture rejects every non-video query URI itself.
+                    assertTrue(f.provider.opens.isEmpty())
+                    var writes = 0
+                    assertEquals("gallery_video_wire_handlers_unavailable", assertThrows(PhotoFolderScopeError::class.java) {
+                        runtime.receiveSourceCommand(command("run", buildJsonObject {
+                            put("media_type", "video"); put("catalog_id", page.string("catalog_id"))
+                            put("album_id", page["albums"]!!.jsonArray.single().jsonObject.string("album_id")); put("desktop_choice", true)
+                        }), { writes++ }, { now })
+                    }.code)
+                    assertEquals(0, writes); assertTrue(f.provider.opens.isEmpty())
+                    PhotoSourceJobIndex(root, protection).use { assertTrue(it.jobs().isEmpty()) }
+                }
+            }
+            channel.close()
+        }
+    }
+
     @Test fun videoNativeDomainDiscoversOnlyVideoAlbumAndFreezesActualReadOnlyPfdWithoutPhotoScopeReuse() {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val catalog = AndroidGalleryAlbumDiscovery(f.context, { f.request }, mediaType = GalleryMediaType.VIDEO).discover()
