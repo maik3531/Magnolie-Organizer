@@ -1,5 +1,21 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Desktop typed source codec (Refs #330, no video admission yet)
+
+The desktop codec now supports explicit video commands and correlated catalog,
+permission, run, original-resume and abandonment replies. A pending image command
+cannot consume a video reply; video requires the explicit outer scope and matching
+inner media-page scope. The actual receiver passes its pending command's media
+type before collecting pages or admitting offers. Legacy image command/reply
+shapes remain unchanged. The unbound media inspection API retains its historical
+metadata-only behavior and is not receiver authority.
+
+`configure_videos` remains separate metadata. Video policy-status extensions need
+explicit negotiated parser opt-in, with strict booleans/counters and no inferred
+READ grant. Five shared native/Python canonical command vectors pin exact bytes
+and SHA-256 values. Codec and existing receiver/resume/batch integration tests
+do not enable desktop video destinations, worker admission or production gates.
+
 ### Independent protected desktop video scope metadata (Refs #330, partial join)
 
 The desktop preference owner now has a separate explicit native video-scope CAS.

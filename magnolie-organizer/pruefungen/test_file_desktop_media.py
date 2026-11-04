@@ -158,11 +158,10 @@ def test_unsolicited_or_unready_media_metadata_never_falls_back_to_personal_acto
     assert connection._source_media_pages==() and connection._catalog is None
 
 
-def test_video_metadata_is_not_silently_received_in_photo_root_without_native_video_target_join(receiving):
+def test_image_request_rejects_video_media_metadata_before_any_offer_or_native_admission(receiving):
     connection=receiving[3];ready_source(receiving);full=manifest(receiving)
-    collect(receiving,full,'video');offered,result=send_offer(receiving,full);dispatch(receiving,result)
-    with pytest.raises(TransferError,match='routing_unavailable'):
-        connection.accept_pending_offer(connection.issue_receive_action(),offered['message_id'])
+    with pytest.raises(TransferError,match='invalid_media_page'):collect(receiving,full,'video')
+    assert connection._source_media_pages==() and connection._offer is None
     assert connection._catalog is None and connection._run is None
 
 

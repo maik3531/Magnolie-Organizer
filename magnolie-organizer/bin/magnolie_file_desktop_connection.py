@@ -611,12 +611,13 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_status_rollback')
         elif command.operation in ('discover', 'catalog_page'):
             result = source_messages.parse_catalog(message, expected_request_id=command.request_id, expected_operation=command.operation,
-                expected_version=command.expected_version, expected_catalog_id=command.catalog_id, expected_after=command.after, now=at)
+                expected_version=command.expected_version, expected_catalog_id=command.catalog_id, expected_after=command.after,
+                expected_media_type=command.media_type,now=at)
             if command.operation == 'catalog_page' and any(album.album_id in self._source_albums for album in result.albums):
                 raise TransferError('file_desktop_source_duplicate_album')
         elif command.operation == 'request_read':
             result = source_messages.parse_permission_result(message, expected_request_id=command.request_id,
-                expected_version=command.expected_version, now=at)
+                expected_version=command.expected_version, expected_media_type=command.media_type,now=at)
         elif command.operation == 'abandon_resume':
             self._require_resume_abandonment_intent()
             result = source_messages.parse_resume_abandonment(message, command, now=at)
@@ -627,7 +628,8 @@ class NativeDesktopFileConnection:
             manifest = selected.job.accepted.manifest
             result = source_messages.parse_resume_history(message, expected_request_id=command.request_id,
                 expected_version=command.expected_version, expected_source_id=manifest.source_id,
-                expected_transfer_id=manifest.transfer_id, expected_manifest_sha256=manifest.fingerprint, now=at)
+                expected_transfer_id=manifest.transfer_id, expected_manifest_sha256=manifest.fingerprint,
+                expected_media_type=command.media_type,now=at)
             if message['expires_ms'] > pending.message['expires_ms']:
                 raise TransferError('file_desktop_resume_lookup_deadline_changed')
         elif command.operation in ('media_page', 'resume_media_page'):
@@ -637,7 +639,8 @@ class NativeDesktopFileConnection:
             result = parse_media_page(message, expected_request_id=command.request_id, expected_version=command.expected_version,
                 expected_run_id=command.run_id, expected_after=command.after,
                 expected_manifest_sha256=first.manifest_sha256 if first else original_manifest.fingerprint if resumed else None,
-                expected_source_epoch=first.source_epoch if first else None, expected_operation=command.operation, now=at)
+                expected_source_epoch=first.source_epoch if first else None, expected_operation=command.operation,
+                expected_media_type=command.media_type,now=at)
             if message['expires_ms'] > pending.message['expires_ms']:
                 raise TransferError('file_desktop_source_media_deadline_changed')
             if first is not None and (result.media_type, result.insertion_witness, result.total_files) != (
@@ -659,7 +662,8 @@ class NativeDesktopFileConnection:
                     raise TransferError('file_desktop_photo_selection_changed')
         else:
             result = source_messages.parse_run_result(message, expected_request_id=command.request_id, expected_operation=command.operation,
-                expected_version=command.expected_version, expected_run_id=None if command.operation in ('select_run', 'next_batch') else command.run_id, now=at)
+                expected_version=command.expected_version, expected_run_id=None if command.operation in ('select_run', 'next_batch') else command.run_id,
+                expected_media_type=command.media_type,now=at)
             if command.operation in ('select_run', 'next_batch') and result.run_id == command.run_id:
                 raise TransferError('file_desktop_photo_selection_owner_reused')
             old = self._source_run

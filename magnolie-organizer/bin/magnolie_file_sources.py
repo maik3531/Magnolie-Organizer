@@ -4,7 +4,7 @@ No store, directory, source scan, permission request, schedule or transport is
 created here. A decoded result describes saved settings, never media READ or a
 saved-destination receipt.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 import uuid
 
@@ -21,6 +21,27 @@ MEDIA = "file_transfer.sources.media"
 RESUME = "file_transfer.sources.resume"
 ABANDONED = 'file_transfer.sources.abandoned'
 KINDS = frozenset({"camera", "downloads", "screenshots", "whatsapp_received"})
+SCOPED_OPERATIONS = frozenset(('discover','catalog_page','request_read','run','batch_run','next_batch','run_status',
+    'cancel_run','offer_run','end_run','end_album','select_run','media_page','resume_lookup','resume_run','resume_status',
+    'cancel_resume','offer_resume','end_resume','resume_media_page','abandon_resume'))
+
+
+def _media_type(value):
+    if type(value) is not str or value not in ('images','video'):
+        raise TransferError('file_sources_invalid_media_type')
+    return value
+
+
+def _scoped_body(message, kind, now, expected_media_type):
+    """Correlated metadata only; a media label never supplies native authority."""
+    expected=_media_type(expected_media_type)
+    body=_body(message,kind,now)
+    if expected=='images':
+        if 'media_type' in body:raise TransferError('file_sources_media_scope_changed')
+        return body
+    if type(body.get('media_type')) is not str or body['media_type']!='video':
+        raise TransferError('file_sources_media_scope_changed')
+    return {key:value for key,value in body.items() if key!='media_type'}
 
 
 def _kinds(value):
@@ -69,9 +90,22 @@ class SourceCommand:
     attempt_sha256: str | None = None
     selection_manifest_sha256: str | None = None
     selected_file_ids: tuple = ()
+    media_type: str = 'images'
 
 
 def parse_command(message, *, now=None):
+    at=now_ms() if now is None else now
+    body=_body(message,REQUEST,at) # Check the original complete envelope/budget first.
+    if type(body.get('operation')) is not str:raise TransferError('file_sources_invalid_command')
+    media='images'
+    if 'media_type' in body:
+        if body.get('operation') not in SCOPED_OPERATIONS:raise TransferError('file_sources_invalid_command')
+        media=_media_type(body['media_type'])
+        message=dict(message,body={key:value for key,value in body.items() if key!='media_type'})
+    return replace(_parse_unscoped_command(message,now=at),media_type=media)
+
+
+def _parse_unscoped_command(message, *, now):
     body = _body(message, REQUEST, now_ms() if now is None else now)
     base = {"format", "operation"}
     if body.get("operation") == "status" and set(body) == base:
@@ -146,6 +180,10 @@ def parse_command(message, *, now=None):
             raise TransferError('file_sources_invalid_command')
         return SourceCommand(message['message_id'], body['operation'], body['expected_version'],
                              catalog_id=body['catalog_id'] if paging else None, after=body['after'] if paging else 0)
+    if body.get('operation')=='configure_videos':
+        if (set(body)!=base|{'expected_version','enabled'} or not _hex(body['expected_version']) or type(body['enabled']) is not bool):
+            raise TransferError('file_sources_invalid_command')
+        return SourceCommand(message['message_id'],'configure_videos',body['expected_version'],body['enabled'])
     if (body.get("operation") != "configure" or set(body) != base | {"expected_version", "enabled", "kinds"}
             or not _hex(body["expected_version"]) or type(body["enabled"]) is not bool):
         raise TransferError("file_sources_invalid_command")
@@ -158,11 +196,12 @@ def parse_command(message, *, now=None):
 def create_command(operation, *, expected_version=None, enabled=None, kinds=(), catalog_id=None, after=None,
                    album_id=None, desktop_choice=None, run_id=None, original_job_id=None, original_job_version=None,
                    source_id=None, transfer_id=None, manifest_sha256=None, attempt_id=None, attempt_sha256=None,
-                   file_ids=None, now=None, message_id=None):
+                   file_ids=None, media_type=None, now=None, message_id=None):
     at = now_ms() if now is None else now
     if type(at) is not int:
         raise TransferError("file_sources_invalid_time")
     body = {"format": 1, "operation": operation}
+    if media_type is not None:body['media_type']=media_type
     if operation not in ('resume_lookup', 'select_run') and any(value is not None for value in (source_id, transfer_id, manifest_sha256)):
         raise TransferError('file_sources_invalid_command')
     if operation != 'select_run' and file_ids is not None:
@@ -219,6 +258,10 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
             raise TransferError('file_sources_invalid_command')
         body['expected_version'] = expected_version
         if operation == 'catalog_page': body.update(catalog_id=catalog_id, after=after)
+    elif operation == 'configure_videos':
+        if kinds!=() or catalog_id is not None or after is not None:
+            raise TransferError('file_sources_invalid_command')
+        body.update(expected_version=expected_version,enabled=enabled)
     elif operation == "configure":
         if type(kinds) is not tuple:
             raise TransferError("file_sources_invalid_kinds")
@@ -234,6 +277,12 @@ def create_command(operation, *, expected_version=None, enabled=None, kinds=(), 
 
 
 @dataclass(frozen=True)
+class SourceVideoStatus:
+    enabled: bool
+    revision: int
+
+
+@dataclass(frozen=True)
 class SourcePolicyStatus:
     request_id: str
     operation: str
@@ -243,13 +292,24 @@ class SourcePolicyStatus:
     associated: bool
     repair_pending: bool
     kinds: tuple
+    videos: SourceVideoStatus | None = None
 
 
-def parse_result(message, *, expected_request_id, expected_operation, now=None):
+def parse_result(message, *, expected_request_id, expected_operation, expect_videos=False, now=None):
     body = _body(message, RESULT, now_ms() if now is None else now)
+    if type(expect_videos) is not bool:raise TransferError('file_sources_invalid_result')
+    videos=None
+    if 'videos' in body:
+        value=body['videos']
+        if (not expect_videos or type(value) is not dict or set(value)!={'enabled','revision'} or type(value['enabled']) is not bool
+                or type(value['revision']) is not int or not 0<=value['revision']<=MAX_REVISION or value['revision']==0 and value['enabled']):
+            raise TransferError('file_sources_invalid_result')
+        videos=SourceVideoStatus(value['enabled'],value['revision'])
+        body={key:value for key,value in body.items() if key!='videos'}
     if (set(body) != {"format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds"}
             or not valid_uuid(body["request_id"], version=4) or body["request_id"] != expected_request_id
-            or body["operation"] not in ("status", "configure") or body["operation"] != expected_operation
+            or body["operation"] not in ("status", "configure", "configure_videos") or body["operation"] != expected_operation
+            or body['operation']=='configure_videos' and not expect_videos
             or not _hex(body["version"]) or type(body["revision"]) is not int or not 0 <= body["revision"] <= MAX_REVISION
             or any(type(body[key]) is not bool for key in ("enabled", "associated", "repair_pending"))):
         raise TransferError("file_sources_invalid_result")
@@ -257,7 +317,7 @@ def parse_result(message, *, expected_request_id, expected_operation, now=None):
     if body["enabled"] and not kinds or body["revision"] == 0 and (body["enabled"] or body["associated"] or kinds):
         raise TransferError("file_sources_invalid_result")
     return SourcePolicyStatus(body["request_id"], body["operation"], body["version"], body["revision"],
-                              body["enabled"], body["associated"], body["repair_pending"], kinds)
+                              body["enabled"], body["associated"], body["repair_pending"], kinds,videos)
 
 
 @dataclass(frozen=True)
@@ -276,13 +336,14 @@ class SourceCatalogPage:
     next_cursor: int | None
     coverage: str
     albums: tuple
+    media_type: str = 'images'
 
 
 def parse_catalog(message, *, expected_request_id, expected_operation, expected_version,
-                  expected_catalog_id=None, expected_after=0, now=None):
+                  expected_catalog_id=None, expected_after=0, expected_media_type='images', now=None):
     if type(expected_after) is not int or not 0 <= expected_after <= 128:
         raise TransferError('file_sources_invalid_catalog')
-    body = _body(message, CATALOG, now_ms() if now is None else now)
+    body = _scoped_body(message, CATALOG, now_ms() if now is None else now,expected_media_type)
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'page'}
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
             or body['operation'] not in ('discover', 'catalog_page') or body['operation'] != expected_operation
@@ -293,7 +354,7 @@ def parse_catalog(message, *, expected_request_id, expected_operation, expected_
             or type(page['format']) is not int or page['format'] != 1 or not valid_uuid(page['catalog_id'], version=4)
             or type(page['after']) is not int or not 0 <= page['after'] <= 128 or page['after'] != expected_after
             or type(page['proves_deletion']) is not bool or page['proves_deletion'] is not False
-            or page['coverage'] not in ('none', 'selected_only', 'full_images')
+            or page['coverage'] not in ('none', 'selected_only', 'full_videos' if expected_media_type=='video' else 'full_images')
             or type(page['albums']) is not list or len(page['albums']) + page['after'] > 128
             or page['coverage'] == 'none' and page['albums']
             or expected_operation == 'catalog_page' and (not valid_uuid(expected_catalog_id, version=4) or page['catalog_id'] != expected_catalog_id)
@@ -316,7 +377,7 @@ def parse_catalog(message, *, expected_request_id, expected_operation, expected_
             raise TransferError('file_sources_invalid_catalog')
         ids.add(album['album_id'])
         albums.append(AlbumMetadata(album['album_id'], album['kind'], album['display_name'], album['visible_images'], album['needs_choice']))
-    return SourceCatalogPage(page['catalog_id'], page['after'], following, page['coverage'], tuple(albums))
+    return SourceCatalogPage(page['catalog_id'], page['after'], following, page['coverage'], tuple(albums),expected_media_type)
 
 
 @dataclass(frozen=True)
@@ -324,16 +385,17 @@ class SourcePermissionResult:
     request_id: str
     version: str
     state: str
+    media_type: str = 'images'
 
 
-def parse_permission_result(message, *, expected_request_id, expected_version, now=None):
-    body = _body(message, PERMISSION_RESULT, now_ms() if now is None else now)
+def parse_permission_result(message, *, expected_request_id, expected_version, expected_media_type='images', now=None):
+    body = _scoped_body(message, PERMISSION_RESULT, now_ms() if now is None else now,expected_media_type)
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'state'}
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
             or body['operation'] != 'request_read' or not _hex(body['version']) or body['version'] != expected_version
             or body['state'] not in ('requested', 'notification_posted', 'foreground_required', 'failed')):
         raise TransferError('file_sources_invalid_permission_result')
-    return SourcePermissionResult(body['request_id'], body['version'], body['state'])
+    return SourcePermissionResult(body['request_id'], body['version'], body['state'],expected_media_type)
 
 
 @dataclass(frozen=True)
@@ -349,6 +411,7 @@ class SourceRunResult:
     run_ended: bool = False
     batched: bool = False
     batch_end: bool | None = None
+    media_type: str = 'images'
 
 
 @dataclass(frozen=True)
@@ -365,6 +428,7 @@ class SourceResumeHistory:
     attempt_phase: str | None
     attempt_id: str | None = None
     attempt_sha256: str | None = None
+    media_type: str = 'images'
 
 
 @dataclass(frozen=True)
@@ -377,10 +441,12 @@ class SourceResumeAbandonment:
     attempt_id: str
     attempt_sha256: str
     receipt_sha256: str
+    media_type: str = 'images'
 
 
 def parse_resume_abandonment(message, command, *, now=None):
-    body = _body(message, ABANDONED, now_ms() if now is None else now)
+    if type(command) is not SourceCommand:raise TransferError('file_sources_invalid_resume_abandonment')
+    body = _scoped_body(message, ABANDONED, now_ms() if now is None else now,command.media_type)
     if (type(command) is not SourceCommand or command.operation != 'abandon_resume'
             or set(body) != {'format', 'operation', 'request_id', 'version', 'run_id', 'job_id', 'job_version',
                              'attempt_id', 'attempt_sha256', 'receipt_sha256'}
@@ -390,13 +456,13 @@ def parse_resume_abandonment(message, command, *, now=None):
             or body['job_version'] != command.original_job_version or body['attempt_id'] != command.attempt_id
             or body['attempt_sha256'] != command.attempt_sha256):
         raise TransferError('file_sources_invalid_resume_abandonment')
-    return SourceResumeAbandonment(**{key: body[key] for key in SourceResumeAbandonment.__dataclass_fields__})
+    return SourceResumeAbandonment(**{key: body[key] for key in SourceResumeAbandonment.__dataclass_fields__ if key!='media_type'},media_type=command.media_type)
 
 
 def parse_resume_history(message, *, expected_request_id, expected_version, expected_source_id,
-                         expected_transfer_id, expected_manifest_sha256, now=None):
+                         expected_transfer_id, expected_manifest_sha256, expected_media_type='images', now=None):
     """Historical hints only: never receiver/source readiness or a resume grant."""
-    body = _body(message, RESUME, now_ms() if now is None else now)
+    body = _scoped_body(message, RESUME, now_ms() if now is None else now,expected_media_type)
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'history'}
             or body['operation'] != 'resume_lookup' or not valid_uuid(body['request_id'], version=4)
             or body['request_id'] != expected_request_id or not _hex(body['version']) or body['version'] != expected_version
@@ -417,12 +483,12 @@ def parse_resume_history(message, *, expected_request_id, expected_version, expe
             raise TransferError('file_sources_invalid_resume_history')
     elif (set(value) != fields | tokens or not valid_uuid(value['attempt_id'], version=4) or not _hex(value['attempt_sha256'])):
         raise TransferError('file_sources_invalid_resume_history')
-    return SourceResumeHistory(body['request_id'], body['version'], **value)
+    return SourceResumeHistory(body['request_id'], body['version'], **value,media_type=expected_media_type)
 
 
 def parse_run_result(message, *, expected_request_id, expected_operation, expected_version,
-                     expected_run_id=None, now=None):
-    body = _body(message, RUN_RESULT, now_ms() if now is None else now)
+                     expected_run_id=None, expected_media_type='images', now=None):
+    body = _scoped_body(message, RUN_RESULT, now_ms() if now is None else now,expected_media_type)
     if body.get('operation') in ('resume_run', 'resume_status', 'cancel_resume', 'offer_resume', 'end_resume'):
         if (any(type(body.get(key)) is not str for key in ('request_id', 'run_id'))
                 or body['operation'] == 'offer_resume' and type(body.get('offer_id')) is not str
@@ -454,4 +520,4 @@ def parse_run_result(message, *, expected_request_id, expected_operation, expect
         raise TransferError('file_sources_invalid_run_result')
     return SourceRunResult(body['request_id'], body['operation'], body['version'], body['run_id'], body['state'],
                            body['source_io_ended'], body.get('offer_id'), body.get('manifest_sha256'), body.get('run_ended', False),
-                           batched, body.get('batch_end'))
+                           batched, body.get('batch_end'),expected_media_type)

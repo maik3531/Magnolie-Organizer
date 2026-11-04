@@ -8,6 +8,19 @@ class DeviceFileSourceCommandTest {
     private val now = 1_800_000_000_000L
     private fun message(body: JsonObject) = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, body, 60_000, now)
     private val status = buildJsonObject { put("format", 1); put("operation", "status") }
+    @Test fun sharedVideoCommandGoldensMatchDesktopBytesWithoutDefaultingVideoToImages() {
+        val vector = Json.parseToJsonElement(java.io.File("../contracts/file-transfer-video-sources-v1-vectors.json").readText()).jsonObject
+        val commands = vector["commands"]!!.jsonArray; val hashes = vector["canonical_sha256"]!!.jsonArray
+        assertEquals(5, commands.size); assertEquals(commands.size, hashes.size)
+        for ((index, value) in commands.withIndex()) {
+            val message = value.jsonObject; val parsed = DeviceFileSourceCommand.parse(message, vector["now_ms"]!!.jsonPrimitive.long)
+            val bytes = TelefonKanonisch.bytes(message)
+            assertEquals(hashes[index].jsonPrimitive.content, java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+                .joinToString("") { "%02x".format(it.toInt() and 255) })
+            assertEquals(if (parsed.operation == "configure_videos") GalleryMediaType.IMAGES else GalleryMediaType.VIDEO, parsed.mediaType)
+            assertThrows(PhotoFolderScopeError::class.java) { DeviceFileSourceCommand.parse(message, vector["now_ms"]!!.jsonPrimitive.long + 60_000) }
+        }
+    }
     @Test fun videoDiscoveryMarkerRequiresBothNativeHandlerGates() {
         for (base in listOf(false, true)) for (video in listOf(false, true)) {
             val versions = TelefonCapabilities.phase1(fileHandlersReady = base, videoHandlersReady = video).getValue("device_status").versions

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import re
 
 from magnolie_file_control import _hex
-from magnolie_file_sources import MEDIA, _body
+from magnolie_file_sources import MEDIA, _body, _scoped_body
 from magnolie_file_transfer import FileManifest, TransferError
 from magnolie_telefon import now_ms, valid_uuid
 
@@ -39,12 +39,16 @@ class SourceMediaPage:
 
 
 def parse_media_page(message, *, expected_request_id, expected_version, expected_run_id,
-        expected_after=0, expected_manifest_sha256=None, expected_source_epoch=None, expected_operation='media_page', now=None):
+        expected_after=0, expected_manifest_sha256=None, expected_source_epoch=None, expected_operation='media_page',
+        expected_media_type=None, now=None):
     def fail():
         raise TransferError('file_sources_invalid_media_page')
     if type(expected_after) is not int or not 0 <= expected_after <= 128 or expected_operation not in ('media_page', 'resume_media_page'):
         fail()
-    body = _body(message, MEDIA, now_ms() if now is None else now)
+    # None retains the legacy unbound metadata-inspection API, not receiver
+    # readiness. A typed native receiver must pass its actual requested scope.
+    body = (_body(message, MEDIA, now_ms() if now is None else now) if expected_media_type is None else
+        _scoped_body(message, MEDIA, now_ms() if now is None else now,expected_media_type))
     if (set(body) != {'format', 'request_id', 'operation', 'version', 'run_id', 'page'}
             or not valid_uuid(body['request_id'], version=4) or body['request_id'] != expected_request_id
             or body['operation'] != expected_operation or not _hex(body['version']) or body['version'] != expected_version
@@ -58,6 +62,7 @@ def parse_media_page(message, *, expected_request_id, expected_version, expected
             or expected_manifest_sha256 is not None and page['manifest_sha256'] != expected_manifest_sha256
             or expected_source_epoch is not None and page['source_epoch'] != expected_source_epoch
             or page['media_type'] not in ('images', 'video') or type(page['insertion_witness']) is not bool
+            or expected_media_type is not None and page['media_type']!=expected_media_type
             or type(page['total_files']) is not int or not 1 <= page['total_files'] <= 128
             or type(page['after']) is not int or not 0 <= page['after'] <= page['total_files'] or page['after'] != expected_after
             or type(page['entries']) is not list or not 0 <= len(page['entries']) <= 8
