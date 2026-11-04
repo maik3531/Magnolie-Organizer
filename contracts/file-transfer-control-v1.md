@@ -1,5 +1,22 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Video decrease at exhausted counters (Refs #376; restart blocker #377)
+
+An exact current authenticated video-decrease command that cannot advance its
+global/video revision now HOLDs the existing native policy controller before
+returning `*_revision_exhausted`. Stale snapshots cannot acquire this authority;
+unchanged idempotent commands remain unchanged. No counter rolls over or resets,
+and protected policy, photo grants and jobs are not rewritten or released. This
+owner-local HOLD is **not** a successful persisted OFF choice.
+
+Actual protected-index/controller tests reproduce the former continuing READ,
+verify the HOLD and stale/idempotent boundaries, and distinguish decrease-write
+errors before and after the existing durable repair fence. A first-write failure
+before that fence preserves the old enabled policy: the old controller holds, but
+a new controller can observe that old consent again. Errors after the fence hold
+new controllers too. The remaining cross-owner/restart/privacy decision is tracked
+in #377 and blocks production activation; this change does not claim to solve it.
+
 ### Original desktop video resume (Refs #330, production gates OFF)
 
 Dedicated video resume now follows the explicit original-job lookup and current

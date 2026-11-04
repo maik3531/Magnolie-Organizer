@@ -165,8 +165,20 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
             return expected
         }
-        if (old.revision >= DeviceFileControl.MAX_REVISION) fail("gallery_policy_revision_exhausted")
-        if ((old.videos?.revision ?: 0L) >= DeviceFileControl.MAX_REVISION) fail("gallery_video_revision_exhausted")
+        val exhausted = when {
+            old.revision >= DeviceFileControl.MAX_REVISION -> "gallery_policy_revision_exhausted"
+            (old.videos?.revision ?: 0L) >= DeviceFileControl.MAX_REVISION -> "gallery_video_revision_exhausted"
+            else -> null
+        }
+        if (exhausted != null) {
+            // A stale/foreign command must not acquire decrease authority. A
+            // current explicit decrease that cannot be committed must HOLD this
+            // owner just like an uncertain CAS, never silently keep VIDEO READ.
+            // This is NOT a persisted off policy, counter reset or repair ACK.
+            if (index.galleryPolicy() != expected || !allowed()) fail("gallery_policy_cas_conflict")
+            if (!enabled) uncertain = true
+            fail(exhausted)
+        }
         val epoch = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
         val next = GalleryPhotoPolicy(old.receiverId, old.receiverIdentitySha256, old.epoch, old.enabled, old.kinds,
             old.revision + 1, 4, old.pairingEpoch, GalleryVideoPolicy(enabled, epoch, (old.videos?.revision ?: 0L) + 1), old.fileGrantRevision)

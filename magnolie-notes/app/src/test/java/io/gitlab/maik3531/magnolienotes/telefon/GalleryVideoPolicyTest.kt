@@ -38,6 +38,21 @@ class GalleryVideoPolicyTest {
         val controller = GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, { receiver }, { configurer })
         val grants = NativeGalleryFileGrantPolicy({ peer }, { index.galleryPolicy() }, { true })
         fun enablePhotos() = controller.configure(index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+        // Test-only native construction of an otherwise valid boundary record.
+        // Use the real protected writer AND membership transaction, not tampered
+        // SQL rows, a fake snapshot, or a production revision-jump API.
+        fun seedPolicy(policy: GalleryPhotoPolicy): GalleryPhotoPolicySnapshot {
+            val name = "gallery-policy-v1"
+            val clear = java.io.ByteArrayOutputStream().also {
+                TelefonRahmen.schreiben(it, policy.wire(), DeviceTransferProtection.MAX_CLEAR_BYTES - 4)
+            }.toByteArray()
+            val sealed = protection.seal(clear, "photo-source-jobs-v1/$name")
+            val put = PhotoSourceJobIndex::class.java.getDeclaredMethod("putMeta", String::class.java, ByteArray::class.java).also { it.isAccessible = true }
+            val transaction = PhotoSourceJobIndex::class.java.declaredMethods.single { it.name == "transaction" }.also { it.isAccessible = true }
+            val write: () -> Unit = { put.invoke(index, name, sealed); Unit }
+            transaction.invoke(index, false, write)
+            return index.galleryPolicy().also { assertEquals(policy, it.policy); assertFalse(it.repairPending) }
+        }
         override fun close() { index.close(); root.deleteRecursively() }
     }
 
@@ -61,6 +76,66 @@ class GalleryVideoPolicyTest {
                 mediaType = GalleryMediaType.VIDEO).discover()
             assertEquals(GalleryReadCoverage.NONE, catalog.coverage); assertTrue(catalog.albums.isEmpty())
             assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
+    @Test fun exhaustedCurrentVideoDecreaseClosesLiveReadWithoutRollingOrRewritingCounters() {
+        Fixture().use { f ->
+            val enabled = f.controller.configureVideos(f.enablePhotos(), true).policy!!
+            val exhausted = f.seedPolicy(GalleryPhotoPolicy(enabled.receiverId, enabled.receiverIdentitySha256, enabled.epoch,
+                enabled.enabled, enabled.kinds, DeviceFileControl.MAX_REVISION, 4, enabled.pairingEpoch,
+                enabled.videos, enabled.fileGrantRevision))
+            val grant = f.grants.current()!!.grants
+            assertNotNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals("gallery_policy_revision_exhausted", assertThrows(PhotoFolderScopeError::class.java) {
+                f.controller.configureVideos(exhausted, false)
+            }.code)
+            assertNull("Failed explicit decrease must HOLD this live owner, not continue VIDEO READ", f.controller.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(exhausted, f.index.galleryPolicy())
+            assertEquals(grant, f.grants.current()!!.grants)
+            assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
+    @Test fun exhaustedStaleSnapshotCannotHoldCurrentOwnerAndUnchangedCommandRemainsIdempotent() {
+        Fixture().use { f ->
+            val saved = f.controller.configureVideos(f.enablePhotos(), true)
+            val policy = saved.policy!!
+            val fake = saved.copy(policy = GalleryPhotoPolicy(policy.receiverId, policy.receiverIdentitySha256, policy.epoch,
+                policy.enabled, policy.kinds, DeviceFileControl.MAX_REVISION, 4, policy.pairingEpoch, policy.videos, policy.fileGrantRevision))
+            assertEquals("gallery_policy_cas_conflict", assertThrows(PhotoFolderScopeError::class.java) {
+                f.controller.configureVideos(fake, false)
+            }.code)
+            assertNotNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+            assertEquals(saved, f.index.galleryPolicy())
+            val exhausted = f.seedPolicy(fake.policy!!)
+            assertEquals(exhausted, f.controller.configureVideos(exhausted, true))
+            assertNotNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+        }
+    }
+
+    @Test fun videoDecreaseWriteFailureHoldsOwnerAndNeverReportsPersistedOff() {
+        for (point in listOf("membership-protect", "gallery-policy-fenced", "gallery-policy-published")) Fixture().use { f ->
+            val enabled = f.controller.configureVideos(f.enablePhotos(), true)
+            val grant = f.grants.current()!!.grants
+            f.boundary = { if (it == point) throw IOException("fixture video decrease storage failure at $point") }
+            assertThrows(IOException::class.java) { f.controller.configureVideos(enabled, false) }
+            assertNull(f.controller.currentRequest(GalleryMediaType.VIDEO))
+            assertNull(f.controller.currentRequest())
+            f.boundary = {}
+            val held = f.index.galleryPolicy()
+            if (point == "membership-protect") {
+                // The first write never committed, so there is no durable fence.
+                // Do not pretend this error persisted the user's OFF choice.
+                assertEquals(enabled, held)
+            } else assertTrue(held.repairPending)
+            assertEquals(enabled.policy!!.epoch, held.policy!!.epoch)
+            assertEquals(enabled.policy!!.fileGrantRevision, held.policy!!.fileGrantRevision)
+            assertEquals(grant, f.grants.current()!!.grants)
+            assertTrue(f.index.jobs().isEmpty())
+            val freshOwner = GalleryPhotoPolicyController.forAuthenticatedConfigurer(f.index, { f.receiver }, { f.configurer })
+            if (point == "membership-protect") assertNotNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
+            else assertNull(freshOwner.currentRequest(GalleryMediaType.VIDEO))
         }
     }
 
