@@ -2396,7 +2396,11 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
-    @Test fun authenticatedVideoCatalogQueriesOnlyVideoCollectionAndStillCannotStartAnUnjoinedDataRun() {
+    @Test fun authenticatedVideoCatalogQueriesOnlyVideoCollectionAndStillCannotStartAnUnjoinedDataRun() = videoCatalogRuntimeCase()
+    @Test fun nativeVideoRunUsesItsOwnActivationForActualOfferChunkAndSavedWithoutImageFallback() = videoCatalogRuntimeCase(nativeData = true)
+    @Test fun nativeVideoCapabilityWithdrawalBlocksOwnedVideoChunksButStillAllowsActualNativeCancelEnd() = videoCatalogRuntimeCase(nativeData = true, withdraw = true)
+
+    private fun videoCatalogRuntimeCase(nativeData: Boolean = false, withdraw: Boolean = false) {
         Fixture(GalleryMediaType.VIDEO).use { f ->
             val root = Files.createTempDirectory(f.root.toPath(), "video-catalog-wire330-").toFile()
             val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -2414,8 +2418,9 @@ class AndroidGalleryPhotoSourceTest {
                     java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
                 return DeviceFileControlEnvelope.validate(Json.parseToJsonElement(plain.decodeToString()).jsonObject, now)
             }
+            var videoReady = true
             NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState }).use { desktop ->
-                NativeGalleryFileRuntime.withVideoHandlers(f.context, root, identity, protection, channel, { peer }, { true }, { true }).use { runtime ->
+                NativeGalleryFileRuntime.withVideoHandlers(f.context, root, identity, protection, channel, { peer }, { true }, { videoReady }).use { runtime ->
                     fun echo() {
                         if (runtime.sendControls(now)) desktop.observeRemote(drainControl(), pcPeer)
                         val packet = desktop.packet(); desktop.markSent(packet)
@@ -2443,6 +2448,60 @@ class AndroidGalleryPhotoSourceTest {
                     }.code)
                     assertEquals(0, writes); assertTrue(f.provider.opens.isEmpty())
                     PhotoSourceJobIndex(root, protection).use { assertTrue(it.jobs().isEmpty()) }
+                    if (nativeData) {
+                        val nativeCatalog = runtime.discoverSelectable(mediaType = GalleryMediaType.VIDEO)
+                        val nativePage = nativeCatalog.page()
+                        val selection = nativeCatalog.select(nativePage.string("catalog_id"), nativePage["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+                        val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime) as NativeGallerySourceWorker
+                        val onEnded = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
+                        @Suppress("UNCHECKED_CAST") val original = onEnded.get(worker) as (NativeGallerySourceRun) -> Unit
+                        val ended = java.util.concurrent.CountDownLatch(1)
+                        onEnded.set(worker, { value: NativeGallerySourceRun -> try { original(value) } finally { ended.countDown() } })
+                        val run = runtime.beginSyncRun(selection)
+                        assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                        val job = run.preparation.snapshotJob()!!
+                        assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
+                        val replies = mutableListOf<JsonObject>()
+                        runtime.sendSyncRunOffer(run, { replies += it }, now)
+                        val offer = replies.single(); replies.clear()
+                        val manifest = DeviceFileOfferEnvelope.validate(offer, identity.deviceId, peer.peerId, now)
+                        val grant = runtime.currentRequest(GalleryMediaType.VIDEO)!!.receiver.permissionEpoch
+                        runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
+                            put("format", 1); put("offer_id", offer.string("message_id")); put("transfer_id", manifest.transferId)
+                            put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
+                            put("permission_epoch", grant); put("destination_token", "e".repeat(64))
+                        }, 60_000, now), { now })
+                        val request = TelefonNachrichten.message(DeviceFileChunkEnvelope.REQUEST, buildJsonObject {
+                            put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                            put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", grant); put("destination_token", "e".repeat(64))
+                            put("file_id", manifest.files.single().id); put("chunk_index", 0)
+                        }, 60_000, now)
+                        val cache = File(root, "photo-source-" + job.id)
+                        val bytes = cache.listFiles()!!.associate { it.name to it.readBytes().toList() }
+                        if (withdraw) {
+                            videoReady = false
+                            assertNotNull(runtime.currentRequest()); assertNull(runtime.currentRequest(GalleryMediaType.VIDEO))
+                            assertThrows(PhotoFolderScopeError::class.java) { runtime.receiveChunkRequest(request, { replies += it }, { now }) }
+                            assertTrue(replies.isEmpty())
+                        } else {
+                            runtime.receiveChunkRequest(request, { replies += it }, { now })
+                            assertArrayEquals("hello".toByteArray(), java.util.Base64.getDecoder().decode(replies.single()["body"]!!.jsonObject.string("data_base64")))
+                            runtime.observeRemoteSaved(TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                                put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                                put("acceptance_sha256", "c".repeat(64)); put("permission_epoch", grant); put("destination_token", "e".repeat(64))
+                                put("receipts", JsonArray(manifest.files.map { buildJsonObject {
+                                    put("file_id", it.id); put("size", it.size); put("sha256", it.sha256); put("receipt_sha256", "0".repeat(64))
+                                } }))
+                            }, 60_000, now), { now })
+                        }
+                        runtime.cancelSyncRun(run); runtime.endStoppedSyncRun(run)
+                        PhotoSourceJobIndex(root, protection).use {
+                            assertEquals(listOf(job), it.jobs()); assertNotNull(it.remoteAcceptance(job))
+                            if (withdraw) assertNull(it.remoteSaved(job)) else assertNotNull(it.remoteSaved(job))
+                        }
+                        assertEquals(bytes, cache.listFiles()!!.associate { it.name to it.readBytes().toList() })
+                        assertEquals("hello", File(f.root, "source.bin").readText())
+                    }
                 }
             }
             channel.close()

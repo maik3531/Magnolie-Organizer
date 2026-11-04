@@ -97,12 +97,15 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.observe(message, now) }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? { ready(); return workflow.currentRequest(mediaType) }
-    fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal()): NativeGalleryAlbumCatalog = withOperation {
-        workflow.discoverSelectable(cancellation)
+    fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal(),
+        mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryAlbumCatalog = withOperation {
+        workflow.discoverSelectable(cancellation, mediaType)
     }
+    private fun selectionRequest(selection: NativeGalleryAlbumSelection): NativeGalleryRequest? = workflow.currentRequest(
+        selection.catalog.source.activation?.mediaType ?: DeviceFileControl.fail("gallery_source_not_activated"))
     fun prepareSource(selection: NativeGalleryAlbumSelection): NativeGallerySourceRun = withOperation {
         if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
-        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        if (selectionRequest(selection) == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         sourceWorker.start(selection)
     }
@@ -113,7 +116,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     private fun beginSyncRunOwned(selection: NativeGalleryAlbumSelection, checkCommand: () -> Unit = {}): NativeGallerySyncRun {
         if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
-        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        if (selectionRequest(selection) == null) DeviceFileControl.fail("gallery_source_not_activated")
         workflow.validateSelection(selection)
         checkCommand()
         return NativeGallerySyncRun(selection, sourceWorker.start(selection)).also { syncRun = it }
@@ -203,7 +206,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private fun beginResumeRunOwned(selection: NativeGalleryAlbumSelection, original: PhotoSourceJob,
         checkCommand: () -> Unit = {}): NativeGalleryResumeRun {
         if (syncRun != null || resumeRun != null || albumBatchOwner != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_busy")
-        if (workflow.currentRequest() == null) DeviceFileControl.fail("gallery_source_not_activated")
+        if (selectionRequest(selection) == null) DeviceFileControl.fail("gallery_source_not_activated")
         index.requireGalleryResumeOriginal(original)
         workflow.validateSelection(selection)
         checkCommand()
@@ -421,12 +424,12 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         }
         if (DeviceFileOfferEnvelope.validate(offer, manifest.senderId, manifest.receiverId, now()).fingerprint != fingerprint ||
             now() >= offer.long("expires_ms")) DeviceFileControl.fail("file_offer_invalid_envelope")
-        if (workflow.currentRequest() == null || run.cancelRequested) DeviceFileControl.fail("gallery_source_not_activated")
+        if (selectionRequest(run.selection) == null || run.cancelRequested) DeviceFileControl.fail("gallery_source_not_activated")
         checkCommand()
         run.wireOfferAttempt.get()?.checkCurrent(now())
         send(offer)
         // Revalidate actual protected source authority after output as well.
-        if (source.manifest.fingerprint != fingerprint || workflow.currentRequest() == null || run.cancelRequested)
+        if (source.manifest.fingerprint != fingerprint || selectionRequest(run.selection) == null || run.cancelRequested)
             DeviceFileControl.fail("gallery_source_not_activated")
         checkCommand()
         run.wireOfferAttempt.get()?.checkCurrent(now())
@@ -451,7 +454,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         }
         if (now() >= offer.expires || accepted.offerId != offer.messageId || accepted.transferId != offer.transferId ||
             accepted.manifestSha256 != offer.manifestSha256) DeviceFileControl.fail("file_accept_offer_changed")
-        val request = workflow.currentRequest() ?: DeviceFileControl.fail("gallery_source_not_activated")
+        val request = selectionRequest(run.selection) ?: DeviceFileControl.fail("gallery_source_not_activated")
         if (request.receiver.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_accept_permission_changed")
         val prior = run.acceptance.get()
         if (prior != null && prior != accepted) DeviceFileControl.fail("file_accept_already_bound")
@@ -459,7 +462,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val job = run.preparation.snapshotJob() ?: DeviceFileControl.fail("gallery_sync_run_snapshot_unavailable")
         val selected = run.selection
         val source = workflow.source(job, selected.catalog.source, selected.album, selected.desktopChoice)
-        if (source.manifest.fingerprint != accepted.manifestSha256 || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+        if (source.manifest.fingerprint != accepted.manifestSha256 || selectionRequest(run.selection)?.receiver?.permissionEpoch != accepted.permissionEpoch)
             DeviceFileControl.fail("file_accept_permission_changed")
         val checked = now()
         run.wireOfferAttempt.get()?.checkCurrent(checked)
@@ -468,11 +471,11 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             val current = now()
             run.wireOfferAttempt.get()?.checkCurrent(current)
             if (run.cancelRequested || current >= accepted.expires || current >= offer.expires ||
-                workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+                selectionRequest(run.selection)?.receiver?.permissionEpoch != accepted.permissionEpoch)
                 DeviceFileControl.fail("file_accept_permission_changed")
         }
         if (now() >= accepted.expires || now() >= offer.expires || run.cancelRequested ||
-            workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_accept_permission_changed")
+            selectionRequest(run.selection)?.receiver?.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_accept_permission_changed")
         run.acceptance.set(accepted)
     }
 
@@ -495,7 +498,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             request.acceptanceSha256 != accepted.acceptanceSha256 || request.destinationToken != accepted.destinationToken ||
             request.permissionEpoch != accepted.permissionEpoch) DeviceFileControl.fail("file_chunk_acceptance_changed")
         fun authority() {
-            if (now() >= request.expires || run.cancelRequested || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+            if (now() >= request.expires || run.cancelRequested || selectionRequest(run.selection)?.receiver?.permissionEpoch != accepted.permissionEpoch)
                 DeviceFileControl.fail("file_chunk_authority_changed")
         }
         authority()
@@ -523,7 +526,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val run=syncRun?.takeUnless { it.cancelRequested } ?: DeviceFileControl.fail("gallery_sync_run_not_current")
         val accepted=run.acceptance.get() ?: DeviceFileControl.fail("file_chunk_not_accepted")
         fun authority() {
-            if (run.cancelRequested || workflow.currentRequest()?.receiver?.permissionEpoch != accepted.permissionEpoch)
+            if (run.cancelRequested || selectionRequest(run.selection)?.receiver?.permissionEpoch != accepted.permissionEpoch)
                 DeviceFileControl.fail("file_saved_authority_changed")
         }
         authority()

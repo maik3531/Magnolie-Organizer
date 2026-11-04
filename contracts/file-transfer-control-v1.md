@@ -39,6 +39,16 @@ opens no media PFD and creates no job. Desktop video target/worker integration
 also remains absent. These metadata joins are not usable video synchronization
 and do not activate production readiness.
 
+Direct native run entry points and normal offer/acceptance/chunk/Saved validation
+now derive their activation from the selected catalog's native media type rather
+than defaulting to images. Source-host checks exercise a real owned video run
+through encrypted snapshot, offer, acceptance, actual chunk bytes and protected
+Saved proof. Capability withdrawal blocks further owned video chunks while image
+activation remains available; native cancel and actual quiescent END still work.
+These direct native END calls alone retire no cache or quota. This does not open
+the still-gated video run/resume wire lane or replace its pending correlation
+and end-retry acceptance.
+
 ### Typed native foreground owners and permission taps (Refs #330)
 
 The passive foreground route now retains separate image/video hosts, owners and
