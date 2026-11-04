@@ -64,7 +64,7 @@ class NativeMediaTrashUi:
                 if not snapshot.associated:raise TransferError('media_trash_local_history_changed')
                 for entry in sorted(entries,key=lambda value:(-value.sequence,value.operation)):
                     self._current()
-                    if entry.state in ('restored','canceled'):continue
+                    if entry.state in ('restored','canceled','purged'):continue
                     rows.append(dict(scope=scope,operation=entry.operation,version=snapshot.version,
                         name=entry.mapping.relative_path.split('/')[-1],media_type=entry.mapping.association.media_type,state=entry.state))
         self._current()
@@ -112,5 +112,8 @@ class NativeMediaTrashUi:
             # verified restore because another scope could not be listed.
             return dict(ok=True,supported=True,request_id=request['request_id'],action=action,restored_name=restored_name,
                 completed=dict(scope=request['scope'],operation=completed.operation,state=completed.state))
+        if not request.get('cursor',0):
+            from magnolie_media_retention import maintain_native_media_trash
+            maintain_native_media_trash(self._root,self._current)
         result=self._list(request.get('cursor',0))
         return dict(result,ok=True,supported=True,request_id=request['request_id'],action=action,restored_name=restored_name)

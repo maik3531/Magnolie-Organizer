@@ -23242,26 +23242,36 @@ class Fenster(_FENSTER_BASIS):
                         if changed and not covered:
                             self._journal_snapshot("pre-change")
                         gespeichert = self._vielleicht_verschluesseln(payload)
-                        try:
-                            speichere_text(gespeichert)
-                        except Exception as fehler:
-                            # A directory fsync/chmod may fail after rename. Preserve
-                            # known commit success; do not publish derived data yet.
+                        from contextlib import nullcontext
+                        retention_guard = nullcontext({})
+                        from magnolie_optional_phone import available
+                        if available("photo_sync"):
+                            import importlib
+                            retention_guard = importlib.import_module("magnolie_media_retention").saved_book_retention(
+                                os.path.join(daten_verzeichnis(), "telefon"), daten)
+                        with retention_guard as retention:
                             try:
-                                aktuell, _bindung = _erinnerungsprofil_lesen()
-                            except Exception:
-                                self._ladefehler = _("The file could not be read.")
-                                raise
-                            if aktuell != gespeichert:
-                                raise
-                            warnung = fehler_deutsch(fehler, _("Saving the data"))
-                        self._aktuelle_daten = daten
-                        lease.saved(previous, daten, payload, proof, changed, covered, time.monotonic())
-                        book_owner = getattr(self, "_notes_actor_book_owner", None)
-                        observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
-                        if observed is not None:
-                            self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
-                                hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
+                                speichere_text(gespeichert)
+                            except Exception as fehler:
+                                # A directory fsync/chmod may fail after rename.
+                                # Preserve known commit success on exact readback.
+                                try:
+                                    aktuell, _bindung = _erinnerungsprofil_lesen()
+                                except Exception:
+                                    self._ladefehler = _("The file could not be read.")
+                                    raise
+                                if aktuell != gespeichert:
+                                    raise
+                                warnung = fehler_deutsch(fehler, _("Saving the data"))
+                            self._aktuelle_daten = daten
+                            lease.saved(previous, daten, payload, proof, changed, covered, time.monotonic())
+                            book_owner = getattr(self, "_notes_actor_book_owner", None)
+                            observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
+                            if observed is not None:
+                                self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
+                                    hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
+                        if retention.get("repair_error"):
+                            warnung = warnung or _("Saving the data") + ": " + retention["repair_error"]
                     if historical is not None:
                         from magnolie_personal_actor_writer import NativeHistoricalWriterInvocation
                         if type(historical) is not NativeHistoricalWriterInvocation or proof is not None:

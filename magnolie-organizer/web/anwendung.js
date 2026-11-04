@@ -30631,7 +30631,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const valid = entry => entry && typeof entry.scope === "string" && /^[0-9a-f]{64}$/.test(entry.scope) &&
       typeof entry.operation === "string" && /^[0-9a-f]{32}$/.test(entry.operation) && typeof entry.version === "string" && /^[0-9a-f]{64}$/.test(entry.version) &&
       typeof entry.name === "string" && entry.name.length > 0 && entry.name.length <= 1024 && !/[\u0000-\u001f\u007f/\\]/.test(entry.name) &&
-      ["images", "video"].includes(entry.media_type) && ["prepared", "trashed", "restore_prepared"].includes(entry.state);
+      ["images", "video"].includes(entry.media_type) && ["prepared", "trashed", "restore_prepared", "purge_prepared"].includes(entry.state);
     if (!Array.isArray(value.scopes) || value.scopes.length > 128 || new Set(value.scopes).size !== value.scopes.length ||
         !value.scopes.every(scope => typeof scope === "string" && /^[0-9a-f]{64}$/.test(scope)) ||
         medienPapierkorb.entries.some(entry => !value.scopes.includes(entry.scope)) ||

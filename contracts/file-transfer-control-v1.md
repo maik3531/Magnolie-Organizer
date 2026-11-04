@@ -485,7 +485,7 @@ these changes do not bypass that confirmation or execute such a deletion.
 Current proof is protected intent plus pure planning only: 9 Windows preference
 groups, the shared Windows comparison group and 32 Python comparison tests pass.
 The Linux native local journal/restore below now joins actual local file moves;
-there is still no counterpart propagation, Organizer trash UI or physical phone
+there is still no counterpart propagation or physical phone
 trash proof, so no actual cross-device deletion success is claimed.
 
 ### Linux native local photo/video trash and restore (Refs #330, #335)
@@ -501,8 +501,8 @@ Before any move, `prepared` is committed and synced. The original private file i
 moved with descriptor-relative Linux `renameat2(RENAME_NOREPLACE)` to a random
 hidden trash-payload name in its original parent, preserving the inode and bytes
 on the same filesystem. This is an application-owned recoverable payload, not a
-claim that a freedesktop/Windows/Android system-trash API has run. No unlink or
-purge API exists. Original roots/parents, private regular-file identity and exact
+claim that a freedesktop/Windows/Android system-trash API has run. Local retention
+cleanup is described below; no pathname unlink is used. Original roots/parents, private regular-file identity and exact
 size/hash are checked around I/O; symlinks, edits and collisions HOLD. A raced
 candidate is preserved; any rollback is also no-replace and forbidden after
 native revocation. Parent sync and a committed `trashed` event precede local
@@ -577,8 +577,9 @@ historical store migration or pairing modification is performed by recovery.
 
 The Linux source frontend now projects these external entries into a separate
 “Photos and videos” group inside the existing Settings → Security → Recycle bin
-section. It does **not** copy them into `DATEN.papierkorb`, book saves, normal
-auto-expiry or the bounded Notes trash list. Emptying the other entries cannot
+section. It does **not** copy them into `DATEN.papierkorb`, book saves or the
+bounded Notes trash list. The same retention days apply through native maintenance
+rather than list eviction. Emptying the other entries currently cannot
 purge media; the group explains this and has no unsupported media purge control.
 Restore, pre-move cancellation, explicit refresh and bounded page loading use
 only scope/operation/version tokens. Filenames are displayed as text, and all
@@ -625,6 +626,57 @@ Counterpart trash/restore transport, native Android consent/receipts and Windows
 receiver integration remain open; gates stay OFF. The one Notes-style
 “Löschungen auslassen” choice remains the intended propagation control, not two
 new direction switches, and the existing disabled-trash confirmation is unchanged.
+
+### Shared saved-book retention and bounded native maintenance (Refs #330, #335)
+
+Local media trash follows the saved book's `einstellungen.papierkorb.tage`:
+0 means never automatically release recoverable bytes; 7/30/90/365 use exact
+elapsed days since the authenticated local `trashed` event. Old undated history
+is preserved rather than dated from filesystem/peer timestamps. Restored and
+canceled operations cannot expire or replay a deletion.
+
+Expiry commits `purge_prepared` before moving the verified original payload into
+an owned private same-filesystem capsule. The exact held original inode is
+truncated and synced, never unlinked by pathname. Hash, private ownership,
+single-link identity, destination and current policy are rechecked. Raced
+replacements, edited bytes, hardlinks, unknown capsule contents or withdrawn
+policy HOLD. An authenticated `purged` tombstone and zero-byte completion marker
+remain to prevent reimport/replay; original history quotas are unchanged.
+Interrupted cleanup can resume exactly, or restore the intact original before
+byte release. Both alternatives fit the existing four lifecycle slots.
+
+`NativeMediaRetention` uses only the existing private `phone.db`/`meta` and
+existing storage key, with separate AEAD framing; it never constructs PhoneStore,
+creates keys/pairings or accepts browser-provided retention days. The actual native
+save worker durably pauses cleanup before saving a book. Only successful native
+commit publishes the new days under the exact pause token. Postcommit derived
+failure reports repair pending, not a failed book save, and leaves cleanup paused.
+SQLite's cross-process writer lease serializes a destructive operation against
+policy changes. The authenticated policy also records the saved book's private
+file identity/signature: other replacement/restore/encryption writers cannot
+silently inherit old cached days.
+
+The real manual/video/automatic sync session runs bounded local maintenance before
+new source discovery, and the native trash overview performs the same maintenance
+on its first page. No new scheduler, READ request, socket or background worker is
+created. Each invocation admits at most 16 operations / 400 MiB, retains every
+tombstone and stops on uncertain scope/policy. UI lock/stop/deadline checks remain
+in force. Missing/paused policy is not a default cleanup permission.
+
+Source proofs: 13 retention-core cases, 33 ordinary move/offline regressions,
+13 saved-policy/runtime cases, two operation/byte-bound planner probes, 46 native
+view/save/composition regressions and eight frontend cases. Runtime cases include
+the actual save worker (postcommit failure stays committed), actual automatic
+session ordering, native first-page expiry without phone messages, never/manual,
+failed save, tampering, key withdrawal, changed book and concurrent policy owner.
+
+Still pending: safely adopting already-saved policy without another native save,
+manual media-empty UI/API (including the 0/never case), and shared-retention help
+text once that manual flow is joined. An externally changed book currently HOLDs
+until a new native save publishes matching policy. Counterpart propagation,
+Android native trash receipts, Windows receiver and installed/native acceptance
+remain open. This source checkpoint is not complete media synchronization,
+an installed test, a package delivery or a public release; production gates stay OFF.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

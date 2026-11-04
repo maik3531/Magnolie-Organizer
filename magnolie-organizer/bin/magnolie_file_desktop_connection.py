@@ -2604,6 +2604,10 @@ class NativePhotoDesktopSession:
         syncing=operation in ('sync','videos_sync','automatic')
         if syncing:self._sync_activity(True)
         try:
+            if syncing:
+                from magnolie_media_retention import maintain_native_media_trash
+                maintain_native_media_trash(self.connection._authority.binding.native_directory,
+                    lambda:not self._stop.is_set() and not self.connection._closed.is_set())
             if operation in ('enable','resume_automatic'):
                 if operation=='resume_automatic':
                     before=self.connection._preferences.read();policy=before.policy
