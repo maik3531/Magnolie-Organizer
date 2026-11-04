@@ -255,6 +255,14 @@ runner.Add("Device file protected preferences / authenticated corruption HOLD", 
 runner.Add("Device file protected preferences / strict schema / exhausted revision", DeviceFileStorePreferencesTests.SchemaAsync);
 runner.Add("Device file protected preferences / actual restore fence / retained intent", DeviceFileStorePreferencesTests.RestoreAsync);
 runner.Add("Device file protected preferences / independent concurrent owners", DeviceFileStorePreferencesTests.ConcurrentAsync);
+runner.Add("Device file native directory / conservative local path grammar", DeviceFileNativeDirectoryTests.GrammarAsync);
+if (OperatingSystem.IsWindows())
+{
+    runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
+    runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
+}
+else
+    runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);
 runner.Add("Device file video metadata / negotiated extension / strict counters", DeviceFileVideoSourceMetadataTests.StatusCodecAsync);
 runner.Add("Device file video metadata / actual current channel / no READ", DeviceFileVideoSourceMetadataTests.CurrentChannelAsync);
 runner.Add("Device file video metadata / withdrawal / base photo independence", DeviceFileVideoSourceMetadataTests.WithdrawalAsync);

@@ -428,6 +428,24 @@ restore fence/abort path. These are storage proofs, not Windows installed tests.
 Native destination handles, staging/publication/history and the joined receiver
 are still missing; no UI, automatic worker or production gate is enabled.
 
+### Windows native directory handle foundation (Refs #330, #335, not accepted yet)
+
+`DeviceFileNativeDirectory` opens an existing local-drive directory via
+`NtCreateFile` with `OBJ_DONT_REPARSE` and directory/open-only options. It owns a
+non-inheritable handle, requests no write/delete sharing on that root, rejects a
+non-directory/reparse attribute and reads its volume plus 128-bit file identity.
+It does not create folders, write media, publish files or grant receive rights.
+Unsupported UNC/device/ADS/ambiguous path syntax holds rather than normalizing to
+another historical root. There is no bridge or production caller yet.
+
+The Linux source host passes only path-grammar and non-Windows rejection tests;
+the native interop compiles but has **not** been exercised on Windows. Separate
+Windows-only groups require real handle identity/rename exclusion, missing/file
+rejection and final/ancestor reparse rejection. The latter requires symlink
+creation rights; a missing prerequisite is not counted as a pass. Until those
+proofs and the handle-relative staging/publication integration exist, this is
+unaccepted groundwork, not a safe completed destination receiver.
+
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
 Desktop authority exposes read-only video availability separately from the base
