@@ -23683,6 +23683,7 @@ class Fenster(_FENSTER_BASIS):
                     migrated=migriert, new=ist_neu, **gruppen)
         self._aktuelle_daten = daten
         senden_start = time.monotonic()
+        Fenster._medien_papierkorb_aufbewahrung_laden(self)
         self.antwort("App.init", {"daten": daten, "neu": ist_neu,
                                   "echterErststart": echter_erststart,
                                   "datenPfad": daten_datei(),
@@ -23777,6 +23778,7 @@ class Fenster(_FENSTER_BASIS):
             self, "_organizer_vertraut", lambda: False)()))
         self._aktuelle_daten = daten
         sperre_schreiben(sperre_zuruecksetzen())
+        Fenster._medien_papierkorb_aufbewahrung_laden(self)
         self._erinnerungsprojektion_aktualisieren()
         self.antwort("App.init", {"daten": daten, "neu": False,
                                   "datenPfad": daten_datei(),
@@ -24803,6 +24805,25 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung,
                 "error": _("Photo synchronization could not be started. Check the current phone connection and permissions.")})
         self._telefon_stand_melden()
+
+    def _medien_papierkorb_aufbewahrung_laden(self):
+        """Adopt only the actual existing saved book after native load/unlock."""
+        from magnolie_optional_phone import available
+        if not available("photo_sync") or self._gesperrt or getattr(self,"_ladefehler",""):return
+        import importlib
+        try:
+            module=importlib.import_module("magnolie_media_retention")
+            def current():return not self._gesperrt and not getattr(self,"_ladefehler","")
+            def decode(raw):
+                value=json.loads(raw)
+                if isinstance(value,dict) and value.get("magnolie")==KENNWORT_KENNUNG:
+                    return json.loads(daten_entschluesseln(raw,self._kennwort))
+                return value
+            with module.NativeMediaRetention(os.path.join(daten_verzeichnis(),"telefon")) as policy:
+                policy.adopt_existing_saved(decode,current)
+        except FileNotFoundError:pass # No native root/key/database bootstrap.
+        except Exception as error:
+            debug_notiz("media-trash.retention-adoption-held",error=type(error).__name__)
 
     def _medien_papierkorb_aktion(self, nachricht):
         """Own native telephone root only; no PhoneService/listener bootstrap."""

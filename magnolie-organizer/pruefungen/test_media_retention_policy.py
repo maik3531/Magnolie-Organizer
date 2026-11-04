@@ -23,7 +23,8 @@ def root(trash):
     directory=Path(trash[0][0].store.root)
     book_file=directory.parent/'daten.json'
     if not book_file.exists():
-        book_file.write_bytes(b'fixture native saved book');book_file.chmod(0o600)
+        from magnolie_telefon import canonical
+        book_file.write_bytes(canonical(book(0)));book_file.chmod(0o600)
     return directory
 
 
@@ -111,7 +112,7 @@ def test_actual_native_ui_maintenance_respects_never_then_saved_days_without_net
     directory=str(root(trash));sent=trash[0][2].send.call_count
     ui=NativeMediaTrashUi(directory,lambda:True)
     request=dict(cmd='medien_papierkorb',request_id='retention_fixture_01',action='list')
-    assert ui.handle(request)['total']==1 # No cached setting is not a default grant.
+    assert ui.handle(request)['total']==1 # First adoption reads native saved 0, not a default grant.
     with saved_book_retention(directory,book(0)):pass
     assert ui.handle(request)['total']==1 and payload.read_bytes()==b'hello'
     with saved_book_retention(directory,book(7)):pass
@@ -223,9 +224,56 @@ def test_maintenance_preserves_existing_operation_and_byte_bounds(tmp_path,monke
         def __init__(self,*_args):pass
         def __enter__(self):return self
         def __exit__(self,*_args):pass
+        def adopt_existing_saved(self,**_kwargs):return False
         @contextmanager
         def permit(self,current):yield NativeMediaRetentionPermit(7,lambda:7)
     monkeypatch.setattr(module,'NativeMediaRetention',Policy)
     monkeypatch.setattr(NativeMediaTrashUi,'_scopes',lambda self:('fixture',))
     monkeypatch.setattr(NativeMediaTrashUi,'_owner',owner)
     assert maintain_native_media_trash(str(tmp_path))==expected and len(completed)==expected
+
+
+@pytest.mark.parametrize('days',[0,7])
+def test_initial_automatic_maintenance_adopts_actual_saved_days_without_another_save(trash,days):
+    from magnolie_telefon import canonical
+    owner=trash[4];owner._wall_clock_ms=lambda:1_600_000_000_000
+    snapshot,entry=prepare(trash);original,payload=paths(trash,entry)
+    owner.trash(owner.issue_action(),snapshot,entry.operation,lambda:True)
+    directory=root(trash);(directory.parent/'daten.json').write_bytes(canonical(book(days)))
+    assert maintain_native_media_trash(str(directory))==(1 if days else 0)
+    assert payload.exists()==(days==0) and not original.exists()
+
+
+def test_adoption_never_revives_a_failed_save_pause_and_rejects_raced_book(trash):
+    import json
+    directory=root(trash);path=directory.parent/'daten.json'
+    path.write_text(json.dumps(book(7)))
+    with NativeMediaRetention(str(directory)) as policy:
+        def race(raw):
+            path.write_text(json.dumps(book(0)));return json.loads(raw)
+        with pytest.raises(TransferError,match='lease_changed'):policy.adopt_existing_saved(race)
+        with policy.permit() as permit:assert permit is None
+        token=policy.pause()
+        assert not policy.adopt_existing_saved()
+        with policy.permit() as permit:assert permit is None
+        policy.publish_saved(token,book(0))
+
+
+@pytest.mark.parametrize('encrypted',[False,True])
+def test_actual_native_load_unlock_helper_adopts_saved_book_not_mutable_ui_data(gui_native,monkeypatch,encrypted):
+    import json
+    from types import SimpleNamespace
+    import magnolie_optional_phone
+    from magnolie_telefon import PhoneStore
+    m=gui_native;directory=Path(m.daten_verzeichnis())/'telefon'
+    PhoneStore(str(directory),'Synthetic first adoption')
+    monkeypatch.setattr(magnolie_optional_phone,'available',lambda feature:feature=='photo_sync')
+    password='Synthetic fixture password' if encrypted else ''
+    m.speichere_text(m.daten_text_erzeugen(book(0),password or None))
+    probe=SimpleNamespace(_gesperrt=False,_ladefehler='',_kennwort=password,_aktuelle_daten=book(7))
+    with NativeMediaRetention(str(directory)) as policy:
+        if encrypted:
+            assert not policy.adopt_existing_saved() # No unattended decrypt/default days.
+    m.Fenster._medien_papierkorb_aufbewahrung_laden(probe)
+    with NativeMediaRetention(str(directory)) as policy:
+        with policy.permit() as permit:assert permit.require_current()==0

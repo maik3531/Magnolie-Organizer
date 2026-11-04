@@ -115,6 +115,40 @@ class NativeMediaRetention:
             self._write(dict(format=1,token=token,days=days,book_sha256=sha256(canonical(saved_book)).hexdigest(),
                 book_file=self._book_file()))
 
+    def adopt_existing_saved(self,decode_book=None,current=lambda:True):
+        """First adoption only, from the actual fixed native file, never the UI.
+
+        Do not revive a deliberately paused policy after a failed save, or guess
+        policy for an externally replaced book. Encrypted books require the
+        native unlocked owner's decoder; an unattended first read stays HOLD.
+        """
+        with self._transaction():
+            if self._read() is not None:return False
+            if current() is not True:raise TransferError('media_retention_lease_changed')
+            try:signature=self._book_file()
+            except FileNotFoundError:return False
+            path=Path(self._protection.native_directory).parent/'daten.json'
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
+            with os.fdopen(fd,'rb') as source:
+                if list(self._protection._signature(os.fstat(source.fileno())))!=signature:
+                    raise TransferError('media_retention_book_changed')
+                # Large/uncertain first adoption is held, never treated as empty.
+                if signature[2]>64*1024*1024:raise TransferError('media_retention_book_read_bound')
+                raw=source.read(64*1024*1024+1)
+                if len(raw)!=signature[2] or self._book_file()!=signature:
+                    raise TransferError('media_retention_book_changed')
+            saved=decode_book(raw.decode('utf-8')) if decode_book is not None else strict_json(raw)
+            if type(saved) is not dict:raise TransferError('media_retention_saved_setting_required')
+            settings=saved.get('einstellungen',{})
+            trash=settings.get('papierkorb',{}) if type(settings) is dict else {}
+            days=trash.get('tage') if type(trash) is dict else None
+            if type(days) is not int or days not in (0,7,30,90,365):return False
+            if current() is not True or self._book_file()!=signature:
+                raise TransferError('media_retention_lease_changed')
+            self._write(dict(format=1,token=secrets.token_hex(32),days=days,
+                book_sha256=sha256(canonical(saved)).hexdigest(),book_file=signature))
+            return True
+
     @contextmanager
     def permit(self,current=lambda:True):
         # One purge at a time under SQLite's cross-process writer lease. A save
@@ -174,6 +208,7 @@ def maintain_native_media_trash(native_directory,current=lambda:True):
     try:policy=NativeMediaRetention(native_directory)
     except FileNotFoundError:return 0
     with policy:
+        policy.adopt_existing_saved(current=view._current)
         for scope in scopes:
             with view._owner(scope) as owner:
                 snapshot,entries=owner.read()

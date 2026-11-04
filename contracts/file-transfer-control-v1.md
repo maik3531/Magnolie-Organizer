@@ -663,15 +663,27 @@ created. Each invocation admits at most 16 operations / 400 MiB, retains every
 tombstone and stops on uncertain scope/policy. UI lock/stop/deadline checks remain
 in force. Missing/paused policy is not a default cleanup permission.
 
+First adoption reads the actual fixed private `daten.json`, not the in-memory UI
+book or independently supplied days. An unattended automatic run can adopt a
+plain saved book. The native startup/unlock path supplies the existing native
+decoder for encrypted books; no background password prompt or key creation is
+introduced. A changed file during adoption HOLDs. Already-paused policy is never
+revived by first adoption, and already-present policy is not silently reassigned
+to an externally changed book. First adoption is bounded to a 64 MiB book read;
+larger books HOLD until an ordinary native save publishes policy without that read.
+
 Source proofs: 13 retention-core cases, 33 ordinary move/offline regressions,
-13 saved-policy/runtime cases, two operation/byte-bound planner probes, 46 native
-view/save/composition regressions and eight frontend cases. Runtime cases include
+20 saved-policy/runtime/bound/adoption cases, 46 native view/save/composition
+regressions and eight frontend cases. The current 20+46 run passes all 66 cases.
+Runtime cases include
 the actual save worker (postcommit failure stays committed), actual automatic
 session ordering, native first-page expiry without phone messages, never/manual,
-failed save, tampering, key withdrawal, changed book and concurrent policy owner.
+failed save, tampering, key withdrawal, changed book and concurrent policy owner,
+initial automatic 0/7-day adoption without another save, a raced book during
+adoption, preserving a paused policy and actual native load/unlock helper calls
+for both plain and encrypted saved books despite conflicting in-memory UI days.
 
-Still pending: safely adopting already-saved policy without another native save,
-manual media-empty UI/API (including the 0/never case), and shared-retention help
+Still pending: manual media-empty UI/API (including the 0/never case), and shared-retention help
 text once that manual flow is joined. An externally changed book currently HOLDs
 until a new native save publishes matching policy. Counterpart propagation,
 Android native trash receipts, Windows receiver and installed/native acceptance
