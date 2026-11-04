@@ -30595,7 +30595,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
       ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
     root.append(el("p", "einst-hinweis", _("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.")));
-    if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("The media recycle bin could not be updated. Existing files were kept.")));
+    // A reply can be lost after native byte release. Never promise that files
+    // were kept merely because a final completion could not be verified.
+    if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
     const refresh = knopf(_("Refresh"), "klein", () => medienPapierkorbAnfordern());
     refresh.disabled = !!medienPapierkorb.pending; refresh.id = "medien-papierkorb-aktualisieren"; root.append(refresh);
     const list = el("div", "papierkorb-liste");

@@ -75,6 +75,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.ok(purge(), "Only a verified purged completion may remove the media row");
       purge().click(); d.querySelector("#dialog-ja").click(); await tick(); answer({ ok: false });
       assert.ok(purge(), "Failed permanent deletion must retain the media row");
+      assert.ok(!root().textContent.includes(messages[locale][2]), "An uncertain reply after byte release must not promise that files were kept");
       purge().click(); d.querySelector("#dialog-ja").click(); await tick();
       answer({ completed: { scope: row().scope, operation: row().operation, state: "purged" } });
       assert.equal(purge(), null); answer({ entries: [], total: 0, next_cursor: null });
