@@ -233,6 +233,13 @@ runner.Add("Device file native transport / uncertain write / scope withdrawal", 
 runner.Add("Device file native transport / OFF handlers / reserved data isolation", DeviceFileConnectionTransportTests.ReservedAsync);
 runner.Add("Device file native transport / strict envelope / no expired grace", DeviceFileConnectionTransportTests.EnvelopeAsync);
 runner.Add("Device file native transport / lost protected identity / no owner revival", DeviceFileConnectionTransportTests.LostIdentityAsync);
+runner.Add("Device file native source status / actual secure output / no READ", DeviceFileConnectionSourcesTests.StatusAsync);
+runner.Add("Device file native source status / correlation / schema / withdrawal", DeviceFileConnectionSourcesTests.RejectAsync);
+runner.Add("Device file native source status / cancellation / no old reply", DeviceFileConnectionSourcesTests.CancelAsync);
+runner.Add("Device file native source status / close / exact cleanup", DeviceFileConnectionSourcesTests.CloseAsync);
+runner.Add("Device file native source status / actual bounded timeout", DeviceFileConnectionSourcesTests.TimeoutAsync);
+runner.Add("Device file native source status / failed secure output / metadata change", DeviceFileConnectionSourcesTests.OutputFailureAsync);
+runner.Add("Device file native source status / prompt metadata and session withdrawal", DeviceFileConnectionSourcesTests.PromptWithdrawalAsync);
 runner.Add("Device file metadata commands / withdrawal / monotonic TTL / exact cleanup", DeviceFileMetadataCommandTests.WithdrawalAsync);
 runner.Add("Device file channel metadata / successful secure ACK only", DeviceFileConnectionMetadataTests.SecureAckAsync);
 runner.Add("Device file channel metadata / withdrawal / superseded replay / replacement", DeviceFileConnectionMetadataTests.WithdrawalAsync);

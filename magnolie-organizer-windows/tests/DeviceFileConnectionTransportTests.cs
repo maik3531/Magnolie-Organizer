@@ -7,7 +7,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileConnectionTransportTests
 {
-    private static IReadOnlyList<JsonObject> OpenFrames(byte[] wire)
+    internal static IReadOnlyList<JsonObject> OpenFrames(byte[] wire)
     {
         var result = new List<JsonObject>();
         for (var offset = 0; offset < wire.Length;)
@@ -162,5 +162,26 @@ internal static class DeviceFileConnectionTransportTests
         }
         TestAssert.Throws<InvalidDataException>(() => DeviceFileControlEnvelope.Validate(valid, now + 60000), "Expired controls received legacy grace.");
         return Task.CompletedTask;
+    }
+
+    internal static async Task<NativeFileControlSession> OpenOffSourceAsync(DeviceFileConnectionMetadataTests.Fixture fixture)
+    {
+        await fixture.SeedAsync(); Identity(fixture);
+        var identity = fixture.Store.ReadFileIdentity();
+        var local = new NativeLocalFileGrant(new(7, new string('b', 64), false, true), new object(), true);
+        var owner = fixture.Connection.OpenNativeFileControls(() => local);
+        var phoneIdentity = new NativeFileControlIdentity(fixture.Peer.Id, Convert.ToHexString(SHA256.HashData(fixture.Peer.PublicKey)).ToLowerInvariant());
+        var phoneLocal = new NativeLocalFileGrant(new(3, new string('a', 64)), new object(), true);
+        var phonePeer = new NativeFileControlPeer(identity.DeviceId, identity.IdentitySha256, new object(), true, true, true, true, true, fixture.Peer.FilePairingEpoch);
+        using var phone = new NativeFileControlSession(phoneIdentity, () => phonePeer, () => phoneLocal);
+        fixture.Stream.SetLength(0); fixture.Stream.Position = 0;
+        await fixture.Connection.SendNativeFileControlsAsync();
+        phone.ObserveRemote(DeviceFileControlEnvelope.Validate(OpenFrames(fixture.Stream.ToArray()).Single(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), phonePeer);
+        var packet = phone.Packet(); phone.MarkSent(packet);
+        fixture.Stream.SetLength(0); fixture.Stream.Position = 0;
+        await fixture.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(packet, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        TestAssert.That(owner.Binding(new string('c', 64)) is null, "Source SEND-OFF acquired a data binding.");
+        fixture.Stream.SetLength(0); fixture.Stream.Position = 0;
+        return owner;
     }
 }

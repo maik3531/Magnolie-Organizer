@@ -99,6 +99,11 @@ internal sealed partial class TelefonConnection
 
     private async Task ReceiveNativeFileControlAsync(JsonObject message)
     {
+        if (message["kind"]?.GetValue<string>() == DeviceFileSources.ResultKind)
+        {
+            await ReceiveNativeSourceStatusAsync(message);
+            return;
+        }
         // Reserved but unjoined data cannot enter the generic inbox/outbox.
         if (message["kind"]?.GetValue<string>() != DeviceFileControl.Kind)
         {
@@ -114,6 +119,7 @@ internal sealed partial class TelefonConnection
             lock (fileRouteGate) identity = fileLocalIdentity ?? throw DeviceFileControl.Error("file_control_native_owner_changed");
             var current = CurrentFileControlPeer(identity) ?? throw DeviceFileControl.Error("file_control_native_scope_changed");
             owner.ObserveRemote(packet, current);
+            CheckNativeSourceStatusControl(owner);
             await SendNativeFileControlsCoreAsync(owner);
         }
         catch { CloseNativeFileRoute(); throw; }
@@ -128,6 +134,7 @@ internal sealed partial class TelefonConnection
             fileRouteFaulted = true; owner = fileControls;
             fileControls = null; fileLocalIdentity = null;
         }
+        CloseNativeSourceStatus();
         owner?.Dispose();
     }
 }

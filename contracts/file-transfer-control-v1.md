@@ -348,6 +348,32 @@ destination. The runtime still needs its protected preference/receiver owner,
 source-command/session, staging/publication/history and UI integration before
 actual photo/video availability or native installed acceptance can be claimed.
 
+### Windows bounded native source status (Refs #330, #335, no READ)
+
+`ReadNativeFileSourceStatusAsync` now sends an actual encrypted, correlated
+`status` command using the current native receiver-command ticket. Admission
+requires the dedicated bilateral echo and native local receive scope, but source
+SEND may be OFF. This API has no operation selector: it cannot configure consent,
+request Android READ or start a source job. The native result remains read-only
+metadata and does not enable a worker, change grants or create a Saved receipt.
+
+Exactly one command owns its request ID, captured control witness and bounded
+monotonic ticket. Both output and reply check current scope; a result is accepted
+only after confirmed secure output and exact request/operation/schema correlation.
+The receive lane is released while awaiting the reply. Cancellation, native route
+closure, actual timeout and observed metadata/control-session withdrawal retire
+only the owned pending command and allow its exact ticket cleanup after disposal.
+Late or unsolicited results cannot fall through to generic storage or revive it.
+There is no ordinary outbox retry substituting for an original native command.
+
+Five initial native-source groups pass for secure SEND-OFF status, correlation,
+cancellation, closure and a real 60-second timeout; two further groups cover
+uncertain secure output and prompt metadata/control-session withdrawal. Tests use
+the actual secure writer and reply dispatcher, with synthetic native local grants.
+Protected preferences/receiver admission in production, other source commands and
+the Windows typed video codec are still pending. Unsupported video extensions or
+data are held, not parsed as image authority or presented as ready. Gates stay OFF.
+
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
 Desktop authority exposes read-only video availability separately from the base
