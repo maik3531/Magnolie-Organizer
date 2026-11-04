@@ -1,5 +1,32 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Independent protected desktop video scope metadata (Refs #330, partial join)
+
+The desktop preference owner now has a separate explicit native video-scope CAS.
+It requires an existing associated photo policy and an exact typed native video
+destination choice for initial enablement. The protected metadata revision may
+advance while photo file-grant revision/epoch, photo destination/token, mapping
+and catalog witnesses, scheduling and historical receipts remain unchanged.
+Choosing a video destination is neither an OS READ grant nor a worker start.
+
+The video token must differ from the photo token, including when the user
+explicitly chooses the same directory for both. Re-selecting the original video
+directory retains its original token and can be idempotent only with a current
+native action. A different directory or replacement inode requires separate
+historical reassociation; this API cannot migrate/adopt an old target. Video OFF
+retains original metadata and remains possible with a missing video folder or
+disabled base photo policy. Video enablement verifies the actual directory and
+cannot re-enable missing/replaced roots from history alone.
+
+Source-host preference cases cover exact photo-grant preservation, protected
+CAS/readback/reopen, stale/replayed/expired actions, wrong choice/authority types,
+token alias rejection, missing/replaced roots and uncertain writes. A real saved
+photo job case verifies original protected mapping receipt, mapping/catalog
+state, native binding and user-edited file bytes/inode after video metadata
+change, without a new control packet or source request. This is not yet the
+desktop video source codec/session/worker/UI join; video controls remain absent
+and production readiness remains OFF.
+
 ### Typed authenticated video runs and original-job continuation (Refs #330)
 
 The native authenticated source-command lane now binds ordinary/video-batch,

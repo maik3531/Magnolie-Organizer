@@ -100,6 +100,8 @@ class PhotoPreferences:
                 or value['enabled'] and destination is None):
             raise TransferError('photo_preferences_invalid_destination')
         videos=VideoPreferences.parse(value['videos']) if 'videos' in value else None
+        if videos is not None and videos.destination_token is not None and videos.destination_token==value['destination_token']:
+            raise TransferError('video_preferences_distinct_destination_token_required')
         return cls(value['revision'],value['permission_epoch'],value['pairing_epoch'],value['enabled'],value['mode'],
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
@@ -440,10 +442,23 @@ class ProtectedPhotoPreferences:
     def set_capture_layout(self,action,expected,*,separate,historical_choice):
         return self._set_behavior(action,expected,dict(separate_own_recordings=separate),historical_choice=historical_choice)
 
-    def _set_behavior(self,action,expected,changes,*,historical_choice=None):
+    def set_video_scope(self,action,expected,*,enabled,destination_choice=None):
+        """Separate explicit native video consent; photo grants/history stay exact.
+
+        Re-selecting the same original directory retains its video token. Moving
+        an existing video destination needs a separate historical reassociation,
+        never a silent metadata replacement or migration.
+        """
+        return self._set_behavior(action,expected,{},video_settings=(enabled,destination_choice))
+
+    def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
-        if set(changes) in ({'separate_animations'},{'separate_own_recordings'}):
+        if video_settings is not None:
+            if (changes or type(video_settings) is not tuple or len(video_settings)!=2 or type(video_settings[0]) is not bool
+                    or video_settings[1] is not None and type(video_settings[1]) is not NativeVideoDestinationChoice):
+                raise TransferError('video_preferences_invalid_settings')
+        elif set(changes) in ({'separate_animations'},{'separate_own_recordings'}):
             if type(next(iter(changes.values()))) is not bool or type(historical_choice) is not str or historical_choice!='keep_existing':
                 raise TransferError('photo_preferences_historical_layout_choice_required')
         elif set(changes)!={'mode'} or changes['mode'] not in ('manual','automatic'):
@@ -455,8 +470,31 @@ class ProtectedPhotoPreferences:
             with self._locked():
                 current=self._snapshot();policy=current.policy
                 if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
-                if policy is None or not current.associated or not policy.enabled:
+                if (policy is None or not current.associated
+                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False)):
                     raise TransferError('photo_preferences_authority_changed')
+                video_choice=None
+                if video_settings is not None:
+                    enabled,video_choice=video_settings
+                    old=policy.videos or VideoPreferences()
+                    destination,token=old.destination,old.destination_token
+                    if video_choice is not None:
+                        if (type(video_choice.owner) is not NativeVideoDestinationController
+                                or video_choice.owner._authority is not self._authority):
+                            raise TransferError('video_preferences_foreign_destination_choice')
+                        selected=video_choice.owner.verify_choice(video_choice)
+                        if destination is not None and selected!=destination:
+                            raise TransferError('video_preferences_destination_reassociation_required')
+                        if destination is None:destination,token=selected,video_choice.destination_token
+                    if enabled:
+                        if destination is None:raise TransferError('video_preferences_destination_required')
+                        destination.verify()
+                    selected=VideoPreferences.parse(VideoPreferences(enabled,destination,token).wire())
+                    if token is not None and token==policy.destination_token:
+                        raise TransferError('video_preferences_distinct_destination_token_required')
+                    # Explicit OFF with no previous scope is inert: do not create
+                    # defaults, a video root or a fresh grant on mere inspection.
+                    changes={'videos':selected} if policy.videos is not None or enabled or destination is not None else {}
                 if all(getattr(policy,key)==value for key,value in changes.items()):
                     action.validate(self);self._peer();return current
                 revision=policy.revision+1
@@ -474,6 +512,9 @@ class ProtectedPhotoPreferences:
                     saved=self._snapshot();action.validate(self)
                     if saved.policy!=changed or saved.version!=sha256(blob).hexdigest():
                         raise TransferError('photo_preferences_readback_failed')
+                    if video_choice is not None:video_choice.owner.verify_choice(video_choice);action.validate(self)
+                    if video_settings is not None and video_settings[0]:saved.policy.videos.destination.verify()
+                    if video_settings is not None:self._peer();action.validate(self)
                     return saved
                 except BaseException:
                     if self._db.in_transaction:self._db.rollback()
