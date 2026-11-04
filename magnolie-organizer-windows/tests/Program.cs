@@ -247,6 +247,12 @@ runner.Add("Device file channel metadata / pairing changes during secure ACK", D
 runner.Add("Device file channel metadata / protected changes cannot revive receipts", DeviceFileConnectionMetadataTests.DurableChangesAsync);
 runner.Add("Device file channel metadata / withdrawal ACK failure / no historical reconsent", DeviceFileConnectionMetadataTests.FailedWithdrawalAckAsync);
 runner.Add("Device file source settings / strict metadata codecs", DeviceFileSourcesTests.RunAsync);
+runner.Add("Device file video metadata / configure golden / no image-kind coupling", DeviceFileVideoSourceMetadataTests.CodecAsync);
+runner.Add("Device file video metadata / negotiated extension / strict counters", DeviceFileVideoSourceMetadataTests.StatusCodecAsync);
+runner.Add("Device file video metadata / actual current channel / no READ", DeviceFileVideoSourceMetadataTests.CurrentChannelAsync);
+runner.Add("Device file video metadata / withdrawal / base photo independence", DeviceFileVideoSourceMetadataTests.WithdrawalAsync);
+runner.Add("Device file video metadata / scoped commands / shared golden vectors", DeviceFileVideoSourceMetadataTests.ScopedCommandsAsync);
+runner.Add("Device file video metadata / typed results / no image fallback", DeviceFileVideoSourceMetadataTests.ScopedResultsAsync);
 runner.Add("Device file acceptance / exact offer metadata", DeviceFileAcceptanceEnvelopeTests.RunAsync);
 runner.Add("Device file chunks / exact accepted source bytes", DeviceFileChunkEnvelopeTests.RunAsync);
 runner.Add("Device file saved confirmation / historical remote metadata", DeviceFileSavedEnvelopeTests.RunAsync);

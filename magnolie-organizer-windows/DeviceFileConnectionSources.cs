@@ -5,12 +5,13 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonConnection
 {
     private sealed class NativeSourceStatusPending(NativeFileControlSession owner, NativeReceiverCommandTicket ticket,
-        JsonObject message, (string SessionEpoch, long Sequence) witness)
+        JsonObject message, (string SessionEpoch, long Sequence) witness, bool expectVideos)
     {
         internal readonly NativeFileControlSession Owner = owner;
         internal readonly NativeReceiverCommandTicket Ticket = ticket;
         internal readonly JsonObject Message = message;
         internal readonly (string SessionEpoch, long Sequence) Witness = witness;
+        internal readonly bool ExpectVideos = expectVideos;
         internal readonly TaskCompletionSource<DeviceFileSourceStatus> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool OutputConfirmed;
     }
@@ -26,7 +27,7 @@ internal sealed partial class TelefonConnection
         NativeSourceStatusPending? pending = null;
         try
         {
-            pending = new(owner, ticket, DeviceFileSources.CreateRequest("status", Now()), owner.ReceiverCommandWitness(ticket));
+            pending = new(owner, ticket, DeviceFileSources.CreateRequest("status", Now()), owner.ReceiverCommandWitness(ticket), FileMetadataReady(videos: true));
             lock (fileRouteGate)
             {
                 if (fileRouteFaulted || !ReferenceEquals(fileControls, owner) || nativeSourceStatus is not null)
@@ -57,6 +58,7 @@ internal sealed partial class TelefonConnection
     private void RequireNativeSourceStatus(NativeSourceStatusPending pending)
     {
         RequireNativeFileControls(pending.Owner);
+        if (pending.ExpectVideos && !FileMetadataReady(videos: true)) throw DeviceFileControl.Error("file_sources_native_video_metadata_changed");
         lock (fileRouteGate)
             if (!ReferenceEquals(nativeSourceStatus, pending)) throw DeviceFileControl.Error("file_sources_native_command_changed");
         if (!pending.Owner.ReceiverCommandCurrent(pending.Ticket))
@@ -108,7 +110,7 @@ internal sealed partial class TelefonConnection
                 if (!pending.OutputConfirmed) throw DeviceFileControl.Error("file_sources_native_output_unconfirmed");
             }
             RequireNativeSourceStatus(pending);
-            var status = DeviceFileSources.ParseResult(message, pending.Message["message_id"]!.GetValue<string>(), "status", Now());
+            var status = DeviceFileSources.ParseResult(message, pending.Message["message_id"]!.GetValue<string>(), "status", Now(), pending.ExpectVideos);
             RequireNativeSourceStatus(pending);
             if (!pending.Completion.TrySetResult(status)) throw DeviceFileControl.Error("file_sources_native_duplicate_result");
         }

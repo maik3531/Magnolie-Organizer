@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileConnectionSourcesTests
 {
-    private static JsonObject Request(DeviceFileConnectionMetadataTests.Fixture fixture)
+    internal static JsonObject Request(DeviceFileConnectionMetadataTests.Fixture fixture)
     {
         var message = DeviceFileConnectionTransportTests.OpenFrames(fixture.Stream.ToArray()).Single();
         var parsed = DeviceFileSources.ParseRequest(message, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -14,7 +14,7 @@ internal static class DeviceFileConnectionSourcesTests
             "Status command enabled policy or started source I/O.");
         return message;
     }
-    private static JsonObject Reply(JsonObject request)
+    internal static JsonObject Reply(JsonObject request)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         return new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
@@ -23,7 +23,7 @@ internal static class DeviceFileConnectionSourcesTests
                 ["version"] = new string('d', 64), ["revision"] = 1, ["enabled"] = false, ["associated"] = false,
                 ["repair_pending"] = false, ["kinds"] = new JsonArray() } };
     }
-    private static async Task FailsAsync<T>(Task task, string message) where T : Exception
+    internal static async Task FailsAsync<T>(Task task, string message) where T : Exception
     {
         try { await task; }
         catch (T) { return; }

@@ -6,14 +6,19 @@ namespace MagnolieOrganizer.Windows;
 // Pure source settings metadata, never native grants, media READ or workers.
 internal sealed record DeviceFileSourceRequest(string RequestId, string Operation, string? ExpectedVersion, bool? Enabled,
     IReadOnlyList<string> Kinds, string? CatalogId = null, int After = 0,
-    string? AlbumId = null, bool? DesktopChoice = null, string? RunId = null);
+    string? AlbumId = null, bool? DesktopChoice = null, string? RunId = null, string MediaType = "images",
+    string? OriginalJobId = null, string? OriginalJobVersion = null);
 internal sealed record DeviceFileSourceStatus(string RequestId, string Operation, string Version, long Revision,
-    bool Enabled, bool Associated, bool RepairPending, IReadOnlyList<string> Kinds);
+    bool Enabled, bool Associated, bool RepairPending, IReadOnlyList<string> Kinds, DeviceFileSourceVideoStatus? Videos = null);
+internal sealed record DeviceFileSourceVideoStatus(bool Enabled, long Revision)
+{
+    internal bool GrantsReadAuthority => false;
+}
 internal sealed record DeviceFileAlbumMetadata(string AlbumId, string Kind, string DisplayName, long VisibleImages, bool NeedsChoice);
-internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? NextCursor, string Coverage, IReadOnlyList<DeviceFileAlbumMetadata> Albums);
-internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State);
+internal sealed record DeviceFileCatalogPage(string CatalogId, int After, int? NextCursor, string Coverage, IReadOnlyList<DeviceFileAlbumMetadata> Albums, string MediaType = "images");
+internal sealed record DeviceFilePermissionResult(string RequestId, string Version, string State, string MediaType = "images");
 internal sealed record DeviceFileRunResult(string RequestId, string Operation, string Version, string RunId, string State, bool SourceIoEnded,
-    string? OfferId = null, string? ManifestSha256 = null);
+    string? OfferId = null, string? ManifestSha256 = null, string MediaType = "images");
 internal sealed record DeviceFileMediaEntry(string FileId, string PhotoId, string MediaKind);
 internal sealed record DeviceFileMediaPage(string RequestId, string Version, string RunId, string ManifestSha256, string SourceEpoch,
     string MediaType, bool InsertionWitness, int After, int? NextCursor, int TotalFiles, IReadOnlyList<DeviceFileMediaEntry> Entries)
@@ -62,9 +67,40 @@ internal static class DeviceFileSources
             Number(body, "format") != 1) throw Error();
         return body;
     }
+    private static bool ScopedOperation(string operation) => operation is "discover" or "catalog_page" or "request_read" or
+        "run" or "run_status" or "cancel_run" or "offer_run" or "media_page" or "resume_run";
+    private static JsonObject ScopedBody(JsonObject message, string kind, long now, string expectedMediaType)
+    {
+        if (expectedMediaType is not ("images" or "video")) throw Error();
+        var body = Body(message, kind, now);
+        if (expectedMediaType == "images")
+        {
+            if (body.ContainsKey("media_type")) throw Error();
+            return body;
+        }
+        if (Text(body, "media_type") != "video") throw Error();
+        var copy = body.DeepClone().AsObject(); copy.Remove("media_type");
+        return copy;
+    }
     internal static DeviceFileSourceRequest ParseRequest(JsonObject message, long now)
     {
         var body = Body(message, RequestKind, now); var operation = Text(body, "operation");
+        if (body.ContainsKey("media_type"))
+        {
+            if (!ScopedOperation(operation) || Text(body, "media_type") != "video") throw Error();
+            var unscoped = message.DeepClone().AsObject(); unscoped["body"]!.AsObject().Remove("media_type");
+            return ParseRequest(unscoped, now) with { MediaType = "video" };
+        }
+        if (operation == "resume_run")
+        {
+            Exact(body, "format", "operation", "expected_version", "catalog_id", "album_id", "desktop_choice", "original_job_id", "original_job_version");
+            var expected = Text(body, "expected_version"); var catalog = Text(body, "catalog_id"); var album = Text(body, "album_id");
+            var choice = Flag(body, "desktop_choice"); var original = Text(body, "original_job_id"); var originalVersion = Text(body, "original_job_version");
+            if (!DeviceFileControl.Hash(expected) || !TelefonProtocolContract.IsUuidV4(catalog) || !TelefonProtocolContract.IsUuidV4(album) ||
+                !Regex.IsMatch(original, "\\A[0-9a-f]{32}\\z", RegexOptions.CultureInvariant) || !DeviceFileControl.Hash(originalVersion)) throw Error();
+            return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), catalog,
+                AlbumId: album, DesktopChoice: choice, OriginalJobId: original, OriginalJobVersion: originalVersion);
+        }
         if (operation == "media_page")
         {
             Exact(body, "format", "operation", "expected_version", "run_id", "after");
@@ -106,6 +142,13 @@ internal static class DeviceFileSources
             }
             return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), catalog, (int)after);
         }
+        if (operation == "configure_videos")
+        {
+            Exact(body, "format", "operation", "expected_version", "enabled");
+            var expected = Text(body, "expected_version"); var videoEnabled = Flag(body, "enabled");
+            if (!DeviceFileControl.Hash(expected)) throw Error();
+            return new(Text(message, "message_id"), operation, expected, videoEnabled, Array.Empty<string>());
+        }
         Exact(body, "format", "operation", "expected_version", "enabled", "kinds");
         var version = Text(body, "expected_version"); var enabled = Flag(body, "enabled"); var kinds = Selection(body["kinds"]);
         if (operation != "configure" || !DeviceFileControl.Hash(version) || enabled && kinds.Count == 0) throw Error();
@@ -113,12 +156,21 @@ internal static class DeviceFileSources
     }
     internal static JsonObject CreateRequest(string operation, long now, string? expectedVersion = null, bool? enabled = null,
         IEnumerable<string>? kinds = null, string? messageId = null, string? catalogId = null, int? after = null,
-        string? albumId = null, bool? desktopChoice = null, string? runId = null)
+        string? albumId = null, bool? desktopChoice = null, string? runId = null, string mediaType = "images",
+        string? originalJobId = null, string? originalJobVersion = null)
     {
         if (now is < 0 or > 253402300739999) throw Error();
+        if (mediaType is not ("images" or "video") || mediaType == "video" && !ScopedOperation(operation)) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
-        if (operation is not ("run" or "run_status" or "cancel_run" or "offer_run" or "media_page") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
-        if (operation == "media_page")
+        if (operation is not ("run" or "run_status" or "cancel_run" or "offer_run" or "media_page" or "resume_run") && (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
+        if (operation != "resume_run" && (originalJobId is not null || originalJobVersion is not null)) throw Error();
+        if (operation == "resume_run")
+        {
+            if (enabled is not null || kinds is not null || after is not null || runId is not null) throw Error();
+            body["expected_version"] = expectedVersion; body["catalog_id"] = catalogId; body["album_id"] = albumId;
+            body["desktop_choice"] = desktopChoice; body["original_job_id"] = originalJobId; body["original_job_version"] = originalJobVersion;
+        }
+        else if (operation == "media_page")
         {
             if (enabled is not null || kinds is not null || catalogId is not null || albumId is not null || desktopChoice is not null) throw Error();
             body["expected_version"] = expectedVersion; body["run_id"] = runId; body["after"] = after;
@@ -144,6 +196,11 @@ internal static class DeviceFileSources
             body["expected_version"] = expectedVersion;
             if (operation == "catalog_page") { body["catalog_id"] = catalogId; body["after"] = after; }
         }
+        else if (operation == "configure_videos")
+        {
+            if (catalogId is not null || after is not null || kinds is not null && kinds.Any()) throw Error();
+            body["expected_version"] = expectedVersion; body["enabled"] = enabled;
+        }
         else if (operation == "configure")
         {
             if (catalogId is not null || after is not null) throw Error();
@@ -151,27 +208,38 @@ internal static class DeviceFileSources
             body["kinds"] = new JsonArray((kinds ?? []).Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
         }
         else if (expectedVersion is not null || enabled is not null || kinds is not null || catalogId is not null || after is not null) throw Error();
+        if (mediaType == "video") body["media_type"] = "video";
         var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = messageId ?? Guid.NewGuid().ToString(),
             ["kind"] = RequestKind, ["created_ms"] = now, ["expires_ms"] = now + DeviceFileControl.MaximumTtlMs, ["body"] = body };
         ParseRequest(message, now); return message;
     }
-    internal static DeviceFileSourceStatus ParseResult(JsonObject message, string expectedRequestId, string expectedOperation, long now)
+    internal static DeviceFileSourceStatus ParseResult(JsonObject message, string expectedRequestId, string expectedOperation, long now, bool expectVideos = false)
     {
         var body = Body(message, ResultKind, now);
-        Exact(body, "format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds");
+        DeviceFileSourceVideoStatus? videos = null;
+        if (body.ContainsKey("videos"))
+        {
+            if (!expectVideos || body["videos"] is not JsonObject video) throw Error();
+            Exact(video, "enabled", "revision");
+            var enabledVideo = Flag(video, "enabled"); var revisionVideo = Number(video, "revision");
+            if (revisionVideo is < 0 or > DeviceFileControl.MaximumRevision || revisionVideo == 0 && enabledVideo) throw Error();
+            videos = new(enabledVideo, revisionVideo);
+        }
+        Exact(body, videos is null ? ["format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds"] :
+            ["format", "request_id", "operation", "version", "revision", "enabled", "associated", "repair_pending", "kinds", "videos"]);
         var id = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
         var revision = Number(body, "revision"); var enabled = Flag(body, "enabled"); var associated = Flag(body, "associated");
         var repair = Flag(body, "repair_pending"); var kinds = Selection(body["kinds"]);
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || operation != expectedOperation ||
-            operation is not ("status" or "configure") || !DeviceFileControl.Hash(version) || revision is < 0 or > DeviceFileControl.MaximumRevision ||
+            operation is not ("status" or "configure" or "configure_videos") || !DeviceFileControl.Hash(version) || revision is < 0 or > DeviceFileControl.MaximumRevision ||
             enabled && kinds.Count == 0 || revision == 0 && (enabled || associated || kinds.Count != 0)) throw Error();
-        return new(id, operation, version, revision, enabled, associated, repair, kinds);
+        return new(id, operation, version, revision, enabled, associated, repair, kinds, videos);
     }
 
     internal static DeviceFileCatalogPage ParseCatalog(JsonObject message, string expectedRequestId, string expectedOperation,
-        string expectedVersion, long now, string? expectedCatalogId = null, int expectedAfter = 0)
+        string expectedVersion, long now, string? expectedCatalogId = null, int expectedAfter = 0, string expectedMediaType = "images")
     {
-        var body = Body(message, CatalogKind, now);
+        var body = ScopedBody(message, CatalogKind, now, expectedMediaType);
         Exact(body, "format", "request_id", "operation", "version", "page");
         var requestId = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
         if (!TelefonProtocolContract.IsUuidV4(requestId) || requestId != expectedRequestId || operation != expectedOperation ||
@@ -180,7 +248,7 @@ internal static class DeviceFileSources
         Exact(page, "format", "catalog_id", "after", "next_cursor", "coverage", "proves_deletion", "albums");
         var catalogId = Text(page, "catalog_id"); var after = Number(page, "after"); var coverage = Text(page, "coverage");
         if (Number(page, "format") != 1 || !TelefonProtocolContract.IsUuidV4(catalogId) || after is < 0 or > 128 || after != expectedAfter ||
-            Flag(page, "proves_deletion") || coverage is not ("none" or "selected_only" or "full_images") || page["albums"] is not JsonArray albums ||
+            Flag(page, "proves_deletion") || !(coverage is "none" or "selected_only" || coverage == (expectedMediaType == "video" ? "full_videos" : "full_images")) || page["albums"] is not JsonArray albums ||
             albums.Count + after > 128 || coverage == "none" && albums.Count != 0 ||
             operation == "catalog_page" && (!TelefonProtocolContract.IsUuidV4(expectedCatalogId) || catalogId != expectedCatalogId) ||
             operation == "discover" && (expectedCatalogId is not null || after != 0)) throw Error();
@@ -202,23 +270,23 @@ internal static class DeviceFileSources
                 label.Length is < 1 or > 256 || label.Any(character => character < 32 || character == 127) || count is < 0 or > 50000) throw Error();
             result.Add(new(id, kind, label, count, choice));
         }
-        return new(catalogId, (int)after, next, coverage, result.AsReadOnly());
+        return new(catalogId, (int)after, next, coverage, result.AsReadOnly(), expectedMediaType);
     }
 
-    internal static DeviceFilePermissionResult ParsePermissionResult(JsonObject message, string expectedRequestId, string expectedVersion, long now)
+    internal static DeviceFilePermissionResult ParsePermissionResult(JsonObject message, string expectedRequestId, string expectedVersion, long now, string expectedMediaType = "images")
     {
-        var body = Body(message, PermissionResultKind, now);
+        var body = ScopedBody(message, PermissionResultKind, now, expectedMediaType);
         Exact(body, "format", "request_id", "operation", "version", "state");
         var id = Text(body, "request_id"); var version = Text(body, "version"); var state = Text(body, "state");
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || Text(body, "operation") != "request_read" ||
             !DeviceFileControl.Hash(version) || version != expectedVersion || state is not ("requested" or "notification_posted" or "foreground_required" or "failed")) throw Error();
-        return new(id, version, state);
+        return new(id, version, state, expectedMediaType);
     }
 
     internal static DeviceFileRunResult ParseRunResult(JsonObject message, string expectedRequestId, string expectedOperation,
-        string expectedVersion, long now, string? expectedRunId = null)
+        string expectedVersion, long now, string? expectedRunId = null, string expectedMediaType = "images")
     {
-        var body = Body(message, RunResultKind, now);
+        var body = ScopedBody(message, RunResultKind, now, expectedMediaType);
         var id = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
         Exact(body, operation == "offer_run" ?
             ["format", "request_id", "operation", "version", "run_id", "state", "source_io_ended", "offer_id", "manifest_sha256"] :
@@ -234,13 +302,14 @@ internal static class DeviceFileSources
             ended != (state is "snapshot_ready" or "canceled_held" or "failed_held") ||
             operation == "cancel_run" && state is not ("cancel_pending" or "canceled_held") ||
             operation == "offer_run" && (state != "snapshot_ready" || !TelefonProtocolContract.IsUuidV4(offer) || !DeviceFileControl.Hash(manifest))) throw Error();
-        return new(id, operation, version, run, state, ended, offer, manifest);
+        return new(id, operation, version, run, state, ended, offer, manifest, expectedMediaType);
     }
 
     internal static DeviceFileMediaPage ParseMediaPage(JsonObject message, string expectedRequestId, string expectedVersion,
-        string expectedRunId, long now, int expectedAfter = 0, string? expectedManifestSha256 = null, string? expectedSourceEpoch = null)
+        string expectedRunId, long now, int expectedAfter = 0, string? expectedManifestSha256 = null, string? expectedSourceEpoch = null,
+        string? expectedMediaType = null)
     {
-        var body = Body(message, MediaKind, now);
+        var body = expectedMediaType is null ? Body(message, MediaKind, now) : ScopedBody(message, MediaKind, now, expectedMediaType);
         Exact(body, "format", "request_id", "operation", "version", "run_id", "page");
         var id = Text(body, "request_id"); var version = Text(body, "version"); var run = Text(body, "run_id");
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || Text(body, "operation") != "media_page" ||
@@ -251,7 +320,8 @@ internal static class DeviceFileSources
         var insertion = Flag(page, "insertion_witness"); var after = Number(page, "after"); var total = Number(page, "total_files");
         if (Number(page, "format") != 1 || !DeviceFileControl.Hash(manifest) || !DeviceFileControl.Hash(epoch) ||
             expectedManifestSha256 is not null && manifest != expectedManifestSha256 || expectedSourceEpoch is not null && epoch != expectedSourceEpoch ||
-            mediaType is not ("images" or "video") || total is < 1 or > 128 || after < 0 || after > total || after != expectedAfter ||
+            mediaType is not ("images" or "video") || expectedMediaType is not null && mediaType != expectedMediaType ||
+            total is < 1 or > 128 || after < 0 || after > total || after != expectedAfter ||
             page["entries"] is not JsonArray raw || raw.Count > 8 || raw.Count == 0 && after < total || after + raw.Count > total) throw Error();
         var end = after + raw.Count; int? next = null;
         if (page["next_cursor"] is not null)

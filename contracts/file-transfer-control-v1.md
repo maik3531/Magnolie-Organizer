@@ -370,9 +370,37 @@ Five initial native-source groups pass for secure SEND-OFF status, correlation,
 cancellation, closure and a real 60-second timeout; two further groups cover
 uncertain secure output and prompt metadata/control-session withdrawal. Tests use
 the actual secure writer and reply dispatcher, with synthetic native local grants.
-Protected preferences/receiver admission in production, other source commands and
-the Windows typed video codec are still pending. Unsupported video extensions or
-data are held, not parsed as image authority or presented as ready. Gates stay OFF.
+Protected preferences/receiver admission in production and other source-command
+transport actions are still pending. Unsupported data is held, not parsed as image
+authority or presented as ready. Gates stay OFF.
+
+### Windows explicit video metadata codecs (Refs #330, #335, partial join)
+
+The Windows codec now parses the optional `videos: {enabled, revision}` status
+extension only with explicit opt-in. The actual pending native status command
+captures opt-in from the current acknowledged marker-21/22 metadata and rechecks
+it before output and reply. Video-only withdrawal aborts the old pending command;
+a fresh base-only status still works. No status flag grants source READ, changes
+local consent or starts work.
+
+`configure_videos` is a separate pure metadata command with only its exact version
+and boolean choice, never an image-kind selection. Explicit `media_type: video`
+commands for discovery/catalog, permission UI, ordinary run/control and media-page
+metadata retain their type. Typed catalog/permission/run/page decoders require
+matching outer scope; a video media page also requires the matching inner page
+type. Image commands cannot consume these replies. Legacy image wire bytes and
+the non-authoritative unbound media inspection API remain unchanged.
+
+Six new native-source groups cover strict configuration/status fields, current
+channel opt-in/withdrawal and typed command/result separation. Five shared
+Python/Notes command vectors now match exact canonical bytes and SHA-256 values
+(configuration, discover, ordinary run, original resume and media page). Original
+resume requires its exact original-job ID/version; an ordinary run cannot carry
+or silently discard that intent. Original-job resume/lookup/abandonment transport
+and completion metadata remain to be joined
+on Windows together with the protected receiver, native preferences/destinations
+and worker. The runtime API added so far sends only `status`; no positive video
+configuration or READ action is exposed by these codec changes.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 

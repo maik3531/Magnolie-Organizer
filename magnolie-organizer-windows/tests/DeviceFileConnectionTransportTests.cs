@@ -164,9 +164,10 @@ internal static class DeviceFileConnectionTransportTests
         return Task.CompletedTask;
     }
 
-    internal static async Task<NativeFileControlSession> OpenOffSourceAsync(DeviceFileConnectionMetadataTests.Fixture fixture)
+    internal static async Task<NativeFileControlSession> OpenOffSourceAsync(DeviceFileConnectionMetadataTests.Fixture fixture, bool videos = true)
     {
         await fixture.SeedAsync(); Identity(fixture);
+        if (!videos) await fixture.Connection.HandlePlainAsync(fixture.Message("capabilities.update", 2, video: false));
         var identity = fixture.Store.ReadFileIdentity();
         var local = new NativeLocalFileGrant(new(7, new string('b', 64), false, true), new object(), true);
         var owner = fixture.Connection.OpenNativeFileControls(() => local);
