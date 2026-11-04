@@ -15,7 +15,24 @@ Handbuch 2.0.30 für Magnolie Organizer 2.0.30.
     pruefungen/  Selbsttest des Buches
     debian/      Paketbeschreibung für den Bau des .deb
 
-## Den Text ändern
+## PDF-Laufzeit auf Mint 21.x / Ubuntu 22.04 (Refs #381)
+
+Der PDF-Worker unterstützt auch das dort sicherheitsgepflegte Pillow 9.0.1.
+Die festgeschriebene WeasyPrint-Laufzeit verwendet den erst mit Pillow 9.1
+eingeführten Namen `Image.Transpose`. Eine begrenzte Kompatibilitätsbrücke im
+Worker bildet diesen Namen auf die bereits vorhandenen, geprüften öffentlichen
+Transpose-Konstanten von 9.0.1 ab. Moderne Pillow-Versionen bleiben unverändert;
+andere alte oder veränderte Implementierungen werden nicht still akzeptiert.
+Vendor-Dateien, Versionsangaben, Hashprüfung und Lizenzen bleiben unverändert.
+
+DEB und RPM verlangen deshalb Pillow ab 9.0.1. Die Brücke ist mit tatsächlichem
+Pillow 9.0.1 und 10.2.0 einschließlich Drehung, EXIF, PNG/JPEG, PDF-Text/Bildern
+und Blattmontage geprüft. Das ersetzt keine native Installations-/Startabnahme
+eines neu gebauten Pakets. Das bereits veröffentlichte Paket 2.0.30 wird durch
+diese Quelländerung nicht nachträglich verändert.
+Die neue paketgebundene native Abnahme wird unter #384 geführt.
+
+## Handbuchseiten bearbeiten
 
 Der vollständige Handbuchtext liegt in `web/inhalt.js`. Jede Seite ist
 ein Eintrag mit `kapitel`, `titel` und `inhalt`. Aus dem englischen Titel wird

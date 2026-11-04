@@ -52,11 +52,11 @@ BuildRequires:  /usr/bin/pdftoppm
 BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
 BuildRequires:  python3dist(cffi)
-BuildRequires:  python3dist(pillow) >= 9.1
+BuildRequires:  python3dist(pillow) >= 9.0.1
 Requires:       /usr/bin/python3
 Requires:       python(abi) >= 3.10
 Requires:       python3dist(cffi)
-Requires:       python3dist(pillow) >= 9.1
+Requires:       python3dist(pillow) >= 9.0.1
 Requires:       python3dist(brotli)
 Requires:       /usr/bin/xgettext
 Requires:       %{magnolie_deps}
@@ -95,7 +95,7 @@ for script in web/*.js web/i18n/*.js; do
 done
 /usr/bin/python3 pruefungen/druck_test.py --cli-only
 /usr/bin/python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_source_packaging.py
-PYTHONPATH=bin/pdf-runtime PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B -m pytest -q pruefungen/test_print_pdf.py pruefungen/test_pdf_runtime.py
+PYTHONPATH=bin/pdf-runtime PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B -m pytest -q pruefungen/test_print_pdf.py pruefungen/test_pdf_runtime.py pruefungen/test_pillow_compat.py
 desktop-file-validate magnolie-handbuch.desktop
 
 %install

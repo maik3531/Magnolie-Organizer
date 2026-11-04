@@ -212,10 +212,34 @@ def compose_pdf(source, target, options):
     return {"source_pages": len(reader.pages), "sheets": len(sheets), "passthrough": passthrough}
 
 
+def prepare_pillow_for_pdf():
+    """Bridge Pillow 9.0.1's public transpose constants for the pinned renderer.
+
+    Mint 21.x/Jammy keeps security-patched Pillow 9.0.1. Its operations and
+    numeric constants are identical, but the Transpose IntEnum arrived in 9.1.
+    Only the isolated PDF worker needs this namespace; never spoof a version,
+    rewrite vendor files or replace a modern Pillow implementation.
+    """
+    import PIL
+    from PIL import Image
+    if hasattr(Image, "Transpose"):
+        return
+    if PIL.__version__ != "9.0.1":
+        raise RuntimeError("Unsupported legacy Pillow for handbook PDF rendering")
+    names = ("FLIP_LEFT_RIGHT", "FLIP_TOP_BOTTOM", "ROTATE_90", "ROTATE_180",
+             "ROTATE_270", "TRANSPOSE", "TRANSVERSE")
+    values = {name: getattr(Image, name, None) for name in names}
+    if any(type(values[name]) is not int or values[name] != index for index, name in enumerate(names)):
+        raise RuntimeError("Unexpected legacy Pillow transpose constants")
+    from enum import IntEnum
+    Image.Transpose = IntEnum("Transpose", values)
+
+
 def render_pdf(markup, web_root, target, options):
     """Render original text once, then apply the selected print-sheet options."""
     if not isinstance(markup, str) or not 1 <= len(markup.encode("utf-8")) <= MAX_HTML_BYTES:
         raise ValueError("Invalid print HTML")
+    prepare_pillow_for_pdf()
     import pydyf
     import weasyprint
     from weasyprint import HTML
