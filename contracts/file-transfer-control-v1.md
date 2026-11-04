@@ -407,8 +407,14 @@ configuration or READ action is exposed by these codec changes.
 `DeviceFileStorePreferences` persists explicit native photo/video/manual-versus-WiFi
 choices as authenticated ciphertext in a dedicated SQLite table. Reads and an
 unchanged all-OFF choice do not create the table or write defaults. Both media
-choices initially remain OFF, automatic WiFi is OFF, the direction is fixed to
-phone inventory only, and neither deletion direction can be enabled by this API.
+choices initially remain OFF, automatic WiFi is OFF, and content direction stays
+phone inventory only. Both deletion directions default OFF but are independently
+selectable by explicit native choice; they are not permanently disabled. The
+intended UI is the same single “Löschungen auslassen” choice as Notes, not two
+additional direction switches. `SetNativeMediaSyncMode` checks the saved version,
+preserves photo/video selection and sets both internal deletion directions from
+that one choice: checked skips both, unchecked includes both. A historical mixed
+policy has no unambiguous checkbox value until explicitly resolved.
 This store has no bridge/wire registration and loading positive intent never
 constructs a local file grant or arms a receiver on a new connection.
 
@@ -421,10 +427,12 @@ failure holds the record without repairing or discarding historical bytes.
 The dedicated table survives generic Notes metadata cleanup; a profile restore
 fence blocks access, and actual restore-abort cleanup retains the original row.
 
-Seven native-source groups pass for defaults/no bootstrap, protected persistence,
+Nine native-source groups pass for defaults/no bootstrap, protected persistence,
 independent media choices, stale/concurrent owners, all identity binding changes,
 authenticated corruption, strict schema/revision exhaustion and the actual
-restore fence/abort path. These are storage proofs, not Windows installed tests.
+restore fence/abort path, preserved deletion choices and the Notes-style common
+skip-deletions setting including stale/mixed-policy handling.
+These are storage proofs, not Windows installed tests.
 Native destination handles, staging/publication/history and the joined receiver
 are still missing; no UI, automatic worker or production gate is enabled.
 
@@ -445,6 +453,39 @@ rejection and final/ancestor reparse rejection. The latter requires symlink
 creation rights; a missing prerequisite is not counted as a pass. Until those
 proofs and the handle-relative staging/publication integration exist, this is
 unaccepted groundwork, not a safe completed destination receiver.
+
+### Explicit deletion synchronization requires recoverable trash (Refs #330, #335)
+
+User clarification: targeted photo/video deletions must propagate in both
+directions when “Löschungen auslassen” is unchecked, with a recoverable trash entry, not a permanent
+import-only restriction. OFF is the initial choice, not an implementation limit.
+Deletion consent is separate from reverse content replacement: a phone-inventory
+content direction does not block an explicitly selected desktop-to-phone trash
+operation. Changing photo/video selection preserves existing deletion choices.
+
+Both pure desktop comparison implementations now propose `trash_phone` only with
+genuine native `TrashPhone`/`trash_phone` support, and `trash_managed_desktop` with
+desktop trash support. A permanent-delete adapter cannot substitute for phone
+trash. These proposals explicitly require a trash entry; they are neither a
+completed entry nor mutation authority. Changed content, unknown identity, missing
+baseline or incomplete/absent scan evidence still holds/conflicts instead of
+deleting. The shared vectors cover reverse-trash consent independently of content
+direction, default OFF, missing adapter, permanent-delete rejection and identity
+uncertainty.
+
+Execution remains unjoined: it must durably retain recoverable bytes/native trash
+identity plus original phone/media/destination association, content witness and
+deletion operation/version, and record counterpart completion before any
+retirement. Restore needs exact no-replace checks and a newer recorded restore
+state so the old deletion cannot replay. No unconfigured phone trash API may fall
+back to permanent deletion. The separate existing explicitly-disabled-trash flow
+must retain “Papierkorb deaktiviert: Die ausgewählten Einträge endgültig löschen?”;
+these changes do not bypass that confirmation or execute such a deletion.
+
+Current proof is protected intent plus pure planning only: 9 Windows preference
+groups, the shared Windows comparison group and 32 Python comparison tests pass.
+There is still no joined runtime media trash journal/restore or physical phone
+trash proof, so no actual cross-device deletion success is claimed.
 
 ### Current-channel video capability witness (Refs #330, no READ grant)
 
@@ -2662,7 +2703,10 @@ policy is manual, receive/send off and both deletion directions off. Only an
 exact owner-bound one-shot native action can configure it. A native destination
 choice is still not consent; enabled receive additionally needs an associated
 saved policy, a currently available original destination and ready native handlers.
-Send permission is always off. Reverse deletion is explicitly unavailable.
+Send permission is always off. The existing Linux preference/controller path
+still rejects reverse deletion until the native trash journal/restore path is
+joined. This is an implementation gap, not the intended permanent restriction;
+the user's Notes-style skip-deletions requirement above also applies to Linux.
 
 The dedicated SQLite owner/policy records bind native root/database/lock inode
 witnesses, exact public identity scope, persistent pairing generation, revision,

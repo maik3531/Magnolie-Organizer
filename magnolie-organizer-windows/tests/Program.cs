@@ -255,6 +255,8 @@ runner.Add("Device file protected preferences / authenticated corruption HOLD", 
 runner.Add("Device file protected preferences / strict schema / exhausted revision", DeviceFileStorePreferencesTests.SchemaAsync);
 runner.Add("Device file protected preferences / actual restore fence / retained intent", DeviceFileStorePreferencesTests.RestoreAsync);
 runner.Add("Device file protected preferences / independent concurrent owners", DeviceFileStorePreferencesTests.ConcurrentAsync);
+runner.Add("Device file protected preferences / selectable deletion directions / no runtime grant", DeviceFileStorePreferencesTests.DeletionChoicesAsync);
+runner.Add("Device file protected preferences / Notes-style skip deletions checkbox", DeviceFileStorePreferencesTests.NotesStyleDeletionModeAsync);
 runner.Add("Device file native directory / conservative local path grammar", DeviceFileNativeDirectoryTests.GrammarAsync);
 if (OperatingSystem.IsWindows())
 {

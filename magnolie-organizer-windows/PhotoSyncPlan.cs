@@ -78,13 +78,14 @@ internal sealed record PhotoSyncPlanPolicy
 
 // Genuine native no-loss adapters only, never activated by a wire/UI Boolean.
 internal sealed record NativePhotoPlanSupport(bool CreateDesktop = false, bool ReplaceDesktop = false,
-    bool TrashDesktop = false, bool ReplacePhone = false, bool DeletePhone = false);
+    bool TrashDesktop = false, bool ReplacePhone = false, bool DeletePhone = false, bool TrashPhone = false);
 
 internal sealed record PhotoSyncProposal(string Kind, string? BaselineReceipt,
     PhotoContentWitness? ExpectedPhone, PhotoContentWitness? ExpectedDesktop)
 {
     internal bool GrantsWriteAuthority => false;
     internal bool IsSavedReceipt => false;
+    internal bool RequiresTrashEntry => Kind is "trash_managed_desktop" or "trash_phone";
 }
 
 // Pure three-way comparison only. Inputs belong to authenticated native receipt
@@ -136,7 +137,9 @@ internal static class PhotoSyncPlan
         }
         if (phone.Content != common) return Result("conflict_edit_delete");
         if (!policy.DesktopDeletionsToPhone) return Result("keep_phone_copy");
-        if (policy.Direction != "bidirectional" || !support.DeletePhone) return Result("unsupported_phone_delete");
-        return Result(phone.InsertionProven ? "delete_phone" : "conflict_unproven_source_identity");
+        // An explicit deletion direction is independent of reverse content
+        // replacement. A permanent-delete adapter cannot stand in for trash.
+        if (!support.TrashPhone) return Result("unsupported_phone_trash");
+        return Result(phone.InsertionProven ? "trash_phone" : "conflict_unproven_source_identity");
     }
 }

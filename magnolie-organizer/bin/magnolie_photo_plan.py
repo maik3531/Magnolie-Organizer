@@ -91,6 +91,7 @@ class NativePhotoPlanSupport:
     trash_desktop: bool = False
     replace_phone: bool = False
     delete_phone: bool = False
+    trash_phone: bool = False
 
     def __post_init__(self):
         if any(type(value) is not bool for value in vars(self).values()):
@@ -111,6 +112,10 @@ class PhotoSyncProposal:
     @property
     def is_saved_receipt(self):
         return False
+
+    @property
+    def requires_trash_entry(self):
+        return self.kind in {"trash_managed_desktop", "trash_phone"}
 
 
 def compare_photo(association, baseline, phone, desktop, policy=None, support=None):
@@ -167,6 +172,8 @@ def compare_photo(association, baseline, phone, desktop, policy=None, support=No
         return result("conflict_edit_delete")
     if not policy.desktop_deletions_to_phone:
         return result("keep_phone_copy")  # A local tombstone is not permission to recreate the PC file.
-    if policy.direction != "bidirectional" or not support.delete_phone:
-        return result("unsupported_phone_delete")
-    return result("delete_phone" if phone.insertion_proven else "conflict_unproven_source_identity")
+    # Explicit deletion consent does not imply reverse replacement consent, and
+    # a permanent-delete adapter cannot substitute for recoverable phone trash.
+    if not support.trash_phone:
+        return result("unsupported_phone_trash")
+    return result("trash_phone" if phone.insertion_proven else "conflict_unproven_source_identity")

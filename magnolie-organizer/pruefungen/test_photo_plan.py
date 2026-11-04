@@ -36,6 +36,7 @@ def test_shared_three_way_vectors_never_grant_writes_or_create_receipts(case):
     assert result.kind == case["expected"]
     assert result.expected_phone == phone.content and result.expected_desktop == desktop.content
     assert not result.grants_write_authority and not result.is_saved_receipt
+    assert result.requires_trash_entry == (result.kind in {"trash_managed_desktop", "trash_phone"})
     assert result.baseline_receipt == (baseline.receipt_sha256 if baseline is not None else None)
 
 
@@ -72,6 +73,8 @@ def test_native_input_shapes_are_strict_and_proposal_cannot_be_mutated_into_a_wr
         NativePhotoObservation("present", CONTENTS["old"], managed=1)
     with pytest.raises(TransferError):
         NativePhotoPlanSupport(replace_phone=1)
+    with pytest.raises(TransferError):
+        NativePhotoPlanSupport(trash_phone=1)
     with pytest.raises(TransferError):
         PhotoSyncPlanPolicy(phone_deletions_to_desktop=1)
     owner = association()

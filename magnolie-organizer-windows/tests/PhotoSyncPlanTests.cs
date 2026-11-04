@@ -26,12 +26,13 @@ internal static class PhotoSyncPlanTests
                         side == "phone" && (test["insertion"]?.GetValue<bool>() ?? true)) : new(label);
             }
             var names = (test["support"] ?? vectors["default_support"])!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
-            var support = new NativePhotoPlanSupport(names.Contains("create_desktop"), names.Contains("replace_desktop"), names.Contains("trash_desktop"), names.Contains("replace_phone"), names.Contains("delete_phone"));
+            var support = new NativePhotoPlanSupport(names.Contains("create_desktop"), names.Contains("replace_desktop"), names.Contains("trash_desktop"), names.Contains("replace_phone"), names.Contains("delete_phone"), names.Contains("trash_phone"));
             var policy = new PhotoSyncPlanPolicy(test["direction"]?.GetValue<string>() ?? "phone_to_desktop",
                 test["phone_delete"]?.GetValue<bool>() ?? false, test["pc_delete"]?.GetValue<bool>() ?? false);
             var phone = Observation("phone"); var desktop = Observation("desktop");
             var proposal = PhotoSyncPlan.Compare(association, baseline, phone, desktop, policy, support);
             TestAssert.That(proposal.Kind == test["expected"]!.GetValue<string>(), $"Three-way photo vector differs: {name} ({proposal.Kind}).");
+            TestAssert.That(proposal.RequiresTrashEntry == (proposal.Kind is "trash_managed_desktop" or "trash_phone"), "Deletion proposal lost its trash requirement.");
             TestAssert.That(!proposal.GrantsWriteAuthority && !proposal.IsSavedReceipt && proposal.BaselineReceipt == baseline?.ReceiptSha256 &&
                 proposal.ExpectedPhone == phone.Content && proposal.ExpectedDesktop == desktop.Content, "Comparison manufactured write/receipt authority or lost original expected bytes.");
         }

@@ -25,15 +25,18 @@
     {"name": "phone_delete_pc_edit", "baseline": "old", "phone": "deleted", "desktop": "desktop", "phone_delete": true, "expected": "conflict_edit_delete"},
     {"name": "pc_delete_phone_edit", "baseline": "old", "phone": "phone", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "conflict_edit_delete"},
     {"name": "pc_delete_default_off_no_resurrection", "baseline": "old", "phone": "old", "desktop": "deleted", "expected": "keep_phone_copy"},
-    {"name": "pc_delete_no_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "expected": "unsupported_phone_delete"},
-    {"name": "pc_delete_native_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "delete_phone"},
+    {"name": "pc_delete_no_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "expected": "unsupported_phone_trash"},
+    {"name": "pc_delete_native_trash_adapter", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "direction": "bidirectional", "support": ["trash_phone"], "expected": "trash_phone"},
     {"name": "both_deleted", "baseline": "old", "phone": "deleted", "desktop": "deleted", "expected": "both_deleted"},
     {"name": "permission_visibility_unknown", "baseline": "old", "phone": "unknown", "desktop": "old", "phone_delete": true, "expected": "pause_unknown"},
     {"name": "coarse_identity_not_replacement_proof", "baseline": "old", "phone": "phone", "desktop": "old", "insertion": false, "expected": "conflict_unproven_source_identity"},
     {"name": "no_desktop_replace_adapter", "baseline": "old", "phone": "phone", "desktop": "old", "support": [], "expected": "unsupported_desktop_replace"},
     {"name": "no_desktop_create_adapter", "baseline": null, "phone": "old", "desktop": "missing", "support": [], "expected": "unsupported_desktop_create"},
     {"name": "no_desktop_trash_adapter", "baseline": "old", "phone": "deleted", "desktop": "old", "phone_delete": true, "support": [], "expected": "unsupported_desktop_trash"},
-    {"name": "one_way_cannot_enable_reverse_delete", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "support": ["delete_phone"], "expected": "unsupported_phone_delete"},
-    {"name": "pc_absence_is_not_deletion", "baseline": "old", "phone": "old", "desktop": "missing", "pc_delete": true, "direction": "bidirectional", "support": ["delete_phone"], "expected": "pause_unconfirmed_absence"}
+    {"name": "permanent_delete_is_not_trash", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "support": ["delete_phone"], "expected": "unsupported_phone_trash"},
+    {"name": "one_way_content_explicit_reverse_trash", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "support": ["trash_phone"], "expected": "trash_phone"},
+    {"name": "trash_adapter_without_explicit_choice", "baseline": "old", "phone": "old", "desktop": "deleted", "support": ["trash_phone"], "expected": "keep_phone_copy"},
+    {"name": "reverse_trash_unproven_source", "baseline": "old", "phone": "old", "desktop": "deleted", "pc_delete": true, "support": ["trash_phone"], "insertion": false, "expected": "conflict_unproven_source_identity"},
+    {"name": "pc_absence_is_not_deletion", "baseline": "old", "phone": "old", "desktop": "missing", "pc_delete": true, "direction": "bidirectional", "support": ["trash_phone"], "expected": "pause_unconfirmed_absence"}
   ]
 }

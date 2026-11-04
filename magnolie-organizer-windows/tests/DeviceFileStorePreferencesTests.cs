@@ -114,8 +114,8 @@ internal static class DeviceFileStorePreferencesTests
             value => value["revision"] = DeviceFileControl.MaximumRevision + 1,
             value => value["version"] = "bad", value => value["format"] = 2,
             value => value["videos_enabled"] = 1, value => value["automatic_wifi"] = "true",
-            value => value["direction"] = "bidirectional", value => value["delete_phone"] = true,
-            value => value["delete_desktop"] = true, value => value["path"] = "untrusted",
+            value => value["direction"] = "bidirectional", value => value["delete_phone"] = 1,
+            value => value["delete_desktop"] = "true", value => value["path"] = "untrusted",
             value => value.Remove("photos_enabled") })
         {
             var changed = original.DeepClone().AsObject(); mutate(changed);
@@ -142,6 +142,56 @@ internal static class DeviceFileStorePreferencesTests
         fixture.Store.AbortRestore(token);
         TestAssert.That(fixture.Store.ReadNativeMediaPreferences(fixture.Peer.Id) == saved &&
             Blob(fixture.Store, fixture.Peer.Id).SequenceEqual(before), "Actual restore abort discarded native preference history.");
+        return Task.CompletedTask;
+    }
+
+    internal static Task DeletionChoicesAsync()
+    {
+        using var fixture = new DeviceFileConnectionMetadataTests.Fixture(); Identity(fixture);
+        var photos = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, null, true, false, false);
+        var desktopTrash = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, photos.Version, true, false, false,
+            deleteFromDesktop: true);
+        TestAssert.That(desktopTrash is { DeleteFromDesktop: true, DeleteFromPhone: false, GrantsReceiveAuthority: false },
+            "Explicit phone-to-desktop deletion choice enabled the opposite direction or a runtime grant.");
+        var both = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, desktopTrash.Version, true, true, false,
+            deleteFromPhone: true);
+        TestAssert.That(both.DeleteFromPhone && both.DeleteFromDesktop && both.Version != desktopTrash.Version,
+            "Both deletion directions were not independently selectable.");
+        TestAssert.That(both.ComparisonPolicy is { Direction: "phone_to_desktop", PhoneDeletionsToDesktop: true, DesktopDeletionsToPhone: true },
+            "Deletion choices did not reach the pure comparison policy independently of content direction.");
+        var reloaded = fixture.Store.ReadNativeMediaPreferences(fixture.Peer.Id);
+        TestAssert.That(reloaded == both, "Protected deletion intent did not survive readback.");
+        var unrelated = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, both.Version, false, true, false);
+        TestAssert.That(unrelated.DeleteFromPhone && unrelated.DeleteFromDesktop, "Photo/video choice silently reset deletion consent.");
+        TestAssert.Throws<InvalidDataException>(() => fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, desktopTrash.Version,
+            true, true, false, false, false), "Stale deletion choice overwrote current consent.");
+        var off = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, unrelated.Version, false, true, false, false, false);
+        TestAssert.That(!off.DeleteFromPhone && !off.DeleteFromDesktop && !off.GrantsReceiveAuthority,
+            "Explicit OFF did not persist independently of positive media intent.");
+        return Task.CompletedTask;
+    }
+
+    internal static Task NotesStyleDeletionModeAsync()
+    {
+        using var fixture = new DeviceFileConnectionMetadataTests.Fixture(); Identity(fixture);
+        var initial = fixture.Store.ReadNativeMediaPreferences(fixture.Peer.Id);
+        TestAssert.That(initial.SkipDeletions == true, "Initial media policy did not skip deletion safely.");
+        var selected = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, null, true, true, false);
+        var include = fixture.Store.SetNativeMediaSyncMode(fixture.Peer.Id, selected.Version, true, skipDeletions: false);
+        TestAssert.That(include is { PhotosEnabled: true, VideosEnabled: true, AutomaticWifi: true, SkipDeletions: false,
+            DeleteFromPhone: true, DeleteFromDesktop: true, GrantsReceiveAuthority: false },
+            "Notes-style unchecked skip choice did not select both trash directions while preserving media choices.");
+        TestAssert.That(fixture.Store.ReadNativeMediaPreferences(fixture.Peer.Id) == include, "Shared deletion mode did not persist.");
+        var skip = fixture.Store.SetNativeMediaSyncMode(fixture.Peer.Id, include.Version, false, skipDeletions: true);
+        TestAssert.That(skip is { SkipDeletions: true, DeleteFromPhone: false, DeleteFromDesktop: false, AutomaticWifi: false,
+            PhotosEnabled: true, VideosEnabled: true }, "Checked skip choice failed to suppress both deletion directions.");
+        TestAssert.Throws<InvalidDataException>(() => fixture.Store.SetNativeMediaSyncMode(fixture.Peer.Id, include.Version, true, false),
+            "Stale shared checkbox revived deletion consent.");
+        var mixed = fixture.Store.SetNativeMediaPreferences(fixture.Peer.Id, skip.Version, true, true, false, deleteFromPhone: true);
+        TestAssert.That(mixed.SkipDeletions is null, "Mixed historical policy was misrepresented as one clear checkbox choice.");
+        var resolved = fixture.Store.SetNativeMediaSyncMode(fixture.Peer.Id, mixed.Version, false, true);
+        TestAssert.That(resolved.SkipDeletions == true && !resolved.DeleteFromPhone && !resolved.DeleteFromDesktop,
+            "Explicit common choice did not resolve a mixed historical policy.");
         return Task.CompletedTask;
     }
 
