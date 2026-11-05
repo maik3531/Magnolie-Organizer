@@ -15,12 +15,13 @@ internal static class DeviceFileReceiveJobTests
         internal NativeFileControlSession Owner = null!, Phone = null!;
         internal NativeMediaDestination Destination = null!;
         internal string Root => Destination.NativePath;
-        internal static async Task<Fixture> CreateAsync(bool sourceSend = true, Func<NativeBookSaveState?>? uiSavedBook = null)
+        internal static async Task<Fixture> CreateAsync(bool sourceSend = true, Func<NativeBookSaveState?>? uiSavedBook = null, bool sharedMedia = false)
         {
             var f = new Fixture();
             try
             {
-                await f.Native.SeedAsync();
+                if (sharedMedia) await DeviceFileSharedTransportTests.Seed(f.Native);
+                else await f.Native.SeedAsync();
                 var identity = f.Native.Store.LoadOrCreateIdentity(); CryptographicOperations.ZeroMemory(identity.PrivateKey);
                 if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
                 // This fixture explicitly materializes its injected test key as

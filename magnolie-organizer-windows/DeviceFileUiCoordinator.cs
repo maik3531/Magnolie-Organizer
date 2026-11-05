@@ -123,7 +123,7 @@ internal sealed partial class TelefonConnection
         if (KnownNativeAlbum(owner, mediaType, version, catalog, album) is null) throw DeviceFileControl.Error("file_media_native_catalog_choice_changed");
     }
 
-    internal async Task AwaitNativeMediaDataAgreementAsync(string mediaType, CancellationToken token)
+    internal async Task AwaitNativeMediaDataAgreementAsync(string mediaType, CancellationToken token, Action? nativeGuard = null)
     {
         var owner = RequireNativeFileControls();
         var preferences = store.ReadNativeMediaPreferences(peer.Id);
@@ -133,7 +133,7 @@ internal sealed partial class TelefonConnection
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(60));
         while (true)
         {
-            deadline.Token.ThrowIfCancellationRequested(); RequireNativeFileControls(owner); store.RequireNativeMediaStorageKey();
+            deadline.Token.ThrowIfCancellationRequested(); nativeGuard?.Invoke(); RequireNativeFileControls(owner); store.RequireNativeMediaStorageKey();
             var current = authority.Current();
             if (current is null || !current.Grants.ReceiveFiles || !current.Grants.SamePermission(expected) ||
                 store.ReadNativeMediaPreferences(peer.Id) != preferences || store.ReadNativeMediaDestination(peer.Id, mediaType) != destination)
@@ -357,7 +357,7 @@ internal sealed partial class TelefonCoordinator
         EnsureConfiguredNativeMediaDefault(peerId, mediaType); permit.Require();
         await connection.PrepareNativeMediaUiAsync(NativeSavedBook, mediaType, token); permit.Require();
         var status = await connection.ReadNativeFileSourceStatusAsync(token); permit.Require();
-        var configured = await connection.ConfigureNativeMediaSourceAsync(status.Version, mediaType, true, token); permit.Require();
+        var configured = await connection.PrepareNativeMediaSourceAsync(status, mediaType, token); permit.Require();
         await connection.AwaitNativeMediaDataAgreementAsync(mediaType, token); permit.Require();
         return (configured.Version, await connection.DiscoverNativeMediaAlbumsAsync(configured.Version, mediaType, token: token));
     });
@@ -374,7 +374,7 @@ internal sealed partial class TelefonCoordinator
             {
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, mediaType, token); permit.Require();
                 var status = await connection.ReadNativeFileSourceStatusAsync(token); permit.Require();
-                var configured = await connection.ConfigureNativeMediaSourceAsync(status.Version, mediaType, true, token); permit.Require();
+                var configured = await connection.PrepareNativeMediaSourceAsync(status, mediaType, token); permit.Require();
                 version = configured.Version;
                 await connection.AwaitNativeMediaDataAgreementAsync(mediaType, token); permit.Require();
             }

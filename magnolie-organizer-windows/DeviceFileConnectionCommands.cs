@@ -122,6 +122,43 @@ internal sealed partial class TelefonConnection
         return result;
     }
 
+    // The Gallery base transport is shared by both domains on the phone. Its
+    // video-owned bootstrap must never borrow a positive IMAGES choice.
+    internal async Task<DeviceFileSourceStatus> PrepareNativeMediaSourceAsync(DeviceFileSourceStatus status,
+        string mediaType, CancellationToken token = default)
+    {
+        if (mediaType == "video" && MediaSharedControlsReady)
+        {
+            var choice = CaptureNativeSourceChoice("video", positive: true, dataReady: false);
+            void Require() => RequireNativeSourceChoice(choice);
+            if (!status.Enabled)
+                status = await ConfigureNativeVideoBaseTransportAsync(status.Version, token);
+            // Real data ACK is still required BEFORE positive configure_videos.
+            await AwaitNativeMediaDataAgreementAsync("video", token, Require); Require();
+        }
+        return await ConfigureNativeMediaSourceAsync(status.Version, mediaType, true, token);
+    }
+
+    internal async Task<DeviceFileSourceStatus> ConfigureNativeVideoBaseTransportAsync(string expectedVersion, CancellationToken token = default)
+    {
+        var choice = CaptureNativeSourceChoice("video", positive: true, dataReady: false);
+        void Require()
+        {
+            RequireNativeSourceChoice(choice);
+            if (!MediaSharedSettingsReady) throw DeviceFileControl.Error("file_sources_shared_media_intent_changed");
+        }
+        var kinds = new[] { "camera", "downloads", "screenshots", "whatsapp_received" };
+        var message = DeviceFileSources.CreateRequest("configure", Now(), expectedVersion, true, kinds);
+        var status = await ExchangeNativeSourceCommandAsync<DeviceFileSourceStatus>(choice, message, DeviceFileSources.ResultKind, raw =>
+        {
+            var configured = DeviceFileSources.ParseResult(raw, message["message_id"]!.GetValue<string>(), "configure", Now(), expectVideos: true);
+            if (configured.RepairPending || !configured.Enabled || !configured.Associated || !configured.Kinds.SequenceEqual(kinds))
+                throw DeviceFileControl.Error("file_sources_native_configuration_unconfirmed");
+            return configured;
+        }, Require, token);
+        Require(); return status;
+    }
+
     private Action NativeSourceReadGuard(NativeSourceChoice choice, string sourceVersion)
     {
         NativeVideoSourceActivation? activation;

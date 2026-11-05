@@ -189,4 +189,60 @@ internal static class DeviceFileConnectionCommandsTests
         Clear(f); await Fails(f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "video"));
         TestAssert.That(f.Native.Stream.Length == 0, "A new data-permission ACK inherited the previous video activation.");
     }
+
+    internal static async Task WindowsSharedVideoOnlyBootstrapAsync()
+    {
+        var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("video-only-book", true, new string('a', 64));
+        Func<NativeBookSaveState?> savedBook = () => book.SaveState("video-only-book", true);
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false, uiSavedBook: savedBook, sharedMedia: true);
+        var path = Path.Combine(f.Native.Paths.Root, "video-only"); Directory.CreateDirectory(path);
+        using (var root = DeviceFileNativeDirectory.OpenExistingForReceive(path)) f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "video", null, root);
+        var right = f.Native.Store.ReadNativeMediaReceiveConsent(f.Native.Peer.Id);
+        f.Native.Store.ChangeNativeMediaReceiveConsent(f.Native.Peer.Id, right.Version, true);
+        foreach (var (field, value) in new[] { ("enabled", true), ("photos_enabled", false), ("videos_enabled", true) })
+            f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, field, JsonValue.Create(value)!,
+                f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, field));
+        await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+        var body = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
+        var projected = f.Native.Store.ProjectNativeMediaSharedPreferences(f.Native.Peer.Id, f.Native.Peer.PublicKey, body, () => {
+            TestAssert.That(f.Native.Connection.MediaSharedSettingsReady, "Video-only projection lost matching.");
+        });
+        TestAssert.That(!projected.PhotosEnabled && projected.VideosEnabled, "Video-only projection enabled photos.");
+        Clear(f); var preparingUi = f.Native.Connection.PrepareNativeMediaUiAsync(savedBook, "video", CancellationToken.None);
+        var localControl = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
+        f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(localControl, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
+        var metadataEcho = f.Phone.Packet(); f.Phone.MarkSent(metadataEcho); Clear(f);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(metadataEcho, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        foreach (var echo in DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()))
+            f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(echo, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
+        await preparingUi;
+        Clear(f); await Fails(f.Native.Connection.ConfigureNativeMediaSourceAsync(SourceVersion, "images", true));
+        await Fails(f.Native.Connection.ConfigureNativeMediaSourceAsync(SourceVersion, "video", true));
+        TestAssert.That(f.Native.Stream.Length == 0, "Photos or unacknowledged video configuration escaped its guards.");
+        var statusRequest = DeviceFileSources.CreateRequest("status", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        var statusReply = Configuration(statusRequest, false); statusReply["body"]!["operation"] = "status"; statusReply["body"]!["enabled"] = false;
+        var status = DeviceFileSources.ParseResult(statusReply, statusRequest["message_id"]!.GetValue<string>(), "status", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), expectVideos: true);
+        var preparing = f.Native.Connection.PrepareNativeMediaSourceAsync(status, "video");
+        var request = Request(f);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "configure", "Video-owned base command was not sent.");
+        await f.Native.Connection.HandlePlainAsync(Configuration(request, false));
+        TestAssert.That(!preparing.IsCompleted && f.Current() is null, "Video orchestrator skipped the actual data agreement wait.");
+        Clear(f); await Fails(f.Native.Connection.ConfigureNativeMediaSourceAsync(SourceVersion, "video", true));
+        TestAssert.That(f.Native.Stream.Length == 0, "Base configure fabricated the required data ACK.");
+        f.RemoteLocal = new(new(4, new string('e', 64), true, false), f.RemoteLocal.Owner, true);
+        var update = f.Phone.Packet(); f.Phone.MarkSent(update);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(update, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single(),
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
+        var videoRequest = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind);
+        TestAssert.That(videoRequest["body"]!["operation"]!.GetValue<string>() == "configure_videos", "Video orchestrator did not continue after actual data ACK.");
+        await f.Native.Connection.HandlePlainAsync(Configuration(videoRequest, true)); await preparing;
+        TestAssert.That(f.Native.Connection.CaptureNativeMediaReceiveBinding(SourceVersion, "video")() is not null &&
+            !f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id).PhotosEnabled &&
+            !MediaSyncSettings.RequestedFor(f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!, "images"),
+            "Actual VIDEO activation lost its binding or authorized IMAGES intent.");
+        Clear(f); await Fails(f.Native.Connection.DiscoverNativeMediaAlbumsAsync(SourceVersion, "images"));
+        TestAssert.That(f.Native.Stream.Length == 0 && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0,
+            "Video bootstrap started an image inventory or fabricated a receive job.");
+    }
 }

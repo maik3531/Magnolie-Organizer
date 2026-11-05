@@ -103,7 +103,7 @@ internal sealed partial class TelefonCoordinator
                 EnsureConfiguredNativeMediaDefault(peerId, kind); Require();
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
                 var status = await connection.ReadNativeFileSourceStatusAsync(lifetime.Token); Require();
-                var configured = await connection.ConfigureNativeMediaSourceAsync(status.Version, kind, true, lifetime.Token); Require();
+                var configured = await connection.PrepareNativeMediaSourceAsync(status, kind, lifetime.Token); Require();
                 await connection.AwaitNativeMediaDataAgreementAsync(kind, lifetime.Token); Require();
                 var page = await connection.DiscoverNativeMediaAlbumsAsync(configured.Version, kind, token: lifetime.Token); Require();
                 var albums = page.Albums.ToList();

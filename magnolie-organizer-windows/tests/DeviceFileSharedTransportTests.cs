@@ -27,7 +27,7 @@ internal static class DeviceFileSharedTransportTests
         read.CommandText = "SELECT message_id FROM outbox WHERE kind=$kind"; read.Parameters.AddWithValue("$kind", MediaSyncSettings.Kind);
         return (string)read.ExecuteScalar()!;
     }
-    private static async Task Seed(DeviceFileConnectionMetadataTests.Fixture f, bool supported = true)
+    internal static async Task Seed(DeviceFileConnectionMetadataTests.Fixture f, bool supported = true)
     {
         Identity(f);
         f.Connection.SharedLocalCapabilities = () => {
@@ -41,6 +41,15 @@ internal static class DeviceFileSharedTransportTests
             await f.Connection.HandlePlainAsync(message);
         }
         TestAssert.That(f.Connection.MediaSharedControlsReady == supported, "Shared controls ignored current native metadata/capability.");
+    }
+
+    internal static async Task MatchAsync(DeviceFileConnectionMetadataTests.Fixture f)
+    {
+        await f.Connection.SendMediaSharedSettingsAsync();
+        var body = f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)!;
+        await f.Connection.HandlePlainAsync(Message(body));
+        await f.Connection.HandlePlainAsync(Ack(QueuedId(f)));
+        TestAssert.That(f.Connection.MediaSharedSettingsReady, "Current media fixture failed actual secure matching.");
     }
 
     internal static async Task MatchedAsync()
