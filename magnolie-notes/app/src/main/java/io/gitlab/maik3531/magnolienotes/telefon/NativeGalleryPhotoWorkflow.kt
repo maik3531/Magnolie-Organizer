@@ -201,6 +201,24 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         }
     }
 
+    internal fun prepareWriteConsent(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit,
+        cancellation: CancellationSignal): NativeGalleryWriteRequest {
+        ready(); permit.requireCurrent(); cancellation.throwIfCanceled()
+        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+            val origin = archive.verifiedOrigin(entry, permit)
+            val kind = GalleryMediaType.entries.single { it.uriSegment == origin.string("media_type") }
+            NativeGalleryWriteRequest.prepare(app, archive, entry, permit, {
+                ready(); cancellation.throwIfCanceled(); currentRequest(kind)?.receiver
+            }).also { cancellation.throwIfCanceled() }
+        }
+    }
+
+    internal fun requestWriteConsent(request: NativeGalleryWriteRequest, result: (Result<NativeGalleryWriteGrant>) -> Unit) {
+        ready(); request.requireCurrent()
+        val host = nativeBinding(request.mediaType).get()?.host ?: fail("gallery_write_foreground_required")
+        host.requestWrite(this, request, result)
+    }
+
     internal fun validateSelection(selection: NativeGalleryAlbumSelection) {
         ready(); selection.catalog.resolve(this, selection)
     }

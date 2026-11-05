@@ -18,9 +18,14 @@ import java.security.MessageDigest
 import java.util.UUID
 
 internal data class NativeGalleryArchiveEntry internal constructor(val id: String, val version: String,
-    val bytes: Long, val sha256: String, val displayName: String, val archivedMs: Long) {
+    val bytes: Long, val sha256: String, val displayName: String, val archivedMs: Long, val originalBytesVerified: Boolean = false) {
     // Copy time only, NOT a trash/deletion event or retention-start witness.
     val grantsMutationAuthority: Boolean get() = false
+    val isRemoteDeletionReceipt: Boolean get() = false
+}
+
+internal data class NativeGalleryTrashAction internal constructor(val operation: String, val archiveId: String,
+    val archiveVersion: String, val sequence: Int, val state: String, val changedMs: Long, val version: String) {
     val isRemoteDeletionReceipt: Boolean get() = false
 }
 
@@ -152,7 +157,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         return JsonArray(values)
     }
     private fun writeMembership(revision: Long) {
-        val clear = TelefonKanonisch.bytes(buildJsonObject { put("format", 1); put("revision", revision); put("entries", members()) })
+        val clear = TelefonKanonisch.bytes(buildJsonObject { put("format", 2); put("revision", revision); put("entries", members()); put("actions", actionMembers()) })
         val cipher = protection.seal(clear, domain("membership"))
         db.insertWithOnConflict("recovery_meta", null, ContentValues().apply { put("name", "membership"); put("sealed", cipher) }, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -175,8 +180,11 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         val clear = protection.open(bytes, domain("membership"))
         val record = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
         val revision = record["revision"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_membership_invalid")
-        if (record.keys != setOf("format", "revision", "entries") || record["format"] != JsonPrimitive(1) ||
-            revision <= 0 || revision < observedRevision || record["entries"] != members()) fail("gallery_archive_membership_changed")
+        val legacy = record["format"] == JsonPrimitive(1)
+        val actions = actionMembers()
+        if (record.keys != setOf("format", "revision", "entries") + (if (legacy) emptySet() else setOf("actions")) ||
+            !legacy && record["format"] != JsonPrimitive(2) || revision <= 0 || revision < observedRevision || record["entries"] != members() ||
+            (if (legacy) actions.isNotEmpty() else record["actions"] != actions)) fail("gallery_archive_membership_changed")
         db.rawQuery("SELECT count(*),COALESCE(max(length(sealed)),0) FROM recovery_chunks", null).use {
             if (!it.moveToFirst() || it.getLong(0) > MAX_BYTES / DeviceFileManifest.CHUNK_BYTES + MAX_ENTRIES ||
                 it.getLong(1) > DeviceFileManifest.CHUNK_BYTES + 28) fail("gallery_archive_chunks_changed")
@@ -198,7 +206,10 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         val value = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
         val size = value["size"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_record_invalid")
         val at = value["archived_ms"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_record_invalid")
-        if (value.keys != setOf("format", "id", "size", "sha256", "name", "archived_ms", "origin") || value["format"] != JsonPrimitive(1) ||
+        val original = value["format"] == JsonPrimitive(2)
+        if (value.keys != setOf("format", "id", "size", "sha256", "name", "archived_ms", "origin") +
+                (if (original) setOf("original_bytes", "baseline_sha256") else emptySet()) ||
+            !original && value["format"] != JsonPrimitive(1) || original && (value["original_bytes"] != JsonPrimitive(true) || !DeviceFileControl.hash(value.string("baseline_sha256"))) ||
             value.string("id") != id || size !in 0..DeviceFileManifest.MAX_FILE_BYTES || at <= 0 || !DeviceFileControl.hash(value.string("sha256")) ||
             !DeviceFileManifest.portablePath(value.string("name")) || '/' in value.string("name")) fail("gallery_archive_record_invalid")
         val origin = value["origin"] as? JsonObject ?: fail("gallery_archive_record_invalid")
@@ -214,7 +225,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
             !Regex("gallery-(video-)?album-v1:[0-9a-f]{64}").matches(origin.string("source")) ||
             origin.string("namespace").length !in 1..1024 || origin.string("namespace").any { it.code < 32 || it.code == 127 } ||
             origin.string("album_path").length !in 1..4096) fail("gallery_archive_record_invalid")
-        return NativeGalleryArchiveEntry(id, digest(bytes), size, value.string("sha256"), value.string("name"), at) to value
+        return NativeGalleryArchiveEntry(id, digest(bytes), size, value.string("sha256"), value.string("name"), at, original) to value
     }
 
     @Synchronized fun entries(permit: NativeGalleryTrashBookPermit): List<NativeGalleryArchiveEntry> {
@@ -222,6 +233,100 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         val items = members().map { readRecord(it.jsonObject.string("id")).first }
         if (items.sumOf { it.bytes } > MAX_BYTES) fail("gallery_archive_capacity_held")
         permit.requireCurrent(); return items
+    }
+
+    @Synchronized internal fun verifiedOrigin(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit): JsonObject {
+        verifyContent(entry, permit)
+        return readRecord(entry.id).second["origin"]!!.jsonObject
+    }
+
+    @Synchronized internal fun verifiedOriginalOrigin(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit): JsonObject {
+        val origin = verifiedOrigin(entry, permit)
+        if (!readRecord(entry.id).first.originalBytesVerified) fail("gallery_archive_original_bytes_not_verified")
+        return origin
+    }
+
+    private fun actionMembers(): JsonArray {
+        val values = mutableListOf<JsonElement>()
+        db.rawQuery("SELECT name,sealed FROM recovery_meta WHERE name<>'membership' ORDER BY name", null).use {
+            while (it.moveToNext()) {
+                val name = it.getString(0); val cipher = it.getBlob(1)
+                if (values.size >= MAX_ACTIONS * 4 || !Regex("trash/[0-9a-f-]{36}/[1-4]").matches(name) || cipher.size !in 29..16384)
+                    fail("gallery_archive_action_membership_invalid")
+                values.add(buildJsonObject { put("name", name); put("sha256", digest(cipher)) })
+            }
+        }
+        return JsonArray(values)
+    }
+
+    private fun readActions(): List<NativeGalleryTrashAction> {
+        val heads = linkedMapOf<String, NativeGalleryTrashAction>()
+        db.rawQuery("SELECT name,sealed FROM recovery_meta WHERE name<>'membership' ORDER BY name", null).use {
+            while (it.moveToNext()) {
+                val name = it.getString(0); val cipher = it.getBlob(1)
+                val clear = protection.open(cipher, domain(name))
+                val body = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
+                if (body.keys != setOf("format", "operation", "archive", "archive_version", "sequence", "state", "changed_ms", "previous") || body["format"] != JsonPrimitive(1))
+                    fail("gallery_archive_action_invalid")
+                val operation = body.string("operation"); val archive = body.string("archive"); val archiveVersion = body.string("archive_version")
+                val sequence = body["sequence"]?.jsonPrimitive?.intOrNull ?: fail("gallery_archive_action_invalid")
+                val state = body.string("state"); val at = body["changed_ms"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_action_invalid")
+                val previous = heads[operation]
+                val predecessor = when (state) {
+                    "prepared" -> null; "trashed", "canceled" -> "prepared"; "restore_prepared" -> "trashed"; "restored" -> "restore_prepared"
+                    else -> fail("gallery_archive_action_invalid")
+                }
+                val expectedSequence = when (state) { "prepared" -> 1; "trashed", "canceled" -> 2; "restore_prepared" -> 3; else -> 4 }
+                if (!validId(operation) || !validId(archive) || !DeviceFileControl.hash(archiveVersion) || at <= 0 || sequence != expectedSequence ||
+                    name != "trash/$operation/$sequence" || previous?.state != predecessor ||
+                    (if (previous == null) body["previous"] != JsonNull else body.string("previous") != previous.version ||
+                        archive != previous.archiveId || archiveVersion != previous.archiveVersion || at < previous.changedMs) ||
+                    readRecord(archive).first.version != archiveVersion) fail("gallery_archive_action_lineage_changed")
+                heads[operation] = NativeGalleryTrashAction(operation, archive, archiveVersion, sequence, state, at, digest(cipher))
+            }
+        }
+        if (heads.size > MAX_ACTIONS) fail("gallery_archive_action_capacity_held")
+        return heads.values.toList()
+    }
+
+    @Synchronized fun actions(permit: NativeGalleryTrashBookPermit): List<NativeGalleryTrashAction> {
+        permit.requireCurrent(); verify(); val result = readActions(); permit.requireCurrent(); return result
+    }
+
+    @Synchronized internal fun prepareTrash(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction {
+        verifyContent(entry, permit); current()
+        val previous = readActions()
+        if (previous.size >= MAX_ACTIONS || previous.any { it.archiveId == entry.id && it.state != "canceled" })
+            fail("gallery_archive_original_action_pending")
+        return appendAction(entry, null, "prepared", permit, current)
+    }
+
+    @Synchronized internal fun finishTrash(selected: NativeGalleryTrashAction, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction =
+        appendAction(readRecord(selected.archiveId).first, selected, "trashed", permit, current)
+
+    @Synchronized internal fun cancelUnmutatedTrash(selected: NativeGalleryTrashAction, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction =
+        appendAction(readRecord(selected.archiveId).first, selected, "canceled", permit, current)
+
+    private fun appendAction(entry: NativeGalleryArchiveEntry, selected: NativeGalleryTrashAction?, state: String,
+        permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction {
+        permit.requireCurrent(); current(); val revision = verify(); val heads = readActions()
+        if (readRecord(entry.id).first != entry || selected != null && heads.none { it == selected } ||
+            selected != null && (selected.state != "prepared" || state !in setOf("trashed", "canceled"))) fail("gallery_archive_stale_action")
+        val operation = selected?.operation ?: UUID.randomUUID().toString(); val sequence = (selected?.sequence ?: 0) + 1
+        val body = buildJsonObject {
+            put("format", 1); put("operation", operation); put("archive", entry.id); put("archive_version", entry.version)
+            put("sequence", sequence); put("state", state); put("changed_ms", maxOf(System.currentTimeMillis(), selected?.changedMs ?: 0))
+            put("previous", selected?.version?.let(::JsonPrimitive) ?: JsonNull)
+        }
+        val name = "trash/$operation/$sequence"; val cipher = protection.seal(TelefonKanonisch.bytes(body), domain(name))
+        db.beginTransaction()
+        try {
+            db.insertOrThrow("recovery_meta", null, ContentValues().apply { put("name", name); put("sealed", cipher) })
+            writeMembership(revision + 1); current(); permit.requireCurrent(); db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+        verify(); val result = readActions().single { it.operation == operation }
+        if (result.version != digest(cipher) || result.state != state) fail("gallery_archive_action_readback_failed")
+        current(); permit.requireCurrent(); return result
     }
 
     @Synchronized fun verifyContent(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit) {
@@ -272,11 +377,28 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
             fail("gallery_archive_native_origin_required")
         reader.verifyMetadata(lease, entry, cancellation); current()
         val mime = reader.observeRecoveryMime(lease, entry, cancellation); current()
+        // The frozen transfer view may legitimately have EXIF redacted. Check
+        // that view against its baseline WITHOUT confusing it with raw recovery
+        // bytes or silently accepting an edit of the current provider object.
+        val baseline = MessageDigest.getInstance("SHA-256"); var baselineSize = 0L
+        reader.openRead(lease, entry, cancellation).use { source ->
+            val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+            try {
+                while (true) {
+                    current(); val count = source.read(buffer)
+                    if (count == -1) break
+                    if (count <= 0 || baselineSize + count > entry.advertisedBytes) fail("gallery_archive_source_changed")
+                    baseline.update(buffer, 0, count); baselineSize += count
+                }
+            } finally { buffer.fill(0) }
+        }
+        if (baselineSize != entry.advertisedBytes || digestHash(baseline) != expectedSha256) fail("gallery_archive_source_changed")
+        current(); reader.verifyMetadata(lease, entry, cancellation)
         val id = UUID.randomUUID().toString(); val hash = MessageDigest.getInstance("SHA-256")
         db.beginTransaction()
         try {
             var size = 0L; var number = 0
-            reader.openRead(lease, entry, cancellation).use { source ->
+            reader.openOriginalForRecovery(lease, entry, cancellation).use { source ->
                 val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
                 try {
                     while (size < entry.advertisedBytes) {
@@ -296,9 +418,10 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
                 } finally { buffer.fill(0) }
             }
             current(); reader.verifyMetadata(lease, entry, cancellation)
-            if (digestHash(hash) != expectedSha256) fail("gallery_archive_source_changed")
+            val originalSha256 = digestHash(hash)
             val record = buildJsonObject {
-                put("format", 1); put("id", id); put("size", size); put("sha256", expectedSha256); put("name", entry.relativePath); put("archived_ms", System.currentTimeMillis())
+                put("format", 2); put("id", id); put("size", size); put("sha256", originalSha256); put("name", entry.relativePath); put("archived_ms", System.currentTimeMillis())
+                put("original_bytes", true); put("baseline_sha256", expectedSha256)
                 put("origin", buildJsonObject {
                     put("uri", entry.documentUri); put("member", entry.documentId); put("revision", entry.nativeRevision)
                     put("namespace", lease.access.mediaStoreVersion); put("source", lease.sourceKey)
@@ -333,6 +456,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
             return NativeGalleryTrashArchive(directory, protection)
         }
         const val MAX_ENTRIES = 128
+        const val MAX_ACTIONS = 128
         const val MAX_BYTES = DeviceFileManifest.MAX_TOTAL_BYTES
         private const val HEADER_DOMAIN = "gallery-media-recovery-v1/header"
         private val PRIVATE_FILE = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))

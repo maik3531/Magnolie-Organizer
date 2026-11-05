@@ -40,6 +40,11 @@ class AndroidGalleryPhotoSourceTest {
         val mime: String = "image/jpeg", val path: String = "DCIM/Camera/", val pending: Long = 0, val trashed: Long = 0,
         val generationAdded: Any = 1L, val generationModified: Any = 1L)
     private class Provider(val root: File, val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : ContentProvider() {
+        var writeRequests = 0
+        var originalFile: File? = null
+        var denyOriginal = false
+        var originalRequests = 0
+        var typedOriginalRequests = 0
         var rows = listOf(Row())
         var ignoreSelection = false
         var ignoreLimit = false
@@ -52,6 +57,13 @@ class AndroidGalleryPhotoSourceTest {
         val requests = mutableListOf<Bundle>()
         override fun onCreate() = true
         override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
+            if (method == "create_write_request") {
+                @Suppress("DEPRECATION") val clip = extras!!.getParcelable<android.content.ClipData>("clip_data")!!
+                check(clip.itemCount == 1 && clip.getItemAt(0).uri.toString().startsWith("content://media/external_primary/${mediaType.uriSegment}/media/"))
+                writeRequests++
+                val intent = Intent("fixture.write." + java.util.UUID.randomUUID()).setData(clip.getItemAt(0).uri)
+                return Bundle().apply { putParcelable("result", android.app.PendingIntent.getActivity(context, 0, intent, android.app.PendingIntent.FLAG_IMMUTABLE)) }
+            }
             check(method == "get_version" && extras?.getString(Intent.EXTRA_TEXT) == "external_primary")
             return Bundle().apply { putString(Intent.EXTRA_TEXT, namespace) }
         }
@@ -98,9 +110,19 @@ class AndroidGalleryPhotoSourceTest {
         }
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
             check(mode == "r")
+            val original = Build.VERSION.SDK_INT >= 29 && android.provider.MediaStore.getRequireOriginal(uri)
+            if (original) originalRequests++
+            if (original && denyOriginal) throw UnsupportedOperationException("Fixture denies original media bytes")
             opens += uri.toString()
             onOpen?.invoke()
-            return ParcelFileDescriptor.open(File(root, "source.bin"), ParcelFileDescriptor.MODE_READ_ONLY)
+            return ParcelFileDescriptor.open(if (original) originalFile ?: File(root, "source.bin") else File(root, "source.bin"), ParcelFileDescriptor.MODE_READ_ONLY)
+        }
+        override fun openTypedAssetFile(uri: Uri, mimeTypeFilter: String, opts: Bundle?): android.content.res.AssetFileDescriptor {
+            if (Build.VERSION.SDK_INT >= 31 && android.provider.MediaStore.getRequireOriginal(uri)) {
+                check(opts?.getBoolean(android.provider.MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT) == true)
+                typedOriginalRequests++
+            }
+            return android.content.res.AssetFileDescriptor(openFile(uri, "r"), 0, android.content.res.AssetFileDescriptor.UNKNOWN_LENGTH)
         }
         override fun getType(uri: Uri) = "image/jpeg"
         override fun insert(uri: Uri, values: ContentValues?): Uri = throw AssertionError("Unexpected photo write")
@@ -290,6 +312,194 @@ class AndroidGalleryPhotoSourceTest {
                 assertThrows(javax.crypto.AEADBadTagException::class.java) { it.verifyContent(entry, permit) }
             } else assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryTrashArchive(root, protection) }
             assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
+    private fun prepareArchivedWrite(h: ResumeRuntimeCase, permit: NativeGalleryTrashBookPermit,
+        entry: NativeGalleryArchiveEntry? = null): NativeGalleryWriteRequest {
+        val archive = entry ?: run {
+            h.watchEnd()
+            val id = h.originalMedia["entries"]!!.jsonArray.single().jsonObject.string("file_id")
+            val copying = h.runtime.prepareRecoverableMember(h.selected, h.job, id, permit)
+            h.awaitEnd(); assertNull(copying.nativeFailure()); copying.completedNativeArchive()!!
+        }
+        h.watchEnd(); val preparing = h.runtime.prepareGalleryWriteConsent(archive, permit); h.awaitEnd()
+        assertNull(preparing.nativeFailure()); assertEquals("write_request_ready", preparing.phase)
+        assertNull(preparing.snapshotJob()); return preparing.completedNativeWriteRequest()!!
+    }
+
+    private fun writeResult(h: ResumeRuntimeCase, requestCode: Int, resultCode: Int): Boolean {
+        val handled = h.activity.get().activityResultRegistry.dispatchResult(requestCode, resultCode, Intent())
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+        return handled
+    }
+
+    @Test @Config(sdk = [30]) fun actualWriteConsentRequiresOsPermissionAndResumedActivityRatherThanResultBoolean() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val first = prepareArchivedWrite(h, permit); assertEquals(1, h.f.provider.writeRequests)
+            assertNull(Shadows.shadowOf(h.activity.get()).lastIntentSenderRequest)
+            val activity = h.activity.get() as WriteConsentActivity
+            val draft = android.widget.EditText(activity).also { it.setText("native unsaved draft") }; activity.setContentView(draft)
+            val results = mutableListOf<Result<NativeGalleryWriteGrant>>()
+            h.runtime.requestGalleryWriteConsent(first) { results += it }
+            var code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            writeResult(h, code, android.app.Activity.RESULT_OK)
+            assertTrue(results.single().isFailure); assertTrue(activity.writeChecks > 0)
+            val canceled = prepareArchivedWrite(h, permit, first.entry)
+            activity.writeAllowed = true; results.clear()
+            h.runtime.requestGalleryWriteConsent(canceled) { results += it }
+            code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            writeResult(h, code, android.app.Activity.RESULT_CANCELED); assertTrue(results.single().isFailure)
+            val accepted = prepareArchivedWrite(h, permit, first.entry); results.clear()
+            h.runtime.requestGalleryWriteConsent(accepted) { results += it }
+            code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            h.activity.pause().resume() // Actual read-access epoch rotates across the OS UI.
+            assertThrows(PhotoFolderScopeError::class.java) { h.catalog.page() }
+            writeResult(h, code, android.app.Activity.RESULT_OK)
+            val grant = results.single().getOrThrow(); grant.requireCurrent(); grant.consume()
+            assertThrows(PhotoFolderScopeError::class.java) { grant.consume() }
+            h.activity.pause().resume()
+            assertThrows(PhotoFolderScopeError::class.java) { grant.requireCurrent() }
+            assertEquals("native unsaved draft", draft.text.toString()); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualWriteConsentOldResultsCannotConsumeNewRequestAndPolicyChangeFailsClosed() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val documents = archiveBook(h.f); val permit = NativeGalleryTrashBookPermit.capture(documents) { true }
+            val first = prepareArchivedWrite(h, permit); val second = prepareArchivedWrite(h, permit, first.entry)
+            val activity = h.activity.get() as WriteConsentActivity; activity.writeAllowed = true
+            val old = mutableListOf<Result<NativeGalleryWriteGrant>>(); val fresh = mutableListOf<Result<NativeGalleryWriteGrant>>()
+            h.runtime.requestGalleryWriteConsent(first) { old += it }
+            val oldCode = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            h.writeHost!!.retirePending()
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.requestGalleryWriteConsent(second) { fresh += it } }
+            assertTrue(h.writeHost.requestPending)
+            writeResult(h, oldCode, android.app.Activity.RESULT_OK)
+            assertTrue(old.single().isFailure); assertTrue(fresh.isEmpty())
+            h.runtime.requestGalleryWriteConsent(second) { fresh += it }
+            val newCode = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            assertNotEquals(oldCode, newCode)
+            writeResult(h, oldCode, android.app.Activity.RESULT_OK)
+            assertTrue(fresh.isEmpty()); assertTrue(h.writeHost.requestPending)
+            documents.setzePapierkorb(false, 0)
+            writeResult(h, newCode, android.app.Activity.RESULT_OK)
+            assertTrue(fresh.single().isFailure); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun recoveryTrashJournalIsDurableExclusiveAndCannotReplayAnOldPreparedSelection() {
+        Fixture().use { f ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 47 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "trash-action-").toFile()
+            val lease = f.lease(); val file = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            lateinit var entry: NativeGalleryArchiveEntry
+            val prepared = NativeGalleryTrashArchive(root, protection).use {
+                entry = it.archive(lease, f.scope, file, f.reader, hash, permit)
+                it.prepareTrash(entry, permit) {}.also { action ->
+                    assertFalse(action.isRemoteDeletionReceipt)
+                    assertThrows(PhotoFolderScopeError::class.java) { it.prepareTrash(entry, permit) {} }
+                }
+            }
+            NativeGalleryTrashArchive(root, protection).use {
+                assertEquals(listOf(prepared), it.actions(permit))
+                val canceled = it.cancelUnmutatedTrash(prepared, permit) {}; assertEquals("canceled", canceled.state)
+                assertThrows(PhotoFolderScopeError::class.java) { it.finishTrash(prepared, permit) {} }
+                val fresh = it.prepareTrash(entry, permit) {}; assertNotEquals(prepared.operation, fresh.operation)
+                // Journal-only transition: no OS mutation or remote receipt is
+                // inferred by this storage-level fixture.
+                val completed = it.finishTrash(fresh, permit) {}; assertEquals("trashed", completed.state)
+                assertEquals(listOf(entry), it.entries(permit)); it.verifyContent(entry, permit)
+            }
+            assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun recoveryArchiveMustPreserveOriginalExifBytesRatherThanRedactedReadView() = originalRecoveryBytesCase(false)
+    @Test @Config(sdk = [33]) fun recoveryVideoArchiveRequestsOriginalFormatWithoutCompatibilityTranscoding() = originalRecoveryBytesCase(true)
+
+    private fun originalRecoveryBytesCase(video: Boolean) {
+        Fixture(if (video) GalleryMediaType.VIDEO else GalleryMediaType.IMAGES).use { f ->
+            val redacted = "safe redacted".toByteArray(); val original = "full original".toByteArray()
+            assertEquals(redacted.size, original.size)
+            File(f.root, "source.bin").writeBytes(redacted)
+            f.provider.originalFile = File(f.root, "raw-original.bin").also { it.writeBytes(original) }
+            f.provider.rows = listOf(Row(bytes = original.size.toLong(), name = if (video) "clip.mp4" else "image.jpg", mime = if (video) "video/mp4" else "image/jpeg"))
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 51 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "original-recovery-").toFile()
+            val lease = f.lease(); val file = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(redacted).joinToString("") { "%02x".format(it) }
+            NativeGalleryTrashArchive(root, protection).use {
+                val entry = it.archive(lease, f.scope, file, f.reader, hash, permit)
+                assertTrue(entry.originalBytesVerified)
+                val restored = ByteArrayOutputStream(); it.readContent(entry, permit) { bytes -> restored.write(bytes) }
+                assertArrayEquals(original, restored.toByteArray())
+                assertEquals(1, f.provider.originalRequests)
+                assertEquals(if (video) 1 else 0, f.provider.typedOriginalRequests)
+            }
+            assertArrayEquals(original, f.provider.originalFile!!.readBytes()); assertArrayEquals(redacted, File(f.root, "source.bin").readBytes())
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun deniedOriginalMediaCannotFallBackToRedactedArchiveOrWriteConsent() {
+        Fixture().use { f ->
+            f.provider.denyOriginal = true
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 52 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "denied-original-").toFile()
+            val lease = f.lease(); val file = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            NativeGalleryTrashArchive(root, protection).use {
+                assertThrows(UnsupportedOperationException::class.java) { it.archive(lease, f.scope, file, f.reader, hash, permit) }
+            }
+            NativeGalleryTrashArchive(root, protection).use { assertTrue(it.entries(permit).isEmpty()) }
+            assertEquals(1, f.provider.originalRequests); assertEquals(1, f.provider.opens.size)
+            assertEquals(0, f.provider.writeRequests); assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun legacyRecoveryCopyStaysReadableButCannotAuthorizeOsWriteWithoutOriginalByteWitness() {
+        Fixture().use { f ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 53 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "legacy-original-").toFile()
+            val lease = f.lease(); val file = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            val created = NativeGalleryTrashArchive(root, protection).use { it.archive(lease, f.scope, file, f.reader, hash, permit) }
+            val header = protection.open(File(root, "media-recovery-owner.enc").readBytes(), "gallery-media-recovery-v1/header")
+            val owner = try { Json.parseToJsonElement(header.decodeToString()).jsonObject.string("owner") } finally { header.fill(0) }
+            val prefix = "gallery-media-recovery-v1/$owner/"
+            // Reconstruct a valid old-format encrypted fixture, not corrupt it
+            // into a magically authorized new record. Preserve its raw bytes.
+            android.database.sqlite.SQLiteDatabase.openDatabase(File(root, "media-recovery.db").path, null,
+                android.database.sqlite.SQLiteDatabase.OPEN_READWRITE or android.database.sqlite.SQLiteDatabase.NO_LOCALIZED_COLLATORS).use { db ->
+                val bytes = db.rawQuery("SELECT sealed FROM recovery_entries WHERE id=?", arrayOf(created.id)).use { it.moveToFirst(); it.getBlob(0) }
+                val clear = protection.open(bytes, prefix + created.id + "/metadata")
+                val body = try { Json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
+                val legacy = JsonObject(body.filterKeys { it !in setOf("original_bytes", "baseline_sha256") } + ("format" to JsonPrimitive(1)))
+                val cipher = protection.seal(TelefonKanonisch.bytes(legacy), prefix + created.id + "/metadata")
+                db.update("recovery_entries", ContentValues().apply { put("sealed", cipher) }, "id=?", arrayOf(created.id))
+                val membership = buildJsonObject {
+                    put("format", 1); put("revision", 3)
+                    put("entries", JsonArray(listOf(buildJsonObject {
+                        put("id", created.id); put("sha256", java.security.MessageDigest.getInstance("SHA-256").digest(cipher).joinToString("") { "%02x".format(it) })
+                    })))
+                }
+                db.update("recovery_meta", ContentValues().apply { put("sealed", protection.seal(TelefonKanonisch.bytes(membership), prefix + "membership")) }, "name=?", arrayOf("membership"))
+            }
+            NativeGalleryTrashArchive(root, protection).use {
+                val legacy = it.entries(permit).single(); assertFalse(legacy.originalBytesVerified)
+                val restored = ByteArrayOutputStream(); it.readContent(legacy, permit) { bytes -> restored.write(bytes) }
+                assertEquals("hello", restored.toString("UTF-8"))
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryWriteRequest.prepare(f.context, it, legacy, permit, { f.receiver.copy(pairingEpoch = "1".repeat(64)) })
+                }
+                assertEquals(0, f.provider.writeRequests)
+            }
         }
     }
 
@@ -1156,7 +1366,17 @@ class AndroidGalleryPhotoSourceTest {
 
     /** Original acceptance is established through actual controls/OS host and
      * encrypted output, then stopped BEFORE Saved. No consent is fabricated. */
-    private class ResumeRuntimeCase(fileCount: Int = 1) : AutoCloseable {
+    class WriteConsentActivity : ComponentActivity() {
+        var writeAllowed = false
+        var writeChecks = 0
+        override fun checkUriPermission(uri: Uri, pid: Int, uid: Int, modeFlags: Int): Int {
+            check(modeFlags == Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            writeChecks++
+            return if (writeAllowed) android.content.pm.PackageManager.PERMISSION_GRANTED else android.content.pm.PackageManager.PERMISSION_DENIED
+        }
+    }
+
+    private class ResumeRuntimeCase(fileCount: Int = 1, withWriteHost: Boolean = false) : AutoCloseable {
         val f = Fixture()
         val root = Files.createTempDirectory(f.root.toPath(), "resume-runtime356-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -1169,8 +1389,9 @@ class AndroidGalleryPhotoSourceTest {
         val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
         val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
         val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
-        val activity = Robolectric.buildActivity(ComponentActivity::class.java).create()
-        val host = GalleryPhotoPermissionHost(activity.get())
+        val activity = if (withWriteHost) Robolectric.buildActivity(WriteConsentActivity::class.java).create() else Robolectric.buildActivity(ComponentActivity::class.java).create()
+        val writeHost = if (withWriteHost) NativeGalleryWriteConsentHost(activity.get()) else null
+        val host = GalleryPhotoPermissionHost(activity.get(), writeConsent = writeHost)
         val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime) as NativeGallerySourceWorker
         val endedField = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
         @Suppress("UNCHECKED_CAST") val originalEnd = endedField.get(worker) as (NativeGallerySourceRun) -> Unit

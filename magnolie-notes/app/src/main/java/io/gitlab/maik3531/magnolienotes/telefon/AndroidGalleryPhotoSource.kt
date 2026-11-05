@@ -206,15 +206,35 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         fresh(lease, cancellation)
     }
 
-    override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream {
+    override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream =
+        openChecked(lease, entry, cancellation, original = false)
+
+    internal fun openOriginalForRecovery(lease: GalleryPhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream {
+        if (Build.VERSION.SDK_INT < 30) fail("gallery_archive_native_origin_required")
+        return openChecked(lease, entry, cancellation, original = true)
+    }
+
+    private fun openChecked(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal, original: Boolean): InputStream {
         val uri = document(lease, entry, cancellation)
         verifyMetadata(lease, entry, cancellation)
-        val descriptor = resolver.openFileDescriptor(uri, "r", cancellation) ?: fail("gallery_inventory_member_missing")
+        // No fallback: normal READ can redact EXIF. Recovery must preserve the
+        // original, or fail before any destructive operation is authorized.
+        val requested = if (original) MediaStore.setRequireOriginal(uri) else uri
+        val stream = if (original && Build.VERSION.SDK_INT >= 31) {
+            // Opt out of compatibility transcoding as well as EXIF redaction.
+            val options = Bundle().apply { putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true) }
+            val descriptor = resolver.openTypedAssetFileDescriptor(requested, "*/*", options, cancellation)
+                ?: fail("gallery_inventory_member_missing")
+            try { descriptor.createInputStream() } catch (error: Exception) { descriptor.close(); throw error }
+        } else {
+            val descriptor = resolver.openFileDescriptor(requested, "r", cancellation) ?: fail("gallery_inventory_member_missing")
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor)
+        }
         try {
             fresh(lease, cancellation)
             verifyMetadata(lease, entry, cancellation)
-        } catch (error: Exception) { descriptor.close(); throw error }
-        return object : FilterInputStream(ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
+        } catch (error: Exception) { stream.close(); throw error }
+        return object : FilterInputStream(stream) {
             override fun read(): Int {
                 fresh(lease, cancellation)
                 return `in`.read().also { fresh(lease, cancellation) }

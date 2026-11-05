@@ -12,7 +12,8 @@ import java.util.concurrent.atomic.AtomicReference
  * No store/key access, settings screen or permission prompt on construction.
  */
 internal class GalleryPhotoPermissionHost(private val activity: ComponentActivity,
-    internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : DefaultLifecycleObserver, AutoCloseable {
+    internal val mediaType: GalleryMediaType = GalleryMediaType.IMAGES,
+    private val writeConsent: NativeGalleryWriteConsentHost? = null) : DefaultLifecycleObserver, AutoCloseable {
     private class Attachment(val workflow: NativeGalleryPhotoWorkflow, val onResult: (Result<GalleryReadCoverage>) -> Unit)
     private val attachment = AtomicReference<Attachment?>()
     private val pendingResult = AtomicReference<Attachment?>()
@@ -31,7 +32,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         uiThread()
         if (closed) fail("gallery_permission_host_closed")
         if (attachment.get()?.workflow === workflow) return launcher
-        if (launcher.requestPending) fail("gallery_permission_request_pending")
+        if (launcher.requestPending || writeConsent?.requestPending == true) fail("gallery_permission_request_pending")
         val next = Attachment(workflow, onResult)
         val previous = attachment.getAndSet(next)
         previous?.workflow?.detachPermissionHost(this)
@@ -44,7 +45,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         uiThread()
         if (closed) fail("gallery_permission_host_closed")
         val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
-        if (launcher.requestPending || !pendingResult.compareAndSet(null, original)) fail("gallery_permission_request_pending")
+        if (launcher.requestPending || writeConsent?.requestPending == true || !pendingResult.compareAndSet(null, original)) fail("gallery_permission_request_pending")
         try { launcher.request() }
         catch (error: Exception) { pendingResult.compareAndSet(original, null); throw error }
     }
@@ -52,6 +53,7 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
     internal fun detach(workflow: NativeGalleryPhotoWorkflow) {
         val original = attachment.get()?.takeIf { it.workflow === workflow } ?: return
         if (attachment.compareAndSet(original, null)) {
+            writeConsent?.retirePending()
             pendingResult.compareAndSet(original, null)
             launcher.access.onAccessChanged()
         }
@@ -59,11 +61,23 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         // Activity destruction. Do not let that callback consume a new ticket.
     }
 
+    internal fun requestWrite(workflow: NativeGalleryPhotoWorkflow, request: NativeGalleryWriteRequest,
+        result: (Result<NativeGalleryWriteGrant>) -> Unit) {
+        uiThread()
+        val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
+        if (closed || launcher.requestPending || mediaType != request.mediaType) fail("gallery_write_foreground_required")
+        val writer = writeConsent ?: fail("gallery_write_foreground_required")
+        writer.request(request) { outcome ->
+            if (attachment.get() === original && !closed) result(outcome) else request.revoke()
+        }
+    }
+
     override fun onDestroy(owner: LifecycleOwner) { close() }
     override fun close() {
         uiThread()
         if (closed) return
         closed = true
+        writeConsent?.retirePending()
         attachment.getAndSet(null)?.workflow?.detachPermissionHost(this)
         pendingResult.set(null)
         launcher.close()
