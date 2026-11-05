@@ -9,6 +9,15 @@ internal static class MediaSyncSettingsTests
     internal static Task RunAsync()
     {
         var initial = MediaSyncSettings.Create(Pc); var original = initial.ToJsonString();
+        var start = new JsonObject { ["format"] = 1, ["settings"] = initial.DeepClone() };
+        MediaSyncSettings.ValidateStart(start);
+        var partial = start.DeepClone().AsObject(); partial["settings"]!["settings"]!.AsObject().Remove("enabled");
+        TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.ValidateStart(partial), "Manual start accepted an incomplete settings snapshot.");
+        var pathStart = start.DeepClone().AsObject(); pathStart["path"] = "C:\\foreign";
+        TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.ValidateStart(pathStart), "Manual request accepted a native filesystem path.");
+        var report = new JsonObject { ["format"] = 1, ["request_id"] = Guid.NewGuid().ToString("D"), ["state"] = "content_pass" };
+        MediaSyncSettings.ValidateResult(report); report["state"] = "complete";
+        TestAssert.Throws<InvalidDataException>(() => MediaSyncSettings.ValidateResult(report), "Content pass report claimed complete bilateral/deletion synchronization.");
         var defaults = MediaSyncSettings.Effective(initial);
         TestAssert.That(defaults.Count == 7 && !defaults["enabled"]!.GetValue<bool>() && defaults["photos_enabled"]!.GetValue<bool>() && !defaults["videos_enabled"]!.GetValue<bool>() &&
             defaults["auto_mode"]!.GetValue<string>() == "manual" && !defaults["skip_deletions"]!.GetValue<bool>() &&

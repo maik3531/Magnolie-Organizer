@@ -1333,6 +1333,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             zusammenhang.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                 android.net.Uri.fromParts("package", zusammenhang.packageName, null)))
                         },
+                        beiMedienSynchronisieren = { faden.launch {
+                            val failure = withContext(Dispatchers.IO) { runCatching { telefonWerk.mediaSyncNow() }.exceptionOrNull() }
+                            if (failure != null) sage(zusammenhang.fehlertext(failure))
+                        } },
                         beiGemeinsameEinstellung = { field, value, initial -> telefonZustand.peer?.let { peer ->
                             runCatching { telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public, initial, field, value) }
                                 .onFailure { sage(zusammenhang.fehlertext(it)) }

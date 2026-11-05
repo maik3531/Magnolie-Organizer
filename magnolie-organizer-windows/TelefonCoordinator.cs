@@ -1643,6 +1643,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection!),
+                    MediaManualRequested = (settings, requestId, token) => StartNativeMediaManualRequest(peer.Id, connection!, settings, requestId, token),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
@@ -2233,6 +2234,11 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
+        if (plain["kind"]?.GetValue<string>() == MediaSyncSettings.StartKind)
+        {
+            await HandleMediaManualRequestAsync(plain);
+            return;
+        }
         if (plain["kind"]?.GetValue<string>() == MediaSyncSettings.Kind)
         {
             await HandleMediaSharedSettingsAsync(plain);

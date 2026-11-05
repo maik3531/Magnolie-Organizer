@@ -151,6 +151,8 @@ data class TelefonUiZustand(
     val mediaPreferencesReady: Boolean = false,
     val mediaPreferencesValues: JsonObject? = null,
     val mediaPreferencesVersions: Map<String, String> = emptyMap(),
+    val mediaManualBusy: Boolean = false,
+    val mediaManualState: String = "",
     val personalSyncReport: String = "",
     val selectedPackages: Set<String> = emptySet(),
     val notificationApps: List<TelefonApp> = emptyList(),

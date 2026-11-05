@@ -31,7 +31,7 @@ internal static class DeviceFileConnectionReceiveTests
                 end += 4 + length;
             }
             var frames = DeviceFileConnectionTransportTests.OpenFrames(bytes[..end]);
-            var matching = frames.Where(frame => frame["kind"]!.GetValue<string>() == kind).ToArray();
+            var matching = frames.Where(frame => frame["kind"]?.GetValue<string>() == kind).ToArray();
             if (matching.Length > occurrence) return matching[occurrence];
             await Task.Delay(5);
         }

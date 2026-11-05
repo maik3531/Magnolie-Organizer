@@ -7,6 +7,23 @@ internal object MediaSyncSettings {
     const val DISCOVERY_VERSION = 23
     const val VERSION = 1
     const val KIND = "file_transfer.shared_settings"
+    const val START_KIND = "file_transfer.sync_request"
+    const val RESULT_KIND = "file_transfer.sync_result"
+
+    fun validateStart(body: JsonObject) {
+        TelefonNachrichten.exact(body, setOf("format", "settings"))
+        require(body["format"] == JsonPrimitive(1))
+        val settings = body.getValue("settings").jsonObject
+        validate(settings)
+        require(settings.getValue("settings").jsonObject.size == fields.size)
+    }
+
+    fun validateResult(body: JsonObject) {
+        TelefonNachrichten.exact(body, setOf("format", "request_id", "state"))
+        require(body["format"] == JsonPrimitive(1))
+        TelefonNachrichten.uuid4(body.string("request_id"))
+        require(body.string("state") in setOf("content_pass", "review", "held"))
+    }
     private val fields = linkedMapOf("photos_enabled" to "custom_enabled", "videos_enabled" to "time_enabled",
         "auto_mode" to "auto_mode", "skip_deletions" to "skip_deletions", "collection_mode" to "content_mode", "direction" to "time_mode",
         "enabled" to "custom_enabled")

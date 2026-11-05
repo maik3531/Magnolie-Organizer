@@ -8,6 +8,18 @@ class MediaSyncSettingsTest {
     private val pc = "11111111-1111-4111-8111-111111111111"
     private val phone = "22222222-2222-4222-8222-222222222222"
 
+    @Test fun explicitManualWireRequiresFullSnapshotNoPathsAndDoesNotClaimFullSync() {
+        val snapshot = MediaSyncSettings.create(pc)
+        val start = buildJsonObject { put("format", 1); put("settings", snapshot) }
+        MediaSyncSettings.validateStart(start)
+        val partial = JsonObject(snapshot + ("settings" to JsonObject(snapshot.getValue("settings").jsonObject - "enabled")))
+        assertThrows(IllegalArgumentException::class.java) { MediaSyncSettings.validateStart(JsonObject(start + ("settings" to partial))) }
+        assertThrows(TelefonProtokollFehler::class.java) { MediaSyncSettings.validateStart(JsonObject(start + ("path" to JsonPrimitive("/must-not-open")))) }
+        val report = buildJsonObject { put("format", 1); put("request_id", pc); put("state", "content_pass") }
+        MediaSyncSettings.validateResult(report)
+        assertThrows(IllegalArgumentException::class.java) { MediaSyncSettings.validateResult(JsonObject(report + ("state" to JsonPrimitive("complete")))) }
+    }
+
     @Test fun mediaDefaultsAreSeparateManualAndOffWithoutAnyGrant() {
         val body = MediaSyncSettings.create(pc)
         val values = MediaSyncSettings.effective(body)

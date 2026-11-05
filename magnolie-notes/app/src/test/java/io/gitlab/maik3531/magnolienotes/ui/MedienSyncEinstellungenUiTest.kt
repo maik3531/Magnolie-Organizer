@@ -37,6 +37,7 @@ class MedienSyncEinstellungenUiTest {
         mediaPreferencesVersions = versions))
     private val changes = mutableListOf<Triple<String, JsonElement, String>>()
     private var permissions = 0
+    private var runs = 0
     private val clock = BroadcastFrameClock()
     private val scope = CoroutineScope(Dispatchers.Main + clock + Job())
     private val recomposer = Recomposer(scope.coroutineContext)
@@ -51,7 +52,7 @@ class MedienSyncEinstellungenUiTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
-        }, { permissions++ }) } }
+        }, { permissions++ }, { runs++ }) } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
     private fun frames() {
@@ -81,7 +82,7 @@ class MedienSyncEinstellungenUiTest {
         assertEquals(ToggleableState.Off, master.config[SemanticsProperties.ToggleableState])
         assertEquals(ToggleableState.Off, checkbox(R.string.personal_sync_skip_deletions).config[SemanticsProperties.ToggleableState])
         assertNotNull(checkbox(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
-        assertTrue(changes.isEmpty()); assertEquals(0, permissions)
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
         click(master)
         assertEquals(Triple("enabled", JsonPrimitive(true), versions.getValue("enabled")), changes.single())
         assertEquals(0, permissions)
@@ -91,6 +92,13 @@ class MedienSyncEinstellungenUiTest {
         assertEquals(Triple("skip_deletions", JsonPrimitive(true), versions.getValue("skip_deletions")), changes.last())
         val permissionButton = nodes().single { text(it) == "Android · " + label(R.string.medien_sync_zugriff) }
         click(permissionButton); assertEquals(1, permissions)
+        assertEquals(0, runs)
+        val syncLabel = label(R.string.personal_sync_jetzt)
+        assertNotNull(nodes().single { text(it) == syncLabel }.config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaPreferencesReady = true); frames()
+        click(nodes().single { text(it) == syncLabel }); assertEquals(1, runs)
+        state.value = state.value.copy(mediaManualBusy = true); frames()
+        assertNotNull(nodes().single { text(it) == syncLabel }.config.getOrNull(SemanticsProperties.Disabled))
     }
 
     @Test fun unsupportedOrMissingNativeValuesNeverExposeMediaControls() {

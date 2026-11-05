@@ -8,6 +8,24 @@ internal static class MediaSyncSettings
 {
     internal const int DiscoveryVersion = 23, Version = 1;
     internal const string Kind = "file_transfer.shared_settings";
+    internal const string StartKind = "file_transfer.sync_request", ResultKind = "file_transfer.sync_result";
+
+    internal static void ValidateStart(JsonObject body)
+    {
+        TelefonProtocolContract.ExactObject(body, "format", "settings");
+        if (TelefonProtocolContract.Integer(body["format"]) != 1 || body["settings"] is not JsonObject settings)
+            throw new InvalidDataException("media_sync_request_invalid");
+        Validate(settings);
+        if (settings["settings"]!.AsObject().Count != Fields.Count) throw new InvalidDataException("media_sync_request_full_snapshot_required");
+    }
+
+    internal static void ValidateResult(JsonObject body)
+    {
+        TelefonProtocolContract.ExactObject(body, "format", "request_id", "state");
+        if (TelefonProtocolContract.Integer(body["format"]) != 1 || !TelefonProtocolContract.IsUuidV4(TelefonMessagingContract.String(body, "request_id")) ||
+            TelefonMessagingContract.String(body, "state") is not ("content_pass" or "review" or "held"))
+            throw new InvalidDataException("media_sync_result_invalid");
+    }
     private static readonly Dictionary<string, string> Fields = new(StringComparer.Ordinal)
     {
         ["photos_enabled"] = "custom_enabled", ["videos_enabled"] = "time_enabled",

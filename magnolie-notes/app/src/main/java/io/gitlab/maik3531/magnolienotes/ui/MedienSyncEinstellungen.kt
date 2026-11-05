@@ -30,7 +30,7 @@ private fun MedienCheckbox(label: String, checked: Boolean, enabled: Boolean = t
 
 @Composable
 internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
-    beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit) {
+    beiAenderung: (String, JsonElement, String) -> Unit, beiBerechtigungen: () -> Unit, beiSynchronisieren: () -> Unit) {
     if (!telefon.mediaPreferencesSupported) return
     val values = telefon.mediaPreferencesValues ?: return
     var offen by remember(telefon.peer?.device_id, telefon.peer?.static_public) { mutableStateOf(false) }
@@ -73,5 +73,10 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
         if (!telefon.mediaPreferencesReady) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
+        if (telefon.mediaManualBusy) Text(stringResource(R.string.baum_wartet), color = Magnolie.braunHell)
+        if (telefon.mediaManualState in setOf("held", "review")) Text(stringResource(R.string.media_recovery_uncertain), color = Magnolie.braunHell)
+        Papierknopf(stringResource(R.string.personal_sync_jetzt), Modifier.fillMaxWidth(),
+            aktiv = enabled && (flag("photos_enabled") || flag("videos_enabled")) && telefon.mediaPreferencesReady && !telefon.mediaManualBusy,
+            beiKlick = beiSynchronisieren)
     }
 }

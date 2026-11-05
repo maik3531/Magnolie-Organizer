@@ -137,6 +137,7 @@ class Telefonhandlungen(
     val beiCustomEntscheidung: (String, Long, Boolean) -> Unit,
     val beiMedienEinstellung: (String, JsonElement, String) -> Unit,
     val beiMedienBerechtigungen: () -> Unit,
+    val beiMedienSynchronisieren: () -> Unit,
     val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> },
     val beiKontaktgruppenSchreiben: (String, String, Boolean) -> Unit = { _, _, _ -> }
 )
@@ -457,7 +458,8 @@ fun BaumBlatt(
             Papierknopf((if (erweitertOffen) "▾ " else "▸ ") + stringResource(R.string.telefon_erweitert_titel),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { erweitertOffen = !erweitertOffen }
             if (erweitertOffen) Abschnitt(ueberschrift = stringResource(R.string.telefon_erweitert_titel)) {
-                MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen)
+                MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen,
+                    telefonHandlungen.beiMedienSynchronisieren)
             }
         }
         if (!baumSichtbar) return@Column

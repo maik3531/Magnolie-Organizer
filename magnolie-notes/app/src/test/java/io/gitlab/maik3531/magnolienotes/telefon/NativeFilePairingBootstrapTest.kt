@@ -115,6 +115,37 @@ class NativeFilePairingBootstrapTest {
             assertFalse(work.state.value.mediaPreferencesReady)
             assertThrows(IllegalStateException::class.java) { work.changeMediaPreference("videos_enabled", JsonPrimitive(false), videoVersion) }
             assertEquals(JsonPrimitive(true), work.state.value.mediaPreferencesValues?.get("videos_enabled"))
+            assertThrows(IllegalStateException::class.java) { work.mediaSyncNow() }
+            work.changeMediaPreference("enabled", JsonPrimitive(true), work.state.value.mediaPreferencesVersions.getValue("enabled"))
+            @Suppress("UNCHECKED_CAST")
+            val mediaSessions = field(TelefonWerk::class.java, "mediaSessions").get(work) as MutableMap<TelefonSecureChannel, MediaSyncTransport>
+            val media = mediaSessions.getValue(channel)
+            val outbound = queue.due(peer.device_id, TelefonTransportArt.WIFI).single { it.payload["kind"] == JsonPrimitive(MediaSyncSettings.KIND) }.payload
+            media.send(outbound, channel::send)
+            work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.KIND, outbound.getValue("body").jsonObject, 60_000), channel, generation)
+            media.acknowledge(TelefonNachrichten.ack(outbound.string("message_id"), "accepted", "none"))
+            assertTrue(work.state.value.mediaPreferencesReady)
+            val bytes = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            bytes.reset(); work.mediaSyncNow()
+            assertTrue(work.state.value.mediaManualBusy)
+            assertThrows(IllegalStateException::class.java) { work.mediaSyncNow() }
+            val input = ByteArrayInputStream(bytes.toByteArray())
+            val packets = mutableListOf<JsonObject>()
+            while (input.available() > 0) {
+                val frame = TelefonRahmen.lesen(input); val header = JsonObject(frame - "ciphertext")
+                val clear = TelefonKrypto.entschluesseln(ByteArray(32), TelefonKrypto.nonce(ByteArray(4), header.long("seq")),
+                    java.util.Base64.getDecoder().decode(frame.string("ciphertext")), TelefonKanonisch.bytes(header))
+                packets += Json.parseToJsonElement(clear.decodeToString()).jsonObject
+            }
+            val requested = packets.single { it["kind"] == JsonPrimitive(MediaSyncSettings.START_KIND) }
+            TelefonNachrichten.validate(requested)
+            assertEquals(outbound["body"], requested.getValue("body").jsonObject["settings"])
+            work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.RESULT_KIND, buildJsonObject {
+                put("format", 1); put("request_id", requested.string("message_id")); put("state", "content_pass")
+            }, 60_000), channel, generation)
+            assertFalse(work.state.value.mediaManualBusy); assertEquals("content_pass", work.state.value.mediaManualState)
+            work.receiveMessage(peer, requested, channel, generation)
+            assertFalse(work.state.value.mediaManualBusy); assertEquals("content_pass", work.state.value.mediaManualState)
             assertEquals(peer, storage.fileAuthorityPeers().peer)
             assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
             assertFalse(peer.contacts_read_enabled); assertFalse(peer.personal_notes_sync_granted)

@@ -129,4 +129,39 @@ internal static class DeviceFileSharedTransportTests
         TestAssert.That(f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey) is not null &&
             !f.Connection.MediaSharedSettingsReady, "Secure output failure lost durable choices or claimed matched state.");
     }
+
+    internal static async Task ManualGuardsAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(); await Seed(f);
+        f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "enabled", JsonValue.Create(true)!,
+            f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "enabled"));
+        JsonObject Request()
+        {
+            var message = Message(new JsonObject { ["format"] = 1, ["settings"] = f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)!.DeepClone() });
+            message["kind"] = MediaSyncSettings.StartKind; return message;
+        }
+        var calls = 0;
+        f.Connection.MediaManualRequested = (settings, _, _) => {
+            TestAssert.That(JsonNode.DeepEquals(settings, f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)), "Manual callback received a different snapshot.");
+            calls++;
+        };
+        await f.Connection.HandlePlainAsync(Request());
+        TestAssert.That(calls == 0, "Unmatched settings admitted explicit manual work.");
+        await MatchAsync(f);
+        var requested = Request(); await f.Connection.HandlePlainAsync(requested); await f.Connection.HandlePlainAsync(requested);
+        TestAssert.That(calls == 1, "Exact duplicate manual request scheduled another worker.");
+        var expired = Request(); expired["created_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 61000; expired["expires_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 1000;
+        await f.Connection.HandlePlainAsync(expired);
+        TestAssert.That(calls == 1, "Manual action used generic clock-skew tolerance to start after its deadline.");
+        var malformed = Request(); malformed["body"]!["path"] = "C:\\must-not-open";
+        await DeviceFileConnectionSourcesTests.FailsAsync<TelefonMessageException>(f.Connection.HandlePlainAsync(malformed), "Native path entered an explicit phone request.");
+        var stale = Request();
+        f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "skip_deletions", JsonValue.Create(true)!,
+            f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "skip_deletions"));
+        await f.Connection.HandlePlainAsync(stale); TestAssert.That(calls == 1, "Stale manual action started after a register edit.");
+        await MatchAsync(f);
+        f.Stream.Fail = true;
+        await DeviceFileConnectionSourcesTests.FailsAsync<IOException>(f.Connection.HandlePlainAsync(Request()), "Failed secure request ACK was ignored.");
+        TestAssert.That(calls == 1, "Native manual work started before secure ACK output succeeded.");
+    }
 }

@@ -77,7 +77,22 @@ internal static class DeviceFileAutomaticTests
         const string text = "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "automatic-book"), text);
         coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
-        var automatic = Run();
+        var manualCleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task RunWire()
+        {
+            f.Native.Connection.MediaManualRequested = (settings, id, token) => coordinator.StartNativeMediaManualRequest(f.Native.Peer.Id, f.Native.Connection, settings, id, token);
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); var id = Guid.NewGuid().ToString("D");
+            var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = id, ["kind"] = MediaSyncSettings.StartKind,
+                ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = new JsonObject { ["format"] = 1, ["settings"] = manualIntent!.DeepClone() } };
+            await f.Native.Connection.HandlePlainAsync(message);
+            await f.Native.Connection.HandlePlainAsync(message); // Exact duplicate must never start a second worker.
+            await manualCleanup.Task;
+            var result = await DeviceFileConnectionReceiveTests.Outbound(f, MediaSyncSettings.ResultKind);
+            TelefonMessageContract.ValidateMessage(result, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), true);
+            TestAssert.That(result["body"]!["request_id"]!.GetValue<string>() == id && result["body"]!["state"]!.GetValue<string>() == "content_pass",
+                "Phone request did not report its own actual content pass after Saved and END.");
+        }
+        var automatic = manual ? RunWire() : Run();
         if (automatic.IsCompleted) await automatic;
         if (!manual)
         {
@@ -174,6 +189,7 @@ internal static class DeviceFileAutomaticTests
             request = await Source(++offset, "end_run"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
             request = await Source(++offset, "end_album"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
         }
+        manualCleanup.TrySetResult();
         if (stop) await DeviceFileConnectionSourcesTests.FailsAsync<OperationCanceledException>(automatic, "Stopped automatic work returned completion.");
         else await automatic;
         var ui = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);

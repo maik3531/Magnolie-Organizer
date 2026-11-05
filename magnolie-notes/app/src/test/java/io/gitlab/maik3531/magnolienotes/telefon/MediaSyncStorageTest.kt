@@ -85,7 +85,27 @@ class MediaSyncStorageTest {
         assertNotNull(imageIntent); assertNull(channel.intentFor(GalleryMediaType.VIDEO))
         channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, persisted, 60000)) { }
         assertSame("An unchanged echo must not retire an active source choice", imageIntent, channel.intentFor(GalleryMediaType.IMAGES))
+        val requests = mutableListOf<JsonObject>()
+        channel.startManual(requests::add)
+        val request = requests.single()
+        assertEquals(JsonPrimitive(MediaSyncSettings.START_KIND), request["kind"])
+        assertEquals(persisted, request["body"]!!.jsonObject["settings"])
+        assertTrue(channel.manualStatus().first)
+        reject { channel.startManual(requests::add) }; assertEquals(1, requests.size)
+        channel.acknowledge(TelefonNachrichten.ack(request.string("message_id"), "accepted", "none"))
+        assertTrue("Receipt acceptance is not worker completion", channel.manualStatus().first)
+        fun result(id: String) = TelefonNachrichten.message(MediaSyncSettings.RESULT_KIND, buildJsonObject {
+            put("format", 1); put("request_id", id); put("state", "content_pass")
+        }, 60_000)
+        channel.receiveManualResult(result(java.util.UUID.randomUUID().toString())) { assertEquals(JsonPrimitive("rejected"), it["status"]) }
+        assertTrue(channel.manualStatus().first)
+        channel.receiveManualResult(result(request.string("message_id"))) { assertEquals(JsonPrimitive("accepted"), it["status"]) }
+        assertEquals(false to "content_pass", channel.manualStatus())
+        channel.startManual(requests::add)
+        assertTrue(channel.manualStatus().first)
+        assertFalse(queue.due(expected.peerActor, TelefonTransportArt.WIFI).any { it.payload["kind"] == JsonPrimitive(MediaSyncSettings.START_KIND) })
         channel.invalidate()
+        assertEquals(false to "held", channel.manualStatus())
         assertNull(channel.intentFor(GalleryMediaType.IMAGES))
         channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
         assertFalse(channel.matched())
@@ -94,6 +114,10 @@ class MediaSyncStorageTest {
         channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
         assertTrue(channel.matched())
         assertNotSame("A fresh agreement must not resurrect the older native source lease", imageIntent, channel.intentFor(GalleryMediaType.IMAGES))
+        channel.receiveManualResult(result(requests.last().string("message_id"))) { assertEquals(JsonPrimitive("rejected"), it["status"]) }
+        assertEquals(false to "held", channel.manualStatus())
+        reject { channel.startManual { throw java.io.IOException("Synthetic explicit request write failed") } }
+        assertEquals(false to "held", channel.manualStatus())
         ready = false; channel.queueSettings(); assertFalse(channel.matched()); assertNull(channel.intentFor(GalleryMediaType.IMAGES))
     }
 

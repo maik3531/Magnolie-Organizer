@@ -18,6 +18,41 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
     }
     @Volatile private var currentIntent: IntentToken? = null
+    private data class ManualRequest(val id: String, val intent: IntentToken, val started: Long)
+    private var manualRequest: ManualRequest? = null
+    private var manualState = ""
+
+    @Synchronized fun manualStatus(): Pair<Boolean, String> {
+        if (manualRequest?.let { android.os.SystemClock.elapsedRealtime() - it.started > 7_200_000L } == true) {
+            manualRequest = null; manualState = "held"
+        }
+        return (manualRequest != null) to manualState
+    }
+
+    @Synchronized fun startManual(write: (JsonObject) -> Unit) {
+        check(manualStatus().first.not()) { "media_manual_busy" }
+        val intent = currentIntent ?: error("media_shared_not_matched")
+        check(matched(intent.body) && (intent.requested(GalleryMediaType.IMAGES) || intent.requested(GalleryMediaType.VIDEO))) { "media_shared_not_matched" }
+        val body = buildJsonObject { put("format", 1); put("settings", intent.body) }
+        MediaSyncSettings.validateStart(body)
+        val message = TelefonNachrichten.message(MediaSyncSettings.START_KIND, body, 60_000)
+        manualRequest = ManualRequest(message.string("message_id"), intent, android.os.SystemClock.elapsedRealtime())
+        manualState = ""; changed()
+        try { write(message) }
+        catch (error: Exception) { manualRequest = null; manualState = "held"; changed(); throw error }
+        // Deliberately no outbox/replay: an explicit action belongs to this
+        // current secure channel and exact in-process agreement owner only.
+    }
+
+    @Synchronized fun receiveManualResult(message: JsonObject, write: (JsonObject) -> Unit) {
+        TelefonNachrichten.validate(message)
+        val body = message.getValue("body").jsonObject
+        MediaSyncSettings.validateResult(body)
+        val request = manualRequest
+        val current = request != null && request.id == body.string("request_id") && currentIntent === request.intent && matched(request.intent.body)
+        write(TelefonNachrichten.ack(message.string("message_id"), if (current) "accepted" else "rejected", if (current) "none" else "not_granted"))
+        if (current) { manualRequest = null; manualState = body.string("state"); changed() }
+    }
 
     // Native source checks may hold their index lock. This projection MUST NOT
     // acquire transport/Werk/storage locks or manufacture any permission.
@@ -28,10 +63,12 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             catch (error: Exception) { currentIntent = null; throw error }
         currentIntent = if (body != null && body == sent && body == acknowledged && body == received)
             currentIntent?.takeIf { it.body == body } ?: IntentToken(body) else null
+        if (manualRequest?.let { it.intent !== currentIntent } == true) { manualRequest = null; manualState = "held" }
         changed()
     }
 
     @Synchronized fun invalidate() {
+        if (manualRequest != null) { manualRequest = null; manualState = "held" }
         currentIntent = null
         generation++; sent = null; acknowledged = null; received = null; attempts.clear()
         previewPublished = false; changed()
@@ -44,6 +81,9 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     }
 
     @Synchronized fun queueSettings() {
+        val hadManualRequest = manualRequest != null
+        manualStatus()
+        if (hadManualRequest && manualRequest == null) changed()
         if (!ready()) {
             if (currentIntent != null || sent != null || acknowledged != null || received != null) invalidate()
             return
@@ -74,6 +114,10 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
 
     @Synchronized fun acknowledge(message: JsonObject) {
         TelefonNachrichten.validateAck(message)
+        if (manualRequest?.id == message.string("message_id")) {
+            if (message.string("status") == "rejected") { manualRequest = null; manualState = "held"; changed() }
+            return
+        }
         val attempted = attempts.remove(message.string("message_id")) ?: return
         if (!ready()) { invalidate(); return }
         acknowledged = attempted.takeIf { message.string("status") in setOf("accepted", "duplicate") && message.string("error") == "none" }

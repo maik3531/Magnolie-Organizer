@@ -10,6 +10,38 @@ internal sealed partial class TelefonConnection
     private JsonObject? mediaSharedSent, mediaSharedAcknowledged, mediaSharedReceived;
     private long mediaSharedGeneration;
     internal Func<Task>? MediaPreferencesChanged { get; set; }
+    internal Action<JsonObject, string, CancellationToken>? MediaManualRequested { get; set; }
+
+    private async Task HandleMediaManualRequestAsync(JsonObject message)
+    {
+        var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);
+        var settings = message["body"]!["settings"]!.AsObject();
+        var startWorker = MediaManualRequested;
+        bool Ready() => startWorker is not null && MediaSharedSettingsReady &&
+            message["expires_ms"]!.GetValue<long>() > Now() &&
+            JsonNode.DeepEquals(settings, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) &&
+            (MediaSyncSettings.RequestedFor(settings, "images") || MediaSyncSettings.RequestedFor(settings, "video"));
+        var ack = store.CommitIncoming(peer.Id, message, now, (_, _) => Ready() ? null : "not_granted",
+            deferAcceptance: true, reauthorizeDuplicates: true);
+        if (ack.Status is "accepted" or "duplicate" && !store.ReceivedMatches(peer.Id, message))
+            ack = new TelefonAck(ack.MessageId, "rejected", "invalid_schema");
+        if (ack.Status is "accepted" or "duplicate" && !Ready()) ack = new TelefonAck(ack.MessageId, "rejected", "not_granted");
+        var start = ack.Process && ack.Status == "accepted";
+        if (start) store.MarkIncomingProcessed(peer.Id, ack.MessageId, now);
+        await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
+        // Schedule only after successful secure ACK. The receive loop must stay
+        // free to process the real source controls/data/Saved/END responses.
+        if (start) startWorker!(settings.DeepClone().AsObject(), ack.MessageId, cancellation);
+    }
+
+    internal Task SendMediaManualResultAsync(string requestId, string state)
+    {
+        var body = new JsonObject { ["format"] = 1, ["request_id"] = requestId, ["state"] = state };
+        MediaSyncSettings.ValidateResult(body);
+        var now = Now();
+        return SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = MediaSyncSettings.ResultKind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body });
+    }
 
     private static bool MediaSettingsAdvertised(JsonObject? capabilities) =>
         capabilities?["device_status"] is JsonObject status && status["available"]?.GetValue<bool>() == true &&

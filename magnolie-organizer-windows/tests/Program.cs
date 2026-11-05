@@ -280,6 +280,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared projection / Windows stale snapshot and native write rollback", DeviceFileSharedProjectionTests.AtomicFenceAsync);
     runner.Add("Media shared projection / Windows VIDEO-only base bootstrap and actual data ACK", DeviceFileConnectionCommandsTests.WindowsSharedVideoOnlyBootstrapAsync);
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
+    runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
     runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
     runner.Add("Media backup bytes / Windows held FID independent copy and new restore", DeviceFileBackupBytesTests.WindowsCopyRestoreAsync);
     runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);

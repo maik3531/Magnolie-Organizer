@@ -646,17 +646,19 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val snapshot = synchronized(this) { activeChannel?.let { channel -> currentMediaBinding()?.let { channel to it } } }
         if (snapshot == null || !mediaSharedControlsReady(snapshot.first, snapshot.second)) {
             synchronized(this) { _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
-                mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap()) }
+                mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap(), mediaManualBusy = false, mediaManualState = "") }
             return
         }
         val (channel, binding) = snapshot
         val view = runCatching { mediaPreferences.view(binding) }
         val matched = view.isSuccess && runCatching { mediaTransport(channel)?.matched(view.getOrThrow().third) == true }.getOrDefault(false)
+        val manual = mediaTransport(channel)?.manualStatus()
         synchronized(this) {
             if (!mediaSharedControlsReady(channel, binding)) return
             val current = view.getOrNull()
             _state.value = _state.value.copy(mediaPreferencesSupported = current != null, mediaPreferencesReady = matched,
                 mediaPreferencesValues = current?.first, mediaPreferencesVersions = current?.second ?: emptyMap(),
+                mediaManualBusy = manual?.first == true, mediaManualState = manual?.second.orEmpty(),
                 error = view.exceptionOrNull()?.message ?: _state.value.error)
         }
     }
@@ -676,6 +678,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
             // Only a control ping, never a personal-sync request or media job.
             synchronized(this) { safePeer() }?.let(::wakeScopedSync)
         } finally { refreshMediaPreferenceState() }
+    }
+
+    internal fun mediaSyncNow() {
+        val channel = synchronized(this) { activeChannel } ?: error("media_shared_peer_unavailable")
+        val transport = mediaTransport(channel) ?: error("media_shared_peer_unavailable")
+        transport.startManual(channel::send)
     }
 
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
@@ -1907,7 +1915,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         activeTransport = null
         activeChannel = null
         _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
-            mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap())
+            mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap(), mediaManualBusy = false, mediaManualState = "")
         runCatching { pipe?.close() }
         retireInvalidPersonalActors()
     }
@@ -2632,6 +2640,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
             } else media.receive(message, channel::send)
             return
+        }
+        if (message["kind"] == JsonPrimitive(MediaSyncSettings.RESULT_KIND)) {
+            if (media == null) {
+                TelefonNachrichten.validate(message)
+                channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
+            } else media.receiveManualResult(message, channel::send)
+            return
+        }
+        if (message["kind"] == JsonPrimitive(MediaSyncSettings.START_KIND)) {
+            TelefonNachrichten.validate(message)
+            channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
+            return // Phone requests are never a desktop-to-phone legacy command.
         }
         if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
                 JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT),
