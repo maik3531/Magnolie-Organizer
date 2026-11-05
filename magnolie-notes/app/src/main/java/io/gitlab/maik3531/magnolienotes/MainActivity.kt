@@ -1602,7 +1602,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     zeitSpeichert = zeitSpeichert,
                     beiZeitWiederherstellen = { id -> zeitAktion({ ablage.zeitPapierkorbWiederherstellen(id) }) },
                     beiZeitLoeschen = { id -> zeitAktion({ ablage.zeitPapierkorbEndgueltig(id) }) },
-                ))
+                ), medienWiederherstellung = { io.gitlab.maik3531.magnolienotes.ui.MedienWiederherstellung(ablage) })
             }
         }
     }

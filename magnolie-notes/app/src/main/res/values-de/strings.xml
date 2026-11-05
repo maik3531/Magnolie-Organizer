@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Foto- und Videowiederherstellung</string>
+    <string name="media_recovery_hint">Lokale verschlüsselte Wiederherstellungskopien, auch ohne die frühere Verbindung verfügbar. Beim Wiederherstellen bleiben die Sicherungskopie und vorhandene Medien erhalten.</string>
+    <string name="media_recovery_refresh">Wiederherstellungsliste aktualisieren</string>
+    <string name="media_recovery_working">Medien werden geprüft oder wiederhergestellt…</string>
+    <string name="media_recovery_unavailable">Die Wiederherstellung ist derzeit nicht verfügbar. Beende andere Medienvorgänge und stelle sicher, dass das Buch gespeichert und entsperrt ist. Es wurde keine Wiederherstellungskopie entfernt.</string>
+    <string name="media_recovery_trashed">Im Papierkorb</string>
+    <string name="media_recovery_unfinished">Unvollständige Wiederherstellung – prüfen und fortsetzen</string>
+    <string name="media_recovery_uncertain">Vorgang nicht bestätigt – Prüfung erforderlich</string>
+    <string name="media_recovery_restored">Als neue Mediendatei wiederhergestellt</string>
+    <string name="media_recovery_copy_only">Nur Sicherungskopie – keine Löschung bestätigt</string>
+    <string name="media_recovery_continue">Wiederherstellung prüfen und fortsetzen</string>
+    <string name="media_recovery_confirm">„%1$s“ als neue Mediendatei wiederherstellen oder prüfen? Vorhandene Dateien und die Sicherungskopie bleiben erhalten.</string>
     <string name="telefon_kontakte_lesen">Diesem Rechner das Lesen von Kontakten und Fotos erlauben</string>
     <string name="telefon_kontakte_lesen_hinweis">Nur Lesezugriff für den ausgewählten eigenen Rechner. Kontaktfelder benötigen eine Importvorschau; selbst gewählte Fotos bleiben geschützt. Telefonkontakte werden nicht verändert.</string>
     <string name="telefon_status_keine_verbindung">Keine bestehende Verbindung</string>

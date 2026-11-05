@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Photo and video recovery</string>
+    <string name="media_recovery_hint">Local encrypted recovery copies, also available without the former connection. The recovery copy and existing media are kept when restoring.</string>
+    <string name="media_recovery_refresh">Refresh recovery list</string>
+    <string name="media_recovery_working">Checking or restoring media…</string>
+    <string name="media_recovery_unavailable">Recovery is currently unavailable. Finish other media operations and make sure the book is saved and unlocked. No recovery copy has been removed.</string>
+    <string name="media_recovery_trashed">In trash</string>
+    <string name="media_recovery_unfinished">Unfinished restoration — verify and continue</string>
+    <string name="media_recovery_uncertain">Operation not confirmed — review required</string>
+    <string name="media_recovery_restored">Restored as a new media file</string>
+    <string name="media_recovery_copy_only">Recovery copy only — no deletion confirmed</string>
+    <string name="media_recovery_continue">Verify and continue restoration</string>
+    <string name="media_recovery_confirm">Restore or verify “%1$s” as a new media file? Existing files and the recovery copy are kept.</string>
     <string name="telefon_kontakte_lesen">Allow this computer to read contacts and photos</string>
     <string name="telefon_kontakte_lesen_hinweis">Read-only access for the selected own computer. Contact fields require an import preview; existing chosen photos remain protected. No phone contacts are changed.</string>
     <string name="telefon_status_keine_verbindung">No existing connection</string>

@@ -38,7 +38,8 @@ internal data class NativeGalleryTrashAction internal constructor(val operation:
  * No eviction: full/damaged/uncertain storage blocks new destructive operations.
  * Existing phone key only. Source-job quotas, histories and pairings untouched.
  */
-internal class NativeGalleryTrashArchive(private val directory: File, private val protection: DeviceTransferProtection) : AutoCloseable {
+internal class NativeGalleryTrashArchive(private val directory: File, private val protection: DeviceTransferProtection,
+    private val allowCreate: Boolean = true) : AutoCloseable {
     private val root = directory.toPath()
     private val rootKey = attributes(directory).fileKey()?.toString() ?: fail("gallery_archive_root_identity_required")
     private val path = File(directory, "media-recovery.db")
@@ -59,6 +60,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         require(directory.isAbsolute && directory.canonicalFile == directory)
         checkRoot()
         val empty = Files.newDirectoryStream(root).use { !it.iterator().hasNext() }
+        if (empty && !allowCreate) fail("gallery_archive_original_storage_required")
         // Probe the EXISTING key before even creating a lock or SQLite file.
         protection.seal(byteArrayOf(1), HEADER_DOMAIN)
         if (empty) Files.createFile(lockFile.toPath(), PRIVATE_FILE)
@@ -498,6 +500,12 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
     }
 
     companion object {
+        fun openExistingForApplication(context: android.content.Context, protection: DeviceTransferProtection): NativeGalleryTrashArchive {
+            val directory = File(context.applicationContext.noBackupFilesDir, "native-media-recovery")
+            if (!Files.exists(directory.toPath(), NOFOLLOW_LINKS)) fail("gallery_archive_original_storage_required")
+            return NativeGalleryTrashArchive(directory, protection, allowCreate = false)
+        }
+
         fun openForApplication(context: android.content.Context, protection: DeviceTransferProtection): NativeGalleryTrashArchive {
             protection.seal(byteArrayOf(1), HEADER_DOMAIN)
             val directory = File(context.applicationContext.noBackupFilesDir, "native-media-recovery")

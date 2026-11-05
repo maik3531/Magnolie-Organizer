@@ -139,7 +139,7 @@ class AndroidGalleryPhotoSourceTest {
                 return ParcelFileDescriptor.open(own, ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_TRUNCATE)
             }
             check(mode == "r")
-            val original = Build.VERSION.SDK_INT >= 29 && android.provider.MediaStore.getRequireOriginal(uri)
+            val original = Build.VERSION.SDK_INT >= 30 && android.provider.MediaStore.getRequireOriginal(uri)
             if (original) originalRequests++
             if (original && denyOriginal && own == null) throw UnsupportedOperationException("Fixture denies original media bytes")
             opens += uri.toString()
@@ -820,6 +820,69 @@ class AndroidGalleryPhotoSourceTest {
                     archive.verifyContent(grant.request.entry, grant.request.permit)
                 }
                 h.assertOriginal()
+            }
+        }
+    }
+
+    private fun localRecoveryEnd(owner: NativeGalleryLocalRecovery): java.util.concurrent.CountDownLatch {
+        val worker = NativeGalleryLocalRecovery::class.java.getDeclaredField("worker").also { it.isAccessible = true }.get(owner)
+        val field = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
+        @Suppress("UNCHECKED_CAST") val original = field.get(worker) as (NativeGallerySourceRun) -> Unit
+        val ended = java.util.concurrent.CountDownLatch(1)
+        field.set(worker, { run: NativeGallerySourceRun -> try { original(run) } finally { ended.countDown() } })
+        return ended
+    }
+
+    private fun awaitLocalRecovery(ended: java.util.concurrent.CountDownLatch) {
+        assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+    }
+
+    @Test @Config(sdk = [30]) fun localRecoveryPanelOwnerIsInertAndNeverInitializesMissingOrEmptyArchive() {
+        Fixture().use { f ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            var keyReads = 0
+            val protection = DeviceTransferProtection.fromExistingKeyReader { keyReads++; SecretKeySpec(ByteArray(32) { 71 }, "AES") }
+            NativeGalleryLocalRecovery(f.context) { protection }.use { owner ->
+                assertFalse(owner.present); assertEquals(0, keyReads)
+                var result: Result<List<NativeGalleryRecoveryRow>>? = null
+                var ended = localRecoveryEnd(owner)
+                owner.refresh(permit) { result = it }; awaitLocalRecovery(ended)
+                assertTrue(result!!.getOrThrow().isEmpty()); assertEquals(0, keyReads); assertFalse(owner.present)
+                val directory = File(f.context.noBackupFilesDir, "native-media-recovery")
+                Files.createDirectory(directory.toPath(), java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
+                ended = localRecoveryEnd(owner); result = null
+                owner.refresh(permit) { result = it }; awaitLocalRecovery(ended)
+                assertTrue(result!!.isFailure); assertTrue(directory.listFiles()!!.isEmpty()); assertEquals(0, keyReads)
+                assertEquals(0, f.provider.writeRequests); assertEquals(0, f.provider.restoreInserts)
+            }
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun nativeLocalRecoveryOwnerListsAndRestoresAfterOriginalConnectionRuntimeClosed() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h); h.f.provider.allowTrash = true
+            h.watchEnd(); val trash = h.runtime.trashGalleryOriginal(grant); h.awaitEnd(); assertNull(trash.nativeFailure())
+            h.runtime.close() // Actual old channel/index/host retirement, not a fake historical grant.
+            NativeGalleryLocalRecovery(h.f.context) { h.protection }.use { owner ->
+                var listing: Result<List<NativeGalleryRecoveryRow>>? = null
+                var ended = localRecoveryEnd(owner)
+                owner.refresh(grant.request.permit) { listing = it }; awaitLocalRecovery(ended)
+                val row = listing!!.getOrThrow().single(); assertTrue(row.canRestore)
+                assertEquals(trash.completedNativeTrashAction(), row.action)
+                h.f.provider.allowRestore = true
+                NativeGalleryRestoreSession.capture(h.activity.get(), row.action!!, grant.request.permit).use { session ->
+                    var restored: Result<NativeGalleryTrashAction>? = null
+                    ended = localRecoveryEnd(owner)
+                    owner.restore(session) { restored = it }; awaitLocalRecovery(ended)
+                    assertEquals("restored", restored!!.getOrThrow().state)
+                }
+                ended = localRecoveryEnd(owner); listing = null
+                owner.refresh(grant.request.permit) { listing = it }; awaitLocalRecovery(ended)
+                val done = listing!!.getOrThrow().single(); assertFalse(done.canRestore); assertEquals("restored", done.action!!.state)
+                assertEquals("hello", h.f.provider.restoredFiles.values.single().readText())
+                assertEquals(1, h.f.provider.restoreInserts); h.assertOriginal()
             }
         }
     }
@@ -1858,6 +1921,7 @@ class AndroidGalleryPhotoSourceTest {
                 selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
                 watchEnd()
                 val normal = runtime.beginSyncRun(selected); awaitEnd()
+                normal.preparation.nativeFailure()?.let { throw it }
                 job = normal.preparation.snapshotJob()!!
                 runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
                     put("format", 1); put("operation", "media_page"); put("expected_version", runtime.savedPolicy().version)
@@ -3323,8 +3387,9 @@ class AndroidGalleryPhotoSourceTest {
                         assertEquals(run.id, started.string("run_id"))
                         // Reuse the existing batchCommandCase multi-photo bound;
                         // the one-photo/ordinary-resume guard remains five seconds.
-                        assertTrue(ended.await(if (nextBatch) 60 else 5, java.util.concurrent.TimeUnit.SECONDS))
-                        var job = run.preparation.snapshotJob()!!
+                         assertTrue(ended.await(if (nextBatch) 60 else 5, java.util.concurrent.TimeUnit.SECONDS))
+                         run.preparation.nativeFailure()?.let { throw it }
+                         var job = run.preparation.snapshotJob()!!
                         assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
                         var currentRunId = run.id
                         fun runCommand(operation: String, media: String? = "video", extra: JsonObject = JsonObject(emptyMap())) = command(operation,

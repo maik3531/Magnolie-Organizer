@@ -204,7 +204,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     internal fun prepareWriteConsent(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit,
         cancellation: CancellationSignal): NativeGalleryWriteRequest {
         ready(); permit.requireCurrent(); cancellation.throwIfCanceled()
-        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+        return NativeGalleryTrashArchive.openExistingForApplication(app, protection).use { archive ->
             val origin = archive.verifiedOrigin(entry, permit)
             val kind = GalleryMediaType.entries.single { it.uriSegment == origin.string("media_type") }
             val admitted = currentRequest(kind) ?: fail("gallery_write_native_receiver_required")
@@ -246,7 +246,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         val request = grant.request
         fun active() { ready(); cancellation.throwIfCanceled(); grant.requireCurrent(); request.permit.requireCurrent() }
         active()
-        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+        return NativeGalleryTrashArchive.openExistingForApplication(app, protection).use { archive ->
             val origin = archive.verifiedOriginalOrigin(request.entry, request.permit); active()
             val observed = readBound(request.mediaType)
             val catalog = discover(cancellation, request.mediaType); active()
@@ -285,7 +285,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     internal fun trashOriginal(grant: NativeGalleryWriteGrant, cancellation: CancellationSignal): NativeGalleryTrashAction {
         val target = validateWriteTarget(grant, cancellation)
         val request = grant.request
-        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+        return NativeGalleryTrashArchive.openExistingForApplication(app, protection).use { archive ->
             val origin = archive.verifiedOriginalOrigin(request.entry, request.permit)
             target.requireCurrent()
             val action = archive.prepareTrash(request.entry, request.permit, target::requireCurrent)
@@ -300,7 +300,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
 
     internal fun restoreOriginal(session: NativeGalleryRestoreSession, cancellation: CancellationSignal): NativeGalleryTrashAction {
         ready(); session.requireCurrent(); cancellation.throwIfCanceled()
-        return NativeGalleryTrashArchive.openForApplication(app, protection).use {
+        return NativeGalleryTrashArchive.openExistingForApplication(app, protection).use {
             NativeGalleryMediaRestore(app).restore(it, session, cancellation)
         }
     }

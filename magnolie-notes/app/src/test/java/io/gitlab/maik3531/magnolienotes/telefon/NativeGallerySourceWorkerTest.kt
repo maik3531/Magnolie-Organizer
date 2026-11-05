@@ -87,6 +87,24 @@ class NativeGallerySourceWorkerTest {
         } finally { worker.close(); assertTrue(ended.await(5, TimeUnit.SECONDS)); selected.catalog.close() }
     }
 
+    @Test fun independentLocalRecoveryAndLiveSourceShareOneLaneUntilActualIoEnds() {
+        val entered = CountDownLatch(1); val release = CountDownLatch(1); val ended = CountDownLatch(1)
+        val local = NativeGallerySourceWorker({ _, _ -> throw AssertionError("No source scan") }, { ended.countDown() })
+        val next = java.util.concurrent.LinkedBlockingQueue<NativeGallerySourceRun>()
+        val source = NativeGallerySourceWorker({ _, _ -> job() }, { next.add(it) })
+        val selected = selection()
+        val run = local.startLocalInspection { signal -> entered.countDown(); check(release.await(5, TimeUnit.SECONDS)); signal.throwIfCanceled() }
+        try {
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            assertThrows(PhotoFolderScopeError::class.java) { source.start(selected) }
+            local.close(); assertTrue(run.cancelRequested); assertFalse(run.ioEnded)
+            assertThrows(PhotoFolderScopeError::class.java) { source.start(selected) }
+            release.countDown(); assertTrue(ended.await(5, TimeUnit.SECONDS))
+            val following = source.start(selected); assertSame(following, next.poll(5, TimeUnit.SECONDS))
+            assertNotNull(following.snapshotJob()); assertNull(run.snapshotJob())
+        } finally { release.countDown(); local.close(); source.close(); assertTrue(ended.await(5, TimeUnit.SECONDS)); selected.catalog.close() }
+    }
+
     @Test fun anUnexpectedPreparationErrorCannotBeReportedAsASuccessfulSnapshot() {
         val ended = CountDownLatch(1); val fatal = AssertionError("synthetic native preparation error")
         val worker = NativeGallerySourceWorker({ _, _ -> throw fatal }, { ended.countDown() })

@@ -75,7 +75,8 @@ class JournalHandlungen(
 )
 
 @Composable
-fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalHandlungen) {
+fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalHandlungen,
+    medienWiederherstellung: @Composable () -> Unit = {}) {
     var vorschau by remember { mutableStateOf<SnapshotManifest?>(null) }
     var wiederherstellen by remember { mutableStateOf<SnapshotManifest?>(null) }
     var loeschen by remember { mutableStateOf<SnapshotManifest?>(null) }
@@ -163,6 +164,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                 } }
             }
         }
+        medienWiederherstellung()
         Abschnitt(ueberschrift = stringResource(R.string.journal_titel),
             hinweis = stringResource(R.string.journal_hinweis)) {
             Wertzeile(stringResource(R.string.journal_zuletzt), zustand.last?.let { Zeit.tagUndUhrzeit(it) }

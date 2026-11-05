@@ -129,6 +129,9 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         return startNative(trash = result) { cancellation -> result.set(action(cancellation)); null to null }
     }
 
+    fun startLocalInspection(inspect: (CancellationSignal) -> Unit): NativeGallerySourceRun =
+        startNative { cancellation -> inspect(cancellation); null to null }
+
     private fun startOwned(selection: NativeGalleryAlbumSelection,
         archived: AtomicReference<NativeGalleryArchiveEntry?>? = null,
         action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>): NativeGallerySourceRun =
@@ -142,7 +145,10 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_source_worker_closed")
             if (active != null) DeviceFileControl.fail("gallery_source_worker_busy")
-            NativeGallerySourceRun().also { active = it }
+            NativeGallerySourceRun().also {
+                if (!processOwner.compareAndSet(null, it)) DeviceFileControl.fail("gallery_source_worker_busy")
+                active = it
+            }
         }
         val thread = Thread({
             var prepared: Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>? = null
@@ -165,6 +171,7 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         // end, never cancel/close/progress totals, can release this slot.
         run.finish(job, error, renewed, recovery, write, target, trash)
         synchronized(gate) { if (active === run) active = null }
+        processOwner.compareAndSet(run, null)
         onEnded(run) // Outside the owner monitor; callbacks are not source I/O.
     }
 
@@ -178,5 +185,12 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
     override fun close() {
         val running = synchronized(gate) { closed = true; active }
         running?.cancel()
+    }
+
+    companion object {
+        // Local recovery must remain available after unpairing without racing a
+        // live channel's media I/O. Only actual descriptor-owning completion
+        // releases this process-wide lane, never cancel/close/UI disposal.
+        private val processOwner = AtomicReference<NativeGallerySourceRun?>()
     }
 }
