@@ -2116,7 +2116,9 @@ class AndroidGalleryPhotoSourceTest {
 
     @Test fun actualSelectedBatchKeepsScanPositionAndContinuesOnlyAfterSelectedNativeSavedEnd() = batchCommandCase(false, selectMember = true)
 
-    private fun batchCommandCase(holdAccepted: Boolean, empty: Boolean = false, selectMember: Boolean = false) {
+    @Test fun actualAdmittedSelectedAlbumContinuesAfterMetadataExpiry() = batchCommandCase(false, selectMember = true, expireCatalog = true)
+
+    private fun batchCommandCase(holdAccepted: Boolean, empty: Boolean = false, selectMember: Boolean = false, expireCatalog: Boolean = false) {
         ResumeRuntimeCase().use { h ->
             val at = h.now + 120_000
             h.f.provider.rows = (1..17).map { Row(id = it.toLong(), name = "$it.jpg") }
@@ -2156,6 +2158,14 @@ class AndroidGalleryPhotoSourceTest {
             var offered = h.drain().single()
             var manifest = DeviceFileOfferEnvelope.validate(offered, h.identity.deviceId, h.peer.peerId, at)
             assertEquals(16, manifest.files.size)
+            if (expireCatalog) {
+                // Expire only metadata, not command deadlines or the monotonic
+                // clock. The actual native run has already been admitted.
+                val catalog = first.selection.catalog
+                NativeGalleryAlbumCatalog::class.java.getDeclaredField("expires").also { it.isAccessible = true }
+                    .setLong(catalog, DeviceFileControl.monotonicMs() - 1)
+                assertThrows(PhotoFolderScopeError::class.java) { catalog.page() }
+            }
             if (selectMember) {
                 val preview = first
                 val choose = TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {

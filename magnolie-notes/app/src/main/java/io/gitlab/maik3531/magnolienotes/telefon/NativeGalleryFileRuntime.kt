@@ -144,7 +144,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         // END alone is not Saved. Unconfirmed accepted sources retain their
         // cache and prevent continuation, also after explicit subset selection.
         if (index.jobs().any { it.id == job.id }) DeviceFileControl.fail("gallery_album_previous_batch_held")
-        checkCommand(); workflow.validateSelection(owner.selection)
+        checkCommand(); owner.scan.requireAuthority()
         return prepareAlbumBatchOwned(owner, checkCommand)
     }
 
@@ -184,7 +184,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 val tick = DeviceFileControl.monotonicMs()
                 if (issued < 0 || tick < last || tick - issued >= DeviceFileControl.MAX_TTL_MS)
                     DeviceFileControl.fail("gallery_selected_source_preparation_expired")
-                last = tick; ready(); cancellation.throwIfCanceled(); workflow.validateSelection(selection)
+                last = tick; ready(); cancellation.throwIfCanceled()
+                val batch = albumBatchOwner
+                if (batch != null && batch.selection === selection) batch.scan.requireAuthority()
+                else workflow.validateSelection(selection)
             }
             permitted()
             val selected = source.selectedJob(command.selectedFileIds, cancellation, ::permitted)

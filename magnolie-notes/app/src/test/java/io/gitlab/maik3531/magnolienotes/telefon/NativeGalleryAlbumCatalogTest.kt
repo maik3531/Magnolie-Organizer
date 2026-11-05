@@ -84,6 +84,59 @@ class NativeGalleryAlbumCatalogTest {
         assertThrows(PhotoFolderScopeError::class.java) { f.catalog.select(page.string("catalog_id"), "made-up-album", true) }
     }
 
+    @Test fun admittedAlbumContinuationMustNotDependOnExpiredMetadata() {
+        val f = Fixture(); val page = f.catalog.page()
+        val key = page["albums"]!!.jsonArray.single().jsonObject.string("album_id")
+        val selection = f.catalog.select(page.string("catalog_id"), key, false)
+        val retained = NativeGalleryAlbumLease(f.owner, selection)
+        assertSame(f.albums.single(), retained.resolve(f.owner))
+        f.clock += DeviceFileControl.MAX_TTL_MS + 1
+        assertThrows(PhotoFolderScopeError::class.java) { f.catalog.resolve(f.owner, selection) }
+        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryAlbumLease(f.owner, selection) }
+        assertThrows(PhotoFolderScopeError::class.java) { f.catalog.select(page.string("catalog_id"), key, false) }
+        assertSame(f.albums.single(), retained.resolve(f.owner))
+        retained.close()
+        assertThrows(PhotoFolderScopeError::class.java) { retained.resolve(f.owner) }
+    }
+
+    @Test fun retainedAlbumAuthorityCannotReviveAfterRevocationCloseOrClockRewind() {
+        for (reason in listOf("revoked", "catalog_closed", "lease_closed", "clock", "metadata_clock")) {
+            val f = Fixture(); val page = f.catalog.page()
+            val selection = f.catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+            val retained = NativeGalleryAlbumLease(f.owner, selection)
+            f.clock += DeviceFileControl.MAX_TTL_MS + 1
+            if (reason == "metadata_clock") assertThrows(PhotoFolderScopeError::class.java) { f.catalog.page() }
+            else assertSame(f.albums.single(), retained.resolve(f.owner))
+            when (reason) {
+                "revoked" -> f.current = false
+                "catalog_closed" -> f.catalog.close()
+                "lease_closed" -> retained.close()
+                else -> f.clock--
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { retained.resolve(f.owner) }
+            f.current = true; f.clock += 2
+            assertThrows(PhotoFolderScopeError::class.java) { retained.resolve(f.owner) }
+        }
+    }
+
+    @Test fun retainedAlbumRequiresExactOwnerReferenceAndBoundedLiveAdmission() {
+        val f = Fixture(); val page = f.catalog.page()
+        val selection = f.catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), false)
+        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryAlbumLease(Any(), selection) }
+        assertThrows(PhotoFolderScopeError::class.java) {
+            NativeGalleryAlbumLease(f.owner, NativeGalleryAlbumSelection(f.catalog, f.albums.single().copy(), false))
+        }
+        val leases = (1..4).map { NativeGalleryAlbumLease(f.owner, selection) }
+        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryAlbumLease(f.owner, selection) }
+        assertThrows(PhotoFolderScopeError::class.java) { leases.first().resolve(Any()) }
+        val other = Fixture()
+        assertThrows(PhotoFolderScopeError::class.java) { other.catalog.resolveRetained(other.owner, leases.first()) }
+        assertSame(f.albums.single(), leases.first().resolve(f.owner))
+        leases.first().close()
+        NativeGalleryAlbumLease(f.owner, selection).use { assertSame(f.albums.single(), it.resolve(f.owner)) }
+        leases.forEach { it.close() }
+    }
+
     @Test fun nativeFreshnessCallbackCannotReturnMetadataAfterItsReadCrossesTheDeadlineOrRewindsTheClock() {
         for (rewind in listOf(false, true)) {
             val f = Fixture(); var clock = 100L

@@ -197,9 +197,12 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
     internal inner class AlbumBatches internal constructor(private val selection: NativeGalleryAlbumSelection,
         private val maxFiles: Int) : AutoCloseable {
         private val observed = readBound(mediaType(selection.catalog.source))
-        private val album = selection.catalog.resolve(this@NativeGalleryPhotoWorkflow, selection)
-        private val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
-        private val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        private val retainedAlbum = NativeGalleryAlbumLease(this@NativeGalleryPhotoWorkflow, selection)
+        private val album = retainedAlbum.resolve(this@NativeGalleryPhotoWorkflow)
+        private val lease = try { observed.scope.capture(selection.catalog.source, album, selection.desktopChoice) }
+            catch (error: Exception) { retainedAlbum.close(); throw error }
+        private val reader = try { AndroidGalleryPhotoSource(app, observed.scope) }
+            catch (error: Exception) { retainedAlbum.close(); throw error }
         private var continuation: AndroidGalleryPhotoSource.Continuation? = null
         private var previous: PhotoSourceJob? = null
         private var ended = false
@@ -207,12 +210,20 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         private val stopped = AtomicBoolean(false)
         private val activeCancellation = AtomicReference<CancellationSignal?>()
 
+        @Synchronized internal fun requireAuthority() {
+            try {
+                ready()
+                if (stopped.get() || failed || !readCurrent(observed)) fail("gallery_album_batch_not_current")
+                retainedAlbum.resolve(this@NativeGalleryPhotoWorkflow)
+                if (!observed.scope.isCurrent(lease)) fail("gallery_inventory_source_revoked")
+            } catch (error: Exception) { failed = true; retainedAlbum.close(); throw error }
+        }
+
         @Synchronized fun next(cancellation: CancellationSignal = CancellationSignal()): FrozenBatch {
             fun current() {
                 ready(); cancellation.throwIfCanceled()
-                if (stopped.get() || ended || failed || !readCurrent(observed)) fail("gallery_album_batch_not_current")
-                validateSelection(selection)
-                if (!observed.scope.isCurrent(lease)) fail("gallery_inventory_source_revoked")
+                if (ended) fail("gallery_album_batch_not_current")
+                requireAuthority()
             }
             current(); index.requireMembershipReady()
             if (previous?.let { old -> index.jobs().any { it.id == old.id } } == true)
@@ -229,6 +240,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
                 return FrozenBatch(job, ended)
             } catch (error: Exception) {
                 failed = true // No implicit replay after a potentially committed reservation.
+                retainedAlbum.close()
                 throw error
             } finally {
                 activeCancellation.compareAndSet(cancellation, null)
@@ -237,6 +249,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
 
         override fun close() {
             stopped.set(true)
+            retainedAlbum.close()
             activeCancellation.get()?.cancel() // Nonblocking request, never source owner release or deletion.
         }
     }

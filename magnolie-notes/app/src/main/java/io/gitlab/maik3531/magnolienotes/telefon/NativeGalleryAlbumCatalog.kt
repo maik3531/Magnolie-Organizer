@@ -2,9 +2,33 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import kotlinx.serialization.json.*
 import java.util.UUID
+import java.util.IdentityHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class NativeGalleryAlbumSelection internal constructor(internal val catalog: NativeGalleryAlbumCatalog,
     internal val album: GalleryAlbumCandidate, internal val desktopChoice: Boolean)
+
+/** Native run owner admitted while its metadata selection is still fresh.
+ * Not serializable; it cannot create a new selection after the metadata TTL.
+ * close only revokes authority, never releases provider I/O or removes a job.
+ */
+internal class NativeGalleryAlbumLease internal constructor(private val owner: Any,
+    private val selection: NativeGalleryAlbumSelection) : AutoCloseable {
+    private val closed = AtomicBoolean(false)
+    internal val isClosed: Boolean get() = closed.get()
+    private val album = selection.catalog.retain(owner, selection, this)
+
+    fun resolve(currentOwner: Any): GalleryAlbumCandidate {
+        if (currentOwner !== owner || closed.get()) DeviceFileControl.fail("gallery_album_owner_not_current")
+        try {
+            val actual = selection.catalog.resolveRetained(owner, this)
+            if (closed.get() || actual !== album) DeviceFileControl.fail("gallery_album_owner_not_current")
+            return actual
+        } catch (error: Exception) { closed.set(true); throw error }
+    }
+
+    override fun close() { closed.set(true) }
+}
 
 /** Short-lived native discovery snapshot. Wire metadata/opaque IDs are not READ
  * grants; only this live native mapping can resolve an actual discovered album.
@@ -18,6 +42,9 @@ internal class NativeGalleryAlbumCatalog internal constructor(internal val sourc
     private val expires = issued + DeviceFileControl.MAX_TTL_MS
     private val entries = source.albums.map { UUID.randomUUID().toString() to it }
     private var closed = false
+    private var metadataExpired = false
+    private var lastChecked = issued
+    private val retained = IdentityHashMap<NativeGalleryAlbumLease, NativeGalleryAlbumSelection>()
     init {
         require(issued >= 0 && issued <= Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS)
         require(entries.size <= AndroidGalleryAlbumDiscovery.MAX_ALBUMS)
@@ -66,19 +93,57 @@ internal class NativeGalleryAlbumCatalog internal constructor(internal val sourc
 
     @Synchronized internal fun resolve(owner: Any, selection: NativeGalleryAlbumSelection): GalleryAlbumCandidate {
         fresh()
-        if (owner !== workflowOwner || selection.catalog !== this || entries.none { it.second === selection.album } ||
-            selection.album.needsAlbumChoice && !selection.desktopChoice) DeviceFileControl.fail("gallery_catalog_selection_not_current")
+        checkSelection(owner, selection)
         return selection.album
     }
 
-    private fun fresh() {
+    private fun checkSelection(owner: Any, selection: NativeGalleryAlbumSelection) {
+        if (owner !== workflowOwner || selection.catalog !== this || entries.none { it.second === selection.album } ||
+            selection.album.needsAlbumChoice && !selection.desktopChoice) DeviceFileControl.fail("gallery_catalog_selection_not_current")
+    }
+
+    @Synchronized internal fun retain(owner: Any, selection: NativeGalleryAlbumSelection, lease: NativeGalleryAlbumLease): GalleryAlbumCandidate {
+        fresh(); checkSelection(owner, selection)
+        retained.keys.removeAll { it.isClosed }
+        if (retained.size >= 4 || retained.containsKey(lease)) DeviceFileControl.fail("gallery_album_owner_bound")
+        retained[lease] = selection
+        return selection.album
+    }
+
+    @Synchronized internal fun resolveRetained(owner: Any, lease: NativeGalleryAlbumLease): GalleryAlbumCandidate {
+        val selection = retained[lease] ?: DeviceFileControl.fail("gallery_album_owner_not_current")
+        checkSelection(owner, selection)
+        if (lease.isClosed) DeviceFileControl.fail("gallery_album_owner_not_current")
+        // Actual permission/access epoch, native album namespace and workflow
+        // lifetime stay live. Only the already-earned owner's metadata TTL is
+        // not reapplied to a long-running transfer/continuation.
+        live()
+        return selection.album
+    }
+
+    private fun live() {
         if (closed) DeviceFileControl.fail("gallery_catalog_not_current")
         try {
             val now = monotonicMs()
-            if (now < issued || now >= expires || !current()) DeviceFileControl.fail("gallery_catalog_not_current")
+            if (now < issued || now < lastChecked || !current()) DeviceFileControl.fail("gallery_catalog_not_current")
             val checked = monotonicMs()
-            if (checked < now || checked >= expires) DeviceFileControl.fail("gallery_catalog_not_current")
+            if (checked < now) DeviceFileControl.fail("gallery_catalog_not_current")
+            lastChecked = checked
         } catch (error: Exception) { closed = true; throw error }
+    }
+
+    private fun fresh() {
+        if (closed || metadataExpired) DeviceFileControl.fail("gallery_catalog_not_current")
+        try {
+            val now = monotonicMs()
+            if (now < issued || now < lastChecked) DeviceFileControl.fail("gallery_catalog_not_current")
+            if (now >= expires) { lastChecked = now; metadataExpired = true; DeviceFileControl.fail("gallery_catalog_not_current") }
+            if (!current()) DeviceFileControl.fail("gallery_catalog_not_current")
+            val checked = monotonicMs()
+            if (checked < now) DeviceFileControl.fail("gallery_catalog_not_current")
+            if (checked >= expires) { lastChecked = checked; metadataExpired = true; DeviceFileControl.fail("gallery_catalog_not_current") }
+            lastChecked = checked
+        } catch (error: Exception) { if (!metadataExpired) closed = true; throw error }
     }
     @Synchronized override fun close() { closed = true }
 }
