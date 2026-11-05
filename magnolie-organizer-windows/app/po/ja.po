@@ -8476,3 +8476,23 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "アクセス権"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "同期設定"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "別のフォルダーを選択…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "スマートフォンのアルバム"

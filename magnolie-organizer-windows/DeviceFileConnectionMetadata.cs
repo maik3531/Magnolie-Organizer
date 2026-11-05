@@ -36,7 +36,7 @@ internal sealed partial class TelefonConnection
     {
         var valid = !disposed && !cancellation.IsCancellationRequested && RemoteCloseReason.Length == 0 &&
             store.Enabled && !store.RestoreFenced && current is not null && current.State == "paired" && current.Id == peer.Id &&
-            current.PublicKey.SequenceEqual(peer.PublicKey) && NativeFilePairingIdentity.Hash(peer.FilePairingEpoch) &&
+            current.PublicKey.SequenceEqual(peer.PublicKey) &&
             current.FilePairingEpoch == peer.FilePairingEpoch && transport is "wifi" or "bluetooth";
         lock (fileMetadataGate)
         {
@@ -94,13 +94,14 @@ internal sealed partial class TelefonConnection
 
     // Read-only current-channel metadata witness. Neither data handlers, local
     // consent, OS READ nor a file-control echo is supplied by this predicate.
-    internal bool FileMetadataReady(bool videos = false)
+    internal bool FileMetadataReady(bool videos = false, bool forLegacyActivation = false)
     {
         KeyValuePair<string, JsonObject>[] receipts;
         lock (fileMetadataGate) receipts = fileMetadataReceipts.ToArray();
         if (receipts.Length != 3) return false;
         var current = store.LoadPeers().SingleOrDefault(value => value.Id == peer.Id);
         if (!FileMetadataChannelCurrent(current)) return false;
+        if (!forLegacyActivation && !NativeFilePairingIdentity.Hash(current!.FilePairingEpoch)) return false;
         var personal = store.PersonalSettings(peer.Id);
         if (!personal.OwnDevice || !personal.RemoteOwnDevice) return false;
         foreach (var receipt in receipts)

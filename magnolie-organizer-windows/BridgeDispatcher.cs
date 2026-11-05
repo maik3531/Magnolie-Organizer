@@ -88,7 +88,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using (var parsed = BridgeDispatcherContract.Parse(rawMessage))
         {
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
-            if (command == "telefon_medien" && Text(parsed.RootElement, "action") is not ("trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "cancel"))
+            if (command == "telefon_medien" && Text(parsed.RootElement, "action") is not ("activate" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "cancel"))
             {
                 var mediaRequest = Text(parsed.RootElement, "requestId"); var mediaPeer = Text(parsed.RootElement, "device_id");
                 QueueNetworkCommand(() => HandleCoreAsync(rawMessage), "phone", code => form.SendAsync("MagnolieMedia.receive", new {

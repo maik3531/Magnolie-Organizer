@@ -8732,3 +8732,23 @@ msgstr "＋ Termin hinzufügen"
 #~ "erlaubt, Seriennummer und IMEI. Ab Android 10 sind Hardwarekennungen für "
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Zugriffsrechte"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Synchronisationseinstellungen"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Anderen Ordner wählen…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Handyalbum"

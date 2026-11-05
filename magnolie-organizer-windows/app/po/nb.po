@@ -8577,3 +8577,23 @@ msgstr "＋ Legg til avtale"
 #~ "det, serienummer og IMEI. Fra Android 10 er maskinvareidentifikatorer "
 #~ "begrenset for vanlige apper. Tillatelse til nummeret er valgfri; ingen "
 #~ "særskilt rolle forespørres."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Tilgangsrettigheter"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Synkroniseringsinnstillinger"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Velg en annen mappe…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Telefonalbum"

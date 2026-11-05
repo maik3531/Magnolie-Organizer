@@ -30,17 +30,17 @@ internal static class DeviceFileConnectionMetadataTests
         internal readonly TelefonConnection Connection;
         internal bool Reject;
         internal Action? DuringReceive;
-        internal Fixture()
+        internal Fixture(bool legacy = false)
         {
             Paths = new(root);
             Store = new(Paths, Enumerable.Repeat((byte)29, 32).ToArray());
             Store.Enabled = true;
             Peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", Enumerable.Repeat((byte)13, 32).ToArray(),
-                FilePairingEpoch: new string('e', 64));
+                FilePairingEpoch: legacy ? null : new string('e', 64));
             Store.SavePeers([Peer]);
             Connection = NewConnection(Stream);
         }
-        internal TelefonConnection NewConnection(Stream stream, string transport = "wifi") => new(Peer, stream, new byte[16], new byte[72], Store,
+        internal TelefonConnection NewConnection(Stream stream, string transport = "wifi", TelefonPeer? connectionPeer = null) => new(connectionPeer ?? Peer, stream, new byte[16], new byte[72], Store,
             (_, message) => {
                 DuringReceive?.Invoke();
                 var kind = message["kind"]!.GetValue<string>(); var body = message["body"]!.AsObject();

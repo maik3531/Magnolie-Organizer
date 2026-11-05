@@ -8699,3 +8699,23 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Přistupne prawa"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Nastajenja synchronizacije"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Druhi rjadowak wubrać…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Album telefona"

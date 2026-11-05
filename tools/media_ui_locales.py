@@ -79,6 +79,29 @@ ROWS = {
     "zh_CN": """原生媒体操作仍在运行。|相册选择已更改。请重新读取相册。|自动内容比较需要注意。尚未确认任何删除操作已完成。|自动轮次已检查每种媒体类型的一个相册。其他相册将随后处理；删除仍待处理。|自动同步已暂停。请切换到手动模式，然后重新启用以继续。|已选择自动同步，但暂时无法使用。|请检查手机上的访问请求，然后重新读取相册。|请选择要比较的相册。不完整的目录绝不能证明已删除。|选择目标位置…|正在比较媒体内容… 总数尚不明确。|内容比较已完成。|内容比较需要检查。|已保留本地修改|手动同步|媒体文件使用已保存的回收站保留期限。“永不”表示仅手动移除。恢复绝不会替换现有文件。|媒体操作已暂停。尚未确认完成。|媒体回收站|已读取媒体回收站。永久移除需要在原生界面确认。|媒体回收站操作已完成。执行其他操作前请重新读取条目。|此连接尚不支持媒体传输。|更多相册|原生媒体连接不可用。|已读取原生设置。尚未开始任何传输。|后续条目|没有正在运行的媒体操作。|未选择目标位置|此页没有保留的媒体条目。|仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。|照片|读取媒体回收站|读取照片相册|读取视频相册|恢复操作|已替换|在手机上请求访问|部分源条目可能尚未提供。请重新读取相册。|已停止或未完成。原始文件和恢复历史均会保留。|正在停止… 等待原生操作结束。|~|同步视频|无法保存笔记本。未开始媒体同步。|待处理请求过多。请等待当前操作。|未更改|视频|等待原生媒体状态""",
 }
 
+LAYOUT = {
+    'en': 'Access rights|Synchronization settings|Choose another folder…',
+    'de': 'Zugriffsrechte|Synchronisationseinstellungen|Anderen Ordner wählen…',
+    'ar': 'صلاحيات الوصول|إعدادات المزامنة|اختيار مجلد آخر…',
+    'be': 'Правы доступу|Налады сінхранізацыі|Выбраць іншую папку…',
+    'cs': 'Přístupová práva|Nastavení synchronizace|Vybrat jinou složku…',
+    'da': 'Adgangsrettigheder|Synkroniseringsindstillinger|Vælg en anden mappe…',
+    'es': 'Permisos de acceso|Ajustes de sincronización|Elegir otra carpeta…',
+    'fr': 'Droits d’accès|Paramètres de synchronisation|Choisir un autre dossier…',
+    'hi': 'पहुँच अधिकार|समन्वयन सेटिंग|दूसरा फ़ोल्डर चुनें…',
+    'hsb': 'Přistupne prawa|Nastajenja synchronizacije|Druhi rjadowak wubrać…',
+    'it': 'Diritti di accesso|Impostazioni di sincronizzazione|Scegli un’altra cartella…',
+    'ja': 'アクセス権|同期設定|別のフォルダーを選択…',
+    'nb': 'Tilgangsrettigheter|Synkroniseringsinnstillinger|Velg en annen mappe…',
+    'nl': 'Toegangsrechten|Synchronisatie-instellingen|Andere map kiezen…',
+    'pl': 'Prawa dostępu|Ustawienia synchronizacji|Wybierz inny folder…',
+    'pt': 'Direitos de acesso|Definições de sincronização|Escolher outra pasta…',
+    'ru': 'Права доступа|Настройки синхронизации|Выбрать другую папку…',
+    'tr': 'Erişim hakları|Eşitleme ayarları|Başka klasör seç…',
+    'uk': 'Права доступу|Налаштування синхронізації|Вибрати іншу папку…',
+    'zh_CN': '访问权限|同步设置|选择其他文件夹…',
+}
+
 
 def main():
     spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
@@ -86,12 +109,16 @@ def main():
     source = ROOT / "magnolie-organizer/po"
     old = {p.stem: {e['msgid']: e.get('msgstr', '') for e in catalog.catalog(p) if not e['obsolete']} for p in source.glob('*.po')}
     assert len(EN) == 45 and len(set(EN)) == 45
-    translations = {'en': EN, 'de': [old['de'][key] for key in EN]}
+    german = {e['msgid']: e.get('msgstr', '') for e in catalog.catalog(ROOT / 'magnolie-organizer-windows/app/po/de.po') if not e['obsolete']}
+    translations = {'en': list(EN), 'de': [german[key] for key in EN]}
     for locale, text in ROWS.items():
         row = [value.strip() for value in text.split('|')]
         assert len(row) == len(EN), (locale, len(row))
         translations[locale] = [old[locale][key] if value == '~' else value for key, value in zip(EN, row)]
     assert set(translations) == set(old) | {'en'} and all(all(row) for row in translations.values())
+    for locale, row in translations.items():
+        row.extend(LAYOUT[locale].split('|'))
+        row.append('Phone album' if locale == 'en' else old[locale]['Phone album'])
     target = Path(__file__).with_suffix('.json')
     target.write_text(json.dumps(translations, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     subprocess.run([sys.executable, str(ROOT / 'tools/appointment_occurrence_locales.py'), '--messages', str(target),

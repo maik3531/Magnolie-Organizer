@@ -44,7 +44,11 @@
     "Too many pending requests. Wait for the current operation.",
     "Unchanged",
     "Videos",
-    "Waiting for native media status"
+    "Waiting for native media status",
+    "Access rights",
+    "Synchronization settings",
+    "Choose another folder…",
+    "Phone album"
   ],
   "de": [
     "Ein nativer Medienvorgang läuft noch.",
@@ -91,7 +95,11 @@
     "Zu viele offene Anfragen. Warten Sie auf den laufenden Vorgang.",
     "Unverändert",
     "Videos",
-    "Warte auf den nativen Medienstatus"
+    "Warte auf den nativen Medienstatus",
+    "Zugriffsrechte",
+    "Synchronisationseinstellungen",
+    "Anderen Ordner wählen…",
+    "Handyalbum"
   ],
   "ar": [
     "لا تزال عملية وسائط محلية قيد التنفيذ.",
@@ -138,7 +146,11 @@
     "طلبات معلقة كثيرة جدًا. انتظر العملية الحالية.",
     "دون تغيير",
     "فيديوهات",
-    "بانتظار حالة الوسائط من التطبيق"
+    "بانتظار حالة الوسائط من التطبيق",
+    "صلاحيات الوصول",
+    "إعدادات المزامنة",
+    "اختيار مجلد آخر…",
+    "ألبوم الهاتف"
   ],
   "be": [
     "Лакальная аперацыя з медыяфайламі яшчэ выконваецца.",
@@ -185,7 +197,11 @@
     "Занадта шмат запытаў у чаканні. Дачакайцеся бягучай аперацыі.",
     "Без змен",
     "Відэа",
-    "Чаканне стану медыяфайлаў ад праграмы"
+    "Чаканне стану медыяфайлаў ад праграмы",
+    "Правы доступу",
+    "Налады сінхранізацыі",
+    "Выбраць іншую папку…",
+    "Альбом тэлефона"
   ],
   "cs": [
     "Nativní operace s médii stále běží.",
@@ -232,7 +248,11 @@
     "Příliš mnoho nevyřízených požadavků. Počkejte na aktuální operaci.",
     "Beze změny",
     "Videa",
-    "Čekání na nativní stav médií"
+    "Čekání na nativní stav médií",
+    "Přístupová práva",
+    "Nastavení synchronizace",
+    "Vybrat jinou složku…",
+    "Album telefonu"
   ],
   "da": [
     "En indbygget mediehandling kører stadig.",
@@ -279,7 +299,11 @@
     "For mange ventende anmodninger. Vent på den aktuelle handling.",
     "Uændret",
     "Videoer",
-    "Venter på programmets mediestatus"
+    "Venter på programmets mediestatus",
+    "Adgangsrettigheder",
+    "Synkroniseringsindstillinger",
+    "Vælg en anden mappe…",
+    "Telefonalbum"
   ],
   "es": [
     "Todavía hay una operación multimedia nativa en curso.",
@@ -326,7 +350,11 @@
     "Demasiadas solicitudes pendientes. Espera a que termine la operación actual.",
     "Sin cambios",
     "Vídeos",
-    "Esperando el estado multimedia nativo"
+    "Esperando el estado multimedia nativo",
+    "Permisos de acceso",
+    "Ajustes de sincronización",
+    "Elegir otra carpeta…",
+    "Álbum del teléfono"
   ],
   "fr": [
     "Une opération multimédia native est toujours en cours.",
@@ -373,7 +401,11 @@
     "Trop de demandes en attente. Attendez la fin de l’opération actuelle.",
     "Inchangés",
     "Vidéos",
-    "Attente de l’état multimédia natif"
+    "Attente de l’état multimédia natif",
+    "Droits d’accès",
+    "Paramètres de synchronisation",
+    "Choisir un autre dossier…",
+    "Album du téléphone"
   ],
   "hi": [
     "एक स्थानीय मीडिया कार्य अभी चल रहा है।",
@@ -420,7 +452,11 @@
     "बहुत अधिक अनुरोध लंबित हैं। मौजूदा कार्य पूरा होने की प्रतीक्षा करें।",
     "अपरिवर्तित",
     "वीडियो",
-    "ऐप की मीडिया स्थिति की प्रतीक्षा"
+    "ऐप की मीडिया स्थिति की प्रतीक्षा",
+    "पहुँच अधिकार",
+    "समन्वयन सेटिंग",
+    "दूसरा फ़ोल्डर चुनें…",
+    "फ़ोन का एल्बम"
   ],
   "hsb": [
     "Natiwna medijowa operacija hišće běži.",
@@ -467,7 +503,11 @@
     "Přewjele naprašowanjow čaka. Čakajće na aktualnu operaciju.",
     "Njezměnjene",
     "Wideja",
-    "Čaka so na natiwny medijowy status"
+    "Čaka so na natiwny medijowy status",
+    "Přistupne prawa",
+    "Nastajenja synchronizacije",
+    "Druhi rjadowak wubrać…",
+    "Album telefona"
   ],
   "it": [
     "È ancora in corso un’operazione multimediale nativa.",
@@ -514,7 +554,11 @@
     "Troppe richieste in sospeso. Attendi l’operazione attuale.",
     "Invariati",
     "Video",
-    "In attesa dello stato multimediale nativo"
+    "In attesa dello stato multimediale nativo",
+    "Diritti di accesso",
+    "Impostazioni di sincronizzazione",
+    "Scegli un’altra cartella…",
+    "Album del telefono"
   ],
   "ja": [
     "ネイティブのメディア操作がまだ実行中です。",
@@ -561,7 +605,11 @@
     "保留中の要求が多すぎます。現在の操作の終了を待ってください。",
     "変更なし",
     "動画",
-    "ネイティブのメディア状態を待っています"
+    "ネイティブのメディア状態を待っています",
+    "アクセス権",
+    "同期設定",
+    "別のフォルダーを選択…",
+    "スマートフォンのアルバム"
   ],
   "nb": [
     "En innebygd mediehandling kjører fortsatt.",
@@ -608,7 +656,11 @@
     "For mange ventende forespørsler. Vent på den aktuelle handlingen.",
     "Uendret",
     "Videoer",
-    "Venter på programmets mediestatus"
+    "Venter på programmets mediestatus",
+    "Tilgangsrettigheter",
+    "Synkroniseringsinnstillinger",
+    "Velg en annen mappe…",
+    "Telefonalbum"
   ],
   "nl": [
     "Er wordt nog een native mediabewerking uitgevoerd.",
@@ -655,7 +707,11 @@
     "Te veel openstaande verzoeken. Wacht op de huidige bewerking.",
     "Ongewijzigd",
     "Video’s",
-    "Wachten op native mediastatus"
+    "Wachten op native mediastatus",
+    "Toegangsrechten",
+    "Synchronisatie-instellingen",
+    "Andere map kiezen…",
+    "Telefoonalbum"
   ],
   "pl": [
     "Natywna operacja na multimediach nadal trwa.",
@@ -702,7 +758,11 @@
     "Zbyt wiele oczekujących żądań. Poczekaj na bieżącą operację.",
     "Bez zmian",
     "Filmy",
-    "Oczekiwanie na natywny stan multimediów"
+    "Oczekiwanie na natywny stan multimediów",
+    "Prawa dostępu",
+    "Ustawienia synchronizacji",
+    "Wybierz inny folder…",
+    "Album telefonu"
   ],
   "pt": [
     "Uma operação multimédia nativa ainda está em curso.",
@@ -749,7 +809,11 @@
     "Demasiados pedidos pendentes. Aguarde pela operação atual.",
     "Sem alterações",
     "Vídeos",
-    "A aguardar o estado multimédia nativo"
+    "A aguardar o estado multimédia nativo",
+    "Direitos de acesso",
+    "Definições de sincronização",
+    "Escolher outra pasta…",
+    "Álbum do telefone"
   ],
   "ru": [
     "Собственная операция с медиафайлами ещё выполняется.",
@@ -796,7 +860,11 @@
     "Слишком много ожидающих запросов. Дождитесь текущей операции.",
     "Без изменений",
     "Видео",
-    "Ожидание состояния медиафайлов от приложения"
+    "Ожидание состояния медиафайлов от приложения",
+    "Права доступа",
+    "Настройки синхронизации",
+    "Выбрать другую папку…",
+    "Альбом телефона"
   ],
   "tr": [
     "Yerel bir medya işlemi hâlâ sürüyor.",
@@ -843,7 +911,11 @@
     "Çok fazla bekleyen istek var. Geçerli işlemi bekleyin.",
     "Değişmedi",
     "Videolar",
-    "Uygulamanın medya durumu bekleniyor"
+    "Uygulamanın medya durumu bekleniyor",
+    "Erişim hakları",
+    "Eşitleme ayarları",
+    "Başka klasör seç…",
+    "Telefon albümü"
   ],
   "uk": [
     "Власна операція з медіафайлами ще виконується.",
@@ -890,7 +962,11 @@
     "Забагато запитів в очікуванні. Дочекайтеся поточної операції.",
     "Без змін",
     "Відео",
-    "Очікування стану медіафайлів від програми"
+    "Очікування стану медіафайлів від програми",
+    "Права доступу",
+    "Налаштування синхронізації",
+    "Вибрати іншу папку…",
+    "Альбом телефону"
   ],
   "zh_CN": [
     "原生媒体操作仍在运行。",
@@ -937,6 +1013,10 @@
     "待处理请求过多。请等待当前操作。",
     "未更改",
     "视频",
-    "等待原生媒体状态"
+    "等待原生媒体状态",
+    "访问权限",
+    "同步设置",
+    "选择其他文件夹…",
+    "手机相册"
   ]
 }

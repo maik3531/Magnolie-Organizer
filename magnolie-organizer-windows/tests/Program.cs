@@ -17,6 +17,7 @@ if (args.FirstOrDefault() == "--contact-conflicts-readonly" && args.Length == 2)
 if (args.FirstOrDefault() == "--profile-backup-native" && args.Length == 2)
     return await AtomicStoreTests.NativeProfileBackupAsync(args[1]);
 if (args.Length == 1 && args[0] == "--peer-content-readonly") return PeerContentReadOnlyProbe.Run();
+if (args.Length == 1 && args[0] == "--peer-media-readonly") return PeerContentReadOnlyProbe.MediaReadiness();
 if (args.Length == 1 && args[0] == "--peer-change-readonly") return PeerContentReadOnlyProbe.ObserveChanges();
 if (args.FirstOrDefault() == "--notes-state-readonly" && args.Length == 2)
     return await NotesStateReadOnlyProbe.RunAsync(args[1]);
@@ -355,6 +356,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file automatic media / Windows actual chunks publication Saved and source END", DeviceFileAutomaticTests.WindowsReceiveSavedAsync);
     runner.Add("Device file automatic media / Windows actual service starts and drains tracked loop", DeviceFileAutomaticTests.WindowsServiceLifetimeAsync);
     runner.Add("Device file native media UI / Windows explicit owner actual ACK and no locked-book revival", DeviceFileUiTests.WindowsExplicitNativeUiHandshakeAsync);
+    runner.Add("Device file native media UI / Windows legacy explicit activation preserves pairing and requires reconnect", DeviceFileUiTests.WindowsLegacyActivationAsync);
+    runner.Add("Device file native media UI / Windows standard phone photo and video destinations preserve existing files", DeviceFileUiTests.WindowsDefaultDestinationsAsync);
+    runner.Add("Device file native media UI / Windows fresh closed source permits metadata but never implicit data", DeviceFileUiTests.WindowsClosedSourceBootstrapAsync);
+    runner.Add("Device file native media UI / Windows access rights before album scan require actual foreground consent", DeviceFileUiTests.WindowsReadBeforeAlbumScanAsync);
     runner.Add("Device file native media UI / Windows actual status configure catalog and unknown album HOLD", DeviceFileUiTests.WindowsUiActualDiscoveryAsync);
     runner.Add("Device file native media UI / Windows source count mismatch stays review without deletion proof", DeviceFileAlbumTests.WindowsPartialAlbumCoverageAsync);
     runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);

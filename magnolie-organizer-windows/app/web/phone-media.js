@@ -6,27 +6,38 @@
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
     const node = (tag, text) => { const e = document.createElement(tag); if (text) e.textContent = t(text); return e; };
+    const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
+    advanced.hidden = true; advanced.open = false;
+    advanced.append(node("summary", "Advanced functions"), root);
     const title = node("summary", "Photos and videos"), status = node("p", "Waiting for native media status");
     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
     const note = node("p", "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet.");
     note.className = "einst-hinweis";
-    root.append(title, note, status);
+    const rightsArea = node("section"), settingsArea = node("section"), manualArea = node("section");
+    for (const area of [rightsArea, settingsArea, manualArea]) area.className = "telefon-medien-gruppe";
+    rightsArea.append(node("h4", "Access rights"));
+    settingsArea.append(node("h4", "Synchronization settings"), note);
+    manualArea.append(node("h4", "Manual synchronization"));
+    root.append(title, status, rightsArea, settingsArea, manualArea);
     const check = (text, key) => {
       const label = node("label"), input = node("input"); input.type = "checkbox"; input.dataset.media = key;
-      label.className = "hak"; label.append(input, document.createTextNode(" " + t(text))); root.append(label); return input;
+      label.className = "hak"; label.append(input, document.createTextNode(" " + t(text))); settingsArea.append(label); return input;
     };
     const photos = check("Synchronize photos", "photos"), videos = check("Synchronize videos", "videos"), skip = check("Skip deletions", "skip_deletions");
     const automatic = check("Automatically synchronize over Wi-Fi", "automatic");
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
-    root.append(mode, destinations, controls, albumList, review);
+    settingsArea.append(mode, destinations); manualArea.append(controls, albumList, review);
     const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
       node("p", "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."), trashRows);
-    root.append(trashArea);
+    settingsArea.append(trashArea);
     let nextTrash = null;
-    let native = null, busy = false, transfer = false, catalog = null, kind = "images";
-    const allButtons = [], actions = []; let refresh;
+    let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
+    const allButtons = [], actions = [], rightActions = []; let refresh, manualSync;
+    const albumChoice = node("select"); albumChoice.className = "feld"; albumChoice.hidden = true;
+    albumChoice.setAttribute("aria-label", t("Phone album")); albumList.append(albumChoice);
+    albumChoice.addEventListener("change", () => { selectedAlbum = albumChoice.value || null; toggle(); });
     const button = (text, action, parent = controls) => {
-      const b = node("button", text); b.type = "button"; b.addEventListener("click", action); parent.append(b); allButtons.push(b); return b;
+      const b = node("button", text); b.type = "button"; b.className = "knopf klein" + (text === "Delete permanently" ? " rot" : ""); b.addEventListener("click", action); parent.append(b); allButtons.push(b); return b;
     };
     const toggle = () => {
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
@@ -36,6 +47,12 @@
       for (const entry of actions) entry.button.disabled = busy || native?.metadata_ready?.[entry.mediaType] !== true || !native?.[entry.mediaType === "video" ? "videos" : "photos"] || !native?.[entry.key];
       stop.disabled = !transfer;
       if (refresh) refresh.disabled = false;
+      albumChoice.disabled = busy || !catalog;
+      if (manualSync) manualSync.disabled = busy || !selectedAlbum || !catalog || native?.metadata_ready?.[kind] !== true;
+      for (const entry of rightActions) {
+        entry.row.hidden = native?.metadata_ready?.[entry.mediaType] !== true;
+        entry.button.disabled = busy || !native?.[entry.mediaType === "video" ? "videos" : "photos"];
+      }
     };
     const request = async (action, data = {}, save = true) => {
       if (save) {
@@ -66,28 +83,47 @@
     for (const [mediaType, label, key] of kinds) {
       const row = node("div"), path = node("p", "No destination selected"); path.dataset.destination = mediaType;
       row.append(node("strong", label), path); destinations.append(row);
-      button("Choose destination…", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), row);
+      button("Choose another folder…", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), row);
+      const rights = node("div"); rights.append(node("strong", label)); rightsArea.append(rights);
+      const read = button("Request access on phone", () => request("request_read", { media_type: mediaType, version: null }), rights);
+      rightActions.push({ row: rights, button: read, mediaType });
       const discover = button(label === "Photos" ? "Read photo albums" : "Read video albums", () => {
-        kind = mediaType; catalog = null; albumList.replaceChildren(); request("discover", { media_type: mediaType });
+        kind = mediaType; catalog = null; selectedAlbum = null; albumChoice.replaceChildren(); albumChoice.hidden = true; request("discover", { media_type: mediaType });
       });
       actions.push({ button: discover, mediaType, key });
     }
     const more = button("More albums", () => catalog && request("page", { media_type: kind, version: catalog.version, catalog_id: catalog.id, after: catalog.next }));
     more.hidden = true;
-    const permission = button("Request access on phone", () => catalog && request("request_read", { media_type: kind, version: catalog.version })); permission.hidden = true;
     const stop = button("Stop", () => request("cancel", {}, false));
     refresh = button("Refresh", () => request("status", {}, false));
     button("Read media recycle bin", () => request("trash_list", { after: 0 }), trashArea);
     const moreTrash = button("Next entries", () => Number.isSafeInteger(nextTrash) && request("trash_list", { after: nextTrash }), trashArea); moreTrash.hidden = true;
+    const activate = button("Enable", () => request("activate"), root); activate.hidden = true;
+    manualSync = button("Synchronize now", () => selectedAlbum && catalog && request("sync", {
+      media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: selectedAlbum }), manualArea);
     function receive(reply, action) {
+      if (action === "activate" && reply.supported !== false) {
+        busy = false; activate.disabled = false;
+        if (reply.canceled) return;
+        if (!reply.ok) { status.textContent = t("Media operation paused. No completion was confirmed."); return; }
+      }
       if (reply.supported === false) {
-        root.hidden = true; native = null; busy = transfer = false; catalog = null;
-        albumList.replaceChildren(); review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
-        more.hidden = permission.hidden = moreTrash.hidden = true; toggle(); return;
+        advanced.hidden = root.hidden = true; native = null; busy = transfer = false; catalog = null;
+        albumChoice.replaceChildren(); albumChoice.hidden = true; selectedAlbum = null; review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
+        more.hidden = moreTrash.hidden = true; toggle(); return;
       }
       if (!native && reply.supported !== true && action !== "status") return;
       if (!native && !reply.ok) return;
-      root.hidden = false;
+      advanced.hidden = root.hidden = false;
+      if (reply.activation_required === true) {
+        // A compatible legacy pairing exposes only explicit activation, never
+        // transfers, paths or stored permission defaults before initialization.
+        for (const child of root.children) child.hidden = child !== title && child !== status && child !== activate;
+        activate.hidden = false; activate.disabled = false; busy = false;
+        status.textContent = t("Waiting for native media status"); return;
+      }
+      for (const child of root.children) child.hidden = false;
+      activate.hidden = true;
       if (reply.state === "running" || reply.state === "stopping") {
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
       }
@@ -139,13 +175,17 @@
           else if (reply.automatic_phase === "content_pass") status.textContent = t("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");
         }
       } else if (action === "discover" || action === "page") {
-        if (action === "discover") { albumList.replaceChildren(); catalog = { version: reply.version, id: reply.catalog_id, next: reply.next_cursor }; }
+        if (action === "discover") {
+          albumChoice.replaceChildren(); selectedAlbum = null;
+          const empty = node("option", "Phone album"); empty.value = ""; albumChoice.append(empty);
+          catalog = { version: reply.version, id: reply.catalog_id, next: reply.next_cursor };
+        }
         if (!catalog || catalog.id !== reply.catalog_id || catalog.version !== reply.version) { status.textContent = t("Album selection changed. Read the albums again."); toggle(); return; }
         catalog.next = reply.next_cursor; more.hidden = !Number.isSafeInteger(catalog.next);
-        permission.hidden = false;
         for (const album of reply.albums || []) {
-          button(String(album.display_name || "Album"), () => request("sync", { media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: album.album_id }), albumList);
+          const option = node("option"); option.value = String(album.album_id); option.textContent = String(album.display_name || "Album"); albumChoice.append(option);
         }
+        albumChoice.hidden = albumChoice.options.length < 2;
         status.textContent = t("Choose an album to compare. An incomplete catalog never proves deletion.") + " · " + String(reply.coverage || "");
       } else if (action === "request_read") {
         status.textContent = t("Check the access request on your phone, then read the albums again.");
@@ -164,7 +204,7 @@
       toggle();
     }
     request("status", {}, false);
-    return root;
+    return advanced;
   }
   function createBackupPanel(peerId, mediaType, translate, send, saveBefore) {
     const t = translate, root = document.createElement("details"), title = document.createElement("summary"), rows = document.createElement("ul"), status = document.createElement("p");
@@ -173,7 +213,7 @@
     status.setAttribute("role", "status"); root.append(title, rows, status);
     let busy = false, next = null;
     const button = (label, action, parent) => {
-      const b = document.createElement("button"); b.type = "button"; b.textContent = t(label); b.addEventListener("click", action); parent.append(b); return b;
+      const b = document.createElement("button"); b.type = "button"; b.className = "knopf klein"; b.textContent = t(label); b.addEventListener("click", action); parent.append(b); return b;
     };
     function toggle() { for (const b of root.querySelectorAll("button")) b.disabled = busy; }
     async function request(action, data = {}) {

@@ -81,3 +81,7 @@ gettext("Media files use the retention period above, including “Never”. Use 
 gettext("Pending recovery");
 gettext("Photos and videos");
 gettext("The media recycle bin could not be updated. Existing files were kept.");
+gettext("Access rights");
+gettext("Synchronization settings");
+gettext("Choose another folder…");
+gettext("Phone album");

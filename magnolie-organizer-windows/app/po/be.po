@@ -8622,3 +8622,23 @@ msgstr "＋ Дадаць сустрэчу"
 #~ "серыйны нумар і IMEI. Пачынаючы з Android 10 апаратныя ідэнтыфікатары "
 #~ "абмежаваныя для звычайных праграм. Дазвол на нумар неабавязковы; "
 #~ "спецыяльныя ролі не запытваюцца."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Правы доступу"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Налады сінхранізацыі"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Выбраць іншую папку…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Альбом тэлефона"

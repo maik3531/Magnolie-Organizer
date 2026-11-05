@@ -8164,3 +8164,23 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "访问权限"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "同步设置"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "选择其他文件夹…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "手机相册"

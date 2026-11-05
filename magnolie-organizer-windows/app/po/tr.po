@@ -8564,3 +8564,23 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Erişim hakları"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Eşitleme ayarları"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Başka klasör seç…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Telefon albümü"

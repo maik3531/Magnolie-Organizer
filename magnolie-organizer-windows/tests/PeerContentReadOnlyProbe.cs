@@ -87,6 +87,26 @@ internal static class PeerContentReadOnlyProbe
         return 0;
     }
 
+    internal static int MediaReadiness()
+    {
+        var rows = new JsonArray();
+        _ = Snapshot(envelope => {
+            foreach (var item in envelope["blob"]!.AsArray())
+            {
+                var peer = item!.AsObject();
+                var status = peer["capabilities"]?["device_status"] as JsonObject;
+                var versions = status?["versions"] as JsonArray;
+                bool Has(int version) => versions?.Any(value => TelefonProtocolContract.TryInteger(value, out var number) && number == version) == true;
+                rows.Add(new JsonObject { ["paired"] = peer["state"]?.GetValue<string>() == "paired",
+                    ["nativePairingPresent"] = DeviceFileControl.Hash(peer["file_pairing_epoch"]?.GetValue<string>() ?? ""),
+                    ["statusAvailable"] = status?["available"]?.GetValue<bool>() == true,
+                    ["photoSourceAdvertised"] = Has(21), ["videoSourceAdvertised"] = Has(22) });
+            }
+        });
+        Console.WriteLine(new JsonObject { ["productWrites"] = false, ["peers"] = rows }.ToJsonString());
+        return 0;
+    }
+
     private static Dictionary<string, string> FieldHashes(JsonObject envelope)
     {
         string Of(JsonNode? value)

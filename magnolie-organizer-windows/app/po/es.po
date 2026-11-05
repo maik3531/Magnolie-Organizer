@@ -8691,3 +8691,23 @@ msgstr "＋ Añadir cita"
 #~ "permite, el número de serie y el IMEI. Desde Android 10 se restringen los "
 #~ "identificadores de hardware para las aplicaciones normales. El permiso "
 #~ "del número es opcional; no se solicita ningún rol especial."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Permisos de acceso"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Ajustes de sincronización"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Elegir otra carpeta…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Álbum del teléfono"

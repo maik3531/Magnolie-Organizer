@@ -8577,3 +8577,23 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Přístupová práva"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Nastavení synchronizace"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Vybrat jinou složku…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Album telefonu"

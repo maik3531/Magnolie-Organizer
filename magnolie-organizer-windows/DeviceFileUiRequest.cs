@@ -20,13 +20,13 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (action == "sync") fields.Add("album_id");
         if (action == "settings") fields.AddRange(["photos", "videos", "skip_deletions"]);
         TelefonProtocolContract.ExactObject(value, fields.ToArray());
-        if (Text("cmd") != "telefon_medien" || action is not ("backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
+        if (Text("cmd") != "telefon_medien" || action is not ("activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
             !Regex.IsMatch(Text("requestId"), "\\A[A-Za-z0-9_-]{8,80}\\z") || !DeviceFileControl.Identity(Text("device_id")))
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var kind = value.ContainsKey("media_type") ? Text("media_type") : "images";
         if (kind is not ("images" or "video")) throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var version = value["version"] is null ? null : Text("version");
-        if (version is not null && !DeviceFileControl.Hash(version) || action is "backup_restore" or "trash_restore" or "trash_purge" or "page" or "sync" or "request_read" && version is null)
+        if (version is not null && !DeviceFileControl.Hash(version) || action is "backup_restore" or "trash_restore" or "trash_purge" or "page" or "sync" && version is null)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var catalog = value.ContainsKey("catalog_id") ? Text("catalog_id") : null;
         var album = value.ContainsKey("album_id") ? Text("album_id") : null;

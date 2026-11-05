@@ -8625,3 +8625,23 @@ msgstr "＋ Додати зустріч"
 #~ "серійний номер і IMEI. Від Android 10 апаратні ідентифікатори обмежені "
 #~ "для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні "
 #~ "ролі не запитуються."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Права доступу"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Налаштування синхронізації"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Вибрати іншу папку…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Альбом телефону"

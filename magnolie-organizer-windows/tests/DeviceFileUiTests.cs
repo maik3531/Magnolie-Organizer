@@ -5,6 +5,124 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileUiTests
 {
+    internal static async Task WindowsReadBeforeAlbumScanAsync()
+    {
+        var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("read-ui-book", true, new string('a', 64));
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false,
+            uiSavedBook: () => book.SaveState("read-ui-book", true));
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "read-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Native.Peer.Id, f.Native.Connection); DeviceFileConnectionRunsTests.Clear(f);
+        var requesting = coordinator.RequestNativeMediaUiReadAsync(f.Native.Peer.Id, "images", null, CancellationToken.None);
+        if (requesting.IsCompleted) _ = await requesting;
+        var request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "status", "Access rights fabricated a catalog version or required an album scan.");
+        var response = DeviceFileConnectionCommandsTests.Configuration(request, false);
+        response["body"]!["operation"] = "status"; response["body"]!["enabled"] = false;
+        await f.Native.Connection.HandlePlainAsync(response);
+        request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind, 1);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionCommandsTests.Configuration(request, false));
+        TestAssert.That(!requesting.IsCompleted && f.Current() is null, "Permission preparation treated configuration as the current data ACK.");
+        f.RemoteLocal = new(new(4, new string('e', 64), true, false), f.RemoteLocal.Owner, true);
+        var control = f.Phone.Packet(); f.Phone.MarkSent(control);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(control, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
+        request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind, 2);
+        TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "request_read", "Access rights started an inventory or synchronization instead of asking foreground consent.");
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await f.Native.Connection.HandlePlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1,
+            ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = DeviceFileSources.PermissionResultKind,
+            ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = new JsonObject { ["format"] = 1,
+                ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = "request_read",
+                ["version"] = request["body"]!["expected_version"]!.DeepClone(), ["state"] = "foreground_required" } });
+        TestAssert.That((await requesting).State == "foreground_required" && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == 0,
+            "The top access-rights action invented OS access or data permission.");
+    }
+    internal static async Task WindowsClosedSourceBootstrapAsync()
+    {
+        var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("closed-source-ui", true, new string('a', 64));
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sourceSend: false,
+            uiSavedBook: () => book.SaveState("closed-source-ui", true));
+        TestAssert.That(f.Current() is null, "A closed phone source gained a data binding from metadata readiness.");
+        DeviceFileConnectionRunsTests.Clear(f);
+        var reading = f.Native.Connection.ReadNativeFileSourceStatusAsync(CancellationToken.None);
+        var request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind);
+        var response = DeviceFileConnectionCommandsTests.Configuration(request, false);
+        response["body"]!["operation"] = "status"; response["body"]!["enabled"] = false;
+        await f.Native.Connection.HandlePlainAsync(response);
+        var status = await reading;
+        TestAssert.That(!status.Enabled && f.Current() is null,
+            "Reading a fresh closed source either required prior data consent or fabricated it.");
+        var configuring = f.Native.Connection.ConfigureNativeMediaSourceAsync(status.Version, "images", true, CancellationToken.None);
+        request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind, 1);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionCommandsTests.Configuration(request, false));
+        _ = await configuring;
+        TestAssert.That(f.Current() is null, "Source configuration bypassed the separate actual data permission echo.");
+    }
+    internal static Task WindowsDefaultDestinationsAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture();
+        _ = f.Store.LoadOrCreateIdentity();
+        using var coordinator = new TelefonCoordinator(f.Paths, (_, _) => Task.CompletedTask, dataStore: f.Store, localOnly: true);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Paths.Root, "default-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var pictures = Path.Combine(f.Paths.Root, "Pictures"); var videos = Path.Combine(f.Paths.Root, "Videos");
+        Directory.CreateDirectory(pictures); Directory.CreateDirectory(videos);
+        coordinator.EnsureNativeMediaDefaultDestination(f.Peer.Id, "images", pictures);
+        coordinator.EnsureNativeMediaDefaultDestination(f.Peer.Id, "video", videos);
+        var images = f.Store.ReadNativeMediaDestination(f.Peer.Id, "images")!;
+        var clips = f.Store.ReadNativeMediaDestination(f.Peer.Id, "video")!;
+        TestAssert.That(images.NativePath.TrimEnd('\\') == Path.Combine(pictures, "Synthetic-Fotos") &&
+            clips.NativePath.TrimEnd('\\') == Path.Combine(videos, "Synthetic-Videos"), "Default destinations did not use independent native media roots and the phone name.");
+        var original = Path.Combine(images.NativePath, "personal.jpg"); File.WriteAllText(original, "keep");
+        coordinator.EnsureNativeMediaDefaultDestination(f.Peer.Id, "images", videos);
+        TestAssert.That(f.Store.ReadNativeMediaDestination(f.Peer.Id, "images") == images && File.ReadAllText(original) == "keep",
+            "An existing destination was replaced or existing media were overwritten by default initialization.");
+        TestAssert.That(f.Store.ReadNativeMediaPreferences(f.Peer.Id) is { PhotosEnabled: false, VideosEnabled: false, AutomaticWifi: false },
+            "Creating a chosen default folder silently granted media or automatic synchronization permissions.");
+        return Task.CompletedTask;
+    }
+    internal static async Task WindowsLegacyActivationAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(legacy: true);
+        _ = f.Store.LoadOrCreateIdentity();
+        using var coordinator = new TelefonCoordinator(f.Paths, (_, _) => Task.CompletedTask, dataStore: f.Store, localOnly: true);
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Peer.Id, f.Connection);
+        TestAssert.That(!coordinator.NativeMediaUiStatus(f.Peer.Id)["supported"]!.GetValue<bool>(), "Cached old pairing exposed media activation without current ACKs.");
+        foreach (var kind in new[] { "capabilities.update", "grants.update", "personal_sync.settings" })
+            await f.Connection.HandlePlainAsync(f.Message(kind));
+        var status = coordinator.NativeMediaUiStatus(f.Peer.Id);
+        TestAssert.That(status["supported"]!.GetValue<bool>() && status["activation_required"]!.GetValue<bool>() && status.Count == 2 &&
+            !f.Connection.FileMetadataReady() && f.Store.LoadPeers().Single().FilePairingEpoch is null,
+            "Compatible legacy pairing stayed hidden, gained transfer authority or status inspection wrote pairing metadata.");
+        TestAssert.Throws<InvalidDataException>(() => coordinator.ActivateLegacyNativeMediaUi(f.Peer.Id), "Activation bypassed a saved native book.");
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Paths.Root, "activation-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var before = f.Store.LoadPeers().Single();
+        coordinator.ActivateLegacyNativeMediaUi(f.Peer.Id);
+        var after = f.Store.LoadPeers().Single();
+        var serialize = typeof(TelefonStore).GetMethod("WritePeer", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        TestAssert.That(DeviceFileControl.Hash(after.FilePairingEpoch ?? "") &&
+            JsonNode.DeepEquals((JsonNode)serialize.Invoke(null, [after with { FilePairingEpoch = null }])!, (JsonNode)serialize.Invoke(null, [before])!) &&
+            !f.Connection.FileMetadataReady() && !f.Connection.NativeMediaLegacyActivationAvailable(),
+            "Activation changed existing pairing data or transplanted old-channel receipts into the new native relationship.");
+        TestAssert.That(f.Store.ReadNativeMediaPreferences(f.Peer.Id) is { PhotosEnabled: false, VideosEnabled: false, AutomaticWifi: false },
+            "Native relationship initialization silently enabled transfers, video or automatic sync.");
+        using var fresh = f.NewConnection(new DeviceFileConnectionMetadataTests.ProbeStream(), connectionPeer: after);
+        online[f.Peer.Id] = fresh;
+        TestAssert.That(!coordinator.NativeMediaUiStatus(f.Peer.Id)["supported"]!.GetValue<bool>(), "Reconnect reused old ACK receipts.");
+        foreach (var kind in new[] { "capabilities.update", "grants.update", "personal_sync.settings" })
+            await fresh.HandlePlainAsync(f.Message(kind, revision: 2));
+        status = coordinator.NativeMediaUiStatus(f.Peer.Id);
+        TestAssert.That(status["supported"]!.GetValue<bool>() && status["activation_required"] is null &&
+            !status["photos"]!.GetValue<bool>() && !status["videos"]!.GetValue<bool>() && !status["automatic"]!.GetValue<bool>(),
+            "Fresh acknowledged reconnect did not expose manual media settings with photo/video policy still disabled: " + status.ToJsonString() +
+            "; receipts=" + ((Dictionary<string, JsonObject>)typeof(TelefonConnection).GetField("fileMetadataReceipts", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(fresh)!).Count +
+            "; revoked=" + typeof(TelefonConnection).GetField("fileMetadataRevoked", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(fresh));
+    }
     internal static Task StrictRequestsAsync()
     {
         var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request", ["device_id"] = Guid.NewGuid().ToString("D"), ["action"] = "status" };

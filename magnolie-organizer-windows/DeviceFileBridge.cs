@@ -20,6 +20,12 @@ internal sealed partial class BridgeDispatcher
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
             switch (request.Action)
             {
+                case "activate":
+                    if (MessageBox.Show(form, T("Photos and videos") + " — " + T("Enable") + "?", T("Photos and videos"),
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                    { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
+                    telefon.ActivateLegacyNativeMediaUi(peerId);
+                    await Reply(new { requestId, device_id = peerId, ok = true, supported = true, activation_required = true }); return;
                 case "backup_list":
                     var backups = telefon.ReadNativeMediaBackupUi(peerId, request.MediaType);
                     if (request.After > backups.Count) throw DeviceFileControl.Error("media_backup_stale_selection");

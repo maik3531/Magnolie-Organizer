@@ -8650,3 +8650,23 @@ msgstr "＋ Добавить встречу"
 #~ "разрешает, серийный номер и IMEI. Начиная с Android 10 аппаратные "
 #~ "идентификаторы ограничены для обычных приложений. Разрешение на номер "
 #~ "необязательно; специальные роли не запрашиваются."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Права доступа"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Настройки синхронизации"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Выбрать другую папку…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Альбом телефона"

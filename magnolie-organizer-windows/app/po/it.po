@@ -8705,3 +8705,23 @@ msgstr "＋ Aggiungi appuntamento"
 #~ "consente, numero di serie e IMEI. Da Android 10 gli identificativi "
 #~ "hardware sono limitati per le app ordinarie. Il permesso per il numero è "
 #~ "facoltativo; non viene richiesto alcun ruolo speciale."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Diritti di accesso"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Impostazioni di sincronizzazione"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Scegli un’altra cartella…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Album del telefono"

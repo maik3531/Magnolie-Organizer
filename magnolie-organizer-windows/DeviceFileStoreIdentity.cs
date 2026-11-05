@@ -5,6 +5,23 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonStore
 {
+    internal void InitializeNativeMediaPairing(TelefonPeer expected, Action current)
+    {
+        lock (gate)
+        {
+            current(); _ = ReadFileIdentity();
+            var peers = LoadPeers();
+            var actual = peers.SingleOrDefault(value => value.Id == expected.Id);
+            if (RestoreFenced || actual is not { State: "paired", FilePairingEpoch: null } ||
+                !actual.PublicKey.SequenceEqual(expected.PublicKey)) throw DeviceFileControl.Error("file_pairing_native_activation_changed");
+            var epoch = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            current();
+            SavePeers(peers.Select(value => value.Id == actual.Id ? value with { FilePairingEpoch = epoch } : value).ToArray());
+            var saved = LoadPeers().Single(value => value.Id == actual.Id);
+            if (saved.FilePairingEpoch != epoch || !saved.PublicKey.SequenceEqual(actual.PublicKey))
+                throw DeviceFileControl.Error("file_pairing_native_activation_not_saved");
+        }
+    }
     // Unlike LoadOrCreateIdentity, this neither bootstraps keys nor refreshes
     // the display name. A media route must use the already protected identity.
     internal NativeFileControlIdentity ReadFileIdentity()

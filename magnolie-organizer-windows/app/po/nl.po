@@ -8673,3 +8673,23 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Toegangsrechten"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Synchronisatie-instellingen"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Andere map kiezen…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Telefoonalbum"

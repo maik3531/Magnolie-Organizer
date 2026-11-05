@@ -8663,3 +8663,23 @@ msgstr "＋ Dodaj spotkanie"
 #~ "pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są "
 #~ "ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest "
 #~ "opcjonalne; specjalne role nie są żądane."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Prawa dostępu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Ustawienia synchronizacji"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Wybierz inny folder…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Album telefonu"

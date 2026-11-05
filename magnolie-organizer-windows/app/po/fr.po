@@ -8790,3 +8790,23 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ "identifiants matériels sont restreints pour les applications ordinaires. "
 #~ "L’autorisation du numéro est facultative ; aucun rôle spécial n’est "
 #~ "demandé."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "Droits d’accès"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "Paramètres de synchronisation"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "Choisir un autre dossier…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "Album du téléphone"

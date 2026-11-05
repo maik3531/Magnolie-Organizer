@@ -96,10 +96,11 @@ internal sealed partial class TelefonCoordinator
                 if (!(kind == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled)) continue;
                 Require();
                 if (kind == "video" && !connection.NativeMediaUiMetadataAvailable(videos: true)) { review = true; continue; }
-                if (store.ReadNativeMediaDestination(peerId, kind) is null) { review = true; continue; }
+                EnsureConfiguredNativeMediaDefault(peerId, kind); Require();
                 await connection.PrepareNativeMediaUiAsync(NativeSavedBook, kind, lifetime.Token); Require();
                 var status = await connection.ReadNativeFileSourceStatusAsync(lifetime.Token); Require();
                 var configured = await connection.ConfigureNativeMediaSourceAsync(status.Version, kind, true, lifetime.Token); Require();
+                await connection.AwaitNativeMediaDataAgreementAsync(kind, lifetime.Token); Require();
                 var page = await connection.DiscoverNativeMediaAlbumsAsync(configured.Version, kind, token: lifetime.Token); Require();
                 var albums = page.Albums.ToList();
                 while (page.NextCursor is int after)

@@ -4519,6 +4519,17 @@ textarea,
   margin: 6px 0;
 }
 .telefon-karte .telefon-personal-sync { flex: 1 1 100%; min-width: 0; margin-top: 8px; }
+.telefon-karte .telefon-erweitert { flex: 1 1 100%; min-width: 0; margin-top: 8px; }
+.telefon-medien { min-width: 0; }
+.telefon-medien-gruppe { display: grid; gap: 8px; min-width: 0; margin-block: 12px; }
+.telefon-medien-gruppe > h4 { margin: 4px 0; }
+.telefon-medien-gruppe > label.hak { display: flex; align-items: flex-start; margin: 6px 0; }
+.telefon-medien > div { min-width: 0; display: grid; gap: 7px; }
+.telefon-medien > div > div { min-width: 0; display: grid; gap: 7px; }
+.telefon-medien [data-destination] { overflow-wrap: anywhere; margin: 0; }
+.telefon-medien .knopf { justify-self: start; }
+.telefon-medien ul { padding-inline-start: 20px; }
+.telefon-medien li { margin-block: 7px; overflow-wrap: anywhere; }
 .geraet-koerper {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px 20px; align-items: start;

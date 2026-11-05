@@ -8630,3 +8630,23 @@ msgstr "＋ إضافة موعد"
 #~ "الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد "
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Access rights"
+msgstr "صلاحيات الوصول"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronization settings"
+msgstr "إعدادات المزامنة"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose another folder…"
+msgstr "اختيار مجلد آخر…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone album"
+msgstr "ألبوم الهاتف"

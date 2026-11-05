@@ -440,6 +440,9 @@ msgid ""
 "then be applied automatically in both directions."
 msgstr ""
 
+msgid "Access rights"
+msgstr ""
+
 msgid "Accessibility"
 msgstr ""
 
@@ -1290,6 +1293,9 @@ msgstr ""
 
 msgid ""
 "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+
+msgid "Choose another folder…"
 msgstr ""
 
 msgid "Choose at least four characters."
@@ -4312,6 +4318,9 @@ msgstr ""
 msgid "Phone"
 msgstr ""
 
+msgid "Phone album"
+msgstr ""
+
 msgid "Phone battery"
 msgstr ""
 
@@ -5563,6 +5572,9 @@ msgid "Synchronization failed."
 msgstr ""
 
 msgid "Synchronization failed: %(error)s"
+msgstr ""
+
+msgid "Synchronization settings"
 msgstr ""
 
 msgid ""
