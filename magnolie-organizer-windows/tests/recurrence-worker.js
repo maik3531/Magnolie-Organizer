@@ -55,6 +55,15 @@ const { JSDOM } = require("jsdom");
       const item = { uid: "dense-old", datum: "2021-03-01", zeit: "09:00", icsRoundtrip: ["DTSTART;TZID=Europe/Berlin:20210301T090000", "DURATION:PT1S", "RRULE:FREQ=MINUTELY;INTERVAL=10;COUNT=400000"] };
       const result = await query("expand", item, [Date.parse("2026-09-07T07:00:00Z"), Date.parse("2026-09-07T07:20:00Z")]);
       assert.deepEqual(result.map(v => new Date(v.icsStartUtc).toISOString()), ["2026-09-07T07:00:00.000Z", "2026-09-07T07:10:00.000Z", "2026-09-07T07:20:00.000Z"]);
+      const NativeFormatter = w.Intl.DateTimeFormat, beforeItem = JSON.stringify(item);
+      let formatterAllocations = 0;
+      w.Intl.DateTimeFormat = function (...args) { formatterAllocations++; return new NativeFormatter(...args); };
+      try {
+        for (let n = 0; n < 1000; n++) assert.equal(T.icsRuntime("expand", item,
+          [Date.parse("2026-09-07T07:00:00Z"), Date.parse("2026-09-07T07:20:00Z")]), result);
+        assert.equal(formatterAllocations, 0, "Already computed recurrence results must not rebuild named-zone formatters on the UI thread");
+        assert.equal(JSON.stringify(item), beforeItem, "Lookup optimization changed original recurrence metadata");
+      } finally { w.Intl.DateTimeFormat = NativeFormatter; }
       const task = { uid: "two-year", startDatum: "2026-01-05", faellig: "2026-01-06", icsRoundtrip: ["DTSTART:20260105T090000Z", "DUE:20260106T170000Z", "RRULE:FREQ=YEARLY;INTERVAL=2;COUNT=3"] };
       assert.equal((await query("next", task, ["2026-02-01"])).startDatum, "2028-01-05");
       const overlapping = { uid: "long-next", startDatum: "1998-01-05", faellig: "1998-01-05", icsRoundtrip: ["DTSTART:19980105T090000Z", "DUE:19980105T100000Z", "RRULE:FREQ=WEEKLY", "RDATE;VALUE=PERIOD:20260801T090000Z/PT960H"] };

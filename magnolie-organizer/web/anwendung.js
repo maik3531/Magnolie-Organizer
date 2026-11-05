@@ -3339,13 +3339,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return gefunden ? gefunden[1] : _("Social medium");
   }
 
+  // ICU's named-zone registry is fixed for this process. Rechecking the same
+  // zone for every cached recurrence result needlessly constructs thousands of
+  // formatters on the UI thread. Never cache the changeable system-zone lookup.
+  const ianaZonenPruefungen = new Map();
   function gueltigeIanaZeitzone(value, system = false) {
     let zone = String(value || "").trim();
     if (system && zone === "system") return zone;
     if (["GMT", "Etc/UTC", "Etc/GMT", "Z"].includes(zone)) zone = "UTC";
     if (zone !== "UTC" && !/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zone) || zone.includes("..") || zone.length > 128) return "";
-    try { return new Intl.DateTimeFormat("en", { timeZone: zone }).resolvedOptions().timeZone; }
-    catch (_) { return ""; }
+    if (ianaZonenPruefungen.has(zone)) return ianaZonenPruefungen.get(zone);
+    let result = "";
+    try { result = new Intl.DateTimeFormat("en", { timeZone: zone }).resolvedOptions().timeZone; }
+    catch (_) { /* Unsupported named zones remain invalid. */ }
+    if (ianaZonenPruefungen.size >= 128) ianaZonenPruefungen.delete(ianaZonenPruefungen.keys().next().value);
+    ianaZonenPruefungen.set(zone, result);
+    return result;
   }
   function kontaktZeitzone(kontakt) {
     const zones = [...new Set((kontakt?.vcardRoundtrip || []).flatMap(line => {

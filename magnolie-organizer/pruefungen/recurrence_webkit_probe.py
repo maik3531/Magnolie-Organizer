@@ -53,8 +53,21 @@ def poll():
         if value.get('pending'):
             GLib.timeout_add(100, poll)
         else:
-            result.append(value)
-            Gtk.main_quit()
+            def cached_done(performance):
+                value['cached_lookup'] = performance
+                result.append(value)
+                Gtk.main_quit()
+            evaluate('''(() => {
+              const item = {icsRoundtrip:["DTSTART;TZID=Europe/Berlin:20210301T090000", "DURATION:PT1S", "RRULE:FREQ=MINUTELY;INTERVAL=10;COUNT=400000"]};
+              const args = [Date.parse("2026-09-07T07:00:00Z"), Date.parse("2026-09-07T07:20:00Z")];
+              const first = OrganizerTest.icsRuntime("expand", item, args), NativeFormatter = Intl.DateTimeFormat;
+              let constructions = 0, unchanged = true;
+              Intl.DateTimeFormat = function (...values) { constructions++; return new NativeFormatter(...values); };
+              const start = performance.now();
+              try { for (let n = 0; n < 256; n++) unchanged &&= OrganizerTest.icsRuntime("expand", item, args) === first; }
+              finally { Intl.DateTimeFormat = NativeFormatter; }
+              return JSON.stringify({constructions, unchanged, elapsed_ms:performance.now() - start});
+            })()''', cached_done)
     evaluate('JSON.stringify({ pending: [...OrganizerTest.icsRuntime.state.jobs.values()].some(v => v.status === "pending"), state: document.body.dataset.recurrenceState, error: OrganizerTest.icsRuntime.lastError, detail:window.probeFailure, ticks: window.probeTicks, jobs: [...OrganizerTest.icsRuntime.state.jobs.values()].map(v => ({ status:v.status, error:v.error, values:(v.result || []).map(v => new Date(v.icsStartUtc).toISOString()) })) })', received)
     return False
 
@@ -79,4 +92,5 @@ Gtk.main()
 window.destroy()
 print(json.dumps(result))
 sys.exit(0 if result and result[0].get('state') == 'ready' and result[0].get('ticks', 0) > 0 and
+         result[0].get('cached_lookup', {}).get('constructions') == 0 and result[0]['cached_lookup']['unchanged'] and
          result[0]['jobs'][0]['values'] == ['2026-09-07T07:00:00.000Z', '2026-09-07T07:10:00.000Z', '2026-09-07T07:20:00.000Z'] else 1)

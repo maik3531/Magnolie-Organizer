@@ -4,7 +4,7 @@ const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0].replace(
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
-  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktFormular, kontaktZeitzone, kontaktOrtszeit, speichereJetzt: speichereJetzt,"));');
+  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktFormular, kontaktZeitzone, kontaktOrtszeit, gueltigeIanaZeitzone, eigeneIanaZeitzone, ianaZonenPruefungen, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
 const watchdog = setTimeout(() => { console.error("Contact timezone test timed out"); process.exit(1); }, 30000);
 (async () => {
@@ -12,6 +12,32 @@ const watchdog = setTimeout(() => { console.error("Contact timezone test timed o
     const lines = ["TZ;TYPE=WORK:America/New_York", "URL:https://example.test", "X-OWNED:preserved"];
     const b = await harness.exports.boot(web, { kontakte: [{ id: "timezone", vorname: "Timezone", nachname: "Fixture", land: "US", vcardRoundtrip: lines }] });
     try {
+      const NativeFormatter = b.w.Intl.DateTimeFormat;
+      let formatters = 0, simulatedSystemZone = "Europe/Berlin";
+      b.w.Intl.DateTimeFormat = function (...args) {
+        formatters++;
+        return args.length ? new NativeFormatter(...args) : new NativeFormatter("en", { timeZone: simulatedSystemZone });
+      };
+      try {
+        const expected = new NativeFormatter("en", { timeZone: "Europe/Berlin" }).resolvedOptions().timeZone;
+        assert.equal(b.t.gueltigeIanaZeitzone("Europe/Berlin"), expected);
+        formatters = 0;
+        for (let n = 0; n < 1000; n++) assert.equal(b.t.gueltigeIanaZeitzone(" Europe/Berlin "), expected);
+        assert.equal(formatters, 0, "Repeated named-zone checks must not allocate a formatter per cached calendar result");
+        for (const alias of ["UTC", "Etc/UTC", "Etc/GMT", "GMT", "Z"]) assert.equal(b.t.gueltigeIanaZeitzone(alias), "UTC");
+        for (const invalid of ["", "../Europe/Berlin", "Europe/../Berlin", "Europe/Berlin".repeat(20), "Mars/Olympus"])
+          assert.equal(b.t.gueltigeIanaZeitzone(invalid), "");
+        formatters = 0;
+        for (let n = 0; n < 100; n++) assert.equal(b.t.gueltigeIanaZeitzone("Mars/Olympus"), "");
+        assert.equal(formatters, 0, "Unsupported named-zone failures must also be reused safely");
+        for (let n = 0; n < 160; n++) assert.equal(b.t.gueltigeIanaZeitzone("Invalid/Zone" + n), "");
+        assert(b.t.ianaZonenPruefungen.size <= 128, "Imported zone names must not grow an unbounded cache");
+        assert.equal(b.t.gueltigeIanaZeitzone("Europe/Berlin"), expected, "Eviction must not change validation semantics");
+        assert.equal(b.t.gueltigeIanaZeitzone("system", true), "system");
+        assert.equal(b.t.eigeneIanaZeitzone({ timeZone: "system" }), "Europe/Berlin");
+        simulatedSystemZone = "America/New_York";
+        assert.equal(b.t.eigeneIanaZeitzone({ timeZone: "system" }), "America/New_York", "System timezone changes must not be frozen by the named-zone cache");
+      } finally { b.w.Intl.DateTimeFormat = NativeFormatter; }
       const regional = b.t.daten().einstellungen.regional;
       Object.assign(regional, { timeZone: "Europe/Berlin", timeZoneManagement: "manual", hourCycle: "h23", formatLocale: "en-GB" });
       const contact = b.t.daten().kontakte.find(item => item.id === "timezone");
