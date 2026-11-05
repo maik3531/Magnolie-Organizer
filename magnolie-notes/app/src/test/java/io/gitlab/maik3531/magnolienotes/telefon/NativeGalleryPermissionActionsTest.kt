@@ -42,7 +42,7 @@ class NativeGalleryPermissionActionsTest {
     }
 
     @Test fun ownerSourceIdentityConsentPairingAndSelectionChangesInvalidateOldUiAction() {
-        for (change in listOf("owner", "receiver-owner", "peer", "key", "grant", "pairing", "policy", "kinds", "disabled")) {
+        for (change in listOf("owner", "receiver-owner", "peer", "key", "grant", "pairing", "policy", "kinds", "intent", "disabled")) {
             val f = Fixture(); val action = f.actions.create(); val old = f.request!!
             f.request = when (change) {
                 "receiver-owner" -> NativeGalleryRequest(old.receiver.copy(owner = Any()), old.policyEpoch, old.kinds)
@@ -51,6 +51,7 @@ class NativeGalleryPermissionActionsTest {
                 "grant" -> NativeGalleryRequest(old.receiver.copy(permissionEpoch = "c".repeat(64)), old.policyEpoch, old.kinds)
                 "pairing" -> NativeGalleryRequest(old.receiver.copy(pairingEpoch = "2".repeat(64)), old.policyEpoch, old.kinds)
                 "policy" -> NativeGalleryRequest(old.receiver, "c".repeat(64), old.kinds)
+                "intent" -> NativeGalleryRequest(old.receiver, old.policyEpoch, old.kinds, mediaIntent = Any())
                 "kinds" -> NativeGalleryRequest(old.receiver, old.policyEpoch, setOf(GallerySourceKind.SCREENSHOTS))
                 "disabled" -> null
                 else -> { f.owner = Any(); old }

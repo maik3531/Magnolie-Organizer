@@ -1874,8 +1874,30 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test @Config(sdk = [33]) fun sharedVideoOnlyNativeRuntimeKeepsImageJobsClosedAndRequiresFreshSelectionAfterIntentChange() {
+        var intent: Any? = Any()
+        ResumeRuntimeCase(mediaType = GalleryMediaType.VIDEO, currentMediaIntent = { if (it == GalleryMediaType.VIDEO) intent else null }).use { h ->
+            assertNull(h.runtime.currentRequest(GalleryMediaType.IMAGES))
+            assertNotNull(h.runtime.currentRequest(GalleryMediaType.VIDEO))
+            assertNotNull(h.runtime.issueHistoricalSavedAction(h.job))
+            val oldSelection = h.selected
+            intent = Any() // An off/on transition completed between native checks.
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginSyncRun(oldSelection) }
+            h.inspect { assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record); assertNull(it.remoteSaved(h.job)) }
+            assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+            val catalog = h.runtime.discoverSelectable(mediaType = GalleryMediaType.VIDEO)
+            val page = catalog.page()
+            val fresh = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
+            h.watchEnd(); val run = h.runtime.beginSyncRun(fresh); h.awaitEnd()
+            run.preparation.nativeFailure()?.let { throw it }
+            assertNotNull(run.preparation.snapshotJob())
+            assertNull(h.runtime.currentRequest(GalleryMediaType.IMAGES))
+            h.runtime.cancelSyncRun(run); h.runtime.endStoppedSyncRun(run)
+        }
+    }
+
     private class ResumeRuntimeCase(fileCount: Int = 1, withWriteHost: Boolean = false,
-        mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : AutoCloseable {
+        mediaType: GalleryMediaType = GalleryMediaType.IMAGES, currentMediaIntent: ((GalleryMediaType) -> Any?)? = null) : AutoCloseable {
         val f = Fixture(mediaType)
         val root = Files.createTempDirectory(f.root.toPath(), "resume-runtime356-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
@@ -1887,7 +1909,10 @@ class AndroidGalleryPhotoSourceTest {
         val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
         val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
         val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
-        val runtime = if (mediaType == GalleryMediaType.VIDEO)
+        val runtime = if (currentMediaIntent != null)
+            NativeGalleryFileRuntime.withSharedMediaIntent(f.context, root, identity, protection, channel, { peer }, { true },
+                { mediaType == GalleryMediaType.VIDEO }, currentMediaIntent)
+            else if (mediaType == GalleryMediaType.VIDEO)
             NativeGalleryFileRuntime.withVideoHandlers(f.context, root, identity, protection, channel, { peer }, { true }, { true })
             else NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
         val activity = if (withWriteHost) Robolectric.buildActivity(WriteConsentActivity::class.java).create() else Robolectric.buildActivity(ComponentActivity::class.java).create()
@@ -1934,7 +1959,7 @@ class AndroidGalleryPhotoSourceTest {
                 runtime.observeAcceptance(TelefonNachrichten.message(DeviceFileAcceptanceEnvelope.KIND, buildJsonObject {
                     put("format", 1); put("offer_id", offer.string("message_id")); put("transfer_id", manifest.transferId)
                     put("manifest_sha256", manifest.fingerprint); put("acceptance_sha256", "c".repeat(64))
-                    put("permission_epoch", runtime.currentRequest()!!.receiver.permissionEpoch); put("destination_token", "e".repeat(64))
+                    put("permission_epoch", runtime.currentRequest(mediaType)!!.receiver.permissionEpoch); put("destination_token", "e".repeat(64))
                 }, 60_000, now), { now })
                 inspect { originalAcceptance = it.remoteAcceptance(job)!!.record; assertNull(it.remoteSaved(job)) }
                 cipher = File(root, "photo-source-" + job.id).listFiles()!!.associate { it.name to it.readBytes().toList() }

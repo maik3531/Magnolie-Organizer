@@ -81,10 +81,20 @@ class MediaSyncStorageTest {
         assertFalse(channel.matched())
         channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
         assertTrue(channel.matched())
+        val imageIntent = channel.intentFor(GalleryMediaType.IMAGES)
+        assertNotNull(imageIntent); assertNull(channel.intentFor(GalleryMediaType.VIDEO))
+        channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, persisted, 60000)) { }
+        assertSame("An unchanged echo must not retire an active source choice", imageIntent, channel.intentFor(GalleryMediaType.IMAGES))
         channel.invalidate()
+        assertNull(channel.intentFor(GalleryMediaType.IMAGES))
         channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
         assertFalse(channel.matched())
-        ready = false; channel.queueSettings(); assertFalse(channel.matched())
+        channel.send(currentOut) { }
+        channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, persisted, 60000)) { }
+        channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
+        assertTrue(channel.matched())
+        assertNotSame("A fresh agreement must not resurrect the older native source lease", imageIntent, channel.intentFor(GalleryMediaType.IMAGES))
+        ready = false; channel.queueSettings(); assertFalse(channel.matched()); assertNull(channel.intentFor(GalleryMediaType.IMAGES))
     }
 
     @Test fun channelFailedSecureAckPreservesCommittedChoiceWithoutAgreementAndUnsupportedDoesNotCreateIt() {

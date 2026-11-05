@@ -19,6 +19,40 @@ import javax.crypto.spec.SecretKeySpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class GalleryVideoPolicyTest {
+    @Test fun sharedVideoOnlyIntentUsesBaseTransportWithoutAuthorizingImageJobsOrRevivingOldCatalogs() {
+        Fixture().use { f ->
+            var videoIntent: Any? = Any()
+            val gated = GalleryPhotoPolicyController.forSharedMediaIntent(f.index, { f.receiver }, { f.configurer }, { true }) {
+                if (it == GalleryMediaType.VIDEO) videoIntent else null
+            }
+            val receiver = f.receiver
+            f.receiver = null
+            val base = gated.configure(f.index.galleryPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            val video = gated.configureVideos(base, true)
+            assertNull(gated.currentRequest(GalleryMediaType.IMAGES)); assertNull(gated.currentRequest(GalleryMediaType.VIDEO))
+            f.receiver = receiver
+            assertNull("Saved video intent is not a fresh actual data-receiver activation", gated.currentRequest(GalleryMediaType.VIDEO))
+            gated.configureVideos(video, true)
+            val first = gated.currentRequest(GalleryMediaType.VIDEO)!!
+            assertSame(videoIntent, first.mediaIntent)
+            assertNull("Base transport for VIDEO must not silently authorize IMAGES", gated.currentRequest(GalleryMediaType.IMAGES))
+            val sourceScope = GalleryPhotoSourceScope({ gated.currentRequest(GalleryMediaType.VIDEO) }, object : GalleryAccessEnvironment {
+                override fun observe(volume: String): GalleryAccessObservation = error("Empty metadata catalog must not request source READ")
+            })
+            val catalog = GalleryAlbumCatalog(GalleryReadCoverage.FULL_VIDEOS, emptyList(), first)
+            assertTrue(sourceScope.isCatalogCurrent(catalog))
+            videoIntent = null
+            assertNull(gated.currentRequest(GalleryMediaType.VIDEO)); assertFalse(sourceScope.isCatalogCurrent(catalog))
+            videoIntent = Any()
+            assertNotNull(gated.currentRequest(GalleryMediaType.VIDEO)); assertFalse(sourceScope.isCatalogCurrent(catalog))
+            val app = RuntimeEnvironment.getApplication()
+            Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_MEDIA_IMAGES)
+            Shadows.shadowOf(app).denyPermissions(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            val denied = AndroidGalleryAlbumDiscovery(app, { gated.currentRequest(GalleryMediaType.VIDEO) }, mediaType = GalleryMediaType.VIDEO).discover()
+            assertEquals(GalleryReadCoverage.NONE, denied.coverage); assertTrue(denied.albums.isEmpty()); assertTrue(f.index.jobs().isEmpty())
+            assertEquals(video, f.index.galleryPolicy())
+        }
+    }
     private fun assertSamePhotoActivation(before: NativeGalleryRequest, after: NativeGalleryRequest?) {
         assertNotNull(after); assertSame(before.receiver, after!!.receiver)
         assertEquals(before.policyEpoch, after.policyEpoch); assertEquals(before.kinds, after.kinds)

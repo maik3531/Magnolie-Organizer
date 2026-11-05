@@ -794,9 +794,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 return path
             }
             val directory = directory(directory(root, "native-file-sources-v1"), name).toFile()
-            val runtime = NativeGalleryFileRuntime.withVideoHandlers(context, directory, identity, protection, channel,
+            val sharedMedia = synchronized(this) {
+                val current = safePeer()
+                current?.device_id == peerId && MediaSyncSettings.DISCOVERY_VERSION in current.remote_device_status_versions &&
+                    MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions
+            } || queue.hasMediaSettings(peerId)
+            val media = if (sharedMedia) mediaTransport(channel) else null
+            val runtime = NativeGalleryFileRuntime.withSharedMediaIntent(context, directory, identity, protection, channel,
                 { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) },
-                handlersReady, { nativeGalleryVideoHandlersReady })
+                handlersReady, { nativeGalleryVideoHandlersReady }, if (sharedMedia) ({ type -> media?.intentFor(type) }) else null)
             connection.bind(runtime)
             if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
                 currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)

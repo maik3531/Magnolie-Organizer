@@ -98,14 +98,18 @@ internal data class NativeGalleryConfigurer(val peerId: String, val identitySha2
  */
 internal class GalleryPhotoPolicyController private constructor(private val index: PhotoSourceJobIndex,
     private val currentReceiver: () -> NativePhotoReceiver?, private val currentConfigurer: (() -> NativeGalleryConfigurer?)?,
-    private val videoAvailable: () -> Boolean) {
-    constructor(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?) : this(index, currentReceiver, null, { true })
+    private val videoAvailable: () -> Boolean, private val currentMediaIntent: ((GalleryMediaType) -> Any?)?) {
+    constructor(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?) : this(index, currentReceiver, null, { true }, null)
     companion object {
         fun forAuthenticatedConfigurer(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?,
-            currentConfigurer: () -> NativeGalleryConfigurer?) = GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, { true })
+            currentConfigurer: () -> NativeGalleryConfigurer?) = GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, { true }, null)
         fun forAuthenticatedConfigurer(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?,
             currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean) =
-            GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, videoAvailable)
+            GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, videoAvailable, null)
+        fun forSharedMediaIntent(index: PhotoSourceJobIndex, currentReceiver: () -> NativePhotoReceiver?,
+            currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean,
+            currentMediaIntent: ((GalleryMediaType) -> Any?)?) =
+            GalleryPhotoPolicyController(index, currentReceiver, currentConfigurer, videoAvailable, currentMediaIntent)
     }
     private var uncertain = false
     // Saved video preference is not fresh session consent. Only an explicit
@@ -201,6 +205,8 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
     @Synchronized fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? {
         if (uncertain) return null
         if (mediaType == GalleryMediaType.VIDEO && !videoAvailable()) return null
+        val intent = currentMediaIntent?.invoke(mediaType)
+        if (currentMediaIntent != null && intent == null) return null
         val receiver = currentReceiver()?.takeIf { it.allowed } ?: return null
         val saved = index.galleryPolicy()
         val policy = saved.policy ?: return null
@@ -213,7 +219,8 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
             val activation = videoActivation ?: return null
             if (activation.first != epoch || !same(activation.second, receiver)) return null
         }
-        return NativeGalleryRequest(receiver, epoch, policy.kinds, mediaType)
+        if (currentMediaIntent != null && currentMediaIntent.invoke(mediaType) !== intent) return null
+        return NativeGalleryRequest(receiver, epoch, policy.kinds, mediaType, intent)
     }
 
     private fun armVideo(policy: GalleryPhotoPolicy) {

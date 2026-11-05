@@ -16,15 +16,20 @@ import java.util.concurrent.atomic.AtomicReference
  */
 internal class NativeGalleryFileRuntime private constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
     protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
-    handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean) : AutoCloseable {
+    handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean,
+    currentMediaIntent: ((GalleryMediaType) -> Any?)?) : AutoCloseable {
     constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
         protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
-        handlersReady: () -> Boolean) : this(context, directory, identity, protection, channel, currentPeer, handlersReady, { false })
+        handlersReady: () -> Boolean) : this(context, directory, identity, protection, channel, currentPeer, handlersReady, { false }, null)
     companion object {
         internal fun withVideoHandlers(context: Context, directory: File, identity: NativeFileControlIdentity,
             protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
             handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean) =
-            NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady)
+            NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady, null)
+        internal fun withSharedMediaIntent(context: Context, directory: File, identity: NativeFileControlIdentity,
+            protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
+            handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean, currentMediaIntent: ((GalleryMediaType) -> Any?)?) =
+            NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady, currentMediaIntent)
     }
     private val closed = AtomicBoolean(false)
     private val revoked = AtomicBoolean(false)
@@ -82,10 +87,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         try {
             prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() })
             controls = prepared
-            workflow = NativeGalleryPhotoWorkflow.forAuthenticatedConfigurer(context, directory, identity.deviceId, protection,
+            workflow = NativeGalleryPhotoWorkflow.forSharedMediaIntent(context, directory, identity.deviceId, protection,
                 { if (closed.get() || revoked.get()) null else controls.session.photoReceiver() },
                  { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } },
-                 videoAvailable)
+                 videoAvailable, currentMediaIntent)
             sourceWorker = NativeGallerySourceWorker({ selected, cancellation -> workflow.freeze(selected, cancellation) }, { sourceIoEnded() })
         } catch (error: Exception) {
             closed.set(true); prepared?.close(); index.close()
@@ -617,7 +622,11 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     internal fun issueHistoricalSavedAction(expected: PhotoSourceJob): NativeHistoricalSavedAction = withOperation {
         if (syncRun != null || resumeRun != null || !sourceWorker.isQuiescent) DeviceFileControl.fail("gallery_sync_run_held")
-        index.issueHistoricalSavedAction(expected, { workflow.currentRequest()?.receiver })
+        // Exact original-job Saved metadata is not an image READ job. A valid
+        // VIDEO-only receiver must not need to opt into images to confirm it.
+        index.issueHistoricalSavedAction(expected, {
+            workflow.currentRequest(GalleryMediaType.IMAGES)?.receiver ?: workflow.currentRequest(GalleryMediaType.VIDEO)?.receiver
+        })
     }
 
     internal fun recoverHistoricalSaved(action: NativeHistoricalSavedAction, message: JsonObject,

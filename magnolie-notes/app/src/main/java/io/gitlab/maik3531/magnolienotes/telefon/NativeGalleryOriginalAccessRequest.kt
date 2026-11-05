@@ -21,7 +21,7 @@ internal class NativeGalleryOriginalAccessRequest private constructor(private va
             if (revoked || now < issued || now < last || now - issued >= DeviceFileControl.MAX_TTL_MS || actual == null ||
                 !first.allowed || second?.allowed != true || first.owner !== second.owner || first.peerId != second.peerId ||
                 first.identitySha256 != second.identitySha256 || first.permissionEpoch != second.permissionEpoch || first.pairingEpoch != second.pairingEpoch ||
-                observed.policyEpoch != actual.policyEpoch || observed.mediaType != actual.mediaType || observed.kinds != actual.kinds)
+                observed.policyEpoch != actual.policyEpoch || observed.mediaIntent !== actual.mediaIntent || observed.mediaType != actual.mediaType || observed.kinds != actual.kinds)
                 fail("gallery_original_access_not_current")
             permit.requireCurrent(); last = now
         } catch (error: Exception) { revoked = true; throw error }

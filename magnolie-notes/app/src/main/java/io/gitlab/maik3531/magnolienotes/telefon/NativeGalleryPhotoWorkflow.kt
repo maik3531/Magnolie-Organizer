@@ -20,22 +20,27 @@ internal class GalleryPhotoBuildFailure internal constructor(val reservationId: 
  */
 internal class NativeGalleryPhotoWorkflow private constructor(context: Context, directory: File, private val senderId: String,
     private val protection: DeviceTransferProtection, currentReceiver: () -> NativePhotoReceiver?,
-    currentConfigurer: (() -> NativeGalleryConfigurer?)?, videoAvailable: () -> Boolean) : AutoCloseable {
+    currentConfigurer: (() -> NativeGalleryConfigurer?)?, videoAvailable: () -> Boolean,
+    currentMediaIntent: ((GalleryMediaType) -> Any?)?) : AutoCloseable {
     constructor(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
-        currentReceiver: () -> NativePhotoReceiver?) : this(context, directory, senderId, protection, currentReceiver, null, { true })
+        currentReceiver: () -> NativePhotoReceiver?) : this(context, directory, senderId, protection, currentReceiver, null, { true }, null)
     companion object {
         fun forAuthenticatedConfigurer(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
             currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?) =
-            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, { true })
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, { true }, null)
         fun forAuthenticatedConfigurer(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
             currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean) =
-            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, videoAvailable)
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, videoAvailable, null)
+        fun forSharedMediaIntent(context: Context, directory: File, senderId: String, protection: DeviceTransferProtection,
+            currentReceiver: () -> NativePhotoReceiver?, currentConfigurer: () -> NativeGalleryConfigurer?, videoAvailable: () -> Boolean,
+            currentMediaIntent: ((GalleryMediaType) -> Any?)?) =
+            NativeGalleryPhotoWorkflow(context, directory, senderId, protection, currentReceiver, currentConfigurer, videoAvailable, currentMediaIntent)
     }
     private val app = context.applicationContext
     init { require(Regex("[A-Za-z0-9_-]{16,160}").matches(senderId)) }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val policy = if (currentConfigurer == null) GalleryPhotoPolicyController(index, currentReceiver)
-        else GalleryPhotoPolicyController.forAuthenticatedConfigurer(index, currentReceiver, currentConfigurer, videoAvailable)
+        else GalleryPhotoPolicyController.forSharedMediaIntent(index, currentReceiver, currentConfigurer, videoAvailable, currentMediaIntent)
     private class Binding(val launcher: GalleryPhotoPermissionLauncher, val scope: GalleryPhotoSourceScope, val host: GalleryPhotoPermissionHost? = null)
     private data class Pending(val error: GalleryPhotoBuildFailure, val snapshot: ProtectedPhotoSourceSnapshot?)
     private val binding = AtomicReference<Binding?>()
@@ -214,7 +219,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
                 // photo/data binding. Never transfer an old OS request across a
                 // disable/re-enable cycle just because the peer is unchanged.
                 currentRequest(kind)?.takeIf {
-                    it.policyEpoch == admitted.policyEpoch && it.mediaType == admitted.mediaType && it.kinds == admitted.kinds
+                    it.policyEpoch == admitted.policyEpoch && it.mediaIntent === admitted.mediaIntent && it.mediaType == admitted.mediaType && it.kinds == admitted.kinds
                 }?.receiver
             }).also { cancellation.throwIfCanceled() }
         }

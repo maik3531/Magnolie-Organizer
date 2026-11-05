@@ -165,4 +165,44 @@ class GalleryPhotoSourceScopeTest {
             }
         } finally { root.deleteRecursively() }
     }
+
+    @Test fun changedSharedIntentDuringActualSnapshotReadCannotReviveTheOldNativeLease() {
+        val f = Fixture(); val original = f.request!!
+        f.request = NativeGalleryRequest(original.receiver, original.policyEpoch, original.kinds, mediaIntent = Any())
+        val catalog = f.catalog(); val lease = f.scope.capture(catalog, f.album)
+        val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-shared-intent-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
+        val inventory = PhotoSourceInventory(lease, listOf(PhotoInventoryEntry("content://media/external/images/media/1", "1:90", "image.jpg", 5, 100)))
+        var opened = 0
+        val source = object : PhotoSourceAccess {
+            override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) {
+                check(f.scope.isCurrent(lease))
+            }
+            override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): java.io.InputStream {
+                opened++
+                return object : ByteArrayInputStream("hello".toByteArray()) {
+                    override fun read(bytes: ByteArray, offset: Int, count: Int): Int {
+                        val read = super.read(bytes, offset, count)
+                        if (read > 0) {
+                            // Off/on completed between IO guards. All existing
+                            // pairing, policy and OS epochs deliberately match.
+                            f.request = NativeGalleryRequest(original.receiver, original.policyEpoch, original.kinds, mediaIntent = Any())
+                        }
+                        return read
+                    }
+                }
+            }
+        }
+        try {
+            PhotoSourceJobIndex(root, protection).use { index ->
+                val reserved = index.reserve(inventory, f.scope)
+                assertThrows(Exception::class.java) {
+                    ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, source, protection)
+                }
+                assertEquals(1, opened); assertFalse(f.scope.isCurrent(lease)); assertFalse(f.scope.isCatalogCurrent(catalog))
+                assertEquals(reserved.id, index.jobs().single().id); assertNull(index.jobs().single().snapshot)
+                assertTrue(f.scope.isCurrent(f.lease()))
+            }
+        } finally { root.deleteRecursively() }
+    }
 }

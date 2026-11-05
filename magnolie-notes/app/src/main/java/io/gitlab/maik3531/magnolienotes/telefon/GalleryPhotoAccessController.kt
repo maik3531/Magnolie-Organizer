@@ -113,7 +113,7 @@ internal class GalleryPhotoAccessController private constructor(context: Context
         return now >= ticket.startedMs && now - ticket.startedMs <= MAX_PROMPT_MS && same(ticket.activation, current())
     }
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
-        first.receiver.allowed && second.receiver.allowed && first.kinds == second.kinds && first.policyEpoch == second.policyEpoch &&
+        first.receiver.allowed && second.receiver.allowed && first.kinds == second.kinds && first.policyEpoch == second.policyEpoch && first.mediaIntent === second.mediaIntent &&
         first.mediaType == mediaType && second.mediaType == mediaType &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
         first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&

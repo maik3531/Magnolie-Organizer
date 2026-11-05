@@ -12,8 +12,27 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     private var received: JsonObject? = null
     private val attempts = mutableMapOf<String, JsonObject>()
     private var previewPublished = false
+    internal class IntentToken internal constructor(internal val body: JsonObject) {
+        private val values = MediaSyncSettings.effective(body)
+        internal fun requested(mediaType: GalleryMediaType): Boolean = values["enabled"] == JsonPrimitive(true) &&
+            values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
+    }
+    @Volatile private var currentIntent: IntentToken? = null
+
+    // Native source checks may hold their index lock. This projection MUST NOT
+    // acquire transport/Werk/storage locks or manufacture any permission.
+    internal fun intentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requested(mediaType) }
+
+    private fun publish() {
+        val body = try { if (ready()) storage.read(binding) else null }
+            catch (error: Exception) { currentIntent = null; throw error }
+        currentIntent = if (body != null && body == sent && body == acknowledged && body == received)
+            currentIntent?.takeIf { it.body == body } ?: IntentToken(body) else null
+        changed()
+    }
 
     @Synchronized fun invalidate() {
+        currentIntent = null
         generation++; sent = null; acknowledged = null; received = null; attempts.clear()
         previewPublished = false; changed()
     }
@@ -25,7 +44,10 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     }
 
     @Synchronized fun queueSettings() {
-        if (!ready()) return
+        if (!ready()) {
+            if (currentIntent != null || sent != null || acknowledged != null || received != null) invalidate()
+            return
+        }
         if (!previewPublished) { previewPublished = true; changed() }
         val body = storage.read(binding) ?: return
         if (body == sent || queue.hasKind(binding.peerActor, MediaSyncSettings.KIND)) return
@@ -33,7 +55,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     }
 
     @Synchronized fun send(message: JsonObject, write: (JsonObject) -> Unit): Boolean {
-        if (!ready()) return false
+        if (!ready()) { invalidate(); return false }
         val id = message.string("message_id")
         val body = message.getValue("body").jsonObject
         if (body != storage.read(binding)) { queue.acknowledge(binding.peerActor, id); return false }
@@ -45,7 +67,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             if (!ready()) { invalidate(); return false }
             if (captured == generation) sent = body
             queue.sent(id, queue.attempts(id))
-            changed()
+            publish()
             return true
         } catch (error: Exception) { invalidate(); throw error }
     }
@@ -55,7 +77,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         val attempted = attempts.remove(message.string("message_id")) ?: return
         if (!ready()) { invalidate(); return }
         acknowledged = attempted.takeIf { message.string("status") in setOf("accepted", "duplicate") && message.string("error") == "none" }
-        changed()
+        publish()
     }
 
     @Synchronized fun receive(message: JsonObject, write: (JsonObject) -> Unit) {
@@ -65,6 +87,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             check(ready()) { "not_granted" }
             val body = message.getValue("body").jsonObject
             MediaSyncSettings.validate(body)
+            if (currentIntent?.body != body) currentIntent = null
             if (queue.duplicateResult(binding.peerActor, message.string("message_id")) != null)
                 require(queue.receivedMatches(binding.peerActor, message))
             storage.merge(binding, body) // Commit and exact readback before ACK/echo.
@@ -81,7 +104,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
                 if (captured == generation) received = message.getValue("body").jsonObject
                 if (storage.read(binding) != sent) queue.removeKind(binding.peerActor, MediaSyncSettings.KIND)
                 queueSettings()
-                changed()
+                publish()
             } else invalidate()
         } catch (error: Exception) { invalidate(); throw error }
     }

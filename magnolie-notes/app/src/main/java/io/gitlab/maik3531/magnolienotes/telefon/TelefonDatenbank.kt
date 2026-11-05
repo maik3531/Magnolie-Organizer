@@ -164,6 +164,14 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         legacyProjection: (MediaSettingsBinding) -> JsonObject = { MediaSyncSettings.create(it.localActor) }) =
         MediaSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked, legacyProjection)
 
+    internal fun hasMediaSettings(peerId: String): Boolean {
+        val db = helper.readableDatabase
+        db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_media_shared_settings'", null).use {
+            if (!it.moveToFirst()) return false
+        }
+        return db.query("native_media_shared_settings", arrayOf("peer_id"), "peer_id=?", arrayOf(peerId), null, null, null, "1").use { it.moveToFirst() }
+    }
+
     internal fun actorJournal(sourceLock: Any, bookLock: Any, currentSource: (String, String) -> String?) =
         PersonalSyncActorJournal(helper, storage, currentSource, restoreEpoch, sourceLock = sourceLock, bookLock = bookLock)
 

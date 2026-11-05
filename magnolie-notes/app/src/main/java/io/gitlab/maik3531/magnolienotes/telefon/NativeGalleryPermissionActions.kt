@@ -59,7 +59,7 @@ internal class NativeGalleryPermissionActions(private val current: () -> NativeG
     private fun same(first: NativeGalleryPermissionActionScope, second: NativeGalleryPermissionActionScope): Boolean {
         val before = first.request; val after = second.request
         val a = before.receiver; val b = after.receiver
-        return first.owner === second.owner && a.allowed && b.allowed && before.kinds == after.kinds && before.policyEpoch == after.policyEpoch &&
+        return first.owner === second.owner && a.allowed && b.allowed && before.kinds == after.kinds && before.policyEpoch == after.policyEpoch && before.mediaIntent === after.mediaIntent &&
             before.mediaType == after.mediaType &&
             a.owner === b.owner && a.peerId == b.peerId && a.identitySha256 == b.identitySha256 &&
             a.permissionEpoch == b.permissionEpoch && a.pairingEpoch == b.pairingEpoch

@@ -19,7 +19,7 @@ internal enum class GalleryReadCoverage { NONE, SELECTED_ONLY, FULL_IMAGES, FULL
 
 /** Supplied by authenticated desktop policy, never inferred from a device name. */
 internal class NativeGalleryRequest(val receiver: NativePhotoReceiver, val policyEpoch: String, kinds: Set<GallerySourceKind>,
-    val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) {
+    val mediaType: GalleryMediaType = GalleryMediaType.IMAGES, val mediaIntent: Any? = null) {
     val kinds: Set<GallerySourceKind> = Collections.unmodifiableSet(kinds.toSet())
     init { require(Regex("[0-9a-f]{64}").matches(policyEpoch)) }
 }
@@ -103,7 +103,7 @@ internal class AndroidGalleryAlbumDiscovery(context: Context, private val curren
         fun fresh() {
             cancellation.throwIfCanceled()
             val now = current()
-            if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.kinds != request.kinds || now.mediaType != mediaType ||
+            if (now == null || !now.receiver.allowed || now.policyEpoch != request.policyEpoch || now.mediaIntent !== request.mediaIntent || now.kinds != request.kinds || now.mediaType != mediaType ||
                 now.receiver.owner !== request.receiver.owner || now.receiver.peerId != request.receiver.peerId ||
                  now.receiver.identitySha256 != request.receiver.identitySha256 || now.receiver.permissionEpoch != request.receiver.permissionEpoch ||
                  now.receiver.pairingEpoch != request.receiver.pairingEpoch ||

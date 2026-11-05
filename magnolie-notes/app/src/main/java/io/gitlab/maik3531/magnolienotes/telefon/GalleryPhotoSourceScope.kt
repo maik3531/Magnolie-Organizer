@@ -109,7 +109,7 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
         }.getOrDefault(false)
     }
     private fun same(first: NativeGalleryRequest, second: NativeGalleryRequest?): Boolean = second != null &&
-        first.receiver.allowed && second.receiver.allowed && first.policyEpoch == second.policyEpoch && first.kinds == second.kinds && first.mediaType == second.mediaType &&
+        first.receiver.allowed && second.receiver.allowed && first.policyEpoch == second.policyEpoch && first.mediaIntent === second.mediaIntent && first.kinds == second.kinds && first.mediaType == second.mediaType &&
         first.receiver.owner === second.receiver.owner && first.receiver.peerId == second.receiver.peerId &&
         first.receiver.identitySha256 == second.receiver.identitySha256 && first.receiver.permissionEpoch == second.receiver.permissionEpoch &&
         first.receiver.pairingEpoch == second.receiver.pairingEpoch
