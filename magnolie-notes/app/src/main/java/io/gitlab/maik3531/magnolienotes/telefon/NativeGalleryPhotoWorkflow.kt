@@ -219,6 +219,71 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         host.requestWrite(this, request, result)
     }
 
+    internal class VerifiedWriteTarget internal constructor(internal val grant: NativeGalleryWriteGrant,
+        internal val reader: AndroidGalleryPhotoSource, internal val lease: GalleryPhotoSourceLease,
+        internal val member: PhotoInventoryEntry, private val current: () -> Unit) {
+        val isRemoteDeletionReceipt: Boolean get() = false
+        internal fun requireCurrent() { current() }
+    }
+
+    /** No old catalogue, pre-dialog lease, or saved URI is admitted here. A
+     * successful result is only a current local target check, not a mutation. */
+    internal fun validateWriteTarget(grant: NativeGalleryWriteGrant, cancellation: CancellationSignal): VerifiedWriteTarget {
+        val request = grant.request
+        fun active() { ready(); cancellation.throwIfCanceled(); grant.requireCurrent(); request.permit.requireCurrent() }
+        active()
+        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+            val origin = archive.verifiedOriginalOrigin(request.entry, request.permit); active()
+            val observed = readBound(request.mediaType)
+            val catalog = discover(cancellation, request.mediaType); active()
+            val album = catalog.albums.singleOrNull {
+                it.volume == origin.string("volume") && it.relativePath == origin.string("album_path")
+            } ?: fail("gallery_write_original_album_not_current")
+            // Original explicit selection is authenticated by archive provenance;
+            // this does not admit another album or use a human-readable label.
+            val lease = observed.scope.capture(catalog, album, desktopAlbumChoice = true)
+            fun current() {
+                active()
+                if (!readCurrent(observed) || !observed.scope.isCurrent(lease)) fail("gallery_write_original_scope_changed")
+            }
+            current()
+            val reader = AndroidGalleryPhotoSource(app, observed.scope)
+            val member = reader.observeArchivedOriginalForWrite(lease, origin, request.entry, cancellation)
+            val hash = java.security.MessageDigest.getInstance("SHA-256"); var bytes = 0L
+            reader.openOriginalForRecovery(lease, member, cancellation).use { input ->
+                val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+                try {
+                    while (true) {
+                        current(); val count = input.read(buffer)
+                        if (count == -1) break
+                        if (count <= 0 || bytes + count > request.entry.bytes) fail("gallery_write_original_content_changed")
+                        hash.update(buffer, 0, count); bytes += count
+                    }
+                } finally { buffer.fill(0) }
+            }
+            if (bytes != request.entry.bytes || hash.digest().joinToString("") { "%02x".format(it) } != request.entry.sha256)
+                fail("gallery_write_original_content_changed")
+            reader.verifyMetadata(lease, member, cancellation); current()
+            VerifiedWriteTarget(grant, reader, lease, member, ::current)
+        }
+    }
+
+    internal fun trashOriginal(grant: NativeGalleryWriteGrant, cancellation: CancellationSignal): NativeGalleryTrashAction {
+        val target = validateWriteTarget(grant, cancellation)
+        val request = grant.request
+        return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
+            val origin = archive.verifiedOriginalOrigin(request.entry, request.permit)
+            target.requireCurrent()
+            val action = archive.prepareTrash(request.entry, request.permit, target::requireCurrent)
+            // An interrupted/uncertain mutation remains prepared, never canceled
+            // or acknowledged from a provider return count alone.
+            grant.consume(); target.requireCurrent()
+            target.reader.trashOriginal(target.lease, target.member, origin.string("mime_type"), request.entry,
+                cancellation, target::requireCurrent)
+            archive.finishTrash(action, request.permit, target::requireCurrent)
+        }
+    }
+
     internal fun validateSelection(selection: NativeGalleryAlbumSelection) {
         ready(); selection.catalog.resolve(this, selection)
     }

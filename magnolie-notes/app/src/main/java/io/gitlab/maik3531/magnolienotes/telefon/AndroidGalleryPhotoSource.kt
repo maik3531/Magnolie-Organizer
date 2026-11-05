@@ -115,7 +115,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         fail("gallery_inventory_page_limit")
     }
 
-    private fun member(lease: GalleryPhotoSourceLease, cursor: Cursor): PhotoInventoryEntry {
+    private fun member(lease: GalleryPhotoSourceLease, cursor: Cursor, trashed: Boolean = false): PhotoInventoryEntry {
         fun text(name: String): String {
             val column = cursor.getColumnIndexOrThrow(name)
             if (cursor.getType(column) != Cursor.FIELD_TYPE_STRING) fail("gallery_inventory_invalid_metadata")
@@ -131,7 +131,7 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         if (cursor.getType(bucketColumn) !in setOf(Cursor.FIELD_TYPE_STRING, Cursor.FIELD_TYPE_INTEGER) ||
             cursor.getString(bucketColumn) != lease.album.bucketId || text("bucket_display_name") != lease.album.displayName ||
             modern && (text("relative_path") != lease.album.relativePath || number("is_pending") != 0L) ||
-            Build.VERSION.SDK_INT >= 30 && number("is_trashed") != 0L)
+            Build.VERSION.SDK_INT >= 30 && number("is_trashed") != (if (trashed) 1L else 0L))
             fail("gallery_inventory_album_changed")
         val name = text("_display_name")
         val bytes = number("_size")
@@ -193,6 +193,36 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         fresh(lease, cancellation); return mime
     }
 
+    /** Re-resolve a protected archive origin through a NEW native READ lease.
+     * The archived URI is compared, never used as an independent READ grant. */
+    internal fun observeArchivedOriginalForWrite(lease: GalleryPhotoSourceLease, origin: kotlinx.serialization.json.JsonObject,
+        archived: NativeGalleryArchiveEntry, cancellation: CancellationSignal): PhotoInventoryEntry {
+        fresh(lease, cancellation)
+        if (Build.VERSION.SDK_INT < 30 || !archived.originalBytesVerified ||
+            lease.access.coverage == GalleryReadCoverage.SELECTED_ONLY || lease.access.mediaStoreVersion != origin.string("namespace") ||
+            lease.sourceKey != origin.string("source") || lease.album.volume != origin.string("volume") ||
+            lease.album.relativePath != origin.string("album_path") || lease.activation.mediaType.uriSegment != origin.string("media_type") ||
+            lease.receiver.peerId != origin.string("peer") || lease.receiver.identitySha256 != origin.string("peer_identity"))
+            fail("gallery_write_original_scope_changed")
+        val member = origin.string("member")
+        if (!Regex("[1-9][0-9]{0,18}:(0|[1-9][0-9]{0,18}):[1-9][0-9]{0,18}").matches(member))
+            fail("gallery_archive_native_origin_required")
+        val row = member.substringBefore(':').toLongOrNull() ?: fail("gallery_inventory_invalid_member")
+        val uri = ContentUris.withAppendedId(collection(lease), row)
+        if (uri.toString() != origin.string("uri")) fail("gallery_write_original_scope_changed")
+        val observed = resolver.query(uri, projection(), Bundle(), cancellation)?.use {
+            fresh(lease, cancellation)
+            if (!it.moveToFirst()) fail("gallery_inventory_member_missing")
+            member(lease, it).also { value ->
+                if (value.documentId != member || value.nativeRevision != origin.string("revision") ||
+                    value.relativePath != archived.displayName || value.advertisedBytes != archived.bytes ||
+                    it.getString(it.getColumnIndexOrThrow("mime_type")) != origin.string("mime_type") || it.moveToNext())
+                    fail("gallery_inventory_member_changed")
+            }
+        } ?: fail("gallery_inventory_member_missing")
+        fresh(lease, cancellation); return observed
+    }
+
     override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) {
         val uri = document(lease, entry, cancellation)
         if (lease !is GalleryPhotoSourceLease) fail("gallery_inventory_invalid_member")
@@ -204,6 +234,71 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
             fresh(lease, cancellation)
         } ?: fail("gallery_inventory_member_missing")
         fresh(lease, cancellation)
+    }
+
+    /** Only called on the owned source lane AFTER durable action preparation.
+     * Generation/insertion predicates are evaluated by the provider mutation,
+     * not merely by an earlier app-side query. Never permanently deletes. */
+    internal fun trashOriginal(lease: GalleryPhotoSourceLease, entry: PhotoInventoryEntry, mime: String,
+        archived: NativeGalleryArchiveEntry, cancellation: CancellationSignal, current: () -> Unit) {
+        current(); verifyMetadata(lease, entry, cancellation)
+        val uri = document(lease, entry, cancellation)
+        val parts = entry.documentId.split(':')
+        if (Build.VERSION.SDK_INT < 30 || parts.size != 3 || entry.nativeRevision == null || !archived.originalBytesVerified)
+            fail("gallery_archive_native_origin_required")
+        val selection = "_id = ? AND bucket_id = ? AND relative_path = ? AND _display_name = ? AND _size = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND mime_type = ? AND is_pending = 0 AND is_trashed = 0"
+        val arguments = arrayOf(parts[0], lease.album.bucketId, lease.album.relativePath!!, entry.relativePath,
+            entry.advertisedBytes.toString(), parts[1], parts[2], entry.nativeRevision, mime)
+        current()
+        val changed = resolver.update(uri, android.content.ContentValues().apply { put(MediaStore.MediaColumns.IS_TRASHED, 1) }, selection, arguments)
+        if (changed != 1) fail("gallery_write_conditional_update_not_proven")
+        current()
+        fun readback(): PhotoInventoryEntry {
+            current(); fresh(lease, cancellation)
+            return resolver.query(uri, projection(), Bundle().apply {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE)
+            }, cancellation)?.use {
+                current()
+                if (!it.moveToFirst()) fail("gallery_write_trashed_readback_missing")
+                member(lease, it, trashed = true).also { value ->
+                    if (value.documentId != entry.documentId || value.relativePath != entry.relativePath ||
+                        value.advertisedBytes != archived.bytes || value.nativeRevision?.toLongOrNull()?.let { revision ->
+                            revision > entry.nativeRevision.toLong() } != true ||
+                        it.getString(it.getColumnIndexOrThrow("mime_type")) != mime || it.moveToNext())
+                        fail("gallery_write_trashed_readback_changed")
+                }
+            } ?: fail("gallery_write_trashed_readback_missing")
+        }
+        val trashed = readback()
+        val stream = originalStream(uri, cancellation)
+        val hash = java.security.MessageDigest.getInstance("SHA-256"); var bytes = 0L
+        stream.use { input ->
+            val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+            try {
+                while (true) {
+                    current(); fresh(lease, cancellation); val count = input.read(buffer)
+                    if (count == -1) break
+                    if (count <= 0 || bytes + count > archived.bytes) fail("gallery_write_trashed_content_changed")
+                    hash.update(buffer, 0, count); bytes += count
+                }
+            } finally { buffer.fill(0) }
+        }
+        if (bytes != archived.bytes || hash.digest().joinToString("") { "%02x".format(it) } != archived.sha256 || readback() != trashed)
+            fail("gallery_write_trashed_content_changed")
+        current(); fresh(lease, cancellation)
+    }
+
+    private fun originalStream(uri: Uri, cancellation: CancellationSignal): InputStream {
+        val requested = MediaStore.setRequireOriginal(uri)
+        return if (Build.VERSION.SDK_INT >= 31) {
+            val options = Bundle().apply { putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true) }
+            val descriptor = resolver.openTypedAssetFileDescriptor(requested, "*/*", options, cancellation)
+                ?: fail("gallery_inventory_member_missing")
+            try { descriptor.createInputStream() } catch (error: Exception) { descriptor.close(); throw error }
+        } else {
+            val descriptor = resolver.openFileDescriptor(requested, "r", cancellation) ?: fail("gallery_inventory_member_missing")
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor)
+        }
     }
 
     override fun openRead(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): InputStream =
@@ -219,15 +314,8 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         verifyMetadata(lease, entry, cancellation)
         // No fallback: normal READ can redact EXIF. Recovery must preserve the
         // original, or fail before any destructive operation is authorized.
-        val requested = if (original) MediaStore.setRequireOriginal(uri) else uri
-        val stream = if (original && Build.VERSION.SDK_INT >= 31) {
-            // Opt out of compatibility transcoding as well as EXIF redaction.
-            val options = Bundle().apply { putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true) }
-            val descriptor = resolver.openTypedAssetFileDescriptor(requested, "*/*", options, cancellation)
-                ?: fail("gallery_inventory_member_missing")
-            try { descriptor.createInputStream() } catch (error: Exception) { descriptor.close(); throw error }
-        } else {
-            val descriptor = resolver.openFileDescriptor(requested, "r", cancellation) ?: fail("gallery_inventory_member_missing")
+        val stream = if (original) originalStream(uri, cancellation) else {
+            val descriptor = resolver.openFileDescriptor(uri, "r", cancellation) ?: fail("gallery_inventory_member_missing")
             ParcelFileDescriptor.AutoCloseInputStream(descriptor)
         }
         try {

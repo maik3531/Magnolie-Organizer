@@ -45,6 +45,10 @@ class AndroidGalleryPhotoSourceTest {
         var denyOriginal = false
         var originalRequests = 0
         var typedOriginalRequests = 0
+        var allowTrash = false
+        var trashWrites = 0
+        var beforeTrash: (() -> Unit)? = null
+        var afterTrash: (() -> Unit)? = null
         var rows = listOf(Row())
         var ignoreSelection = false
         var ignoreLimit = false
@@ -126,7 +130,19 @@ class AndroidGalleryPhotoSourceTest {
         }
         override fun getType(uri: Uri) = "image/jpeg"
         override fun insert(uri: Uri, values: ContentValues?): Uri = throw AssertionError("Unexpected photo write")
-        override fun update(uri: Uri, values: ContentValues?, where: String?, args: Array<out String>?): Int = throw AssertionError("Unexpected photo write")
+        override fun update(uri: Uri, values: ContentValues?, where: String?, args: Array<out String>?): Int {
+            check(allowTrash) { "Unexpected photo write" }
+            check(values?.keySet() == setOf("is_trashed") && values.getAsInteger("is_trashed") == 1)
+            check(where == "_id = ? AND bucket_id = ? AND relative_path = ? AND _display_name = ? AND _size = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND mime_type = ? AND is_pending = 0 AND is_trashed = 0")
+            beforeTrash?.invoke(); trashWrites++
+            val selected = rows.singleOrNull { row ->
+                uri.lastPathSegment == row.id.toString() && args!!.toList() == listOf(row.id.toString(), row.bucket, row.path, row.name,
+                    row.bytes.toString(), row.added.toString(), row.generationAdded.toString(), row.generationModified.toString(), row.mime) &&
+                    row.pending == 0L && row.trashed == 0L
+            } ?: return 0
+            rows = rows.map { if (it === selected) it.copy(trashed = 1L, generationModified = (it.generationModified as Long) + 1) else it }
+            afterTrash?.invoke(); return 1
+        }
         override fun delete(uri: Uri, where: String?, args: Array<out String>?): Int = throw AssertionError("Unexpected photo delete")
     }
     private class Fixture(val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : AutoCloseable {
@@ -386,6 +402,94 @@ class AndroidGalleryPhotoSourceTest {
             documents.setzePapierkorb(false, 0)
             writeResult(h, newCode, android.app.Activity.RESULT_OK)
             assertTrue(fresh.single().isFailure); h.assertOriginal()
+        }
+    }
+
+    private fun acceptedWriteAfterResume(h: ResumeRuntimeCase): NativeGalleryWriteGrant {
+        val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+        val request = prepareArchivedWrite(h, permit)
+        val activity = h.activity.get() as WriteConsentActivity; activity.writeAllowed = true
+        var result: Result<NativeGalleryWriteGrant>? = null
+        h.runtime.requestGalleryWriteConsent(request) { result = it }
+        val code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+        h.activity.pause().resume()
+        assertThrows(PhotoFolderScopeError::class.java) { h.catalog.page() }
+        writeResult(h, code, android.app.Activity.RESULT_OK)
+        return result!!.getOrThrow()
+    }
+
+    @Test @Config(sdk = [30]) fun actualPostConsentTargetUsesFreshReadAuthorityAndKeepsOriginalHistory() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h)
+            h.watchEnd(); val checking = h.runtime.validateGalleryWriteTarget(grant); h.awaitEnd()
+            assertNull(checking.nativeFailure()); assertEquals("write_target_verified", checking.phase)
+            assertNull(checking.snapshotJob()); assertNull(checking.completedNativeArchive())
+            val target = checking.completedNativeWriteTarget()!!
+            assertFalse(target.isRemoteDeletionReceipt); target.requireCurrent()
+            assertEquals(grant.request.uri.toString(), target.member.documentUri)
+            h.activity.pause().resume()
+            assertThrows(PhotoFolderScopeError::class.java) { target.requireCurrent() }
+            h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualPostConsentTargetRejectsChangedRevisionReusedRowAndRawContent() {
+        for (change in listOf("revision", "insertion", "content", "mime", "namespace")) ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h)
+            val row = h.f.provider.rows.single()
+            when (change) {
+                "revision" -> h.f.provider.rows = listOf(row.copy(generationModified = 2L))
+                "insertion" -> h.f.provider.rows = listOf(row.copy(generationAdded = 2L, generationModified = 2L))
+                "content" -> h.f.provider.originalFile = File(h.f.root, "changed-raw.bin").also { it.writeText("HELLO") }
+                "mime" -> h.f.provider.rows = listOf(row.copy(mime = "image/png"))
+                "namespace" -> h.f.provider.namespace = "replaced-volume"
+            }
+            h.watchEnd(); val checking = h.runtime.validateGalleryWriteTarget(grant); h.awaitEnd()
+            assertNotNull("must reject $change", checking.nativeFailure()); assertEquals("failed_held", checking.phase)
+            assertNull(checking.completedNativeWriteTarget()); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualLocalTrashRequiresPreparedJournalConditionalProviderUpdateAndReadback() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h)
+            h.f.provider.allowTrash = true
+            h.f.provider.beforeTrash = {
+                val dbFile = File(h.f.context.noBackupFilesDir, "native-media-recovery/media-recovery.db")
+                android.database.sqlite.SQLiteDatabase.openDatabase(dbFile.path, null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY or android.database.sqlite.SQLiteDatabase.NO_LOCALIZED_COLLATORS).use { db ->
+                    db.rawQuery("SELECT name FROM recovery_meta WHERE name<>'membership'", null).use {
+                        assertTrue(it.moveToFirst()); assertTrue(it.getString(0).endsWith("/1")); assertFalse(it.moveToNext())
+                    }
+                }
+            }
+            h.watchEnd(); val trash = h.runtime.trashGalleryOriginal(grant); h.awaitEnd()
+            assertNull(trash.nativeFailure()); assertEquals("local_trash_verified", trash.phase)
+            assertEquals(1, h.f.provider.trashWrites); assertEquals(1L, h.f.provider.rows.single().trashed)
+            assertFalse(trash.completedNativeTrashAction()!!.isRemoteDeletionReceipt)
+            NativeGalleryTrashArchive.openForApplication(h.f.context, h.protection).use {
+                assertEquals("trashed", it.actions(grant.request.permit).single().state)
+                val restored = ByteArrayOutputStream(); it.readContent(grant.request.entry, grant.request.permit) { bytes -> restored.write(bytes) }
+                assertEquals("hello", restored.toString("UTF-8"))
+            }
+            h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualLocalTrashRacingEditOrUnprovenReadbackRemainsPreparedWithoutReceipt() {
+        for (change in listOf("race", "readback")) ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h); h.f.provider.allowTrash = true
+            if (change == "race") h.f.provider.beforeTrash = { h.f.provider.rows = listOf(Row(generationModified = 2L)) }
+            else h.f.provider.afterTrash = { h.f.provider.originalFile = File(h.f.root, "changed-trash.bin").also { it.writeText("OTHER") } }
+            h.watchEnd(); val trash = h.runtime.trashGalleryOriginal(grant); h.awaitEnd()
+            assertNotNull(trash.nativeFailure()); assertEquals("failed_held", trash.phase)
+            assertNull(trash.completedNativeTrashAction()); assertEquals(1, h.f.provider.trashWrites)
+            assertEquals(if (change == "race") 0L else 1L, h.f.provider.rows.single().trashed)
+            NativeGalleryTrashArchive.openForApplication(h.f.context, h.protection).use {
+                assertEquals("prepared", it.actions(grant.request.permit).single { action -> action.archiveId == grant.request.entry.id }.state)
+                it.verifyContent(grant.request.entry, grant.request.permit)
+            }
+            h.assertOriginal()
         }
     }
 

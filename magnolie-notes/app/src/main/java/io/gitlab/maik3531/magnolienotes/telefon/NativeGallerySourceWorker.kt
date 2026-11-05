@@ -17,6 +17,8 @@ internal class NativeGallerySourceRun internal constructor() {
     private val renewed = AtomicReference<NativeGalleryRenewedSource?>()
     private val archived = AtomicReference<NativeGalleryArchiveEntry?>()
     private val writeRequest = AtomicReference<NativeGalleryWriteRequest?>()
+    private val writeTarget = AtomicReference<NativeGalleryPhotoWorkflow.VerifiedWriteTarget?>()
+    private val trashAction = AtomicReference<NativeGalleryTrashAction?>()
     private val failure = AtomicReference<Throwable?>()
     val ioEnded: Boolean get() = ended.get()
     val phase: String get() = state.get()
@@ -24,9 +26,14 @@ internal class NativeGallerySourceRun internal constructor() {
 
     fun cancel() { cancellation.cancel() } // Never releases an I/O ownership slot.
     internal fun finish(prepared: PhotoSourceJob?, error: Throwable?, reopened: NativeGalleryRenewedSource? = null, recovery: NativeGalleryArchiveEntry? = null,
-        write: NativeGalleryWriteRequest? = null) {
+        write: NativeGalleryWriteRequest? = null, target: NativeGalleryPhotoWorkflow.VerifiedWriteTarget? = null,
+        trash: NativeGalleryTrashAction? = null) {
         job.set(prepared); renewed.set(reopened); archived.set(recovery); writeRequest.set(write); failure.set(error)
+        writeTarget.set(target)
+        trashAction.set(trash)
         state.set(if (cancellation.isCanceled) "canceled_held" else if (error != null) "failed_held"
+            else if (trash != null) "local_trash_verified"
+            else if (target != null) "write_target_verified"
             else if (write != null) "write_request_ready"
             else if (recovery != null) "archive_ready"
             else if (prepared == null) "empty_ready" else "snapshot_ready")
@@ -51,6 +58,14 @@ internal class NativeGallerySourceRun internal constructor() {
     internal fun completedNativeWriteRequest(): NativeGalleryWriteRequest? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
         return writeRequest.get().takeIf { phase == "write_request_ready" && !cancellation.isCanceled }
+    }
+    internal fun completedNativeWriteTarget(): NativeGalleryPhotoWorkflow.VerifiedWriteTarget? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        return writeTarget.get().takeIf { phase == "write_target_verified" && !cancellation.isCanceled }
+    }
+    internal fun completedNativeTrashAction(): NativeGalleryTrashAction? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        return trashAction.get().takeIf { phase == "local_trash_verified" && !cancellation.isCanceled }
     }
     internal fun renewedSource(): NativeGalleryRenewedSource? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
@@ -100,6 +115,16 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         return startNative(write = result) { cancellation -> result.set(prepare(cancellation)); null to null }
     }
 
+    fun startWriteTarget(prepare: (CancellationSignal) -> NativeGalleryPhotoWorkflow.VerifiedWriteTarget): NativeGallerySourceRun {
+        val result = AtomicReference<NativeGalleryPhotoWorkflow.VerifiedWriteTarget?>()
+        return startNative(target = result) { cancellation -> result.set(prepare(cancellation)); null to null }
+    }
+
+    fun startTrash(action: (CancellationSignal) -> NativeGalleryTrashAction): NativeGallerySourceRun {
+        val result = AtomicReference<NativeGalleryTrashAction?>()
+        return startNative(trash = result) { cancellation -> result.set(action(cancellation)); null to null }
+    }
+
     private fun startOwned(selection: NativeGalleryAlbumSelection,
         archived: AtomicReference<NativeGalleryArchiveEntry?>? = null,
         action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>): NativeGallerySourceRun =
@@ -107,6 +132,8 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
 
     private fun startNative(archived: AtomicReference<NativeGalleryArchiveEntry?>? = null,
         write: AtomicReference<NativeGalleryWriteRequest?>? = null,
+        target: AtomicReference<NativeGalleryPhotoWorkflow.VerifiedWriteTarget?>? = null,
+        trash: AtomicReference<NativeGalleryTrashAction?>? = null,
         action: (CancellationSignal) -> Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>): NativeGallerySourceRun {
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_source_worker_closed")
@@ -120,7 +147,7 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
                 run.cancellation.throwIfCanceled()
                 prepared = action(run.cancellation)
             } catch (failed: Throwable) { error = failed }
-            finally { finish(run, prepared?.first, error, prepared?.second, archived?.get(), write?.get()) }
+            finally { finish(run, prepared?.first, error, prepared?.second, archived?.get(), write?.get(), target?.get(), trash?.get()) }
         }, "magnolie-photo-source").apply { isDaemon = true }
         try { thread.start() }
         catch (error: Throwable) { finish(run, null, error); throw error }
@@ -128,10 +155,11 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
     }
 
     private fun finish(run: NativeGallerySourceRun, job: PhotoSourceJob?, error: Throwable?, renewed: NativeGalleryRenewedSource? = null,
-        recovery: NativeGalleryArchiveEntry? = null, write: NativeGalleryWriteRequest? = null) {
+        recovery: NativeGalleryArchiveEntry? = null, write: NativeGalleryWriteRequest? = null,
+        target: NativeGalleryPhotoWorkflow.VerifiedWriteTarget? = null, trash: NativeGalleryTrashAction? = null) {
         // prepare owns all descriptor cleanup before return. Only that actual
         // end, never cancel/close/progress totals, can release this slot.
-        run.finish(job, error, renewed, recovery, write)
+        run.finish(job, error, renewed, recovery, write, target, trash)
         synchronized(gate) { if (active === run) active = null }
         onEnded(run) // Outside the owner monitor; callbacks are not source I/O.
     }
