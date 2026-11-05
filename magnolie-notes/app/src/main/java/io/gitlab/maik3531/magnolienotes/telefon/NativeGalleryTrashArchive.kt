@@ -25,7 +25,8 @@ internal data class NativeGalleryArchiveEntry internal constructor(val id: Strin
 }
 
 internal data class NativeGalleryTrashAction internal constructor(val operation: String, val archiveId: String,
-    val archiveVersion: String, val sequence: Int, val state: String, val changedMs: Long, val version: String) {
+    val archiveVersion: String, val sequence: Int, val state: String, val changedMs: Long, val version: String,
+    val restoredMember: JsonObject? = null) {
     val isRemoteDeletionReceipt: Boolean get() = false
 }
 
@@ -251,7 +252,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         db.rawQuery("SELECT name,sealed FROM recovery_meta WHERE name<>'membership' ORDER BY name", null).use {
             while (it.moveToNext()) {
                 val name = it.getString(0); val cipher = it.getBlob(1)
-                if (values.size >= MAX_ACTIONS * 4 || !Regex("trash/[0-9a-f-]{36}/[1-4]").matches(name) || cipher.size !in 29..16384)
+                if (values.size >= MAX_ACTIONS * 5 || !Regex("trash/[0-9a-f-]{36}/[1-5]").matches(name) || cipher.size !in 29..16384)
                     fail("gallery_archive_action_membership_invalid")
                 values.add(buildJsonObject { put("name", name); put("sha256", digest(cipher)) })
             }
@@ -266,23 +267,34 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
                 val name = it.getString(0); val cipher = it.getBlob(1)
                 val clear = protection.open(cipher, domain(name))
                 val body = try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject } finally { clear.fill(0) }
-                if (body.keys != setOf("format", "operation", "archive", "archive_version", "sequence", "state", "changed_ms", "previous") || body["format"] != JsonPrimitive(1))
+                val withRow = body["format"] == JsonPrimitive(2)
+                if (body.keys != setOf("format", "operation", "archive", "archive_version", "sequence", "state", "changed_ms", "previous") +
+                        (if (withRow) setOf("restored_member") else emptySet()) || !withRow && body["format"] != JsonPrimitive(1))
                     fail("gallery_archive_action_invalid")
                 val operation = body.string("operation"); val archive = body.string("archive"); val archiveVersion = body.string("archive_version")
                 val sequence = body["sequence"]?.jsonPrimitive?.intOrNull ?: fail("gallery_archive_action_invalid")
                 val state = body.string("state"); val at = body["changed_ms"]?.jsonPrimitive?.longOrNull ?: fail("gallery_archive_action_invalid")
                 val previous = heads[operation]
                 val predecessor = when (state) {
-                    "prepared" -> null; "trashed", "canceled" -> "prepared"; "restore_prepared" -> "trashed"; "restored" -> "restore_prepared"
+                    "prepared" -> null; "trashed", "canceled" -> "prepared"; "restore_prepared" -> "trashed"
+                    "restore_row_prepared" -> "restore_prepared"; "restored" -> if (withRow) "restore_row_prepared" else "restore_prepared"
                     else -> fail("gallery_archive_action_invalid")
                 }
-                val expectedSequence = when (state) { "prepared" -> 1; "trashed", "canceled" -> 2; "restore_prepared" -> 3; else -> 4 }
+                val expectedSequence = when (state) { "prepared" -> 1; "trashed", "canceled" -> 2; "restore_prepared" -> 3; "restore_row_prepared" -> 4; else -> if (withRow) 5 else 4 }
+                val row = if (withRow) body["restored_member"] as? JsonObject ?: fail("gallery_archive_restore_mapping_invalid") else null
+                if (withRow && state !in setOf("restore_row_prepared", "restored") || state == "restore_row_prepared" && !withRow)
+                    fail("gallery_archive_restore_mapping_invalid")
+                if (row != null) validateRestoredMember(row, readRecord(archive).second["origin"]!!.jsonObject)
+                if (state == "restored" && withRow && (previous?.restoredMember == null ||
+                    row!!.filterKeys { it != "revision" } != previous.restoredMember.filterKeys { it != "revision" } ||
+                    row.string("revision").toLong() <= previous.restoredMember.string("revision").toLong()))
+                    fail("gallery_archive_restore_mapping_changed")
                 if (!validId(operation) || !validId(archive) || !DeviceFileControl.hash(archiveVersion) || at <= 0 || sequence != expectedSequence ||
                     name != "trash/$operation/$sequence" || previous?.state != predecessor ||
                     (if (previous == null) body["previous"] != JsonNull else body.string("previous") != previous.version ||
                         archive != previous.archiveId || archiveVersion != previous.archiveVersion || at < previous.changedMs) ||
                     readRecord(archive).first.version != archiveVersion) fail("gallery_archive_action_lineage_changed")
-                heads[operation] = NativeGalleryTrashAction(operation, archive, archiveVersion, sequence, state, at, digest(cipher))
+                heads[operation] = NativeGalleryTrashAction(operation, archive, archiveVersion, sequence, state, at, digest(cipher), row)
             }
         }
         if (heads.size > MAX_ACTIONS) fail("gallery_archive_action_capacity_held")
@@ -307,16 +319,54 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
     @Synchronized internal fun cancelUnmutatedTrash(selected: NativeGalleryTrashAction, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction =
         appendAction(readRecord(selected.archiveId).first, selected, "canceled", permit, current)
 
+    @Synchronized internal fun prepareRestore(selected: NativeGalleryTrashAction, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction {
+        val entry = readRecord(selected.archiveId).first
+        verifiedOriginalOrigin(entry, permit)
+        return appendAction(entry, selected, "restore_prepared", permit, current)
+    }
+
+    @Synchronized internal fun recordRestoreRow(selected: NativeGalleryTrashAction, row: JsonObject,
+        permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction =
+        appendAction(readRecord(selected.archiveId).first, selected, "restore_row_prepared", permit, current, row)
+
+    @Synchronized internal fun finishRestore(selected: NativeGalleryTrashAction, row: JsonObject,
+        permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction =
+        appendAction(readRecord(selected.archiveId).first, selected, "restored", permit, current, row)
+
+    private fun validateRestoredMember(row: JsonObject, origin: JsonObject) {
+        if (row.keys != setOf("uri", "member", "revision", "namespace", "volume", "media_type", "path", "name", "mime_type"))
+            fail("gallery_archive_restore_mapping_invalid")
+        val member = row.string("member").split(':')
+        if (member.size != 3 || member.any { it.toLongOrNull() == null } || member[0].toLong() <= 0 || member[1].toLong() < 0 || member[2].toLong() <= 0 ||
+            row.string("revision").toLongOrNull()?.let { it >= member[2].toLong() } != true ||
+            row.string("volume") != origin.string("volume") || row.string("media_type") != origin.string("media_type") ||
+            row.string("mime_type") != origin.string("mime_type") || row.string("path") != origin.string("album_path") ||
+            row.string("namespace").length !in 1..1024 || row.string("namespace").any { it.code < 32 || it.code == 127 } ||
+            !DeviceFileManifest.portablePath(row.string("name")) || '/' in row.string("name") ||
+            row.string("uri") != "content://media/${row.string("volume")}/${row.string("media_type")}/media/${member[0]}" ||
+            row.string("uri") == origin.string("uri")) fail("gallery_archive_restore_mapping_invalid")
+    }
+
     private fun appendAction(entry: NativeGalleryArchiveEntry, selected: NativeGalleryTrashAction?, state: String,
-        permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction {
+        permit: NativeGalleryTrashBookPermit, current: () -> Unit, restoredMember: JsonObject? = null): NativeGalleryTrashAction {
         permit.requireCurrent(); current(); val revision = verify(); val heads = readActions()
-        if (readRecord(entry.id).first != entry || selected != null && heads.none { it == selected } ||
-            selected != null && (selected.state != "prepared" || state !in setOf("trashed", "canceled"))) fail("gallery_archive_stale_action")
+        val predecessor = when (state) { "prepared" -> null; "trashed", "canceled" -> "prepared"; "restore_prepared" -> "trashed"
+            "restore_row_prepared" -> "restore_prepared"; "restored" -> "restore_row_prepared"; else -> fail("gallery_archive_stale_action") }
+        if (readRecord(entry.id).first != entry || selected != null && heads.none { it == selected } || selected?.state != predecessor ||
+            (state in setOf("restore_row_prepared", "restored")) != (restoredMember != null)) fail("gallery_archive_stale_action")
+        if (restoredMember != null) {
+            validateRestoredMember(restoredMember, readRecord(entry.id).second["origin"]!!.jsonObject)
+            if (state == "restored" && (selected?.restoredMember == null ||
+                    restoredMember.filterKeys { it != "revision" } != selected.restoredMember.filterKeys { it != "revision" } ||
+                    restoredMember.string("revision").toLong() <= selected.restoredMember.string("revision").toLong()))
+                fail("gallery_archive_restore_mapping_changed")
+        }
         val operation = selected?.operation ?: UUID.randomUUID().toString(); val sequence = (selected?.sequence ?: 0) + 1
         val body = buildJsonObject {
-            put("format", 1); put("operation", operation); put("archive", entry.id); put("archive_version", entry.version)
+            put("format", if (restoredMember == null) 1 else 2); put("operation", operation); put("archive", entry.id); put("archive_version", entry.version)
             put("sequence", sequence); put("state", state); put("changed_ms", maxOf(System.currentTimeMillis(), selected?.changedMs ?: 0))
             put("previous", selected?.version?.let(::JsonPrimitive) ?: JsonNull)
+            if (restoredMember != null) put("restored_member", restoredMember)
         }
         val name = "trash/$operation/$sequence"; val cipher = protection.seal(TelefonKanonisch.bytes(body), domain(name))
         db.beginTransaction()

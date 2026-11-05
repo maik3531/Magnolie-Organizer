@@ -38,7 +38,7 @@ class AndroidGalleryPhotoSourceTest {
     private data class Row(val id: Long = 1, val bucket: String = "camera", val label: String = "Camera",
         val name: String = "image.jpg", val bytes: Long = 5, val modified: Any = 100L, val added: Long = 90,
         val mime: String = "image/jpeg", val path: String = "DCIM/Camera/", val pending: Long = 0, val trashed: Long = 0,
-        val generationAdded: Any = 1L, val generationModified: Any = 1L)
+        val generationAdded: Any = 1L, val generationModified: Any = 1L, val owner: String = "foreign.source.app")
     private class Provider(val root: File, val mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : ContentProvider() {
         var writeRequests = 0
         var originalFile: File? = null
@@ -49,6 +49,17 @@ class AndroidGalleryPhotoSourceTest {
         var trashWrites = 0
         var beforeTrash: (() -> Unit)? = null
         var afterTrash: (() -> Unit)? = null
+        var allowRestore = false
+        var restoreInserts = 0
+        var restoreWrites = 0
+        var restorePublishes = 0
+        var afterRestoreInsert: (() -> Unit)? = null
+        var beforeRestorePublish: (() -> Unit)? = null
+        var beforeRestoreWrite: (() -> Unit)? = null
+        var afterRestorePublish: (() -> Unit)? = null
+        var restoreReturnsOldUri = false
+        var corruptRestoreRead = false
+        val restoredFiles = linkedMapOf<Long, File>()
         var rows = listOf(Row())
         var ignoreSelection = false
         var ignoreLimit = false
@@ -80,6 +91,10 @@ class AndroidGalleryPhotoSourceTest {
             check(uri.toString().startsWith("content://media/$volume/${mediaType.uriSegment}/media") ||
                 uri.toString() == "content://media/1234-5678/${mediaType.uriSegment}/media")
             val args = requireNotNull(queryArgs)
+            rows = rows.map { row ->
+                val file = restoredFiles[row.id]
+                if (file != null && file.length() != row.bytes) row.copy(bytes = file.length(), generationModified = (row.generationModified as Long) + 1) else row
+            }
             var selected = rows
             if (uri.pathSegments.size == 3) {
                 requests += Bundle(args)
@@ -105,7 +120,8 @@ class AndroidGalleryPhotoSourceTest {
                 val data = mapOf("_id" to row.id, "bucket_id" to row.bucket, "bucket_display_name" to row.label,
                     "_display_name" to row.name, "mime_type" to row.mime, "_size" to row.bytes,
                     "date_modified" to row.modified, "date_added" to row.added, "relative_path" to row.path, "is_pending" to row.pending,
-                    "is_trashed" to row.trashed, "generation_added" to row.generationAdded, "generation_modified" to row.generationModified)
+                    "is_trashed" to row.trashed, "generation_added" to row.generationAdded, "generation_modified" to row.generationModified,
+                    "owner_package_name" to row.owner)
                 cursor.addRow(columns.map { data[it] }.toTypedArray())
             }
             cursors += cursor
@@ -113,13 +129,25 @@ class AndroidGalleryPhotoSourceTest {
             return cursor
         }
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            val own = uri.lastPathSegment?.toLongOrNull()?.let { restoredFiles[it] }
+            if (mode == "w") {
+                check(allowRestore && own != null)
+                val row = rows.single { it.id.toString() == uri.lastPathSegment }
+                check(row.pending == 1L && row.owner == context!!.packageName)
+                restoreWrites++
+                beforeRestoreWrite?.invoke()
+                return ParcelFileDescriptor.open(own, ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_TRUNCATE)
+            }
             check(mode == "r")
             val original = Build.VERSION.SDK_INT >= 29 && android.provider.MediaStore.getRequireOriginal(uri)
             if (original) originalRequests++
-            if (original && denyOriginal) throw UnsupportedOperationException("Fixture denies original media bytes")
+            if (original && denyOriginal && own == null) throw UnsupportedOperationException("Fixture denies original media bytes")
             opens += uri.toString()
             onOpen?.invoke()
-            return ParcelFileDescriptor.open(if (original) originalFile ?: File(root, "source.bin") else File(root, "source.bin"), ParcelFileDescriptor.MODE_READ_ONLY)
+            val chosen = if (own != null) {
+                if (corruptRestoreRead) File(root, "corrupt-restore.bin").also { it.writeText("WRONG") } else own
+            } else if (original) originalFile ?: File(root, "source.bin") else File(root, "source.bin")
+            return ParcelFileDescriptor.open(chosen, ParcelFileDescriptor.MODE_READ_ONLY)
         }
         override fun openTypedAssetFile(uri: Uri, mimeTypeFilter: String, opts: Bundle?): android.content.res.AssetFileDescriptor {
             if (Build.VERSION.SDK_INT >= 31 && android.provider.MediaStore.getRequireOriginal(uri)) {
@@ -129,8 +157,29 @@ class AndroidGalleryPhotoSourceTest {
             return android.content.res.AssetFileDescriptor(openFile(uri, "r"), 0, android.content.res.AssetFileDescriptor.UNKNOWN_LENGTH)
         }
         override fun getType(uri: Uri) = "image/jpeg"
-        override fun insert(uri: Uri, values: ContentValues?): Uri = throw AssertionError("Unexpected photo write")
+        override fun insert(uri: Uri, values: ContentValues?): Uri {
+            check(allowRestore && values!!.keySet() == setOf("_display_name", "mime_type", "relative_path", "is_pending"))
+            check(values.getAsInteger("is_pending") == 1)
+            val id = maxOf(100L, rows.maxOfOrNull { it.id }?.plus(1) ?: 100L)
+            val requested = values.getAsString("_display_name")
+            val name = if (rows.any { it.name == requested }) "restored-$id-$requested" else requested
+            rows = rows + Row(id = id, name = name, mime = values.getAsString("mime_type"), path = values.getAsString("relative_path"),
+                bytes = 0, pending = 1, generationAdded = id, generationModified = id, owner = context!!.packageName)
+            restoredFiles[id] = File(root, "restored-$id.bin").also { check(it.createNewFile()) }
+            restoreInserts++; afterRestoreInsert?.invoke()
+            return android.content.ContentUris.withAppendedId(uri, if (restoreReturnsOldUri) 1L else id)
+        }
         override fun update(uri: Uri, values: ContentValues?, where: String?, args: Array<out String>?): Int {
+            if (values?.keySet() == setOf("is_pending")) {
+                check(allowRestore && values.getAsInteger("is_pending") == 0)
+                check(where == "_id = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND owner_package_name = ? AND is_pending = 1 AND is_trashed = 0")
+                beforeRestorePublish?.invoke(); restorePublishes++
+                val row = rows.singleOrNull { row -> row.id.toString() == uri.lastPathSegment && row.pending == 1L && row.trashed == 0L &&
+                    args!!.toList() == listOf(row.id.toString(), row.added.toString(), row.generationAdded.toString(), row.generationModified.toString(), row.owner) } ?: return 0
+                rows = rows.map { if (it === row) it.copy(pending = 0, generationModified = (it.generationModified as Long) + 1) else it }
+                afterRestorePublish?.invoke()
+                return 1
+            }
             check(allowTrash) { "Unexpected photo write" }
             check(values?.keySet() == setOf("is_trashed") && values.getAsInteger("is_trashed") == 1)
             check(where == "_id = ? AND bucket_id = ? AND relative_path = ? AND _display_name = ? AND _size = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND mime_type = ? AND is_pending = 0 AND is_trashed = 0")
@@ -536,6 +585,163 @@ class AndroidGalleryPhotoSourceTest {
                 it.verifyContent(grant.request.entry, grant.request.permit)
             }
             h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRuntimeRestoreCreatesNewOwnedRowPreservesArchiveAndCannotReplayDeletion() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h); h.f.provider.allowTrash = true
+            h.watchEnd(); val trash = h.runtime.trashGalleryOriginal(grant); h.awaitEnd()
+            assertNull(trash.nativeFailure()); val selected = trash.completedNativeTrashAction()!!
+            h.f.provider.allowRestore = true
+            h.runtime.disableLocally(h.runtime.savedPolicy())
+            assertNull(h.runtime.currentRequest()) // Restoration is LOCAL, not a historical READ grant.
+            val session = NativeGalleryRestoreSession.capture(h.activity.get(), selected, grant.request.permit)
+            session.use {
+                h.watchEnd(); val restoring = h.runtime.restoreGalleryOriginal(session); h.awaitEnd()
+                assertNull(restoring.nativeFailure()); assertEquals("local_restore_verified", restoring.phase)
+                assertNull(restoring.snapshotJob()); assertNull(restoring.completedNativeTrashAction())
+                val restored = restoring.completedNativeRestoreAction()!!
+                assertEquals("restored", restored.state); assertEquals(5, restored.sequence); assertFalse(restored.isRemoteDeletionReceipt)
+                val row = h.f.provider.rows.single { row -> row.pending == 0L && row.trashed == 0L }
+                assertNotEquals(1L, row.id); assertEquals(h.f.context.packageName, row.owner)
+                assertNotEquals("image.jpg", row.name) // Existing name is preserved, never overwritten.
+                assertEquals("hello", h.f.provider.restoredFiles[row.id]!!.readText())
+                NativeGalleryTrashArchive.openForApplication(h.f.context, h.protection).use { archive ->
+                    assertEquals(restored, archive.actions(grant.request.permit).single())
+                    archive.verifyContent(grant.request.entry, grant.request.permit)
+                    assertThrows(PhotoFolderScopeError::class.java) { archive.prepareRestore(selected, grant.request.permit) {} }
+                    assertThrows(PhotoFolderScopeError::class.java) { archive.finishTrash(selected, grant.request.permit) {} }
+                    assertThrows(PhotoFolderScopeError::class.java) { archive.prepareTrash(grant.request.entry, grant.request.permit) {} }
+                }
+                assertThrows(PhotoFolderScopeError::class.java) { session.consume() }
+            }
+            assertEquals(1, h.f.provider.restoreInserts); assertEquals(1, h.f.provider.restoreWrites); assertEquals(1, h.f.provider.restorePublishes)
+            assertEquals(1L, h.f.provider.rows.single { it.id == 1L }.trashed); h.assertOriginal()
+        }
+    }
+
+    private fun independentRestoreCase(video: Boolean, change: String? = null) {
+        Fixture(if (video) GalleryMediaType.VIDEO else GalleryMediaType.IMAGES).use { f ->
+            val documents = archiveBook(f); val permit = NativeGalleryTrashBookPermit.capture(documents) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 61 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "local-restore-").toFile()
+            val lease = f.lease(); val member = f.reader.enumerate(lease).entries.single()
+            f.provider.originalFile = File(f.root, "exact-restore-original.bin").also { it.writeText("RAW!!") }
+            val sha = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            lateinit var archived: NativeGalleryArchiveEntry
+            val selected = NativeGalleryTrashArchive(root, protection).use {
+                archived = it.archive(lease, f.scope, member, f.reader, sha, permit)
+                it.finishTrash(it.prepareTrash(archived, permit) {}, permit) {} // Storage fixture, not a provider mutation proof.
+            }
+            f.request = null; f.provider.rows = emptyList(); f.provider.denyOriginal = true
+            Shadows.shadowOf(f.context as Application).denyPermissions(Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
+            val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+            val session = NativeGalleryRestoreSession.capture(controller.get(), selected, permit)
+            try {
+                f.provider.allowRestore = true
+                when (change) {
+                    "owner" -> f.provider.afterRestoreInsert = { f.provider.rows = f.provider.rows.map { it.copy(owner = "foreign.app") } }
+                    "readback" -> f.provider.corruptRestoreRead = true
+                    "race" -> f.provider.beforeRestorePublish = { f.provider.rows = f.provider.rows.map { it.copy(generationModified = (it.generationModified as Long) + 1) } }
+                    "old_uri" -> f.provider.restoreReturnsOldUri = true
+                    "published_namespace" -> f.provider.afterRestorePublish = { f.provider.namespace = "changed-after-publish" }
+                    "lost_finish" -> f.provider.afterRestorePublish = { session.close() }
+                    "before_publish", "recovery_replaced", "recovery_content" -> f.provider.beforeRestorePublish = { session.close(); throw PhotoFolderScopeError("fixture_restore_publish_interrupted") }
+                    "pause" -> controller.pause().resume()
+                    "book" -> documents.setzePapierkorb(false, 0)
+                }
+                NativeGalleryTrashArchive(root, protection).use { archive ->
+                    if (change == null) {
+                        val restored = NativeGalleryMediaRestore(f.context).restore(archive, session, CancellationSignal())
+                        assertEquals("restored", restored.state); assertNotNull(restored.restoredMember)
+                        assertEquals("RAW!!", f.provider.restoredFiles.values.single().readText())
+                        assertEquals(0L, f.provider.rows.single().pending)
+                    } else {
+                        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryMediaRestore(f.context).restore(archive, session, CancellationSignal()) }
+                        if (change in setOf("pause", "book")) assertEquals(0, f.provider.restoreInserts)
+                        else {
+                            assertEquals(1, f.provider.restoreInserts)
+                            assertEquals(if (change in setOf("published_namespace", "lost_finish")) 0L else 1L, f.provider.rows.single().pending)
+                            val held = archive.actions(permit).single()
+                            assertEquals(if (change in setOf("owner", "old_uri")) "restore_prepared" else "restore_row_prepared", held.state)
+                            if (change in setOf("owner", "old_uri")) assertEquals(0, f.provider.restoreWrites)
+                            assertThrows(PhotoFolderScopeError::class.java) { archive.prepareRestore(selected, permit) {} }
+                            if (change in setOf("lost_finish", "before_publish")) {
+                                f.provider.beforeRestorePublish = null; f.provider.afterRestorePublish = null
+                                NativeGalleryRestoreSession.capture(controller.get(), held, permit).use { fresh ->
+                                    val recovered = NativeGalleryMediaRestore(f.context).restore(archive, fresh, CancellationSignal())
+                                    assertEquals("restored", recovered.state); assertEquals(5, recovered.sequence)
+                                    assertEquals("RAW!!", f.provider.restoredFiles.values.single().readText())
+                                    assertEquals(0L, f.provider.rows.single().pending)
+                                    assertEquals(1, f.provider.restoreInserts); assertEquals(1, f.provider.restoreWrites)
+                                    assertEquals(1, f.provider.restorePublishes)
+                                }
+                            }
+                            if (change in setOf("recovery_replaced", "recovery_content")) {
+                                f.provider.beforeRestorePublish = null
+                                if (change == "recovery_replaced") f.provider.rows = f.provider.rows.map {
+                                    it.copy(generationAdded = (it.generationAdded as Long) + 1, generationModified = (it.generationModified as Long) + 1)
+                                } else f.provider.restoredFiles.values.single().writeText("OTHER")
+                                NativeGalleryRestoreSession.capture(controller.get(), held, permit).use { fresh ->
+                                    assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryMediaRestore(f.context).restore(archive, fresh, CancellationSignal()) }
+                                }
+                                assertEquals(1, f.provider.restoreInserts); assertEquals(1, f.provider.restoreWrites)
+                                assertEquals(0, f.provider.restorePublishes)
+                                assertEquals(held, archive.actions(permit).single())
+                            }
+                        }
+                    }
+                    if (change != "book") archive.verifyContent(archived, permit)
+                }
+                assertEquals("hello", File(f.root, "source.bin").readText())
+                assertEquals(0, f.provider.trashWrites); assertEquals(0, f.provider.writeRequests)
+            } finally { session.close(); controller.pause().stop().destroy() }
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualLocalRecoveryRestoresWithoutPeerSourceOrReadPermission() = independentRestoreCase(false)
+    @Test @Config(sdk = [33]) fun actualLocalVideoRecoveryReadsOriginalFormatAndRestoresWithoutHistoricalGrant() = independentRestoreCase(true)
+    @Test @Config(sdk = [30]) fun localRestoreForeignOwnerOrBadReadbackOrPublishRaceNeverClaimsRestored() {
+        for (change in listOf("owner", "readback", "race", "old_uri", "published_namespace")) independentRestoreCase(false, change)
+    }
+    @Test @Config(sdk = [30]) fun localRestorePausedActivityOrChangedBookCannotCreateAnyRow() {
+        for (change in listOf("pause", "book")) independentRestoreCase(false, change)
+    }
+    @Test @Config(sdk = [30]) fun localRestoreRecoversCompletedCopyOrLostCompletionWithoutDuplicateInsertOrOverwrite() {
+        for (change in listOf("before_publish", "lost_finish")) independentRestoreCase(false, change)
+    }
+    @Test @Config(sdk = [30]) fun localRestoreRecoveryRejectsReusedPendingRowOrEditedBytesWithoutWritingAgain() {
+        for (change in listOf("recovery_replaced", "recovery_content")) independentRestoreCase(false, change)
+    }
+
+    @Test @Config(sdk = [30]) fun actualRuntimeCloseHoldsRestoreIoUntilNewRowDescriptorReturns() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val grant = acceptedWriteAfterResume(h); h.f.provider.allowTrash = true
+            h.watchEnd(); val trash = h.runtime.trashGalleryOriginal(grant); h.awaitEnd(); assertNull(trash.nativeFailure())
+            val session = NativeGalleryRestoreSession.capture(h.activity.get(), trash.completedNativeTrashAction()!!, grant.request.permit)
+            session.use {
+                h.f.provider.allowRestore = true
+                val entered = java.util.concurrent.CountDownLatch(1)
+                h.f.provider.beforeRestoreWrite = { entered.countDown(); assertTrue(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+                var closed = false; h.watchEnd()
+                val run = h.runtime.restoreGalleryOriginal(session)
+                try {
+                    assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    assertThrows(PhotoFolderScopeError::class.java) { h.runtime.restoreGalleryOriginal(session) }
+                    assertFalse(h.runtime.closeWhenQuiescent { h.runtime.close(); closed = true })
+                    assertTrue(run.cancelRequested); assertFalse(run.ioEnded); assertFalse(h.worker.isQuiescent)
+                } finally { h.release.countDown() }
+                h.awaitEnd(); Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                assertTrue(closed); assertTrue(h.worker.isQuiescent); assertNotNull(run.nativeFailure())
+                assertNull(run.completedNativeRestoreAction()); assertEquals(0, h.f.provider.restorePublishes)
+                NativeGalleryTrashArchive.openForApplication(h.f.context, h.protection).use { archive ->
+                    assertEquals("restore_row_prepared", archive.actions(grant.request.permit).single().state)
+                    archive.verifyContent(grant.request.entry, grant.request.permit)
+                }
+                h.assertOriginal()
+            }
         }
     }
 

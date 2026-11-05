@@ -32,7 +32,7 @@ internal class NativeGallerySourceRun internal constructor() {
         writeTarget.set(target)
         trashAction.set(trash)
         state.set(if (cancellation.isCanceled) "canceled_held" else if (error != null) "failed_held"
-            else if (trash != null) "local_trash_verified"
+            else if (trash != null) if (trash.state == "restored") "local_restore_verified" else "local_trash_verified"
             else if (target != null) "write_target_verified"
             else if (write != null) "write_request_ready"
             else if (recovery != null) "archive_ready"
@@ -66,6 +66,10 @@ internal class NativeGallerySourceRun internal constructor() {
     internal fun completedNativeTrashAction(): NativeGalleryTrashAction? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
         return trashAction.get().takeIf { phase == "local_trash_verified" && !cancellation.isCanceled }
+    }
+    internal fun completedNativeRestoreAction(): NativeGalleryTrashAction? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        return trashAction.get().takeIf { phase == "local_restore_verified" && !cancellation.isCanceled }
     }
     internal fun renewedSource(): NativeGalleryRenewedSource? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")

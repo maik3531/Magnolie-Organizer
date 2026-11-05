@@ -291,6 +291,13 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         }
     }
 
+    internal fun restoreOriginal(session: NativeGalleryRestoreSession, cancellation: CancellationSignal): NativeGalleryTrashAction {
+        ready(); session.requireCurrent(); cancellation.throwIfCanceled()
+        return NativeGalleryTrashArchive.openForApplication(app, protection).use {
+            NativeGalleryMediaRestore(app).restore(it, session, cancellation)
+        }
+    }
+
     internal fun validateSelection(selection: NativeGalleryAlbumSelection) {
         ready(); selection.catalog.resolve(this, selection)
     }

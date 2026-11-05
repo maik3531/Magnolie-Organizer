@@ -137,6 +137,11 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         sourceWorker.startTrash { cancellation -> workflow.trashOriginal(grant, cancellation) }
     }
 
+    internal fun restoreGalleryOriginal(session: NativeGalleryRestoreSession): NativeGallerySourceRun = withOperation {
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        sourceWorker.startTrash { cancellation -> workflow.restoreOriginal(session, cancellation) }
+    }
+
     internal fun beginSyncRun(selection: NativeGalleryAlbumSelection): NativeGallerySyncRun = withOperation {
         beginSyncRunOwned(selection)
     }
