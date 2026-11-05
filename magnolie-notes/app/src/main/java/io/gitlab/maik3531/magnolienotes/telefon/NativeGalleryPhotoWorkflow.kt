@@ -182,6 +182,25 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         return freeze(selection.catalog.source, album, selection.desktopChoice, cancellation)
     }
 
+    internal fun archiveRecoverableMember(selection: NativeGalleryAlbumSelection, job: PhotoSourceJob, fileId: String,
+        permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal): NativeGalleryArchiveEntry {
+        ready(); permit.requireCurrent()
+        val album = selection.catalog.resolve(this, selection)
+        val observed = readBound(mediaType(selection.catalog.source))
+        val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
+        val frozen = source(job, selection.catalog.source, album, selection.desktopChoice, cancellation)
+        val file = frozen.manifest.files.singleOrNull { it.id == fileId } ?: fail("gallery_archive_original_file_required")
+        val origins = frozen.galleryOrigins?.takeIf { it.hasNativeInsertionWitness } ?: fail("gallery_archive_native_origin_required")
+        val origin = origins.entries.single { it.fileId == fileId }
+        val reader = AndroidGalleryPhotoSource(app, observed.scope)
+        val entry = reader.observeOriginalForRecovery(lease, origin, file, cancellation)
+        // Separate local recovery store. Never inside source-index directories,
+        // never retired with a transfer or invalidated by remote unpairing.
+        return NativeGalleryTrashArchive.openForApplication(app, protection).use {
+            it.archive(lease, observed.scope, entry, reader, file.sha256, permit, cancellation)
+        }
+    }
+
     internal fun validateSelection(selection: NativeGalleryAlbumSelection) {
         ready(); selection.catalog.resolve(this, selection)
     }

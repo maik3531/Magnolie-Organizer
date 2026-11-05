@@ -162,6 +162,37 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
         return uri
     }
 
+    internal fun observeOriginalForRecovery(lease: GalleryPhotoSourceLease, origin: GalleryPhotoOrigin,
+        file: DeviceManifestFile, cancellation: CancellationSignal): PhotoInventoryEntry {
+        fresh(lease, cancellation)
+        if (Build.VERSION.SDK_INT < 30 || lease.access.mediaStoreVersion == null || origin.nativeRevision == null ||
+            origin.nativeMember.split(':').getOrNull(2)?.toLongOrNull()?.let { it > 0 } != true)
+            fail("gallery_archive_native_origin_required")
+        val row = origin.nativeMember.substringBefore(':').toLongOrNull() ?: fail("gallery_inventory_invalid_member")
+        val uri = ContentUris.withAppendedId(collection(lease), row)
+        val observed = resolver.query(uri, projection(), Bundle(), cancellation)?.use {
+            fresh(lease, cancellation)
+            if (!it.moveToFirst()) fail("gallery_inventory_member_missing")
+            member(lease, it).also { value ->
+                if (it.moveToNext() || value.documentId != origin.nativeMember || value.nativeRevision != origin.nativeRevision ||
+                    value.relativePath != file.path || value.advertisedBytes != file.size) fail("gallery_inventory_member_changed")
+            }
+        } ?: fail("gallery_inventory_member_missing")
+        fresh(lease, cancellation); return observed
+    }
+
+    internal fun observeRecoveryMime(lease: GalleryPhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal): String {
+        val uri = document(lease, entry, cancellation)
+        val mime = resolver.query(uri, projection(), Bundle(), cancellation)?.use {
+            fresh(lease, cancellation)
+            if (!it.moveToFirst() || member(lease, it) != entry) fail("gallery_inventory_member_changed")
+            it.getString(it.getColumnIndexOrThrow("mime_type")).also { _ ->
+                if (it.moveToNext()) fail("gallery_inventory_member_changed")
+            }
+        } ?: fail("gallery_inventory_member_missing")
+        fresh(lease, cancellation); return mime
+    }
+
     override fun verifyMetadata(lease: NativePhotoSourceLease, entry: PhotoInventoryEntry, cancellation: CancellationSignal) {
         val uri = document(lease, entry, cancellation)
         if (lease !is GalleryPhotoSourceLease) fail("gallery_inventory_invalid_member")

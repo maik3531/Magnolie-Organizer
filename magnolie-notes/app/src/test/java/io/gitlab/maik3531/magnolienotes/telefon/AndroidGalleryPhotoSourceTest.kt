@@ -132,6 +132,167 @@ class AndroidGalleryPhotoSourceTest {
         override fun close() { assertClosed(); root.deleteRecursively() }
     }
 
+    private fun archiveBook(f: Fixture): io.gitlab.maik3531.magnolienotes.daten.Ablage {
+        val directory = Files.createTempDirectory(f.root.toPath(), "archive-book-").toFile()
+        val context = object : android.content.ContextWrapper(f.context) {
+            override fun getApplicationContext(): android.content.Context = this
+            override fun getFilesDir(): File = directory
+        }
+        return io.gitlab.maik3531.magnolienotes.daten.Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 37 }, "AES") }
+            .also { it.setzePapierkorb(true, 0) }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRecoveryArchiveSurvivesSourceRevocationWithoutBecomingMutationAuthority() {
+        Fixture().use { f ->
+            val documents = archiveBook(f); var unlocked = true
+            val permit = NativeGalleryTrashBookPermit.capture(documents) { unlocked }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 41 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "local-recovery-").toFile()
+            val lease = f.lease(); val entry = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            val archived = NativeGalleryTrashArchive(root, protection).use { archive ->
+                val result = archive.archive(lease, f.scope, entry, f.reader, hash, permit)
+                assertFalse(result.grantsMutationAuthority); assertFalse(result.isRemoteDeletionReceipt)
+                assertEquals(5, result.bytes); assertEquals("image.jpg", result.displayName)
+                archive.verifyContent(result, permit)
+                assertThrows(java.nio.channels.OverlappingFileLockException::class.java) { NativeGalleryTrashArchive(root, protection) }
+                result
+            }
+            f.request = null // Actual source/receiver scope is revoked, not local recovery ownership.
+            NativeGalleryTrashArchive(root, protection).use { archive ->
+                assertEquals(listOf(archived), archive.entries(permit)); archive.verifyContent(archived, permit)
+                val restored = ByteArrayOutputStream(); archive.readContent(archived, permit) { restored.write(it) }
+                assertArrayEquals("hello".toByteArray(), restored.toByteArray())
+                assertThrows(PhotoFolderScopeError::class.java) { archive.archive(lease, f.scope, entry, f.reader, hash, permit) }
+                unlocked = false
+                assertThrows(PhotoFolderScopeError::class.java) { archive.verifyContent(archived, permit) }
+                unlocked = true
+                assertThrows(PhotoFolderScopeError::class.java) { archive.entries(permit) }
+                archive.verifyContent(archived, NativeGalleryTrashBookPermit.capture(documents) { unlocked })
+            }
+            assertEquals("hello", File(f.root, "source.bin").readText()); f.assertClosed()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRecoveryArchiveFailedCopyKeyLossOrRevocationNeverChangesProviderBytes() {
+        for (reason in listOf("hash", "key", "scope")) Fixture().use { f ->
+            val documents = archiveBook(f); val permit = NativeGalleryTrashBookPermit.capture(documents) { true }
+            var keyAvailable = true
+            val protection = DeviceTransferProtection.fromExistingKeyReader { if (keyAvailable) SecretKeySpec(ByteArray(32) { 42 }, "AES") else null }
+            val root = Files.createTempDirectory(f.root.toPath(), "failed-recovery-").toFile()
+            val lease = f.lease(); val entry = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            NativeGalleryTrashArchive(root, protection).use { archive ->
+                if (reason == "key") f.provider.onOpen = { keyAvailable = false }
+                if (reason == "scope") f.provider.onOpen = { f.request = null }
+                assertThrows(Exception::class.java) { archive.archive(lease, f.scope, entry, f.reader, if (reason == "hash") "0".repeat(64) else hash, permit) }
+            }
+            keyAvailable = true; f.provider.onOpen = null
+            NativeGalleryTrashArchive(root, protection).use { assertTrue(it.entries(permit).isEmpty()) }
+            assertEquals("hello", File(f.root, "source.bin").readText()); f.assertClosed()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRecoveryArchiveDoesNotRecreateMissingKeyHeaderOrMembership() {
+        Fixture().use { f ->
+            val documents = archiveBook(f); val permit = NativeGalleryTrashBookPermit.capture(documents) { true }
+            val key = SecretKeySpec(ByteArray(32) { 43 }, "AES")
+            val protection = DeviceTransferProtection.fromExistingKeyReader { key }
+            val root = Files.createTempDirectory(f.root.toPath(), "guarded-recovery-").toFile()
+            NativeGalleryTrashArchive(root, protection).use { assertTrue(it.entries(permit).isEmpty()) }
+            val before = root.listFiles()!!.associate { it.name to it.readBytes().toList() }
+            assertThrows(DeviceTransferKeyUnavailable::class.java) { NativeGalleryTrashArchive(root, DeviceTransferProtection.fromExistingKeyReader { null }) }
+            assertEquals(before, root.listFiles()!!.associate { it.name to it.readBytes().toList() })
+            val header = File(root, "media-recovery-owner.enc"); val kept = File(f.root, "kept-recovery-header.enc")
+            Files.move(header.toPath(), kept.toPath())
+            assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryTrashArchive(root, protection) }
+            assertFalse(header.exists()); assertTrue(kept.exists())
+            assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRuntimeRecoveryArchiveUsesOriginalProviderAndDoesNotRetireOrSaveItsSourceJob() {
+        ResumeRuntimeCase().use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val id = h.originalMedia["entries"]!!.jsonArray.single().jsonObject.string("file_id")
+            h.watchEnd()
+            val run = h.runtime.prepareRecoverableMember(h.selected, h.job, id, permit)
+            h.awaitEnd()
+            assertNull(run.nativeFailure()); assertEquals("archive_ready", run.phase)
+            assertNotNull(run.completedNativeArchive()); assertNull(run.snapshotJob()); assertNull(run.completedNativeJob())
+            val root = File(h.f.context.noBackupFilesDir, "native-media-recovery")
+            NativeGalleryTrashArchive(root, h.protection).use {
+                assertEquals(listOf(run.completedNativeArchive()), it.entries(permit)); it.verifyContent(run.completedNativeArchive()!!, permit)
+            }
+            assertTrue(h.drain().isEmpty()); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRuntimeCloseRetainsRecoveryArchiveIoSlotUntilBlockedProviderActuallyEnds() {
+        ResumeRuntimeCase().use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val id = h.originalMedia["entries"]!!.jsonArray.single().jsonObject.string("file_id")
+            val entered = java.util.concurrent.CountDownLatch(1)
+            h.f.provider.onOpen = { entered.countDown(); assertTrue(h.release.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            var closed = false
+            h.watchEnd()
+            val run = h.runtime.prepareRecoverableMember(h.selected, h.job, id, permit)
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.prepareSource(h.selected) }
+                val before = System.nanoTime()
+                assertFalse(h.runtime.closeWhenQuiescent { h.runtime.close(); closed = true })
+                assertTrue((System.nanoTime() - before) / 1_000_000 < 1000)
+                assertTrue(run.cancelRequested); assertFalse(run.ioEnded); assertFalse(h.worker.isQuiescent)
+            } finally { h.release.countDown() }
+            h.awaitEnd(); assertTrue(run.ioEnded); assertTrue(h.worker.isQuiescent)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idle(); assertTrue(closed)
+            assertNull(run.completedNativeArchive()); assertNotNull(run.nativeFailure()); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualRuntimeRecoveryArchiveRejectsReusedRowsChangedRevisionAndChangedContent() {
+        for (reason in listOf("insertion", "revision", "content")) ResumeRuntimeCase().use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val id = h.originalMedia["entries"]!!.jsonArray.single().jsonObject.string("file_id")
+            if (reason == "insertion") h.f.provider.rows = listOf(Row(generationAdded = 2L, generationModified = 2L))
+            if (reason == "revision") h.f.provider.rows = listOf(Row(generationModified = 2L))
+            if (reason == "content") File(h.f.root, "source.bin").writeText("other")
+            h.watchEnd(); val run = h.runtime.prepareRecoverableMember(h.selected, h.job, id, permit); h.awaitEnd()
+            assertEquals("failed_held", run.phase); assertNotNull(run.nativeFailure()); assertNull(run.completedNativeArchive())
+            assertEquals(if (reason == "content") "other" else "hello", File(h.f.root, "source.bin").readText())
+            assertEquals(h.cipher, File(h.root, "photo-source-" + h.job.id).listFiles()!!.associate { it.name to it.readBytes().toList() })
+            h.inspect { assertEquals(listOf(h.job), it.jobs()); assertNull(it.remoteSaved(h.job)); assertEquals(h.originalAcceptance, it.remoteAcceptance(h.job)!!.record) }
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun recoveryArchiveRejectsMissingMembershipCorruptChunksAndForeignSchemaWithoutTouchingSource() {
+        for (reason in listOf("member", "chunk", "schema")) Fixture().use { f ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(f)) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 45 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "damaged-recovery-").toFile()
+            val lease = f.lease(); val file = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            val entry = NativeGalleryTrashArchive(root, protection).use { it.archive(lease, f.scope, file, f.reader, hash, permit) }
+            android.database.sqlite.SQLiteDatabase.openDatabase(File(root, "media-recovery.db").path, null,
+                android.database.sqlite.SQLiteDatabase.OPEN_READWRITE or android.database.sqlite.SQLiteDatabase.NO_LOCALIZED_COLLATORS).use { db ->
+                when (reason) {
+                    "member" -> db.delete("recovery_entries", "id=?", arrayOf(entry.id))
+                    "schema" -> db.execSQL("CREATE TABLE foreign_rows(value TEXT)")
+                    else -> {
+                        val cipher = db.rawQuery("SELECT sealed FROM recovery_chunks WHERE id=? AND number=0", arrayOf(entry.id)).use { it.moveToFirst(); it.getBlob(0) }
+                        cipher[cipher.lastIndex] = (cipher.last().toInt() xor 1).toByte()
+                        db.update("recovery_chunks", ContentValues().apply { put("sealed", cipher) }, "id=? AND number=0", arrayOf(entry.id))
+                    }
+                }
+            }
+            if (reason == "chunk") NativeGalleryTrashArchive(root, protection).use {
+                assertThrows(javax.crypto.AEADBadTagException::class.java) { it.verifyContent(entry, permit) }
+            } else assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryTrashArchive(root, protection) }
+            assertEquals("hello", File(f.root, "source.bin").readText())
+        }
+    }
+
     @Test fun explicitAlbumBatchesVisitEveryMemberBeyond128WithoutOpeningPhotoBytes() {
         Fixture().use { f ->
             f.provider.rows = (1..300).map { Row(id = it.toLong(), name = "$it.jpg") }

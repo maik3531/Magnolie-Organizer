@@ -110,6 +110,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         sourceWorker.start(selection)
     }
 
+    internal fun prepareRecoverableMember(selection: NativeGalleryAlbumSelection, job: PhotoSourceJob, fileId: String,
+        permit: NativeGalleryTrashBookPermit): NativeGallerySourceRun = withOperation {
+        if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        workflow.validateSelection(selection); permit.requireCurrent()
+        sourceWorker.startArchive(selection) { cancellation -> workflow.archiveRecoverableMember(selection, job, fileId, permit, cancellation) }
+    }
+
     internal fun beginSyncRun(selection: NativeGalleryAlbumSelection): NativeGallerySyncRun = withOperation {
         beginSyncRunOwned(selection)
     }

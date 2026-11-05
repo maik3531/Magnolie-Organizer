@@ -15,15 +15,17 @@ internal class NativeGallerySourceRun internal constructor() {
     private val state = AtomicReference("preparing")
     private val job = AtomicReference<PhotoSourceJob?>()
     private val renewed = AtomicReference<NativeGalleryRenewedSource?>()
+    private val archived = AtomicReference<NativeGalleryArchiveEntry?>()
     private val failure = AtomicReference<Throwable?>()
     val ioEnded: Boolean get() = ended.get()
     val phase: String get() = state.get()
     val cancelRequested: Boolean get() = cancellation.isCanceled
 
     fun cancel() { cancellation.cancel() } // Never releases an I/O ownership slot.
-    internal fun finish(prepared: PhotoSourceJob?, error: Throwable?, reopened: NativeGalleryRenewedSource? = null) {
-        job.set(prepared); renewed.set(reopened); failure.set(error)
+    internal fun finish(prepared: PhotoSourceJob?, error: Throwable?, reopened: NativeGalleryRenewedSource? = null, recovery: NativeGalleryArchiveEntry? = null) {
+        job.set(prepared); renewed.set(reopened); archived.set(recovery); failure.set(error)
         state.set(if (cancellation.isCanceled) "canceled_held" else if (error != null) "failed_held"
+            else if (recovery != null) "archive_ready"
             else if (prepared == null) "empty_ready" else "snapshot_ready")
         ended.set(true)
     }
@@ -38,6 +40,10 @@ internal class NativeGallerySourceRun internal constructor() {
     internal fun completedNativeJob(): PhotoSourceJob? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
         return job.get() // Exact completed native owner; never a remote ID lookup.
+    }
+    internal fun completedNativeArchive(): NativeGalleryArchiveEntry? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
+        return archived.get().takeIf { phase == "archive_ready" && !cancellation.isCanceled }
     }
     internal fun renewedSource(): NativeGalleryRenewedSource? {
         if (!ended.get()) DeviceFileControl.fail("gallery_source_worker_io_pending")
@@ -74,7 +80,16 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         prepareBatch: (CancellationSignal) -> PhotoSourceJob?): NativeGallerySourceRun =
         startOwned(selection) { _, cancellation -> prepareBatch(cancellation) to null }
 
+    fun startArchive(selection: NativeGalleryAlbumSelection,
+        archive: (CancellationSignal) -> NativeGalleryArchiveEntry): NativeGallerySourceRun {
+        val result = AtomicReference<NativeGalleryArchiveEntry?>()
+        return startOwned(selection, result) { _, cancellation ->
+            result.set(archive(cancellation)); null to null
+        }
+    }
+
     private fun startOwned(selection: NativeGalleryAlbumSelection,
+        archived: AtomicReference<NativeGalleryArchiveEntry?>? = null,
         action: (NativeGalleryAlbumSelection, CancellationSignal) -> Pair<PhotoSourceJob?, NativeGalleryRenewedSource?>): NativeGallerySourceRun {
         val run = synchronized(gate) {
             if (closed) DeviceFileControl.fail("gallery_source_worker_closed")
@@ -88,17 +103,18 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
                 run.cancellation.throwIfCanceled()
                 prepared = action(selection, run.cancellation)
             } catch (failed: Throwable) { error = failed }
-            finally { finish(run, prepared?.first, error, prepared?.second) }
+            finally { finish(run, prepared?.first, error, prepared?.second, archived?.get()) }
         }, "magnolie-photo-source").apply { isDaemon = true }
         try { thread.start() }
         catch (error: Throwable) { finish(run, null, error); throw error }
         return run
     }
 
-    private fun finish(run: NativeGallerySourceRun, job: PhotoSourceJob?, error: Throwable?, renewed: NativeGalleryRenewedSource? = null) {
+    private fun finish(run: NativeGallerySourceRun, job: PhotoSourceJob?, error: Throwable?, renewed: NativeGalleryRenewedSource? = null,
+        recovery: NativeGalleryArchiveEntry? = null) {
         // prepare owns all descriptor cleanup before return. Only that actual
         // end, never cancel/close/progress totals, can release this slot.
-        run.finish(job, error, renewed)
+        run.finish(job, error, renewed, recovery)
         synchronized(gate) { if (active === run) active = null }
         onEnded(run) // Outside the owner monitor; callbacks are not source I/O.
     }
