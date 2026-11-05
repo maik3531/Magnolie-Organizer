@@ -16,11 +16,12 @@ internal static class DeviceFileBackupCatalogTests
         var job = Job(f);
         return f.Native.Store.SaveNativeMediaBackup(f.Native.Peer.Id, job.JobId, job.Version, fileId, permit ?? (() => true), createBackup: true);
     }
-    private static async Task Seed(DeviceFileReceiveJobTests.Fixture f, byte[]? raw = null)
+    private static async Task Seed(DeviceFileReceiveJobTests.Fixture f, byte[]? raw = null, Action? nativeGuard = null)
     {
         raw ??= Data;
         var run = await DeviceFileAlbumTests.Preview(f, f.Manifest(("first.jpg", raw), ("second.jpg", raw)), new string('e', 64), "Kamera");
-        if (raw.Length <= DeviceFileManifest.ChunkBytes) { await DeviceFileAlbumTests.Copy(f, run, [raw, raw]); return; }
+        run.NativeWorkerGuard = nativeGuard;
+        if (raw.Length <= DeviceFileManifest.ChunkBytes && nativeGuard is null) { await DeviceFileAlbumTests.Copy(f, run, [raw, raw]); return; }
         DeviceFileConnectionRunsTests.Clear(f);
         var operation = f.Native.Connection.ReconcileNativeMediaBatchAsync(run);
         _ = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileAcceptanceEnvelope.Kind);
@@ -32,6 +33,7 @@ internal static class DeviceFileBackupCatalogTests
                 await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionReceiveTests.Chunk(request, raw[at..Math.Min(raw.Length, at + DeviceFileManifest.ChunkBytes)]));
             }
         _ = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSavedEnvelope.Kind);
+        if (nativeGuard is not null) TestAssert.That(!Directory.Exists(Folder(f)), "Backup registered completion before actual source END.");
         await DeviceFileReconcileTests.Finish(f, run, 0); _ = await operation;
         DeviceFileConnectionRunsTests.Clear(f); var ended = f.Native.Connection.EndNativeMediaAlbumAsync(run);
         var end = DeviceFileConnectionRunsTests.Request(f);
@@ -159,5 +161,31 @@ internal static class DeviceFileBackupCatalogTests
             }
             TestAssert.That(Directory.GetFiles(Folder(f)).Order().SequenceEqual(names), "Corruption silently created a replacement catalog/object.");
         }
+    }
+
+    internal static async Task WindowsJoinedLifecycleAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+        const string book = "{\"syncEpoch\":\"backup-joined\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "native-book"), book);
+        var permit = NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved);
+        await Seed(f, nativeGuard: permit.Require);
+        // No explicit catalog Save call here: the ACTUAL receive/Saved/END lane
+        // must have created the independent local versions before completing.
+        var versions = f.Native.Store.NativeMediaBackupVersions(f.Destination, () => { permit.Require(); return true; }).ToArray();
+        TestAssert.That(versions.Length == 2 && versions[0].ObjectKey == versions[1].ObjectKey &&
+            Directory.GetFiles(Folder(f), "object-*.raw").Length == 1, "Actual saved-book receive lane did not create shared backup versions.");
+        var names = Directory.GetFiles(Folder(f)).Order().ToArray(); var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+        var run = await DeviceFileAlbumTests.Preview(f, f.Manifest(("first.jpg", Data), ("second.jpg", Data)), new string('e', 64), "Kamera");
+        run.NativeWorkerGuard = permit.Require;
+        var repeat = f.Native.Connection.ReconcileNativeMediaBatchAsync(run);
+        await DeviceFileReconcileTests.Finish(f, run, 0); var result = await repeat;
+        TestAssert.That(result.Plan.Members.All(member => member.Action == "unchanged") && result.ReceivedJobId is null &&
+            Directory.GetFiles(Folder(f)).Order().SequenceEqual(names) && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).SequenceEqual(history) &&
+            f.Native.Store.NativeMediaBackupVersions(f.Destination, () => true).SequenceEqual(versions), "Unchanged actual lane copied again or rewrote Saved/END/backup timestamps.");
+        DeviceFileConnectionRunsTests.Clear(f); var ended = f.Native.Connection.EndNativeMediaAlbumAsync(run);
+        var request = DeviceFileConnectionRunsTests.Request(f);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, run.Lease.RunId, "canceled_held")); await ended;
+        Restore(f, versions[0], Data, "joined-restore.jpg");
     }
 }

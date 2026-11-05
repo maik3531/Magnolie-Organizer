@@ -152,6 +152,21 @@ internal sealed partial class TelefonConnection
     {
         await PrepareNativeMediaPreviewAsync(run, token);
         var plan = PlanNativeMediaRun(run, replacementConsent);
+        if (run.NativeWorkerGuard is not null)
+        {
+            // The actual saved-book/media-worker owner, not a passive planner,
+            // preserves originals BEFORE replacement. Repeating an unchanged
+            // pass also finishes a previously interrupted backup without a new
+            // network transfer, source receipt or renewed retention timestamp.
+            foreach (var original in plan.Members.Where(member => member.Action is "unchanged" or "replace_managed_desktop"))
+            {
+                if (original.BaselineJob is null || original.BaselineVersion is null || original.OriginalFileId is null)
+                    throw DeviceFileControl.Error("media_backup_original_mapping_required");
+                run.NativeWorkerGuard();
+                _ = await Task.Run(() => store.SaveNativeMediaBackup(peer.Id, original.BaselineJob, original.BaselineVersion, original.OriginalFileId,
+                    () => { token.ThrowIfCancellationRequested(); run.NativeWorkerGuard(); return true; }, createBackup: true), token);
+            }
+        }
         var copy = plan.Members.Where(member => member.Action is "copy_phone_new" or "replace_managed_desktop").Select(member => member.FileId).Order(StringComparer.Ordinal).ToArray();
         if (copy.Length == 0)
         {
@@ -165,6 +180,14 @@ internal sealed partial class TelefonConnection
         }
         if (plan.Members.Any(member => member.Action == "replace_managed_desktop"))
             run.Replacements = store.CreateNativeMediaReplacements(run.OfferedManifest!, run.Pages, plan, replacementConsent!);
-        return new(run, plan, await ReceiveNativeMediaRunAsync(run, token));
+        var jobId = await ReceiveNativeMediaRunAsync(run, token);
+        // Receive returned only AFTER actual Saved -> acknowledged cancel -> END
+        // and closed its held files. Keep the same media lane and saved-book
+        // guard while making the local independent backup; never reopen a file
+        // still exclusively held by the receiver or call this from the UI thread.
+        if (run.NativeWorkerGuard is not null)
+            await Task.Run(() => store.BackupNativeMediaCompletedJob(peer.Id, jobId,
+                () => { token.ThrowIfCancellationRequested(); run.NativeWorkerGuard(); }), token);
+        return new(run, plan, jobId);
     }
 }

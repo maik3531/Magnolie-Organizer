@@ -325,4 +325,23 @@ internal sealed partial class TelefonStore
             return catalog.Save(source, size, hash, album is null ? name : TelefonMessagingContract.String(job.Body["album_root"]!.AsObject(), "folder") + "/" + name, provenance);
         }
     }
+
+    internal void BackupNativeMediaCompletedJob(string peerId, string jobId, Action ensureNative)
+    {
+        lock (gate)
+        {
+            ensureNative(); RequireNativeMediaStorageKey(); var scope = MediaPreferenceScope(peerId);
+            using var db = OpenNativeMediaDatabase(); db.Open();
+            var job = ReceiveHeads(db, null, scope).SingleOrDefault(head => head.JobId == jobId)
+                ?? throw DeviceFileControl.Error("media_backup_original_saved_job_required");
+            if (!job.Body.ContainsKey("saved") || !job.Body.ContainsKey("source_end")) throw DeviceFileControl.Error("media_backup_original_saved_job_required");
+            foreach (var file in job.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>())
+            {
+                ensureNative();
+                _ = SaveNativeMediaBackup(peerId, jobId, job.Version, TelefonMessagingContract.String(file, "id"),
+                    () => { ensureNative(); return true; }, createBackup: true);
+            }
+            ensureNative();
+        }
+    }
 }

@@ -279,6 +279,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media backup catalog / Windows foreign Backup folder never adopted", DeviceFileBackupCatalogTests.WindowsForeignFolderAsync);
     runner.Add("Media backup catalog / Windows local restore after source and connection gone", DeviceFileBackupCatalogTests.WindowsLocalRestoreAsync);
     runner.Add("Media backup catalog / Windows corrupt object snapshot anchor HOLD", DeviceFileBackupCatalogTests.WindowsCorruptionAsync);
+    runner.Add("Media backup catalog / Windows actual saved book receive END and unchanged lane", DeviceFileBackupCatalogTests.WindowsJoinedLifecycleAsync);
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
     runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);
