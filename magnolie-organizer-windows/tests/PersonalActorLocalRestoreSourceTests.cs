@@ -91,6 +91,18 @@ internal static class PersonalActorLocalRestoreSourceTests
 
     internal static async Task<JsonArray> LoadGuiFixturesAsync(bool candidates = false, bool drawing = false)
     {
+        // Native probes may carry hash-bound vectors generated immediately from
+        // the current actual GUI sources on the build host. The Windows writer
+        // still runs here; this does not substitute a copied/fake SaveAsync.
+        var vectorPath = Environment.GetEnvironmentVariable("MAGNOLIE_HISTORICAL_GUI_VECTORS");
+        if (!string.IsNullOrEmpty(vectorPath))
+        {
+            var file = new FileInfo(vectorPath);
+            TestAssert.That(file.Exists && file.Length is > 0 and <= 4 * 1024 * 1024, "Missing/bounded current GUI vectors required.");
+            var vectors = JsonNode.Parse(await File.ReadAllTextAsync(vectorPath))!.AsObject();
+            var cached = vectors[drawing ? "drawing" : candidates ? "candidate" : "plain"]!.DeepClone().AsArray();
+            TestAssert.That(cached.Count == 8, "Incomplete current GUI source matrix."); return cached;
+        }
         var root = TestSource.Root("contracts/notes-actor-completion-scope.json");
         var windows = File.Exists(Path.Combine(root, "MagnolieOrganizer.Windows.csproj"))
             ? root : Path.Combine(root, "magnolie-organizer-windows");

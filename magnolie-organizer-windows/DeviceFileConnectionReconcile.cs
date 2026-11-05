@@ -12,6 +12,7 @@ internal sealed partial class TelefonConnection
     internal NativeMediaReconcilePlan PlanNativeMediaRun(NativeMediaSourceRun run, NativeMediaReplacementConsent? replacementConsent = null)
     {
         RequireOwnedMediaRun(run);
+        run.NativeWorkerGuard?.Invoke();
         if (run.Resume is not null || run.Transfer is not null || run.OfferedManifest is null || run.OfferedMessageId != run.Result.OfferId || Now() >= run.OfferedExpires)
             throw DeviceFileControl.Error("file_receive_native_preview_required");
         replacementConsent?.Require();
@@ -29,7 +30,7 @@ internal sealed partial class TelefonConnection
         var media = DeviceFileSources.CorrelateMediaPages(preview.Pages, manifest).Where(entry => selected.Contains(entry.FileId)).ToArray();
         void Require()
         {
-            RequireOwnedMediaRun(preview); read();
+            RequireOwnedMediaRun(preview); preview.NativeWorkerGuard?.Invoke(); read();
             if (preview.Resume is not null || preview.Transfer is not null || preview.Result.State != "snapshot_ready" || !preview.Result.SourceIoEnded ||
                 preview.OfferedManifest != manifest || preview.OfferedMessageId != preview.Result.OfferId || Now() >= preview.OfferedExpires ||
                 ids.Length is < 1 or > 16 || originals.Length != ids.Length || !ids.SequenceEqual(ids.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)))
@@ -51,7 +52,8 @@ internal sealed partial class TelefonConnection
                 {
                     var lease = choice.Owner.RetainSourceRun(ticket, result.RunId, result.Version, preview.Lease.MediaType);
                     retained = new(choice.Owner, lease, preview.CatalogId, preview.AlbumId, preview.DesktopChoice, result)
-                    { AlbumScope = preview.AlbumScope, SelectedFiles = originals, SelectedMedia = media, AlbumMetadata = preview.AlbumMetadata, AlbumOperation = preview.AlbumOperation };
+                    { AlbumScope = preview.AlbumScope, SelectedFiles = originals, SelectedMedia = media, AlbumMetadata = preview.AlbumMetadata,
+                        AlbumOperation = preview.AlbumOperation, NativeWorkerGuard = preview.NativeWorkerGuard };
                     nativeMediaSourceRun = retained; preview.Owner.ReleaseSourceRun(preview.Lease);
                 }
             });
@@ -82,19 +84,22 @@ internal sealed partial class TelefonConnection
     // the original cursor across subset run IDs and stop only this operation's
     // current owner after cancellation; never touch another actor's run.
     internal async Task<NativeMediaAlbumOutcome> SynchronizeNativeMediaAlbumAsync(string sourceVersion, string catalogId,
-        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, NativeMediaReplacementConsent? replacementConsent = null)
+        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, NativeMediaReplacementConsent? replacementConsent = null,
+        Action? nativeWorkerGuard = null)
     {
         var operation = new object(); var jobs = new List<string>(); var members = new List<NativeMediaReconcileMember>();
         try
         {
-            var run = await StartNativeMediaBatchAsync(sourceVersion, catalogId, albumId, desktopChoice, mediaType, token, operation);
+            var run = await StartNativeMediaBatchAsync(sourceVersion, catalogId, albumId, desktopChoice, mediaType, token, operation, nativeWorkerGuard);
             for (var batch = 0; batch < 50000; batch++)
             {
+                nativeWorkerGuard?.Invoke();
                 using (var snapshot = CancellationTokenSource.CreateLinkedTokenSource(cancellation, token))
                 {
                     snapshot.CancelAfter(TimeSpan.FromSeconds(60));
                     while (run.Result.State == "preparing")
                     {
+                        nativeWorkerGuard?.Invoke();
                         await ReadNativeMediaRunAsync(run, snapshot.Token);
                         if (run.Result.State == "preparing") await Task.Delay(100, snapshot.Token);
                     }

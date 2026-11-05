@@ -162,4 +162,36 @@ internal static class DeviceFileAlbumTests
         TestAssert.That(f.Native.Connection.CurrentNativeMediaSourceRun is null && f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (0, 0, 0L) &&
             !Directory.EnumerateFileSystemEntries(f.Root).Any(), "Cancelled source preparation left active ownership or fabricated file/receipt/budget state.");
     }
+
+    internal static async Task WindowsWholeAlbumSavedBookChangedAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var (catalog, album) = await Catalog(f, "Kamera");
+        const string text = "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "native-book"), text);
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(coordinator.SynchronizeNativeMediaAlbumFromSavedBookAsync(f.Native.Peer.Id,
+            new string('d', 64), catalog, album, true), "Coordinator admitted media work without an actual saved book.");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(coordinator.SynchronizeNativeMediaAlbumFromSavedBookAsync(f.Native.Peer.Id,
+            new string('d', 64), catalog, album, true), "Coordinator admitted offline native media work.");
+        // Install the existing synthetic transport fixture as the current online
+        // reference; run the ACTUAL coordinator and connection, not a new worker.
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Native.Peer.Id, f.Native.Connection);
+        DeviceFileConnectionRunsTests.Clear(f);
+        var sync = coordinator.SynchronizeNativeMediaAlbumFromSavedBookAsync(f.Native.Peer.Id, new string('d', 64), catalog, album, true);
+        var request = await Source(f, 0, "batch_run"); var id = Guid.NewGuid().ToString("D");
+        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(coordinator.SynchronizeNativeMediaAlbumFromSavedBookAsync(f.Native.Peer.Id,
+            new string('d', 64), catalog, album, true), "Coordinator overlapped native album workers.");
+        await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, id, "preparing", null));
+        var status = await Source(f, 1, "run_status");
+        using (var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = text }.ToJsonString())) await host.SaveAsync(message.RootElement);
+        await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(status, id, "preparing", null));
+        request = await Source(f, 2, "cancel_run"); await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, id, "canceled_held", null));
+        request = await Source(f, 3, "end_run"); await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, id, "canceled_held"));
+        request = await Source(f, 4, "end_album"); await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, id, "canceled_held"));
+        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(sync, "Whole-album worker continued after its real saved book changed.");
+        TestAssert.That(f.Native.Connection.CurrentNativeMediaSourceRun is null && f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (0, 0, 0L) &&
+            !Directory.EnumerateFileSystemEntries(f.Root).Any(), "Saved-book withdrawal blocked metadata cleanup or fabricated destination state.");
+    }
 }

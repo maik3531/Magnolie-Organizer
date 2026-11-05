@@ -21,6 +21,7 @@ internal sealed partial class TelefonConnection
         internal DeviceFileAlbumMetadata? AlbumMetadata;
         internal object? AlbumOperation;
         internal NativeMediaReplacementContext? Replacements;
+        internal Action? NativeWorkerGuard;
         internal DeviceFileManifest? OfferedManifest { get; private set; }
         internal string? OfferedMessageId { get; private set; }
         internal long OfferedExpires { get; private set; }
@@ -49,12 +50,12 @@ internal sealed partial class TelefonConnection
     }
 
     internal async Task<NativeMediaSourceRun> StartNativeMediaBatchAsync(string expectedVersion, string catalogId,
-        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, object? albumOperation = null)
+        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, object? albumOperation = null, Action? nativeWorkerGuard = null)
     {
         var choice = CaptureNativeSourceChoice(mediaType, true, true); var read = NativeSourceReadGuard(choice, expectedVersion);
         void Require()
         {
-            read();
+            nativeWorkerGuard?.Invoke(); read();
             lock (fileRouteGate)
                 if (nativeMediaSourceRun is not null || nativeEndedMediaBatch is not null)
                     throw DeviceFileControl.Error("file_sources_native_original_run_pending");
@@ -74,6 +75,7 @@ internal sealed partial class TelefonConnection
                     retained = new(choice.Owner, lease, catalogId, albumId, desktopChoice, result);
                     retained.AlbumMetadata = KnownNativeAlbum(choice.Owner, mediaType, expectedVersion, catalogId, albumId);
                     retained.AlbumOperation = albumOperation;
+                    retained.NativeWorkerGuard = nativeWorkerGuard;
                     nativeMediaSourceRun = retained;
                 }
             });
@@ -105,6 +107,7 @@ internal sealed partial class TelefonConnection
         void Require()
         {
             RequireOwnedMediaRun(run, ended); read?.Invoke();
+            if (offering) run.NativeWorkerGuard?.Invoke();
             var state = run.Result;
             if ((offering || operation is "end_run" or "end_resume" or "end_album") && run.Transfer?.ActiveIo == true)
                 throw DeviceFileControl.Error("file_receive_native_io_pending");
@@ -168,7 +171,7 @@ internal sealed partial class TelefonConnection
         var read = NativeSourceReadGuard(choice, previous.Lease.Version);
         void Require()
         {
-            RequireOwnedMediaRun(previous, ended: true); read();
+            RequireOwnedMediaRun(previous, ended: true); previous.NativeWorkerGuard?.Invoke(); read();
             lock (fileRouteGate)
                 if (nativeMediaSourceRun is not null || !previous.Result.RunEnded || previous.Result.BatchEnd is not false)
                     throw DeviceFileControl.Error("file_sources_native_no_next_batch");
@@ -190,6 +193,7 @@ internal sealed partial class TelefonConnection
                     retained.AlbumScope = previous.AlbumScope;
                     retained.AlbumMetadata = previous.AlbumMetadata;
                     retained.AlbumOperation = previous.AlbumOperation;
+                    retained.NativeWorkerGuard = previous.NativeWorkerGuard;
                     nativeMediaSourceRun = retained; nativeEndedMediaBatch = null;
                     previous.Owner.ReleaseSourceRun(previous.Lease);
                 }
@@ -206,7 +210,7 @@ internal sealed partial class TelefonConnection
             after = run.Pages.Count == 0 ? 0 : run.Pages[^1].NextCursor ?? throw DeviceFileControl.Error("file_sources_native_media_pages_complete");
         void Require()
         {
-            RequireOwnedMediaRun(run); read();
+            RequireOwnedMediaRun(run); run.NativeWorkerGuard?.Invoke(); read();
             lock (fileRouteGate)
                 if (run.Result.State != "snapshot_ready" || !run.Result.SourceIoEnded ||
                     (run.Pages.Count == 0 ? 0 : run.Pages[^1].NextCursor) != after)

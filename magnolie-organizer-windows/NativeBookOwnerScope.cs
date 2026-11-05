@@ -25,6 +25,12 @@ internal sealed class NativeBookOwnerScope
     private void Reset()
     { source = null; binding = ""; saveSequence = 0; savedHash = ""; }
 
+    // The writer may replace the primary file and still fail before confirming
+    // its durability. Invalidate the OLD saved witness before touching storage,
+    // while preserving book identity and the monotonic successful-save sequence.
+    internal void InvalidateSaved()
+    { lock (gate) savedHash = ""; }
+
     internal string? Current(string nativeBinding, bool nativeAvailable)
     {
         lock (gate)

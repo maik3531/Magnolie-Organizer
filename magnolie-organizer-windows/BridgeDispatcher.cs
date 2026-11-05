@@ -928,6 +928,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var historicalWriteStarted = false;
             void NativeWrite(string payload)
             {
+                actorBookOwner.InvalidateSaved();
                 historicalWriteStarted = historical is not null;
                 if (!coveredBySync && !coveredByTree && changed)
                     CreateSnapshot(SnapshotReason.PreChange);

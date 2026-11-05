@@ -221,6 +221,7 @@ internal sealed partial class TelefonStore
         private void CurrentImpl()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
+            nativeWorkerGuard?.Invoke();
             if (uncertain || currentBinding() != binding || binding.DestinationToken != destination.DestinationToken ||
                 binding.SenderId != Manifest.SenderId || binding.ReceiverId != Manifest.ReceiverId)
                 throw DeviceFileControl.Error("file_receive_current_binding_changed");

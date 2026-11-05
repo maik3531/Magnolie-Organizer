@@ -320,12 +320,16 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native replacement / Windows withdrawn consent and local edit HOLD", DeviceFileReplacementTests.WindowsReplacementWithdrawalAndEditAsync);
     runner.Add("Device file native replacement / Windows occupied publication preserves old and new user bytes", DeviceFileReplacementTests.WindowsReplacementOccupiedPublicationAsync);
     runner.Add("Device file native replacement / Windows media binding overlapping reservation and stale consent HOLD", DeviceFileReplacementTests.WindowsReplacementAdmissionGuardsAsync);
+    runner.Add("Device file native saved book / Windows actual failed save revokes media authority", DeviceFileBookPermitTests.WindowsFailedNativeSaveRevokesAsync);
+    runner.Add("Device file native saved book / Windows canonical policy and prewrite rejection", DeviceFileBookPermitTests.WindowsSavedPolicyAndRejectedSaveAsync);
+    runner.Add("Device file native saved book / Windows actual incoming data after book change HOLD", DeviceFileBookPermitTests.WindowsBookChangedDuringActualReceiveAsync);
     runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);
     runner.Add("Device file native album / Windows replaced album directory HOLD", DeviceFileAlbumTests.WindowsAlbumReplacementHoldAsync);
     runner.Add("Device file native album / Windows existing unowned album directory HOLD", DeviceFileAlbumTests.WindowsUnownedAlbumFolderHoldAsync);
     runner.Add("Device file native album / Windows original album wire stop and resume", DeviceFileConnectionReceiveTests.WindowsAlbumWireStopDrainAndOriginalResumeAsync);
     runner.Add("Device file native album / Windows whole album batch loop and empty terminal", DeviceFileAlbumTests.WindowsWholeAlbumBatchLoopAsync);
     runner.Add("Device file native album / Windows whole album preparing cancellation and drain", DeviceFileAlbumTests.WindowsWholeAlbumPreparingCancelAsync);
+    runner.Add("Device file native album / Windows real saved book change stops worker but permits source cleanup", DeviceFileAlbumTests.WindowsWholeAlbumSavedBookChangedAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

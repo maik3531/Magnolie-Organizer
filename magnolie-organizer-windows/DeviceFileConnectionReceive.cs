@@ -54,7 +54,7 @@ internal sealed partial class TelefonConnection
         var choice = CaptureNativeSourceChoice(run.Lease.MediaType, true, true); var read = NativeSourceReadGuard(choice, run.Lease.Version);
         void Authority()
         {
-            RequireOwnedMediaRun(run); read();
+            RequireOwnedMediaRun(run); run.NativeWorkerGuard?.Invoke(); read();
             if (run.Result.State != "snapshot_ready" || !run.Result.SourceIoEnded || run.Result.RunEnded)
                 throw DeviceFileControl.Error("file_receive_native_source_not_ready");
         }
@@ -72,7 +72,8 @@ internal sealed partial class TelefonConnection
             var manifest = run.OfferedManifest!;
             DeviceFileSources.CorrelateMediaPages(run.Pages, manifest);
             var binding = CaptureNativeMediaReceiveBinding(run.Lease.Version, run.Lease.MediaType);
-            if (run.Resume is null) job = store.BeginNativeMediaReceiveJob(peer.Id, run.Lease.MediaType, manifest, binding,
+            DeviceTransferBinding? Bound() { run.NativeWorkerGuard?.Invoke(); return binding(); }
+            if (run.Resume is null) job = store.BeginNativeMediaReceiveJob(peer.Id, run.Lease.MediaType, manifest, Bound,
                 new(run.Pages[0].SourceEpoch, run.AlbumMetadata?.DisplayName), run.Replacements);
             else
             {
@@ -80,6 +81,7 @@ internal sealed partial class TelefonConnection
                 job.RequireRecoveredSourceResume(run.Resume.Selection, run.Resume.History);
                 if (job.Manifest.Fingerprint != manifest.Fingerprint) throw DeviceFileControl.Error("file_receive_original_manifest_changed");
             }
+            if (run.NativeWorkerGuard is not null) job.GuardNativeMediaWorker(run.NativeWorkerGuard);
             job.BindNativeMediaContext(run.CatalogId, run.AlbumId, run.Pages);
             var accepted = job.PrepareNativeAcceptance(run.OfferedMessageId!);
             transfer = new(run, job, accepted, Authority, lifetime.Token, lifetime.Cancel);
