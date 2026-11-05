@@ -102,6 +102,30 @@ LAYOUT = {
     'zh_CN': '访问权限|同步设置|选择其他文件夹…',
 }
 
+# Shared media controls (Refs #394), kept separate from native access rights.
+SHARED = {
+    'en': 'Enable photo and video synchronization|Only the phone inventory|Entire collection|Phone → PC',
+    'de': 'Foto- und Video-Synchronisation aktivieren|Nur der Bestand auf dem Telefon|Gesamter Bestand|Telefon → PC',
+    'ar': 'تفعيل مزامنة الصور والفيديو|محتويات الهاتف فقط|المجموعة كاملة|الهاتف → الحاسوب',
+    'be': 'Уключыць сінхранізацыю фота і відэа|Толькі змесціва тэлефона|Уся калекцыя|Тэлефон → ПК',
+    'cs': 'Povolit synchronizaci fotografií a videí|Pouze obsah telefonu|Celá sbírka|Telefon → PC',
+    'da': 'Aktivér synkronisering af billeder og videoer|Kun telefonens indhold|Hele samlingen|Telefon → PC',
+    'es': 'Activar la sincronización de fotos y vídeos|Solo el contenido del teléfono|Toda la colección|Teléfono → PC',
+    'fr': 'Activer la synchronisation des photos et vidéos|Uniquement le contenu du téléphone|Toute la collection|Téléphone → PC',
+    'hi': 'फ़ोटो और वीडियो समन्वयन सक्षम करें|केवल फ़ोन की सामग्री|पूरा संग्रह|फ़ोन → पीसी',
+    'hsb': 'Synchronizaciju fotow a widejow zmóžnić|Jenož wobsah telefona|Cyła zběrka|Telefon → PC',
+    'it': 'Attiva la sincronizzazione di foto e video|Solo i contenuti del telefono|Intera raccolta|Telefono → PC',
+    'ja': '写真と動画の同期を有効にする|スマートフォン内の項目のみ|コレクション全体|スマートフォン → PC',
+    'nb': 'Aktiver synkronisering av bilder og videoer|Bare telefonens innhold|Hele samlingen|Telefon → PC',
+    'nl': 'Synchronisatie van foto’s en video’s inschakelen|Alleen de inhoud van de telefoon|Gehele verzameling|Telefoon → pc',
+    'pl': 'Włącz synchronizację zdjęć i filmów|Tylko zawartość telefonu|Cała kolekcja|Telefon → komputer',
+    'pt': 'Ativar a sincronização de fotografias e vídeos|Apenas o conteúdo do telefone|Toda a coleção|Telefone → PC',
+    'ru': 'Включить синхронизацию фото и видео|Только содержимое телефона|Вся коллекция|Телефон → ПК',
+    'tr': 'Fotoğraf ve video eşitlemesini etkinleştir|Yalnızca telefonun içeriği|Tüm koleksiyon|Telefon → PC',
+    'uk': 'Увімкнути синхронізацію фото й відео|Лише вміст телефону|Уся колекція|Телефон → ПК',
+    'zh_CN': '启用照片和视频同步|仅手机中的内容|整个集合|手机 → 电脑',
+}
+
 
 def main():
     spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
@@ -119,6 +143,7 @@ def main():
     for locale, row in translations.items():
         row.extend(LAYOUT[locale].split('|'))
         row.append('Phone album' if locale == 'en' else old[locale]['Phone album'])
+        row.extend(SHARED[locale].split('|'))
     target = Path(__file__).with_suffix('.json')
     target.write_text(json.dumps(translations, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     subprocess.run([sys.executable, str(ROOT / 'tools/appointment_occurrence_locales.py'), '--messages', str(target),

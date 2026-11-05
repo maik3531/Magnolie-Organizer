@@ -8496,3 +8496,23 @@ msgstr "別のフォルダーを選択…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "スマートフォンのアルバム"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "写真と動画の同期を有効にする"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "スマートフォン内の項目のみ"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "コレクション全体"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "スマートフォン → PC"

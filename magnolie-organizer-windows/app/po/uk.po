@@ -8645,3 +8645,23 @@ msgstr "Вибрати іншу папку…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Альбом телефону"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Увімкнути синхронізацію фото й відео"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Лише вміст телефону"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Уся колекція"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Телефон → ПК"

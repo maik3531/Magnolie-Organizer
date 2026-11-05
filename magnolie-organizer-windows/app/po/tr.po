@@ -8584,3 +8584,23 @@ msgstr "Başka klasör seç…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Telefon albümü"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Fotoğraf ve video eşitlemesini etkinleştir"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Yalnızca telefonun içeriği"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Tüm koleksiyon"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefon → PC"

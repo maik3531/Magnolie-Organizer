@@ -84,6 +84,7 @@ internal sealed partial class BridgeDispatcher
                     settings["requestId"] = requestId; settings["device_id"] = peerId; settings["ok"] = true;
                     await Reply(settings); return;
                 case "pick_destination":
+                    telefon.RequireNativeMediaUiDestinationConsent(peerId);
                     // Only the actual native picker supplies a path. Request
                     // grammar has no path, root identity or destination token.
                     var book = NativeActorSavedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");

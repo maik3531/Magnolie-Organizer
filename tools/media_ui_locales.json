@@ -48,7 +48,11 @@
     "Access rights",
     "Synchronization settings",
     "Choose another folder…",
-    "Phone album"
+    "Phone album",
+    "Enable photo and video synchronization",
+    "Only the phone inventory",
+    "Entire collection",
+    "Phone → PC"
   ],
   "de": [
     "Ein nativer Medienvorgang läuft noch.",
@@ -99,7 +103,11 @@
     "Zugriffsrechte",
     "Synchronisationseinstellungen",
     "Anderen Ordner wählen…",
-    "Handyalbum"
+    "Handyalbum",
+    "Foto- und Video-Synchronisation aktivieren",
+    "Nur der Bestand auf dem Telefon",
+    "Gesamter Bestand",
+    "Telefon → PC"
   ],
   "ar": [
     "لا تزال عملية وسائط محلية قيد التنفيذ.",
@@ -150,7 +158,11 @@
     "صلاحيات الوصول",
     "إعدادات المزامنة",
     "اختيار مجلد آخر…",
-    "ألبوم الهاتف"
+    "ألبوم الهاتف",
+    "تفعيل مزامنة الصور والفيديو",
+    "محتويات الهاتف فقط",
+    "المجموعة كاملة",
+    "الهاتف → الحاسوب"
   ],
   "be": [
     "Лакальная аперацыя з медыяфайламі яшчэ выконваецца.",
@@ -201,7 +213,11 @@
     "Правы доступу",
     "Налады сінхранізацыі",
     "Выбраць іншую папку…",
-    "Альбом тэлефона"
+    "Альбом тэлефона",
+    "Уключыць сінхранізацыю фота і відэа",
+    "Толькі змесціва тэлефона",
+    "Уся калекцыя",
+    "Тэлефон → ПК"
   ],
   "cs": [
     "Nativní operace s médii stále běží.",
@@ -252,7 +268,11 @@
     "Přístupová práva",
     "Nastavení synchronizace",
     "Vybrat jinou složku…",
-    "Album telefonu"
+    "Album telefonu",
+    "Povolit synchronizaci fotografií a videí",
+    "Pouze obsah telefonu",
+    "Celá sbírka",
+    "Telefon → PC"
   ],
   "da": [
     "En indbygget mediehandling kører stadig.",
@@ -303,7 +323,11 @@
     "Adgangsrettigheder",
     "Synkroniseringsindstillinger",
     "Vælg en anden mappe…",
-    "Telefonalbum"
+    "Telefonalbum",
+    "Aktivér synkronisering af billeder og videoer",
+    "Kun telefonens indhold",
+    "Hele samlingen",
+    "Telefon → PC"
   ],
   "es": [
     "Todavía hay una operación multimedia nativa en curso.",
@@ -354,7 +378,11 @@
     "Permisos de acceso",
     "Ajustes de sincronización",
     "Elegir otra carpeta…",
-    "Álbum del teléfono"
+    "Álbum del teléfono",
+    "Activar la sincronización de fotos y vídeos",
+    "Solo el contenido del teléfono",
+    "Toda la colección",
+    "Teléfono → PC"
   ],
   "fr": [
     "Une opération multimédia native est toujours en cours.",
@@ -405,7 +433,11 @@
     "Droits d’accès",
     "Paramètres de synchronisation",
     "Choisir un autre dossier…",
-    "Album du téléphone"
+    "Album du téléphone",
+    "Activer la synchronisation des photos et vidéos",
+    "Uniquement le contenu du téléphone",
+    "Toute la collection",
+    "Téléphone → PC"
   ],
   "hi": [
     "एक स्थानीय मीडिया कार्य अभी चल रहा है।",
@@ -456,7 +488,11 @@
     "पहुँच अधिकार",
     "समन्वयन सेटिंग",
     "दूसरा फ़ोल्डर चुनें…",
-    "फ़ोन का एल्बम"
+    "फ़ोन का एल्बम",
+    "फ़ोटो और वीडियो समन्वयन सक्षम करें",
+    "केवल फ़ोन की सामग्री",
+    "पूरा संग्रह",
+    "फ़ोन → पीसी"
   ],
   "hsb": [
     "Natiwna medijowa operacija hišće běži.",
@@ -507,7 +543,11 @@
     "Přistupne prawa",
     "Nastajenja synchronizacije",
     "Druhi rjadowak wubrać…",
-    "Album telefona"
+    "Album telefona",
+    "Synchronizaciju fotow a widejow zmóžnić",
+    "Jenož wobsah telefona",
+    "Cyła zběrka",
+    "Telefon → PC"
   ],
   "it": [
     "È ancora in corso un’operazione multimediale nativa.",
@@ -558,7 +598,11 @@
     "Diritti di accesso",
     "Impostazioni di sincronizzazione",
     "Scegli un’altra cartella…",
-    "Album del telefono"
+    "Album del telefono",
+    "Attiva la sincronizzazione di foto e video",
+    "Solo i contenuti del telefono",
+    "Intera raccolta",
+    "Telefono → PC"
   ],
   "ja": [
     "ネイティブのメディア操作がまだ実行中です。",
@@ -609,7 +653,11 @@
     "アクセス権",
     "同期設定",
     "別のフォルダーを選択…",
-    "スマートフォンのアルバム"
+    "スマートフォンのアルバム",
+    "写真と動画の同期を有効にする",
+    "スマートフォン内の項目のみ",
+    "コレクション全体",
+    "スマートフォン → PC"
   ],
   "nb": [
     "En innebygd mediehandling kjører fortsatt.",
@@ -660,7 +708,11 @@
     "Tilgangsrettigheter",
     "Synkroniseringsinnstillinger",
     "Velg en annen mappe…",
-    "Telefonalbum"
+    "Telefonalbum",
+    "Aktiver synkronisering av bilder og videoer",
+    "Bare telefonens innhold",
+    "Hele samlingen",
+    "Telefon → PC"
   ],
   "nl": [
     "Er wordt nog een native mediabewerking uitgevoerd.",
@@ -711,7 +763,11 @@
     "Toegangsrechten",
     "Synchronisatie-instellingen",
     "Andere map kiezen…",
-    "Telefoonalbum"
+    "Telefoonalbum",
+    "Synchronisatie van foto’s en video’s inschakelen",
+    "Alleen de inhoud van de telefoon",
+    "Gehele verzameling",
+    "Telefoon → pc"
   ],
   "pl": [
     "Natywna operacja na multimediach nadal trwa.",
@@ -762,7 +818,11 @@
     "Prawa dostępu",
     "Ustawienia synchronizacji",
     "Wybierz inny folder…",
-    "Album telefonu"
+    "Album telefonu",
+    "Włącz synchronizację zdjęć i filmów",
+    "Tylko zawartość telefonu",
+    "Cała kolekcja",
+    "Telefon → komputer"
   ],
   "pt": [
     "Uma operação multimédia nativa ainda está em curso.",
@@ -813,7 +873,11 @@
     "Direitos de acesso",
     "Definições de sincronização",
     "Escolher outra pasta…",
-    "Álbum do telefone"
+    "Álbum do telefone",
+    "Ativar a sincronização de fotografias e vídeos",
+    "Apenas o conteúdo do telefone",
+    "Toda a coleção",
+    "Telefone → PC"
   ],
   "ru": [
     "Собственная операция с медиафайлами ещё выполняется.",
@@ -864,7 +928,11 @@
     "Права доступа",
     "Настройки синхронизации",
     "Выбрать другую папку…",
-    "Альбом телефона"
+    "Альбом телефона",
+    "Включить синхронизацию фото и видео",
+    "Только содержимое телефона",
+    "Вся коллекция",
+    "Телефон → ПК"
   ],
   "tr": [
     "Yerel bir medya işlemi hâlâ sürüyor.",
@@ -915,7 +983,11 @@
     "Erişim hakları",
     "Eşitleme ayarları",
     "Başka klasör seç…",
-    "Telefon albümü"
+    "Telefon albümü",
+    "Fotoğraf ve video eşitlemesini etkinleştir",
+    "Yalnızca telefonun içeriği",
+    "Tüm koleksiyon",
+    "Telefon → PC"
   ],
   "uk": [
     "Власна операція з медіафайлами ще виконується.",
@@ -966,7 +1038,11 @@
     "Права доступу",
     "Налаштування синхронізації",
     "Вибрати іншу папку…",
-    "Альбом телефону"
+    "Альбом телефону",
+    "Увімкнути синхронізацію фото й відео",
+    "Лише вміст телефону",
+    "Уся колекція",
+    "Телефон → ПК"
   ],
   "zh_CN": [
     "原生媒体操作仍在运行。",
@@ -1017,6 +1093,10 @@
     "访问权限",
     "同步设置",
     "选择其他文件夹…",
-    "手机相册"
+    "手机相册",
+    "启用照片和视频同步",
+    "仅手机中的内容",
+    "整个集合",
+    "手机 → 电脑"
   ]
 }

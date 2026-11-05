@@ -8184,3 +8184,23 @@ msgstr "选择其他文件夹…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "手机相册"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "启用照片和视频同步"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "仅手机中的内容"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "整个集合"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "手机 → 电脑"

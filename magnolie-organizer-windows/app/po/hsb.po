@@ -8719,3 +8719,23 @@ msgstr "Druhi rjadowak wubrać…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Album telefona"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Synchronizaciju fotow a widejow zmóžnić"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Jenož wobsah telefona"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Cyła zběrka"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefon → PC"

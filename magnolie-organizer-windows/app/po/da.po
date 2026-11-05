@@ -8589,3 +8589,23 @@ msgstr "Vælg en anden mappe…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Telefonalbum"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Aktivér synkronisering af billeder og videoer"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Kun telefonens indhold"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Hele samlingen"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefon → PC"

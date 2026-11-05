@@ -8419,3 +8419,23 @@ msgstr "दूसरा फ़ोल्डर चुनें…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "फ़ोन का एल्बम"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "फ़ोटो और वीडियो समन्वयन सक्षम करें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "केवल फ़ोन की सामग्री"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "पूरा संग्रह"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "फ़ोन → पीसी"

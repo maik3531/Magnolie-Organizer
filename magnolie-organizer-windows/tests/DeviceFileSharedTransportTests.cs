@@ -82,6 +82,10 @@ internal static class DeviceFileSharedTransportTests
         var ui = coordinator.NativeMediaUiStatus(f.Peer.Id);
         TestAssert.That(ui["shared_matched"]!.GetValue<bool>() && !ui["receive_consent"]!["granted"]!.GetValue<bool>(),
             "Native UI confused a matched remote preference with local receive permission.");
+        TestAssert.Throws<InvalidDataException>(() => coordinator.RequireNativeMediaUiDestinationConsent(f.Peer.Id),
+            "A browser folder action bypassed the unchecked local receive right.");
+        TestAssert.Throws<InvalidDataException>(() => coordinator.EnsureNativeMediaDefaultDestination(f.Peer.Id, "images",
+            Path.Combine(f.Paths.Root, "must-not-open")), "Default folder IO began before local receive consent.");
         var localRights = coordinator.ChangeNativeMediaUiReceiveConsent(f.Peer.Id, ui["receive_consent"]!["version"]!.GetValue<string>(), true);
         TestAssert.That(localRights["receive_consent"]!["granted"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null &&
             f.Store.ReadNativeMediaDestination(f.Peer.Id, "images") is null && f.Store.ReadNativeMediaDestination(f.Peer.Id, "video") is null,

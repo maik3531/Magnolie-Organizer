@@ -8693,3 +8693,23 @@ msgstr "Andere map kiezen…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Telefoonalbum"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Synchronisatie van foto’s en video’s inschakelen"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Alleen de inhoud van de telefoon"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Gehele verzameling"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefoon → pc"

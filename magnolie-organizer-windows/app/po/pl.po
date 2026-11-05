@@ -8683,3 +8683,23 @@ msgstr "Wybierz inny folder…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Album telefonu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Włącz synchronizację zdjęć i filmów"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Tylko zawartość telefonu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Cała kolekcja"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefon → komputer"

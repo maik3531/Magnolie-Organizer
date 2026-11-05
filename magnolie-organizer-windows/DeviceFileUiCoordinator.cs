@@ -225,6 +225,13 @@ internal sealed partial class TelefonCoordinator
         permit.Require(); return NativeMediaUiStatus(peerId);
     }
 
+    internal void RequireNativeMediaUiDestinationConsent(string peerId)
+    {
+        TelefonConnection? connection; lock (gate) online.TryGetValue(peerId, out connection);
+        if (connection?.MediaSharedControlsReady == true && !store.ReadNativeMediaReceiveConsent(peerId).Granted)
+            throw DeviceFileControl.Error("file_media_local_receive_consent_required");
+    }
+
     internal void ActivateLegacyNativeMediaUi(string peerId)
         => NativeMediaLocalOperation(() => {
             var permit = NativeMediaLocalBookPermit();
@@ -269,6 +276,7 @@ internal sealed partial class TelefonCoordinator
 
     internal void EnsureNativeMediaDefaultDestination(string peerId, string mediaType, string nativeKnownFolder)
     {
+        RequireNativeMediaUiDestinationConsent(peerId);
         if (store.ReadNativeMediaDestination(peerId, mediaType) is not null) return;
         var permit = NativeMediaLocalBookPermit(); permit.Require();
         var peer = store.LoadPeers().Single(value => value.Id == peerId && value.State == "paired");
@@ -300,6 +308,7 @@ internal sealed partial class TelefonCoordinator
 
     internal void SetNativeMediaUiDestination(string peerId, string mediaType, string? version, DeviceFileNativeDirectory nativeOwner)
     {
+        RequireNativeMediaUiDestinationConsent(peerId);
         store.RequireNativeMediaStorageKey();
         _ = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
         if (Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");

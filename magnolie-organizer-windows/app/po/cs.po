@@ -8597,3 +8597,23 @@ msgstr "Vybrat jinou složku…"
 #. Native media UI package completeness (Refs #330, #392).
 msgid "Phone album"
 msgstr "Album telefonu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Enable photo and video synchronization"
+msgstr "Povolit synchronizaci fotografií a videí"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only the phone inventory"
+msgstr "Pouze obsah telefonu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Entire collection"
+msgstr "Celá sbírka"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Phone → PC"
+msgstr "Telefon → PC"
