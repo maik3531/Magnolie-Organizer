@@ -188,4 +188,63 @@ internal static class DeviceFileBackupCatalogTests
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, run.Lease.RunId, "canceled_held")); await ended;
         Restore(f, versions[0], Data, "joined-restore.jpg");
     }
+
+    internal static async Task WindowsPublishedRestoreAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await Seed(f); var selected = Save(f);
+        var history = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();
+        f.Native.Connection.Dispose();
+        foreach (var path in Directory.GetFiles(f.Root, "first.jpg", SearchOption.AllDirectories)) File.Delete(path);
+        var result = f.Native.Store.RestoreNativeMediaBackupToDestination(f.Destination, selected, () => true);
+        TestAssert.That(result.State == "restored" && !result.IsRemoteSavedReceipt && File.ReadAllBytes(Path.Combine(f.Root, result.Name)).SequenceEqual(Data) &&
+            Directory.GetFiles(f.Root, ".magnolie-restore-*.part").Length == 0 && f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).SequenceEqual(history),
+            "Native new-file publication needed the phone/source, leaked a stage, replayed deletion or altered Saved/END.");
+        var again = f.Native.Store.RestoreNativeMediaBackupToDestination(f.Destination, selected, () => true);
+        TestAssert.That(again.Name != result.Name && File.ReadAllBytes(Path.Combine(f.Root, result.Name)).SequenceEqual(Data), "A fresh explicit restore overwrote an existing file.");
+    }
+
+    internal static async Task WindowsInterruptedPublishedRestoreAsync()
+    {
+        foreach (var afterPublication in new[] { false, true })
+        {
+            using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
+            var bytes = RandomNumberGenerator.GetBytes(DeviceFileManifest.ChunkBytes * 2 + 1); await Seed(f, bytes); var selected = Save(f);
+            bool Permit()
+            {
+                if (afterPublication) return Directory.GetFiles(f.Root, "* - restored *.jpg").Length == 0;
+                var stage = Directory.GetFiles(f.Root, ".magnolie-restore-*.part").SingleOrDefault();
+                return stage is null || new FileInfo(stage).Length == 0;
+            }
+            TestAssert.Throws<InvalidDataException>(() => f.Native.Store.RestoreNativeMediaBackupToDestination(f.Destination, selected, Permit), "Uncertain restore falsely completed.");
+            var before = Directory.GetFiles(f.Root, afterPublication ? "* - restored *.jpg" : ".magnolie-restore-*.part").Single();
+            DeviceFileNativeDirectory.Identity identity;
+            using (var root = f.Destination.OpenNative()) identity = root.FileIdentityAt(Path.GetFileName(before));
+            if (!afterPublication) TestAssert.That(new FileInfo(before).Length is > 0 && new FileInfo(before).Length < bytes.Length, "Restore did not stop between bounded blocks.");
+            var restored = f.Native.Store.RestoreNativeMediaBackupToDestination(f.Destination, selected, () => true);
+            using (var root = f.Destination.OpenNative()) TestAssert.That(root.FileIdentityAt(restored.Name) == identity, "Retry created a second file or adopted a different candidate.");
+            TestAssert.That(Directory.GetFiles(f.Root, "* - restored *.jpg").Length == 1 && Directory.GetFiles(f.Root, ".magnolie-restore-*.part").Length == 0 &&
+                File.ReadAllBytes(Path.Combine(f.Root, restored.Name)).SequenceEqual(bytes), "Uncertain restore lost bytes or duplicated publication.");
+        }
+    }
+
+    internal static async Task WindowsLocalBackupUiAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await Seed(f); var selected = Save(f);
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        TestAssert.Throws<InvalidDataException>(() => coordinator.ReadNativeMediaBackupUi(f.Native.Peer.Id, "images"), "Backup UI bypassed the saved/unlocked book.");
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "native-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        TestAssert.That(coordinator.ReadNativeMediaBackupUi(f.Native.Peer.Id, "images").Single() == selected, "Local backup list required an online phone.");
+        var choice = coordinator.PrepareNativeMediaBackupRestore(f.Native.Peer.Id, "images", selected.Id, selected.RecordSha256);
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var lane = typeof(TelefonCoordinator).GetField("nativeMediaWorker", flags)!; lane.SetValue(coordinator, 1);
+        try { TestAssert.Throws<InvalidDataException>(() => coordinator.RestoreConfirmedNativeMediaBackup(choice), "Restore overlapped a media worker."); }
+        finally { lane.SetValue(coordinator, 0); }
+        var result = coordinator.RestoreConfirmedNativeMediaBackup(choice);
+        TestAssert.That(File.ReadAllBytes(Path.Combine(f.Root, result.Name)).SequenceEqual(Data), "Local saved-book restore failed.");
+        host.FailAfterPrimary = true;
+        using (var message = System.Text.Json.JsonDocument.Parse(new JsonObject { ["id"] = 1, ["text"] = "{\"changed\":true,\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}" }.ToJsonString()))
+            await host.SaveAsync(message.RootElement);
+        TestAssert.Throws<InvalidDataException>(() => coordinator.RestoreConfirmedNativeMediaBackup(choice), "Old native confirmation survived a failed book save.");
+    }
 }

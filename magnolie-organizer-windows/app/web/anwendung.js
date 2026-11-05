@@ -26201,6 +26201,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baueSeiteSicherungen(wurzel) {
     const preferences = DATEN.einstellungen.allgemein;
+    if (window.MagnolieMedia?.createBackupPanel) for (const peer of (telefonStand.peers || [])) {
+      if (!peer.device_id) continue;
+      for (const kind of ["images", "video"]) wurzel.append(window.MagnolieMedia.createBackupPanel(peer.device_id, kind, _,
+        message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject))));
+    }
     const journal = abschnitt(_("Recovery journal"), "");
     const mode = auswahlFeld([["change", _("Every change")], ["daily", _("Daily")], ["weekly", _("Weekly")],
       ["startup", _("Every program start")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "weekly");

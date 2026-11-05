@@ -253,11 +253,25 @@ internal sealed partial class TelefonStore
             next["versions"]!.AsArray().Add(version); Commit(next); return Version(version);
         }
 
-        internal NativeMediaBackupBytes.VerifiedRaw Restore(NativeMediaBackupVersion selected, DeviceFileNativeDirectory.DeviceFileNativeStagedFile target)
+        private JsonObject SelectedObject(NativeMediaBackupVersion selected)
         {
             Current(); var version = state["versions"]!.AsArray().OfType<JsonObject>().SingleOrDefault(item => Text(item, "id") == selected.Id);
             if (version is null || Version(version) != selected) throw DeviceFileControl.Error("media_backup_stale_selection");
-            var obj = state["objects"]!.AsArray().OfType<JsonObject>().Single(item => Text(item, "id") == selected.ObjectKey);
+            return state["objects"]!.AsArray().OfType<JsonObject>().Single(item => Text(item, "id") == selected.ObjectKey);
+        }
+        internal NativeMediaBackupBytes.VerifiedRaw VerifySelected(NativeMediaBackupVersion selected)
+        {
+            var obj = SelectedObject(selected);
+            using var held = OpenObject(obj); return NativeMediaBackupBytes.Verify(held, Number(obj, "size"), Text(obj, "sha256"), Current);
+        }
+        internal NativeMediaBackupBytes.VerifiedRaw RestoreOwnedCandidate(NativeMediaBackupVersion selected, DeviceFileNativeDirectory.DeviceFileNativeStagedFile target)
+        {
+            var obj = SelectedObject(selected);
+            using var held = OpenObject(obj); return NativeMediaBackupBytes.ResumeOwnedCandidate(held, target, Number(obj, "size"), Text(obj, "sha256"), Current);
+        }
+        internal NativeMediaBackupBytes.VerifiedRaw Restore(NativeMediaBackupVersion selected, DeviceFileNativeDirectory.DeviceFileNativeStagedFile target)
+        {
+            var obj = SelectedObject(selected);
             using var held = OpenObject(obj);
             return NativeMediaBackupBytes.RestoreRawToNew(held, target, new(Identity(obj["identity"]!), Number(obj, "size"), Text(obj, "sha256")), Current);
         }

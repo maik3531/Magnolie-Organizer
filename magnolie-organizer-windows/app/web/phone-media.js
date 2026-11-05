@@ -166,8 +166,52 @@
     request("status", {}, false);
     return root;
   }
+  function createBackupPanel(peerId, mediaType, translate, send, saveBefore) {
+    const t = translate, root = document.createElement("details"), title = document.createElement("summary"), rows = document.createElement("ul"), status = document.createElement("p");
+    root.hidden = true; root.className = "telefon-medien-sicherungen einst-gruppe";
+    title.textContent = t("Backups") + " · " + t(mediaType === "video" ? "Videos" : "Photos");
+    status.setAttribute("role", "status"); root.append(title, rows, status);
+    let busy = false, next = null;
+    const button = (label, action, parent) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = t(label); b.addEventListener("click", action); parent.append(b); return b;
+    };
+    function toggle() { for (const b of root.querySelectorAll("button")) b.disabled = busy; }
+    async function request(action, data = {}) {
+      if (busy) return;
+      if (action === "backup_restore") {
+        try { await saveBefore(); } catch { status.textContent = t("The book could not be saved. Media synchronization was not started."); return; }
+      }
+      const requestId = crypto.randomUUID(); busy = true; toggle();
+      pending.set(requestId, { root, peerId, action, receive, until: Date.now() + 60000 });
+      if (!send({ cmd: "telefon_medien", requestId, device_id: peerId, media_type: mediaType, action, ...data })) {
+        pending.delete(requestId); busy = false; toggle();
+      }
+    }
+    function receive(reply, action) {
+      busy = false;
+      if (!reply.ok) { status.textContent = t("Media operation paused. No completion was confirmed."); toggle(); return; }
+      if (reply.canceled) { toggle(); return; }
+      if (action === "backup_list") {
+        rows.replaceChildren(); next = reply.next_cursor;
+        more.hidden = !Number.isSafeInteger(next);
+        for (const item of (reply.backups || []).slice(0, 128)) {
+          const row = document.createElement("li"); row.append(document.createTextNode(String(item.display_name || "") + " · " + new Date(item.saved_ms).toLocaleString()));
+          button("Restore", () => request("backup_restore", { backup_id: item.backup_id, version: item.version }), row); rows.append(row);
+        }
+        root.hidden = rows.children.length === 0; status.textContent = "";
+      } else if (action === "backup_restore") {
+        status.textContent = t("Restore") + ": " + String(reply.display_name || "");
+      }
+      toggle();
+    }
+    button("Refresh", () => request("backup_list", { after: 0 }), root);
+    const more = button("Next entries", () => Number.isSafeInteger(next) && request("backup_list", { after: next }), root); more.hidden = true;
+    // Read-only existing local history, even while the phone is disconnected.
+    request("backup_list", { after: 0 }); return root;
+  }
   window.MagnolieMedia = {
     createPanel,
+    createBackupPanel,
     receive(reply) {
       if (!reply || typeof reply.requestId !== "string") return;
       const item = pending.get(reply.requestId);

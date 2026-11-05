@@ -48,6 +48,7 @@
     <Compile Include="..\DeviceFileBackupMaintenance.cs" Link="DeviceFileBackupMaintenance.cs" />
     <Compile Include="..\DeviceFileBackupBytes.cs" Link="DeviceFileBackupBytes.cs" />
     <Compile Include="..\DeviceFileBackupCatalog.cs" Link="DeviceFileBackupCatalog.cs" />
+    <Compile Include="..\DeviceFileBackupRestore.cs" Link="DeviceFileBackupRestore.cs" />
     <Compile Include="..\DeviceFileConnectionMetadata.cs" Link="DeviceFileConnectionMetadata.cs" />
     <Compile Include="..\DeviceFileControlEnvelope.cs" Link="DeviceFileControlEnvelope.cs" />
     <Compile Include="..\DeviceFileStoreIdentity.cs" Link="DeviceFileStoreIdentity.cs" />

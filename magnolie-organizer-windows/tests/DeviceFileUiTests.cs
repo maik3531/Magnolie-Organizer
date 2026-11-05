@@ -14,6 +14,15 @@ internal static class DeviceFileUiTests
         _ = NativeMediaUiRequest.Parse(remove);
         remove["confirmed"] = true;
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
+        var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";
+        backup["backup_id"] = new string('a', 64); backup["version"] = new string('b', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");
+        foreach (var field in new[] { "path", "confirmed", "identity", "version", "backup_id" })
+        {
+            var changed = backup.DeepClone().AsObject();
+            changed[field] = field is "version" or "backup_id" ? null : JsonValue.Create("untrusted");
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(changed), "Backup restore accepted a browser path, authority or stale selection: " + field);
+        }
         foreach (var mutation in new[] { "path", "grant", "unknown", "version", "kind" })
         {
             var changed = request.DeepClone().AsObject();

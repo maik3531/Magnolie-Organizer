@@ -20,6 +20,20 @@ internal sealed partial class BridgeDispatcher
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
             switch (request.Action)
             {
+                case "backup_list":
+                    var backups = telefon.ReadNativeMediaBackupUi(peerId, request.MediaType);
+                    if (request.After > backups.Count) throw DeviceFileControl.Error("media_backup_stale_selection");
+                    await Reply(new { requestId, device_id = peerId, ok = true, media_type = request.MediaType,
+                        next_cursor = request.After + 128 < backups.Count ? (int?)(request.After + 128) : null,
+                        backups = backups.Skip(request.After).Take(128).Select(item => new { backup_id = item.Id, version = item.RecordSha256, display_name = item.Name, saved_ms = item.SavedMs }) });
+                    return;
+                case "backup_restore":
+                    var backupChoice = telefon.PrepareNativeMediaBackupRestore(peerId, request.MediaType, request.BackupId!, request.Version!);
+                    if (MessageBox.Show(form, T("Restore") + ":\n\n" + backupChoice.Selected.Name, T("Restore backup …"),
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                    { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
+                    var recovered = await Task.Run(() => telefon.RestoreConfirmedNativeMediaBackup(backupChoice));
+                    await Reply(new { requestId, device_id = peerId, ok = true, state = recovered.State, display_name = recovered.Name }); return;
                 case "trash_list":
                     var items = telefon.ReadNativeMediaTrashUi(peerId).Where(item => item.Entry.State is not ("purged" or "restored")).ToArray();
                     if (request.After > items.Length) throw DeviceFileControl.Error("media_trash_stale_selection");
