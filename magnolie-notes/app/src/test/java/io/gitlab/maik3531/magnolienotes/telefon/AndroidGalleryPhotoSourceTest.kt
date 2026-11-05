@@ -418,6 +418,46 @@ class AndroidGalleryPhotoSourceTest {
         return result!!.getOrThrow()
     }
 
+    @Test @Config(sdk = [30]) fun actualWriteConsentCannotSurviveMediaDisableAndReenableOnSamePeer() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val request = prepareArchivedWrite(h, permit)
+            val activity = h.activity.get() as WriteConsentActivity; activity.writeAllowed = true
+            val oldEpoch = h.runtime.currentRequest()!!.policyEpoch
+            var result: Result<NativeGalleryWriteGrant>? = null
+            h.runtime.requestGalleryWriteConsent(request) { result = it }
+            val code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            h.runtime.configureFromAuthenticatedCommand(h.runtime.savedPolicy(), false, emptySet())
+            h.echoControls()
+            h.runtime.configureFromAuthenticatedCommand(h.runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA))
+            h.echoControls()
+            assertNotEquals(oldEpoch, h.runtime.currentRequest()!!.policyEpoch)
+            writeResult(h, code, android.app.Activity.RESULT_OK)
+            assertTrue("old OS request must not inherit a new media consent epoch", result!!.isFailure)
+            assertEquals(0, h.f.provider.trashWrites); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun actualVideoWriteConsentCannotInheritReenabledVideoPolicyOnSameDataBinding() {
+        ResumeRuntimeCase(withWriteHost = true, mediaType = GalleryMediaType.VIDEO).use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val request = prepareArchivedWrite(h, permit)
+            val activity = h.activity.get() as WriteConsentActivity; activity.writeAllowed = true
+            val before = h.runtime.currentRequest(GalleryMediaType.VIDEO)!!
+            var result: Result<NativeGalleryWriteGrant>? = null
+            h.runtime.requestGalleryWriteConsent(request) { result = it }
+            val code = Shadows.shadowOf(activity).lastIntentSenderRequest!!.requestCode
+            h.runtime.configureVideosFromAuthenticatedCommand(h.runtime.savedPolicy(), false)
+            h.runtime.configureVideosFromAuthenticatedCommand(h.runtime.savedPolicy(), true)
+            val after = h.runtime.currentRequest(GalleryMediaType.VIDEO)!!
+            assertNotEquals(before.policyEpoch, after.policyEpoch)
+            assertEquals(before.receiver.permissionEpoch, after.receiver.permissionEpoch)
+            writeResult(h, code, android.app.Activity.RESULT_OK)
+            assertTrue("old write request must not inherit a new video policy", result!!.isFailure)
+            assertEquals(0, h.f.provider.trashWrites); h.assertOriginal()
+        }
+    }
+
     @Test @Config(sdk = [30]) fun actualPostConsentTargetUsesFreshReadAuthorityAndKeepsOriginalHistory() {
         ResumeRuntimeCase(withWriteHost = true).use { h ->
             val grant = acceptedWriteAfterResume(h)
@@ -450,8 +490,14 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
-    @Test @Config(sdk = [30]) fun actualLocalTrashRequiresPreparedJournalConditionalProviderUpdateAndReadback() {
-        ResumeRuntimeCase(withWriteHost = true).use { h ->
+    @Test @Config(sdk = [30]) fun actualLocalTrashRequiresPreparedJournalConditionalProviderUpdateAndReadback() =
+        actualLocalTrashCase(GalleryMediaType.IMAGES)
+
+    @Test @Config(sdk = [30]) fun actualLocalVideoTrashUsesCurrentIndependentVideoConsentAndOriginalReadback() =
+        actualLocalTrashCase(GalleryMediaType.VIDEO)
+
+    private fun actualLocalTrashCase(mediaType: GalleryMediaType) {
+        ResumeRuntimeCase(withWriteHost = true, mediaType = mediaType).use { h ->
             val grant = acceptedWriteAfterResume(h)
             h.f.provider.allowTrash = true
             h.f.provider.beforeTrash = {
@@ -1480,22 +1526,25 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
-    private class ResumeRuntimeCase(fileCount: Int = 1, withWriteHost: Boolean = false) : AutoCloseable {
-        val f = Fixture()
+    private class ResumeRuntimeCase(fileCount: Int = 1, withWriteHost: Boolean = false,
+        mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : AutoCloseable {
+        val f = Fixture(mediaType)
         val root = Files.createTempDirectory(f.root.toPath(), "resume-runtime356-").toFile()
         val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
         val now = 1_800_000_000_000L
         val output = ByteArrayOutputStream(); val key = ByteArray(32) { 3 }; val prefix = ByteArray(4) { 4 }
         val channel = TelefonSecureChannel(ByteArrayInputStream(byteArrayOf()), output, ByteArray(16), key.copyOf(), prefix, ByteArray(32), ByteArray(4))
         val identity = NativeFileControlIdentity("sender_fixture_01", "d".repeat(64))
-        val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64))
+        val peer = NativeFileControlPeer(f.receiver.peerId, f.receiver.identitySha256, channel, true, true, true, true, true, "1".repeat(64), mediaType == GalleryMediaType.VIDEO)
         val pcPeer = NativeFileControlPeer(identity.deviceId, identity.identitySha256, Any(), true, true, true, true, true, peer.pairingEpoch)
         val pcState = NativeLocalFileGrant(DeviceFileGrantState(1, "b".repeat(64), false, true), Any(), true)
         val desktop = NativeFileControlSession(NativeFileControlIdentity(peer.peerId, peer.identitySha256), { pcPeer }, { pcState })
-        val runtime = NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
+        val runtime = if (mediaType == GalleryMediaType.VIDEO)
+            NativeGalleryFileRuntime.withVideoHandlers(f.context, root, identity, protection, channel, { peer }, { true }, { true })
+            else NativeGalleryFileRuntime(f.context, root, identity, protection, channel, { peer }, { true })
         val activity = if (withWriteHost) Robolectric.buildActivity(WriteConsentActivity::class.java).create() else Robolectric.buildActivity(ComponentActivity::class.java).create()
         val writeHost = if (withWriteHost) NativeGalleryWriteConsentHost(activity.get()) else null
-        val host = GalleryPhotoPermissionHost(activity.get(), writeConsent = writeHost)
+        val host = GalleryPhotoPermissionHost(activity.get(), mediaType, writeHost)
         val worker = NativeGalleryFileRuntime::class.java.getDeclaredField("sourceWorker").also { it.isAccessible = true }.get(runtime) as NativeGallerySourceWorker
         val endedField = NativeGallerySourceWorker::class.java.getDeclaredField("onEnded").also { it.isAccessible = true }
         @Suppress("UNCHECKED_CAST") val originalEnd = endedField.get(worker) as (NativeGallerySourceRun) -> Unit
@@ -1518,7 +1567,8 @@ class AndroidGalleryPhotoSourceTest {
                     if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
                 }
                 echo(); runtime.configureFromAuthenticatedCommand(runtime.savedPolicy(), true, setOf(GallerySourceKind.CAMERA)); echo()
-                catalog = runtime.discoverSelectable()
+                if (mediaType == GalleryMediaType.VIDEO) runtime.configureVideosFromAuthenticatedCommand(runtime.savedPolicy(), true)
+                catalog = runtime.discoverSelectable(mediaType = mediaType)
                 val page = catalog.page()
                 selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
                 watchEnd()
@@ -1527,6 +1577,7 @@ class AndroidGalleryPhotoSourceTest {
                 runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
                     put("format", 1); put("operation", "media_page"); put("expected_version", runtime.savedPolicy().version)
                     put("run_id", normal.id); put("after", 0)
+                    if (mediaType == GalleryMediaType.VIDEO) put("media_type", "video")
                 }, 60_000, now), channel::send, { now })
                 originalMedia = drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
                 runtime.sendSyncRunOffer(normal, channel::send, now)
@@ -1547,6 +1598,12 @@ class AndroidGalleryPhotoSourceTest {
             endedField.set(worker, { run: NativeGallerySourceRun -> try { originalEnd(run) } finally { signal.countDown() } })
         }
         fun awaitEnd() { assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        fun echoControls() {
+            if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
+            val packet = desktop.packet(); desktop.markSent(packet)
+            runtime.observeControls(DeviceFileControlEnvelope.create(packet, now), now)
+            if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
+        }
         fun start(): NativeGalleryResumeRun { watchEnd(); return runtime.beginResumeRun(selected, job) }
         fun drain(): List<JsonObject> {
             val input = ByteArrayInputStream(output.toByteArray()); output.reset(); val result = mutableListOf<JsonObject>()

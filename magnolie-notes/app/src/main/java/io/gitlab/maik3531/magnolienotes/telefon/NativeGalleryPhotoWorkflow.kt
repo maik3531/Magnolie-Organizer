@@ -207,8 +207,15 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         return NativeGalleryTrashArchive.openForApplication(app, protection).use { archive ->
             val origin = archive.verifiedOrigin(entry, permit)
             val kind = GalleryMediaType.entries.single { it.uriSegment == origin.string("media_type") }
+            val admitted = currentRequest(kind) ?: fail("gallery_write_native_receiver_required")
             NativeGalleryWriteRequest.prepare(app, archive, entry, permit, {
-                ready(); cancellation.throwIfCanceled(); currentRequest(kind)?.receiver
+                ready(); cancellation.throwIfCanceled()
+                // Video policy can rotate independently of the acknowledged
+                // photo/data binding. Never transfer an old OS request across a
+                // disable/re-enable cycle just because the peer is unchanged.
+                currentRequest(kind)?.takeIf {
+                    it.policyEpoch == admitted.policyEpoch && it.mediaType == admitted.mediaType && it.kinds == admitted.kinds
+                }?.receiver
             }).also { cancellation.throwIfCanceled() }
         }
     }
