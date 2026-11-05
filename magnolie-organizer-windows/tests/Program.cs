@@ -226,6 +226,9 @@ runner.Add("Device file manifest / immutable members / shared hash / portable pa
 runner.Add("Device file offer / complete envelope / native peer binding / exact byte budget", DeviceFileOfferEnvelopeTests.RunAsync);
 runner.Add("Photo sync schedule / manual default / explicit automatic / no overlapping native work", PhotoSyncScheduleTests.RunAsync);
 runner.Add("Photo sync plan / shared three-way cases / preserve edits and missing-photo uncertainty", PhotoSyncPlanTests.RunAsync);
+runner.Add("Media backup maintenance / policy age Never savings and content keys", DeviceFileBackupMaintenanceTests.PolicyAsync);
+runner.Add("Media backup maintenance / native resource sampling and sticky busy state", DeviceFileBackupMaintenanceTests.ProbeAsync);
+runner.Add("Media backup maintenance / saved book stop and memory ownership", DeviceFileBackupMaintenanceTests.NativeOwnerAsync);
 runner.Add("Device file controls / dedicated own-peer / fresh echo / persistent grants", DeviceFileControlTests.RunAsync);
 runner.Add("Device file metadata commands / fresh echo / no data authority", DeviceFileMetadataCommandTests.BootstrapAsync);
 runner.Add("Device file native transport / actual secure echo / read-only identity", DeviceFileConnectionTransportTests.HandshakeAsync);
@@ -264,6 +267,7 @@ runner.Add("Device file native run lifecycle / retained cleanup lease boundaries
 runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
     runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);
