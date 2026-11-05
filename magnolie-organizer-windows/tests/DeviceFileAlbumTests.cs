@@ -46,7 +46,7 @@ internal static class DeviceFileAlbumTests
         DeviceFileConnectionRunsTests.Clear(f); var end = f.Native.Connection.EndNativeMediaAlbumAsync(run); var request = DeviceFileConnectionRunsTests.Request(f);
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, run.Lease.RunId, "canceled_held")); await end;
     }
-    private static async Task Copy(DeviceFileReceiveJobTests.Fixture f, TelefonConnection.NativeMediaSourceRun run, byte[][] data)
+    internal static async Task Copy(DeviceFileReceiveJobTests.Fixture f, TelefonConnection.NativeMediaSourceRun run, byte[][] data)
     {
         DeviceFileConnectionRunsTests.Clear(f); var receive = f.Native.Connection.ReconcileNativeMediaBatchAsync(run);
         _ = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileAcceptanceEnvelope.Kind);

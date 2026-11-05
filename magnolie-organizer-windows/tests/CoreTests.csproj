@@ -56,6 +56,7 @@
     <Compile Include="..\DeviceFileReceiveReceipts.cs" Link="DeviceFileReceiveReceipts.cs" />
     <Compile Include="..\DeviceFileReconcile.cs" Link="DeviceFileReconcile.cs" />
     <Compile Include="..\DeviceFileAlbumRoot.cs" Link="DeviceFileAlbumRoot.cs" />
+    <Compile Include="..\DeviceFileMediaTrash.cs" Link="DeviceFileMediaTrash.cs" />
     <Compile Include="..\DeviceFileReceiveResume.cs" Link="DeviceFileReceiveResume.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />

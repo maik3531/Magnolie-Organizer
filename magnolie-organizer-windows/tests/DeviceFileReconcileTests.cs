@@ -19,7 +19,7 @@ internal static class DeviceFileReconcileTests
         var end = await Request(f, number + 1, "end_run");
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(end, run.Lease.RunId, "canceled_held"));
     }
-    private static async Task Establish(DeviceFileReceiveJobTests.Fixture f)
+    internal static async Task Establish(DeviceFileReceiveJobTests.Fixture f)
     {
         var manifest = f.Manifest(("first.jpg", Data[0]), ("second.jpg", Data[1]));
         var run = await DeviceFileConnectionReceiveTests.Ready(f, manifest); var operation = f.Native.Connection.ReconcileNativeMediaBatchAsync(run);

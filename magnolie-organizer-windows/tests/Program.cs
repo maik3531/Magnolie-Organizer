@@ -310,6 +310,12 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native reconcile / Windows changed source held without destructive replacement", DeviceFileReconcileTests.WindowsChangedSourceIsHeldAsync);
     runner.Add("Device file native reconcile / Windows mixed preview selects only new content", DeviceFileReconcileTests.WindowsMixedPreviewSelectsOnlyNewAsync);
     runner.Add("Device file native reconcile / Windows corrupt subset and reused owner HOLD", DeviceFileReconcileTests.WindowsSelectionRejectsChangedSubsetAsync);
+    runner.Add("Device file native media trash / Windows original bytes restore and stale replay HOLD", DeviceFileMediaTrashTests.WindowsOriginalTrashRestoreAsync);
+    runner.Add("Device file native media trash / Windows occupied restore and original retry", DeviceFileMediaTrashTests.WindowsRestoreOccupiedTargetAsync);
+    runner.Add("Device file native media trash / Windows changed identity content and permit HOLD", DeviceFileMediaTrashTests.WindowsTrashChangedSourceAndPermitHoldAsync);
+    runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);
+    runner.Add("Device file native media trash / Windows album restore keeps incremental baseline", DeviceFileMediaTrashTests.WindowsAlbumTrashRestoreAsync);
+    runner.Add("Device file native media trash / Windows corrupt protected journal HOLD", DeviceFileMediaTrashTests.WindowsCorruptTrashHistoryHoldAsync);
     runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);
     runner.Add("Device file native album / Windows replaced album directory HOLD", DeviceFileAlbumTests.WindowsAlbumReplacementHoldAsync);
     runner.Add("Device file native album / Windows existing unowned album directory HOLD", DeviceFileAlbumTests.WindowsUnownedAlbumFolderHoldAsync);
