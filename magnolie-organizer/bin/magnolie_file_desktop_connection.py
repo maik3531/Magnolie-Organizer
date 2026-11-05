@@ -8,6 +8,7 @@ may drive automatic runs only from protected explicit desktop mode consent.
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+import os
 import re
 import threading
 import time
@@ -40,10 +41,12 @@ def is_reserved_file_message(message):
 
 
 class NativeDesktopFileConnection:
-    # Private native release gate, never a serialized setting or UI preference.
-    # Full data/recovery/baseline and frontend acceptance is still outstanding.
-    _data_handlers_ready = False
-    _video_data_handlers_ready = False
+    # Compiled native receivers, not consent or a file/OS grant. Optional package
+    # composition still excludes them where unsupported. Explicit protected
+    # choices/current ACKs remain mandatory; candidate native acceptance precedes
+    # delivery and is not replaced by these implementation-availability flags.
+    _data_handlers_ready = True
+    _video_data_handlers_ready = True
 
     def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None):
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
@@ -1750,6 +1753,7 @@ class NativeDesktopFileConnection:
             evidence = run.receiver._index.saved_mapping_receipt()
             if evidence is None:
                 raise TransferError('file_desktop_saved_recovery_complete_evidence_required')
+            backup_history = run.receiver._index.media_history
             progress = run.receiver.checkpoint()
             if progress.verified_bytes != progress.total_bytes or progress.checkpoint_verified_bytes != progress.total_bytes:
                 raise TransferError('file_desktop_saved_receive_incomplete')
@@ -1763,6 +1767,14 @@ class NativeDesktopFileConnection:
                 self._cleanup_error = type(error).__name__
                 raise
             action.validate(self); self._receive_binding()
+            if self._album_worker is not None and self._desktop_session is not None:
+                history = backup_history
+                if history is not None:
+                    for entry in history.entries:
+                        proof = next((value for value in evidence.entries if value.file_id == entry.file_id), None)
+                        if proof is None:raise TransferError('file_desktop_saved_mapping_receipt_changed')
+                        self._album_worker._backup_versions.add((PhotoMappingAssociation(history.source_epoch,entry.photo_id,history.media_type),
+                            proof.mapping_record_sha256))
             self._run = None
             self._offer = self._offer_binding = self._offer_policy_version = None
             return progress  # Never a remote ACK, baseline reset or quota cleanup.
@@ -2092,6 +2104,7 @@ class NativePhotoAlbumWorker:
         self._state_gate = threading.Lock()
         self._state = 'starting'; self._error = self._activity_error = None
         self._saved = 0; self._known = 0; self._conflicts = []
+        self._backup_versions = set()
         self._thread = threading.Thread(target=self._run, name='magnolie-photo-album', daemon=True)
 
     @property
@@ -2190,6 +2203,41 @@ class NativePhotoAlbumWorker:
             result = self._command('resume_status' if resumed else 'run_status')
         return self._command('end_resume' if resumed else 'end_run')
 
+    def _backup_completed_versions(self):
+        """Same actual media lane, AFTER source END; no timer or UI-thread IO."""
+        connection = self._connection
+        if not self._backup_versions:return
+        from magnolie_media_backups import NativeMediaBackups
+        from magnolie_media_retention import NativeMediaRetention
+        def native_current():
+            connection._ready()
+            if self._stop.is_set() or connection._album_worker is not self:
+                raise TransferError('file_desktop_album_stop_requested')
+            # END may legitimately close the phone's data grant. This is only
+            # LOCAL Saved-version copying, never another phone READ/WRITE.
+            connection._preferences._fresh()
+            if connection._preferences._snapshot()!=expected_policy:
+                raise TransferError('file_desktop_receive_policy_changed')
+            return True
+        with connection._operation():
+            expected_policy=connection._receiving_policy()
+            prefs=connection._preferences
+            with prefs._operation(), prefs._locked(), NativeMediaRetention(connection._authority.binding.native_directory) as policy:
+                native_current()
+                for association, expected in tuple(self._backup_versions):
+                    with policy.permit(native_current) as retention:
+                        if retention is None:raise TransferError('media_backup_current_saved_book_required')
+                        def current():
+                            native_current();retention.require_current();return True
+                        # Resolve metadata only through the exact authenticated
+                        # historical version, not a current head or a UI path.
+                        with connection._mappings.saved_record_lease(association,expected) as (record, _):
+                            destination=record.destination
+                        create=not os.path.lexists(Path(destination.path)/'Backup')
+                        with NativeMediaBackups(destination,connection._authority.protection,current,create=create) as backups:
+                            backups.save_from_mappings(connection._mappings,association,expected)
+                        current();self._backup_versions.remove((association,expected))
+
     def _lookup(self, job):
         connection=self._connection
         request_id=self._wait(lambda:connection.request_resume_lookup(connection.issue_receive_action(),job.owner,media_type=self._media_type))
@@ -2229,6 +2277,7 @@ class NativePhotoAlbumWorker:
         # locally first would change the selected catalog job and invalidate it.
         self._end_source()
         self._call(lambda:connection.finish_saved_receive(connection.issue_receive_action(),retire_cache=True))
+        self._call(self._backup_completed_versions)
         with self._state_gate:self._saved+=len(job.accepted.manifest.files)
 
     def _cleanup(self):
@@ -2269,6 +2318,11 @@ class NativePhotoAlbumWorker:
                             desktop_choice=self._desktop_choice))
                         continue
                     review = self._call(lambda:connection.review_pending_photos(connection.issue_receive_action()))
+                    if connection._desktop_session is not None:
+                        first=connection._source_media_pages[0]
+                        for item in review.items:
+                            if item.decision in ('unchanged','copy_phone_version') and item.prior_mapping_sha256 is not None:
+                                self._backup_versions.add((PhotoMappingAssociation(first.source_epoch,item.photo_id,self._media_type),item.prior_mapping_sha256))
                     new = [item for item in review.items if item.decision in ('new_photo','copy_phone_version')]
                     with self._state_gate:
                         self._known += sum(item.decision in ('unchanged', 'keep_local_edit') for item in review.items)
@@ -2287,6 +2341,7 @@ class NativePhotoAlbumWorker:
                         with self._state_gate: self._saved += len(new)
                 final = self._call(connection.source_state)['run'].batch_end
                 self._end_source()
+                self._call(self._backup_completed_versions)
                 if self._stop.is_set():
                     if final is False: self._command('end_album')
                     with self._state_gate: self._state = 'canceled'

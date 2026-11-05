@@ -305,3 +305,24 @@ def test_saved_book_revocation_is_sticky_and_never_destroys_backup_records(vault
     owner.close()
     with NativeMediaBackups(records[0].destination, fixture[3]._authority.protection, lambda: True) as fresh:
         assert fresh.versions() == tuple(sorted(versions, key=lambda item: item.id))
+
+
+def test_actual_desktop_worker_backs_up_after_end_and_unchanged_pass_does_not_copy_again(receiving):
+    fixture=receiving;connection=fixture[3]
+    # receiving supplies the actual fixed saved-book file/policy used by the
+    # application, not an independent retention flag or backup permit.
+    full=prepared(fixture)[0]
+    connection.desktop_session()
+    result=cycle(fixture,full)[0]
+    assert result['state']=='complete',result
+    folder=fixture[4]/'Backup';objects=tuple(folder.glob('object-*.raw'))
+    assert len(objects)==1 and objects[0].read_bytes()==b'hello'
+    association=PhotoMappingAssociation('c'*64,sha256(b'worker-photo-0').hexdigest(),'images')
+    _,(record,)=connection._mappings.lookup((association,))
+    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True) as backups:
+        versions=backups.versions();assert versions
+    before={path.name:(path.stat().st_ino,path.stat().st_size) for path in folder.iterdir() if path.name.startswith('object-')}
+    assert cycle(fixture,full)[0]['state']=='complete'
+    assert {path.name:(path.stat().st_ino,path.stat().st_size) for path in folder.iterdir() if path.name.startswith('object-')}==before
+    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True) as backups:
+        assert backups.versions()==versions

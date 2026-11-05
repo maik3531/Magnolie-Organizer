@@ -36,6 +36,12 @@ def receiving(native, tmp_path, monkeypatch, request):
         prefs = connection._preferences
         prefs.configure(prefs.issue_action(), prefs.read(), enabled=True, mode='manual', destination_choice=choice)
         negotiate(service, peer, channel, connection, source_send=getattr(request, 'param', True))
+        # Actual desktop-session backups use the application's existing native
+        # saved-book policy, not a fixture Boolean or source/network grant.
+        from magnolie_media_retention import NativeMediaRetention
+        book=tmp_path/'daten.json'
+        book.write_text('{"einstellungen":{"papierkorb":{"an":true,"tage":0}}}',encoding='utf-8');book.chmod(0o600)
+        with NativeMediaRetention(service.store.root) as policy:assert policy.adopt_existing_saved()
         yield service, peer, channel, connection, destination
     finally:
         chooser.close(); service._end_native_file_connection(channel)

@@ -1,4 +1,4 @@
-"""Actual service reserved dispatch/control ownership; data handlers stay OFF."""
+"""Native handler availability never substitutes for choices or bilateral ACKs."""
 from pathlib import Path
 import sys
 import threading
@@ -165,8 +165,10 @@ def test_foreign_output_channel_cannot_adopt_a_valid_native_authority(native):
     finally: authority.close()
 
 
-def test_saved_enabled_policy_does_not_announce_receive_before_real_data_handlers(attached, tmp_path):
+@pytest.mark.parametrize('handlers_ready',[False,True])
+def test_saved_enabled_policy_requires_handlers_and_cannot_skip_actual_bilateral_ack(attached, tmp_path, monkeypatch, handlers_ready):
     _, _, channel, _, connection = attached
+    monkeypatch.setattr(NativeDesktopFileConnection,'_data_handlers_ready',handlers_ready)
     destination = tmp_path / 'explicit-choice'; destination.mkdir(mode=0o700)
     chooser = NativePhotoDestinationController(connection._authority)
     try:
@@ -176,7 +178,7 @@ def test_saved_enabled_policy_does_not_announce_receive_before_real_data_handler
         assert saved.associated and saved.destination_available
         assert connection.send_controls()
         packet = FileControlPacket.parse(channel.send.call_args.args[0]['body'])
-        assert not packet.grants.send_files and not packet.grants.receive_files
+        assert not packet.grants.send_files and packet.grants.receive_files is handlers_ready
         assert connection._controls.binding(choice.destination_token) is None
         assert not list(destination.iterdir())
     finally: chooser.close()
