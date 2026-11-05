@@ -100,6 +100,20 @@ internal sealed partial class TelefonStore
         }
     }
 
+    internal JsonObject NativeMediaSharedSettingsView(string peerId, byte[] expectedPublic)
+    {
+        lock (gate)
+        {
+            var (key, _) = MediaSharedBinding(peerId, expectedPublic);
+            var body = ProjectNativeMediaSharedSettings(peerId, expectedPublic);
+            var versions = new JsonObject();
+            foreach (var (field, _) in body["settings"]!.AsObject())
+                versions[field] = MediaSharedFieldVersion(key, body, field);
+            if (MediaSharedBinding(peerId, expectedPublic).Key != key) throw DeviceFileControl.Error("media_shared_peer_changed");
+            return new JsonObject { ["values"] = MediaSyncSettings.Effective(body), ["versions"] = versions };
+        }
+    }
+
     private JsonObject UpdateNativeMediaShared(string peerId, byte[] expectedPublic,
         Func<JsonObject, string, NativeMediaPreferenceScope, JsonObject> update)
     {

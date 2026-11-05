@@ -127,6 +127,23 @@ internal static class DeviceFileUiTests
     {
         var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request", ["device_id"] = Guid.NewGuid().ToString("D"), ["action"] = "status" };
         _ = NativeMediaUiRequest.Parse(request);
+        foreach (var (field, value) in MediaSyncSettings.Effective(MediaSyncSettings.Create("11111111-1111-4111-8111-111111111111")))
+        {
+            var edit = request.DeepClone().AsObject(); edit["action"] = "shared_setting"; edit["field"] = field;
+            edit["value"] = value!.DeepClone(); edit["version"] = new string('a', 64);
+            var parsed = NativeMediaUiRequest.Parse(edit);
+            TestAssert.That(parsed.SharedField == field && JsonNode.DeepEquals(parsed.SharedValue, value), "Shared media choice was changed by bridge parsing.");
+            edit["version"] = null;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(edit), "Shared media choice omitted its exact field version.");
+        }
+        var consent = request.DeepClone().AsObject(); consent["action"] = "receive_consent";
+        consent["granted"] = true; consent["version"] = new string('b', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(consent).ReceiveConsent, "Explicit local consent was not parsed independently.");
+        consent["granted"] = "true";
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(consent), "Local permission accepted a truthy string.");
+        var unknownField = request.DeepClone().AsObject(); unknownField["action"] = "shared_setting";
+        unknownField["field"] = "receive_files"; unknownField["value"] = true; unknownField["version"] = new string('a', 64);
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(unknownField), "A shared edit attempted to manufacture native receiving rights.");
         var remove = request.DeepClone().AsObject(); remove["action"] = "trash_purge";
         remove["operation_id"] = new string('a', 32); remove["version"] = new string('b', 64);
         _ = NativeMediaUiRequest.Parse(remove);

@@ -5,7 +5,8 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonConnection
 {
     private sealed record NativeSourceChoice(NativeFileControlSession Owner, string MediaType,
-        NativeMediaPreferences Preferences, NativeMediaDestination? Destination, bool Positive, bool DataReady, DeviceTransferBinding? DataBinding);
+        NativeMediaPreferences Preferences, NativeMediaDestination? Destination, bool Positive, bool DataReady, DeviceTransferBinding? DataBinding,
+        JsonObject? SharedIntent, string ReceiveConsentVersion);
     private sealed record NativeVideoSourceActivation(NativeSourceChoice Choice, string SourceVersion, string RemoteEpoch);
     private NativeVideoSourceActivation? nativeVideoSourceActivation;
     private object? nativeVideoConfigurationAttempt;
@@ -49,7 +50,8 @@ internal sealed partial class TelefonConnection
         if (mediaType is not ("images" or "video")) throw DeviceFileControl.Error("file_sources_native_media_invalid");
         var owner = RequireNativeFileControls(); var destination = store.ReadNativeMediaDestination(peer.Id, mediaType);
         var choice = new NativeSourceChoice(owner, mediaType, store.ReadNativeMediaPreferences(peer.Id), destination, positive, dataReady,
-            dataReady && destination is not null ? owner.Binding(destination.DestinationToken) : null);
+            dataReady && destination is not null ? owner.Binding(destination.DestinationToken) : null,
+            store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey), store.ReadNativeMediaReceiveConsent(peer.Id).Version);
         RequireNativeSourceChoice(choice); return choice;
     }
 
@@ -63,6 +65,16 @@ internal sealed partial class TelefonConnection
             throw DeviceFileControl.Error("file_sources_native_choice_changed");
         if (choice.Positive)
         {
+            var receiving = store.ReadNativeMediaReceiveConsent(peer.Id);
+            if (!receiving.Granted || receiving.Version != choice.ReceiveConsentVersion)
+                throw DeviceFileControl.Error("file_sources_local_receive_consent_changed");
+            var intent = store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey);
+            if (intent is not null || choice.SharedIntent is not null || MediaSharedControlsReady)
+            {
+                if (intent is null || !JsonNode.DeepEquals(intent, choice.SharedIntent) || !MediaSharedSettingsReady ||
+                    !MediaSyncSettings.RequestedFor(intent, choice.MediaType))
+                    throw DeviceFileControl.Error("file_sources_shared_media_intent_changed");
+            }
             if (!(choice.MediaType == "video" ? choice.Preferences.VideosEnabled : choice.Preferences.PhotosEnabled) || choice.Destination is null)
                 throw DeviceFileControl.Error("file_sources_native_positive_choice_required");
             using var root = choice.Destination.OpenNative(); _ = root.CurrentIdentity();
@@ -123,6 +135,8 @@ internal sealed partial class TelefonConnection
                 if (activation is null || !ReferenceEquals(nativeVideoSourceActivation, activation) ||
                     !ReferenceEquals(activation.Choice.Owner, choice.Owner) || activation.Choice.Preferences != choice.Preferences ||
                     activation.Choice.Destination != choice.Destination || activation.SourceVersion != sourceVersion ||
+                    activation.Choice.ReceiveConsentVersion != choice.ReceiveConsentVersion ||
+                    !JsonNode.DeepEquals(activation.Choice.SharedIntent, choice.SharedIntent) ||
                     activation.Choice.DataBinding != choice.DataBinding ||
                     witness is null || witness.Value.SessionEpoch != activation.RemoteEpoch)
                     throw DeviceFileControl.Error("file_sources_native_fresh_video_configuration_required");

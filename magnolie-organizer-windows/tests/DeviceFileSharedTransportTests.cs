@@ -73,6 +73,24 @@ internal static class DeviceFileSharedTransportTests
         await f.Connection.HandlePlainAsync(Message(persisted));
         await f.Connection.HandlePlainAsync(Ack(QueuedId(f)));
         TestAssert.That(f.Connection.MediaSharedSettingsReady, "Fresh settings exchange after metadata renewal failed.");
+        using var coordinator = new TelefonCoordinator(f.Paths, (_, _) => Task.CompletedTask, dataStore: f.Store, localOnly: true);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Paths.Root, "shared-media-ui-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Peer.Id, f.Connection);
+        var ui = coordinator.NativeMediaUiStatus(f.Peer.Id);
+        TestAssert.That(ui["shared_matched"]!.GetValue<bool>() && !ui["receive_consent"]!["granted"]!.GetValue<bool>(),
+            "Native UI confused a matched remote preference with local receive permission.");
+        var localRights = coordinator.ChangeNativeMediaUiReceiveConsent(f.Peer.Id, ui["receive_consent"]!["version"]!.GetValue<string>(), true);
+        TestAssert.That(localRights["receive_consent"]!["granted"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null &&
+            f.Store.ReadNativeMediaDestination(f.Peer.Id, "images") is null && f.Store.ReadNativeMediaDestination(f.Peer.Id, "video") is null,
+            "Local rights alone enabled native media policy, created a destination or started IO.");
+        var edited = await coordinator.ChangeNativeMediaUiSharedSettingAsync(f.Peer.Id, "collection_mode", JsonValue.Create("entire_collection")!,
+            ui["shared_settings"]!["versions"]!["collection_mode"]!.GetValue<string>());
+        TestAssert.That(edited["shared_settings"]!["values"]!["collection_mode"]!.GetValue<string>() == "entire_collection" &&
+            !edited["shared_matched"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null,
+            "Native UI field edit failed to persist or incorrectly treated sending as a matched/started run.");
         var nextVersion = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "videos_enabled");
         f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "videos_enabled", JsonValue.Create(true)!, nextVersion);
         TestAssert.That(!f.Connection.MediaSharedSettingsReady, "A local edit reused an old matched snapshot.");

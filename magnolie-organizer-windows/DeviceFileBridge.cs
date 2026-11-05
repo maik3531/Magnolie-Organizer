@@ -20,6 +20,14 @@ internal sealed partial class BridgeDispatcher
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
             switch (request.Action)
             {
+                case "shared_setting":
+                    var shared = await telefon.ChangeNativeMediaUiSharedSettingAsync(peerId, request.SharedField!, request.SharedValue!, request.Version!);
+                    shared["requestId"] = requestId; shared["device_id"] = peerId; shared["ok"] = true;
+                    await Reply(shared); return;
+                case "receive_consent":
+                    var receiving = telefon.ChangeNativeMediaUiReceiveConsent(peerId, request.Version!, request.ReceiveConsent);
+                    receiving["requestId"] = requestId; receiving["device_id"] = peerId; receiving["ok"] = true;
+                    await Reply(receiving); return;
                 case "activate":
                     if (MessageBox.Show(form, T("Photos and videos") + " — " + T("Enable") + "?", T("Photos and videos"),
                         MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)

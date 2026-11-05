@@ -101,7 +101,7 @@ internal sealed partial class TelefonConnection
         // Cleanup deliberately bypasses saved positive choice/root/data/video
         // readiness: only this retained source lease can address this exact run.
         var choice = cleanup ? new NativeSourceChoice(run.Owner, run.Lease.MediaType,
-            new NativeMediaPreferences(0, null, false, false, false), null, false, false, null) :
+            new NativeMediaPreferences(0, null, false, false, false), null, false, false, null, null, "") :
             CaptureNativeSourceChoice(run.Lease.MediaType, true, true);
         var read = cleanup ? null : NativeSourceReadGuard(choice, run.Lease.Version);
         void Require()

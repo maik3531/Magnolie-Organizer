@@ -4,7 +4,8 @@ using System.Text.RegularExpressions;
 namespace MagnolieOrganizer.Windows;
 
 internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, string Action, string MediaType, string? Version,
-    string? Catalog, string? Album, int After, bool Photos, bool Videos, bool SkipDeletions, bool Automatic = false, string? TrashOperation = null, string? BackupId = null)
+    string? Catalog, string? Album, int After, bool Photos, bool Videos, bool SkipDeletions, bool Automatic = false, string? TrashOperation = null, string? BackupId = null,
+    string? SharedField = null, JsonNode? SharedValue = null, bool ReceiveConsent = false)
 {
     internal static NativeMediaUiRequest Parse(JsonObject value)
     {
@@ -19,14 +20,16 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (action is "backup_list" or "page" or "trash_list") fields.Add("after");
         if (action == "sync") fields.Add("album_id");
         if (action == "settings") fields.AddRange(["photos", "videos", "skip_deletions"]);
+        if (action == "shared_setting") fields.AddRange(["field", "value", "version"]);
+        if (action == "receive_consent") fields.AddRange(["granted", "version"]);
         TelefonProtocolContract.ExactObject(value, fields.ToArray());
-        if (Text("cmd") != "telefon_medien" || action is not ("activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
+        if (Text("cmd") != "telefon_medien" || action is not ("shared_setting" or "receive_consent" or "activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
             !Regex.IsMatch(Text("requestId"), "\\A[A-Za-z0-9_-]{8,80}\\z") || !DeviceFileControl.Identity(Text("device_id")))
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var kind = value.ContainsKey("media_type") ? Text("media_type") : "images";
         if (kind is not ("images" or "video")) throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var version = value["version"] is null ? null : Text("version");
-        if (version is not null && !DeviceFileControl.Hash(version) || action is "backup_restore" or "trash_restore" or "trash_purge" or "page" or "sync" && version is null)
+        if (version is not null && !DeviceFileControl.Hash(version) || action is "shared_setting" or "receive_consent" or "backup_restore" or "trash_restore" or "trash_purge" or "page" or "sync" && version is null)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var catalog = value.ContainsKey("catalog_id") ? Text("catalog_id") : null;
         var album = value.ContainsKey("album_id") ? Text("album_id") : null;
@@ -40,7 +43,16 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (backup is not null && !DeviceFileControl.Hash(backup) || action == "backup_list" && after > 4096)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         bool Flag(string key) => value[key] is JsonValue item && item.TryGetValue<bool>(out var flag) ? flag : throw DeviceFileControl.Error("file_media_ui_request_invalid");
+        var sharedField = action == "shared_setting" ? Text("field") : null;
+        if (sharedField is not null)
+        {
+            // Pure validation only; the real current per-field CAS remains native.
+            var actor = "11111111-1111-4111-8111-111111111111";
+            _ = MediaSyncSettings.Change(MediaSyncSettings.Create(actor), actor, "22222222-2222-4222-8222-222222222222", sharedField,
+                value["value"] ?? throw DeviceFileControl.Error("file_media_ui_request_invalid"));
+        }
         return new(Text("requestId"), Text("device_id"), action, kind, version, catalog, album, (int)after,
-            action == "settings" && Flag("photos"), action == "settings" && Flag("videos"), action != "settings" || Flag("skip_deletions"), action == "mode" && Flag("automatic"), trash, backup);
+            action == "settings" && Flag("photos"), action == "settings" && Flag("videos"), action != "settings" || Flag("skip_deletions"), action == "mode" && Flag("automatic"), trash, backup,
+            sharedField, action == "shared_setting" ? value["value"]!.DeepClone() : null, action == "receive_consent" && Flag("granted"));
     }
 }

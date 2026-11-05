@@ -195,6 +195,7 @@ internal sealed partial class TelefonStore
         private readonly TelefonStore store; private readonly string peerId, mediaType;
         private readonly NativeMediaDestination destination; private readonly DeviceTransferBinding binding;
         private readonly Func<DeviceTransferBinding?> currentBinding; private readonly DeviceFileResumeLedger ledger;
+        private readonly string receiveConsentVersion;
         private readonly object jobGate = new(); private bool disposed, uncertain;
         private ReceiveHead? head; private DeviceFileNativeDirectory? root, stage;
         private readonly Dictionary<string, DeviceFileNativeDirectory.DeviceFileNativeStagedFile> files = [];
@@ -208,6 +209,7 @@ internal sealed partial class TelefonStore
             this.store = store; this.peerId = peerId; this.mediaType = mediaType; Manifest = manifest;
             JobId = originalJobId ?? Guid.NewGuid().ToString("N");
             this.destination = destination; this.currentBinding = currentBinding;
+            receiveConsentVersion = store.ReadNativeMediaReceiveConsent(peerId).Version;
             binding = currentBinding() ?? throw DeviceFileControl.Error("file_receive_current_binding_required");
             binding.Validate(); ledger = new(manifest, binding, currentBinding); Current();
         }
@@ -232,6 +234,9 @@ internal sealed partial class TelefonStore
                 store.ReadNativeMediaDestination(peerId, mediaType) != destination)
                 throw DeviceFileControl.Error("file_receive_destination_binding_changed");
             var preferences = store.ReadNativeMediaPreferences(peerId);
+            var receiveConsent = store.ReadNativeMediaReceiveConsent(peerId);
+            if (!receiveConsent.Granted || receiveConsent.Version != receiveConsentVersion)
+                throw DeviceFileControl.Error("file_receive_local_consent_withdrawn");
             if (!(mediaType == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled))
                 throw DeviceFileControl.Error("file_receive_native_choice_withdrawn");
             _ = root?.CurrentIdentity(); _ = stage?.CurrentIdentity();
