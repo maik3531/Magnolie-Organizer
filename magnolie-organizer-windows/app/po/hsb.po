@@ -436,6 +436,9 @@ msgstr "Skupina z tutym mjenom hižo eksistuje."
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "Najwjace 10 SMS-dźělow je dowolene."
 
+msgid "A native media operation is still running."
+msgstr "Natiwna medijowa operacija hišće běži."
+
 msgid "A notebook with this name already exists in this group."
 msgstr "Noticowy zešiwk z tutym mjenom hižo w tutej skupinje eksistuje."
 
@@ -645,12 +648,6 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Rozšěrjene"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Wužaduje sej Magnolie Notes na Androidźe. KDE Connect trěbny njeje."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "Funkcije KDE Connect wužaduja sej aplikaciju KDE Connect na Androidźe, nic Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Rozšěrjene funkcije"
 
@@ -659,6 +656,9 @@ msgstr "Po ćělesnym ćwicjenju"
 
 msgid "After meal"
 msgstr "Po jědźi"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "Wuběr albuma je so změnił. Wučitajće albumy znowa."
 
 msgid "All"
 msgstr "Wšitko"
@@ -913,6 +913,30 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "Awtomatiske zawěsćenja w cloudowym rjadowaku"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr ""
+"Awtomatiske přirunanje wobsaha sej kedźbnosć wužaduje. Dokónčene zhašenje so "
+"njewobkrući."
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"Awtomatiski přeběh je jedyn album kóždeho medijoweho typa přepruwował. Dalše "
+"albumy slěduja; zhašenja hišće čakaja."
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"Awtomatiska synchronizacija je zastajena. Přeńdźće do manuelneho modusa a "
+"zmóžńće ju znowa, zo byšće pokročował."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Awtomatiska synchronizacija je wubrana, ale hišće k dispoziciji njeje."
 
 msgid "Automatically choose a suitable application"
 msgstr "Awtomatisce přihódne nałoženje wubrać"
@@ -1329,6 +1353,10 @@ msgstr "Nětko přepruwować"
 msgid "Check spelling (red wavy lines)"
 msgstr "Prawopis přepruwować (čerwjene žołmjate linije)"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+"Přepruwujće přistupne naprašowanje na telefonje a wučitajće albumy znowa."
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1391,6 +1419,9 @@ msgstr ""
 "abo wjacorym dźenjam w nowym terminowym łopjenje. Dnjowe znamjenja zdźělenki "
 "njepósćelu."
 
+msgid "Choose a valid replacement date and time."
+msgstr "Wubjerće płaćiwy datum a čas za narunanski termin."
+
 msgid "Choose a value and period to display its development."
 msgstr "Wubjerće hódnotu a dobu, zo byšće jeje wuwiće zwobraznili."
 
@@ -1404,11 +1435,20 @@ msgstr ""
 msgid "Choose an address"
 msgstr "Adresu wubrać"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+"Wubjerće album za přirunanje. Njedospołny katalog ženje zhašenje "
+"njedopokazuje."
+
 msgid "Choose at least four characters."
 msgstr "Wubjerće znajmjeńša štyri znamješka."
 
 msgid "Choose contact photo"
 msgstr "Kontaktowe foto wubrać"
+
+msgid "Choose destination…"
+msgstr "Cil wubrać…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "Zapiski za ćišć, eksport abo zhašenje wubrać"
@@ -1569,6 +1609,9 @@ msgstr ""
 msgid "Compare with LibreOffice"
 msgstr "Z LibreOffice přirunać"
 
+msgid "Comparing media content… The total is not known yet."
+msgstr "Medijowy wobsah so přirunuje… Cyłkowna ličba hišće znata njeje."
+
 msgid "Complete archive export is available only in the installed application."
 msgstr ""
 "Dospołny eksport archiwa je jenož w instalowanym nałoženju k dispoziciji."
@@ -1726,6 +1769,12 @@ msgstr ""
 msgid "Content"
 msgstr "Wobsah"
 
+msgid "Content comparison finished."
+msgstr "Přirunanje wobsaha dokónčene."
+
+msgid "Content comparison needs review."
+msgstr "Přirunanje wobsaha sej kontrolu wužaduje."
+
 msgid "Continue"
 msgstr "Pokročowanje"
 
@@ -1773,6 +1822,9 @@ msgstr "Zawěsćensku kopiju datow wutworić"
 
 msgid "Create a new appointment immediately"
 msgstr "Hnydom nowy termin wutworić"
+
+msgid "Create a replacement appointment"
+msgstr "Narunanski termin załožić"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Swójski zwisk k tutomu ličakej wutworić?"
@@ -1996,6 +2048,9 @@ msgstr "Na přeco zhašeć"
 msgid "Delete selection"
 msgstr "Wuběr zhašeć"
 
+msgid "Delete series"
+msgstr "Cyłu seriju zhašeć"
+
 msgid "Delete shift"
 msgstr "Směnu zhašeć"
 
@@ -2020,6 +2075,9 @@ msgstr "Historiju tutoho kontakta zhašeć"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Tutu stronu noticy („%(title)s“) zhašeć?"
+
+msgid "Delete this occurrence"
+msgstr "Jenož tute wuskutkowanje zhašeć"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Tutón wotnowjenski wobraz trajnje wotstronić?"
@@ -3099,6 +3157,13 @@ msgstr "KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect za SMS je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"Funkcije KDE Connect wužaduja sej aplikaciju KDE Connect na Androidźe, nic "
+"Magnolie Notes."
+
 msgid "KDE Connect pairing failed."
 msgstr "Koplowanje KDE Connect je so njeporadźiło."
 
@@ -3188,6 +3253,9 @@ msgstr "Wječorna změna"
 msgid "Later occurrence"
 msgstr "Pozdźiši wustup"
 
+msgid "Later occurrences remain unchanged."
+msgstr "Pozdźiše wuskutkowanja wostanu njezměnjene."
+
 msgid "Lead time"
 msgstr "Předčas"
 
@@ -3245,6 +3313,9 @@ msgstr "Začituje so…"
 
 msgid "Local calendar"
 msgstr "Lokalny protyk"
+
+msgid "Local edits kept"
+msgstr "Lokalne změny wobchowane"
 
 msgid "Local image"
 msgstr "Swójski wobraz"
@@ -3399,6 +3470,9 @@ msgstr "Manuelna narunanska hódnota"
 msgid "Manual only"
 msgstr "Jenož manuelnje"
 
+msgid "Manual synchronization"
+msgstr "Manuelna synchronizacija"
+
 msgid "Manually"
 msgstr "Manuelnje"
 
@@ -3440,6 +3514,16 @@ msgstr ""
 "Medijowe wodźenje njeje k dispoziciji. Přepruwujće zwisk a medijowu "
 "aplikaciju na telefonje."
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"Medijowe dataje wužiwaja składowanu dobu wobchowanja papjernika. Ženje rěka "
+"jenož manuelne wotstronjenje. Wobnowjenje ženje eksistowacu dataju njenaruna."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Medijowa operacija zastajena. Dokónčenje so njewobkrući."
+
 msgid "Media player"
 msgstr "Medijowy wothrawak"
 
@@ -3448,6 +3532,25 @@ msgstr "Nastajenja medijoweho wothrawaka njedachu so nałožić."
 
 msgid "Media players"
 msgstr "Medijowe wothrawaki"
+
+msgid "Media recycle bin"
+msgstr "Medijowy papjernik"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+"Medijowy papjernik začitany. Trajne wotstronjenje sej natiwne wobkrućenje "
+"wužaduje."
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+"Operacija medijoweho papjernika dokónčena. Wučitajće zapiski před dalšej "
+"operaciju znowa."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "Medijowy přenos hišće na tutym zwisku k dispoziciji njeje."
 
 msgid "Medication"
 msgstr "Lěk"
@@ -3564,6 +3667,9 @@ msgstr "Měsačny napohlad"
 msgid "Monthly weekday"
 msgstr "Měsačny dźeń tydźenja"
 
+msgid "More albums"
+msgstr "Dalše albumy"
+
 msgid "More fields"
 msgstr "Dalše pola"
 
@@ -3643,6 +3749,12 @@ msgstr "Mjeninski dźeń"
 
 msgid "Name of this branch"
 msgstr "Mjeno tutoho hałuza"
+
+msgid "Native media connection is unavailable."
+msgstr "Natiwny medijowy zwisk k dispoziciji njeje."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Natiwne nastajenja začitane. Žadyn přenos so njespušći."
 
 msgid "Netherlands"
 msgstr "Nižozemska"
@@ -3726,6 +3838,9 @@ msgstr "Dale"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Přichodny termin: %(title)s dnja %(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "Přichodne zapiski"
+
 msgid "Next month"
 msgstr "Přichodny měsac"
 
@@ -3784,6 +3899,9 @@ msgstr "Za tutón kontakt profil WhatsApp k dispoziciji njeje."
 msgid "No Windows dictionary is installed for this language."
 msgstr "Za tutu rěč njeje słownik Windows instalowany."
 
+msgid "No active media operation."
+msgstr "Žana aktiwna medijowa operacija."
+
 msgid "No address books found."
 msgstr "Žane adresniki namakane."
 
@@ -3814,6 +3932,9 @@ msgstr "Žadyn datum zapisany"
 
 msgid "No default voice subscription is available."
 msgstr "Žadyn standardny abonement za zawołanja k dispoziciji njeje."
+
+msgid "No destination selected"
+msgstr "Žadyn cil wubrany"
 
 msgid "No due date"
 msgstr "Bjez termina"
@@ -3896,6 +4017,9 @@ msgstr "Žane foto wubrane"
 
 msgid "No public IP address was found."
 msgstr "Žana zjawna IP-adresa namakana."
+
+msgid "No retained media entries on this page."
+msgstr "Na tutej stronje žane wobchowane medijowe zapiski njejsu."
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "Žana linka šemy tutej hódnoće krawneho cokora njewotpowěduje."
@@ -4166,6 +4290,13 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "Jenož wosobinske zapiski hodźa so do Notes pósłać."
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr ""
+"Jenož wobsah telefona synchronizować. Lokalne změny so wobchowaja. Zhašenja "
+"so hišće njesynchronizuja."
 
 msgid "Only the Notes collection"
 msgstr "Jenož zběrka Notes"
@@ -4580,6 +4711,9 @@ msgstr "Foto k dispoziciji"
 msgid "Photo of %(name)s"
 msgstr "Foto wosoby %(name)s"
 
+msgid "Photos"
+msgstr "Fota"
+
 msgid "Pick up"
 msgstr "Wotewzać"
 
@@ -4842,6 +4976,15 @@ msgstr "Docpějomna IPv4- abo IPv6-adresa tutoho ličaka"
 msgid "Read Notes WLAN diagnostics"
 msgstr "WLAN diagnostiku Notes čitać"
 
+msgid "Read media recycle bin"
+msgstr "Medijowy papjernik wučitać"
+
+msgid "Read photo albums"
+msgstr "Fotoalbumy wučitać"
+
+msgid "Read video albums"
+msgstr "Widejoalbumy wučitać"
+
 msgid "Ready."
 msgstr "Hotowo."
 
@@ -4867,6 +5010,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Zapisane časy"
 
+msgid "Recover operation"
+msgstr "Operaciju wobnowić"
+
 msgid "Recovery journal"
 msgstr "Wobnowjenski žurnal"
 
@@ -4884,6 +5030,9 @@ msgstr "Praworóžk"
 
 msgid "Recycle bin"
 msgstr "Papjerowy koš"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"
 
 msgid "Redo"
 msgstr "Wospjetować"
@@ -5021,8 +5170,17 @@ msgstr "Za wobkrućenje wospjetować"
 msgid "Replace completely"
 msgstr "Dospołnje narunać"
 
+msgid "Replaced"
+msgstr "Narunane"
+
 msgid "Report unusual cycle intervals"
 msgstr "Njewšědne interwale cyklusa zdźělić"
+
+msgid "Request access on phone"
+msgstr "Přistup na telefonje požadać"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Wužaduje sej Magnolie Notes na Androidźe. KDE Connect trěbny njeje."
 
 msgid "Requires a Nextcloud account."
 msgstr "Trjeba Nextcloud-konto."
@@ -5646,6 +5804,10 @@ msgstr ""
 "Za někotre prawidła wospjetowanja njedadźa so jednotliwe terminy wuličić. "
 "Originalne kalendrowe daty su so wobchowali."
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr ""
+"Někotre žórłowe zapiski snano poskićene njeběchu. Wučitajće albumy znowa."
+
 msgid "Someone"
 msgstr "Něchtó"
 
@@ -5727,6 +5889,15 @@ msgstr "Zastajić"
 
 msgid "Stop retrying"
 msgstr "Spytowanje skónčić"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr ""
+"Zastajene abo njedokónčene. Originalne dataje a historija wobnowjenja so "
+"wobchowaja."
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Zastajuje so… Čaka so na kónc natiwneje operacije."
 
 msgid "Street"
 msgstr "Hasa"
@@ -5834,6 +6005,9 @@ msgstr "Nětko synchronizować"
 msgid "Synchronize permanently"
 msgstr "Trajnje synchronizować"
 
+msgid "Synchronize photos"
+msgstr "Fota synchronizować"
+
 msgid "Synchronize tasks"
 msgstr "Kontakty synchronizować"
 
@@ -5842,6 +6016,9 @@ msgstr "Nadawki a terminy z rajtarka „%(tab)s“ synchronizować"
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Nadawki a terminy z wužiwarjoweho rajtarka synchronizować"
+
+msgid "Synchronize videos"
+msgstr "Wideja synchronizować"
 
 msgid "Synchronizing …"
 msgstr "Synchronizuje so …"
@@ -6104,6 +6281,9 @@ msgstr ""
 "Zawěsćenje so zwonka lokalneho datoweho městna składuje a je tuž přeco "
 "zaklučowane. Tute hesło budźe pozdźišo za wobnowjenje trěbne:\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Kniha njeda so składować. Medijowa synchronizacija so njespušći."
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6501,6 +6681,10 @@ msgstr "Regionalne nastajenja su njepłaćiwe."
 
 msgid "The regional settings could not be saved."
 msgstr "Regionalne nastajenja njedachu so składować."
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Narunanje je samostatny termin; rytmus serije wostanje njezměnjeny."
 
 msgid "The required recovery snapshot could not be created."
 msgstr "Trěbny wotnowjenski wobraz njemóžeše so wutworić."
@@ -6930,6 +7114,9 @@ msgstr "Přewjele njeporadźenych pospytow. Čakajće wokomik."
 msgid "Too many pairing requests are waiting."
 msgstr "Přewjele čakacych koplowanskich požadanjow."
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Přewjele naprašowanjow čaka. Čakajće na aktualnu operaciju."
+
 msgid "Too many regions were selected."
 msgstr "Přewjele regionow wubrane."
 
@@ -7007,6 +7194,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Njesteji k dispoziciji"
+
+msgid "Unchanged"
+msgstr "Njezměnjene"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Njezměnjeny wobsah dalši wobnowjenski dypk njewutworja."
@@ -7225,6 +7415,9 @@ msgstr "Přez internet"
 msgid "Video player"
 msgstr "Widejowothrawak"
 
+msgid "Videos"
+msgstr "Wideja"
+
 msgid "Vienna"
 msgstr "Wjeń"
 
@@ -7266,6 +7459,9 @@ msgstr "Čaka so na přizwolenje na druhim graće."
 
 msgid "Waiting for device status"
 msgstr "Čakanje na status nastroja"
+
+msgid "Waiting for native media status"
+msgstr "Čaka so na natiwny medijowy status"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8477,62 +8673,31 @@ msgstr "＋ Termin přidać"
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
 
+#~ msgid "Photos and videos"
+#~ msgstr "Fota a wideja"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Jenož tute wuskutkowanje zhašeć"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow "
+#~ "papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju "
+#~ "njenaruna."
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so "
+#~ "wobchowali."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Cyłu seriju zhašeć"
+#~ msgid "Pending recovery"
+#~ msgstr "Wobnowjenje wustaja"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Pozdźiše wuskutkowanja wostanu njezměnjene."
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Narunanski termin załožić"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Narunanje je samostatny termin; rytmus serije wostanje njezměnjeny."
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Wubjerće płaćiwy datum a čas za narunanski termin."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fota a wideja"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju njenaruna."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so wobchowali."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Wobnowjenje wustaja"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje ženje eksistowacu dataju njenaruna."
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. "
+#~ "Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. "
+#~ "Wobnowjenje ženje eksistowacu dataju njenaruna."

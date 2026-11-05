@@ -372,6 +372,9 @@ msgstr "Er bestaat al een groep met deze naam."
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "Er zijn maximaal 10 SMS-delen toegestaan."
 
+msgid "A native media operation is still running."
+msgstr "Er wordt nog een native mediabewerking uitgevoerd."
+
 msgid "A notebook with this name already exists in this group."
 msgstr "Er bestaat al een notitieboek met deze naam in deze groep."
 
@@ -586,12 +589,6 @@ msgstr "Adressen"
 msgid "Advanced"
 msgstr "Geavanceerd"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Vereist Magnolie Notes op Android. KDE Connect is niet vereist."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect-functies vereisen de KDE Connect-app op Android, niet Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Geavanceerde functies"
 
@@ -600,6 +597,9 @@ msgstr "Na het sporten"
 
 msgid "After meal"
 msgstr "Na de maaltijd"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "De albumselectie is gewijzigd. Lees de albums opnieuw."
 
 msgid "All"
 msgstr "Alles"
@@ -855,6 +855,31 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "Automatische back-ups in een cloudmap"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr ""
+"De automatische inhoudsvergelijking vereist aandacht. Er is geen voltooide "
+"verwijdering bevestigd."
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"De automatische ronde heeft één album per mediatype gecontroleerd. Meer "
+"albums volgen; verwijderingen blijven in behandeling."
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"Automatische synchronisatie is gepauzeerd. Schakel naar handmatige modus en "
+"zet deze opnieuw aan om te hervatten."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr ""
+"Automatische synchronisatie is geselecteerd, maar nog niet beschikbaar."
 
 msgid "Automatically choose a suitable application"
 msgstr "Automatisch een geschikte toepassing kiezen"
@@ -1275,6 +1300,10 @@ msgstr "Nu controleren"
 msgid "Check spelling (red wavy lines)"
 msgstr "Spelling controleren (rode golflijnen)"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+"Controleer het toegangsverzoek op de telefoon en lees de albums opnieuw."
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1337,6 +1366,9 @@ msgstr ""
 "het nieuwe afspraakblad aan één of meer dagen toe. Dagmarkeringen sturen "
 "geen meldingen."
 
+msgid "Choose a valid replacement date and time."
+msgstr "Kies een geldige datum en tijd voor de vervangende afspraak."
+
 msgid "Choose a value and period to display its development."
 msgstr "Kies een waarde en periode om het verloop ervan weer te geven."
 
@@ -1350,11 +1382,20 @@ msgstr ""
 msgid "Choose an address"
 msgstr "Adres kiezen"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+"Kies een album om te vergelijken. Een onvolledige catalogus bewijst nooit "
+"een verwijdering."
+
 msgid "Choose at least four characters."
 msgstr "Kies minimaal vier tekens."
 
 msgid "Choose contact photo"
 msgstr "Contactfoto kiezen"
+
+msgid "Choose destination…"
+msgstr "Bestemming kiezen…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "Items kiezen om af te drukken, te exporteren of te verwijderen"
@@ -1514,6 +1555,9 @@ msgstr ""
 
 msgid "Compare with LibreOffice"
 msgstr "Vergelijken met LibreOffice"
+
+msgid "Comparing media content… The total is not known yet."
+msgstr "Media-inhoud vergelijken… Het totaal is nog onbekend."
 
 msgid "Complete archive export is available only in the installed application."
 msgstr ""
@@ -1681,6 +1725,12 @@ msgstr ""
 msgid "Content"
 msgstr "Inhoud"
 
+msgid "Content comparison finished."
+msgstr "Inhoudsvergelijking voltooid."
+
+msgid "Content comparison needs review."
+msgstr "Inhoudsvergelijking moet worden nagekeken."
+
 msgid "Continue"
 msgstr "Vervolg"
 
@@ -1728,6 +1778,9 @@ msgstr "Back-upkopie van de gegevens maken"
 
 msgid "Create a new appointment immediately"
 msgstr "Direct een nieuwe afspraak maken"
+
+msgid "Create a replacement appointment"
+msgstr "Een vervangende afspraak maken"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Een eigen verbinding met deze computer maken?"
@@ -1945,6 +1998,9 @@ msgstr "Definitief verwijderen"
 msgid "Delete selection"
 msgstr "Selectie verwijderen"
 
+msgid "Delete series"
+msgstr "Hele reeks verwijderen"
+
 msgid "Delete shift"
 msgstr "Dienst verwijderen"
 
@@ -1969,6 +2025,9 @@ msgstr "Verwijder de geschiedenis van dit contact"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Deze notitiepagina (‘%(title)s’) verwijderen?"
+
+msgid "Delete this occurrence"
+msgstr "Alleen deze herhaling verwijderen"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Deze herstelmomentopname permanent verwijderen?"
@@ -3054,6 +3113,13 @@ msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 "KDE Connect voor SMS is alleen beschikbaar in de geïnstalleerde applicatie."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect-functies vereisen de KDE Connect-app op Android, niet Magnolie "
+"Notes."
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect-koppeling mislukt."
 
@@ -3142,6 +3208,9 @@ msgstr "Late dienst"
 msgid "Later occurrence"
 msgstr "Latere voorkomst"
 
+msgid "Later occurrences remain unchanged."
+msgstr "Latere herhalingen blijven ongewijzigd."
+
 msgid "Lead time"
 msgstr "Voorlooptijd"
 
@@ -3199,6 +3268,9 @@ msgstr "Laden…"
 
 msgid "Local calendar"
 msgstr "Lokale agenda"
+
+msgid "Local edits kept"
+msgstr "Lokale wijzigingen behouden"
 
 msgid "Local image"
 msgstr "Lokale afbeelding"
@@ -3354,6 +3426,9 @@ msgstr "Handmatige terugvalwaarde"
 msgid "Manual only"
 msgstr "Alleen handmatig"
 
+msgid "Manual synchronization"
+msgstr "Handmatige synchronisatie"
+
 msgid "Manually"
 msgstr "Handmatig"
 
@@ -3395,6 +3470,17 @@ msgstr ""
 "Mediabediening is niet beschikbaar. Controleer de verbinding en de media-app "
 "op de telefoon."
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"Mediabestanden gebruiken de opgeslagen bewaartermijn van de prullenbak. "
+"Nooit betekent uitsluitend handmatige verwijdering. Herstellen vervangt "
+"nooit een bestaand bestand."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Mediabewerking gepauzeerd. Voltooiing is niet bevestigd."
+
 msgid "Media player"
 msgstr "Mediaspeler"
 
@@ -3403,6 +3489,24 @@ msgstr "De instellingen van de mediaspeler konden niet worden toegepast."
 
 msgid "Media players"
 msgstr "Mediaspelers"
+
+msgid "Media recycle bin"
+msgstr "Mediaprullenbak"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+"Mediaprullenbak geladen. Definitieve verwijdering vereist native bevestiging."
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+"Bewerking van de mediaprullenbak voltooid. Lees de vermeldingen opnieuw vóór "
+"een volgende bewerking."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "Mediaoverdracht is nog niet beschikbaar op deze verbinding."
 
 msgid "Medication"
 msgstr "Medicatie"
@@ -3519,6 +3623,9 @@ msgstr "Maandweergave"
 msgid "Monthly weekday"
 msgstr "Maandelijkse weekdag"
 
+msgid "More albums"
+msgstr "Meer albums"
+
 msgid "More fields"
 msgstr "Meer velden"
 
@@ -3598,6 +3705,12 @@ msgstr "Naamdag"
 
 msgid "Name of this branch"
 msgstr "Naam van deze tak"
+
+msgid "Native media connection is unavailable."
+msgstr "De native mediaverbinding is niet beschikbaar."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Native instellingen geladen. Er is geen overdracht gestart."
 
 msgid "Netherlands"
 msgstr "Nederland"
@@ -3682,6 +3795,9 @@ msgstr "Volgende"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Volgende afspraak: %(title)s op %(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "Volgende vermeldingen"
+
 msgid "Next month"
 msgstr "Volgende maand"
 
@@ -3740,6 +3856,9 @@ msgstr "Geen WhatsApp-profiel beschikbaar voor dit contact."
 msgid "No Windows dictionary is installed for this language."
 msgstr "Er is geen Windows-woordenboek geïnstalleerd voor deze taal."
 
+msgid "No active media operation."
+msgstr "Geen actieve mediabewerking."
+
 msgid "No address books found."
 msgstr "Geen adresboeken gevonden."
 
@@ -3770,6 +3889,9 @@ msgstr "Geen datum vastgelegd"
 
 msgid "No default voice subscription is available."
 msgstr "Geen standaard spraakabonnement beschikbaar."
+
+msgid "No destination selected"
+msgstr "Geen bestemming geselecteerd"
 
 msgid "No due date"
 msgstr "Geen vervaldatum"
@@ -3850,6 +3972,9 @@ msgstr "Geen foto geselecteerd"
 
 msgid "No public IP address was found."
 msgstr "Er is geen openbaar IP-adres gevonden."
+
+msgid "No retained media entries on this page."
+msgstr "Geen bewaarde mediavermeldingen op deze pagina."
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "Geen schemaregel komt overeen met deze bloedglucosewaarde."
@@ -4117,6 +4242,13 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "Alleen persoonlijke items kunnen naar Notes worden verzonden."
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr ""
+"Alleen de inhoud van de telefoon synchroniseren. Lokale wijzigingen blijven "
+"behouden. Verwijderingen worden nog niet gesynchroniseerd."
 
 msgid "Only the Notes collection"
 msgstr "Alleen de Notes-verzameling"
@@ -4532,6 +4664,9 @@ msgstr "Foto beschikbaar"
 msgid "Photo of %(name)s"
 msgstr "Foto van %(name)s"
 
+msgid "Photos"
+msgstr "Foto’s"
+
 msgid "Pick up"
 msgstr "Ophalen"
 
@@ -4789,6 +4924,15 @@ msgstr "Bereikbaar IPv4- of IPv6-adres van deze computer"
 msgid "Read Notes WLAN diagnostics"
 msgstr "Wifi-diagnostiek van Notes uitlezen"
 
+msgid "Read media recycle bin"
+msgstr "Mediaprullenbak lezen"
+
+msgid "Read photo albums"
+msgstr "Fotoalbums lezen"
+
+msgid "Read video albums"
+msgstr "Videoalbums lezen"
+
 msgid "Ready."
 msgstr "Gereed."
 
@@ -4814,6 +4958,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Geregistreerde tijden"
 
+msgid "Recover operation"
+msgstr "Bewerking herstellen"
+
 msgid "Recovery journal"
 msgstr "Hersteldagboek"
 
@@ -4831,6 +4978,10 @@ msgstr "Rechthoek"
 
 msgid "Recycle bin"
 msgstr "Prullenbak"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr ""
+"Prullenbak uitgeschakeld: de geselecteerde items definitief verwijderen?"
 
 msgid "Redo"
 msgstr "Opnieuw"
@@ -4970,8 +5121,17 @@ msgstr "Herhalen ter bevestiging"
 msgid "Replace completely"
 msgstr "Volledig vervangen"
 
+msgid "Replaced"
+msgstr "Vervangen"
+
 msgid "Report unusual cycle intervals"
 msgstr "Ongewone cyclusintervallen melden"
+
+msgid "Request access on phone"
+msgstr "Toegang op de telefoon aanvragen"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Vereist Magnolie Notes op Android. KDE Connect is niet vereist."
 
 msgid "Requires a Nextcloud account."
 msgstr "Vereist een Nextcloud-account."
@@ -5597,6 +5757,11 @@ msgstr ""
 "Bij sommige herhalingsregels kunnen de afzonderlijke afspraken niet worden "
 "berekend. De oorspronkelijke agendagegevens zijn bewaard gebleven."
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr ""
+"Sommige bronvermeldingen zijn mogelijk niet aangeboden. Lees de albums "
+"opnieuw."
+
 msgid "Someone"
 msgstr "Iemand"
 
@@ -5678,6 +5843,15 @@ msgstr "Stoppen"
 
 msgid "Stop retrying"
 msgstr "Niet meer proberen"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr ""
+"Gestopt of onvolledig. Originele bestanden en herstelgeschiedenis blijven "
+"behouden."
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Stoppen… Wachten tot de native bewerking eindigt."
 
 msgid "Street"
 msgstr "Straat"
@@ -5786,6 +5960,9 @@ msgstr "Nu synchroniseren"
 msgid "Synchronize permanently"
 msgstr "Permanent synchroniseren"
 
+msgid "Synchronize photos"
+msgstr "Foto’s synchroniseren"
+
 msgid "Synchronize tasks"
 msgstr "Contacten synchroniseren"
 
@@ -5794,6 +5971,9 @@ msgstr "Taken en afspraken van het tabblad ‘%(tab)s’ synchroniseren"
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Taken en afspraken van het aangepaste tabblad synchroniseren"
+
+msgid "Synchronize videos"
+msgstr "Video’s synchroniseren"
 
 msgid "Synchronizing …"
 msgstr "Synchroniseren …"
@@ -6055,6 +6235,10 @@ msgstr ""
 "altijd versleuteld. Dit wachtwoord is later nodig om de back-up te "
 "herstellen:\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr ""
+"Het boek kon niet worden opgeslagen. Mediasynchronisatie is niet gestart."
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6465,6 +6649,12 @@ msgstr "De regionale instellingen zijn ongeldig."
 
 msgid "The regional settings could not be saved."
 msgstr "De regionale instellingen konden niet worden opgeslagen."
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr ""
+"De vervanging is een aparte afspraak; het ritme van de reeks blijft "
+"ongewijzigd."
 
 msgid "The required recovery snapshot could not be created."
 msgstr "De vereiste herstelmomentopname kon niet worden gemaakt."
@@ -6906,6 +7096,9 @@ msgstr "Te veel mislukte pogingen. Wacht even."
 msgid "Too many pairing requests are waiting."
 msgstr "Te veel wachtende koppelverzoeken."
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Te veel openstaande verzoeken. Wacht op de huidige bewerking."
+
 msgid "Too many regions were selected."
 msgstr "Er zijn te veel regio's geselecteerd."
 
@@ -6983,6 +7176,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Niet beschikbaar"
+
+msgid "Unchanged"
+msgstr "Ongewijzigd"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Ongewijzigde inhoud maakt geen extra herstelpunt."
@@ -7202,6 +7398,9 @@ msgstr "Via internet"
 msgid "Video player"
 msgstr "Videospeler"
 
+msgid "Videos"
+msgstr "Video’s"
+
 msgid "Vienna"
 msgstr "Wenen"
 
@@ -7242,6 +7441,9 @@ msgstr "Wachten op toestemming op het andere apparaat."
 
 msgid "Waiting for device status"
 msgstr "Wachten op apparaatstatus"
+
+msgid "Waiting for native media status"
+msgstr "Wachten op native mediastatus"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8445,62 +8647,32 @@ msgstr "＋ Afspraak toevoegen"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
 
+#~ msgid "Photos and videos"
+#~ msgstr "Foto's en video's"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Alleen deze herhaling verwijderen"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Mediabestanden worden apart bewaard; het legen van de andere "
+#~ "prullenbakitems verwijdert ze niet. Herstellen vervangt nooit een "
+#~ "bestaand bestand."
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "De mediaprullenbak kon niet worden bijgewerkt. Bestaande bestanden zijn "
+#~ "behouden."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Hele reeks verwijderen"
+#~ msgid "Pending recovery"
+#~ msgstr "Wacht op herstel"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Latere herhalingen blijven ongewijzigd."
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Prullenbak uitgeschakeld: de geselecteerde items definitief verwijderen?"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Een vervangende afspraak maken"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "De vervanging is een aparte afspraak; het ritme van de reeks blijft ongewijzigd."
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Kies een geldige datum en tijd voor de vervangende afspraak."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Foto's en video's"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Mediabestanden worden apart bewaard; het legen van de andere prullenbakitems verwijdert ze niet. Herstellen vervangt nooit een bestaand bestand."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "De mediaprullenbak kon niet worden bijgewerkt. Bestaande bestanden zijn behouden."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Wacht op herstel"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Voor mediabestanden geldt de hierboven ingestelde bewaartermijn, inclusief ‘Nooit’. Gebruik ‘Permanent verwijderen’ om een afzonderlijk media-item nu te verwijderen. Herstellen vervangt nooit een bestaand bestand."
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "Voor mediabestanden geldt de hierboven ingestelde bewaartermijn, "
+#~ "inclusief ‘Nooit’. Gebruik ‘Permanent verwijderen’ om een afzonderlijk "
+#~ "media-item nu te verwijderen. Herstellen vervangt nooit een bestaand "
+#~ "bestand."

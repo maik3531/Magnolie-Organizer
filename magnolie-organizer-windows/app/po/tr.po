@@ -373,6 +373,9 @@ msgstr "Bu ada sahip bir grup zaten var."
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "En fazla 10 SMS parçasına izin verilir."
 
+msgid "A native media operation is still running."
+msgstr "Yerel bir medya işlemi hâlâ sürüyor."
+
 msgid "A notebook with this name already exists in this group."
 msgstr "Bu grupta bu ada sahip bir not defteri zaten var."
 
@@ -582,12 +585,6 @@ msgstr "Adresler"
 msgid "Advanced"
 msgstr "Gelişmiş"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Android’de Magnolie Notes gerektirir. KDE Connect gerekli değildir."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect işlevleri Android’de Magnolie Notes değil, KDE Connect uygulamasını gerektirir."
-
 msgid "Advanced functions"
 msgstr "Gelişmiş işlevler"
 
@@ -596,6 +593,9 @@ msgstr "Egzersizden sonra"
 
 msgid "After meal"
 msgstr "Yemekten sonra"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "Albüm seçimi değişti. Albümleri yeniden okuyun."
 
 msgid "All"
 msgstr "Tümü"
@@ -850,6 +850,30 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "Bulut klasörüne otomatik yedekler"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr ""
+"Otomatik içerik karşılaştırması dikkat gerektiriyor. Tamamlanmış bir silme "
+"onaylanmadı."
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"Otomatik geçiş her medya türünden bir albümü denetledi. Diğer albümler daha "
+"sonra gelecek; silmeler beklemede kalıyor."
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"Otomatik eşitleme duraklatıldı. Sürdürmek için elle moda geçip yeniden "
+"etkinleştirin."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Otomatik eşitleme seçildi ancak henüz kullanılamıyor."
 
 msgid "Automatically choose a suitable application"
 msgstr "Uygun bir uygulamayı otomatik seç"
@@ -1267,6 +1291,10 @@ msgstr "Şimdi denetle"
 msgid "Check spelling (red wavy lines)"
 msgstr "Yazımı denetle (kırmızı dalgalı çizgiler)"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+"Telefondaki erişim isteğini kontrol edin, ardından albümleri yeniden okuyun."
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1329,6 +1357,9 @@ msgstr ""
 "sayfasında bir ya da daha fazla güne atayın. Gün işaretleri bildirim "
 "göndermez."
 
+msgid "Choose a valid replacement date and time."
+msgstr "Yeni randevu için geçerli bir tarih ve saat seçin."
+
 msgid "Choose a value and period to display its development."
 msgstr "Değişimini görüntülemek için bir değer ve dönem seçin."
 
@@ -1342,11 +1373,20 @@ msgstr ""
 msgid "Choose an address"
 msgstr "Adres seç"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+"Karşılaştırılacak bir albüm seçin. Eksik katalog hiçbir zaman silme kanıtı "
+"değildir."
+
 msgid "Choose at least four characters."
 msgstr "En az dört karakter seçin."
 
 msgid "Choose contact photo"
 msgstr "Kişi fotoğrafı seç"
+
+msgid "Choose destination…"
+msgstr "Hedef seç…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "Yazdırılacak, dışa aktarılacak veya silinecek kayıtları seçin"
@@ -1506,6 +1546,9 @@ msgstr ""
 msgid "Compare with LibreOffice"
 msgstr "LibreOffice ile karşılaştır"
 
+msgid "Comparing media content… The total is not known yet."
+msgstr "Medya içeriği karşılaştırılıyor… Toplam henüz bilinmiyor."
+
 msgid "Complete archive export is available only in the installed application."
 msgstr "Tam arşiv dışa aktarımı yalnızca yüklü uygulamada mümkündür."
 
@@ -1657,6 +1700,12 @@ msgstr "Farklı bilgiler içeren kişiler bulundu. Nasıl devam etmek istersiniz
 msgid "Content"
 msgstr "İçerik"
 
+msgid "Content comparison finished."
+msgstr "İçerik karşılaştırması tamamlandı."
+
+msgid "Content comparison needs review."
+msgstr "İçerik karşılaştırması incelenmeli."
+
 msgid "Continue"
 msgstr "Devamı"
 
@@ -1704,6 +1753,9 @@ msgstr "Verilerin yedek kopyasını oluştur"
 
 msgid "Create a new appointment immediately"
 msgstr "Hemen yeni bir randevu oluştur"
+
+msgid "Create a replacement appointment"
+msgstr "Yerine yeni bir randevu oluştur"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Bu bilgisayara bağımsız bir bağlantı oluşturulsun mu?"
@@ -1916,6 +1968,9 @@ msgstr "Kalıcı olarak sil"
 msgid "Delete selection"
 msgstr "Seçimi sil"
 
+msgid "Delete series"
+msgstr "Seriyi sil"
+
 msgid "Delete shift"
 msgstr "Vardiyayı sil"
 
@@ -1940,6 +1995,9 @@ msgstr "Bu kişinin geçmişini sil"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Bu not sayfası (“%(title)s”) silinsin mi?"
+
+msgid "Delete this occurrence"
+msgstr "Yalnızca bu tekrarı sil"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Bu kurtarma anlık görüntüsü kalıcı olarak silinsin mi?"
@@ -3021,6 +3079,13 @@ msgstr "KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS için KDE Connect yalnızca yüklü uygulamada mevcuttur."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect işlevleri Android’de Magnolie Notes değil, KDE Connect "
+"uygulamasını gerektirir."
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect eşleştirmesi başarısız oldu."
 
@@ -3109,6 +3174,9 @@ msgstr "Akşam vardiyası"
 msgid "Later occurrence"
 msgstr "Sonraki oluşum"
 
+msgid "Later occurrences remain unchanged."
+msgstr "Sonraki tekrarlar değişmeden kalır."
+
 msgid "Lead time"
 msgstr "Ön süre"
 
@@ -3165,6 +3233,9 @@ msgstr "Yükleniyor…"
 
 msgid "Local calendar"
 msgstr "Yerel takvim"
+
+msgid "Local edits kept"
+msgstr "Yerel düzenlemeler korundu"
 
 msgid "Local image"
 msgstr "Yerel resim"
@@ -3318,6 +3389,9 @@ msgstr "Elle belirlenen yedek değer"
 msgid "Manual only"
 msgstr "Yalnızca elle"
 
+msgid "Manual synchronization"
+msgstr "Elle eşitleme"
+
 msgid "Manually"
 msgstr "Elle"
 
@@ -3359,6 +3433,17 @@ msgstr ""
 "Medya denetimi kullanılamıyor. Bağlantıyı ve telefondaki medya uygulamasını "
 "kontrol edin."
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"Medya dosyaları çöp kutusunun kayıtlı saklama süresini kullanır. Hiçbir "
+"zaman yalnızca elle kaldırma anlamına gelir. Geri yükleme mevcut bir dosyayı "
+"asla değiştirmez."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Medya işlemi duraklatıldı. Tamamlanma onaylanmadı."
+
 msgid "Media player"
 msgstr "Medya oynatıcı"
 
@@ -3367,6 +3452,24 @@ msgstr "Medya oynatıcı ayarları uygulanamadı."
 
 msgid "Media players"
 msgstr "Medya oynatıcılar"
+
+msgid "Media recycle bin"
+msgstr "Medya çöp kutusu"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+"Medya çöp kutusu yüklendi. Kalıcı kaldırma uygulama içinde onay gerektirir."
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+"Medya çöp kutusu işlemi tamamlandı. Başka bir işlemden önce girdileri "
+"yeniden okuyun."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "Bu bağlantıda medya aktarımı henüz kullanılamıyor."
 
 msgid "Medication"
 msgstr "İlaç"
@@ -3483,6 +3586,9 @@ msgstr "Aylık görünüm"
 msgid "Monthly weekday"
 msgstr "Aylık hafta günü"
 
+msgid "More albums"
+msgstr "Diğer albümler"
+
 msgid "More fields"
 msgstr "Daha fazla alan"
 
@@ -3562,6 +3668,12 @@ msgstr "İsim günü"
 
 msgid "Name of this branch"
 msgstr "Bu dalın adı"
+
+msgid "Native media connection is unavailable."
+msgstr "Uygulamanın medya bağlantısı kullanılamıyor."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Uygulama ayarları yüklendi. Hiçbir aktarım başlatılmadı."
 
 msgid "Netherlands"
 msgstr "Hollanda"
@@ -3645,6 +3757,9 @@ msgstr "İleri"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Sonraki randevu: %(title)s, %(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "Sonraki girdiler"
+
 msgid "Next month"
 msgstr "Sonraki ay"
 
@@ -3703,6 +3818,9 @@ msgstr "Bu kişi için WhatsApp profili yok."
 msgid "No Windows dictionary is installed for this language."
 msgstr "Bu dil için bir Windows sözlüğü yüklü değil."
 
+msgid "No active media operation."
+msgstr "Etkin medya işlemi yok."
+
 msgid "No address books found."
 msgstr "Adres defteri bulunamadı."
 
@@ -3733,6 +3851,9 @@ msgstr "Tarih kaydedilmedi"
 
 msgid "No default voice subscription is available."
 msgstr "Varsayılan ses aboneliği yok."
+
+msgid "No destination selected"
+msgstr "Hedef seçilmedi"
 
 msgid "No due date"
 msgstr "Son tarih yok"
@@ -3811,6 +3932,9 @@ msgstr "Fotoğraf seçilmedi"
 
 msgid "No public IP address was found."
 msgstr "Genel IP adresi bulunamadı."
+
+msgid "No retained media entries on this page."
+msgstr "Bu sayfada saklanan medya girdisi yok."
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "Bu kan şekeri değeriyle eşleşen şema satırı yok."
@@ -4077,6 +4201,13 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "Notes’a yalnızca kişisel girdiler gönderilebilir."
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr ""
+"Yalnızca telefon içeriğini eşitle. Yerel düzenlemeler korunur. Silmeler "
+"henüz eşitlenmiyor."
 
 msgid "Only the Notes collection"
 msgstr "Yalnızca Notes koleksiyonu"
@@ -4482,6 +4613,9 @@ msgstr "Fotoğraf mevcut"
 msgid "Photo of %(name)s"
 msgstr "%(name)s adlı kişinin fotoğrafı"
 
+msgid "Photos"
+msgstr "Fotoğraflar"
+
 msgid "Pick up"
 msgstr "Al"
 
@@ -4741,6 +4875,15 @@ msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 msgid "Read Notes WLAN diagnostics"
 msgstr "Notes Wi-Fi tanılamasını oku"
 
+msgid "Read media recycle bin"
+msgstr "Medya çöp kutusunu oku"
+
+msgid "Read photo albums"
+msgstr "Fotoğraf albümlerini oku"
+
+msgid "Read video albums"
+msgstr "Video albümlerini oku"
+
 msgid "Ready."
 msgstr "Hazır."
 
@@ -4766,6 +4909,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Kaydedilen süreler"
 
+msgid "Recover operation"
+msgstr "İşlemi kurtar"
+
 msgid "Recovery journal"
 msgstr "Kurtarma günlüğü"
 
@@ -4783,6 +4929,9 @@ msgstr "Dikdörtgen"
 
 msgid "Recycle bin"
 msgstr "Çöp kutusu"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Çöp kutusu devre dışı: Seçili kayıtlar kalıcı olarak silinsin mi?"
 
 msgid "Redo"
 msgstr "Yinele"
@@ -4922,8 +5071,17 @@ msgstr "Onaylamak için yineleyin"
 msgid "Replace completely"
 msgstr "Tamamen değiştirin"
 
+msgid "Replaced"
+msgstr "Değiştirildi"
+
 msgid "Report unusual cycle intervals"
 msgstr "Olağandışı döngü aralıklarını bildir"
+
+msgid "Request access on phone"
+msgstr "Telefonda erişim iste"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Android’de Magnolie Notes gerektirir. KDE Connect gerekli değildir."
 
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud hesabı gerektirir."
@@ -5545,6 +5703,9 @@ msgstr ""
 "Bazı yineleme kurallarından tek tek randevular hesaplanamadı. Özgün takvim "
 "verileri korundu."
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "Bazı kaynak girdileri sunulmamış olabilir. Albümleri yeniden okuyun."
+
 msgid "Someone"
 msgstr "Birisi"
 
@@ -5626,6 +5787,13 @@ msgstr "Durdur"
 
 msgid "Stop retrying"
 msgstr "Denemeyi durdur"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr "Durduruldu veya eksik. Özgün dosyalar ve kurtarma geçmişi korunur."
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Durduruluyor… Uygulama işleminin bitmesi bekleniyor."
 
 msgid "Street"
 msgstr "Sokak"
@@ -5733,6 +5901,9 @@ msgstr "Şimdi eşitle"
 msgid "Synchronize permanently"
 msgstr "Kalıcı olarak eşzamanla"
 
+msgid "Synchronize photos"
+msgstr "Fotoğrafları eşitle"
+
 msgid "Synchronize tasks"
 msgstr "Kişileri eşzamanla"
 
@@ -5741,6 +5912,9 @@ msgstr "“%(tab)s” sekmesindeki görevleri ve randevuları eşitle"
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Özel sekmedeki görevleri ve randevuları eşitle"
+
+msgid "Synchronize videos"
+msgstr "Videoları eşitle"
 
 msgid "Synchronizing …"
 msgstr "Eşitleniyor …"
@@ -5995,6 +6169,9 @@ msgstr ""
 "Yedek, yerel veri konumunun dışında saklanacağı için her zaman şifreli "
 "olacaktır. Daha sonra geri yüklemek için bu parola gerekecek:\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Kitap kaydedilemedi. Medya eşitlemesi başlatılmadı."
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6392,6 +6569,10 @@ msgstr "Bölgesel ayarlar geçersiz."
 
 msgid "The regional settings could not be saved."
 msgstr "Bölgesel ayarlar kaydedilemedi."
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Yeni randevu ayrıdır; serinin düzeni değişmez."
 
 msgid "The required recovery snapshot could not be created."
 msgstr "Gerekli kurtarma anlık görüntüsü oluşturulamadı."
@@ -6822,6 +7003,9 @@ msgstr "Çok fazla başarısız deneme. Bir süre bekleyin."
 msgid "Too many pairing requests are waiting."
 msgstr "Çok fazla bekleyen eşleştirme isteği var."
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Çok fazla bekleyen istek var. Geçerli işlemi bekleyin."
+
 msgid "Too many regions were selected."
 msgstr "Çok fazla bölge seçildi."
 
@@ -6899,6 +7083,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Kullanılamıyor"
+
+msgid "Unchanged"
+msgstr "Değişmedi"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Değişmeyen içerik yeni bir kurtarma noktası oluşturmaz."
@@ -7116,6 +7303,9 @@ msgstr "İnternet üzerinden"
 msgid "Video player"
 msgstr "Video oynatıcı"
 
+msgid "Videos"
+msgstr "Videolar"
+
 msgid "Vienna"
 msgstr "Viyana"
 
@@ -7155,6 +7345,9 @@ msgstr "Diğer cihazdaki onay bekleniyor."
 
 msgid "Waiting for device status"
 msgstr "Cihaz durumu bekleniyor"
+
+msgid "Waiting for native media status"
+msgstr "Uygulamanın medya durumu bekleniyor"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8346,62 +8539,29 @@ msgstr "＋ Randevu ekle"
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
 
+#~ msgid "Photos and videos"
+#~ msgstr "Fotoğraflar ve videolar"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Yalnızca bu tekrarı sil"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Medya dosyaları ayrı tutulur; geri dönüşüm kutusundaki diğer öğeleri "
+#~ "boşaltmak bunları kaldırmaz. Geri yükleme hiçbir zaman mevcut bir "
+#~ "dosyanın üzerine yazmaz."
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr "Medya geri dönüşüm kutusu güncellenemedi. Mevcut dosyalar korundu."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Seriyi sil"
+#~ msgid "Pending recovery"
+#~ msgstr "Geri yükleme bekleniyor"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Sonraki tekrarlar değişmeden kalır."
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Çöp kutusu devre dışı: Seçili kayıtlar kalıcı olarak silinsin mi?"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Yerine yeni bir randevu oluştur"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Yeni randevu ayrıdır; serinin düzeni değişmez."
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Yeni randevu için geçerli bir tarih ve saat seçin."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fotoğraflar ve videolar"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Medya dosyaları ayrı tutulur; geri dönüşüm kutusundaki diğer öğeleri boşaltmak bunları kaldırmaz. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Medya geri dönüşüm kutusu güncellenemedi. Mevcut dosyalar korundu."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Geri yükleme bekleniyor"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek bir medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini kullanın. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek "
+#~ "bir medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini "
+#~ "kullanın. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."

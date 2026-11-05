@@ -497,6 +497,9 @@ msgstr "توجد بالفعل مجموعة بهذا الاسم."
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "يُسمح بحد أقصى قدره 10 أجزاء SMS."
 
+msgid "A native media operation is still running."
+msgstr "لا تزال عملية وسائط محلية قيد التنفيذ."
+
 msgid "A notebook with this name already exists in this group."
 msgstr "يوجد بالفعل دفتر ملاحظات بهذا الاسم في هذه المجموعة."
 
@@ -698,12 +701,6 @@ msgstr "العناوين"
 msgid "Advanced"
 msgstr "متقدم"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "يتطلب Magnolie Notes على Android. لا يتطلب KDE Connect."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "تتطلب وظائف KDE Connect تطبيق KDE Connect على Android، وليس Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "وظائف متقدمة"
 
@@ -712,6 +709,9 @@ msgstr "بعد التمرين"
 
 msgid "After meal"
 msgstr "بعد الوجبة"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "تغير اختيار الألبوم. اقرأ الألبومات مجددًا."
 
 msgid "All"
 msgstr "الكل"
@@ -963,6 +963,27 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "نسخ احتياطية تلقائية في مجلد سحابي"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr "تحتاج مقارنة المحتوى التلقائية إلى مراجعة. لم يُؤكد اكتمال أي حذف."
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"فُحص ألبوم واحد لكل نوع وسائط تلقائيًا. ستتبع ألبومات أخرى؛ الحذف ما زال معلقًا."
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"المزامنة التلقائية متوقفة مؤقتًا. انتقل إلى الوضع اليدوي ثم فعّلها مجددًا "
+"للمتابعة."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "تم اختيار المزامنة التلقائية لكنها غير متاحة بعد."
 
 msgid "Automatically choose a suitable application"
 msgstr "اختيار تطبيق مناسب تلقائيًا"
@@ -1376,6 +1397,9 @@ msgstr "التحقق الآن"
 msgid "Check spelling (red wavy lines)"
 msgstr "تدقيق الإملاء (خطوط حمراء متموجة)"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "تحقق من طلب الوصول على هاتفك، ثم اقرأ الألبومات مجددًا."
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1435,6 +1459,9 @@ msgstr ""
 "اختر وردية معرّفة مسبقًا أو أدخل وردية مخصصة. عيّنها ليوم واحد أو أكثر في ورقة "
 "الموعد الجديد. علامات الأيام لا ترسل إشعارات."
 
+msgid "Choose a valid replacement date and time."
+msgstr "اختر تاريخًا ووقتًا صالحين للموعد البديل."
+
 msgid "Choose a value and period to display its development."
 msgstr "اختر قيمة وفترة لعرض تطورها."
 
@@ -1448,11 +1475,18 @@ msgstr ""
 msgid "Choose an address"
 msgstr "اختيار عنوان"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "اختر ألبومًا للمقارنة. الفهرس غير المكتمل لا يثبت الحذف مطلقًا."
+
 msgid "Choose at least four characters."
 msgstr "اختر أربعة محارف على الأقل."
 
 msgid "Choose contact photo"
 msgstr "اختيار صورة جهة الاتصال"
+
+msgid "Choose destination…"
+msgstr "اختيار الوجهة…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "اختر الإدخالات للطباعة أو التصدير أو الحذف"
@@ -1607,6 +1641,9 @@ msgstr ""
 msgid "Compare with LibreOffice"
 msgstr "المقارنة مع LibreOffice"
 
+msgid "Comparing media content… The total is not known yet."
+msgstr "جارٍ مقارنة محتوى الوسائط… العدد الإجمالي غير معروف بعد."
+
 msgid "Complete archive export is available only in the installed application."
 msgstr "تصدير الأرشيف الكامل متاح فقط في التطبيق المثبت."
 
@@ -1756,6 +1793,12 @@ msgstr "تم العثور على جهات اتصال بمعلومات مختلف
 msgid "Content"
 msgstr "المحتوى"
 
+msgid "Content comparison finished."
+msgstr "اكتملت مقارنة المحتوى."
+
+msgid "Content comparison needs review."
+msgstr "تحتاج مقارنة المحتوى إلى مراجعة."
+
 msgid "Continue"
 msgstr "تابع"
 
@@ -1803,6 +1846,9 @@ msgstr "إنشاء نسخة احتياطية من البيانات"
 
 msgid "Create a new appointment immediately"
 msgstr "إنشاء موعد جديد فورًا"
+
+msgid "Create a replacement appointment"
+msgstr "إنشاء موعد بديل"
 
 msgid "Create a separate connection to this computer?"
 msgstr "إنشاء اتصال مستقل بهذا الحاسوب؟"
@@ -2022,6 +2068,9 @@ msgstr "حذف نهائي"
 msgid "Delete selection"
 msgstr "حذف التحديد"
 
+msgid "Delete series"
+msgstr "حذف السلسلة"
+
 msgid "Delete shift"
 msgstr "حذف الوردية"
 
@@ -2046,6 +2095,9 @@ msgstr "احذف سجل جهة الاتصال هذه"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "حذف صفحة الملاحظة هذه («%(title)s»)؟"
+
+msgid "Delete this occurrence"
+msgstr "حذف هذا التكرار فقط"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "هل تريد حذف هذه اللقطة الاحتياطية بشكل دائم؟"
@@ -3107,6 +3159,12 @@ msgstr "KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect لـ SMS متاح فقط في التطبيق المثبت."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"تتطلب وظائف KDE Connect تطبيق KDE Connect على Android، وليس Magnolie Notes."
+
 msgid "KDE Connect pairing failed."
 msgstr "فشل الاقتران KDE Connect."
 
@@ -3195,6 +3253,9 @@ msgstr "الوردية المسائية"
 msgid "Later occurrence"
 msgstr "الحدوث اللاحق"
 
+msgid "Later occurrences remain unchanged."
+msgstr "تبقى التكرارات اللاحقة دون تغيير."
+
 msgid "Lead time"
 msgstr "مهلة مسبقة"
 
@@ -3250,6 +3311,9 @@ msgstr "جارٍ التحميل…"
 
 msgid "Local calendar"
 msgstr "التقويم المحلي"
+
+msgid "Local edits kept"
+msgstr "حُفظت التعديلات المحلية"
 
 msgid "Local image"
 msgstr "صورة محلية"
@@ -3401,6 +3465,9 @@ msgstr "قيمة بديلة يدوية"
 msgid "Manual only"
 msgstr "يدوي فقط"
 
+msgid "Manual synchronization"
+msgstr "مزامنة يدوية"
+
 msgid "Manually"
 msgstr "يدويًا"
 
@@ -3440,6 +3507,16 @@ msgid ""
 "phone."
 msgstr "التحكم بالوسائط غير متاح. تحقق من الاتصال وتطبيق الوسائط على الهاتف."
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"تستخدم ملفات الوسائط مدة الاحتفاظ المحفوظة لسلة المهملات. تعني «أبدًا» "
+"الإزالة اليدوية فقط. لا تستبدل الاستعادة أي ملف موجود."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "توقفت عملية الوسائط مؤقتًا. لم يُؤكد اكتمالها."
+
 msgid "Media player"
 msgstr "مشغّل الوسائط"
 
@@ -3448,6 +3525,21 @@ msgstr "تعذّر تطبيق إعدادات مشغّل الوسائط."
 
 msgid "Media players"
 msgstr "مشغّلات الوسائط"
+
+msgid "Media recycle bin"
+msgstr "سلة مهملات الوسائط"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "حُمّلت سلة مهملات الوسائط. تتطلب الإزالة النهائية تأكيدًا في التطبيق."
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr "اكتملت عملية سلة مهملات الوسائط. اقرأ الإدخالات مجددًا قبل عملية أخرى."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "نقل الوسائط غير متاح على هذا الاتصال بعد."
 
 msgid "Medication"
 msgstr "الدواء"
@@ -3563,6 +3655,9 @@ msgstr "عرض شهري"
 msgid "Monthly weekday"
 msgstr "يوم أسبوعي شهري"
 
+msgid "More albums"
+msgstr "المزيد من الألبومات"
+
 msgid "More fields"
 msgstr "حقول إضافية"
 
@@ -3642,6 +3737,12 @@ msgstr "عيد الاسم"
 
 msgid "Name of this branch"
 msgstr "اسم هذا الفرع"
+
+msgid "Native media connection is unavailable."
+msgstr "اتصال الوسائط بالتطبيق غير متاح."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "حُمّلت الإعدادات المحلية. لم يبدأ أي نقل."
 
 msgid "Netherlands"
 msgstr "هولندا"
@@ -3725,6 +3826,9 @@ msgstr "التالي"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "الموعد التالي: %(title)s في %(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "الإدخالات التالية"
+
 msgid "Next month"
 msgstr "الشهر التالي"
 
@@ -3783,6 +3887,9 @@ msgstr "لا يتوفر ملف WhatsApp لجهة الاتصال هذه."
 msgid "No Windows dictionary is installed for this language."
 msgstr "لم يُثبّت قاموس Windows لهذه اللغة."
 
+msgid "No active media operation."
+msgstr "لا توجد عملية وسائط نشطة."
+
 msgid "No address books found."
 msgstr "لم يتم العثور على دفاتر عناوين."
 
@@ -3813,6 +3920,9 @@ msgstr "لم يُسجّل تاريخ"
 
 msgid "No default voice subscription is available."
 msgstr "لا يتوفر اشتراك مكالمات افتراضي."
+
+msgid "No destination selected"
+msgstr "لم تُحدد وجهة"
 
 msgid "No due date"
 msgstr "بلا تاريخ استحقاق"
@@ -3889,6 +3999,9 @@ msgstr "لم تُحدد صورة"
 
 msgid "No public IP address was found."
 msgstr "لم يُعثر على عنوان IP عام."
+
+msgid "No retained media entries on this page."
+msgstr "لا توجد إدخالات وسائط محفوظة في هذه الصفحة."
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "لا يطابق أي صف في المخطط قيمة سكر الدم هذه."
@@ -4163,6 +4276,11 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "يمكن إرسال الإدخالات الشخصية فقط إلى Notes."
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr "مزامنة محتويات الهاتف فقط. تُحفظ التعديلات المحلية. الحذف لا يُزامن بعد."
 
 msgid "Only the Notes collection"
 msgstr "مجموعة Notes فقط"
@@ -4582,6 +4700,9 @@ msgstr "الصورة متاحة"
 msgid "Photo of %(name)s"
 msgstr "صورة %(name)s"
 
+msgid "Photos"
+msgstr "صور"
+
 msgid "Pick up"
 msgstr "اصطحاب"
 
@@ -4842,6 +4963,15 @@ msgstr "عنوان IPv4 أو IPv6 القابل للوصول لهذا الحاس�
 msgid "Read Notes WLAN diagnostics"
 msgstr "قراءة تشخيصات Wi-Fi في Notes"
 
+msgid "Read media recycle bin"
+msgstr "قراءة سلة مهملات الوسائط"
+
+msgid "Read photo albums"
+msgstr "قراءة ألبومات الصور"
+
+msgid "Read video albums"
+msgstr "قراءة ألبومات الفيديو"
+
 msgid "Ready."
 msgstr "جاهز."
 
@@ -4867,6 +4997,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "الأوقات المسجلة"
 
+msgid "Recover operation"
+msgstr "استرداد العملية"
+
 msgid "Recovery journal"
 msgstr "سجل الاستعادة"
 
@@ -4884,6 +5017,9 @@ msgstr "مستطيل"
 
 msgid "Recycle bin"
 msgstr "سلة المحذوفات"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "سلة المحذوفات معطلة: هل تريد حذف العناصر المحددة نهائيًا؟"
 
 msgid "Redo"
 msgstr "إعادة"
@@ -5015,8 +5151,17 @@ msgstr "أعد الإدخال للتأكيد"
 msgid "Replace completely"
 msgstr "استبدال تماما"
 
+msgid "Replaced"
+msgstr "استُبدلت"
+
 msgid "Report unusual cycle intervals"
 msgstr "الإبلاغ عن الفواصل غير المعتادة"
+
+msgid "Request access on phone"
+msgstr "طلب الوصول على الهاتف"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "يتطلب Magnolie Notes على Android. لا يتطلب KDE Connect."
 
 msgid "Requires a Nextcloud account."
 msgstr "يتطلب حساب Nextcloud."
@@ -5636,6 +5781,9 @@ msgstr ""
 "تعذّر حساب المواعيد الناتجة عن بعض قواعد التكرار. تم الاحتفاظ ببيانات التقويم "
 "الأصلية."
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "قد تكون بعض إدخالات المصدر لم تُعرض. اقرأ الألبومات مجددًا."
+
 msgid "Someone"
 msgstr "شخص ما"
 
@@ -5717,6 +5865,13 @@ msgstr "إيقاف"
 
 msgid "Stop retrying"
 msgstr "إيقاف المحاولات"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr "متوقف أو غير مكتمل. تُحفظ الملفات الأصلية وسجل الاستعادة."
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "جارٍ الإيقاف… بانتظار انتهاء العملية في التطبيق."
 
 msgid "Street"
 msgstr "الشارع"
@@ -5824,6 +5979,9 @@ msgstr "المزامنة الآن"
 msgid "Synchronize permanently"
 msgstr "المزامنة الدائمة"
 
+msgid "Synchronize photos"
+msgstr "مزامنة الصور"
+
 msgid "Synchronize tasks"
 msgstr "مزامنة جهات الاتصال"
 
@@ -5832,6 +5990,9 @@ msgstr "مزامنة المهام والمواعيد من علامة التبو�
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "مزامنة المهام والمواعيد من علامة التبويب المخصصة"
+
+msgid "Synchronize videos"
+msgstr "مزامنة الفيديوهات"
 
 msgid "Synchronizing …"
 msgstr "جارٍ المزامنة …"
@@ -6089,6 +6250,9 @@ msgstr ""
 "ستُخزَّن النسخة الاحتياطية خارج موقع البيانات المحلي ولذلك ستكون مشفّرة دائمًا. "
 "ستحتاج إلى كلمة المرور هذه لاستعادتها لاحقًا:\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "تعذر حفظ الدفتر. لم تبدأ مزامنة الوسائط."
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6478,6 +6642,10 @@ msgstr "الإعدادات الإقليمية غير صالحة."
 
 msgid "The regional settings could not be saved."
 msgstr "تعذر حفظ الإعدادات الإقليمية."
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "الموعد البديل منفصل؛ تبقى مواعيد السلسلة دون تغيير."
 
 msgid "The required recovery snapshot could not be created."
 msgstr "لم يكن من الممكن إنشاء نسخة الاسترداد المطلوبة."
@@ -6901,6 +7069,9 @@ msgstr "محاولات فاشلة كثيرة جدًا. انتظر لحظة."
 msgid "Too many pairing requests are waiting."
 msgstr "طلبات اقتران معلقة كثيرة جداً."
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "طلبات معلقة كثيرة جدًا. انتظر العملية الحالية."
+
 msgid "Too many regions were selected."
 msgstr "تم تحديد مناطق كثيرة جدًا."
 
@@ -6978,6 +7149,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "غير متاح"
+
+msgid "Unchanged"
+msgstr "دون تغيير"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "المحتوى غير المتغير لا يُنشئ نقطة استعادة أخرى."
@@ -7192,6 +7366,9 @@ msgstr "عبر الإنترنت"
 msgid "Video player"
 msgstr "مشغّل الفيديو"
 
+msgid "Videos"
+msgstr "فيديوهات"
+
 msgid "Vienna"
 msgstr "فيينا"
 
@@ -7231,6 +7408,9 @@ msgstr "في انتظار الموافقة على الجهاز الآخر."
 
 msgid "Waiting for device status"
 msgstr "في انتظار حالة الجهاز"
+
+msgid "Waiting for native media status"
+msgstr "بانتظار حالة الوسائط من التطبيق"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8427,62 +8607,28 @@ msgstr "＋ إضافة موعد"
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
 
+#~ msgid "Photos and videos"
+#~ msgstr "الصور ومقاطع الفيديو"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "حذف هذا التكرار فقط"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "تُحفظ ملفات الوسائط بشكل منفصل؛ إفراغ العناصر الأخرى في سلة المحذوفات لا "
+#~ "يحذفها. لا تستبدل الاستعادة أي ملف موجود."
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr "تعذر تحديث سلة محذوفات الوسائط. تم الاحتفاظ بالملفات الموجودة."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "حذف السلسلة"
+#~ msgid "Pending recovery"
+#~ msgstr "في انتظار الاستعادة"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "تبقى التكرارات اللاحقة دون تغيير."
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "سلة المحذوفات معطلة: هل تريد حذف العناصر المحددة نهائيًا؟"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "إنشاء موعد بديل"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "الموعد البديل منفصل؛ تبقى مواعيد السلسلة دون تغيير."
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "اختر تاريخًا ووقتًا صالحين للموعد البديل."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "الصور ومقاطع الفيديو"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "تُحفظ ملفات الوسائط بشكل منفصل؛ إفراغ العناصر الأخرى في سلة المحذوفات لا يحذفها. لا تستبدل الاستعادة أي ملف موجود."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "تعذر تحديث سلة محذوفات الوسائط. تم الاحتفاظ بالملفات الموجودة."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "في انتظار الاستعادة"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». استخدم «الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي ملف موجود."
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». "
+#~ "استخدم «الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي "
+#~ "ملف موجود."

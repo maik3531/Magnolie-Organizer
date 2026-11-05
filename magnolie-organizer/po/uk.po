@@ -10001,3 +10001,223 @@ msgstr "Очікує на відновлення"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "Для медіафайлів діє встановлений вище термін зберігання, зокрема «Ніколи». Щоб одразу видалити окремий медіаелемент, скористайтеся «Видалити назавжди». Відновлення ніколи не замінює наявний файл."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "A native media operation is still running."
+msgstr "Власна операція з медіафайлами ще виконується."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Album selection changed. Read the albums again."
+msgstr "Вибір альбому змінився. Прочитайте альбоми знову."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "Автоматичне порівняння потребує уваги. Завершення видалення не підтверджено."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "Автоматичний прохід перевірив один альбом кожного типу медіа. Інші альбоми будуть перевірені пізніше; видалення залишаються в очікуванні."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "Автоматичну синхронізацію призупинено. Перейдіть у ручний режим і знову ввімкніть її для продовження."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Вибрано автоматичну синхронізацію, але вона ще недоступна."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "Перевірте запит доступу на телефоні, потім прочитайте альбоми знову."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "Виберіть альбом для порівняння. Неповний каталог ніколи не доводить видалення."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose destination…"
+msgstr "Вибрати призначення…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Comparing media content… The total is not known yet."
+msgstr "Порівняння медіавмісту… Загальна кількість ще невідома."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison finished."
+msgstr "Порівняння вмісту завершено."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison needs review."
+msgstr "Порівняння вмісту потребує перевірки."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Local edits kept"
+msgstr "Локальні зміни збережено"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Manual synchronization"
+msgstr "Ручна синхронізація"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
+msgstr "Медіафайли використовують збережений строк зберігання кошика. Ніколи означає лише ручне видалення. Відновлення ніколи не замінює наявний файл."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Операцію з медіафайлами призупинено. Завершення не підтверджено."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin"
+msgstr "Кошик медіафайлів"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "Кошик медіафайлів завантажено. Остаточне видалення потребує підтвердження у програмі."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle-bin operation finished. Read the entries again before another operation."
+msgstr "Операцію кошика медіафайлів завершено. Перед наступною операцією прочитайте записи знову."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media transfer is not available on this connection yet."
+msgstr "Передавання медіафайлів через це з’єднання ще недоступне."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "More albums"
+msgstr "Інші альбоми"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native media connection is unavailable."
+msgstr "З’єднання з медіамодулем програми недоступне."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Налаштування програми завантажено. Передавання не починалося."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Next entries"
+msgstr "Наступні записи"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No active media operation."
+msgstr "Немає активної операції з медіафайлами."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No destination selected"
+msgstr "Призначення не вибрано"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No retained media entries on this page."
+msgstr "На цій сторінці немає збережених медіазаписів."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "Синхронізувати лише вміст телефону. Локальні зміни зберігаються. Видалення ще не синхронізуються."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Photos"
+msgstr "Фотографії"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read media recycle bin"
+msgstr "Прочитати кошик медіафайлів"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read photo albums"
+msgstr "Прочитати фотоальбоми"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read video albums"
+msgstr "Прочитати відеоальбоми"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Recover operation"
+msgstr "Відновити операцію"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Replaced"
+msgstr "Замінено"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Request access on phone"
+msgstr "Запросити доступ на телефоні"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "Деякі записи джерела могли не бути запропоновані. Прочитайте альбоми знову."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "Зупинено або не завершено. Оригінали та історія відновлення зберігаються."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Зупинення… Очікування завершення операції програми."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronize videos"
+msgstr "Синхронізувати відео"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Не вдалося зберегти книгу. Синхронізація медіафайлів не почалася."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Забагато запитів в очікуванні. Дочекайтеся поточної операції."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Unchanged"
+msgstr "Без змін"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Videos"
+msgstr "Відео"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Waiting for native media status"
+msgstr "Очікування стану медіафайлів від програми"

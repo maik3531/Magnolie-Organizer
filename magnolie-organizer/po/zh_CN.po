@@ -9476,3 +9476,223 @@ msgstr "等待恢复"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体项目。恢复绝不会替换现有文件。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "A native media operation is still running."
+msgstr "原生媒体操作仍在运行。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Album selection changed. Read the albums again."
+msgstr "相册选择已更改。请重新读取相册。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "自动内容比较需要注意。尚未确认任何删除操作已完成。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "自动轮次已检查每种媒体类型的一个相册。其他相册将随后处理；删除仍待处理。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "自动同步已暂停。请切换到手动模式，然后重新启用以继续。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "已选择自动同步，但暂时无法使用。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "请检查手机上的访问请求，然后重新读取相册。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "请选择要比较的相册。不完整的目录绝不能证明已删除。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose destination…"
+msgstr "选择目标位置…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Comparing media content… The total is not known yet."
+msgstr "正在比较媒体内容… 总数尚不明确。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison finished."
+msgstr "内容比较已完成。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison needs review."
+msgstr "内容比较需要检查。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Local edits kept"
+msgstr "已保留本地修改"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Manual synchronization"
+msgstr "手动同步"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
+msgstr "媒体文件使用已保存的回收站保留期限。“永不”表示仅手动移除。恢复绝不会替换现有文件。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media operation paused. No completion was confirmed."
+msgstr "媒体操作已暂停。尚未确认完成。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin"
+msgstr "媒体回收站"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "已读取媒体回收站。永久移除需要在原生界面确认。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle-bin operation finished. Read the entries again before another operation."
+msgstr "媒体回收站操作已完成。执行其他操作前请重新读取条目。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media transfer is not available on this connection yet."
+msgstr "此连接尚不支持媒体传输。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "More albums"
+msgstr "更多相册"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native media connection is unavailable."
+msgstr "原生媒体连接不可用。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native settings loaded. No transfer has been started."
+msgstr "已读取原生设置。尚未开始任何传输。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Next entries"
+msgstr "后续条目"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No active media operation."
+msgstr "没有正在运行的媒体操作。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No destination selected"
+msgstr "未选择目标位置"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No retained media entries on this page."
+msgstr "此页没有保留的媒体条目。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Photos"
+msgstr "照片"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read media recycle bin"
+msgstr "读取媒体回收站"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read photo albums"
+msgstr "读取照片相册"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read video albums"
+msgstr "读取视频相册"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Recover operation"
+msgstr "恢复操作"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Replaced"
+msgstr "已替换"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Request access on phone"
+msgstr "在手机上请求访问"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "部分源条目可能尚未提供。请重新读取相册。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "已停止或未完成。原始文件和恢复历史均会保留。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "正在停止… 等待原生操作结束。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronize videos"
+msgstr "同步视频"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "无法保存笔记本。未开始媒体同步。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "待处理请求过多。请等待当前操作。"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Unchanged"
+msgstr "未更改"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Videos"
+msgstr "视频"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Waiting for native media status"
+msgstr "等待原生媒体状态"

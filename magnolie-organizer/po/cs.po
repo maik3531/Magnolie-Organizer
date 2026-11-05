@@ -9953,3 +9953,223 @@ msgstr "Čeká na obnovení"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "Pro mediální soubory platí výše nastavená doba uchování včetně možnosti „Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale odstranit“. Obnovení nikdy nenahradí existující soubor."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "A native media operation is still running."
+msgstr "Nativní operace s médii stále běží."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Album selection changed. Read the albums again."
+msgstr "Výběr alba se změnil. Načtěte alba znovu."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "Automatické porovnání obsahu vyžaduje pozornost. Dokončení odstranění nebylo potvrzeno."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "Automatický průchod zkontroloval jedno album každého typu média. Další alba budou následovat; odstranění zůstávají nevyřízená."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "Automatická synchronizace je pozastavena. Pro pokračování přepněte do ručního režimu a znovu ji zapněte."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatická synchronizace je vybrána, ale zatím není dostupná."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "Zkontrolujte žádost o přístup v telefonu a poté znovu načtěte alba."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "Vyberte album k porovnání. Neúplný katalog nikdy nedokazuje odstranění."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose destination…"
+msgstr "Vybrat cíl…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Comparing media content… The total is not known yet."
+msgstr "Porovnávání obsahu médií… Celkový počet zatím není znám."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison finished."
+msgstr "Porovnání obsahu dokončeno."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison needs review."
+msgstr "Porovnání obsahu vyžaduje kontrolu."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Local edits kept"
+msgstr "Místní úpravy zachovány"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Manual synchronization"
+msgstr "Ruční synchronizace"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
+msgstr "Média používají uloženou dobu uchování koše. Nikdy znamená pouze ruční odstranění. Obnovení nikdy nenahrazuje existující soubor."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Operace s médii pozastavena. Dokončení nebylo potvrzeno."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin"
+msgstr "Koš médií"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "Koš médií načten. Trvalé odstranění vyžaduje nativní potvrzení."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle-bin operation finished. Read the entries again before another operation."
+msgstr "Operace s košem médií dokončena. Před další operací znovu načtěte položky."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media transfer is not available on this connection yet."
+msgstr "Přenos médií zatím není na tomto připojení dostupný."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "More albums"
+msgstr "Další alba"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native media connection is unavailable."
+msgstr "Nativní připojení médií není dostupné."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Nativní nastavení načteno. Žádný přenos nebyl zahájen."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Next entries"
+msgstr "Další položky"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No active media operation."
+msgstr "Žádná aktivní operace s médii."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No destination selected"
+msgstr "Není vybrán cíl"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No retained media entries on this page."
+msgstr "Na této stránce nejsou žádné uchované položky médií."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "Synchronizovat pouze obsah telefonu. Místní úpravy jsou zachovány. Odstranění se zatím nesynchronizují."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Photos"
+msgstr "Fotografie"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read media recycle bin"
+msgstr "Načíst koš médií"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read photo albums"
+msgstr "Načíst fotoalba"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read video albums"
+msgstr "Načíst videoalba"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Recover operation"
+msgstr "Obnovit operaci"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Replaced"
+msgstr "Nahrazeno"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Request access on phone"
+msgstr "Vyžádat přístup v telefonu"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "Některé zdrojové položky nemusely být nabídnuty. Načtěte alba znovu."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "Zastaveno nebo nedokončeno. Původní soubory a historie obnovení jsou zachovány."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Zastavování… Čekání na ukončení nativní operace."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronize videos"
+msgstr "Synchronizovat videa"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Knihu se nepodařilo uložit. Synchronizace médií nebyla zahájena."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Příliš mnoho nevyřízených požadavků. Počkejte na aktuální operaci."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Unchanged"
+msgstr "Beze změny"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Videos"
+msgstr "Videa"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Waiting for native media status"
+msgstr "Čekání na nativní stav médií"

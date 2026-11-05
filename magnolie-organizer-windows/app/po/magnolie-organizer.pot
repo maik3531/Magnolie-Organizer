@@ -369,6 +369,9 @@ msgstr ""
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr ""
 
+msgid "A native media operation is still running."
+msgstr ""
+
 msgid "A notebook with this name already exists in this group."
 msgstr ""
 
@@ -564,6 +567,9 @@ msgid "After exercise"
 msgstr ""
 
 msgid "After meal"
+msgstr ""
+
+msgid "Album selection changed. Read the albums again."
 msgstr ""
 
 msgid "All"
@@ -800,6 +806,24 @@ msgid ""
 msgstr ""
 
 msgid "Automatic cloud-folder backups"
+msgstr ""
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr ""
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+
+msgid "Automatic synchronization is selected but is not available yet."
 msgstr ""
 
 msgid "Automatically choose a suitable application"
@@ -1195,6 +1219,9 @@ msgstr ""
 msgid "Check spelling (red wavy lines)"
 msgstr ""
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1247,6 +1274,9 @@ msgid ""
 "days in the new appointment sheet. Day markers do not send notifications."
 msgstr ""
 
+msgid "Choose a valid replacement date and time."
+msgstr ""
+
 msgid "Choose a value and period to display its development."
 msgstr ""
 
@@ -1258,10 +1288,17 @@ msgstr ""
 msgid "Choose an address"
 msgstr ""
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+
 msgid "Choose at least four characters."
 msgstr ""
 
 msgid "Choose contact photo"
+msgstr ""
+
+msgid "Choose destination…"
 msgstr ""
 
 msgid "Choose entries to print, export or delete"
@@ -1408,6 +1445,9 @@ msgstr ""
 msgid "Compare with LibreOffice"
 msgstr ""
 
+msgid "Comparing media content… The total is not known yet."
+msgstr ""
+
 msgid "Complete archive export is available only in the installed application."
 msgstr ""
 
@@ -1552,6 +1592,12 @@ msgstr ""
 msgid "Content"
 msgstr ""
 
+msgid "Content comparison finished."
+msgstr ""
+
+msgid "Content comparison needs review."
+msgstr ""
+
 msgid "Continue"
 msgstr ""
 
@@ -1598,6 +1644,9 @@ msgid "Create a backup copy of the data"
 msgstr ""
 
 msgid "Create a new appointment immediately"
+msgstr ""
+
+msgid "Create a replacement appointment"
 msgstr ""
 
 msgid "Create a separate connection to this computer?"
@@ -1810,6 +1859,9 @@ msgstr ""
 msgid "Delete selection"
 msgstr ""
 
+msgid "Delete series"
+msgstr ""
+
 msgid "Delete shift"
 msgstr ""
 
@@ -1831,6 +1883,9 @@ msgid "Delete this contact's history"
 msgstr ""
 
 msgid "Delete this note page (“%(title)s”)?"
+msgstr ""
+
+msgid "Delete this occurrence"
 msgstr ""
 
 msgid "Delete this recovery snapshot permanently?"
@@ -2928,6 +2983,9 @@ msgstr ""
 msgid "Later occurrence"
 msgstr ""
 
+msgid "Later occurrences remain unchanged."
+msgstr ""
+
 msgid "Lead time"
 msgstr ""
 
@@ -2982,6 +3040,9 @@ msgid "Loading…"
 msgstr ""
 
 msgid "Local calendar"
+msgstr ""
+
+msgid "Local edits kept"
 msgstr ""
 
 msgid "Local image"
@@ -3125,6 +3186,9 @@ msgstr ""
 msgid "Manual only"
 msgstr ""
 
+msgid "Manual synchronization"
+msgstr ""
+
 msgid "Manually"
 msgstr ""
 
@@ -3162,6 +3226,14 @@ msgid ""
 "phone."
 msgstr ""
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr ""
+
 msgid "Media player"
 msgstr ""
 
@@ -3169,6 +3241,21 @@ msgid "Media player settings could not be applied."
 msgstr ""
 
 msgid "Media players"
+msgstr ""
+
+msgid "Media recycle bin"
+msgstr ""
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+
+msgid "Media transfer is not available on this connection yet."
 msgstr ""
 
 msgid "Medication"
@@ -3280,6 +3367,9 @@ msgstr ""
 msgid "Monthly weekday"
 msgstr ""
 
+msgid "More albums"
+msgstr ""
+
 msgid "More fields"
 msgstr ""
 
@@ -3354,6 +3444,12 @@ msgid "Name day"
 msgstr ""
 
 msgid "Name of this branch"
+msgstr ""
+
+msgid "Native media connection is unavailable."
+msgstr ""
+
+msgid "Native settings loaded. No transfer has been started."
 msgstr ""
 
 msgid "Netherlands"
@@ -3435,6 +3531,9 @@ msgstr ""
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr ""
 
+msgid "Next entries"
+msgstr ""
+
 msgid "Next month"
 msgstr ""
 
@@ -3493,6 +3592,9 @@ msgstr ""
 msgid "No Windows dictionary is installed for this language."
 msgstr ""
 
+msgid "No active media operation."
+msgstr ""
+
 msgid "No address books found."
 msgstr ""
 
@@ -3520,6 +3622,9 @@ msgid "No date recorded"
 msgstr ""
 
 msgid "No default voice subscription is available."
+msgstr ""
+
+msgid "No destination selected"
 msgstr ""
 
 msgid "No due date"
@@ -3593,6 +3698,9 @@ msgid "No photo selected"
 msgstr ""
 
 msgid "No public IP address was found."
+msgstr ""
+
+msgid "No retained media entries on this page."
 msgstr ""
 
 msgid "No scheme row matches this blood glucose value."
@@ -3838,6 +3946,11 @@ msgid ""
 msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
+msgstr ""
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
 msgstr ""
 
 msgid "Only the Notes collection"
@@ -4230,6 +4343,9 @@ msgstr ""
 msgid "Photo of %(name)s"
 msgstr ""
 
+msgid "Photos"
+msgstr ""
+
 msgid "Pick up"
 msgstr ""
 
@@ -4474,6 +4590,15 @@ msgstr ""
 msgid "Read Notes WLAN diagnostics"
 msgstr ""
 
+msgid "Read media recycle bin"
+msgstr ""
+
+msgid "Read photo albums"
+msgstr ""
+
+msgid "Read video albums"
+msgstr ""
+
 msgid "Ready."
 msgstr ""
 
@@ -4499,6 +4624,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr ""
 
+msgid "Recover operation"
+msgstr ""
+
 msgid "Recovery journal"
 msgstr ""
 
@@ -4515,6 +4643,9 @@ msgid "Rectangle"
 msgstr ""
 
 msgid "Recycle bin"
+msgstr ""
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr ""
 
 msgid "Redo"
@@ -4643,7 +4774,13 @@ msgstr ""
 msgid "Replace completely"
 msgstr ""
 
+msgid "Replaced"
+msgstr ""
+
 msgid "Report unusual cycle intervals"
+msgstr ""
+
+msgid "Request access on phone"
 msgstr ""
 
 msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
@@ -5241,6 +5378,9 @@ msgid ""
 "preserved."
 msgstr ""
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr ""
+
 msgid "Someone"
 msgstr ""
 
@@ -5321,6 +5461,13 @@ msgid "Stop"
 msgstr ""
 
 msgid "Stop retrying"
+msgstr ""
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr ""
+
+msgid "Stopping… Waiting for the native operation to end."
 msgstr ""
 
 msgid "Street"
@@ -5427,6 +5574,9 @@ msgstr ""
 msgid "Synchronize permanently"
 msgstr ""
 
+msgid "Synchronize photos"
+msgstr ""
+
 msgid "Synchronize tasks"
 msgstr ""
 
@@ -5434,6 +5584,9 @@ msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
 msgstr ""
 
 msgid "Synchronize tasks and appointments from the custom tab"
+msgstr ""
+
+msgid "Synchronize videos"
 msgstr ""
 
 msgid "Synchronizing …"
@@ -5658,6 +5811,9 @@ msgid ""
 "The backup will be stored outside the local data location and is therefore "
 "always encrypted. This password will be required to restore it later:\n"
 "%(path)s"
+msgstr ""
+
+msgid "The book could not be saved. Media synchronization was not started."
 msgstr ""
 
 msgid ""
@@ -6025,6 +6181,10 @@ msgid "The regional settings are invalid."
 msgstr ""
 
 msgid "The regional settings could not be saved."
+msgstr ""
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
 msgstr ""
 
 msgid "The required recovery snapshot could not be created."
@@ -6401,6 +6561,9 @@ msgstr ""
 msgid "Too many pairing requests are waiting."
 msgstr ""
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr ""
+
 msgid "Too many regions were selected."
 msgstr ""
 
@@ -6477,6 +6640,9 @@ msgid "URI"
 msgstr ""
 
 msgid "Unavailable"
+msgstr ""
+
+msgid "Unchanged"
 msgstr ""
 
 msgid "Unchanged contents do not create another recovery point."
@@ -6675,6 +6841,9 @@ msgstr ""
 msgid "Video player"
 msgstr ""
 
+msgid "Videos"
+msgstr ""
+
 msgid "Vienna"
 msgstr ""
 
@@ -6711,6 +6880,9 @@ msgid "Waiting for consent on the other device."
 msgstr ""
 
 msgid "Waiting for device status"
+msgstr ""
+
+msgid "Waiting for native media status"
 msgstr ""
 
 msgid ""
@@ -7351,64 +7523,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "＋ Add appointment"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr ""
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr ""

@@ -10108,3 +10108,223 @@ msgstr "Restauración pendiente"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "Los archivos multimedia usan el plazo de conservación indicado arriba, incluido «Nunca». Use «Eliminar permanentemente» para eliminar ahora un elemento multimedia individual. La restauración nunca sustituye un archivo existente."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "A native media operation is still running."
+msgstr "Todavía hay una operación multimedia nativa en curso."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Album selection changed. Read the albums again."
+msgstr "La selección de álbum ha cambiado. Vuelve a leer los álbumes."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "La comparación automática necesita atención. No se ha confirmado ninguna eliminación completada."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "La pasada automática comprobó un álbum por tipo de contenido. Seguirán más álbumes; las eliminaciones quedan pendientes."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "La sincronización automática está en pausa. Cambia a modo manual y actívala de nuevo para continuar."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Se ha seleccionado la sincronización automática, pero aún no está disponible."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "Revisa la solicitud de acceso en el teléfono y vuelve a leer los álbumes."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "Elige un álbum para comparar. Un catálogo incompleto nunca demuestra una eliminación."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose destination…"
+msgstr "Elegir destino…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Comparing media content… The total is not known yet."
+msgstr "Comparando contenido multimedia… El total aún no se conoce."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison finished."
+msgstr "Comparación de contenido terminada."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison needs review."
+msgstr "La comparación de contenido requiere revisión."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Local edits kept"
+msgstr "Cambios locales conservados"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Manual synchronization"
+msgstr "Sincronización manual"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
+msgstr "Los archivos multimedia usan el plazo de conservación guardado de la papelera. Nunca significa eliminación manual únicamente. Restaurar nunca reemplaza un archivo existente."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Operación multimedia en pausa. No se ha confirmado su finalización."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin"
+msgstr "Papelera multimedia"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "Papelera multimedia cargada. La eliminación permanente requiere confirmación nativa."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle-bin operation finished. Read the entries again before another operation."
+msgstr "Operación de la papelera multimedia terminada. Vuelve a leer las entradas antes de otra operación."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media transfer is not available on this connection yet."
+msgstr "La transferencia multimedia aún no está disponible en esta conexión."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "More albums"
+msgstr "Más álbumes"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native media connection is unavailable."
+msgstr "La conexión multimedia nativa no está disponible."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Ajustes nativos cargados. No se ha iniciado ninguna transferencia."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Next entries"
+msgstr "Entradas siguientes"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No active media operation."
+msgstr "No hay ninguna operación multimedia activa."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No destination selected"
+msgstr "No se ha elegido un destino"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No retained media entries on this page."
+msgstr "No hay entradas multimedia conservadas en esta página."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "Sincronizar solo el contenido del teléfono. Se conservan los cambios locales. Las eliminaciones aún no se sincronizan."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Photos"
+msgstr "Fotos"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read media recycle bin"
+msgstr "Leer papelera multimedia"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read photo albums"
+msgstr "Leer álbumes de fotos"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read video albums"
+msgstr "Leer álbumes de vídeos"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Recover operation"
+msgstr "Recuperar operación"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Replaced"
+msgstr "Reemplazados"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Request access on phone"
+msgstr "Solicitar acceso en el teléfono"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "Puede que no se hayan ofrecido algunas entradas de origen. Vuelve a leer los álbumes."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "Detenido o incompleto. Se conservan los originales y el historial de recuperación."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Deteniendo… Esperando a que termine la operación nativa."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronize videos"
+msgstr "Sincronizar vídeos"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "No se pudo guardar el libro. No se inició la sincronización multimedia."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Demasiadas solicitudes pendientes. Espera a que termine la operación actual."
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Unchanged"
+msgstr "Sin cambios"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Videos"
+msgstr "Vídeos"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Waiting for native media status"
+msgstr "Esperando el estado multimedia nativo"

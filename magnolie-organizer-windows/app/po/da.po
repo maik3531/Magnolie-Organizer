@@ -373,6 +373,9 @@ msgstr "Der findes allerede en gruppe med dette navn."
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "Der er højst tilladt 10 SMS-dele."
 
+msgid "A native media operation is still running."
+msgstr "En indbygget mediehandling kører stadig."
+
 msgid "A notebook with this name already exists in this group."
 msgstr "Der findes allerede en notesbog med dette navn i denne gruppe."
 
@@ -583,12 +586,6 @@ msgstr "Adresser"
 msgid "Advanced"
 msgstr "Avanceret"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Kræver Magnolie Notes på Android. KDE Connect er ikke nødvendigt."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect-funktioner kræver KDE Connect-appen på Android, ikke Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Avancerede funktioner"
 
@@ -597,6 +594,9 @@ msgstr "Efter motion"
 
 msgid "After meal"
 msgstr "Efter måltid"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "Albumvalget er ændret. Læs albummerne igen."
 
 msgid "All"
 msgstr "Alle"
@@ -848,6 +848,30 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "Automatiske sikkerhedskopier i en cloudmappe"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr ""
+"Automatisk indholdssammenligning kræver opmærksomhed. Ingen afsluttet "
+"sletning er bekræftet."
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"Den automatiske gennemgang kontrollerede ét album pr. medietype. Flere "
+"albummer følger; sletninger afventer stadig."
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"Automatisk synkronisering er sat på pause. Skift til manuel tilstand og "
+"aktivér den igen for at fortsætte."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatisk synkronisering er valgt, men er endnu ikke tilgængelig."
 
 msgid "Automatically choose a suitable application"
 msgstr "Vælg automatisk et egnet program"
@@ -1269,6 +1293,10 @@ msgstr "Kontrollér nu"
 msgid "Check spelling (red wavy lines)"
 msgstr "Kontrollér stavning (røde bølgelinjer)"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+"Kontrollér adgangsanmodningen på telefonen, og læs derefter albummerne igen."
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1330,6 +1358,9 @@ msgstr ""
 "Vælg en foruddefineret vagt, eller indtast din egen. Tildel den til en eller "
 "flere dage på arket for den nye aftale. Dagmarkører sender ikke meddelelser."
 
+msgid "Choose a valid replacement date and time."
+msgstr "Vælg en gyldig dato og tid for erstatningsaftalen."
+
 msgid "Choose a value and period to display its development."
 msgstr "Vælg en værdi og en periode for at vise udviklingen."
 
@@ -1343,11 +1374,20 @@ msgstr ""
 msgid "Choose an address"
 msgstr "Vælg en adresse"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+"Vælg et album til sammenligning. Et ufuldstændigt katalog beviser aldrig "
+"sletning."
+
 msgid "Choose at least four characters."
 msgstr "Vælg mindst fire tegn."
 
 msgid "Choose contact photo"
 msgstr "Vælg kontaktbillede"
+
+msgid "Choose destination…"
+msgstr "Vælg destination…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "Vælg poster, der skal udskrives, eksporteres eller slettes"
@@ -1506,6 +1546,9 @@ msgstr ""
 msgid "Compare with LibreOffice"
 msgstr "Sammenlign med LibreOffice"
 
+msgid "Comparing media content… The total is not known yet."
+msgstr "Sammenligner medieindhold… Det samlede antal kendes endnu ikke."
+
 msgid "Complete archive export is available only in the installed application."
 msgstr "Komplet arkiveksport er kun tilgængelig i det installerede program."
 
@@ -1663,6 +1706,12 @@ msgstr ""
 msgid "Content"
 msgstr "Indhold"
 
+msgid "Content comparison finished."
+msgstr "Indholdssammenligning afsluttet."
+
+msgid "Content comparison needs review."
+msgstr "Indholdssammenligning kræver gennemgang."
+
 msgid "Continue"
 msgstr "Fortsat"
 
@@ -1710,6 +1759,9 @@ msgstr "Opret en sikkerhedskopi af dataene"
 
 msgid "Create a new appointment immediately"
 msgstr "Opret straks en ny aftale"
+
+msgid "Create a replacement appointment"
+msgstr "Opret en erstatningsaftale"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Opret en selvstændig forbindelse til denne computer?"
@@ -1921,6 +1973,9 @@ msgstr "Slet permanent"
 msgid "Delete selection"
 msgstr "Slet markering"
 
+msgid "Delete series"
+msgstr "Slet serien"
+
 msgid "Delete shift"
 msgstr "Slet vagt"
 
@@ -1945,6 +2000,9 @@ msgstr "Slet denne kontakts historik"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Slet denne noteside (“%(title)s”)?"
+
+msgid "Delete this occurrence"
+msgstr "Slet kun denne forekomst"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Slet dette gendannelsesøjebliksbillede permanent?"
@@ -3021,6 +3079,13 @@ msgstr "KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect til SMS er kun tilgængelig i det installerede program."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect-funktioner kræver KDE Connect-appen på Android, ikke Magnolie "
+"Notes."
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect-parring mislykkedes."
 
@@ -3110,6 +3175,9 @@ msgstr "Aftenvagt"
 msgid "Later occurrence"
 msgstr "Senere forekomst"
 
+msgid "Later occurrences remain unchanged."
+msgstr "Senere forekomster forbliver uændrede."
+
 msgid "Lead time"
 msgstr "Varslingstid"
 
@@ -3167,6 +3235,9 @@ msgstr "Indlæser…"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
+
+msgid "Local edits kept"
+msgstr "Lokale ændringer bevaret"
 
 msgid "Local image"
 msgstr "Lokalt billede"
@@ -3321,6 +3392,9 @@ msgstr "Manuel reserveværdi"
 msgid "Manual only"
 msgstr "Kun manuelt"
 
+msgid "Manual synchronization"
+msgstr "Manuel synkronisering"
+
 msgid "Manually"
 msgstr "Manuelt"
 
@@ -3362,6 +3436,16 @@ msgstr ""
 "Mediestyring er ikke tilgængelig. Kontrollér forbindelsen og medieappen på "
 "telefonen."
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"Mediefiler bruger papirkurvens gemte opbevaringsperiode. Aldrig betyder kun "
+"manuel fjernelse. Gendannelse erstatter aldrig en eksisterende fil."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Mediehandling sat på pause. Ingen afslutning blev bekræftet."
+
 msgid "Media player"
 msgstr "Medieafspiller"
 
@@ -3370,6 +3454,25 @@ msgstr "Indstillingerne for medieafspilleren kunne ikke anvendes."
 
 msgid "Media players"
 msgstr "Medieafspillere"
+
+msgid "Media recycle bin"
+msgstr "Mediepapirkurv"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+"Mediepapirkurven er indlæst. Permanent fjernelse kræver bekræftelse i "
+"programmet."
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+"Handlingen i mediepapirkurven er afsluttet. Læs posterne igen før en ny "
+"handling."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "Medieoverførsel er endnu ikke tilgængelig på denne forbindelse."
 
 msgid "Medication"
 msgstr "Lægemiddel"
@@ -3486,6 +3589,9 @@ msgstr "Månedsvisning"
 msgid "Monthly weekday"
 msgstr "Månedlig ugedag"
 
+msgid "More albums"
+msgstr "Flere albummer"
+
 msgid "More fields"
 msgstr "Flere felter"
 
@@ -3565,6 +3671,12 @@ msgstr "Navnedag"
 
 msgid "Name of this branch"
 msgstr "Navnet på denne gren"
+
+msgid "Native media connection is unavailable."
+msgstr "Programmets medieforbindelse er utilgængelig."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Programmets indstillinger er indlæst. Ingen overførsel er startet."
 
 msgid "Netherlands"
 msgstr "Nederlandene"
@@ -3649,6 +3761,9 @@ msgstr "Næste"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Næste aftale: %(title)s den %(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "Næste poster"
+
 msgid "Next month"
 msgstr "Næste måned"
 
@@ -3707,6 +3822,9 @@ msgstr "Ingen WhatsApp-profil tilgængelig for denne kontakt."
 msgid "No Windows dictionary is installed for this language."
 msgstr "Der er ikke installeret en Windows-ordbog til dette sprog."
 
+msgid "No active media operation."
+msgstr "Ingen aktiv mediehandling."
+
 msgid "No address books found."
 msgstr "Ingen adressebøger fundet."
 
@@ -3737,6 +3855,9 @@ msgstr "Ingen dato registreret"
 
 msgid "No default voice subscription is available."
 msgstr "Intet standardabonnement til opkald er tilgængeligt."
+
+msgid "No destination selected"
+msgstr "Ingen destination valgt"
 
 msgid "No due date"
 msgstr "Ingen forfaldsdato"
@@ -3816,6 +3937,9 @@ msgstr "Intet foto valgt"
 
 msgid "No public IP address was found."
 msgstr "Der blev ikke fundet nogen offentlig IP-adresse."
+
+msgid "No retained media entries on this page."
+msgstr "Ingen bevarede medieposter på denne side."
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "Ingen skemarække matcher denne blodsukkerværdi."
@@ -4084,6 +4208,13 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "Kun personlige poster kan sendes til Notes."
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr ""
+"Synkroniser kun telefonens indhold. Lokale ændringer bevares. Sletninger "
+"synkroniseres endnu ikke."
 
 msgid "Only the Notes collection"
 msgstr "Kun Notes-samlingen"
@@ -4491,6 +4622,9 @@ msgstr "Foto tilgængeligt"
 msgid "Photo of %(name)s"
 msgstr "Foto af %(name)s"
 
+msgid "Photos"
+msgstr "Billeder"
+
 msgid "Pick up"
 msgstr "Afhentning"
 
@@ -4745,6 +4879,15 @@ msgstr "Tilgængelig IPv4- eller IPv6-adresse på denne computer"
 msgid "Read Notes WLAN diagnostics"
 msgstr "Læs Wi-Fi-diagnosticering fra Notes"
 
+msgid "Read media recycle bin"
+msgstr "Læs mediepapirkurven"
+
+msgid "Read photo albums"
+msgstr "Læs fotoalbummer"
+
+msgid "Read video albums"
+msgstr "Læs videoalbummer"
+
 msgid "Ready."
 msgstr "Klar."
 
@@ -4770,6 +4913,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Registrerede tider"
 
+msgid "Recover operation"
+msgstr "Gendan handling"
+
 msgid "Recovery journal"
 msgstr "Gendannelsesjournal"
 
@@ -4787,6 +4933,9 @@ msgstr "Rektangel"
 
 msgid "Recycle bin"
 msgstr "Papirkurv"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papirkurven er deaktiveret: Slet de valgte poster permanent?"
 
 msgid "Redo"
 msgstr "Gentag"
@@ -4924,8 +5073,17 @@ msgstr "Gentag for at bekræfte"
 msgid "Replace completely"
 msgstr "Udskift helt"
 
+msgid "Replaced"
+msgstr "Erstattet"
+
 msgid "Report unusual cycle intervals"
 msgstr "Meld usædvanlige cyklusintervaller"
+
+msgid "Request access on phone"
+msgstr "Anmod om adgang på telefonen"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Kræver Magnolie Notes på Android. KDE Connect er ikke nødvendigt."
 
 msgid "Requires a Nextcloud account."
 msgstr "Kræver en Nextcloud-konto."
@@ -5547,6 +5705,10 @@ msgstr ""
 "For nogle gentagelsesregler kan de enkelte aftaler ikke beregnes. De "
 "oprindelige kalenderdata er bevaret."
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr ""
+"Nogle kildeposter er muligvis ikke blevet tilbudt. Læs albummerne igen."
+
 msgid "Someone"
 msgstr "Nogen"
 
@@ -5628,6 +5790,14 @@ msgstr "Stop"
 
 msgid "Stop retrying"
 msgstr "Stop forsøg"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr ""
+"Stoppet eller ufuldstændig. Originalfiler og gendannelseshistorik bevares."
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Stopper… Venter på, at programmets handling afsluttes."
 
 msgid "Street"
 msgstr "Gade"
@@ -5735,6 +5905,9 @@ msgstr "Synkroniser nu"
 msgid "Synchronize permanently"
 msgstr "Synkroniser permanent"
 
+msgid "Synchronize photos"
+msgstr "Synkroniser fotos"
+
 msgid "Synchronize tasks"
 msgstr "Synkronisér kontakter"
 
@@ -5743,6 +5916,9 @@ msgstr "Synkroniser opgaver og aftaler fra fanen »%(tab)s«"
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "Synkroniser opgaver og aftaler fra den brugerdefinerede fane"
+
+msgid "Synchronize videos"
+msgstr "Synkroniser videoer"
 
 msgid "Synchronizing …"
 msgstr "Synkroniserer …"
@@ -5996,6 +6172,9 @@ msgstr ""
 "Sikkerhedskopien gemmes uden for den lokale dataplacering og er derfor altid "
 "krypteret. Denne adgangskode skal bruges, hvis den senere skal gendannes:\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Bogen kunne ikke gemmes. Mediesynkronisering blev ikke startet."
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6397,6 +6576,10 @@ msgstr "De regionale indstillinger er ugyldige."
 
 msgid "The regional settings could not be saved."
 msgstr "De regionale indstillinger kunne ikke gemmes."
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Erstatningen er en særskilt aftale; seriens tidsplan ændres ikke."
 
 msgid "The required recovery snapshot could not be created."
 msgstr "Det nødvendige gendannelsesøjebliksbillede kunne ikke oprettes."
@@ -6830,6 +7013,9 @@ msgstr "For mange mislykkede forsøg. Vent et øjeblik."
 msgid "Too many pairing requests are waiting."
 msgstr "For mange ventende parringsanmodninger."
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "For mange ventende anmodninger. Vent på den aktuelle handling."
+
 msgid "Too many regions were selected."
 msgstr "Der blev valgt for mange regioner."
 
@@ -6907,6 +7093,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Ikke tilgængelig"
+
+msgid "Unchanged"
+msgstr "Uændret"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Uændret indhold opretter ikke endnu et gendannelsespunkt."
@@ -7125,6 +7314,9 @@ msgstr "Via internettet"
 msgid "Video player"
 msgstr "Videoafspiller"
 
+msgid "Videos"
+msgstr "Videoer"
+
 msgid "Vienna"
 msgstr "Wien"
 
@@ -7164,6 +7356,9 @@ msgstr "Venter på samtykke på den anden enhed."
 
 msgid "Waiting for device status"
 msgstr "Venter på enhedsstatus"
+
+msgid "Waiting for native media status"
+msgstr "Venter på programmets mediestatus"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8349,62 +8544,30 @@ msgstr "＋ Tilføj aftale"
 #~ "for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig "
 #~ "rolle anmodes."
 
+#~ msgid "Photos and videos"
+#~ msgstr "Fotos og videoer"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Slet kun denne forekomst"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Mediefiler opbevares separat; tømning af de øvrige elementer i "
+#~ "papirkurven fjerner dem ikke. Gendannelse erstatter aldrig en "
+#~ "eksisterende fil."
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Mediepapirkurven kunne ikke opdateres. Eksisterende filer blev bevaret."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Slet serien"
+#~ msgid "Pending recovery"
+#~ msgstr "Afventer gendannelse"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Senere forekomster forbliver uændrede."
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Papirkurven er deaktiveret: Slet de valgte poster permanent?"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Opret en erstatningsaftale"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Erstatningen er en særskilt aftale; seriens tidsplan ændres ikke."
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Vælg en gyldig dato og tid for erstatningsaftalen."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fotos og videoer"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Mediefiler opbevares separat; tømning af de øvrige elementer i papirkurven fjerner dem ikke. Gendannelse erstatter aldrig en eksisterende fil."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Mediepapirkurven kunne ikke opdateres. Eksisterende filer blev bevaret."
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Afventer gendannelse"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Mediefiler bruger opbevaringsperioden ovenfor, inklusive „Aldrig“. Brug „Slet permanent“ til at fjerne en enkelt mediepost nu. Gendannelse erstatter aldrig en eksisterende fil."
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "Mediefiler bruger opbevaringsperioden ovenfor, inklusive „Aldrig“. Brug "
+#~ "„Slet permanent“ til at fjerne en enkelt mediepost nu. Gendannelse "
+#~ "erstatter aldrig en eksisterende fil."

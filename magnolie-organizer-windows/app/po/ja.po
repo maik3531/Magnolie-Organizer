@@ -345,6 +345,9 @@ msgstr "同じ名前のグループがすでにあります。"
 msgid "A maximum of 10 SMS parts is allowed."
 msgstr "SMS は最大10パートまで使用できます。"
 
+msgid "A native media operation is still running."
+msgstr "ネイティブのメディア操作がまだ実行中です。"
+
 msgid "A notebook with this name already exists in this group."
 msgstr "このグループには同じ名前のノートブックがすでにあります。"
 
@@ -552,12 +555,6 @@ msgstr "住所"
 msgid "Advanced"
 msgstr "詳細設定"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Android の Magnolie Notes が必要です。KDE Connect は不要です。"
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect の機能には、Magnolie Notes ではなく Android の KDE Connect アプリが必要です。"
-
 msgid "Advanced functions"
 msgstr "高度な機能"
 
@@ -566,6 +563,9 @@ msgstr "運動後"
 
 msgid "After meal"
 msgstr "食後"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "アルバムの選択が変わりました。アルバムを再読み込みしてください。"
 
 msgid "All"
 msgstr "すべて"
@@ -815,6 +815,28 @@ msgstr ""
 
 msgid "Automatic cloud-folder backups"
 msgstr "クラウドフォルダーへの自動バックアップ"
+
+msgid ""
+"Automatic content comparison needs attention. No deletion completion was "
+"confirmed."
+msgstr "自動コンテンツ比較に確認が必要です。削除の完了は確認されていません。"
+
+msgid ""
+"Automatic pass checked one album per media type. Further albums follow; "
+"deletions remain pending."
+msgstr ""
+"自動処理でメディア種類ごとに1つのアルバムを確認しました。他のアルバムは順次処"
+"理され、削除は保留のままです。"
+
+msgid ""
+"Automatic synchronization is paused. Switch to manual mode and enable it "
+"again to resume."
+msgstr ""
+"自動同期は一時停止中です。手動モードに切り替えてから再度有効にすると再開でき"
+"ます。"
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "自動同期が選択されていますが、まだ利用できません。"
 
 msgid "Automatically choose a suitable application"
 msgstr "適切なアプリケーションを自動選択"
@@ -1233,6 +1255,10 @@ msgstr "今すぐ確認"
 msgid "Check spelling (red wavy lines)"
 msgstr "スペルチェック（赤い波線）"
 
+msgid "Check the access request on your phone, then read the albums again."
+msgstr ""
+"スマートフォンのアクセス要求を確認し、アルバムを再読み込みしてください。"
+
 msgctxt "time tracking"
 msgid ""
 "Check the dates, times and pause. The selected local time must exist in this "
@@ -1294,6 +1320,9 @@ msgstr ""
 "定義済みのシフトを選ぶか、独自のシフトを入力してください。新しい予定シートで "
 "1 日以上に割り当てます。日付マーカーは通知を送信しません。"
 
+msgid "Choose a valid replacement date and time."
+msgstr "代わりの予定の有効な日付と時刻を選択してください。"
+
 msgid "Choose a value and period to display its development."
 msgstr "推移を表示する項目と期間を選択してください。"
 
@@ -1307,11 +1336,20 @@ msgstr ""
 msgid "Choose an address"
 msgstr "住所を選択"
 
+msgid ""
+"Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr ""
+"比較するアルバムを選択してください。不完全なカタログは削除の証拠にはなりませ"
+"ん。"
+
 msgid "Choose at least four characters."
 msgstr "4 文字以上を選択してください。"
 
 msgid "Choose contact photo"
 msgstr "連絡先の写真を選択"
+
+msgid "Choose destination…"
+msgstr "保存先を選択…"
 
 msgid "Choose entries to print, export or delete"
 msgstr "印刷、エクスポート、削除する項目を選択"
@@ -1468,6 +1506,9 @@ msgstr ""
 
 msgid "Compare with LibreOffice"
 msgstr "LibreOffice と比較"
+
+msgid "Comparing media content… The total is not known yet."
+msgstr "メディアの内容を比較しています… 合計数はまだ不明です。"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr ""
@@ -1627,6 +1668,12 @@ msgstr "情報が異なる連絡先が見つかりました。どのように処
 msgid "Content"
 msgstr "内容"
 
+msgid "Content comparison finished."
+msgstr "コンテンツの比較が完了しました。"
+
+msgid "Content comparison needs review."
+msgstr "コンテンツの比較に確認が必要です。"
+
 msgid "Continue"
 msgstr "続き"
 
@@ -1674,6 +1721,9 @@ msgstr "データのバックアップコピーを作成"
 
 msgid "Create a new appointment immediately"
 msgstr "新しい予定をすぐに作成"
+
+msgid "Create a replacement appointment"
+msgstr "代わりの予定を作成"
 
 msgid "Create a separate connection to this computer?"
 msgstr "このコンピューターへの独立した接続を作成しますか？"
@@ -1885,6 +1935,9 @@ msgstr "完全に削除"
 msgid "Delete selection"
 msgstr "選択項目を削除"
 
+msgid "Delete series"
+msgstr "繰り返し全体を削除"
+
 msgid "Delete shift"
 msgstr "シフトを削除"
 
@@ -1909,6 +1962,9 @@ msgstr "この連絡先の履歴を削除します"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "このメモページ（「%(title)s」）を削除しますか？"
+
+msgid "Delete this occurrence"
+msgstr "この回のみ削除"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "このリカバリースナップショットを完全に削除しますか？"
@@ -2988,6 +3044,13 @@ msgstr ""
 "KDE Connect 用 SMS は、インストールされているアプリケーションでのみ使用できま"
 "す。"
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect の機能には、Magnolie Notes ではなく Android の KDE Connect アプリ"
+"が必要です。"
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect のペアリングに失敗しました。"
 
@@ -3076,6 +3139,9 @@ msgstr "遅番"
 msgid "Later occurrence"
 msgstr "後に現れる時刻"
 
+msgid "Later occurrences remain unchanged."
+msgstr "以降の予定は変更されません。"
+
 msgid "Lead time"
 msgstr "事前通知時間"
 
@@ -3133,6 +3199,9 @@ msgstr "読み込み中…"
 
 msgid "Local calendar"
 msgstr "ローカルカレンダー"
+
+msgid "Local edits kept"
+msgstr "ローカルの編集を保持"
 
 msgid "Local image"
 msgstr "ローカル画像"
@@ -3286,6 +3355,9 @@ msgstr "手動の代替値"
 msgid "Manual only"
 msgstr "手動のみ"
 
+msgid "Manual synchronization"
+msgstr "手動同期"
+
 msgid "Manually"
 msgstr "手動"
 
@@ -3326,6 +3398,16 @@ msgid ""
 msgstr ""
 "メディア操作を利用できません。接続と電話のメディアアプリを確認してください。"
 
+msgid ""
+"Media files use the saved recycle-bin retention period. Never means manual "
+"removal only. Restoring never replaces an existing file."
+msgstr ""
+"メディアには保存済みのゴミ箱保存期間が適用されます。「無期限」では手動でのみ"
+"削除されます。復元時に既存ファイルを置き換えることはありません。"
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "メディア操作は一時停止しました。完了は確認されていません。"
+
 msgid "Media player"
 msgstr "メディアプレーヤー"
 
@@ -3334,6 +3416,25 @@ msgstr "メディアプレーヤーの設定を適用できませんでした。
 
 msgid "Media players"
 msgstr "メディアプレーヤー"
+
+msgid "Media recycle bin"
+msgstr "メディアのゴミ箱"
+
+msgid ""
+"Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr ""
+"メディアのゴミ箱を読み込みました。完全な削除にはネイティブ画面での確認が必要"
+"です。"
+
+msgid ""
+"Media recycle-bin operation finished. Read the entries again before another "
+"operation."
+msgstr ""
+"メディアのゴミ箱の操作が完了しました。次の操作の前に項目を再読み込みしてくだ"
+"さい。"
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "この接続ではまだメディアを転送できません。"
 
 msgid "Medication"
 msgstr "薬"
@@ -3449,6 +3550,9 @@ msgstr "月表示"
 msgid "Monthly weekday"
 msgstr "毎月の曜日"
 
+msgid "More albums"
+msgstr "他のアルバム"
+
 msgid "More fields"
 msgstr "その他の項目"
 
@@ -3528,6 +3632,12 @@ msgstr "聖名祝日"
 
 msgid "Name of this branch"
 msgstr "このブランチの名前"
+
+msgid "Native media connection is unavailable."
+msgstr "ネイティブのメディア接続は利用できません。"
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "ネイティブ設定を読み込みました。転送は開始していません。"
 
 msgid "Netherlands"
 msgstr "オランダ"
@@ -3612,6 +3722,9 @@ msgstr "次へ"
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "次の予定：%(title)s、%(date)s%(time)s%(notice)s"
 
+msgid "Next entries"
+msgstr "次の項目"
+
 msgid "Next month"
 msgstr "次の月"
 
@@ -3670,6 +3783,9 @@ msgstr "この連絡先には WhatsApp プロフィールがありません。"
 msgid "No Windows dictionary is installed for this language."
 msgstr "この言語の Windows 辞書がインストールされていません。"
 
+msgid "No active media operation."
+msgstr "実行中のメディア操作はありません。"
+
 msgid "No address books found."
 msgstr "アドレス帳が見つかりませんでした。"
 
@@ -3700,6 +3816,9 @@ msgstr "日付の記録なし"
 
 msgid "No default voice subscription is available."
 msgstr "既定の音声契約がありません。"
+
+msgid "No destination selected"
+msgstr "保存先が選択されていません"
 
 msgid "No due date"
 msgstr "期限なし"
@@ -3782,6 +3901,9 @@ msgstr "写真が選択されていません"
 
 msgid "No public IP address was found."
 msgstr "公開 IP アドレスが見つかりませんでした。"
+
+msgid "No retained media entries on this page."
+msgstr "このページに保持されたメディア項目はありません。"
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "この血糖値に該当するスキーム行はありません。"
@@ -4043,6 +4165,13 @@ msgstr ""
 
 msgid "Only personal entries can be sent to Notes."
 msgstr "Notes に送信できるのは個人の項目だけです。"
+
+msgid ""
+"Only synchronize the phone inventory. Local edits are preserved. Deletions "
+"are not synchronized yet."
+msgstr ""
+"スマートフォンの内容のみを同期します。ローカルの編集は保持されます。削除はま"
+"だ同期されません。"
 
 msgid "Only the Notes collection"
 msgstr "Notes コレクションのみ"
@@ -4445,6 +4574,9 @@ msgstr "写真あり"
 msgid "Photo of %(name)s"
 msgstr "%(name)s の写真"
 
+msgid "Photos"
+msgstr "写真"
+
 msgid "Pick up"
 msgstr "迎えに行く"
 
@@ -4694,6 +4826,15 @@ msgstr "このコンピューターに到達可能な IPv4 または IPv6 アド
 msgid "Read Notes WLAN diagnostics"
 msgstr "Notes の Wi-Fi 診断を読み取る"
 
+msgid "Read media recycle bin"
+msgstr "メディアのゴミ箱を読み込み"
+
+msgid "Read photo albums"
+msgstr "写真アルバムを読み込み"
+
+msgid "Read video albums"
+msgstr "動画アルバムを読み込み"
+
 msgid "Ready."
 msgstr "準備完了。"
 
@@ -4719,6 +4860,9 @@ msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "記録済みの時間"
 
+msgid "Recover operation"
+msgstr "操作を復旧"
+
 msgid "Recovery journal"
 msgstr "復元ジャーナル"
 
@@ -4736,6 +4880,9 @@ msgstr "長方形"
 
 msgid "Recycle bin"
 msgstr "ゴミ箱"
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"
 
 msgid "Redo"
 msgstr "やり直す"
@@ -4870,8 +5017,17 @@ msgstr "確認のためもう一度入力"
 msgid "Replace completely"
 msgstr "完全に交換してください"
 
+msgid "Replaced"
+msgstr "置き換え済み"
+
 msgid "Report unusual cycle intervals"
 msgstr "通常と異なる周期の間隔を通知する"
+
+msgid "Request access on phone"
+msgstr "スマートフォンでアクセスを要求"
+
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Android の Magnolie Notes が必要です。KDE Connect は不要です。"
 
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud アカウントが必要です。"
@@ -5487,6 +5643,11 @@ msgstr ""
 "一部の繰り返しルールから各回の予定を計算できません。元のカレンダーデータは保"
 "持されています。"
 
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr ""
+"一部の元の項目が提示されていない可能性があります。アルバムを再読み込みしてく"
+"ださい。"
+
 msgid "Someone"
 msgstr "誰か"
 
@@ -5568,6 +5729,13 @@ msgstr "停止"
 
 msgid "Stop retrying"
 msgstr "再試行を停止"
+
+msgid ""
+"Stopped or incomplete. Original files and recovery history are retained."
+msgstr "停止または未完了です。元のファイルと復元履歴は保持されます。"
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "停止しています… ネイティブ操作の終了を待っています。"
 
 msgid "Street"
 msgstr "通り"
@@ -5675,6 +5843,9 @@ msgstr "今すぐ同期"
 msgid "Synchronize permanently"
 msgstr "常時同期"
 
+msgid "Synchronize photos"
+msgstr "写真を同期"
+
 msgid "Synchronize tasks"
 msgstr "連絡先を同期"
 
@@ -5683,6 +5854,9 @@ msgstr "「%(tab)s」タブのタスクと予定を同期"
 
 msgid "Synchronize tasks and appointments from the custom tab"
 msgstr "カスタムタブのタスクと予定を同期"
+
+msgid "Synchronize videos"
+msgstr "動画を同期"
 
 msgid "Synchronizing …"
 msgstr "同期しています …"
@@ -5934,6 +6108,9 @@ msgstr ""
 "バックアップはローカルのデータ保存場所とは別の場所に保存されるため、常に暗号"
 "化されます。後で復元する際、このパスワードが必要です：\n"
 "%(path)s"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "ブックを保存できませんでした。メディア同期は開始していません。"
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
@@ -6327,6 +6504,10 @@ msgstr "地域設定が無効です。"
 
 msgid "The regional settings could not be saved."
 msgstr "地域設定を保存できませんでした。"
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "代わりの予定は単独の予定です。繰り返しの周期は変わりません。"
 
 msgid "The required recovery snapshot could not be created."
 msgstr "必要な回復スナップショットを作成できませんでした。"
@@ -6757,6 +6938,9 @@ msgstr "失敗が多すぎます。しばらく待ってください。"
 msgid "Too many pairing requests are waiting."
 msgstr "保留中のペアリング要求が多すぎます。"
 
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "保留中の要求が多すぎます。現在の操作の終了を待ってください。"
+
 msgid "Too many regions were selected."
 msgstr "選択した地域が多すぎます。"
 
@@ -6834,6 +7018,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "利用できません"
+
+msgid "Unchanged"
+msgstr "変更なし"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "内容が変わらなければ新たな復元ポイントは作成されません。"
@@ -7049,6 +7236,9 @@ msgstr "インターネット経由"
 msgid "Video player"
 msgstr "動画プレーヤー"
 
+msgid "Videos"
+msgstr "動画"
+
 msgid "Vienna"
 msgstr "ウィーン"
 
@@ -7088,6 +7278,9 @@ msgstr "もう一方のデバイスでの同意を待っています。"
 
 msgid "Waiting for device status"
 msgstr "デバイスの状態を待っています"
+
+msgid "Waiting for native media status"
+msgstr "ネイティブのメディア状態を待っています"
 
 msgid ""
 "Waiting for the mail or fax application. Closing this window does not recall "
@@ -8258,62 +8451,29 @@ msgstr "＋ 予定を追加"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
 
+#~ msgid "Photos and videos"
+#~ msgstr "写真と動画"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "この回のみ削除"
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除され"
+#~ "ません。復元時に既存のファイルを置き換えることはありません。"
 
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "繰り返し全体を削除"
+#~ msgid "Pending recovery"
+#~ msgstr "復元待ち"
 
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "以降の予定は変更されません。"
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "代わりの予定を作成"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "代わりの予定は単独の予定です。繰り返しの周期は変わりません。"
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "代わりの予定の有効な日付と時刻を選択してください。"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "写真と動画"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除されません。復元時に既存のファイルを置き換えることはありません。"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "復元待ち"
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。個別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復元時に既存のファイルを置き換えることはありません。"
+#~ msgid ""
+#~ "Media files use the retention period above, including “Never”. Use "
+#~ "“Delete permanently” to remove an individual media entry now. Restoring "
+#~ "never replaces an existing file."
+#~ msgstr ""
+#~ "メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。"
+#~ "個別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復"
+#~ "元時に既存のファイルを置き換えることはありません。"

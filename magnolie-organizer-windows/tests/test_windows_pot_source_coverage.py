@@ -26,6 +26,11 @@ def test_setup_deferred_literals_are_catalogued(tmp_path):
     assert output.read_bytes() == first
     # msgattrib normalizes wrapping for exact key checks without compiling translations.
     text = subprocess.check_output(["msgattrib", "--no-wrap", str(output)], text=True)
+    # Native media labels live in the existing gettext marker file, not only
+    # direct _ calls. Package regeneration must retain them as well.
+    for label in ("A native media operation is still running.", "Photos",
+                  "Synchronize videos", "Media recycle bin"):
+        assert "msgid " + json.dumps(label) + "\n" in text
     for name in ("FirstRunSetupForm.cs", "FirstRunSetupPhoneServices.cs", "NextcloudMailbox.cs"):
         source = (ROOT / name).read_text(encoding="utf-8")
         literals = module.deferred_literals(name, source)

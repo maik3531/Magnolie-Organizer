@@ -9742,3 +9742,223 @@ msgstr "पुनर्स्थापना लंबित"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "मीडिया फ़ाइलों पर ऊपर निर्धारित रखने की अवधि लागू होती है, जिसमें “कभी नहीं” भी शामिल है। किसी एक मीडिया प्रविष्टि को अभी हटाने के लिए “स्थायी रूप से हटाएँ” का उपयोग करें। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "A native media operation is still running."
+msgstr "एक स्थानीय मीडिया कार्य अभी चल रहा है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Album selection changed. Read the albums again."
+msgstr "एल्बम का चयन बदल गया है। एल्बम फिर पढ़ें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "स्वचालित सामग्री तुलना पर ध्यान देना आवश्यक है। किसी विलोपन के पूरा होने की पुष्टि नहीं हुई।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "स्वचालित चक्र ने हर मीडिया प्रकार का एक एल्बम जाँचा। अन्य एल्बम बाद में आएँगे; विलोपन अभी लंबित हैं।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "स्वचालित समन्वयन रुका हुआ है। जारी रखने के लिए मैनुअल मोड चुनें और इसे फिर सक्षम करें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "स्वचालित समन्वयन चुना गया है, लेकिन अभी उपलब्ध नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "फ़ोन पर पहुँच का अनुरोध देखें, फिर एल्बम दोबारा पढ़ें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "तुलना के लिए एल्बम चुनें। अधूरा कैटलॉग कभी विलोपन का प्रमाण नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Choose destination…"
+msgstr "गंतव्य चुनें…"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Comparing media content… The total is not known yet."
+msgstr "मीडिया सामग्री की तुलना जारी है… कुल संख्या अभी ज्ञात नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison finished."
+msgstr "सामग्री की तुलना पूरी हुई।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Content comparison needs review."
+msgstr "सामग्री की तुलना की समीक्षा आवश्यक है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Local edits kept"
+msgstr "स्थानीय बदलाव सुरक्षित रखे गए"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Manual synchronization"
+msgstr "मैनुअल समन्वयन"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
+msgstr "मीडिया फ़ाइलों पर कूड़ेदान की सहेजी गई संरक्षण अवधि लागू होती है। कभी नहीं का अर्थ केवल मैनुअल हटाना है। बहाली कभी मौजूदा फ़ाइल नहीं बदलती।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media operation paused. No completion was confirmed."
+msgstr "मीडिया कार्य रुका हुआ है। पूरा होने की पुष्टि नहीं हुई।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin"
+msgstr "मीडिया कूड़ेदान"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
+msgstr "मीडिया कूड़ेदान पढ़ लिया गया। स्थायी रूप से हटाने के लिए ऐप में पुष्टि आवश्यक है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media recycle-bin operation finished. Read the entries again before another operation."
+msgstr "मीडिया कूड़ेदान का कार्य पूरा हुआ। अगले कार्य से पहले प्रविष्टियाँ फिर पढ़ें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Media transfer is not available on this connection yet."
+msgstr "इस कनेक्शन पर मीडिया स्थानांतरण अभी उपलब्ध नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "More albums"
+msgstr "और एल्बम"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native media connection is unavailable."
+msgstr "ऐप का मीडिया कनेक्शन उपलब्ध नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Native settings loaded. No transfer has been started."
+msgstr "ऐप की सेटिंग पढ़ ली गईं। कोई स्थानांतरण शुरू नहीं हुआ।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Next entries"
+msgstr "अगली प्रविष्टियाँ"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No active media operation."
+msgstr "कोई मीडिया कार्य सक्रिय नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No destination selected"
+msgstr "कोई गंतव्य नहीं चुना गया"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "No retained media entries on this page."
+msgstr "इस पृष्ठ पर कोई सुरक्षित मीडिया प्रविष्टि नहीं है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "केवल फ़ोन की सामग्री का समन्वयन करें। स्थानीय बदलाव सुरक्षित रहते हैं। विलोपन का समन्वयन अभी नहीं होता।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Photos"
+msgstr "फ़ोटो"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read media recycle bin"
+msgstr "मीडिया कूड़ेदान पढ़ें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read photo albums"
+msgstr "फ़ोटो एल्बम पढ़ें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Read video albums"
+msgstr "वीडियो एल्बम पढ़ें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Recover operation"
+msgstr "कार्य पुनर्प्राप्त करें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Replaced"
+msgstr "बदले गए"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Request access on phone"
+msgstr "फ़ोन पर पहुँच माँगें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "स्रोत की कुछ प्रविष्टियाँ शायद पेश नहीं की गईं। एल्बम फिर पढ़ें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "रुका हुआ या अधूरा। मूल फ़ाइलें और पुनर्प्राप्ति इतिहास सुरक्षित हैं।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "रोका जा रहा है… ऐप का कार्य समाप्त होने की प्रतीक्षा है।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Synchronize videos"
+msgstr "वीडियो का समन्वयन करें"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "पुस्तक सहेजी नहीं जा सकी। मीडिया समन्वयन शुरू नहीं हुआ।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "बहुत अधिक अनुरोध लंबित हैं। मौजूदा कार्य पूरा होने की प्रतीक्षा करें।"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Unchanged"
+msgstr "अपरिवर्तित"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Videos"
+msgstr "वीडियो"
+
+
+#. Native media UI package completeness (Refs #330, #392).
+msgid "Waiting for native media status"
+msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"
