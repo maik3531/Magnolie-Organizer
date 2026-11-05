@@ -272,6 +272,13 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);
     runner.Add("Media backup bytes / Windows bounded abort and held source exclusion", DeviceFileBackupBytesTests.WindowsAbortAsync);
     runner.Add("Media backup bytes / Windows verified empty independent object", DeviceFileBackupBytesTests.WindowsEmptyAsync);
+    runner.Add("Media backup catalog / Windows actual Saved dedup across names and new restore", DeviceFileBackupCatalogTests.WindowsDedupAsync);
+    runner.Add("Media backup catalog / Windows different bytes versions and PC edits HOLD", DeviceFileBackupCatalogTests.WindowsDifferentVersionsAsync);
+    runner.Add("Media backup catalog / Windows partial registered candidate same FID resume", DeviceFileBackupCatalogTests.WindowsInterruptedAsync);
+    runner.Add("Media backup catalog / Windows corrupt candidate prefix preserved HOLD", DeviceFileBackupCatalogTests.WindowsCorruptCandidateAsync);
+    runner.Add("Media backup catalog / Windows foreign Backup folder never adopted", DeviceFileBackupCatalogTests.WindowsForeignFolderAsync);
+    runner.Add("Media backup catalog / Windows local restore after source and connection gone", DeviceFileBackupCatalogTests.WindowsLocalRestoreAsync);
+    runner.Add("Media backup catalog / Windows corrupt object snapshot anchor HOLD", DeviceFileBackupCatalogTests.WindowsCorruptionAsync);
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
     runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);

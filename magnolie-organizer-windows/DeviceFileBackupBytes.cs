@@ -41,7 +41,29 @@ internal static class NativeMediaBackupBytes
         ensureNative(); var target = candidate.Observe();
         if (target.Size != 0 || target.Identity == original.Identity)
             throw DeviceFileControl.Error("media_backup_new_candidate_required");
-        for (long offset = 0; offset < size;)
+        return ResumeOwnedCandidate(source, candidate, size, sha256, ensureNative);
+    }
+
+    // Only an exact candidate FID already registered by the protected catalog.
+    // Verify all existing prefix bytes; never truncate or adopt arbitrary data.
+    internal static VerifiedRaw ResumeOwnedCandidate(DeviceFileNativeDirectory.DeviceFileNativeStagedFile source,
+        DeviceFileNativeDirectory.DeviceFileNativeStagedFile candidate, long size, string sha256, Action ensureNative)
+    {
+        var original = Verify(source, size, sha256, ensureNative);
+        ensureNative(); var target = candidate.Observe();
+        if (target.Size > size || target.Identity == original.Identity) throw DeviceFileControl.Error("media_backup_original_candidate_changed");
+        for (long offset = 0; offset < target.Size;)
+        {
+            ensureNative(); var count = (int)Math.Min(DeviceFileManifest.ChunkBytes, target.Size - offset);
+            var expected = source.ReadExact(offset, count); var actual = candidate.ReadExact(offset, count);
+            try
+            {
+                if (!CryptographicOperations.FixedTimeEquals(expected, actual)) throw DeviceFileControl.Error("media_backup_original_candidate_changed");
+                offset += count;
+            }
+            finally { CryptographicOperations.ZeroMemory(expected); CryptographicOperations.ZeroMemory(actual); }
+        }
+        for (long offset = target.Size; offset < size;)
         {
             ensureNative();
             var bytes = source.ReadExact(offset, (int)Math.Min(DeviceFileManifest.ChunkBytes, size - offset));
