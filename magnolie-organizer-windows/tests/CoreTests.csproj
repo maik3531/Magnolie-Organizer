@@ -46,6 +46,7 @@
     <Compile Include="..\PhotoSyncPlan.cs" Link="PhotoSyncPlan.cs" />
     <Compile Include="..\DeviceFileControl.cs" Link="DeviceFileControl.cs" />
     <Compile Include="..\DeviceFileBackupMaintenance.cs" Link="DeviceFileBackupMaintenance.cs" />
+    <Compile Include="..\DeviceFileBackupBytes.cs" Link="DeviceFileBackupBytes.cs" />
     <Compile Include="..\DeviceFileConnectionMetadata.cs" Link="DeviceFileConnectionMetadata.cs" />
     <Compile Include="..\DeviceFileControlEnvelope.cs" Link="DeviceFileControlEnvelope.cs" />
     <Compile Include="..\DeviceFileStoreIdentity.cs" Link="DeviceFileStoreIdentity.cs" />

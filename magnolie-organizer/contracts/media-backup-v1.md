@@ -68,6 +68,15 @@ source inventory, Saved/END message or permission to modify a phone.
 
 ## Delivery boundary
 
+Windows also has passive native maintenance-policy/resource observations and
+held-file-ID raw copy/readback/new-file restore primitives. Native Windows tests
+exercise multi-chunk original-byte round trips, distinct object identities,
+occupied targets, stale selections, cancellation, held-source write exclusion
+and empty objects. These primitives do not create or authenticate a Windows
+backup catalog, select shared objects, schedule work or implement XZ. The catalog
+must durably register each new candidate identity before copying; raw byte IO
+itself cannot authorize publication or retirement.
+
 The Linux storage/codec/resource-probe components have focused native-file and
 protected-Saved-mapping tests. This contract does **not** claim the automatic
 application scheduler, graphical backup management, Windows storage backend,

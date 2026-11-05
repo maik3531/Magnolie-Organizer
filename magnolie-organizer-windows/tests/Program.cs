@@ -268,6 +268,10 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
+    runner.Add("Media backup bytes / Windows held FID independent copy and new restore", DeviceFileBackupBytesTests.WindowsCopyRestoreAsync);
+    runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);
+    runner.Add("Media backup bytes / Windows bounded abort and held source exclusion", DeviceFileBackupBytesTests.WindowsAbortAsync);
+    runner.Add("Media backup bytes / Windows verified empty independent object", DeviceFileBackupBytesTests.WindowsEmptyAsync);
     runner.Add("Device file native directory / Windows actual handle and identity", DeviceFileNativeDirectoryTests.WindowsHandleAsync);
     runner.Add("Device file native directory / Windows actual reparse rejection", DeviceFileNativeDirectoryTests.WindowsReparseAsync);
     runner.Add("Device file native receive / Windows actual no-replace publication", DeviceFileNativeReceiveTests.WindowsPublicationAsync);
