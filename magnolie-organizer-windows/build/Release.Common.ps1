@@ -121,6 +121,23 @@ function Get-ReleaseArchiveSources([string] $Root) {
         Assert-SourceFileSafe $file
         [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/web/$relative" }
     }
+    # These reviewed shared regressions are part of tests/run.js. Standalone
+    # source archives must carry them instead of reaching outside the archive.
+    $sharedTests = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer/pruefungen'
+    if (-not (Test-Path -LiteralPath $sharedTests -PathType Container)) { $sharedTests = Join-Path $Root 'shared/magnolie-organizer/pruefungen' }
+    foreach ($name in 'phone-personal-status-ui.cjs', 'appointment-occurrence-delete.cjs', 'appointment-replacement.cjs', 'waste-holiday-authority.cjs', 'media-trash-ui.cjs') {
+        $file = Get-Item -LiteralPath (Join-Path $sharedTests $name)
+        Assert-SourceFileSafe $file
+        [pscustomobject]@{ Source = $file.FullName; Relative = "shared/magnolie-organizer/pruefungen/$name" }
+    }
+    $sharedTools = Join-Path (Split-Path -Parent $Root) 'tools'
+    if (-not (Test-Path -LiteralPath $sharedTools -PathType Container)) { $sharedTools = Join-Path $Root 'shared/tools' }
+    foreach ($name in 'media_trash_locales.json', 'media_trash_retention_locales.json') {
+        $file = Get-Item -LiteralPath (Join-Path $sharedTools $name)
+        Assert-SourceFileSafe $file
+        [void]([IO.File]::ReadAllText($file.FullName) | ConvertFrom-Json)
+        [pscustomobject]@{ Source = $file.FullName; Relative = "shared/tools/$name" }
+    }
     $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
     if (-not (Test-Path -LiteralPath $contracts -PathType Container)) { $contracts = Join-Path $Root 'contracts' }
     foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {

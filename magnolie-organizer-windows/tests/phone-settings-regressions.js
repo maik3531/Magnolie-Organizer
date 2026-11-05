@@ -86,19 +86,25 @@ if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) {
     w.eval(fs.readFileSync(path.join(web, 'i18n.js'), 'utf8')); w.MagnolieI18n.setLocale('en');
     w.eval(source); w.document.dispatchEvent(new w.Event('DOMContentLoaded')); w.App.init({ daten: {}, neu: false });
     w.App.telefonStand({ peers: [configured] });
-    w.OrganizerTest.oeffneGeraeteDialog({ kennung: configured.device_id, name: 'Fixture' });
+    w.OrganizerTest.oeffneEinstellungen(); w.document.querySelector('#einst-tab-baum').click();
     const noteCheckbox = w.document.querySelector('[data-personal-grant-name="personal_notes_sync"]');
-    const autoCheckbox = w.document.querySelector('[data-personal-auto-peer]');
-    const skipCheckbox = w.document.querySelector('[data-personal-skip-deletions-peer]');
-    const action = w.document.querySelector('[data-personal-sync-action]');
+    let autoCheckbox, skipCheckbox, action;
+    const currentControls = () => {
+      autoCheckbox = w.document.querySelector('[data-personal-auto-peer]');
+      skipCheckbox = w.document.querySelector('[data-personal-skip-deletions-peer]');
+      action = w.document.querySelector('[data-personal-sync-action]');
+    };
+    currentControls();
     assert.equal(noteCheckbox, null, 'the duplicate note-scope checkbox must be gone');
     assert.ok(autoCheckbox && skipCheckbox && action);
     assert.equal(skipCheckbox.checked, true); assert.equal(autoCheckbox.checked, false); assert.equal(action.disabled, true);
     const changed = { ...commonNotes, auto_wifi: true, local_grants: { grants: {
       personal_notes_sync: true, personal_tasks_sync: true, personal_deletions_sync: true } } };
     w.App.telefonStand({ peers: [changed] });
+    currentControls();
     assert.equal(skipCheckbox.checked, false); assert.equal(autoCheckbox.checked, true); assert.equal(action.disabled, false);
     w.App.telefonStand({ peers: [{ ...configured, remote_own_device: true }] });
+    currentControls();
     assert.equal(skipCheckbox.checked, true); assert.equal(autoCheckbox.checked, false); assert.equal(action.disabled, true);
     const before = sent.length;
     autoCheckbox.checked = true; autoCheckbox.dispatchEvent(new w.Event('change'));
@@ -110,10 +116,11 @@ if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) {
     w.App.telefonStand({ peers: [{ ...changed, local_grants: { grants: {
       personal_notes_sync: true, personal_tasks_sync: true, personal_deletions_sync: false } } }] });
     await new Promise(resolve => setTimeout(resolve, 10));
-    const custom = w.document.querySelector('[data-personal-custom-peer]');
+    let custom = w.document.querySelector('[data-personal-custom-peer]');
     assert.equal(custom.parentElement.hidden, true, 'Custom option must be hidden without its tab');
     w.OrganizerTest.daten().einstellungen.allgemein.customTab.enabled = true;
     w.App.telefonStand({ peers: [changed] });
+    custom = w.document.querySelector('[data-personal-custom-peer]');
     assert.equal(custom.parentElement.hidden, false, 'existing Custom tab must expose its option');
     const advertised = sent.filter(message => message.cmd === 'personal_sync_desktop_features');
     assert.ok(advertised.at(-1).customTab && advertised.at(-1).baumAktiv === false);

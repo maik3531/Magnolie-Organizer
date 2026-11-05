@@ -34,7 +34,10 @@ for (const test of ["time-zone-planning.js", "time-zone-settings.js", "ui-bugfix
      console.log("NOT APPLICABLE contact-provider-review.js: Linux EDS/DAV adapter; Windows native conflicts have their own test.");
      continue;
    }
-   const result = spawnSync(process.execPath, [path.join(__dirname, test),
+    const canonicalTest = path.join(__dirname, test);
+    const testPath = test.startsWith("../../magnolie-organizer/pruefungen/") && !fs.existsSync(canonicalTest)
+      ? path.join(root, "shared/magnolie-organizer/pruefungen", path.basename(test)) : canonicalTest;
+    const result = spawnSync(process.execPath, [testPath,
     ...(test === "aur-sms-regressions.js" ? [] : [version, installerName])], {
     stdio: "inherit",
     env: { ...process.env, MAGNOLIE_PYTHON: python }

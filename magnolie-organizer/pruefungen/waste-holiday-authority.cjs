@@ -1,6 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),Module=require("node:module"),assert=require("node:assert/strict");
-const source=path.resolve(__dirname,"../../magnolie-organizer-windows/tests/desktop-state-regressions.js");
+const canonicalHarness=path.resolve(__dirname,"../../magnolie-organizer-windows/tests/desktop-state-regressions.js");
+const source=fs.existsSync(canonicalHarness)?canonicalHarness:path.resolve(__dirname,"../../../tests/desktop-state-regressions.js");
 const harness=new Module(source,module);harness.filename=source;harness.paths=Module._nodeModulePaths(path.dirname(source));
 harness._compile(fs.readFileSync(source,"utf8").split("async function run(web)")[0]+"\nmodule.exports={boot,roots};",source);
 const group={id:"waste-fixture",von:"2026-12-25",name:"Synthetic waste",intervallTage:7,art:"residual",farbe:"#4c4b47"};

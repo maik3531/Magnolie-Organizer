@@ -1,6 +1,7 @@
 "use strict";
 const fs=require("node:fs"), path=require("node:path"), Module=require("node:module"), assert=require("node:assert/strict");
-const harnessPath=path.resolve(__dirname,"../../magnolie-organizer-windows/tests/desktop-state-regressions.js");
+const canonicalHarness=path.resolve(__dirname,"../../magnolie-organizer-windows/tests/desktop-state-regressions.js");
+const harnessPath=fs.existsSync(canonicalHarness)?canonicalHarness:path.resolve(__dirname,"../../../tests/desktop-state-regressions.js");
 const harness=new Module(harnessPath,module);
 harness.filename=harnessPath;harness.paths=Module._nodeModulePaths(path.dirname(harnessPath));
 harness._compile(fs.readFileSync(harnessPath,"utf8").split("async function run(web)")[0]+"\nmodule.exports={boot,roots};",harnessPath);

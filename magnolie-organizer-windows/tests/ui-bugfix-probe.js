@@ -60,23 +60,25 @@ window.uiBugfixPrepare = function (locale, screen) {
     uiCheck(before === JSON.stringify(data.customOrganizer.modules.map(m => m.id)), "Checkbox activated Remove");
   } else {
     data.einstellungen.allgemein.customTab.name = "Tagebuch";
+    OrganizerTest.oeffneEinstellungen(); document.querySelector("#einst-tab-baum").click();
+    const currentCustom = () => document.querySelector('.telefon-karte [data-personal-custom-peer]');
+    let panel = document.querySelector(".telefon-karte .telefon-personal-sync"); panel.open = true;
+    uiCheck(currentCustom().parentElement.textContent.includes("Tagebuch"), "Phone-settings label does not use the current tab name");
     OrganizerTest.oeffneGeraeteDialog({ kennung: uiPeer.device_id, name: "Synthetic phone", status: { online: true, battery_percent: 75 } });
-    const panel = document.querySelector(".telefon-personal-sync"); panel.open = true;
-    const custom = panel.querySelector("[data-personal-custom-peer]");
-    uiCheck(custom.parentElement.textContent.includes("Tagebuch"), "Device label does not use the current tab name");
+    uiCheck(!document.querySelector('#geraet-dialog .telefon-personal-sync'), "Personal settings returned to device status");
     uiCheck(!document.querySelector('[data-geraet="storage"], [data-geraet="memory"]'), "Redundant available/total device rows remain");
     const unsafe = 'New <b>&"$&%(tab)s';
     data.einstellungen.allgemein.customTab.name = unsafe;
     App.telefonStand({ enabled: false, peers: [uiPeer], kdeconnect: { available: false } });
-    uiCheck(custom.parentElement.textContent.includes(unsafe) && !custom.parentElement.querySelector("b"),
+    uiCheck(currentCustom().parentElement.textContent.includes(unsafe) && !currentCustom().parentElement.querySelector("b"),
       "Tab name must refresh as literal text, not HTML or a replacement template");
     data.einstellungen.allgemein.customTab.name = "";
     App.telefonStand({ enabled: false, peers: [uiPeer], kdeconnect: { available: false } });
-    uiCheck(custom.parentElement.textContent.trim() === MagnolieI18n.gettext("Synchronize tasks and appointments from the custom tab"),
+    uiCheck(currentCustom().parentElement.textContent.trim() === MagnolieI18n.gettext("Synchronize tasks and appointments from the custom tab"),
       "Unnamed custom tab needs the localized generic description");
     data.einstellungen.allgemein.customTab.name = "Tagebuch";
     App.telefonStand({ enabled: false, peers: [uiPeer], kdeconnect: { available: false } });
-    panel.scrollIntoView({ block: "end" });
+    panel = document.querySelector(".telefon-karte .telefon-personal-sync"); panel.open = true;
   }
   return true;
 }

@@ -36,6 +36,12 @@ try {
         Write-Fixture (Join-Path $root $relative)
     }
     Write-Fixture (Join-Path $root 'Directory.Build.props') "<Project><PropertyGroup><Version>$version</Version></PropertyGroup></Project>"
+    foreach ($name in 'phone-personal-status-ui.cjs', 'appointment-occurrence-delete.cjs', 'appointment-replacement.cjs', 'waste-holiday-authority.cjs', 'media-trash-ui.cjs') {
+        Write-Fixture (Join-Path $root "shared/magnolie-organizer/pruefungen/$name") '// Synthetic shared regression'
+    }
+    foreach ($name in 'media_trash_locales.json', 'media_trash_retention_locales.json') {
+        Write-Fixture (Join-Path $root "shared/tools/$name") '{"synthetic":true}'
+    }
     foreach ($name in 'ProfileLease.cs', 'SmsSubmissionJournal.cs', 'BaumReceipt.cs', 'CloudBackupWorker.cs',
         'FirstRunSetupPhoneServices.cs', 'FirstRunPhoneStartup.cs', 'TelefonInvitation.cs',
         'WindowsCallNotifications.cs', 'TelefonCallActions.cs') {
