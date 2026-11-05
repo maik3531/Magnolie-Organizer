@@ -160,6 +160,10 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     internal fun sharedSettingsStorage(binding: () -> SharedSettingsBinding?, restoreBlocked: () -> Boolean) =
         SharedSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked)
 
+    internal fun mediaSettingsStorage(binding: () -> MediaSettingsBinding?, restoreBlocked: () -> Boolean,
+        legacyProjection: (MediaSettingsBinding) -> JsonObject = { MediaSyncSettings.create(it.localActor) }) =
+        MediaSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked, legacyProjection)
+
     internal fun actorJournal(sourceLock: Any, bookLock: Any, currentSource: (String, String) -> String?) =
         PersonalSyncActorJournal(helper, storage, currentSource, restoreEpoch, sourceLock = sourceLock, bookLock = bookLock)
 
