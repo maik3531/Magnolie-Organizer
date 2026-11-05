@@ -44,19 +44,23 @@ internal static class DeviceFileUiTests
         TestAssert.That(f.Current() is not null, "Fresh explicit UI choice and correlated ACK did not renew data readiness.");
         using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
         var status = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
-        TestAssert.That(status["videos"]!.GetValue<bool>() == false && status["automatic"]!.GetValue<bool>() == false && status["skip_deletions"]!.GetValue<bool>() &&
-            !status["deletions_ready"]!.GetValue<bool>() && !status["metadata_ready"]!["images"]!.GetValue<bool>(), "Native UI status invented video/automatic/deletion/online readiness.");
+        TestAssert.That(!status["supported"]!.GetValue<bool>(), "Offline/unacknowledged native media UI was shown as available.");
+        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        online.Add(f.Native.Peer.Id, f.Native.Connection);
+        status = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
+        TestAssert.That(status["supported"]!.GetValue<bool>() && status["videos"]!.GetValue<bool>() == false && status["automatic"]!.GetValue<bool>() == false &&
+            status["skip_deletions"]!.GetValue<bool>() && !status["deletions_ready"]!.GetValue<bool>(), "Native UI invented video/automatic/deletion readiness.");
         var expected = status["version"]!.GetValue<string>();
         TestAssert.Throws<InvalidDataException>(() => coordinator.SetNativeMediaUiChoices(f.Native.Peer.Id, expected, false, false, false), "UI preferences bypassed actual saved native book ownership.");
         const string text = "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "ui-book"), text);
         coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
-        var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
-        online.Add(f.Native.Peer.Id, f.Native.Connection);
         coordinator.SetNativeMediaUiChoices(f.Native.Peer.Id, expected, false, false, false);
         var choices = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
         TestAssert.That(choices.DeleteFromDesktop && choices.DeleteFromPhone && !choices.AutomaticWifi && !choices.VideosEnabled && f.Current() is null,
             "The single deletion choice diverged, enabled automatic/video, or historical permission survived a settings change.");
+        f.Native.Connection.Dispose();
+        TestAssert.That(!coordinator.NativeMediaUiStatus(f.Native.Peer.Id)["supported"]!.GetValue<bool>(), "A closed native route kept an unavailable media section visible.");
     }
 
     internal static async Task WindowsUiActualDiscoveryAsync()

@@ -5,6 +5,11 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonConnection
 {
+    internal bool NativeMediaUiMetadataAvailable(bool videos = false)
+    {
+        lock (fileRouteGate) if (disposed || fileRouteFaulted) return false;
+        return FileMetadataReady(videos);
+    }
     private sealed class NativeMediaUiAuthority(TelefonStore store, string peerId, Func<NativeBookSaveState?> savedBook)
     {
         private readonly object gate = new();
@@ -100,8 +105,14 @@ internal sealed partial class TelefonCoordinator
 
     internal JsonObject NativeMediaUiStatus(string peerId)
     {
-        var preference = store.ReadNativeMediaPreferences(peerId);
         TelefonConnection? connection; lock (gate) online.TryGetValue(peerId, out connection);
+        var imagesReady = connection?.NativeMediaUiMetadataAvailable() == true;
+        // Unsupported, disabled and not-yet-acknowledged peers have no advanced
+        // media section. A claimed version or compiled implementation alone is
+        // deliberately not a positive native availability projection.
+        if (!imagesReady) return new JsonObject { ["supported"] = false };
+        var videosReady = connection!.NativeMediaUiMetadataAvailable(videos: true);
+        var preference = store.ReadNativeMediaPreferences(peerId);
         JsonNode? Destination(string kind)
         {
             var value = store.ReadNativeMediaDestination(peerId, kind);
@@ -110,7 +121,7 @@ internal sealed partial class TelefonCoordinator
         return new JsonObject { ["supported"] = true, ["photos"] = preference.PhotosEnabled, ["videos"] = preference.VideosEnabled,
             ["automatic"] = preference.AutomaticWifi, ["skip_deletions"] = preference.SkipDeletions is bool skip ? JsonValue.Create(skip) : null,
             ["version"] = preference.Version, ["pictures"] = Destination("images"), ["video_destination"] = Destination("video"),
-            ["metadata_ready"] = new JsonObject { ["images"] = connection?.FileMetadataReady() == true, ["video"] = connection?.FileMetadataReady(videos: true) == true },
+            ["metadata_ready"] = new JsonObject { ["images"] = imagesReady, ["video"] = videosReady },
             ["busy"] = Volatile.Read(ref nativeMediaWorker) != 0, ["deletions_ready"] = false, ["automatic_ready"] = false };
     }
 

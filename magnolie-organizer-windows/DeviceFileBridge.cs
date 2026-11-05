@@ -112,7 +112,8 @@ internal sealed partial class BridgeDispatcher
         catch (Exception error)
         {
             await ReportErrorAsync("telefon_medien", error.ToString());
-            await Reply(new { requestId, device_id = peerId, ok = false, state = "held", error = error is InvalidDataException ? error.Message : "file_media_native_operation_failed" });
+            await Reply(new { requestId, device_id = peerId, ok = false, supported = Text(message, "action") == "status" ? false : (bool?)null,
+                state = "held", error = error is InvalidDataException ? error.Message : "file_media_native_operation_failed" });
         }
     }
 }

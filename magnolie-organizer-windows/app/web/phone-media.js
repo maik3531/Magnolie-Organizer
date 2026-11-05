@@ -24,6 +24,7 @@
       const b = node("button", text); b.type = "button"; b.addEventListener("click", action); parent.append(b); allButtons.push(b); return b;
     };
     const toggle = () => {
+      for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
       for (const b of allButtons) b.disabled = busy;
       photos.disabled = videos.disabled = skip.disabled = busy || !native;
       for (const entry of actions) entry.button.disabled = busy || native?.metadata_ready?.[entry.mediaType] !== true || !native?.[entry.mediaType === "video" ? "videos" : "photos"] || !native?.[entry.key];
@@ -70,7 +71,12 @@
     const stop = button("Stop", () => request("cancel", {}, false));
     refresh = button("Refresh", () => request("status", {}, false));
     function receive(reply, action) {
-      if (reply.supported === false) { root.hidden = true; return; }
+      if (reply.supported === false) {
+        root.hidden = true; native = null; busy = transfer = false; catalog = null;
+        albumList.replaceChildren(); review.replaceChildren(); more.hidden = permission.hidden = true; toggle(); return;
+      }
+      if (!native && reply.supported !== true && action !== "status") return;
+      if (!native && !reply.ok) return;
       root.hidden = false;
       if (reply.state === "running" || reply.state === "stopping") {
         busy = true; toggle(); status.textContent = t(reply.state === "stopping" ? "Stopping… Waiting for the native operation to end." : "Comparing media content… The total is not known yet."); return;
@@ -84,6 +90,11 @@
       if (reply.canceled) { toggle(); return; }
       if (action === "status" || action === "settings" || action === "pick_destination") {
         native = reply; photos.checked = !!reply.photos; videos.checked = !!reply.videos;
+        const videoAvailable = reply.metadata_ready?.video === true;
+        videos.parentElement.hidden = !videoAvailable;
+        destinations.querySelector('[data-destination="video"]').parentElement.hidden = !videoAvailable;
+        actions.find(entry => entry.mediaType === "video").button.hidden = !videoAvailable;
+        title.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
         busy = !!reply.busy || !!reply.transfer_busy;
         transfer = !!reply.transfer_busy;
         skip.indeterminate = reply.skip_deletions === null; skip.checked = reply.skip_deletions !== false;

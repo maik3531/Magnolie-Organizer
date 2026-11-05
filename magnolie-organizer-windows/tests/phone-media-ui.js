@@ -28,8 +28,11 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(last().action, "settings"); assert.equal(last().videos, false); assert.equal(last().skip_deletions, true);
   const enabled = { ...withRoot, photos: true, version: "b".repeat(64) }; reply(enabled);
   assert(buttons("Read video albums")[0].disabled); assert(!buttons("Read photo albums")[0].disabled);
-  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, metadata_ready: { images: false, video: false } });
-  assert(buttons("Read photo albums")[0].disabled); assert(panel.textContent.includes("not available on this connection"));
+  buttons("Refresh")[0].click(); await tick(); reply({ supported: false });
+  assert(panel.hidden); assert(buttons("Read photo albums")[0].disabled);
+  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, metadata_ready: { images: true, video: false } });
+  assert(!panel.hidden); assert(panel.querySelector('[data-media="videos"]').parentElement.hidden);
+  assert(buttons("Read video albums")[0].hidden);
   buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, busy: true, transfer_busy: true });
   assert(!buttons("Refresh")[0].disabled); assert(!buttons("Stop")[0].disabled);
   buttons("Refresh")[0].click(); await tick(); reply(enabled); assert(buttons("Stop")[0].disabled);
