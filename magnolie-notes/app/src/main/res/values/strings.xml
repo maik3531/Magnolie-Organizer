@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Advanced features</string>
     <string name="media_recovery_title">Photo and video recovery</string>
     <string name="media_recovery_hint">Local encrypted recovery copies, also available without the former connection. The recovery copy and existing media are kept when restoring.</string>
     <string name="media_recovery_refresh">Refresh recovery list</string>
@@ -509,4 +510,16 @@
     <string name="shared_sync_time_direction">Time synchronization direction</string>
     <string name="telefon_code_gegenstelle">Confirm this code on the other device.</string>
     <string name="baum_kontakt_gruppen">Contact groups</string>
+    <string name="medien_sync_titel">Photos and videos</string>
+    <string name="medien_sync_aktivieren">Enable photo and video synchronization</string>
+    <string name="medien_sync_scope_phone">Only the phone inventory</string>
+    <string name="medien_sync_scope_all">Entire collection</string>
+    <string name="medien_sync_direction_import">Phone → PC</string>
+    <string name="medien_sync_zugriff">Access rights</string>
+    <string name="medien_sync_einstellungen">Synchronization settings</string>
+    <string name="medien_sync_umfang">Scope</string>
+    <string name="medien_sync_richtung">Direction</string>
+    <string name="medien_sync_fotos">Synchronize photos</string>
+    <string name="medien_sync_videos">Synchronize videos</string>
+    <string name="medien_sync_modus">Synchronization</string>
 </resources>

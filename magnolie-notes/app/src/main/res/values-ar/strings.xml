@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">ميزات متقدمة</string>
     <string name="media_recovery_title">استعادة الصور والفيديوهات</string>
     <string name="media_recovery_hint">نسخ استعادة محلية مشفرة، متاحة أيضًا دون الاتصال السابق. تُحفظ نسخة الاستعادة والوسائط الموجودة عند الاستعادة.</string>
     <string name="media_recovery_refresh">تحديث قائمة الاستعادة</string>
@@ -464,4 +465,16 @@
     <string name="shared_sync_time_direction">اتجاه مزامنة تتبع الوقت</string>
     <string name="telefon_code_gegenstelle">أكّد هذا الرمز على الجهاز الآخر.</string>
     <string name="baum_kontakt_gruppen">مجموعات جهات الاتصال</string>
+    <string name="medien_sync_titel">الصور ومقاطع الفيديو</string>
+    <string name="medien_sync_aktivieren">تفعيل مزامنة الصور والفيديو</string>
+    <string name="medien_sync_scope_phone">محتويات الهاتف فقط</string>
+    <string name="medien_sync_scope_all">المجموعة كاملة</string>
+    <string name="medien_sync_direction_import">الهاتف → الحاسوب</string>
+    <string name="medien_sync_zugriff">صلاحيات الوصول</string>
+    <string name="medien_sync_einstellungen">إعدادات المزامنة</string>
+    <string name="medien_sync_umfang">النطاق</string>
+    <string name="medien_sync_richtung">اتجاه</string>
+    <string name="medien_sync_fotos">مزامنة الصور</string>
+    <string name="medien_sync_videos">مزامنة الفيديوهات</string>
+    <string name="medien_sync_modus">المزامنة</string>
 </resources>

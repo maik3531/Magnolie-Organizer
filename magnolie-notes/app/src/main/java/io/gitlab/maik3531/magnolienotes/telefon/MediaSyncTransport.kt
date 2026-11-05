@@ -4,23 +4,29 @@ import kotlinx.serialization.json.*
 
 /** One authenticated channel, never a file permission or source-worker owner. */
 internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
-    private val storage: MediaSyncStorage, private val queue: TelefonQueue, private val ready: () -> Boolean) {
+    private val storage: MediaSyncStorage, private val queue: TelefonQueue,
+    private val changed: () -> Unit = {}, private val ready: () -> Boolean) {
     private var generation = 0L
     private var sent: JsonObject? = null
     private var acknowledged: JsonObject? = null
     private var received: JsonObject? = null
     private val attempts = mutableMapOf<String, JsonObject>()
+    private var previewPublished = false
 
-    @Synchronized fun invalidate() { generation++; sent = null; acknowledged = null; received = null; attempts.clear() }
+    @Synchronized fun invalidate() {
+        generation++; sent = null; acknowledged = null; received = null; attempts.clear()
+        previewPublished = false; changed()
+    }
 
-    @Synchronized fun matched(): Boolean {
+    @Synchronized fun matched(expected: JsonObject? = null): Boolean {
         if (!ready()) return false
         val body = storage.read(binding) ?: return false
-        return body == sent && body == acknowledged && body == received
+        return (expected == null || expected == body) && body == sent && body == acknowledged && body == received
     }
 
     @Synchronized fun queueSettings() {
         if (!ready()) return
+        if (!previewPublished) { previewPublished = true; changed() }
         val body = storage.read(binding) ?: return
         if (body == sent || queue.hasKind(binding.peerActor, MediaSyncSettings.KIND)) return
         queue.queue(binding.peerActor, MediaSyncSettings.KIND, body, 86_400_000)
@@ -39,6 +45,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
             if (!ready()) { invalidate(); return false }
             if (captured == generation) sent = body
             queue.sent(id, queue.attempts(id))
+            changed()
             return true
         } catch (error: Exception) { invalidate(); throw error }
     }
@@ -48,6 +55,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         val attempted = attempts.remove(message.string("message_id")) ?: return
         if (!ready()) { invalidate(); return }
         acknowledged = attempted.takeIf { message.string("status") in setOf("accepted", "duplicate") && message.string("error") == "none" }
+        changed()
     }
 
     @Synchronized fun receive(message: JsonObject, write: (JsonObject) -> Unit) {
@@ -73,6 +81,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
                 if (captured == generation) received = message.getValue("body").jsonObject
                 if (storage.read(binding) != sent) queue.removeKind(binding.peerActor, MediaSyncSettings.KIND)
                 queueSettings()
+                changed()
             } else invalidate()
         } catch (error: Exception) { invalidate(); throw error }
     }

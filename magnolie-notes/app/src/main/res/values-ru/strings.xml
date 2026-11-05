@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Расширенные функции</string>
     <string name="media_recovery_title">Восстановление фото и видео</string>
     <string name="media_recovery_hint">Локальные зашифрованные копии для восстановления, доступные и без прежнего подключения. При восстановлении копия и существующие медиафайлы сохраняются.</string>
     <string name="media_recovery_refresh">Обновить список восстановления</string>
@@ -436,4 +437,16 @@
     <string name="shared_sync_time_direction">Направление синхронизации учёта времени</string>
     <string name="telefon_code_gegenstelle">Подтвердите этот код на другом устройстве.</string>
     <string name="baum_kontakt_gruppen">Группы контактов</string>
+    <string name="medien_sync_titel">Фото и видео</string>
+    <string name="medien_sync_aktivieren">Включить синхронизацию фото и видео</string>
+    <string name="medien_sync_scope_phone">Только содержимое телефона</string>
+    <string name="medien_sync_scope_all">Вся коллекция</string>
+    <string name="medien_sync_direction_import">Телефон → ПК</string>
+    <string name="medien_sync_zugriff">Права доступа</string>
+    <string name="medien_sync_einstellungen">Настройки синхронизации</string>
+    <string name="medien_sync_umfang">Область</string>
+    <string name="medien_sync_richtung">Направление</string>
+    <string name="medien_sync_fotos">Синхронизировать фотографии</string>
+    <string name="medien_sync_videos">Синхронизировать видео</string>
+    <string name="medien_sync_modus">Синхронизация</string>
 </resources>

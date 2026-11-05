@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Пашыраныя функцыі</string>
     <string name="media_recovery_title">Аднаўленне фота і відэа</string>
     <string name="media_recovery_hint">Лакальныя зашыфраваныя копіі для аднаўлення, даступныя і без ранейшага злучэння. Пры аднаўленні копія і наяўныя медыяфайлы захоўваюцца.</string>
     <string name="media_recovery_refresh">Абнавіць спіс аднаўлення</string>
@@ -443,4 +444,16 @@
     <string name="shared_sync_time_direction">Кірунак сінхранізацыі ўліку часу</string>
     <string name="telefon_code_gegenstelle">Пацвердзіце гэты код на іншай прыладзе.</string>
     <string name="baum_kontakt_gruppen">Групы кантактаў</string>
+    <string name="medien_sync_titel">Фота і відэа</string>
+    <string name="medien_sync_aktivieren">Уключыць сінхранізацыю фота і відэа</string>
+    <string name="medien_sync_scope_phone">Толькі змесціва тэлефона</string>
+    <string name="medien_sync_scope_all">Уся калекцыя</string>
+    <string name="medien_sync_direction_import">Тэлефон → ПК</string>
+    <string name="medien_sync_zugriff">Правы доступу</string>
+    <string name="medien_sync_einstellungen">Налады сінхранізацыі</string>
+    <string name="medien_sync_umfang">Абсяг</string>
+    <string name="medien_sync_richtung">Напрамак</string>
+    <string name="medien_sync_fotos">Сінхранізаваць фатаграфіі</string>
+    <string name="medien_sync_videos">Сінхранізаваць відэа</string>
+    <string name="medien_sync_modus">Сінхранізацыя</string>
 </resources>

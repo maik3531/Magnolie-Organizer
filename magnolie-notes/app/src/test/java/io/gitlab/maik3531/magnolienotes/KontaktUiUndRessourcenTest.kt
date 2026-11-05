@@ -5,6 +5,23 @@ import org.junit.Test
 import java.io.File
 
 class KontaktUiUndRessourcenTest {
+    @Test fun `Synchronisation Erweiterungen und Baum sind getrennt und anfangs geschlossen`() {
+        val ui = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/BaumBlatt.kt").readText()
+        listOf("personalOffen", "erweitertOffen", "baumOffen").forEach { state ->
+            assertTrue(ui.contains("var $state by remember(peerScope) { mutableStateOf(false) }"))
+        }
+        val personal = ui.indexOf("if (personalOffen) Abschnitt(")
+        val erweitert = ui.indexOf("if (erweitertOffen) Abschnitt(")
+        val baum = ui.indexOf("if (!baumOffen) return@Column")
+        assertTrue(personal >= 0 && personal < erweitert && erweitert < baum)
+        assertTrue(ui.substring(personal, erweitert).contains("telefonHandlungen.beiPersonalJetzt"))
+        assertTrue(ui.substring(personal, erweitert).contains("telefonHandlungen.beiKontakteLesen"))
+        assertFalse(ui.substring(erweitert, baum).contains("telefonHandlungen.beiKontakteLesen"))
+        assertTrue(ui.substring(erweitert, baum).contains("MedienSyncEinstellungen"))
+        assertTrue(ui.contains("if (telefon.mediaPreferencesSupported)"))
+        assertTrue(ui.contains("5f * yDpi / 25.4f"))
+        assertTrue(ui.contains("if (customFokus != null) personalOffen = true"))
+    }
     @Test fun `alle zwanzig Sprachen haben denselben uebersetzbaren Schluesselsatz`() {
         val res = File("app/src/main/res")
         val dateien = res.listFiles()!!.filter { it.name == "values" || it.name.startsWith("values-") }

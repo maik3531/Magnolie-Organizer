@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">高度な機能</string>
     <string name="media_recovery_title">写真と動画の復元</string>
     <string name="media_recovery_hint">以前の接続がなくても利用できる、ローカルの暗号化された復元用コピーです。復元時も復元用コピーと既存のメディアは保持されます。</string>
     <string name="media_recovery_refresh">復元リストを更新</string>
@@ -394,4 +395,16 @@
     <string name="shared_sync_time_direction">時間記録の同期方向</string>
     <string name="telefon_code_gegenstelle">もう一方の端末でこのコードを確認してください。</string>
     <string name="baum_kontakt_gruppen">連絡先グループ</string>
+    <string name="medien_sync_titel">写真と動画</string>
+    <string name="medien_sync_aktivieren">写真と動画の同期を有効にする</string>
+    <string name="medien_sync_scope_phone">スマートフォン内の項目のみ</string>
+    <string name="medien_sync_scope_all">コレクション全体</string>
+    <string name="medien_sync_direction_import">スマートフォン → PC</string>
+    <string name="medien_sync_zugriff">アクセス権</string>
+    <string name="medien_sync_einstellungen">同期設定</string>
+    <string name="medien_sync_umfang">範囲</string>
+    <string name="medien_sync_richtung">方向</string>
+    <string name="medien_sync_fotos">写真を同期</string>
+    <string name="medien_sync_videos">動画を同期</string>
+    <string name="medien_sync_modus">同期</string>
 </resources>

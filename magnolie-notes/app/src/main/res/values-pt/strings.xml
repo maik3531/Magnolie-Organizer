@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Funcionalidades avançadas</string>
     <string name="media_recovery_title">Recuperação de fotografias e vídeos</string>
     <string name="media_recovery_hint">Cópias de recuperação locais encriptadas, também disponíveis sem a ligação anterior. A cópia de recuperação e os ficheiros multimédia existentes são preservados ao restaurar.</string>
     <string name="media_recovery_refresh">Atualizar lista de recuperação</string>
@@ -422,4 +423,16 @@
     <string name="shared_sync_time_direction">Direção de sincronização do registo de tempo</string>
     <string name="telefon_code_gegenstelle">Confirme este código no outro dispositivo.</string>
     <string name="baum_kontakt_gruppen">Grupos de contatos</string>
+    <string name="medien_sync_titel">Fotografias e vídeos</string>
+    <string name="medien_sync_aktivieren">Ativar a sincronização de fotografias e vídeos</string>
+    <string name="medien_sync_scope_phone">Apenas o conteúdo do telefone</string>
+    <string name="medien_sync_scope_all">Toda a coleção</string>
+    <string name="medien_sync_direction_import">Telefone → PC</string>
+    <string name="medien_sync_zugriff">Direitos de acesso</string>
+    <string name="medien_sync_einstellungen">Definições de sincronização</string>
+    <string name="medien_sync_umfang">Âmbito</string>
+    <string name="medien_sync_richtung">Direção</string>
+    <string name="medien_sync_fotos">Sincronizar fotografias</string>
+    <string name="medien_sync_videos">Sincronizar vídeos</string>
+    <string name="medien_sync_modus">Sincronização</string>
 </resources>

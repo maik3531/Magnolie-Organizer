@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Розширені функції</string>
     <string name="media_recovery_title">Відновлення фото й відео</string>
     <string name="media_recovery_hint">Локальні зашифровані копії для відновлення, доступні й без попереднього з’єднання. Під час відновлення копія та наявні медіафайли зберігаються.</string>
     <string name="media_recovery_refresh">Оновити список відновлення</string>
@@ -443,4 +444,16 @@
     <string name="shared_sync_time_direction">Напрямок синхронізації обліку часу</string>
     <string name="telefon_code_gegenstelle">Підтвердьте цей код на іншому пристрої.</string>
     <string name="baum_kontakt_gruppen">Групи контактів</string>
+    <string name="medien_sync_titel">Фото й відео</string>
+    <string name="medien_sync_aktivieren">Увімкнути синхронізацію фото й відео</string>
+    <string name="medien_sync_scope_phone">Лише вміст телефону</string>
+    <string name="medien_sync_scope_all">Уся колекція</string>
+    <string name="medien_sync_direction_import">Телефон → ПК</string>
+    <string name="medien_sync_zugriff">Права доступу</string>
+    <string name="medien_sync_einstellungen">Налаштування синхронізації</string>
+    <string name="medien_sync_umfang">Обсяг</string>
+    <string name="medien_sync_richtung">Напрямок</string>
+    <string name="medien_sync_fotos">Синхронізувати фотографії</string>
+    <string name="medien_sync_videos">Синхронізувати відео</string>
+    <string name="medien_sync_modus">Синхронізація</string>
 </resources>

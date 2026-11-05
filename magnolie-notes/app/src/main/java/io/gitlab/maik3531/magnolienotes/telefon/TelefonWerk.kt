@@ -625,18 +625,57 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun mediaTransport(channel: TelefonSecureChannel): MediaSyncTransport? {
         val binding = currentMediaBinding() ?: return null
         if (activeChannel !== channel) return null
-        return mediaSessions.getOrPut(channel) { MediaSyncTransport(binding, mediaPreferences, queue) {
-            synchronized(this) {
-                val peer = safePeer()
-                val session = noteSessions[channel]
-                currentMediaBinding() == binding && activeChannel === channel &&
-                    nativeFileOwnDecisions[channel]?.own == true &&
-                    session?.capabilitiesReceived == true && session.grantsReceived &&
-                    peer?.remote_device_status_available == true && MediaSyncSettings.DISCOVERY_VERSION in peer.remote_device_status_versions &&
-                    MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions &&
-                    Ablage.hole(context).synchronisationsSchreibbar()
-            }
-        } }
+        return mediaSessions.getOrPut(channel) { MediaSyncTransport(binding, mediaPreferences, queue,
+            changed = ::refreshMediaPreferenceState) { mediaSharedControlsReady(channel, binding) } }
+    }
+
+    @Synchronized private fun mediaSharedControlsReady(channel: TelefonSecureChannel, binding: MediaSettingsBinding): Boolean {
+        val peer = safePeer()
+        val session = noteSessions[channel]
+        return currentMediaBinding() == binding && activeChannel === channel &&
+            nativeFileOwnDecisions[channel]?.own == true &&
+            session?.capabilitiesReceived == true && session.grantsReceived &&
+            peer?.remote_device_status_available == true && MediaSyncSettings.DISCOVERY_VERSION in peer.remote_device_status_versions &&
+            MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions &&
+            Ablage.hole(context).synchronisationsSchreibbar()
+    }
+
+    // Called outside the Werk monitor: storage projection may inspect an
+    // existing protected gallery index, whose native owners call back into Werk.
+    internal fun refreshMediaPreferenceState() {
+        val snapshot = synchronized(this) { activeChannel?.let { channel -> currentMediaBinding()?.let { channel to it } } }
+        if (snapshot == null || !mediaSharedControlsReady(snapshot.first, snapshot.second)) {
+            synchronized(this) { _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
+                mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap()) }
+            return
+        }
+        val (channel, binding) = snapshot
+        val view = runCatching { mediaPreferences.view(binding) }
+        val matched = view.isSuccess && runCatching { mediaTransport(channel)?.matched(view.getOrThrow().third) == true }.getOrDefault(false)
+        synchronized(this) {
+            if (!mediaSharedControlsReady(channel, binding)) return
+            val current = view.getOrNull()
+            _state.value = _state.value.copy(mediaPreferencesSupported = current != null, mediaPreferencesReady = matched,
+                mediaPreferencesValues = current?.first, mediaPreferencesVersions = current?.second ?: emptyMap(),
+                error = view.exceptionOrNull()?.message ?: _state.value.error)
+        }
+    }
+
+    internal fun changeMediaPreference(field: String, value: JsonElement, expectedVersion: String) {
+        val snapshot = synchronized(this) { activeChannel?.let { channel -> currentMediaBinding()?.let { channel to it } } }
+            ?: error("media_shared_peer_unavailable")
+        val (channel, binding) = snapshot
+        check(mediaSharedControlsReady(channel, binding)) { "media_shared_controls_unavailable" }
+        val transport = mediaTransport(channel) ?: error("media_shared_peer_changed")
+        transport.invalidate()
+        try {
+            mediaPreferences.change(binding, field, value, expectedVersion)
+            check(mediaSharedControlsReady(channel, binding)) { "media_shared_peer_changed" }
+            queue.removeKind(binding.peerActor, MediaSyncSettings.KIND)
+            transport.queueSettings()
+            // Only a control ping, never a personal-sync request or media job.
+            synchronized(this) { safePeer() }?.let(::wakeScopedSync)
+        } finally { refreshMediaPreferenceState() }
     }
 
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
@@ -1861,6 +1900,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val pipe = activeTransport?.second
         activeTransport = null
         activeChannel = null
+        _state.value = _state.value.copy(mediaPreferencesSupported = false, mediaPreferencesReady = false,
+            mediaPreferencesValues = null, mediaPreferencesVersions = emptyMap())
         runCatching { pipe?.close() }
         retireInvalidPersonalActors()
     }
@@ -2668,6 +2709,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             } else channel.send(reply)
             observeNativeFileOwnDecision(sessionPeer, message, reply, channel, generation, true)
         }
+        if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
+            refreshMediaPreferenceState()
     }
 
     private fun queueRequestedPersonalAttachments(peerId: String, body: JsonObject) {

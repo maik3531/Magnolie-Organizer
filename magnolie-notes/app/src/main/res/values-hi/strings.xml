@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">उन्नत सुविधाएँ</string>
     <string name="media_recovery_title">फ़ोटो और वीडियो पुनर्प्राप्ति</string>
     <string name="media_recovery_hint">स्थानीय एन्क्रिप्ट की गई पुनर्प्राप्ति प्रतियाँ, जो पुराने कनेक्शन के बिना भी उपलब्ध हैं। बहाल करते समय पुनर्प्राप्ति प्रति और मौजूदा मीडिया सुरक्षित रहते हैं।</string>
     <string name="media_recovery_refresh">पुनर्प्राप्ति सूची ताज़ा करें</string>
@@ -414,4 +415,16 @@
     <string name="shared_sync_time_direction">समय लेखन की सिंक दिशा</string>
     <string name="telefon_code_gegenstelle">दूसरे डिवाइस पर इस कोड की पुष्टि करें।</string>
     <string name="baum_kontakt_gruppen">संपर्क समूह</string>
+    <string name="medien_sync_titel">फ़ोटो और वीडियो</string>
+    <string name="medien_sync_aktivieren">फ़ोटो और वीडियो समन्वयन सक्षम करें</string>
+    <string name="medien_sync_scope_phone">केवल फ़ोन की सामग्री</string>
+    <string name="medien_sync_scope_all">पूरा संग्रह</string>
+    <string name="medien_sync_direction_import">फ़ोन → पीसी</string>
+    <string name="medien_sync_zugriff">पहुँच अधिकार</string>
+    <string name="medien_sync_einstellungen">समन्वयन सेटिंग</string>
+    <string name="medien_sync_umfang">दायरा</string>
+    <string name="medien_sync_richtung">दिशा</string>
+    <string name="medien_sync_fotos">फ़ोटो सिंक्रनाइज़ करें</string>
+    <string name="medien_sync_videos">वीडियो का समन्वयन करें</string>
+    <string name="medien_sync_modus">सिंक्रोनाइज़ेशन</string>
 </resources>

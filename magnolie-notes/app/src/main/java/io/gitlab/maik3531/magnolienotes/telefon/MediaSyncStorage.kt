@@ -67,6 +67,14 @@ internal class MediaSyncStorage(
     @Synchronized fun fieldVersion(expected: MediaSettingsBinding, field: String): String =
         fieldVersion(scope(expected), project(expected), field)
 
+    @Synchronized fun view(expected: MediaSettingsBinding): Triple<JsonObject, Map<String, String>, JsonObject> {
+        val scope = scope(expected)
+        val body = project(expected)
+        val versions = body.getValue("settings").jsonObject.keys.associateWith { fieldVersion(scope, body, it) }
+        check(scope(expected) == scope)
+        return Triple(JsonObject(MediaSyncSettings.effective(body)), versions, body)
+    }
+
     @Synchronized private fun update(expected: MediaSettingsBinding, apply: (JsonObject, String) -> JsonObject): JsonObject {
         val scope = scope(expected)
         val db = database()

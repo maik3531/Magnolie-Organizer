@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Pokročilé funkce</string>
     <string name="media_recovery_title">Obnovení fotografií a videí</string>
     <string name="media_recovery_hint">Místní šifrované kopie pro obnovení, dostupné i bez původního připojení. Při obnovení se kopie i stávající média zachovají.</string>
     <string name="media_recovery_refresh">Obnovit seznam pro obnovení</string>
@@ -436,4 +437,16 @@
     <string name="shared_sync_time_direction">Směr synchronizace evidence času</string>
     <string name="telefon_code_gegenstelle">Potvrďte tento kód na druhém zařízení.</string>
     <string name="baum_kontakt_gruppen">Skupiny kontaktů</string>
+    <string name="medien_sync_titel">Fotografie a videa</string>
+    <string name="medien_sync_aktivieren">Povolit synchronizaci fotografií a videí</string>
+    <string name="medien_sync_scope_phone">Pouze obsah telefonu</string>
+    <string name="medien_sync_scope_all">Celá sbírka</string>
+    <string name="medien_sync_direction_import">Telefon → PC</string>
+    <string name="medien_sync_zugriff">Přístupová práva</string>
+    <string name="medien_sync_einstellungen">Nastavení synchronizace</string>
+    <string name="medien_sync_umfang">Rozsah</string>
+    <string name="medien_sync_richtung">Směr</string>
+    <string name="medien_sync_fotos">Synchronizovat fotografie</string>
+    <string name="medien_sync_videos">Synchronizovat videa</string>
+    <string name="medien_sync_modus">Synchronizace</string>
 </resources>

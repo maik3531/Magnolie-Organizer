@@ -97,6 +97,10 @@ class NativeFilePairingBootstrapTest {
             work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
                 put("format", 1); put("own_device", true)
             }, 60000), channel, generation)
+            assertTrue(work.state.value.mediaPreferencesSupported)
+            assertFalse(work.state.value.mediaPreferencesReady)
+            assertEquals(JsonPrimitive(false), work.state.value.mediaPreferencesValues?.get("enabled"))
+            assertEquals(7, work.state.value.mediaPreferencesVersions.size)
             val app = ApplicationProvider.getApplicationContext<Context>()
             val root = java.io.File(app.filesDir, "native-file-sources-v1")
             val before = if (root.exists()) root.walkTopDown().map { it.relativeTo(root).path }.toSet() else emptySet()
@@ -104,6 +108,13 @@ class NativeFilePairingBootstrapTest {
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).readableDatabase
             database.rawQuery("SELECT COUNT(*) FROM native_media_shared_settings", null).use { it.moveToFirst(); assertEquals(1, it.getInt(0)) }
+            val videoVersion = work.state.value.mediaPreferencesVersions.getValue("videos_enabled")
+            work.changeMediaPreference("videos_enabled", JsonPrimitive(true), videoVersion)
+            assertEquals(JsonPrimitive(true), work.state.value.mediaPreferencesValues?.get("videos_enabled"))
+            assertEquals(JsonPrimitive(false), work.state.value.mediaPreferencesValues?.get("enabled"))
+            assertFalse(work.state.value.mediaPreferencesReady)
+            assertThrows(IllegalStateException::class.java) { work.changeMediaPreference("videos_enabled", JsonPrimitive(false), videoVersion) }
+            assertEquals(JsonPrimitive(true), work.state.value.mediaPreferencesValues?.get("videos_enabled"))
             assertEquals(peer, storage.fileAuthorityPeers().peer)
             assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
             assertFalse(peer.contacts_read_enabled); assertFalse(peer.personal_notes_sync_granted)

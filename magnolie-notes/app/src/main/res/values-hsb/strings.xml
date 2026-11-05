@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Rozšěrjene funkcije</string>
     <string name="media_recovery_title">Wobnowjenje fotow a widejow</string>
     <string name="media_recovery_hint">Lokalne zaklučowane kopije za wobnowjenje, kotrež su tež bjez prjedawšeho zwiska k dispoziciji. Při wobnowjenju so kopija a eksistowace medije wobchowaja.</string>
     <string name="media_recovery_refresh">Lisćinu wobnowjenja aktualizować</string>
@@ -436,4 +437,16 @@
     <string name="shared_sync_time_direction">Směr synchronizacije časoweho zapisowanja</string>
     <string name="telefon_code_gegenstelle">Wobkrućće tutón kod na druhim graće.</string>
     <string name="baum_kontakt_gruppen">Kontaktowe skupiny</string>
+    <string name="medien_sync_titel">Fota a wideja</string>
+    <string name="medien_sync_aktivieren">Synchronizaciju fotow a widejow zmóžnić</string>
+    <string name="medien_sync_scope_phone">Jenož wobsah telefona</string>
+    <string name="medien_sync_scope_all">Cyła zběrka</string>
+    <string name="medien_sync_direction_import">Telefon → PC</string>
+    <string name="medien_sync_zugriff">Přistupne prawa</string>
+    <string name="medien_sync_einstellungen">Nastajenja synchronizacije</string>
+    <string name="medien_sync_umfang">Wobłuk</string>
+    <string name="medien_sync_richtung">Richtung</string>
+    <string name="medien_sync_fotos">Fota synchronizować</string>
+    <string name="medien_sync_videos">Wideja synchronizować</string>
+    <string name="medien_sync_modus">Synchronizacija</string>
 </resources>

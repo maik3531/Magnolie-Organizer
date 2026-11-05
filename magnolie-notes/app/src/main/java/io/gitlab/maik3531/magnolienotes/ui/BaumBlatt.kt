@@ -40,6 +40,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -133,6 +135,8 @@ class Telefonhandlungen(
     val beiCustomSync: (Boolean) -> Unit,
     val beiTimeSync: (Boolean) -> Unit,
     val beiCustomEntscheidung: (String, Long, Boolean) -> Unit,
+    val beiMedienEinstellung: (String, JsonElement, String) -> Unit,
+    val beiMedienBerechtigungen: () -> Unit,
     val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> },
     val beiKontaktgruppenSchreiben: (String, String, Boolean) -> Unit = { _, _, _ -> }
 )
@@ -161,6 +165,9 @@ fun BaumBlatt(
     var entfernenWarnung by remember { mutableStateOf<String?>(null) }
     val peerScope = telefon.peer?.let { it.device_id + ":" + it.static_public }
     var baumOffen by remember(peerScope) { mutableStateOf(false) }
+    var personalOffen by remember(peerScope) { mutableStateOf(false) }
+    var erweitertOffen by remember(peerScope) { mutableStateOf(false) }
+    LaunchedEffect(customFokus) { if (customFokus != null) personalOffen = true }
     val baumSichtbar = PersonalDesktopFeatures.treeVisible(telefon.peer,
         zustand.dienstAn || zustand.partner.isNotEmpty(), zustand.eingang.isNotEmpty() || zustand.kontaktEingang.isNotEmpty())
     LaunchedEffect(baumSichtbar) { if (!baumSichtbar) baumOffen = false }
@@ -327,11 +334,14 @@ fun BaumBlatt(
             } else Text(stringResource(R.string.telefon_waehlen_nicht_verfuegbar),
                 fontFamily = FontFamily.SansSerif, fontSize = 11.sp, color = Magnolie.braunHell)
         }
-        Abschnitt(
+        Papierknopf((if (personalOffen) "▾ " else "▸ ") + stringResource(R.string.personal_sync_titel),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { personalOffen = !personalOffen }
+        if (personalOffen) Abschnitt(
             ueberschrift = stringResource(R.string.personal_sync_titel),
             hinweis = stringResource(R.string.personal_sync_hinweis)
         ) {
             if (telefon.personalOwnDevice) {
+                Text(stringResource(R.string.medien_sync_zugriff), fontWeight = FontWeight.Bold)
                 Schalterzeile(stringResource(R.string.telefon_kontakte_lesen), telefon.peer?.contacts_read_enabled == true,
                     { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })
                 Text(stringResource(R.string.telefon_kontakte_lesen_hinweis), fontSize = 12.sp)
@@ -342,9 +352,7 @@ fun BaumBlatt(
                 }
                 Text(stringResource(R.string.device_identifiers_explanation), fontSize = 12.sp)
                 if (telefon.peer?.identifier_sharing_enabled != true)
-                    Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen)) {
-                        telefonHandlungen.beiIdentifierSharing(true)
-                    }
+                    Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen)) { telefonHandlungen.beiIdentifierSharing(true) }
             }
             if (telefon.peer?.state == "paired") {
                 if (telefon.sharedPreferencesSupported) GemeinsameSyncEinstellungen(telefon, bestand, telefonHandlungen)
@@ -440,6 +448,16 @@ fun BaumBlatt(
                         Zwischenraum(8)
                     }
                 }
+            }
+        }
+        if (telefon.mediaPreferencesSupported) {
+            val metrics = LocalContext.current.resources.displayMetrics
+            val yDpi = metrics.ydpi.takeIf { it.isFinite() && it > 0f } ?: metrics.densityDpi.toFloat()
+            Box(Modifier.height(with(LocalDensity.current) { (5f * yDpi / 25.4f).toDp() }))
+            Papierknopf((if (erweitertOffen) "▾ " else "▸ ") + stringResource(R.string.telefon_erweitert_titel),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { erweitertOffen = !erweitertOffen }
+            if (erweitertOffen) Abschnitt(ueberschrift = stringResource(R.string.telefon_erweitert_titel)) {
+                MedienSyncEinstellungen(telefon, telefonHandlungen.beiMedienEinstellung, telefonHandlungen.beiMedienBerechtigungen)
             }
         }
         if (!baumSichtbar) return@Column

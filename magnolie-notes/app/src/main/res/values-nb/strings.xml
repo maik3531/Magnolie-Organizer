@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_erweitert_titel">Avanserte funksjoner</string>
     <string name="media_recovery_title">Gjenoppretting av bilder og videoer</string>
     <string name="media_recovery_hint">Lokale krypterte gjenopprettingskopier, også tilgjengelige uten den tidligere tilkoblingen. Gjenopprettingskopien og eksisterende medier beholdes ved gjenoppretting.</string>
     <string name="media_recovery_refresh">Oppdater gjenopprettingslisten</string>
@@ -414,4 +415,16 @@
     <string name="shared_sync_time_direction">Synkroniseringsretning for tidsregistrering</string>
     <string name="telefon_code_gegenstelle">Bekreft denne koden på den andre enheten.</string>
     <string name="baum_kontakt_gruppen">Kontaktgrupper</string>
+    <string name="medien_sync_titel">Bilder og videoer</string>
+    <string name="medien_sync_aktivieren">Aktiver synkronisering av bilder og videoer</string>
+    <string name="medien_sync_scope_phone">Bare telefonens innhold</string>
+    <string name="medien_sync_scope_all">Hele samlingen</string>
+    <string name="medien_sync_direction_import">Telefon → PC</string>
+    <string name="medien_sync_zugriff">Tilgangsrettigheter</string>
+    <string name="medien_sync_einstellungen">Synkroniseringsinnstillinger</string>
+    <string name="medien_sync_umfang">Omfang</string>
+    <string name="medien_sync_richtung">Retning</string>
+    <string name="medien_sync_fotos">Synkroniser bilder</string>
+    <string name="medien_sync_videos">Synkroniser videoer</string>
+    <string name="medien_sync_modus">Synkronisering</string>
 </resources>
