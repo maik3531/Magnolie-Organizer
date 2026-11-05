@@ -1,4 +1,7 @@
 /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+gettext("Automatic synchronization is paused. Switch to manual mode and enable it again to resume.");
+gettext("Automatic content comparison needs attention. No deletion completion was confirmed.");
+gettext("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");
 gettext("Photos");
 gettext("Videos");
 gettext("Synchronize photos");

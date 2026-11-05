@@ -324,6 +324,11 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native saved book / Windows canonical policy and prewrite rejection", DeviceFileBookPermitTests.WindowsSavedPolicyAndRejectedSaveAsync);
     runner.Add("Device file native saved book / Windows actual incoming data after book change HOLD", DeviceFileBookPermitTests.WindowsBookChangedDuringActualReceiveAsync);
     runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
+    runner.Add("Device file automatic media / Windows actual saved book ACK fresh catalog and empty END", DeviceFileAutomaticTests.WindowsEmptyAlbumAsync);
+    runner.Add("Device file automatic media / Windows owned stop cleanup and paused next tick", DeviceFileAutomaticTests.WindowsStopPreparingAsync);
+    runner.Add("Device file automatic media / Windows video requires fresh ACK configure then catalog", DeviceFileAutomaticTests.WindowsVideoEmptyAlbumAsync);
+    runner.Add("Device file automatic media / Windows actual chunks publication Saved and source END", DeviceFileAutomaticTests.WindowsReceiveSavedAsync);
+    runner.Add("Device file automatic media / Windows actual service starts and drains tracked loop", DeviceFileAutomaticTests.WindowsServiceLifetimeAsync);
     runner.Add("Device file native media UI / Windows explicit owner actual ACK and no locked-book revival", DeviceFileUiTests.WindowsExplicitNativeUiHandshakeAsync);
     runner.Add("Device file native media UI / Windows actual status configure catalog and unknown album HOLD", DeviceFileUiTests.WindowsUiActualDiscoveryAsync);
     runner.Add("Device file native media UI / Windows source count mismatch stays review without deletion proof", DeviceFileAlbumTests.WindowsPartialAlbumCoverageAsync);

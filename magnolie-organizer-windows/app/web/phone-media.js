@@ -16,6 +16,7 @@
       label.className = "hak"; label.append(input, document.createTextNode(" " + t(text))); root.append(label); return input;
     };
     const photos = check("Synchronize photos", "photos"), videos = check("Synchronize videos", "videos"), skip = check("Skip deletions", "skip_deletions");
+    const automatic = check("Automatically synchronize over Wi-Fi", "automatic");
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     root.append(mode, destinations, controls, albumList, review);
     let native = null, busy = false, transfer = false, catalog = null, kind = "images";
@@ -27,6 +28,7 @@
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
       for (const b of allButtons) b.disabled = busy;
       photos.disabled = videos.disabled = skip.disabled = busy || !native;
+      automatic.disabled = !native || native.automatic_ready !== true;
       for (const entry of actions) entry.button.disabled = busy || native?.metadata_ready?.[entry.mediaType] !== true || !native?.[entry.mediaType === "video" ? "videos" : "photos"] || !native?.[entry.key];
       stop.disabled = !transfer;
       if (refresh) refresh.disabled = false;
@@ -55,6 +57,7 @@
       return request("settings", { version: native.version ?? null, photos: photos.checked, videos: videos.checked, skip_deletions: skip.checked });
     };
     for (const input of [photos, videos, skip]) input.addEventListener("change", settings);
+    automatic.addEventListener("change", () => request("mode", { version: native.version ?? null, automatic: automatic.checked }));
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
       const row = node("div"), path = node("p", "No destination selected"); path.dataset.destination = mediaType;
@@ -88,20 +91,26 @@
         toggle(); return;
       }
       if (reply.canceled) { toggle(); return; }
-      if (action === "status" || action === "settings" || action === "pick_destination") {
+      if (action === "status" || action === "mode" || action === "settings" || action === "pick_destination") {
         native = reply; photos.checked = !!reply.photos; videos.checked = !!reply.videos;
         const videoAvailable = reply.metadata_ready?.video === true;
         videos.parentElement.hidden = !videoAvailable;
         destinations.querySelector('[data-destination="video"]').parentElement.hidden = !videoAvailable;
         actions.find(entry => entry.mediaType === "video").button.hidden = !videoAvailable;
         title.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
-        busy = !!reply.busy || !!reply.transfer_busy;
-        transfer = !!reply.transfer_busy;
+        busy = !!reply.busy || !!reply.transfer_busy || !!reply.automatic_busy;
+        transfer = !!reply.transfer_busy || !!reply.automatic_busy;
+        automatic.checked = !!reply.automatic; automatic.parentElement.hidden = reply.automatic_ready !== true;
         skip.indeterminate = reply.skip_deletions === null; skip.checked = reply.skip_deletions !== false;
-        mode.textContent = t(reply.automatic ? "Automatic synchronization is selected but is not available yet." : "Manual synchronization");
+        mode.textContent = t(reply.automatic ? "Automatically synchronize over Wi-Fi" : "Manual synchronization");
         for (const [mediaType, , key] of kinds) destinations.querySelector(`[data-destination="${mediaType}"]`).textContent = reply[key]?.display_path || t("No destination selected");
         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
+        if (!busy && reply.automatic) {
+          if (reply.automatic_phase === "paused") status.textContent = t("Automatic synchronization is paused. Switch to manual mode and enable it again to resume.");
+          else if (["review", "held", "partial"].includes(reply.automatic_phase)) status.textContent = t("Automatic content comparison needs attention. No deletion completion was confirmed.");
+          else if (reply.automatic_phase === "content_pass") status.textContent = t("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");
+        }
       } else if (action === "discover" || action === "page") {
         if (action === "discover") { albumList.replaceChildren(); catalog = { version: reply.version, id: reply.catalog_id, next: reply.next_cursor }; }
         if (!catalog || catalog.id !== reply.catalog_id || catalog.version !== reply.version) { status.textContent = t("Album selection changed. Read the albums again."); toggle(); return; }

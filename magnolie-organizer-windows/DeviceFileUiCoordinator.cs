@@ -58,6 +58,7 @@ internal sealed partial class TelefonConnection
 
     internal async Task PrepareNativeMediaUiAsync(Func<NativeBookSaveState?> savedBook, string mediaType, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         var selected = store.ReadNativeMediaDestination(peer.Id, mediaType) ?? throw DeviceFileControl.Error("file_receive_native_destination_required");
         using (var root = selected.OpenNative()) _ = root.CurrentIdentity();
         NativeMediaUiAuthority authority;
@@ -118,11 +119,27 @@ internal sealed partial class TelefonCoordinator
             var value = store.ReadNativeMediaDestination(peerId, kind);
             return value is null ? null : new JsonObject { ["version"] = value.Version, ["display_path"] = value.NativePath };
         }
+        var automaticPhase = "idle"; var automaticBusy = false;
+        if (nativeAutomaticMedia.TryGetValue(peerId, out var automatic) && ReferenceEquals(automatic.Connection, connection))
+            lock (automatic) { automaticPhase = automatic.Phase; automaticBusy = automatic.Active is not null; }
         return new JsonObject { ["supported"] = true, ["photos"] = preference.PhotosEnabled, ["videos"] = preference.VideosEnabled,
             ["automatic"] = preference.AutomaticWifi, ["skip_deletions"] = preference.SkipDeletions is bool skip ? JsonValue.Create(skip) : null,
             ["version"] = preference.Version, ["pictures"] = Destination("images"), ["video_destination"] = Destination("video"),
             ["metadata_ready"] = new JsonObject { ["images"] = imagesReady, ["video"] = videosReady },
-            ["busy"] = Volatile.Read(ref nativeMediaWorker) != 0, ["deletions_ready"] = false, ["automatic_ready"] = false };
+            ["automatic_phase"] = automaticPhase, ["automatic_busy"] = automaticBusy,
+            ["busy"] = Volatile.Read(ref nativeMediaWorker) != 0, ["deletions_ready"] = false, ["automatic_ready"] = true };
+    }
+
+    internal JsonObject SetNativeMediaUiAutomaticMode(string peerId, string? version, bool automaticWifi)
+    {
+        store.RequireNativeMediaStorageKey();
+        _ = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
+        if (automaticWifi && Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        var current = store.ReadNativeMediaPreferences(peerId);
+        store.SetNativeMediaPreferences(peerId, version, current.PhotosEnabled, current.VideosEnabled, automaticWifi);
+        if (!automaticWifi) StopNativeMediaAutomatic(peerId);
+        else if (nativeAutomaticMedia.TryGetValue(peerId, out var state)) lock (state) { state.Paused = false; state.Phase = "idle"; }
+        return NativeMediaUiStatus(peerId);
     }
 
     internal JsonObject SetNativeMediaUiChoices(string peerId, string? expectedVersion, bool photos, bool videos, bool skipDeletions)

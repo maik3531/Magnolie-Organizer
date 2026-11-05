@@ -10221,3 +10221,13 @@ msgstr "Medienübertragung ist mit dieser Verbindung noch nicht verfügbar."
 
 msgid "Some source entries may not have been offered. Read the albums again."
 msgstr "Einige Quelleinträge wurden möglicherweise nicht angeboten. Lesen Sie die Alben erneut ein."
+
+#. Native automatic WLAN media worker (Refs #387).
+msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
+msgstr "Automatischer Abgleich pausiert. Wechseln Sie zum Fortsetzen auf manuell und schalten Sie die Automatik erneut ein."
+
+msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
+msgstr "Der automatische Inhaltsabgleich muss geprüft werden. Ein abgeschlossener Löschabgleich wurde nicht bestätigt."
+
+msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
+msgstr "Der automatische Durchlauf hat je Medienart ein Album geprüft. Weitere Alben folgen; der Löschabgleich steht noch aus."

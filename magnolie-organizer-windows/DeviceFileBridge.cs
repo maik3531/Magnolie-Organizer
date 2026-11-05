@@ -22,8 +22,12 @@ internal sealed partial class BridgeDispatcher
             {
                 case "status":
                     var status = telefon.NativeMediaUiStatus(peerId); status["requestId"] = requestId; status["device_id"] = peerId; status["ok"] = true;
-                    status["transfer_busy"] = nativeMediaUiRuns.ContainsKey(peerId);
+                    status["transfer_busy"] = nativeMediaUiRuns.ContainsKey(peerId) || status["automatic_busy"]?.GetValue<bool>() == true;
                     await Reply(status); return;
+                case "mode":
+                    var mode = telefon.SetNativeMediaUiAutomaticMode(peerId, request.Version, request.Automatic);
+                    mode["requestId"] = requestId; mode["device_id"] = peerId; mode["ok"] = true;
+                    await Reply(mode); return;
                 case "settings":
                     var settings = telefon.SetNativeMediaUiChoices(peerId, request.Version, request.Photos, request.Videos, request.SkipDeletions);
                     settings["requestId"] = requestId; settings["device_id"] = peerId; settings["ok"] = true;
@@ -66,6 +70,7 @@ internal sealed partial class BridgeDispatcher
                 case "cancel":
                     var stopping = nativeMediaUiRuns.TryGetValue(peerId, out var running);
                     if (stopping) { try { running!.Cancel(); } catch (ObjectDisposedException) { stopping = false; } }
+                    stopping |= telefon.StopNativeMediaAutomatic(peerId);
                     await Reply(new { requestId, device_id = peerId, ok = true, state = stopping ? "stopping" : "idle" }); return;
                 case "discover":
                 case "page":

@@ -40,7 +40,7 @@ internal static class DeviceFileConnectionMetadataTests
             Store.SavePeers([Peer]);
             Connection = NewConnection(Stream);
         }
-        internal TelefonConnection NewConnection(Stream stream) => new(Peer, stream, new byte[16], new byte[72], Store,
+        internal TelefonConnection NewConnection(Stream stream, string transport = "wifi") => new(Peer, stream, new byte[16], new byte[72], Store,
             (_, message) => {
                 DuringReceive?.Invoke();
                 var kind = message["kind"]!.GetValue<string>(); var body = message["body"]!.AsObject();
@@ -48,7 +48,7 @@ internal static class DeviceFileConnectionMetadataTests
                 if (kind == "capabilities.update") Store.UpdatePeerProtocol(Peer.Id, TelefonProtocolContract.Integer(body["revision"]), body["items"]!.AsObject(), 0, null);
                 if (kind == "grants.update") Store.UpdatePeerProtocol(Peer.Id, 0, null, TelefonProtocolContract.Integer(body["revision"]), body["grants"]!.AsObject());
                 return Task.FromResult<TelefonAck?>(null);
-            }, CancellationToken.None, "wifi");
+            }, CancellationToken.None, transport);
         internal JsonObject Message(string kind, long revision = 1, bool video = true, bool own = true)
         {
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

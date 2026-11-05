@@ -10,7 +10,7 @@ w.document.body.append(panel);
 const last = () => messages.at(-1), tick = () => new Promise(resolve => setImmediate(resolve));
 const buttons = title => [...panel.querySelectorAll("button")].filter(x => x.textContent === title);
 function reply(value) { api.receive({ requestId: last().requestId, device_id: peer, ok: true, ...value }); }
-const state = { supported: true, version: "a".repeat(64), photos: false, videos: false, automatic: false, skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
+const state = { supported: true, version: "a".repeat(64), photos: false, videos: false, automatic: false, automatic_ready: true, automatic_phase: "idle", skip_deletions: true, pictures: null, video_destination: null, busy: false, metadata_ready: { images: true, video: true } };
 (async () => {
   assert.equal(last().action, "status"); assert.equal(saves, 0); assert(panel.hidden);
   api.receive({ requestId: last().requestId, device_id: "foreign-peer", ok: true, ...state }); assert(panel.hidden);
@@ -36,6 +36,17 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, busy: true, transfer_busy: true });
   assert(!buttons("Refresh")[0].disabled); assert(!buttons("Stop")[0].disabled);
   buttons("Refresh")[0].click(); await tick(); reply(enabled); assert(buttons("Stop")[0].disabled);
+  const automaticChoice = panel.querySelector('[data-media="automatic"]');
+  assert(!automaticChoice.checked); assert(!automaticChoice.disabled);
+  automaticChoice.checked = true; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "mode"); assert.equal(last().automatic, true); assert(!("skip_deletions" in last()));
+  reply({ ...enabled, automatic: true, automatic_phase: "content_pass" });
+  assert(panel.textContent.includes("one album per media type")); assert(panel.textContent.includes("deletions remain pending"));
+  buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, automatic: true, automatic_busy: true, busy: true });
+  assert(!automaticChoice.disabled); assert(!buttons("Stop")[0].disabled);
+  automaticChoice.checked = false; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(last().action, "mode"); assert.equal(last().automatic, false);
+  reply(enabled);
   saveAllowed = false; const before = messages.length; buttons("Read photo albums")[0].click(); await tick();
   assert.equal(messages.length, before); assert(panel.textContent.includes("could not be saved"));
   saveAllowed = true; buttons("Read photo albums")[0].click(); await tick(); assert.equal(last().action, "discover");
@@ -57,8 +68,9 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   const secondPeer = "44444444-4444-4444-8444-444444444444";
   const german = api.createPanel(secondPeer, w.MagnolieI18n.gettext, value => { messages.push(JSON.parse(JSON.stringify(value))); return true; }, async () => {});
   w.document.body.append(german);
-  api.receive({ requestId: last().requestId, device_id: secondPeer, ok: true, ...state });
-  assert(german.textContent.includes("Manueller Abgleich")); assert(german.textContent.includes("Lokale Bearbeitungen bleiben erhalten"));
+  api.receive({ requestId: last().requestId, device_id: secondPeer, ok: true, ...state, automatic: true, automatic_phase: "paused" });
+  assert(german.textContent.includes("Automatisch im WLAN synchronisieren")); assert(german.textContent.includes("Automatischer Abgleich pausiert"));
+  assert(german.textContent.includes("Lokale Bearbeitungen bleiben erhalten"));
   assert(!german.textContent.includes("Synchronize photos")); assert(!german.textContent.includes("Photos"));
   const html = fs.readFileSync(path.join(__dirname, "../app/web/index.html"), "utf8");
   assert(html.indexOf('src="phone-media.js"') >= 0 && html.indexOf('src="phone-media.js"') < html.indexOf('src="anwendung.js"'));

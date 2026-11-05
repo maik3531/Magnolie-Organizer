@@ -1281,6 +1281,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 EnsurePairingAvailableLocked();
                 var bluetoothCancellation = serviceCancellation.Token;
                 var currentListener = listener;
+                StartNativeMediaAutomatic(bluetoothCancellation);
                 Track(McpServiceTask(() => AcceptLoopAsync(currentListener, bluetoothCancellation)));
                 if (bluetoothClient is not null) Track(McpServiceTask(() => BluetoothReconnectLoopAsync(bluetoothCancellation)));
                 try
@@ -1299,6 +1300,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
         finally { lifecycle.Release(); }
     }
+
+    partial void StartNativeMediaAutomatic(CancellationToken token);
 
     private async Task BluetoothReconnectLoopAsync(CancellationToken cancellation)
     {
