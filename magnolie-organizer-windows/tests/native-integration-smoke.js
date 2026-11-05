@@ -73,7 +73,8 @@ assert.match(lazyKde, /lock \(serviceGate\)[\s\S]*ObjectDisposedException.ThrowI
 assert.match(lazyKde, /if \(kdeInstance is not null\) return kdeInstance/);
 for (const [callback, handler] of [["StatusChanged", "HandleKdeStatusChanged"],
   ["SmsReceived", "HandleKdeSmsReceived"], ["PairingChanged", "HandleKdePairingChanged"],
-  ["DigitizerReceived", "HandleKdeDigitizer"]]) {
+  ["DigitizerReceived", "HandleKdeDigitizer"], ["FileProposed", "HandleKdeFileProposed"],
+  ["FileReceiveProgress", "HandleKdeFileReceiveProgress"], ["FileSaved", "HandleKdeFileSaved"]]) {
   const registration = `created.${callback} += ${handler}`;
   assert.strictEqual(lazyKde.split(registration).length - 1, 1, `Register exactly once: ${callback}`);
   assert.ok(lazyKde.indexOf(registration) < lazyKde.indexOf("kdeInstance = created"), "Do not publish a partly subscribed service");
@@ -108,6 +109,9 @@ internal sealed class Probe {
   private void HandleKdeSmsReceived() => Calls++;
   private void HandleKdePairingChanged() => Calls++;
   private void HandleKdeDigitizer() => Calls++;
+  private void HandleKdeFileProposed() => Calls++;
+  private void HandleKdeFileReceiveProgress() => Calls++;
+  private void HandleKdeFileSaved() => Calls++;
   ${lazyKde}
   internal KdeConnectSms Get() => kdeConnectSms;
   internal void Stop() { disposed = true; kdeInstance?.Dispose(); }
@@ -115,7 +119,7 @@ internal sealed class Probe {
 internal sealed class KdeConnectSms : IDisposable {
   internal static int Created, Disposed;
   internal static bool FailSubscription;
-  private Action? status, sms, pairing, digitizer;
+  private Action? status, sms, pairing, digitizer, proposed, progress, saved;
   internal Func<bool>? InputPermission;
   internal int InputConfigurations;
   internal void ConfigureInput(Func<bool> permitted) { InputPermission = permitted; InputConfigurations++; }
@@ -127,8 +131,11 @@ internal sealed class KdeConnectSms : IDisposable {
   }
   internal event Action PairingChanged { add => pairing += value; remove => pairing -= value; }
   internal event Action DigitizerReceived { add => digitizer += value; remove => digitizer -= value; }
-  internal void Emit() { status?.Invoke(); sms?.Invoke(); pairing?.Invoke(); digitizer?.Invoke(); }
-  public void Dispose() { Interlocked.Increment(ref Disposed); status = sms = pairing = digitizer = null; }
+  internal event Action FileProposed { add => proposed += value; remove => proposed -= value; }
+  internal event Action FileReceiveProgress { add => progress += value; remove => progress -= value; }
+  internal event Action FileSaved { add => saved += value; remove => saved -= value; }
+  internal void Emit() { status?.Invoke(); sms?.Invoke(); pairing?.Invoke(); digitizer?.Invoke(); proposed?.Invoke(); progress?.Invoke(); saved?.Invoke(); }
+  public void Dispose() { Interlocked.Increment(ref Disposed); status = sms = pairing = digitizer = proposed = progress = saved = null; }
 }
 internal static class Program {
   private static void Check(bool condition) { if (!condition) throw new Exception("Lifecycle assertion failed"); }
@@ -141,14 +148,14 @@ internal static class Program {
     probe.currentPlainTextAvailable = true; probe.form.Disposing = true; Check(!values[0].InputPermission!());
     probe.form.Disposing = false; probe.form.IsDisposed = true; Check(!values[0].InputPermission!());
     probe.form.IsDisposed = false; Check(values[0].InputPermission!());
-    values[0].Emit(); Check(probe.Calls == 4);
+    values[0].Emit(); Check(probe.Calls == 7);
     probe.Stop(); Check(KdeConnectSms.Disposed == 1);
     Check(!values[0].InputPermission!());
     try { probe.Get(); throw new Exception("Disposed service was recreated"); } catch (ObjectDisposedException) { }
     var retry = new Probe(); KdeConnectSms.FailSubscription = true;
     try { retry.Get(); throw new Exception("Subscription fault was ignored"); } catch (InvalidOperationException) { }
     Check(KdeConnectSms.Created == 2 && KdeConnectSms.Disposed == 2);
-    retry.Get().Emit(); Check(KdeConnectSms.Created == 3 && retry.Calls == 4);
+    retry.Get().Emit(); Check(KdeConnectSms.Created == 3 && retry.Calls == 7);
     retry.Stop(); Check(KdeConnectSms.Disposed == 3);
     Console.WriteLine("OPTIONAL SERVICE LIFECYCLE PASSED");
   }

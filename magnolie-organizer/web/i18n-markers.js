@@ -29,3 +29,9 @@ gettext("Deletion proposals can remove only individually confirmed, bound contac
 gettext("Health records stay in your encrypted organizer data. The section documents measurements and schedules but does not provide medical advice.");
 gettext("For this purpose, appointments, tasks, anniversaries and the names of responsible people are kept unencrypted in a separate file readable only by you. Contacts and notes are never written to it.");
 gettext("Missed reminders are shown after the next startup. If the computer was off or the application was closed, the organizer reports a missed appointment shortly after login and provides a button to open it. All-day appointments are treated as starting at 8 a.m. A small reminder service starts at login to check appointments in the background and continues running when you close the organizer.");
+/* Shared media recovery labels consumed through native UI metadata. */
+gettext("Pending recovery");
+gettext("Photos and videos");
+gettext("The media recycle bin could not be updated. Existing files were kept.");
+gettext("Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file.");
+gettext("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.");

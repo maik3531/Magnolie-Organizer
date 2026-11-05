@@ -3462,6 +3462,22 @@ msgstr ""
 "телефоні."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Медіафайли зберігаються окремо; очищення інших елементів кошика їх не "
+"видаляє. Відновлення ніколи не замінює наявний файл."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Для медіафайлів діє встановлений вище термін зберігання, зокрема «Ніколи». "
+"Щоб одразу видалити окремий медіаелемент, скористайтеся «Видалити назавжди». "
+"Відновлення ніколи не замінює наявний файл."
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4529,6 +4545,9 @@ msgstr "Шприц-ручка"
 msgid "Pending SMS messages"
 msgstr "Заплановані SMS-повідомлення"
 
+msgid "Pending recovery"
+msgstr "Очікує на відновлення"
+
 msgid "People"
 msgstr "Люди"
 
@@ -4652,6 +4671,9 @@ msgstr "Фото %(name)s"
 
 msgid "Photos"
 msgstr "Фотографії"
+
+msgid "Photos and videos"
+msgstr "Фото й відео"
 
 msgid "Pick up"
 msgstr "Забрати"
@@ -6439,6 +6461,9 @@ msgstr "Перевірка оновлення вручну не вдалася."
 
 msgid "The manual update information is invalid."
 msgstr "Інформація про ручне оновлення недійсна."
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
 
 msgid "The message is too large."
 msgstr "Повідомлення завелике."
@@ -8600,29 +8625,3 @@ msgstr "＋ Додати зустріч"
 #~ "серійний номер і IMEI. Від Android 10 апаратні ідентифікатори обмежені "
 #~ "для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні "
 #~ "ролі не запитуються."
-
-#~ msgid "Photos and videos"
-#~ msgstr "Фото й відео"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Медіафайли зберігаються окремо; очищення інших елементів кошика їх не "
-#~ "видаляє. Відновлення ніколи не замінює наявний файл."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
-
-#~ msgid "Pending recovery"
-#~ msgstr "Очікує на відновлення"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "Для медіафайлів діє встановлений вище термін зберігання, зокрема "
-#~ "«Ніколи». Щоб одразу видалити окремий медіаелемент, скористайтеся "
-#~ "«Видалити назавжди». Відновлення ніколи не замінює наявний файл."

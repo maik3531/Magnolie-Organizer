@@ -4068,6 +4068,13 @@ msgstr ""
 "телефоні."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Медіафайли зберігаються окремо; очищення інших елементів кошика їх не "
+"видаляє. Відновлення ніколи не замінює наявний файл."
+
+msgid ""
 "Media files use the retention period above, including “Never”. Use “Delete "
 "permanently” to remove an individual media entry now. Restoring never "
 "replaces an existing file."
@@ -7654,6 +7661,9 @@ msgstr "Інформація про ручне оновлення недійсн
 msgid "The maximum number of branches has been reached."
 msgstr "Досягнуто максимальної кількості гілок."
 
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
+
 msgid "The message comes from another branch."
 msgstr "Повідомлення надійшло з іншої гілки."
 
@@ -9990,17 +10000,6 @@ msgstr "＋ Додати зустріч"
 #~ "серійний номер і IMEI. Від Android 10 апаратні ідентифікатори обмежені "
 #~ "для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні "
 #~ "ролі не запитуються."
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Медіафайли зберігаються окремо; очищення інших елементів кошика їх не "
-#~ "видаляє. Відновлення ніколи не замінює наявний файл."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "Власна операція з медіафайлами ще виконується."

@@ -3515,6 +3515,22 @@ msgstr ""
 "aplikaciju na telefonje."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow "
+"papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju njenaruna."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z "
+"„Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje "
+"ženje eksistowacu dataju njenaruna."
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4585,6 +4601,9 @@ msgstr "Injekciski pisak"
 msgid "Pending SMS messages"
 msgstr "Čakace SMS-powěsće"
 
+msgid "Pending recovery"
+msgstr "Wobnowjenje wustaja"
+
 msgid "People"
 msgstr "Wosoby"
 
@@ -4713,6 +4732,9 @@ msgstr "Foto wosoby %(name)s"
 
 msgid "Photos"
 msgstr "Fota"
+
+msgid "Photos and videos"
+msgstr "Fota a wideja"
 
 msgid "Pick up"
 msgstr "Wotewzać"
@@ -6506,6 +6528,11 @@ msgstr "Manuelna kontrola aktualizacije njeje so radźiła."
 
 msgid "The manual update information is invalid."
 msgstr "Manuelne aktualizowanske informacije su njepłaćiwe."
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr ""
+"Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so "
+"wobchowali."
 
 msgid "The message is too large."
 msgstr "Powěsć je přewulka."
@@ -8672,32 +8699,3 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
-
-#~ msgid "Photos and videos"
-#~ msgstr "Fota a wideja"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow "
-#~ "papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju "
-#~ "njenaruna."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr ""
-#~ "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so "
-#~ "wobchowali."
-
-#~ msgid "Pending recovery"
-#~ msgstr "Wobnowjenje wustaja"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. "
-#~ "Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. "
-#~ "Wobnowjenje ženje eksistowacu dataju njenaruna."

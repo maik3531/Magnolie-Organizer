@@ -3285,6 +3285,21 @@ msgid ""
 msgstr "媒体控制不可用。请检查连接和手机上的媒体应用。"
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文"
+"件。"
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体"
+"项目。恢复绝不会替换现有文件。"
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4312,6 +4327,9 @@ msgstr "注射笔"
 msgid "Pending SMS messages"
 msgstr "待发送的 SMS"
 
+msgid "Pending recovery"
+msgstr "等待恢复"
+
 msgid "People"
 msgstr "人员"
 
@@ -4426,6 +4444,9 @@ msgstr "%(name)s 的照片"
 
 msgid "Photos"
 msgstr "照片"
+
+msgid "Photos and videos"
+msgstr "照片和视频"
 
 msgid "Pick up"
 msgstr "接取"
@@ -6140,6 +6161,9 @@ msgstr "手动更新检查失败。"
 
 msgid "The manual update information is invalid."
 msgstr "手动更新信息无效。"
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "无法更新媒体回收站。现有文件已保留。"
 
 msgid "The message is too large."
 msgstr "消息过大。"
@@ -8140,28 +8164,3 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
-
-#~ msgid "Photos and videos"
-#~ msgstr "照片和视频"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文"
-#~ "件。"
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "无法更新媒体回收站。现有文件已保留。"
-
-#~ msgid "Pending recovery"
-#~ msgstr "等待恢复"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒"
-#~ "体项目。恢复绝不会替换现有文件。"

@@ -3959,6 +3959,13 @@ msgid ""
 msgstr "मीडिया नियंत्रण उपलब्ध नहीं है। कनेक्शन और फ़ोन के मीडिया ऐप की जाँच करें।"
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"मीडिया फ़ाइलें अलग रखी जाती हैं; रीसायकल बिन की अन्य प्रविष्टियाँ खाली करने से ये नहीं "
+"हटतीं। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
+
+msgid ""
 "Media files use the retention period above, including “Never”. Use “Delete "
 "permanently” to remove an individual media entry now. Restoring never "
 "replaces an existing file."
@@ -7463,6 +7470,9 @@ msgstr "मैन्युअल अपडेट जानकारी अमा
 msgid "The maximum number of branches has been reached."
 msgstr "शाखाओं की अधिकतम संख्या पूरी हो गई है।"
 
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "मीडिया रीसायकल बिन अपडेट नहीं किया जा सका। मौजूदा फ़ाइलें सुरक्षित रखी गईं।"
+
 msgid "The message comes from another branch."
 msgstr "संदेश किसी दूसरी शाखा से आया है।"
 
@@ -9727,17 +9737,6 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "मीडिया फ़ाइलें अलग रखी जाती हैं; रीसायकल बिन की अन्य प्रविष्टियाँ खाली करने से ये नहीं "
-#~ "हटतीं। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "मीडिया रीसायकल बिन अपडेट नहीं किया जा सका। मौजूदा फ़ाइलें सुरक्षित रखी गईं।"
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "एक स्थानीय मीडिया कार्य अभी चल रहा है।"

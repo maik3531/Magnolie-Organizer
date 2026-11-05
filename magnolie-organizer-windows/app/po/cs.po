@@ -3454,6 +3454,22 @@ msgstr ""
 "telefonu."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek koše "
+"je neodstraní. Obnovení nikdy nenahradí existující soubor."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Pro mediální soubory platí výše nastavená doba uchování včetně možnosti "
+"„Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale "
+"odstranit“. Obnovení nikdy nenahradí existující soubor."
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4513,6 +4529,9 @@ msgstr "Inzulínové pero"
 msgid "Pending SMS messages"
 msgstr "Čekající SMS"
 
+msgid "Pending recovery"
+msgstr "Čeká na obnovení"
+
 msgid "People"
 msgstr "Osoby"
 
@@ -4635,6 +4654,9 @@ msgstr "Fotografie osoby %(name)s"
 
 msgid "Photos"
 msgstr "Fotografie"
+
+msgid "Photos and videos"
+msgstr "Fotografie a videa"
 
 msgid "Pick up"
 msgstr "Vyzvednout"
@@ -6413,6 +6435,10 @@ msgstr "Ruční kontrola aktualizací se nezdařila."
 
 msgid "The manual update information is invalid."
 msgstr "Informace o ruční aktualizaci jsou neplatné."
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr ""
+"Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
 
 msgid "The message is too large."
 msgstr "Zpráva je příliš velká."
@@ -8551,30 +8577,3 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
-
-#~ msgid "Photos and videos"
-#~ msgstr "Fotografie a videa"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek "
-#~ "koše je neodstraní. Obnovení nikdy nenahradí existující soubor."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr ""
-#~ "Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
-
-#~ msgid "Pending recovery"
-#~ msgstr "Čeká na obnovení"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "Pro mediální soubory platí výše nastavená doba uchování včetně možnosti "
-#~ "„Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale "
-#~ "odstranit“. Obnovení nikdy nenahradí existující soubor."

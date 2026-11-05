@@ -4055,6 +4055,13 @@ msgstr ""
 "telefonu."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek koše "
+"je neodstraní. Obnovení nikdy nenahradí existující soubor."
+
+msgid ""
 "Media files use the retention period above, including “Never”. Use “Delete "
 "permanently” to remove an individual media entry now. Restoring never "
 "replaces an existing file."
@@ -7624,6 +7631,10 @@ msgstr "Informace o ruční aktualizaci jsou neplatné."
 msgid "The maximum number of branches has been reached."
 msgstr "Byl dosažen maximální počet větví."
 
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr ""
+"Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
+
 msgid "The message comes from another branch."
 msgstr "Zpráva pochází z jiné větve."
 
@@ -9941,18 +9952,6 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek "
-#~ "koše je neodstraní. Obnovení nikdy nenahradí existující soubor."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr ""
-#~ "Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "Nativní operace s médii stále běží."

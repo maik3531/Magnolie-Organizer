@@ -3508,6 +3508,21 @@ msgid ""
 msgstr "التحكم بالوسائط غير متاح. تحقق من الاتصال وتطبيق الوسائط على الهاتف."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"تُحفظ ملفات الوسائط بشكل منفصل؛ إفراغ العناصر الأخرى في سلة المحذوفات لا "
+"يحذفها. لا تستبدل الاستعادة أي ملف موجود."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». استخدم "
+"«الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي ملف موجود."
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4567,6 +4582,9 @@ msgstr "قلم"
 msgid "Pending SMS messages"
 msgstr "رسائل SMS المعلقة"
 
+msgid "Pending recovery"
+msgstr "في انتظار الاستعادة"
+
 msgid "People"
 msgstr "الأشخاص"
 
@@ -4702,6 +4720,9 @@ msgstr "صورة %(name)s"
 
 msgid "Photos"
 msgstr "صور"
+
+msgid "Photos and videos"
+msgstr "الصور ومقاطع الفيديو"
 
 msgid "Pick up"
 msgstr "اصطحاب"
@@ -6472,6 +6493,9 @@ msgstr "فشل التحقق من التحديث اليدوي."
 
 msgid "The manual update information is invalid."
 msgstr "معلومات التحديث اليدوي غير صالحة."
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "تعذر تحديث سلة محذوفات الوسائط. تم الاحتفاظ بالملفات الموجودة."
 
 msgid "The message is too large."
 msgstr "الرسالة كبيرة جدًا."
@@ -8606,29 +8630,3 @@ msgstr "＋ إضافة موعد"
 #~ "الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد "
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
-
-#~ msgid "Photos and videos"
-#~ msgstr "الصور ومقاطع الفيديو"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "تُحفظ ملفات الوسائط بشكل منفصل؛ إفراغ العناصر الأخرى في سلة المحذوفات لا "
-#~ "يحذفها. لا تستبدل الاستعادة أي ملف موجود."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "تعذر تحديث سلة محذوفات الوسائط. تم الاحتفاظ بالملفات الموجودة."
-
-#~ msgid "Pending recovery"
-#~ msgstr "في انتظار الاستعادة"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "تسري مدة الاحتفاظ المحددة أعلاه على ملفات الوسائط، بما في ذلك «أبدًا». "
-#~ "استخدم «الحذف نهائيًا» لإزالة عنصر وسائط واحد الآن. لا تستبدل الاستعادة أي "
-#~ "ملف موجود."

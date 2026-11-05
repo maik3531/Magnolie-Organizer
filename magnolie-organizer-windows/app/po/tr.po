@@ -3434,6 +3434,23 @@ msgstr ""
 "kontrol edin."
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"Medya dosyaları ayrı tutulur; geri dönüşüm kutusundaki diğer öğeleri "
+"boşaltmak bunları kaldırmaz. Geri yükleme hiçbir zaman mevcut bir dosyanın "
+"üzerine yazmaz."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek bir "
+"medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini kullanın. "
+"Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4496,6 +4513,9 @@ msgstr "Kalem"
 msgid "Pending SMS messages"
 msgstr "Bekleyen SMS iletileri"
 
+msgid "Pending recovery"
+msgstr "Geri yükleme bekleniyor"
+
 msgid "People"
 msgstr "Kişiler"
 
@@ -4615,6 +4635,9 @@ msgstr "%(name)s adlı kişinin fotoğrafı"
 
 msgid "Photos"
 msgstr "Fotoğraflar"
+
+msgid "Photos and videos"
+msgstr "Fotoğraflar ve videolar"
 
 msgid "Pick up"
 msgstr "Al"
@@ -6396,6 +6419,9 @@ msgstr "Kılavuz güncellemesi denetlenemedi."
 
 msgid "The manual update information is invalid."
 msgstr "Kılavuz güncelleme bilgileri geçersiz."
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "Medya geri dönüşüm kutusu güncellenemedi. Mevcut dosyalar korundu."
 
 msgid "The message is too large."
 msgstr "İleti çok büyük."
@@ -8538,30 +8564,3 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
-
-#~ msgid "Photos and videos"
-#~ msgstr "Fotoğraflar ve videolar"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "Medya dosyaları ayrı tutulur; geri dönüşüm kutusundaki diğer öğeleri "
-#~ "boşaltmak bunları kaldırmaz. Geri yükleme hiçbir zaman mevcut bir "
-#~ "dosyanın üzerine yazmaz."
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "Medya geri dönüşüm kutusu güncellenemedi. Mevcut dosyalar korundu."
-
-#~ msgid "Pending recovery"
-#~ msgstr "Geri yükleme bekleniyor"
-
-#~ msgid ""
-#~ "Media files use the retention period above, including “Never”. Use "
-#~ "“Delete permanently” to remove an individual media entry now. Restoring "
-#~ "never replaces an existing file."
-#~ msgstr ""
-#~ "Medya dosyaları, “Asla” dahil yukarıdaki saklama süresini kullanır. Tek "
-#~ "bir medya öğesini hemen kaldırmak için “Kalıcı olarak sil” seçeneğini "
-#~ "kullanın. Geri yükleme hiçbir zaman mevcut bir dosyanın üzerine yazmaz."

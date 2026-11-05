@@ -3992,6 +3992,13 @@ msgstr ""
 "メディア操作を利用できません。接続と電話のメディアアプリを確認してください。"
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除されま"
+"せん。復元時に既存のファイルを置き換えることはありません。"
+
+msgid ""
 "Media files use the retention period above, including “Never”. Use “Delete "
 "permanently” to remove an individual media entry now. Restoring never "
 "replaces an existing file."
@@ -7539,6 +7546,10 @@ msgstr "手動更新情報が無効です。"
 msgid "The maximum number of branches has been reached."
 msgstr "ブランチ数の上限に達しました。"
 
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr ""
+"メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
+
 msgid "The message comes from another branch."
 msgstr "メッセージは別のブランチから届きました。"
 
@@ -9832,18 +9843,6 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除され"
-#~ "ません。復元時に既存のファイルを置き換えることはありません。"
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr ""
-#~ "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "ネイティブのメディア操作がまだ実行中です。"

@@ -3227,6 +3227,17 @@ msgid ""
 msgstr ""
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+
+msgid ""
 "Media files use the saved recycle-bin retention period. Never means manual "
 "removal only. Restoring never replaces an existing file."
 msgstr ""
@@ -4229,6 +4240,9 @@ msgstr ""
 msgid "Pending SMS messages"
 msgstr ""
 
+msgid "Pending recovery"
+msgstr ""
+
 msgid "People"
 msgstr ""
 
@@ -4344,6 +4358,9 @@ msgid "Photo of %(name)s"
 msgstr ""
 
 msgid "Photos"
+msgstr ""
+
+msgid "Photos and videos"
 msgstr ""
 
 msgid "Pick up"
@@ -6018,6 +6035,9 @@ msgid "The manual update check failed."
 msgstr ""
 
 msgid "The manual update information is invalid."
+msgstr ""
+
+msgid "The media recycle bin could not be updated. Existing files were kept."
 msgstr ""
 
 msgid "The message is too large."

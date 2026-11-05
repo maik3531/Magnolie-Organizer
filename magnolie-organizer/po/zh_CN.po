@@ -3853,6 +3853,13 @@ msgid ""
 msgstr "媒体控制不可用。请检查连接和手机上的媒体应用。"
 
 msgid ""
+"Media files are retained separately; emptying the other recycle bin entries "
+"does not remove them. Restoring never replaces an existing file."
+msgstr ""
+"媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文"
+"件。"
+
+msgid ""
 "Media files use the retention period above, including “Never”. Use “Delete "
 "permanently” to remove an individual media entry now. Restoring never "
 "replaces an existing file."
@@ -7277,6 +7284,9 @@ msgstr "手动更新信息无效。"
 msgid "The maximum number of branches has been reached."
 msgstr "已达到分支数量上限。"
 
+msgid "The media recycle bin could not be updated. Existing files were kept."
+msgstr "无法更新媒体回收站。现有文件已保留。"
+
 msgid "The message comes from another branch."
 msgstr "消息来自另一个分支。"
 
@@ -9458,17 +9468,6 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
-
-#~ msgid ""
-#~ "Media files are retained separately; emptying the other recycle bin "
-#~ "entries does not remove them. Restoring never replaces an existing file."
-#~ msgstr ""
-#~ "媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文"
-#~ "件。"
-
-#~ msgid ""
-#~ "The media recycle bin could not be updated. Existing files were kept."
-#~ msgstr "无法更新媒体回收站。现有文件已保留。"
 
 #~ msgid "A native media operation is still running."
 #~ msgstr "原生媒体操作仍在运行。"
