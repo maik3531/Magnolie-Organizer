@@ -61,6 +61,17 @@ internal class GalleryPhotoPermissionHost(private val activity: ComponentActivit
         // Activity destruction. Do not let that callback consume a new ticket.
     }
 
+    internal fun requestOriginalAccess(workflow: NativeGalleryPhotoWorkflow, request: NativeGalleryOriginalAccessRequest,
+        result: (Result<Unit>) -> Unit) {
+        uiThread()
+        val original = attachment.get()?.takeIf { it.workflow === workflow } ?: fail("gallery_permission_host_owner_changed")
+        if (closed || launcher.requestPending) fail("gallery_write_foreground_required")
+        val writer = writeConsent ?: fail("gallery_write_foreground_required")
+        writer.requestOriginal(request) { outcome ->
+            if (attachment.get() === original && !closed) result(outcome) else request.revoke()
+        }
+    }
+
     internal fun requestWrite(workflow: NativeGalleryPhotoWorkflow, request: NativeGalleryWriteRequest,
         result: (Result<NativeGalleryWriteGrant>) -> Unit) {
         uiThread()

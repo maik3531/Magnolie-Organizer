@@ -108,8 +108,12 @@ internal class NativeGalleryWriteConsentHost(private val activity: ComponentActi
     private class Pending(val request: NativeGalleryWriteRequest, val result: (Result<NativeGalleryWriteGrant>) -> Unit) {
         var launcher: ActivityResultLauncher<IntentSenderRequest>? = null
     }
+    private class OriginalPending(val request: NativeGalleryOriginalAccessRequest, val result: (Result<Unit>) -> Unit) {
+        var launcher: ActivityResultLauncher<String>? = null
+    }
     private val owner = Any()
     private var pending: Pending? = null
+    private var originalPending: OriginalPending? = null
     private var granted: NativeGalleryWriteRequest? = null
     private var closed = false
     private fun complete(held: Pending, code: Int) {
@@ -127,11 +131,34 @@ internal class NativeGalleryWriteConsentHost(private val activity: ComponentActi
         }
     }
     init { activity.lifecycle.addObserver(this) }
-    internal val requestPending: Boolean get() = pending != null
+    internal val requestPending: Boolean get() = pending != null || originalPending != null
+    fun requestOriginal(request: NativeGalleryOriginalAccessRequest, result: (Result<Unit>) -> Unit) {
+        uiThread()
+        if (closed || !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) throw PhotoFolderScopeError("gallery_write_foreground_required")
+        if (requestPending || readPermissionPending()) throw PhotoFolderScopeError("gallery_write_request_pending")
+        granted?.revoke(); granted = null
+        val held = OriginalPending(request, result); originalPending = held
+        try {
+            held.launcher = activity.activityResultRegistry.register("native-gallery-original-" + java.util.UUID.randomUUID(),
+                ActivityResultContracts.RequestPermission()) { reported ->
+                if (originalPending === held) {
+                    originalPending = null; held.launcher?.unregister(); held.launcher = null
+                    val outcome = runCatching { request.result(activity, owner, reported) }
+                    android.os.Handler(Looper.getMainLooper()).post {
+                        if (closed) request.revoke() else {
+                            val current = runCatching { request.requireCurrent(); outcome.getOrThrow() }
+                            request.revoke(); result(current)
+                        }
+                    }
+                }
+            }
+            held.launcher!!.launch(request.launch(owner))
+        } catch (error: Exception) { originalPending = null; held.launcher?.unregister(); request.revoke(); throw error }
+    }
     fun request(request: NativeGalleryWriteRequest, result: (Result<NativeGalleryWriteGrant>) -> Unit) {
         uiThread()
         if (closed || !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) throw PhotoFolderScopeError("gallery_write_foreground_required")
-        if (pending != null || readPermissionPending()) throw PhotoFolderScopeError("gallery_write_request_pending")
+        if (requestPending || readPermissionPending()) throw PhotoFolderScopeError("gallery_write_request_pending")
         granted?.revoke(); granted = null
         val held = Pending(request, result); pending = held
         try {
@@ -140,13 +167,14 @@ internal class NativeGalleryWriteConsentHost(private val activity: ComponentActi
             held.launcher!!.launch(request.launch(owner))
         } catch (error: Exception) { pending = null; held.launcher?.unregister(); request.revoke(); throw error }
     }
-    fun retirePending() { uiThread(); pending?.request?.revoke(); granted?.revoke(); granted = null }
+    fun retirePending() { uiThread(); pending?.request?.revoke(); originalPending?.request?.revoke(); granted?.revoke(); granted = null }
     override fun onPause(owner: LifecycleOwner) { granted?.revoke(); granted = null }
     override fun onDestroy(owner: LifecycleOwner) { close() }
     override fun close() {
         uiThread()
         if (closed) return
         closed = true; pending?.request?.revoke(); granted?.revoke(); granted = null
+        originalPending?.request?.revoke(); originalPending?.launcher?.unregister()
         pending?.launcher?.unregister(); activity.lifecycle.removeObserver(this)
     }
     private fun uiThread() {

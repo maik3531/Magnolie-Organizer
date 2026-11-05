@@ -220,6 +220,13 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
         }
     }
 
+    internal fun requestOriginalAccess(mediaType: GalleryMediaType, permit: NativeGalleryTrashBookPermit, result: (Result<Unit>) -> Unit) {
+        ready(); permit.requireCurrent()
+        val host = nativeBinding(mediaType).get()?.host ?: fail("gallery_write_foreground_required")
+        val request = NativeGalleryOriginalAccessRequest.prepare(permit) { ready(); currentRequest(mediaType) }
+        host.requestOriginalAccess(this, request, result)
+    }
+
     internal fun requestWriteConsent(request: NativeGalleryWriteRequest, result: (Result<NativeGalleryWriteGrant>) -> Unit) {
         ready(); request.requireCurrent()
         val host = nativeBinding(request.mediaType).get()?.host ?: fail("gallery_write_foreground_required")

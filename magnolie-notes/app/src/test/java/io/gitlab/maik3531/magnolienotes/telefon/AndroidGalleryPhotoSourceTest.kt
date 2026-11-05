@@ -380,6 +380,85 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    private fun originalPermissionResult(h: ResumeRuntimeCase, code: Int, reported: Boolean) {
+        // Actual framework dispatch releases mHasCurrentPermissionsRequest
+        // BEFORE calling AndroidX onRequestPermissionsResult/registry. Calling
+        // only that callback would leave Android's OS dialog permanently busy.
+        val data = Intent().apply {
+            putExtra("android.content.pm.extra.REQUEST_PERMISSIONS_NAMES", arrayOf(Manifest.permission.ACCESS_MEDIA_LOCATION))
+            putExtra("android.content.pm.extra.REQUEST_PERMISSIONS_RESULTS", intArrayOf(
+                if (reported) android.content.pm.PackageManager.PERMISSION_GRANTED else android.content.pm.PackageManager.PERMISSION_DENIED))
+        }
+        android.app.Activity::class.java.getDeclaredMethod("dispatchRequestPermissionsResult", Int::class.javaPrimitiveType, Intent::class.java)
+            .also { it.isAccessible = true }.invoke(h.activity.get(), code, data)
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+    }
+
+    @Test @Config(sdk = [30]) fun explicitOriginalAccessRequiresActualOsPermissionAndDoesNotCreateArchiveOrWriteGrant() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val shadow = Shadows.shadowOf(h.activity.get())
+            assertNull(shadow.lastRequestedPermission) // Normal source READ never asks for EXIF location.
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val results = mutableListOf<Result<Unit>>()
+            h.runtime.requestGalleryOriginalAccess(GalleryMediaType.IMAGES, permit) { results += it }
+            val first = shadow.lastRequestedPermission!!
+            assertArrayEquals(arrayOf(Manifest.permission.ACCESS_MEDIA_LOCATION), first.requestedPermissions)
+            originalPermissionResult(h, first.requestCode, true)
+            assertTrue(results.single().isFailure) // A positive callback alone cannot grant OS permission.
+            results.clear()
+            h.runtime.requestGalleryOriginalAccess(GalleryMediaType.IMAGES, permit) { results += it }
+            val second = shadow.lastRequestedPermission!!
+            assertNotEquals(first.requestCode, second.requestCode)
+            h.activity.pause().resume()
+            Shadows.shadowOf(h.f.context as Application).grantPermissions(Manifest.permission.ACCESS_MEDIA_LOCATION)
+            originalPermissionResult(h, second.requestCode, true)
+            results.single().getOrThrow(); assertFalse(h.writeHost!!.requestPending)
+            assertThrows(PhotoFolderScopeError::class.java) { h.catalog.page() }
+            assertFalse(File(h.f.context.noBackupFilesDir, "native-media-recovery").exists())
+            assertEquals(0, h.f.provider.writeRequests); assertEquals(0, h.f.provider.trashWrites)
+            h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun originalAccessOldRepliesCannotConsumeNewRequestOrOverlapWriteAndReadDialogs() {
+        ResumeRuntimeCase(withWriteHost = true).use { h ->
+            val permit = NativeGalleryTrashBookPermit.capture(archiveBook(h.f)) { true }
+            val write = prepareArchivedWrite(h, permit)
+            val results = mutableListOf<Result<Unit>>()
+            h.runtime.requestGalleryOriginalAccess(GalleryMediaType.IMAGES, permit) { results += it }
+            val old = Shadows.shadowOf(h.activity.get()).lastRequestedPermission!!.requestCode
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.requestGalleryWriteConsent(write) {} }
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.requestReadPermission() }
+            h.writeHost!!.retirePending()
+            originalPermissionResult(h, old, false); assertTrue(results.single().isFailure); results.clear()
+            h.runtime.requestGalleryOriginalAccess(GalleryMediaType.IMAGES, permit) { results += it }
+            val fresh = Shadows.shadowOf(h.activity.get()).lastRequestedPermission!!.requestCode
+            assertNotEquals(old, fresh)
+            originalPermissionResult(h, old, true)
+            assertTrue("stale result delivered ${results.map { it.exceptionOrNull()?.message }}", results.isEmpty()); assertTrue(h.writeHost.requestPending)
+            Shadows.shadowOf(h.f.context as Application).grantPermissions(Manifest.permission.ACCESS_MEDIA_LOCATION)
+            originalPermissionResult(h, fresh, true)
+            assertTrue(results.single().isSuccess); assertFalse(h.writeHost.requestPending); h.assertOriginal()
+        }
+    }
+
+    @Test @Config(sdk = [30]) fun originalAccessCannotSurviveBookChangeOrIndependentVideoPolicyReenable() {
+        for (change in listOf("book", "video")) ResumeRuntimeCase(withWriteHost = true, mediaType = GalleryMediaType.VIDEO).use { h ->
+            val documents = archiveBook(h.f); val permit = NativeGalleryTrashBookPermit.capture(documents) { true }
+            var result: Result<Unit>? = null
+            h.runtime.requestGalleryOriginalAccess(GalleryMediaType.VIDEO, permit) { result = it }
+            val code = Shadows.shadowOf(h.activity.get()).lastRequestedPermission!!.requestCode
+            if (change == "book") documents.setzePapierkorb(false, 0) else {
+                h.runtime.configureVideosFromAuthenticatedCommand(h.runtime.savedPolicy(), false)
+                h.runtime.configureVideosFromAuthenticatedCommand(h.runtime.savedPolicy(), true)
+            }
+            Shadows.shadowOf(h.f.context as Application).grantPermissions(Manifest.permission.ACCESS_MEDIA_LOCATION)
+            originalPermissionResult(h, code, true)
+            assertTrue(result!!.isFailure); assertEquals(0, h.f.provider.writeRequests); h.assertOriginal()
+            Shadows.shadowOf(h.f.context as Application).denyPermissions(Manifest.permission.ACCESS_MEDIA_LOCATION)
+        }
+    }
+
     private fun prepareArchivedWrite(h: ResumeRuntimeCase, permit: NativeGalleryTrashBookPermit,
         entry: NativeGalleryArchiveEntry? = null): NativeGalleryWriteRequest {
         val archive = entry ?: run {

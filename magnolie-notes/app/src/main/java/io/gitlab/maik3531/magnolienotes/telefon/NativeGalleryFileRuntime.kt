@@ -117,6 +117,12 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         sourceWorker.startArchive(selection) { cancellation -> workflow.archiveRecoverableMember(selection, job, fileId, permit, cancellation) }
     }
 
+    internal fun requestGalleryOriginalAccess(mediaType: GalleryMediaType, permit: NativeGalleryTrashBookPermit,
+        result: (Result<Unit>) -> Unit) = withOperation {
+        if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
+        workflow.requestOriginalAccess(mediaType, permit, result)
+    }
+
     internal fun prepareGalleryWriteConsent(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit): NativeGallerySourceRun = withOperation {
         if (syncRun != null || resumeRun != null || albumBatchOwner != null) DeviceFileControl.fail("gallery_sync_run_busy")
         sourceWorker.startWriteRequest { cancellation -> workflow.prepareWriteConsent(entry, permit, cancellation) }
