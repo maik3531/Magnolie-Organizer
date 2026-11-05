@@ -10,15 +10,16 @@ internal sealed partial class TelefonConnection
     private JsonObject? mediaSharedSent, mediaSharedAcknowledged, mediaSharedReceived;
     private long mediaSharedGeneration;
     internal Func<Task>? MediaPreferencesChanged { get; set; }
-    internal Action<JsonObject, string, CancellationToken>? MediaManualRequested { get; set; }
+    internal Action<JsonObject, string, long, CancellationToken>? MediaManualRequested { get; set; }
 
     private async Task HandleMediaManualRequestAsync(JsonObject message)
     {
         var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);
         var settings = message["body"]!["settings"]!.AsObject();
+        var deadline = message["expires_ms"]!.GetValue<long>();
         var startWorker = MediaManualRequested;
         bool Ready() => startWorker is not null && MediaSharedSettingsReady &&
-            message["expires_ms"]!.GetValue<long>() > Now() &&
+            deadline > Now() &&
             JsonNode.DeepEquals(settings, store.ReadNativeMediaSharedSettings(peer.Id, peer.PublicKey)) &&
             (MediaSyncSettings.RequestedFor(settings, "images") || MediaSyncSettings.RequestedFor(settings, "video"));
         var ack = store.CommitIncoming(peer.Id, message, now, (_, _) => Ready() ? null : "not_granted",
@@ -31,7 +32,11 @@ internal sealed partial class TelefonConnection
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         // Schedule only after successful secure ACK. The receive loop must stay
         // free to process the real source controls/data/Saved/END responses.
-        if (start) startWorker!(settings.DeepClone().AsObject(), ack.MessageId, cancellation);
+        if (start)
+        {
+            if (deadline <= Now()) await SendMediaManualResultAsync(ack.MessageId, "held");
+            else startWorker!(settings.DeepClone().AsObject(), ack.MessageId, deadline, cancellation);
+        }
     }
 
     internal Task SendMediaManualResultAsync(string requestId, string state)

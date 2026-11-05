@@ -1643,7 +1643,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection!),
-                    MediaManualRequested = (settings, requestId, token) => StartNativeMediaManualRequest(peer.Id, connection!, settings, requestId, token),
+                    MediaManualRequested = (settings, requestId, deadline, token) => StartNativeMediaManualRequest(peer.Id, connection!, settings, requestId, deadline, token),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),

@@ -80,7 +80,7 @@ internal static class DeviceFileAutomaticTests
         var manualCleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         async Task RunWire()
         {
-            f.Native.Connection.MediaManualRequested = (settings, id, token) => coordinator.StartNativeMediaManualRequest(f.Native.Peer.Id, f.Native.Connection, settings, id, token);
+            f.Native.Connection.MediaManualRequested = (settings, id, deadline, token) => coordinator.StartNativeMediaManualRequest(f.Native.Peer.Id, f.Native.Connection, settings, id, deadline, token);
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); var id = Guid.NewGuid().ToString("D");
             var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = id, ["kind"] = MediaSyncSettings.StartKind,
                 ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = new JsonObject { ["format"] = 1, ["settings"] = manualIntent!.DeepClone() } };

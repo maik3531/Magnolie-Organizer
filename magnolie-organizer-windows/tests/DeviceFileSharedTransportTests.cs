@@ -141,7 +141,7 @@ internal static class DeviceFileSharedTransportTests
             message["kind"] = MediaSyncSettings.StartKind; return message;
         }
         var calls = 0;
-        f.Connection.MediaManualRequested = (settings, _, _) => {
+        f.Connection.MediaManualRequested = (settings, _, _, _) => {
             TestAssert.That(JsonNode.DeepEquals(settings, f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)), "Manual callback received a different snapshot.");
             calls++;
         };
@@ -153,6 +153,14 @@ internal static class DeviceFileSharedTransportTests
         var expired = Request(); expired["created_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 61000; expired["expires_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 1000;
         await f.Connection.HandlePlainAsync(expired);
         TestAssert.That(calls == 1, "Manual action used generic clock-skew tolerance to start after its deadline.");
+        var duringAck = Request(); var issued = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        duringAck["created_ms"] = issued - 59000; duringAck["expires_ms"] = issued + 1000;
+        f.Stream.BeforeWrite = () => { f.Stream.BeforeWrite = null; Thread.Sleep(1200); };
+        await f.Connection.HandlePlainAsync(duringAck);
+        TestAssert.That(calls == 1, "A manual request expired during actual secure ACK output but still scheduled native IO.");
+        var held = DeviceFileConnectionTransportTests.OpenFrames(f.Stream.ToArray()).Last(frame => frame["kind"]?.GetValue<string>() == MediaSyncSettings.ResultKind);
+        TestAssert.That(held["body"]!["request_id"]!.GetValue<string>() == duringAck["message_id"]!.GetValue<string>() &&
+            held["body"]!["state"]!.GetValue<string>() == "held", "ACK-deadline withdrawal left the phone pending without a correlated HOLD.");
         var malformed = Request(); malformed["body"]!["path"] = "C:\\must-not-open";
         await DeviceFileConnectionSourcesTests.FailsAsync<TelefonMessageException>(f.Connection.HandlePlainAsync(malformed), "Native path entered an explicit phone request.");
         var stale = Request();

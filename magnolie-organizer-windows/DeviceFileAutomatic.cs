@@ -66,13 +66,14 @@ internal sealed partial class TelefonCoordinator
     internal Task<string> RunNativeMediaManualOnceAsync(string peerId, JsonObject expectedIntent, CancellationToken token)
         => RunNativeMediaInventoryOnceAsync(peerId, expectedIntent.DeepClone().AsObject(), token);
 
-    internal void StartNativeMediaManualRequest(string peerId, TelefonConnection connection, JsonObject settings, string requestId, CancellationToken token)
+    internal void StartNativeMediaManualRequest(string peerId, TelefonConnection connection, JsonObject settings, string requestId, long deadline, CancellationToken token)
     {
         Track(McpServiceTask(async () =>
         {
             var phase = "held";
             try
             {
+                if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() >= deadline) throw DeviceFileControl.Error("file_media_manual_request_expired");
                 if (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection)) throw DeviceFileControl.Error("file_media_manual_connection_changed");
                 phase = await RunNativeMediaInventoryOnceAsync(peerId, settings, token, connection);
             }
