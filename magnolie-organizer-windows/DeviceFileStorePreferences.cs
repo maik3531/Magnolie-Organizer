@@ -102,13 +102,14 @@ internal sealed partial class TelefonStore
     // call. Compare-and-set prevents another window/process from losing a choice.
     internal NativeMediaPreferences SetNativeMediaPreferences(string peerId, string? expectedVersion,
         bool photosEnabled, bool videosEnabled, bool automaticWifi,
-        bool? deleteFromPhone = null, bool? deleteFromDesktop = null)
+        bool? deleteFromPhone = null, bool? deleteFromDesktop = null, Action? nativeGuard = null)
     {
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId);
             using var connection = OpenNativeMediaDatabase(); connection.Open();
             using var transaction = connection.BeginTransaction();
+            nativeGuard?.Invoke();
             var previous = ReadNativeMediaPreferences(connection, transaction, scope);
             if (previous.Version != expectedVersion) throw DeviceFileControl.Error("file_preferences_stale_choice");
             var phoneDeletion = deleteFromPhone ?? previous.DeleteFromPhone;
@@ -117,6 +118,7 @@ internal sealed partial class TelefonStore
                 previous.DeleteFromPhone == phoneDeletion && previous.DeleteFromDesktop == desktopDeletion)
             {
                 if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_preferences_scope_changed");
+                nativeGuard?.Invoke();
                 return previous;
             }
             if (previous.Revision >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_preferences_revision_exhausted");
@@ -135,6 +137,7 @@ internal sealed partial class TelefonStore
             write.Parameters.AddWithValue("$peer", scope.PeerId);
             write.Parameters.AddWithValue("$value", Seal("native_media_preferences", scope.PeerId, TelefonCrypto.Canonical(value)));
             write.ExecuteNonQuery();
+            nativeGuard?.Invoke();
             if (MediaPreferenceScope(peerId) != scope) throw DeviceFileControl.Error("file_preferences_scope_changed");
             transaction.Commit();
             return next;

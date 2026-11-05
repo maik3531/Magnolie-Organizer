@@ -9,6 +9,7 @@ internal sealed partial class TelefonConnection
     private readonly Dictionary<string, JsonObject> mediaSharedAttempts = new(StringComparer.Ordinal);
     private JsonObject? mediaSharedSent, mediaSharedAcknowledged, mediaSharedReceived;
     private long mediaSharedGeneration;
+    internal Func<Task>? MediaPreferencesChanged { get; set; }
 
     private static bool MediaSettingsAdvertised(JsonObject? capabilities) =>
         capabilities?["device_status"] is JsonObject status && status["available"]?.GetValue<bool>() == true &&
@@ -117,6 +118,7 @@ internal sealed partial class TelefonConnection
                 lock (mediaSharedGate)
                     if (generation == mediaSharedGeneration) mediaSharedReceived = body.DeepClone().AsObject();
                 await SendMediaSharedSettingsAsync();
+                if (MediaPreferencesChanged is not null) await MediaPreferencesChanged();
             }
             else InvalidateMediaSharedReceipts();
         }

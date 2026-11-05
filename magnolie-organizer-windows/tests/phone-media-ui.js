@@ -182,5 +182,17 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   api.receive({ requestId: oldStatus, device_id: peer, ok: true, supported: false });
   assert(!sharedPanel.hidden && master.checked, "A late older status replaced newer shared settings.");
   assert(!messages.slice(countBeforeEnable).some(message => ["sync", "discover", "request_read"].includes(message.action)));
+  const beforeChanged = messages.length, savesBeforeChanged = saves;
+  api.changed({ device_id: "foreign" }); assert.equal(messages.length, beforeChanged);
+  api.changed({ device_id: peer }); await tick();
+  assert(messages.length > beforeChanged && messages.slice(beforeChanged).every(message => message.action === "status"));
+  assert.equal(saves, savesBeforeChanged); sharedReply();
+  for (const old of [panel, legacyPanel, backupPanel, unsupported]) old.remove();
+  master.checked = false; master.dispatchEvent(new w.Event("change")); await tick();
+  const beforeBusyChanged = messages.length;
+  api.changed({ device_id: peer }); assert.equal(messages.length, beforeBusyChanged);
+  values.enabled = false; sharedReply(); await tick();
+  assert.equal(last().action, "status", "A native change during an edit must be refreshed once that edit finishes");
+  sharedReply(); assert(!master.checked);
   console.log("Native media UI: legacy guards, native path-only choice, manual/video OFF, album/stop/recovery, shared master OFF, independent field edits/local rights, requested order, no activation-start and failed-choice rollback PASS");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => dom.window.close());

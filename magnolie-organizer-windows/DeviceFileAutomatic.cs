@@ -62,6 +62,10 @@ internal sealed partial class TelefonCoordinator
         token.ThrowIfCancellationRequested();
         var connection = NativeMediaOnlineConnection(peerId);
         if (connection.Transport != "wifi" || !connection.NativeMediaUiMetadataAvailable()) return;
+        if (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId))
+        {
+            if (!connection.MediaSharedSettingsReady || !ApplyMatchedNativeMediaPreferences(peerId, connection)) return;
+        }
         var preferences = store.ReadNativeMediaPreferences(peerId);
         if (!preferences.AutomaticWifi || !preferences.PhotosEnabled && !preferences.VideosEnabled) return;
         var state = nativeAutomaticMedia.GetOrAdd(peerId, _ => new(connection));

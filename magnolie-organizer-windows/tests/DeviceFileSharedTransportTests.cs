@@ -87,13 +87,16 @@ internal static class DeviceFileSharedTransportTests
         TestAssert.Throws<InvalidDataException>(() => coordinator.EnsureNativeMediaDefaultDestination(f.Peer.Id, "images",
             Path.Combine(f.Paths.Root, "must-not-open")), "Default folder IO began before local receive consent.");
         var localRights = coordinator.ChangeNativeMediaUiReceiveConsent(f.Peer.Id, ui["receive_consent"]!["version"]!.GetValue<string>(), true);
-        TestAssert.That(localRights["receive_consent"]!["granted"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null &&
+        var projected = f.Store.ReadNativeMediaPreferences(f.Peer.Id);
+        TestAssert.That(localRights["receive_consent"]!["granted"]!.GetValue<bool>() && projected.PhotosEnabled && !projected.VideosEnabled &&
             f.Store.ReadNativeMediaDestination(f.Peer.Id, "images") is null && f.Store.ReadNativeMediaDestination(f.Peer.Id, "video") is null,
-            "Local rights alone enabled native media policy, created a destination or started IO.");
+            "Matched intent plus explicit local rights failed projection or created a destination without a run.");
+        TestAssert.That(!projected.GrantsReceiveAuthority && f.Store.NativeMediaReceiveHistory(f.Peer.Id).Count == 0,
+            "Policy projection fabricated native transport authority or a receive job.");
         var edited = await coordinator.ChangeNativeMediaUiSharedSettingAsync(f.Peer.Id, "collection_mode", JsonValue.Create("entire_collection")!,
             ui["shared_settings"]!["versions"]!["collection_mode"]!.GetValue<string>());
         TestAssert.That(edited["shared_settings"]!["values"]!["collection_mode"]!.GetValue<string>() == "entire_collection" &&
-            !edited["shared_matched"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null,
+            !edited["shared_matched"]!.GetValue<bool>() && f.Store.ReadNativeMediaPreferences(f.Peer.Id) == projected,
             "Native UI field edit failed to persist or incorrectly treated sending as a matched/started run.");
         var nextVersion = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "videos_enabled");
         f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "videos_enabled", JsonValue.Create(true)!, nextVersion);

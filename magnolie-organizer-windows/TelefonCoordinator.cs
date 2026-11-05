@@ -1642,6 +1642,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
+                    MediaPreferencesChanged = () => NativeMediaSharedPreferencesChangedAsync(peer.Id, connection!),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     PersonalSuccessConfirmed = (source, report) => RecordConfirmedPersonalSuccess(source, peer, report),
@@ -2272,6 +2273,8 @@ internal sealed partial class TelefonConnection : IDisposable
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             var queued = store.OutboxMessage(peer.Id, id!);
             ObserveMediaSharedAck(id, status, error, queued);
+            if (queued?["kind"]?.GetValue<string>() == MediaSyncSettings.Kind && MediaPreferencesChanged is not null)
+                await MediaPreferencesChanged();
             if (queued is not null && PersonalSyncActorContract.IsReservedMessage(queued)) return;
             if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             if (status is "accepted" or "duplicate" && queued?["kind"]?.GetValue<string>() == "personal_sync.custom_batch" &&
@@ -2463,6 +2466,8 @@ internal sealed partial class TelefonConnection : IDisposable
             await SendSharedSettingsAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         CompleteFileMetadataReceipt(plain, ack, fileMetadataAttempt);
+        if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
+            await SendMediaSharedSettingsAsync();
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
     // Optional implementation is omitted entirely in builds without media.

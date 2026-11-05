@@ -146,6 +146,37 @@ internal sealed partial class TelefonConnection
 
 internal sealed partial class TelefonCoordinator
 {
+    private Task NativeMediaSharedPreferencesChangedAsync(string peerId, TelefonConnection connection)
+    {
+        try { ApplyMatchedNativeMediaPreferences(peerId, connection); }
+        catch (Exception error) when (error is InvalidDataException or IOException or InvalidOperationException or CryptographicException)
+        { /* Shared choices stay durable; a missing local authority HOLDs IO, not metadata. */ }
+        emit("MagnolieMedia.changed", new { device_id = peerId });
+        return Task.CompletedTask;
+    }
+
+    internal bool ApplyMatchedNativeMediaPreferences(string peerId, TelefonConnection connection)
+    {
+        if (!ReferenceEquals(NativeMediaOnlineConnection(peerId), connection) || !connection.MediaSharedSettingsReady) return false;
+        var permit = NativeMediaLocalBookPermit(); permit.Require();
+        var currentPeer = store.LoadPeers().Single(value => value.Id == peerId);
+        var body = store.ReadNativeMediaSharedSettings(peerId, currentPeer.PublicKey) ?? throw DeviceFileControl.Error("media_shared_snapshot_unavailable");
+        void Current()
+        {
+            permit.Require();
+            if (!connection.MediaSharedSettingsReady) throw DeviceFileControl.Error("media_shared_snapshot_changed");
+        }
+        var previous = store.ReadNativeMediaPreferences(peerId);
+        var next = store.ProjectNativeMediaSharedPreferences(peerId, currentPeer.PublicKey, body, Current);
+        if (next != previous)
+        {
+            connection.RevokeNativeMediaUiConsent();
+            if (!next.AutomaticWifi) StopNativeMediaAutomatic(peerId);
+            else if (!previous.AutomaticWifi && nativeAutomaticMedia.TryGetValue(peerId, out var state))
+                lock (state) { state.Paused = false; state.Phase = "idle"; }
+        }
+        return true;
+    }
     private TelefonConnection NativeMediaOnlineConnection(string peerId)
     {
         lock (gate)
@@ -162,6 +193,8 @@ internal sealed partial class TelefonCoordinator
         if (!imagesReady) return connection?.NativeMediaLegacyActivationAvailable() == true
             ? new JsonObject { ["supported"] = true, ["activation_required"] = true }
             : new JsonObject { ["supported"] = false };
+        if (store.HasNativeMediaSharedSettings(peerId) && !connection!.MediaSharedControlsReady)
+            return new JsonObject { ["supported"] = false };
         var videosReady = connection!.NativeMediaUiMetadataAvailable(videos: true);
         var preference = store.ReadNativeMediaPreferences(peerId);
         JsonNode? Destination(string kind)
@@ -222,6 +255,7 @@ internal sealed partial class TelefonCoordinator
         store.ChangeNativeMediaReceiveConsent(peerId, version, granted);
         connection.RevokeNativeMediaUiConsent();
         if (!granted) StopNativeMediaAutomatic(peerId);
+        ApplyMatchedNativeMediaPreferences(peerId, connection);
         permit.Require(); return NativeMediaUiStatus(peerId);
     }
 

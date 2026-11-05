@@ -6,6 +6,18 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonStore
 {
+    internal bool HasNativeMediaSharedSettings(string peerId)
+    {
+        lock (gate)
+        {
+            using var db = OpenNativeMediaDatabase(); db.Open(); using var read = db.CreateCommand();
+            read.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_media_shared_settings'";
+            if (read.ExecuteScalar() is null) return false;
+            read.CommandText = "SELECT 1 FROM native_media_shared_settings WHERE peer_id=$peer";
+            read.Parameters.AddWithValue("$peer", peerId); return read.ExecuteScalar() is not null;
+        }
+    }
+
     private (string Key, NativeMediaPreferenceScope Scope) MediaSharedBinding(string peerId, byte[] expectedPublic)
     {
         RequireNativeMediaStorageKey();

@@ -2,6 +2,7 @@
 (() => {
   "use strict";
   const pending = new Map();
+  const panels = new Map();
   function createPanel(peerId, translate, send, saveBefore) {
     const t = translate, root = document.createElement("details");
     root.className = "telefon-medien einst-gruppe"; root.hidden = true;
@@ -54,6 +55,7 @@
     let nextTrash = null;
     let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
     let requestSequence = 0, appliedSettingsSequence = 0;
+    let deferredStatus = false;
     const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "shared_setting", "receive_consent"]);
     const allButtons = [], actions = [], rightActions = []; let refresh, manualSync;
     const albumChoice = node("select"); albumChoice.className = "feld"; albumChoice.hidden = true;
@@ -83,6 +85,14 @@
         entry.button.disabled = busy || !enabled || !runtimeReady || !(entry.mediaType === "video" ? videos.checked : photos.checked);
       }
       for (const b of destinations.querySelectorAll("button")) b.disabled = busy || !enabled || (shared && !receiveConsent.checked);
+      if (deferredStatus && !busy) {
+        deferredStatus = false;
+        queueMicrotask(() => {
+          if (!root.isConnected) return;
+          if (busy) { deferredStatus = true; return; }
+          request("status", {}, false);
+        });
+      }
     };
     const request = async (action, data = {}, save = true) => {
       if (save) {
@@ -265,6 +275,8 @@
       toggle();
     }
     request("status", {}, false);
+    for (const old of panels.keys()) if (!old.isConnected) panels.delete(old);
+    panels.set(root, { peerId, refresh: () => { if (busy) deferredStatus = true; else request("status", {}, false); } });
     return advanced;
   }
   function createBackupPanel(peerId, mediaType, translate, send, saveBefore) {
@@ -313,6 +325,13 @@
   window.MagnolieMedia = {
     createPanel,
     createBackupPanel,
+    changed(reply) {
+      if (!reply || typeof reply.device_id !== "string") return;
+      for (const [root, panel] of panels) {
+        if (!root.isConnected) { panels.delete(root); continue; }
+        if (panel.peerId === reply.device_id) panel.refresh();
+      }
+    },
     receive(reply) {
       if (!reply || typeof reply.requestId !== "string") return;
       const item = pending.get(reply.requestId);
