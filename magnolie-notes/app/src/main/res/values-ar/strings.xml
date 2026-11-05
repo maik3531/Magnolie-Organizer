@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">استعادة الصور والفيديوهات</string>
+    <string name="media_recovery_hint">نسخ استعادة محلية مشفرة، متاحة أيضًا دون الاتصال السابق. تُحفظ نسخة الاستعادة والوسائط الموجودة عند الاستعادة.</string>
+    <string name="media_recovery_refresh">تحديث قائمة الاستعادة</string>
+    <string name="media_recovery_working">جارٍ التحقق من الوسائط أو استعادتها…</string>
+    <string name="media_recovery_unavailable">الاستعادة غير متاحة حاليًا. أنهِ عمليات الوسائط الأخرى وتأكد من حفظ الدفتر وفتح قفله. لم تُحذف أي نسخة استعادة.</string>
+    <string name="media_recovery_trashed">في سلة المهملات</string>
+    <string name="media_recovery_unfinished">استعادة غير مكتملة — تحقق وتابع</string>
+    <string name="media_recovery_uncertain">العملية غير مؤكدة — تلزم المراجعة</string>
+    <string name="media_recovery_restored">تمت الاستعادة كملف وسائط جديد</string>
+    <string name="media_recovery_copy_only">نسخة استعادة فقط — لم يُؤكد أي حذف</string>
+    <string name="media_recovery_continue">التحقق ومتابعة الاستعادة</string>
+    <string name="media_recovery_confirm">استعادة «%1$s» أو التحقق منه كملف وسائط جديد؟ تُحفظ الملفات الموجودة ونسخة الاستعادة.</string>
     <string name="telefon_kontakte_lesen">السماح لهذا الحاسوب بقراءة جهات الاتصال والصور</string>
     <string name="telefon_kontakte_lesen_hinweis">قراءة فقط لحاسوبك المحدد. تتطلب الحقول معاينة الاستيراد؛ وتبقى الصور المختارة محمية. لا تُغيّر جهات اتصال الهاتف.</string>
     <string name="telefon_status_keine_verbindung">لا يوجد اتصال قائم</string>

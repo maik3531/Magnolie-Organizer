@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Recuperação de fotografias e vídeos</string>
+    <string name="media_recovery_hint">Cópias de recuperação locais encriptadas, também disponíveis sem a ligação anterior. A cópia de recuperação e os ficheiros multimédia existentes são preservados ao restaurar.</string>
+    <string name="media_recovery_refresh">Atualizar lista de recuperação</string>
+    <string name="media_recovery_working">A verificar ou restaurar ficheiros multimédia…</string>
+    <string name="media_recovery_unavailable">A recuperação está indisponível neste momento. Termine as outras operações multimédia e confirme que o livro está guardado e desbloqueado. Nenhuma cópia de recuperação foi removida.</string>
+    <string name="media_recovery_trashed">Na reciclagem</string>
+    <string name="media_recovery_unfinished">Restauro incompleto — verificar e continuar</string>
+    <string name="media_recovery_uncertain">Operação não confirmada — requer verificação</string>
+    <string name="media_recovery_restored">Restaurado como um novo ficheiro multimédia</string>
+    <string name="media_recovery_copy_only">Apenas cópia de recuperação — nenhuma eliminação confirmada</string>
+    <string name="media_recovery_continue">Verificar e continuar o restauro</string>
+    <string name="media_recovery_confirm">Restaurar ou verificar «%1$s» como um novo ficheiro multimédia? Os ficheiros existentes e a cópia de recuperação são preservados.</string>
     <string name="telefon_kontakte_lesen">Permitir que este computador leia contactos e fotografias</string>
     <string name="telefon_kontakte_lesen_hinweis">Só leitura para o seu computador selecionado. Os campos exigem pré-visualização; as fotografias escolhidas ficam protegidas. Nenhum contacto do telefone é alterado.</string>
     <string name="telefon_status_keine_verbindung">Nenhuma ligação estabelecida</string>

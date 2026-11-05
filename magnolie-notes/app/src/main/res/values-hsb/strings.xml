@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Wobnowjenje fotow a widejow</string>
+    <string name="media_recovery_hint">Lokalne zaklučowane kopije za wobnowjenje, kotrež su tež bjez prjedawšeho zwiska k dispoziciji. Při wobnowjenju so kopija a eksistowace medije wobchowaja.</string>
+    <string name="media_recovery_refresh">Lisćinu wobnowjenja aktualizować</string>
+    <string name="media_recovery_working">Medije so kontroluja abo wobnowjeja…</string>
+    <string name="media_recovery_unavailable">Wobnowjenje tuchwilu k dispoziciji njeje. Dokónčće druhe medijowe operacije a zawěsćće, zo je kniha składowana a wotblokowana. Žana kopija za wobnowjenje so njewotstroni.</string>
+    <string name="media_recovery_trashed">W papjerniku</string>
+    <string name="media_recovery_unfinished">Njedokónčene wobnowjenje — přepruwować a pokročować</string>
+    <string name="media_recovery_uncertain">Operacija njeje wobkrućena — kontrola je trěbna</string>
+    <string name="media_recovery_restored">Jako nowa medijowa dataja wobnowjene</string>
+    <string name="media_recovery_copy_only">Jenož kopija za wobnowjenje — žane zhašenje wobkrućene</string>
+    <string name="media_recovery_continue">Přepruwować a z wobnowjenjom pokročować</string>
+    <string name="media_recovery_confirm">„%1$s“ jako nowu medijowu dataju wobnowić abo přepruwować? Eksistowace dataje a kopija za wobnowjenje so wobchowaja.</string>
     <string name="telefon_kontakte_lesen">Tutomu ličakej čitanje kontaktow a fotow dowolić</string>
     <string name="telefon_kontakte_lesen_hinweis">Jenož čitanje za wubrany swójski ličak. Kontaktowe pola sej importowy přehlad žadaja; wubrane fota wostanu škitane. Telefonowe kontakty so njeměnja.</string>
     <string name="telefon_status_keine_verbindung">Žadyn wobstejacy zwisk</string>

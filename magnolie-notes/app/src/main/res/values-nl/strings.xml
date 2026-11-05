@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Herstel van foto’s en video’s</string>
+    <string name="media_recovery_hint">Lokale versleutelde herstelkopieën, ook beschikbaar zonder de eerdere verbinding. De herstelkopie en bestaande media blijven bij het herstellen behouden.</string>
+    <string name="media_recovery_refresh">Herstellijst vernieuwen</string>
+    <string name="media_recovery_working">Media controleren of herstellen…</string>
+    <string name="media_recovery_unavailable">Herstel is momenteel niet beschikbaar. Rond andere mediabewerkingen af en zorg dat het boek is opgeslagen en ontgrendeld. Er is geen herstelkopie verwijderd.</string>
+    <string name="media_recovery_trashed">In de prullenbak</string>
+    <string name="media_recovery_unfinished">Onvoltooid herstel — controleren en doorgaan</string>
+    <string name="media_recovery_uncertain">Bewerking niet bevestigd — controle vereist</string>
+    <string name="media_recovery_restored">Hersteld als een nieuw mediabestand</string>
+    <string name="media_recovery_copy_only">Alleen herstelkopie — geen verwijdering bevestigd</string>
+    <string name="media_recovery_continue">Controleren en herstel voortzetten</string>
+    <string name="media_recovery_confirm">‘%1$s’ als een nieuw mediabestand herstellen of controleren? Bestaande bestanden en de herstelkopie blijven behouden.</string>
     <string name="telefon_kontakte_lesen">Deze computer toestaan contacten en foto’s te lezen</string>
     <string name="telefon_kontakte_lesen_hinweis">Alleen lezen voor de geselecteerde eigen computer. Contactvelden vereisen een importvoorbeeld; gekozen foto’s blijven beschermd. Telefooncontacten worden niet gewijzigd.</string>
     <string name="telefon_status_keine_verbindung">Geen bestaande verbinding</string>

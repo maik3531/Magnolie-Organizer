@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Відновлення фото й відео</string>
+    <string name="media_recovery_hint">Локальні зашифровані копії для відновлення, доступні й без попереднього з’єднання. Під час відновлення копія та наявні медіафайли зберігаються.</string>
+    <string name="media_recovery_refresh">Оновити список відновлення</string>
+    <string name="media_recovery_working">Перевірка або відновлення медіафайлів…</string>
+    <string name="media_recovery_unavailable">Відновлення наразі недоступне. Завершіть інші операції з медіафайлами та переконайтеся, що книгу збережено й розблоковано. Жодну копію для відновлення не видалено.</string>
+    <string name="media_recovery_trashed">У кошику</string>
+    <string name="media_recovery_unfinished">Відновлення не завершено — перевірте й продовжте</string>
+    <string name="media_recovery_uncertain">Операцію не підтверджено — потрібна перевірка</string>
+    <string name="media_recovery_restored">Відновлено як новий медіафайл</string>
+    <string name="media_recovery_copy_only">Лише копія для відновлення — видалення не підтверджено</string>
+    <string name="media_recovery_continue">Перевірити й продовжити відновлення</string>
+    <string name="media_recovery_confirm">Відновити або перевірити «%1$s» як новий медіафайл? Наявні файли та копія для відновлення зберігаються.</string>
     <string name="telefon_kontakte_lesen">Дозволити комп’ютеру читати контакти й фотографії</string>
     <string name="telefon_kontakte_lesen_hinweis">Лише читання для вибраного власного комп’ютера. Поля проходять попередній перегляд імпорту; вибрані фотографії захищено. Контакти телефона не змінюються.</string>
     <string name="telefon_status_keine_verbindung">Немає встановленого з’єднання</string>

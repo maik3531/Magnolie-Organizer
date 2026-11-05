@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Аднаўленне фота і відэа</string>
+    <string name="media_recovery_hint">Лакальныя зашыфраваныя копіі для аднаўлення, даступныя і без ранейшага злучэння. Пры аднаўленні копія і наяўныя медыяфайлы захоўваюцца.</string>
+    <string name="media_recovery_refresh">Абнавіць спіс аднаўлення</string>
+    <string name="media_recovery_working">Праверка або аднаўленне медыяфайлаў…</string>
+    <string name="media_recovery_unavailable">Аднаўленне зараз недаступнае. Завяршыце іншыя аперацыі з медыяфайламі і пераканайцеся, што кніга захавана і разблакавана. Ніводная копія для аднаўлення не выдалена.</string>
+    <string name="media_recovery_trashed">У кошыку</string>
+    <string name="media_recovery_unfinished">Аднаўленне не завершана — праверце і працягніце</string>
+    <string name="media_recovery_uncertain">Аперацыя не пацверджана — патрэбная праверка</string>
+    <string name="media_recovery_restored">Адноўлена як новы медыяфайл</string>
+    <string name="media_recovery_copy_only">Толькі копія для аднаўлення — выдаленне не пацверджана</string>
+    <string name="media_recovery_continue">Праверыць і працягнуць аднаўленне</string>
+    <string name="media_recovery_confirm">Аднавіць або праверыць «%1$s» як новы медыяфайл? Наяўныя файлы і копія для аднаўлення захоўваюцца.</string>
     <string name="telefon_kontakte_lesen">Дазволіць камп’ютару чытаць кантакты і фатаграфіі</string>
     <string name="telefon_kontakte_lesen_hinweis">Толькі чытанне для выбранага ўласнага камп’ютара. Палі патрабуюць папярэдняга прагляду імпарту; выбраныя фота абаронены. Кантакты тэлефона не змяняюцца.</string>
     <string name="telefon_status_keine_verbindung">Няма ўсталяванага злучэння</string>

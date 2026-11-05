@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Fotoğraf ve video kurtarma</string>
+    <string name="media_recovery_hint">Önceki bağlantı olmadan da kullanılabilen yerel şifreli kurtarma kopyaları. Geri yükleme sırasında kurtarma kopyası ve mevcut medya korunur.</string>
+    <string name="media_recovery_refresh">Kurtarma listesini yenile</string>
+    <string name="media_recovery_working">Medya denetleniyor veya geri yükleniyor…</string>
+    <string name="media_recovery_unavailable">Kurtarma şu anda kullanılamıyor. Diğer medya işlemlerini bitirin ve kitabın kaydedilmiş ve kilidinin açılmış olduğundan emin olun. Hiçbir kurtarma kopyası kaldırılmadı.</string>
+    <string name="media_recovery_trashed">Çöp kutusunda</string>
+    <string name="media_recovery_unfinished">Tamamlanmamış geri yükleme — denetleyin ve sürdürün</string>
+    <string name="media_recovery_uncertain">İşlem onaylanmadı — inceleme gerekiyor</string>
+    <string name="media_recovery_restored">Yeni bir medya dosyası olarak geri yüklendi</string>
+    <string name="media_recovery_copy_only">Yalnızca kurtarma kopyası — silme onaylanmadı</string>
+    <string name="media_recovery_continue">Denetle ve geri yüklemeyi sürdür</string>
+    <string name="media_recovery_confirm">“%1$s” yeni bir medya dosyası olarak geri yüklensin veya doğrulansın mı? Mevcut dosyalar ve kurtarma kopyası korunur.</string>
     <string name="telefon_kontakte_lesen">Bu bilgisayarın kişileri ve fotoğrafları okumasına izin ver</string>
     <string name="telefon_kontakte_lesen_hinweis">Seçilen kendi bilgisayarınız için salt okunur erişim. Kişi alanları içe aktarma önizlemesi gerektirir; seçilmiş fotoğraflar korunur. Telefon kişileri değiştirilmez.</string>
     <string name="telefon_status_keine_verbindung">Kurulmuş bağlantı yok</string>

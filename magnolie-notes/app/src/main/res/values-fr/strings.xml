@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Récupération des photos et vidéos</string>
+    <string name="media_recovery_hint">Copies de récupération locales chiffrées, disponibles même sans la connexion précédente. La copie de récupération et les médias existants sont conservés lors de la restauration.</string>
+    <string name="media_recovery_refresh">Actualiser la liste de récupération</string>
+    <string name="media_recovery_working">Vérification ou restauration des médias…</string>
+    <string name="media_recovery_unavailable">La récupération est indisponible pour le moment. Terminez les autres opérations sur les médias et vérifiez que le livre est enregistré et déverrouillé. Aucune copie de récupération n’a été supprimée.</string>
+    <string name="media_recovery_trashed">Dans la corbeille</string>
+    <string name="media_recovery_unfinished">Restauration inachevée — vérifier et poursuivre</string>
+    <string name="media_recovery_uncertain">Opération non confirmée — vérification nécessaire</string>
+    <string name="media_recovery_restored">Restauré dans un nouveau fichier multimédia</string>
+    <string name="media_recovery_copy_only">Copie de récupération uniquement — aucune suppression confirmée</string>
+    <string name="media_recovery_continue">Vérifier et poursuivre la restauration</string>
+    <string name="media_recovery_confirm">Restaurer ou vérifier « %1$s » dans un nouveau fichier multimédia ? Les fichiers existants et la copie de récupération sont conservés.</string>
     <string name="telefon_kontakte_lesen">Autoriser cet ordinateur à lire les contacts et photos</string>
     <string name="telefon_kontakte_lesen_hinweis">Lecture seule pour votre ordinateur sélectionné. Les champs passent par un aperçu d’importation ; les photos choisies restent protégées. Aucun contact du téléphone n’est modifié.</string>
     <string name="telefon_status_keine_verbindung">Aucune connexion établie</string>

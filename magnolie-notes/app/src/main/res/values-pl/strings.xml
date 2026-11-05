@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Odzyskiwanie zdjęć i filmów</string>
+    <string name="media_recovery_hint">Lokalne zaszyfrowane kopie odzyskiwania, dostępne również bez poprzedniego połączenia. Podczas przywracania kopia odzyskiwania i istniejące multimedia zostają zachowane.</string>
+    <string name="media_recovery_refresh">Odśwież listę odzyskiwania</string>
+    <string name="media_recovery_working">Sprawdzanie lub przywracanie multimediów…</string>
+    <string name="media_recovery_unavailable">Odzyskiwanie jest obecnie niedostępne. Zakończ inne operacje na multimediach i upewnij się, że księga jest zapisana i odblokowana. Nie usunięto żadnej kopii odzyskiwania.</string>
+    <string name="media_recovery_trashed">W koszu</string>
+    <string name="media_recovery_unfinished">Nieukończone przywracanie — sprawdź i kontynuuj</string>
+    <string name="media_recovery_uncertain">Operacja niepotwierdzona — wymagana weryfikacja</string>
+    <string name="media_recovery_restored">Przywrócono jako nowy plik multimedialny</string>
+    <string name="media_recovery_copy_only">Tylko kopia odzyskiwania — nie potwierdzono usunięcia</string>
+    <string name="media_recovery_continue">Sprawdź i kontynuuj przywracanie</string>
+    <string name="media_recovery_confirm">Przywrócić lub sprawdzić „%1$s” jako nowy plik multimedialny? Istniejące pliki i kopia odzyskiwania zostaną zachowane.</string>
     <string name="telefon_kontakte_lesen">Zezwól komputerowi na odczyt kontaktów i zdjęć</string>
     <string name="telefon_kontakte_lesen_hinweis">Tylko odczyt dla wybranego własnego komputera. Pola wymagają podglądu importu; wybrane zdjęcia są chronione. Kontakty telefonu nie są zmieniane.</string>
     <string name="telefon_status_keine_verbindung">Brak nawiązanego połączenia</string>

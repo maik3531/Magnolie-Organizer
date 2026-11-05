@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Recupero di foto e video</string>
+    <string name="media_recovery_hint">Copie di recupero locali crittografate, disponibili anche senza la connessione precedente. Durante il ripristino vengono conservati la copia di recupero e i contenuti multimediali esistenti.</string>
+    <string name="media_recovery_refresh">Aggiorna elenco di recupero</string>
+    <string name="media_recovery_working">Verifica o ripristino dei contenuti multimediali…</string>
+    <string name="media_recovery_unavailable">Il recupero non è attualmente disponibile. Termina le altre operazioni multimediali e assicurati che il libro sia salvato e sbloccato. Nessuna copia di recupero è stata rimossa.</string>
+    <string name="media_recovery_trashed">Nel cestino</string>
+    <string name="media_recovery_unfinished">Ripristino incompleto — verifica e continua</string>
+    <string name="media_recovery_uncertain">Operazione non confermata — verifica necessaria</string>
+    <string name="media_recovery_restored">Ripristinato come nuovo file multimediale</string>
+    <string name="media_recovery_copy_only">Solo copia di recupero — nessuna eliminazione confermata</string>
+    <string name="media_recovery_continue">Verifica e continua il ripristino</string>
+    <string name="media_recovery_confirm">Ripristinare o verificare «%1$s» come nuovo file multimediale? I file esistenti e la copia di recupero vengono conservati.</string>
     <string name="telefon_kontakte_lesen">Consenti a questo computer di leggere contatti e foto</string>
     <string name="telefon_kontakte_lesen_hinweis">Sola lettura per il proprio computer selezionato. I campi richiedono un’anteprima; le foto scelte restano protette. Nessun contatto del telefono viene modificato.</string>
     <string name="telefon_status_keine_verbindung">Nessuna connessione attiva</string>

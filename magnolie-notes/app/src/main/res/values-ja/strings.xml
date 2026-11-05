@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">写真と動画の復元</string>
+    <string name="media_recovery_hint">以前の接続がなくても利用できる、ローカルの暗号化された復元用コピーです。復元時も復元用コピーと既存のメディアは保持されます。</string>
+    <string name="media_recovery_refresh">復元リストを更新</string>
+    <string name="media_recovery_working">メディアを確認または復元しています…</string>
+    <string name="media_recovery_unavailable">現在、復元は利用できません。他のメディア操作を終了し、ブックが保存済みでロック解除されていることを確認してください。復元用コピーは削除されていません。</string>
+    <string name="media_recovery_trashed">ゴミ箱内</string>
+    <string name="media_recovery_unfinished">復元が未完了 — 確認して続行してください</string>
+    <string name="media_recovery_uncertain">操作は未確認 — 確認が必要です</string>
+    <string name="media_recovery_restored">新しいメディアファイルとして復元済み</string>
+    <string name="media_recovery_copy_only">復元用コピーのみ — 削除は確認されていません</string>
+    <string name="media_recovery_continue">確認して復元を続行</string>
+    <string name="media_recovery_confirm">「%1$s」を新しいメディアファイルとして復元または確認しますか？既存のファイルと復元用コピーは保持されます。</string>
     <string name="telefon_kontakte_lesen">このコンピューターに連絡先と写真の読み取りを許可</string>
     <string name="telefon_kontakte_lesen_hinweis">選択した自分のコンピューターへの読み取り専用アクセスです。連絡先の項目はインポート前に確認し、選択済みの写真は保護します。電話の連絡先は変更しません。</string>
     <string name="telefon_status_keine_verbindung">現在の接続はありません</string>

@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Obnovení fotografií a videí</string>
+    <string name="media_recovery_hint">Místní šifrované kopie pro obnovení, dostupné i bez původního připojení. Při obnovení se kopie i stávající média zachovají.</string>
+    <string name="media_recovery_refresh">Obnovit seznam pro obnovení</string>
+    <string name="media_recovery_working">Kontrola nebo obnovování médií…</string>
+    <string name="media_recovery_unavailable">Obnovení nyní není dostupné. Dokončete ostatní operace s médii a ověřte, že je kniha uložená a odemčená. Žádná kopie pro obnovení nebyla odstraněna.</string>
+    <string name="media_recovery_trashed">V koši</string>
+    <string name="media_recovery_unfinished">Nedokončené obnovení — ověřte a pokračujte</string>
+    <string name="media_recovery_uncertain">Operace nebyla potvrzena — je nutná kontrola</string>
+    <string name="media_recovery_restored">Obnoveno jako nový soubor média</string>
+    <string name="media_recovery_copy_only">Pouze kopie pro obnovení — odstranění nebylo potvrzeno</string>
+    <string name="media_recovery_continue">Ověřit a pokračovat v obnovení</string>
+    <string name="media_recovery_confirm">Obnovit nebo ověřit „%1$s“ jako nový soubor média? Stávající soubory i kopie pro obnovení se zachovají.</string>
     <string name="telefon_kontakte_lesen">Povolit tomuto počítači číst kontakty a fotografie</string>
     <string name="telefon_kontakte_lesen_hinweis">Pouze čtení pro vybraný vlastní počítač. Pole vyžadují náhled importu; vybrané fotografie zůstávají chráněny. Kontakty telefonu se nemění.</string>
     <string name="telefon_status_keine_verbindung">Žádné navázané spojení</string>

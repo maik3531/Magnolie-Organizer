@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Gendannelse af billeder og videoer</string>
+    <string name="media_recovery_hint">Lokale krypterede gendannelseskopier, også tilgængelige uden den tidligere forbindelse. Gendannelseskopien og eksisterende medier bevares ved gendannelse.</string>
+    <string name="media_recovery_refresh">Opdater gendannelseslisten</string>
+    <string name="media_recovery_working">Kontrollerer eller gendanner medier…</string>
+    <string name="media_recovery_unavailable">Gendannelse er ikke tilgængelig lige nu. Afslut andre mediehandlinger, og sørg for, at bogen er gemt og låst op. Ingen gendannelseskopi er blevet fjernet.</string>
+    <string name="media_recovery_trashed">I papirkurven</string>
+    <string name="media_recovery_unfinished">Uafsluttet gendannelse — kontroller og fortsæt</string>
+    <string name="media_recovery_uncertain">Handlingen er ikke bekræftet — gennemgang kræves</string>
+    <string name="media_recovery_restored">Gendannet som en ny mediefil</string>
+    <string name="media_recovery_copy_only">Kun gendannelseskopi — ingen sletning bekræftet</string>
+    <string name="media_recovery_continue">Kontroller og fortsæt gendannelsen</string>
+    <string name="media_recovery_confirm">Gendan eller kontroller »%1$s« som en ny mediefil? Eksisterende filer og gendannelseskopien bevares.</string>
     <string name="telefon_kontakte_lesen">Tillad denne computer at læse kontakter og billeder</string>
     <string name="telefon_kontakte_lesen_hinweis">Kun læsning for den valgte egen computer. Kontaktfelter kræver en importvisning; valgte billeder forbliver beskyttede. Telefonens kontakter ændres ikke.</string>
     <string name="telefon_status_keine_verbindung">Ingen etableret forbindelse</string>

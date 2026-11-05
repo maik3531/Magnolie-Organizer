@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">Gjenoppretting av bilder og videoer</string>
+    <string name="media_recovery_hint">Lokale krypterte gjenopprettingskopier, også tilgjengelige uten den tidligere tilkoblingen. Gjenopprettingskopien og eksisterende medier beholdes ved gjenoppretting.</string>
+    <string name="media_recovery_refresh">Oppdater gjenopprettingslisten</string>
+    <string name="media_recovery_working">Kontrollerer eller gjenoppretter medier…</string>
+    <string name="media_recovery_unavailable">Gjenoppretting er ikke tilgjengelig nå. Avslutt andre mediehandlinger, og sørg for at boken er lagret og låst opp. Ingen gjenopprettingskopi er fjernet.</string>
+    <string name="media_recovery_trashed">I papirkurven</string>
+    <string name="media_recovery_unfinished">Ufullført gjenoppretting — kontroller og fortsett</string>
+    <string name="media_recovery_uncertain">Handlingen er ikke bekreftet — gjennomgang kreves</string>
+    <string name="media_recovery_restored">Gjenopprettet som en ny mediefil</string>
+    <string name="media_recovery_copy_only">Bare gjenopprettingskopi — ingen sletting bekreftet</string>
+    <string name="media_recovery_continue">Kontroller og fortsett gjenopprettingen</string>
+    <string name="media_recovery_confirm">Gjenopprette eller kontrollere «%1$s» som en ny mediefil? Eksisterende filer og gjenopprettingskopien beholdes.</string>
     <string name="telefon_kontakte_lesen">Tillat denne datamaskinen å lese kontakter og bilder</string>
     <string name="telefon_kontakte_lesen_hinweis">Kun lesing for den valgte egne datamaskinen. Kontaktfelt krever importvisning; valgte bilder forblir beskyttet. Telefonkontaktene endres ikke.</string>
     <string name="telefon_status_keine_verbindung">Ingen etablert tilkobling</string>

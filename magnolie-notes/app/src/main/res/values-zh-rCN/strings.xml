@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="media_recovery_title">照片和视频恢复</string>
+    <string name="media_recovery_hint">本地加密恢复副本，即使没有原来的连接也可使用。恢复时会保留恢复副本和现有媒体。</string>
+    <string name="media_recovery_refresh">刷新恢复列表</string>
+    <string name="media_recovery_working">正在检查或恢复媒体…</string>
+    <string name="media_recovery_unavailable">目前无法恢复。请完成其他媒体操作，并确保笔记本已保存且已解锁。未移除任何恢复副本。</string>
+    <string name="media_recovery_trashed">在回收站中</string>
+    <string name="media_recovery_unfinished">恢复尚未完成 — 请验证并继续</string>
+    <string name="media_recovery_uncertain">操作尚未确认 — 需要检查</string>
+    <string name="media_recovery_restored">已恢复为新的媒体文件</string>
+    <string name="media_recovery_copy_only">仅有恢复副本 — 未确认删除</string>
+    <string name="media_recovery_continue">验证并继续恢复</string>
+    <string name="media_recovery_confirm">是否将“%1$s”恢复为新的媒体文件或进行验证？现有文件和恢复副本均会保留。</string>
     <string name="telefon_kontakte_lesen">允许此电脑读取联系人和照片</string>
     <string name="telefon_kontakte_lesen_hinweis">仅向所选的本人电脑提供只读访问。联系人字段需要导入预览；已选择的照片仍受保护。不会更改手机联系人。</string>
     <string name="telefon_status_keine_verbindung">当前没有连接</string>
