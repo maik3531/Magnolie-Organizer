@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -57,17 +58,41 @@ internal sealed partial class TelefonCoordinator
         return true;
     }
 
-    internal async Task RunNativeMediaAutomaticOnceAsync(string peerId, CancellationToken token)
+    internal Task RunNativeMediaAutomaticOnceAsync(string peerId, CancellationToken token)
+        => RunNativeMediaInventoryOnceAsync(peerId, null, token);
+
+    // Explicit phone requests carry the exact agreed snapshot, not filesystem
+    // paths, album IDs, local rights or an instruction to enable automatic mode.
+    internal Task RunNativeMediaManualOnceAsync(string peerId, JsonObject expectedIntent, CancellationToken token)
+        => RunNativeMediaInventoryOnceAsync(peerId, expectedIntent.DeepClone().AsObject(), token);
+
+    private async Task RunNativeMediaInventoryOnceAsync(string peerId, JsonObject? manualIntent, CancellationToken token)
     {
+        var manual = manualIntent is not null;
         token.ThrowIfCancellationRequested();
         var connection = NativeMediaOnlineConnection(peerId);
-        if (connection.Transport != "wifi" || !connection.NativeMediaUiMetadataAvailable()) return;
+        if ((!manual && connection.Transport != "wifi") || !connection.NativeMediaUiMetadataAvailable())
+        {
+            if (manual) throw DeviceFileControl.Error("file_media_manual_connection_not_ready");
+            return;
+        }
+        void Intent()
+        {
+            if (manual && (!connection.MediaSharedSettingsReady ||
+                !JsonNode.DeepEquals(store.ReadNativeMediaSharedSettings(peerId, store.LoadPeers().Single(value => value.Id == peerId).PublicKey), manualIntent)))
+                throw DeviceFileControl.Error("file_media_manual_intent_changed");
+        }
+        Intent();
         if (connection.MediaSharedControlsReady || store.HasNativeMediaSharedSettings(peerId))
         {
             if (!connection.MediaSharedSettingsReady || !ApplyMatchedNativeMediaPreferences(peerId, connection)) return;
         }
         var preferences = store.ReadNativeMediaPreferences(peerId);
-        if (!preferences.AutomaticWifi || !preferences.PhotosEnabled && !preferences.VideosEnabled) return;
+        if ((!manual && !preferences.AutomaticWifi) || !preferences.PhotosEnabled && !preferences.VideosEnabled)
+        {
+            if (manual) throw DeviceFileControl.Error("file_media_manual_choice_required");
+            return;
+        }
         var state = nativeAutomaticMedia.GetOrAdd(peerId, _ => new(connection));
         if (!ReferenceEquals(state.Connection, connection))
         {
@@ -76,21 +101,26 @@ internal sealed partial class TelefonCoordinator
             state = replacement;
         }
         // Same lane as manual discovery/receive; skip, never enqueue stale work.
-        if (Interlocked.CompareExchange(ref nativeMediaWorker, 1, 0) != 0) return;
+        if (Interlocked.CompareExchange(ref nativeMediaWorker, 1, 0) != 0)
+        {
+            if (manual) throw DeviceFileControl.Error("file_media_native_worker_busy");
+            return;
+        }
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
         lifetime.CancelAfter(TimeSpan.FromHours(2));
         try
         {
             lock (state)
             {
-                if (state.Paused) return;
+                if (manual) state.Paused = false; // Only a new explicit action resumes a stopped pass.
+                else if (state.Paused) return;
                 state.Active = lifetime; state.Phase = "running";
             }
             var permit = NativeMediaBookPermit.Capture(NativeProducerBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required"), NativeSavedBook);
             void Require()
             {
-                lifetime.Token.ThrowIfCancellationRequested(); permit.Require();
-                if (connection.Transport != "wifi" || !connection.NativeMediaUiMetadataAvailable() ||
+                lifetime.Token.ThrowIfCancellationRequested(); permit.Require(); Intent();
+                if ((!manual && connection.Transport != "wifi") || !connection.NativeMediaUiMetadataAvailable() ||
                     store.ReadNativeMediaPreferences(peerId) != preferences)
                     throw DeviceFileControl.Error("file_media_automatic_choice_changed");
             }
@@ -118,15 +148,19 @@ internal sealed partial class TelefonCoordinator
                 var eligible = albums.Where(album => !album.NeedsChoice).ToArray();
                 if (eligible.Length == 0) continue;
                 var position = kind == "images" ? state.Images : state.Videos;
-                var album = eligible[position % eligible.Length];
+                var selected = manual ? eligible : new[] { eligible[position % eligible.Length] };
                 // One complete album per media domain per pass avoids retaining
                 // other short-lived IDs across an arbitrarily long transfer.
                 // Rotation is fairness only; no mapping/absence comes from it.
                 if (kind == "images") state.Images = (position + 1) % eligible.Length;
                 else state.Videos = (position + 1) % eligible.Length;
-                var outcome = await connection.SynchronizeNativeMediaAlbumAsync(configured.Version, page.CatalogId, album.AlbumId,
-                    desktopChoice: false, kind, lifetime.Token, permit.ReplacementConsent, Require);
-                Require(); review |= outcome.NeedsReview;
+                foreach (var album in selected)
+                {
+                    Require();
+                    var outcome = await connection.SynchronizeNativeMediaAlbumAsync(configured.Version, page.CatalogId, album.AlbumId,
+                        desktopChoice: false, kind, lifetime.Token, permit.ReplacementConsent, Require);
+                    Require(); review |= outcome.NeedsReview;
+                }
             }
             lock (state) state.Phase = review ? "review" : "content_pass";
         }

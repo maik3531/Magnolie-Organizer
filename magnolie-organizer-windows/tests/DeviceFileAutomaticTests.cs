@@ -9,6 +9,7 @@ internal static class DeviceFileAutomaticTests
     internal static Task WindowsStopPreparingAsync() => RunAsync(true);
     internal static Task WindowsVideoEmptyAlbumAsync() => RunAsync(false, true);
     internal static Task WindowsReceiveSavedAsync() => RunAsync(false, transfer: true);
+    internal static Task WindowsSharedManualReceiveSavedAsync() => RunAsync(false, transfer: true, manual: true);
 
     internal static async Task WindowsServiceLifetimeAsync()
     {
@@ -28,10 +29,10 @@ internal static class DeviceFileAutomaticTests
         TestAssert.That(!coordinator.IsRunning && workers.IsEmpty, "Native service shutdown left an automatic worker or listener task running.");
     }
 
-    private static async Task RunAsync(bool stop, bool video = false, bool transfer = false)
+    private static async Task RunAsync(bool stop, bool video = false, bool transfer = false, bool manual = false)
     {
         var book = new NativeBookOwnerScope(); book.SetReady(true); book.RecordSaved("auto-book", true, new string('a', 64));
-        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(uiSavedBook: () => book.SaveState("auto-book", true));
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(uiSavedBook: () => book.SaveState("auto-book", true), sharedMedia: manual);
         using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
         var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator)!;
         online.Add(f.Native.Peer.Id, f.Native.Connection);
@@ -39,7 +40,18 @@ internal static class DeviceFileAutomaticTests
         await coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, CancellationToken.None);
         TestAssert.That(f.Native.Stream.Length == 0, "Manual default emitted automatic file/control work.");
         var before = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
-        f.Native.Store.SetNativeMediaPreferences(f.Native.Peer.Id, before.Version, !video, video, true);
+        f.Native.Store.SetNativeMediaPreferences(f.Native.Peer.Id, before.Version, !video, video, !manual);
+        JsonObject? manualIntent = null;
+        if (manual)
+        {
+            f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "enabled", JsonValue.Create(true)!,
+                f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "enabled"));
+            await DeviceFileSharedTransportTests.MatchAsync(f.Native);
+            manualIntent = f.Native.Store.ReadNativeMediaSharedSettings(f.Native.Peer.Id, f.Native.Peer.PublicKey)!;
+            DeviceFileConnectionRunsTests.Clear(f);
+        }
+        Task Run() => manual ? coordinator.RunNativeMediaManualOnceAsync(f.Native.Peer.Id, manualIntent!, CancellationToken.None)
+            : coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, CancellationToken.None);
         if (video)
         {
             var path = Path.Combine(f.Native.Paths.Root, "automatic-video"); Directory.CreateDirectory(path);
@@ -59,19 +71,23 @@ internal static class DeviceFileAutomaticTests
             TestAssert.That(f.Native.Stream.Length == 0, "Claimed capabilities without actual native receipts admitted automatic work.");
         }
         online[f.Native.Peer.Id] = f.Native.Connection;
-        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, CancellationToken.None),
+        await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(Run(),
             "Automatic worker admitted a book without actual durable save proof.");
         TestAssert.That(f.Native.Stream.Length == 0, "Failed saved-book admission emitted automatic READ/configuration.");
         const string text = "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}";
         var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "automatic-book"), text);
         coordinator.NativeProducerBook = host.Snapshot; coordinator.NativeSavedBook = host.Saved;
-        var automatic = coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, CancellationToken.None);
-        var outgoing = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
-        TestAssert.That(!automatic.IsCompleted && !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(message =>
-            message["kind"]?.GetValue<string>() == DeviceFileSources.RequestKind), "Automatic worker substituted stored intent for current bilateral ACK.");
-        f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(outgoing, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
-        var ack = f.Phone.Packet(); f.Phone.MarkSent(ack);
-        await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(ack, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        var automatic = Run();
+        if (automatic.IsCompleted) await automatic;
+        if (!manual)
+        {
+            var outgoing = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
+            TestAssert.That(!automatic.IsCompleted && !DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Any(message =>
+                message["kind"]?.GetValue<string>() == DeviceFileSources.RequestKind), "Automatic worker substituted stored intent for current bilateral ACK.");
+            f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(outgoing, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), f.RemotePeer);
+            var ack = f.Phone.Packet(); f.Phone.MarkSent(ack);
+            await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(ack, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        }
         async Task<JsonObject> Source(int number, string operation)
         {
             var request = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileSources.RequestKind, number);
@@ -80,6 +96,7 @@ internal static class DeviceFileAutomaticTests
         }
         var request = await Source(0, "status");
         await coordinator.RunNativeMediaAutomaticOnceAsync(f.Native.Peer.Id, CancellationToken.None);
+        if (manual) await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(Run(), "A second explicit manual inventory overlapped the owned run.");
         await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(coordinator.DiscoverNativeMediaUiAsync(f.Native.Peer.Id, "images", CancellationToken.None),
             "Manual discovery overlapped an automatic worker.");
         var status = DeviceFileConnectionCommandsTests.Configuration(request, video); status["body"]!["operation"] = "status";
@@ -90,6 +107,13 @@ internal static class DeviceFileAutomaticTests
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionCommandsTests.Configuration(request, video));
         request = await Source(2, "discover"); var catalog = DeviceFileConnectionCommandsTests.Catalog(request, video);
         var album = catalog["body"]!["page"]!["albums"]![0]!; album["visible_images"] = transfer ? 2 : stop ? 1 : 0;
+        string? secondAlbumId = null;
+        if (manual)
+        {
+            var secondAlbum = album.DeepClone().AsObject(); secondAlbumId = Guid.NewGuid().ToString("D");
+            secondAlbum["album_id"] = secondAlbumId; secondAlbum["display_name"] = "Synthetic downloads"; secondAlbum["visible_images"] = 0;
+            catalog["body"]!["page"]!["albums"]!.AsArray().Add(secondAlbum);
+        }
         await f.Native.Connection.HandlePlainAsync(catalog);
         request = await Source(3, "batch_run");
         TestAssert.That(request["body"]!["album_id"]!.GetValue<string>() == album["album_id"]!.GetValue<string>() &&
@@ -139,9 +163,30 @@ internal static class DeviceFileAutomaticTests
         request = await Source(offset++, "cancel_run"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held", stop ? null : true));
         request = await Source(offset++, "end_run"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
         request = await Source(offset, "end_album"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
+        if (manual)
+        {
+            request = await Source(++offset, "batch_run");
+            TestAssert.That(request["body"]!["album_id"]!.GetValue<string>() == secondAlbumId && !request["body"]!["desktop_choice"]!.GetValue<bool>(),
+                "Explicit manual inventory stopped after one album or invented desktop consent.");
+            run = Guid.NewGuid().ToString("D");
+            await f.Native.Connection.HandlePlainAsync(RunReply(request, "empty_ready", true));
+            request = await Source(++offset, "cancel_run"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held", true));
+            request = await Source(++offset, "end_run"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
+            request = await Source(++offset, "end_album"); await f.Native.Connection.HandlePlainAsync(RunReply(request, "canceled_held"));
+        }
         if (stop) await DeviceFileConnectionSourcesTests.FailsAsync<OperationCanceledException>(automatic, "Stopped automatic work returned completion.");
         else await automatic;
         var ui = coordinator.NativeMediaUiStatus(f.Native.Peer.Id);
+        if (manual)
+        {
+            TestAssert.That(!f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id).AutomaticWifi,
+                "Manual inventory switched automatic synchronization on.");
+            var frames = f.Native.Stream.Length;
+            f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, "skip_deletions", JsonValue.Create(true)!,
+                f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, "skip_deletions"));
+            await DeviceFileConnectionSourcesTests.FailsAsync<InvalidDataException>(Run(), "An old phone request reused changed shared intent.");
+            TestAssert.That(f.Native.Stream.Length == frames, "Stale manual intent emitted native IO.");
+        }
         TestAssert.That(ui["automatic_phase"]!.GetValue<string>() == (stop ? "paused" : "content_pass") && !ui["automatic_busy"]!.GetValue<bool>() &&
             !ui["deletions_ready"]!.GetValue<bool>() && f.Native.Connection.CurrentNativeMediaSourceRun is null &&
             f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (transfer ? 1 : 0, 0, 0L) &&
@@ -162,9 +207,9 @@ internal static class DeviceFileAutomaticTests
         }
         var choice = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
         coordinator.SetNativeMediaUiAutomaticMode(f.Native.Peer.Id, choice.Version, false);
-        var manual = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
-        TestAssert.That(!manual.AutomaticWifi && manual.PhotosEnabled == !video && manual.VideosEnabled == video &&
-            manual.DeleteFromPhone == choice.DeleteFromPhone && manual.DeleteFromDesktop == choice.DeleteFromDesktop,
+        var manualPreferences = f.Native.Store.ReadNativeMediaPreferences(f.Native.Peer.Id);
+        TestAssert.That(!manualPreferences.AutomaticWifi && manualPreferences.PhotosEnabled == !video && manualPreferences.VideosEnabled == video &&
+            manualPreferences.DeleteFromPhone == choice.DeleteFromPhone && manualPreferences.DeleteFromDesktop == choice.DeleteFromDesktop,
             "Mode change overwrote media or directional deletion choices.");
     }
 }
