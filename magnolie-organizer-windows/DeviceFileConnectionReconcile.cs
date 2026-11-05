@@ -6,16 +6,17 @@ internal sealed partial class TelefonConnection
 {
     internal sealed record NativeMediaBatchOutcome(NativeMediaSourceRun Run, NativeMediaReconcilePlan Plan, string? ReceivedJobId)
     {
-        internal bool NeedsReview => Plan.Members.Any(item => item.Action is not ("copy_phone_new" or "unchanged" or "keep_local_edit"));
+        internal bool NeedsReview => Plan.Members.Any(item => item.Action is not ("copy_phone_new" or "replace_managed_desktop" or "unchanged" or "keep_local_edit"));
     }
 
-    internal NativeMediaReconcilePlan PlanNativeMediaRun(NativeMediaSourceRun run)
+    internal NativeMediaReconcilePlan PlanNativeMediaRun(NativeMediaSourceRun run, NativeMediaReplacementConsent? replacementConsent = null)
     {
         RequireOwnedMediaRun(run);
         if (run.Resume is not null || run.Transfer is not null || run.OfferedManifest is null || run.OfferedMessageId != run.Result.OfferId || Now() >= run.OfferedExpires)
             throw DeviceFileControl.Error("file_receive_native_preview_required");
+        replacementConsent?.Require();
         return store.PlanNativeMediaBatch(peer.Id, run.Lease.MediaType, run.OfferedManifest, run.Pages,
-            CaptureNativeMediaReceiveBinding(run.Lease.Version, run.Lease.MediaType), new(run.Pages[0].SourceEpoch, run.AlbumMetadata?.DisplayName));
+            CaptureNativeMediaReceiveBinding(run.Lease.Version, run.Lease.MediaType), new(run.Pages[0].SourceEpoch, run.AlbumMetadata?.DisplayName), replacementConsent is not null);
     }
 
     internal async Task<NativeMediaSourceRun> SelectNativeMediaRunAsync(NativeMediaSourceRun preview, IReadOnlyList<string> fileIds, CancellationToken token = default)
@@ -73,7 +74,7 @@ internal sealed partial class TelefonConnection
 
     internal sealed record NativeMediaAlbumOutcome(IReadOnlyList<string> ReceivedJobs, IReadOnlyList<NativeMediaReconcileMember> Members)
     {
-        internal bool NeedsReview => Members.Any(item => item.Action is not ("copy_phone_new" or "unchanged" or "keep_local_edit"));
+        internal bool NeedsReview => Members.Any(item => item.Action is not ("copy_phone_new" or "replace_managed_desktop" or "unchanged" or "keep_local_edit"));
         internal bool ProvesDeletion => false;
     }
 
@@ -81,7 +82,7 @@ internal sealed partial class TelefonConnection
     // the original cursor across subset run IDs and stop only this operation's
     // current owner after cancellation; never touch another actor's run.
     internal async Task<NativeMediaAlbumOutcome> SynchronizeNativeMediaAlbumAsync(string sourceVersion, string catalogId,
-        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default)
+        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, NativeMediaReplacementConsent? replacementConsent = null)
     {
         var operation = new object(); var jobs = new List<string>(); var members = new List<NativeMediaReconcileMember>();
         try
@@ -102,7 +103,7 @@ internal sealed partial class TelefonConnection
                 { await CancelNativeMediaRunAsync(run, token); await EndNativeMediaRunAsync(run, token); }
                 else
                 {
-                    var outcome = await ReconcileNativeMediaBatchAsync(run, token); run = outcome.Run;
+                    var outcome = await ReconcileNativeMediaBatchAsync(run, token, replacementConsent); run = outcome.Run;
                     if (members.Count + outcome.Plan.Members.Count > 50000) throw DeviceFileControl.Error("file_receive_native_album_bound");
                     members.AddRange(outcome.Plan.Members); if (outcome.ReceivedJobId is not null) jobs.Add(outcome.ReceivedJobId);
                 }
@@ -138,11 +139,12 @@ internal sealed partial class TelefonConnection
 
     // Per-batch operation; the returned source reference owns the album cursor
     // after a subset changes the source run ID. Conflicts are not called Saved.
-    internal async Task<NativeMediaBatchOutcome> ReconcileNativeMediaBatchAsync(NativeMediaSourceRun run, CancellationToken token = default)
+    internal async Task<NativeMediaBatchOutcome> ReconcileNativeMediaBatchAsync(NativeMediaSourceRun run, CancellationToken token = default,
+        NativeMediaReplacementConsent? replacementConsent = null)
     {
         await PrepareNativeMediaPreviewAsync(run, token);
-        var plan = PlanNativeMediaRun(run);
-        var copy = plan.Members.Where(member => member.Action == "copy_phone_new").Select(member => member.FileId).Order(StringComparer.Ordinal).ToArray();
+        var plan = PlanNativeMediaRun(run, replacementConsent);
+        var copy = plan.Members.Where(member => member.Action is "copy_phone_new" or "replace_managed_desktop").Select(member => member.FileId).Order(StringComparer.Ordinal).ToArray();
         if (copy.Length == 0)
         {
             await CancelNativeMediaRunAsync(run, token); await EndNativeMediaRunAsync(run, token);
@@ -153,6 +155,8 @@ internal sealed partial class TelefonConnection
             run = await SelectNativeMediaRunAsync(run, copy, token);
             await PrepareNativeMediaPreviewAsync(run, token);
         }
+        if (plan.Members.Any(member => member.Action == "replace_managed_desktop"))
+            run.Replacements = store.CreateNativeMediaReplacements(run.OfferedManifest!, run.Pages, plan, replacementConsent!);
         return new(run, plan, await ReceiveNativeMediaRunAsync(run, token));
     }
 }

@@ -17,6 +17,7 @@ internal sealed partial class TelefonStore
                 { ["file_id"] = file["id"]!.DeepClone(), ["path"] = TargetPath(body, file) }).ToArray()) };
             if (body.ContainsKey("media")) result["media"] = body["media"]!.DeepClone();
             if (body.ContainsKey("album_root")) result["album_root"] = body["album_root"]!.DeepClone();
+            if (body.ContainsKey("replacements")) result["replacements"] = body["replacements"]!.DeepClone();
             return result;
         }
         private static string TargetPath(JsonObject body, JsonObject file) => body["album_root"] is JsonObject album
@@ -81,6 +82,7 @@ internal sealed partial class TelefonStore
                 ["binding"] = body["binding"]!.DeepClone(), ["destination"] = body["destination"]!.DeepClone(),
                 ["stage_identity"] = body["stage_identity"]!.DeepClone(), ["files"] = body["files"]!.DeepClone() };
             if (body.ContainsKey("album_root")) publication["album_root"] = body["album_root"]!.DeepClone();
+            if (body.ContainsKey("replacements")) publication["replacements"] = body["replacements"]!.DeepClone();
             var publicationHash = Proof("magnolie-windows-native-publication-v1", publication);
             var acceptanceHash = TelefonMessagingContract.String(body["acceptance"]!.AsObject(), "sha256");
             var members = body["files"]!.AsArray().OfType<JsonObject>().ToArray();
@@ -127,6 +129,8 @@ internal sealed partial class TelefonStore
                 Current();
                 if (!TelefonProtocolContract.IsUuidV4(offerId) || TelefonMessagingContract.String(head!.Body, "phase") != "receiving")
                     throw DeviceFileControl.Error("file_receive_acceptance_not_ready");
+                if (head.Body.ContainsKey("replacements") && !head.Body.ContainsKey("media"))
+                    throw DeviceFileControl.Error("file_receive_replacement_media_required");
                 if (!head.Body.ContainsKey("acceptance"))
                 {
                     var body = Change(); body["acceptance"] = AcceptanceRecord(body, JobId); Save(body);
@@ -156,6 +160,7 @@ internal sealed partial class TelefonStore
                 Current();
                 if (TelefonMessagingContract.String(head!.Body, "phase") != "published" || !head.Body.ContainsKey("acceptance"))
                     throw DeviceFileControl.Error("file_receive_local_saved_not_ready");
+                RequireReplacementArchives();
                 foreach (var file in Manifest.Files)
                 {
                     var actual = files[file.Id].Observe();

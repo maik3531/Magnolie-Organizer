@@ -73,7 +73,7 @@ internal sealed partial class TelefonConnection
             DeviceFileSources.CorrelateMediaPages(run.Pages, manifest);
             var binding = CaptureNativeMediaReceiveBinding(run.Lease.Version, run.Lease.MediaType);
             if (run.Resume is null) job = store.BeginNativeMediaReceiveJob(peer.Id, run.Lease.MediaType, manifest, binding,
-                new(run.Pages[0].SourceEpoch, run.AlbumMetadata?.DisplayName));
+                new(run.Pages[0].SourceEpoch, run.AlbumMetadata?.DisplayName), run.Replacements);
             else
             {
                 job = run.Recovered ?? throw DeviceFileControl.Error("file_receive_original_recovered_owner_required");

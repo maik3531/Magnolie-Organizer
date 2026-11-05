@@ -137,13 +137,18 @@ internal sealed partial class TelefonStore
                     if (TelefonMessagingContract.String(head.Body["manifest"]!.AsObject(), "transfer_id") == transfer ||
                         TelefonMessagingContract.String(head.Body["binding"]!.AsObject(), "destination_token") == token &&
                         string.Equals(head.Body["album_root"]?["folder"]?.GetValue<string>() ?? "", body["album_root"]?["folder"]?.GetValue<string>() ?? "", StringComparison.OrdinalIgnoreCase) &&
-                        head.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Any(file => paths.Contains(TelefonMessagingContract.String(file, "path"))))
+                        head.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Any(file => paths.Contains(TelefonMessagingContract.String(file, "path")) &&
+                            !body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Any(next =>
+                                string.Equals(TelefonMessagingContract.String(next, "path"), TelefonMessagingContract.String(file, "path"), StringComparison.OrdinalIgnoreCase) &&
+                                ReplacementAncestors(heads, body, TelefonMessagingContract.String(next, "id")).Contains((head.JobId, TelefonMessagingContract.String(file, "id"))))))
                         throw DeviceFileControl.Error("file_receive_original_job_resume_required");
                 }
+                foreach (var file in body["manifest"]!["files"]!.AsArray().OfType<JsonObject>())
+                    _ = ReplacementAncestors(heads, body, TelefonMessagingContract.String(file, "id"));
             }
             else
             {
-                foreach (var key in new[] { "manifest", "binding", "media_type", "destination_version", "destination", "stage_name" })
+                foreach (var key in new[] { "manifest", "binding", "media_type", "destination_version", "destination", "stage_name", "replacements" })
                     if (!JsonNode.DeepEquals(before.Body[key], body[key])) throw DeviceFileControl.Error("file_receive_original_job_changed");
                 if (before.Body.ContainsKey("source_job") && !JsonNode.DeepEquals(before.Body["source_job"], body["source_job"]))
                     throw DeviceFileControl.Error("file_receive_original_source_history_changed");
@@ -180,7 +185,8 @@ internal sealed partial class TelefonStore
     }
 
     internal NativeMediaReceiveJob BeginNativeMediaReceiveJob(string peerId, string mediaType, DeviceFileManifest manifest,
-        Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null) => NativeMediaReceiveJob.Begin(this, peerId, mediaType, manifest, currentBinding, album);
+        Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null, NativeMediaReplacementContext? replacements = null)
+        => NativeMediaReceiveJob.Begin(this, peerId, mediaType, manifest, currentBinding, album, replacements);
 
     // Explicit native owner only. No route registration, file grant fabrication,
     // automatic worker or original-job resume is performed by construction.
@@ -238,7 +244,7 @@ internal sealed partial class TelefonStore
         internal static JsonObject NativeIdentity(DeviceFileNativeDirectory.Identity id) => Key(id);
 
         internal static NativeMediaReceiveJob Begin(TelefonStore store, string peerId, string mediaType, DeviceFileManifest manifest,
-            Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null)
+            Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null, NativeMediaReplacementContext? replacements = null)
         {
             ArgumentNullException.ThrowIfNull(currentBinding);
             MediaDestinationKind(mediaType);
@@ -258,10 +264,13 @@ internal sealed partial class TelefonStore
                         owner.albumDirectory = owner.root.OpenOriginalChild(TelefonMessagingContract.String(owner.albumRoot, "folder"), AlbumIdentity(identity));
                 }
                 store.CheckReceiveStageInventory(peerId, destination, owner.root, owner.Current);
+                replacements?.Consent.Require(); owner.replacementConsent = replacements?.Consent;
                 foreach (var file in manifest.Files)
                 {
                     if (owner.albumRoot?["identity"] is not null || owner.albumRoot is null)
-                        if (owner.PublicationRoot.ExistingFileIdentity(file.Path) is not null) throw DeviceFileControl.Error("file_receive_destination_occupied");
+                        if (owner.PublicationRoot.ExistingFileIdentity(file.Path) is not null &&
+                            !(replacements?.Records.OfType<JsonObject>().Any(link => TelefonMessagingContract.String(link, "file_id") == file.Id) ?? false))
+                            throw DeviceFileControl.Error("file_receive_destination_occupied");
                     owner.Current();
                 }
                 var manifestBody = new JsonObject { ["format"] = 1, ["transfer_id"] = manifest.TransferId, ["source_id"] = manifest.SourceId,
@@ -275,6 +284,7 @@ internal sealed partial class TelefonStore
                     ["stage_identity"] = null, ["files"] = new JsonArray(manifest.Files.Select(file => (JsonNode)new JsonObject
                     { ["id"] = file.Id, ["phase"] = "pending", ["identity"] = null }).ToArray()) };
                 if (owner.albumRoot is not null) reserved["album_root"] = owner.albumRoot.DeepClone();
+                if (replacements is not null) reserved["replacements"] = replacements.Records.DeepClone();
                 owner.Save(reserved);
                 if (owner.albumRoot is not null && owner.albumRoot["identity"] is null)
                 {
@@ -332,6 +342,7 @@ internal sealed partial class TelefonStore
                 {
                     foreach (var file in Manifest.Files)
                     {
+                        PreserveReplacementOriginal(file.Id); // Only after ALL incoming chunks are durable; before publishing any replacement.
                         var prepared = Change(); prepared["phase"] = "publishing";
                         prepared["files"]!.AsArray().OfType<JsonObject>().Single(value => TelefonMessagingContract.String(value, "id") == file.Id)["phase"] = "publishing";
                         Save(prepared); // Durable exact original intent BEFORE the native rename.
@@ -358,7 +369,7 @@ internal sealed partial class TelefonStore
                 if (sourceId.Length != 32 || sourceId.Any(c => !char.IsAsciiHexDigitLower(c)) ||
                     !DeviceFileControl.Hash(TelefonMessagingContract.String(sourceJob, "job_version"))) throw DeviceFileControl.Error("file_receive_history_invalid");
             }
-            foreach (var key in new[] { "album_root", "media", "acceptance", "saved", "source_end" }) if (body.ContainsKey(key)) fields.Add(key);
+            foreach (var key in new[] { "replacements", "album_root", "media", "acceptance", "saved", "source_end" }) if (body.ContainsKey(key)) fields.Add(key);
             TelefonProtocolContract.ExactObject(body, fields.ToArray());
             using var document = JsonDocument.Parse(body["manifest"]!.ToJsonString()); var manifest = DeviceFileManifest.Parse(document.RootElement);
             var kind = TelefonMessagingContract.String(body, "media_type"); MediaDestinationKind(kind);
@@ -422,6 +433,7 @@ internal sealed partial class TelefonStore
             if (publishing != (phase == "publishing" ? 1 : 0)) throw DeviceFileControl.Error("file_receive_history_invalid");
             ValidateNativeMediaContext(body, manifest);
             ValidateAlbumRoot(body);
+            ValidateReplacements(body, manifest);
             ValidateReceipts(body, jobId);
         }
 
@@ -430,7 +442,9 @@ internal sealed partial class TelefonStore
             lock (jobGate)
             {
                 if (disposed) return; disposed = true;
-                foreach (var file in files.Values) file.Dispose(); stage?.Dispose(); albumDirectory?.Dispose(); root?.Dispose();
+                foreach (var file in files.Values) file.Dispose();
+                foreach (var archive in replacementArchives.Values) archive.Dispose();
+                stage?.Dispose(); albumDirectory?.Dispose(); root?.Dispose();
             }
         }
     }

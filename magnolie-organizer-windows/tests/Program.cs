@@ -316,6 +316,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);
     runner.Add("Device file native media trash / Windows album restore keeps incremental baseline", DeviceFileMediaTrashTests.WindowsAlbumTrashRestoreAsync);
     runner.Add("Device file native media trash / Windows corrupt protected journal HOLD", DeviceFileMediaTrashTests.WindowsCorruptTrashHistoryHoldAsync);
+    runner.Add("Device file native replacement / Windows original trash latest baseline and repeated replacement", DeviceFileReplacementTests.WindowsReplacementChainAsync);
+    runner.Add("Device file native replacement / Windows withdrawn consent and local edit HOLD", DeviceFileReplacementTests.WindowsReplacementWithdrawalAndEditAsync);
+    runner.Add("Device file native replacement / Windows occupied publication preserves old and new user bytes", DeviceFileReplacementTests.WindowsReplacementOccupiedPublicationAsync);
+    runner.Add("Device file native replacement / Windows media binding overlapping reservation and stale consent HOLD", DeviceFileReplacementTests.WindowsReplacementAdmissionGuardsAsync);
     runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);
     runner.Add("Device file native album / Windows replaced album directory HOLD", DeviceFileAlbumTests.WindowsAlbumReplacementHoldAsync);
     runner.Add("Device file native album / Windows existing unowned album directory HOLD", DeviceFileAlbumTests.WindowsUnownedAlbumFolderHoldAsync);

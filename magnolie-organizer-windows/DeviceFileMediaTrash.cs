@@ -125,7 +125,7 @@ internal sealed partial class TelefonStore
     }
 
     private NativeMediaTrashEntry MoveNativeMediaTrash(string peerId, string jobId, string? jobVersion, string fileId,
-        NativeMediaTrashEntry? selected, Func<bool> nativePermit)
+        NativeMediaTrashEntry? selected, Func<bool> nativePermit, string? replacementOperation = null)
     {
         lock (gate)
         {
@@ -142,6 +142,13 @@ internal sealed partial class TelefonStore
             Current(); using var db = OpenNativeMediaDatabase(); db.Open(); var histories = ReadMediaTrash(db, null, scope);
             var original = selected is null ? null : histories.SingleOrDefault(head => head.Entry == selected);
             if (selected is not null && original is null) throw DeviceFileControl.Error("media_trash_stale_selection");
+            if (replacementOperation is not null)
+            {
+                original = histories.SingleOrDefault(head => head.Entry.Operation == replacementOperation);
+                if (original is not null && (original.Entry.JobId != jobId || original.Entry.FileId != fileId ||
+                    TelefonMessagingContract.String(original.Body, "job_version") != jobVersion || original.Entry.State is not ("prepared" or "trashed")))
+                    throw DeviceFileControl.Error("media_trash_replacement_operation_changed");
+            }
             if (original is not null) jobVersion = TelefonMessagingContract.String(original.Body, "job_version");
             var job = ReceiveHeads(db, null, scope).SingleOrDefault(head => head.JobId == jobId && head.Version == jobVersion)
                 ?? throw DeviceFileControl.Error("media_trash_original_saved_job_required");
@@ -163,12 +170,17 @@ internal sealed partial class TelefonStore
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
                 if (ReadNativeMediaDestination(peerId, mediaType) != destination) throw DeviceFileControl.Error("media_trash_original_destination_changed");
             }
-            var operation = selected?.Operation ?? Guid.NewGuid().ToString("N"); var trashName = ".magnolie-trash-" + operation;
+            var operation = replacementOperation ?? selected?.Operation ?? Guid.NewGuid().ToString("N"); var trashName = ".magnolie-trash-" + operation;
             var leaf = DeviceFileNativeDirectory.ReceiveLeaf(TelefonMessagingContract.String(manifest, "path"));
             var size = TelefonProtocolContract.Integer(manifest["size"]); var hash = TelefonMessagingContract.String(manifest, "sha256");
             var identity = NativeMediaReceiveJob.NativeAlbumIdentity(member["identity"]!.AsObject());
             var restoring = selected is not null && selected.State != "prepared";
             Bound();
+            if (replacementOperation is not null && original?.Entry.State == "trashed")
+            {
+                using var preserved = parent.OpenOriginalStagedFile(trashName, identity, size, hash); Bound();
+                return original.Entry; // Revalidate the exact original, never replay an old deletion.
+            }
             // OPEN_ONLY, actual original FID+size+full held-file hash. This
             // existing no-replace publication primitive also forbids WRITE and
             // DELETE sharing, so no path reopen race can substitute the source.

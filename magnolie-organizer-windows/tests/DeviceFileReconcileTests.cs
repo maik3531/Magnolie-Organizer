@@ -12,7 +12,7 @@ internal static class DeviceFileReconcileTests
         TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == operation, "Unexpected reconciliation source operation: " + operation);
         return request;
     }
-    private static async Task Finish(DeviceFileReceiveJobTests.Fixture f, TelefonConnection.NativeMediaSourceRun run, int number)
+    internal static async Task Finish(DeviceFileReceiveJobTests.Fixture f, TelefonConnection.NativeMediaSourceRun run, int number)
     {
         var cancel = await Request(f, number, "cancel_run");
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(cancel, run.Lease.RunId, "canceled_held", run.Result.BatchEnd));

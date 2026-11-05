@@ -20,6 +20,7 @@ internal sealed partial class TelefonConnection
         internal IReadOnlyList<DeviceFileMediaEntry>? SelectedMedia;
         internal DeviceFileAlbumMetadata? AlbumMetadata;
         internal object? AlbumOperation;
+        internal NativeMediaReplacementContext? Replacements;
         internal DeviceFileManifest? OfferedManifest { get; private set; }
         internal string? OfferedMessageId { get; private set; }
         internal long OfferedExpires { get; private set; }

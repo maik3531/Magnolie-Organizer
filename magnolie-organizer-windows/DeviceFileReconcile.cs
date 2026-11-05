@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 namespace MagnolieOrganizer.Windows;
 
 internal sealed record NativeMediaReconcileMember(string FileId, string PhotoId, string Target, string Action,
-    string? BaselineJob, string? BaselineReceipt)
+    string? BaselineJob, string? BaselineReceipt, string? BaselineVersion = null, string? OriginalFileId = null)
 {
     internal bool GrantsWriteAuthority => false;
 }
@@ -19,7 +19,8 @@ internal sealed partial class TelefonStore
     // observations. A peer's catalog/absence or a remote Saved hint is not a
     // baseline, native file grant, target reassociation or deletion witness.
     internal NativeMediaReconcilePlan PlanNativeMediaBatch(string peerId, string mediaType, DeviceFileManifest manifest,
-        IReadOnlyList<DeviceFileMediaPage> pages, Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null)
+        IReadOnlyList<DeviceFileMediaPage> pages, Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null,
+        bool recoverableReplacementAvailable = false)
     {
         var media = DeviceFileSources.CorrelateMediaPages(pages, manifest); var first = pages[0];
         MediaDestinationKind(mediaType);
@@ -66,6 +67,14 @@ internal sealed partial class TelefonStore
                 old["entries"]!.AsArray().OfType<JsonObject>().Any(item => TelefonMessagingContract.String(item, "photo_id") == entry.PhotoId) &&
                 JsonNode.DeepEquals(head.Body["destination"], new JsonObject { ["native_path"] = destination.NativePath, ["volume_path"] = destination.VolumePath,
                     ["identity"] = NativeMediaReceiveJob.NativeIdentity(destination.RootIdentity), ["token"] = destination.DestinationToken })).ToArray();
+            var superseded = new HashSet<(string Job, string File)>();
+            foreach (var candidate in histories)
+            {
+                var id = candidate.Body["media"]!["entries"]!.AsArray().OfType<JsonObject>().Single(item => TelefonMessagingContract.String(item, "photo_id") == entry.PhotoId)["file_id"]!.GetValue<string>();
+                superseded.UnionWith(ReplacementAncestors(heads, candidate.Body, id));
+            }
+            histories = histories.Where(head => !head.Body["media"]!["entries"]!.AsArray().OfType<JsonObject>().Any(item =>
+                TelefonMessagingContract.String(item, "photo_id") == entry.PhotoId && superseded.Contains((head.JobId, TelefonMessagingContract.String(item, "file_id"))))).ToArray();
             var saved = histories.Where(head => head.Body.ContainsKey("saved") && head.Body.ContainsKey("source_end")).ToArray();
             ReceiveHead? baseline = saved.Length == 1 && histories.Length == 1 ? saved[0] : null;
             var target = file.Path; JsonObject? oldFile = null; JsonObject? oldMember = null; string? receipt = null;
@@ -100,14 +109,17 @@ internal sealed partial class TelefonStore
                 // No historical permission epoch is promoted to a grant.
                 var common = oldFile is null ? null : new NativePhotoBaseline(association,
                     new(TelefonMessagingContract.String(oldFile, "sha256"), TelefonProtocolContract.Integer(oldFile["size"])), receipt!);
-                action = PhotoSyncPlan.Compare(association, common, phone, desktop, preferences.ComparisonPolicy, new(CreateDesktop: true)).Kind;
+                action = PhotoSyncPlan.Compare(association, common, phone, desktop, preferences.ComparisonPolicy,
+                    new(CreateDesktop: true, ReplaceDesktop: recoverableReplacementAvailable)).Kind;
+                if (action == "replace_managed_desktop" && target != file.Path) action = "pause_replacement_rename";
                 if (action == "copy_phone_new" && heads.Any(head =>
                     TelefonMessagingContract.String(head.Body["binding"]!.AsObject(), "destination_token") == destination.DestinationToken &&
                     string.Equals(head.Body["album_root"]?["folder"]?.GetValue<string>() ?? "", folder, StringComparison.OrdinalIgnoreCase) &&
                     head.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Any(item => string.Equals(TelefonMessagingContract.String(item, "path"), target, StringComparison.OrdinalIgnoreCase))))
                     action = "pause_original_history";
             }
-            result.Add(new(file.Id, entry.PhotoId, folder.Length == 0 ? target : folder + "/" + target, action, baseline?.JobId, receipt));
+            result.Add(new(file.Id, entry.PhotoId, folder.Length == 0 ? target : folder + "/" + target, action, baseline?.JobId, receipt,
+                baseline?.Version, oldFile?["id"]?.GetValue<string>()));
         }
         Current(); return new(manifest.Fingerprint, first.SourceEpoch, mediaType, result.AsReadOnly());
     }
