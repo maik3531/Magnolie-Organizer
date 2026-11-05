@@ -76,6 +76,74 @@ class NativeFilePairingBootstrapTest {
         assertFalse(saved.contacts_read_enabled)
     }
 
+    @Test fun pairedMediaSettingsUseActualWerkDispatchWithoutCreatingGalleryOrPersonalGrants() {
+        val previous = storage.fileAuthorityPeers().peer!!
+        storage.savePeer(previous.copy(device_id = "22222222-2222-4222-8222-222222222222",
+            remote_device_status_versions = listOf(1, 21, 22, 23)))
+        withNativeTransport { work, channel, generation ->
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation(legacy.device_id, legacy.static_public, channel, generation) { true }
+            val (identity, secret) = storage.identity("Synthetic"); secret.fill(0)
+            @Suppress("UNCHECKED_CAST")
+            val identities = field(TelefonWerk::class.java, "fileChannelIdentities").get(work) as MutableMap<TelefonSecureChannel, NativeFileControlIdentity>
+            identities[channel] = NativeFilePairingAuthority.fromAuthenticatedIdentity(identity)
+            @Suppress("UNCHECKED_CAST")
+            val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
+            sessions[channel] = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
+            val normalCapabilities = work.sharedLocalCapabilities
+            work.sharedLocalCapabilities = { normalCapabilities().toMutableMap().apply {
+                this["device_status"] = getValue("device_status").let { it.copy(versions = it.versions + 23) }
+            } }
+            work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.settings", buildJsonObject {
+                put("format", 1); put("own_device", true)
+            }, 60000), channel, generation)
+            val app = ApplicationProvider.getApplicationContext<Context>()
+            val root = java.io.File(app.filesDir, "native-file-sources-v1")
+            val before = if (root.exists()) root.walkTopDown().map { it.relativeTo(root).path }.toSet() else emptySet()
+            work.receiveMessage(peer, TelefonNachrichten.message(MediaSyncSettings.KIND, MediaSyncSettings.create(peer.device_id), 60000), channel, generation)
+            val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
+            val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).readableDatabase
+            database.rawQuery("SELECT COUNT(*) FROM native_media_shared_settings", null).use { it.moveToFirst(); assertEquals(1, it.getInt(0)) }
+            assertEquals(peer, storage.fileAuthorityPeers().peer)
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+            assertFalse(peer.contacts_read_enabled); assertFalse(peer.personal_notes_sync_granted)
+            assertEquals(before, if (root.exists()) root.walkTopDown().map { it.relativeTo(root).path }.toSet() else emptySet())
+        }
+    }
+
+    @Test fun mediaPreviewImportsExistingGalleryPolicyWithoutOpeningRuntime() {
+        val previous = storage.fileAuthorityPeers().peer!!
+        storage.savePeer(previous.copy(device_id = "22222222-2222-4222-8222-222222222222"))
+        withNativeTransport { work, channel, generation ->
+            val peer = work.prepareNativeFileRelationshipForExplicitActivation("22222222-2222-4222-8222-222222222222",
+                previous.static_public, channel, generation) { true }
+            val (identity, secret) = storage.identity("Synthetic"); secret.fill(0)
+            val local = NativeFilePairingAuthority.fromAuthenticatedIdentity(identity)
+            val peerKey = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKrypto.b64(peer.static_public, 32))
+                .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
+            val binding = MediaSettingsBinding(local.deviceId, local.identitySha256, peer.device_id, peerKey, peer.file_pairing_epoch)
+            val name = DeviceFileControl.digest("magnolie-native-gallery-directory-v1\u0000", JsonArray(listOf(
+                JsonPrimitive(local.deviceId), JsonPrimitive(local.identitySha256), JsonPrimitive(peer.device_id), JsonPrimitive(peerKey))))
+            val directory = java.io.File(ApplicationProvider.getApplicationContext<Context>().filesDir, "native-file-sources-v1/$name")
+            assertTrue(directory.mkdirs() || directory.isDirectory)
+            java.nio.file.Files.setPosixFilePermissions(directory.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"))
+            val protection = DeviceTransferProtection.fromExistingAndroidPhoneKey()
+            val policy = GalleryPhotoPolicy(peer.device_id, peerKey, "a".repeat(64), true, setOf(GallerySourceKind.CAMERA),
+                recordFormat = 3, pairingEpoch = peer.file_pairing_epoch)
+            PhotoSourceJobIndex(directory, protection).use { index ->
+                index.compareAndSetGalleryPolicy(index.galleryPolicy(), policy) { true }
+            }
+            val project = TelefonWerk::class.java.getDeclaredMethod("legacyMediaProjection", MediaSettingsBinding::class.java).also { it.isAccessible = true }
+            @Suppress("UNCHECKED_CAST")
+            val body = project.invoke(work, binding) as JsonObject
+            assertTrue(MediaSyncSettings.requestedFor(body, "images")); assertFalse(MediaSyncSettings.requestedFor(body, "video"))
+            PhotoSourceJobIndex.openExisting(directory, protection).use { index ->
+                assertEquals(policy, index.galleryPolicy().policy)
+            }
+            assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+        }
+    }
+
     @Test fun nativeFileDiscoveryIsReadinessMetadataAndNeverPairingSourceOrOsReadConsent() {
         assertFalse(DeviceFileControl.DISCOVERY_VERSION in TelefonCapabilities.phase1().getValue("device_status").versions)
         assertTrue(DeviceFileControl.DISCOVERY_VERSION in TelefonCapabilities.phase1(fileHandlersReady = true).getValue("device_status").versions)

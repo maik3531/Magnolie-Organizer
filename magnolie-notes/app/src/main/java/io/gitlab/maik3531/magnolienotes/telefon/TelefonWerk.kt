@@ -580,6 +580,65 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun sharedBinding(peer: TelefonPeer) = SharedSettingsBinding(sharedActor, peer.device_id, peer.static_public)
 
+    private val mediaSessions = java.util.IdentityHashMap<TelefonSecureChannel, MediaSyncTransport>()
+
+    @Synchronized private fun currentMediaBinding(): MediaSettingsBinding? {
+        val channel = activeChannel ?: return null
+        val identity = fileChannelIdentities[channel] ?: return null
+        val peer = safePeer() ?: return null
+        if (currentNativeFileTransportPeer(peer.device_id, peer.static_public, channel, pairingGeneration) == null) return null
+        val epoch = NativeFilePairingAuthority.currentEpoch(peer) ?: return null
+        val peerKey = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKrypto.b64(peer.static_public, 32))
+            .joinToString("") { "%02x".format(java.util.Locale.ROOT, it.toInt() and 255) }
+        return MediaSettingsBinding(identity.deviceId, identity.identitySha256, peer.device_id, peerKey, epoch)
+    }
+
+    private val mediaPreferences by lazy { queue.mediaSettingsStorage(::currentMediaBinding,
+        { !Ablage.hole(context).synchronisationsSchreibbar() }, ::legacyMediaProjection) }
+
+    // No runtime, permission prompt or folder creation for a settings preview.
+    // An existing protected source policy must be imported, never replaced by a
+    // convenient fresh default merely because its old channel is closed.
+    private fun legacyMediaProjection(binding: MediaSettingsBinding): JsonObject {
+        val name = DeviceFileControl.digest("magnolie-native-gallery-directory-v1\u0000", JsonArray(listOf(
+            JsonPrimitive(binding.localActor), JsonPrimitive(binding.localKey), JsonPrimitive(binding.peerActor), JsonPrimitive(binding.peerKey))))
+        val root = context.filesDir.toPath()
+        check(root.toFile().canonicalFile.toPath() == root)
+        val parent = root.resolve("native-file-sources-v1")
+        val directory = parent.resolve(name)
+        fun exists(path: java.nio.file.Path) = java.nio.file.Files.exists(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+        var result = MediaSyncSettings.create(binding.localActor)
+        if (!exists(parent)) return result
+        check(parent.toFile().canonicalFile.toPath() == parent && java.nio.file.Files.isDirectory(parent, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        if (!exists(directory)) return result
+        val saved = PhotoSourceJobIndex.openExisting(directory.toFile(), DeviceTransferProtection.fromExistingAndroidPhoneKey()).use { it.galleryPolicy() }
+        check(!saved.repairPending) { "media_shared_legacy_policy_pending" }
+        val policy = saved.policy ?: return result
+        check(policy.receiverId == binding.peerActor && policy.receiverIdentitySha256 == binding.peerKey &&
+            policy.pairingEpoch == binding.pairingEpoch) { "media_shared_legacy_binding_changed" }
+        for ((field, value) in mapOf("enabled" to (policy.enabled || policy.videos?.enabled == true),
+            "photos_enabled" to policy.enabled, "videos_enabled" to (policy.videos?.enabled == true)))
+            result = MediaSyncSettings.change(result, binding.localActor, binding.peerActor, field, JsonPrimitive(value))
+        return result
+    }
+
+    @Synchronized private fun mediaTransport(channel: TelefonSecureChannel): MediaSyncTransport? {
+        val binding = currentMediaBinding() ?: return null
+        if (activeChannel !== channel) return null
+        return mediaSessions.getOrPut(channel) { MediaSyncTransport(binding, mediaPreferences, queue) {
+            synchronized(this) {
+                val peer = safePeer()
+                val session = noteSessions[channel]
+                currentMediaBinding() == binding && activeChannel === channel &&
+                    nativeFileOwnDecisions[channel]?.own == true &&
+                    session?.capabilitiesReceived == true && session.grantsReceived &&
+                    peer?.remote_device_status_available == true && MediaSyncSettings.DISCOVERY_VERSION in peer.remote_device_status_versions &&
+                    MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions &&
+                    Ablage.hole(context).synchronisationsSchreibbar()
+            }
+        } }
+    }
+
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
         commonValues(peer)?.get("content_mode") == JsonPrimitive("phone_scope")
 
@@ -2376,6 +2435,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         "ack" -> {
                             TelefonNachrichten.validateAck(payload)
                             val id = payload.string("message_id")
+                            mediaTransport(channel)?.acknowledge(payload)
                             handleSessionAck(peer, payload, noteSession, generation, transport)
                             if (id in controls) {
                                 if (payload.string("status") !in setOf("accepted", "duplicate"))
@@ -2445,6 +2505,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         }
                         "pong" -> TelefonNachrichten.validateHeartbeat(payload)
                         "ack" -> {
+                            mediaTransport(channel)?.acknowledge(payload)
                             handleSessionAck(peer, payload, noteSession, generation, transport)
                         }
                         "message" -> receiveMessage(peer, payload, channel, generation)
@@ -2458,6 +2519,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         if (activeChannel === channel) activeChannel = null
                         fileChannelIdentities.remove(channel)
                         noteSessions.remove(channel)
+                        mediaSessions.remove(channel)
                         contactGroupWriter.clear(channel); contactValueWriter.clear(channel); contactGroupTitleWriter.clear(channel)
                         retireInvalidPersonalActors()
                         refreshSharedPreferenceState()
@@ -2514,6 +2576,16 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        val media = mediaTransport(channel)
+        if (message["kind"] in setOf(JsonPrimitive("capabilities.update"), JsonPrimitive("grants.update"), JsonPrimitive("personal_sync.settings")))
+            media?.invalidate()
+        if (message["kind"] == JsonPrimitive(MediaSyncSettings.KIND)) {
+            if (media == null) {
+                TelefonNachrichten.validate(message)
+                channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
+            } else media.receive(message, channel::send)
+            return
+        }
         if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
                 JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT),
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
@@ -3971,10 +4043,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val controls = mutableSetOf<String>()
         val transport = activeTransport?.first ?: throw TelefonProtokollFehler("Keine aktive Transportart.")
         peerEffect(peer, generation) { current -> queueTimeSettings(current, noteSessions[channel]) }
+        mediaTransport(channel)?.queueSettings()
         peerEffect(peer, generation) { current -> queueSharedSettings(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueContentScope(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueScopedContentRun(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->
+            if (entry.payload["kind"] == JsonPrimitive(MediaSyncSettings.KIND)) {
+                mediaTransport(channel)?.send(entry.payload, channel::send)
+                return@forEach
+            }
             synchronized(this) {
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls

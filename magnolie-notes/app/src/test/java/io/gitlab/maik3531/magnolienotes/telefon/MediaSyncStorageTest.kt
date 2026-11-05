@@ -25,6 +25,7 @@ class MediaSyncStorageTest {
     private var current: MediaSettingsBinding? = expected
     private var restoring = false
     private var failSeal = false
+    private val queues = mutableListOf<TelefonQueue>()
     private val secret = SecretKeySpec(ByteArray(32) { 29 }, "AES")
     private val codec = object : TelefonPayloadStorage {
         override fun encryptPayload(clear: ByteArray, type: String, id: String): ByteArray {
@@ -50,7 +51,55 @@ class MediaSyncStorageTest {
         context = ApplicationProvider.getApplicationContext(); context.deleteDatabase("magnolie_phone.db")
         helper = TelefonDatenbank(context); current = expected; restoring = false; failSeal = false
     }
-    @After fun cleanup() { helper.close(); context.deleteDatabase("magnolie_phone.db") }
+    @After fun cleanup() {
+        queues.forEach { queue ->
+            (TelefonQueue::class.java.getDeclaredField("helper").also { it.isAccessible = true }.get(queue) as TelefonDatenbank).close()
+        }
+        queues.clear(); helper.close(); context.deleteDatabase("magnolie_phone.db")
+    }
+
+    @Test fun channelNeedsCurrentPeerEchoAndExactOutboundAckAndInvalidatesOldMetadata() {
+        val queue = TelefonQueue(context, codec).also { queues += it }
+        val storage = store()
+        val local = storage.change(expected, "enabled", JsonPrimitive(true), storage.fieldVersion(expected, "enabled"))
+        var ready = true
+        val channel = MediaSyncTransport(expected, storage, queue) { ready }
+        channel.queueSettings()
+        val outbound = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
+        assertTrue(channel.send(outbound) { })
+        assertFalse(channel.matched())
+        val remote = MediaSyncSettings.merge(MediaSyncSettings.create(expected.peerActor), local, expected.peerActor, expected.localActor)
+        channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, remote, 60000)) { reply ->
+            assertEquals(JsonPrimitive("accepted"), reply["status"])
+            assertNotNull(storage.read(expected))
+        }
+        val persisted = storage.read(expected)!!
+        channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, persisted, 60000)) { }
+        val currentOut = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
+        channel.send(currentOut) { }
+        channel.acknowledge(TelefonNachrichten.ack(java.util.UUID.randomUUID().toString(), "accepted", "none"))
+        assertFalse(channel.matched())
+        channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
+        assertTrue(channel.matched())
+        channel.invalidate()
+        channel.acknowledge(TelefonNachrichten.ack(currentOut.string("message_id"), "accepted", "none"))
+        assertFalse(channel.matched())
+        ready = false; channel.queueSettings(); assertFalse(channel.matched())
+    }
+
+    @Test fun channelFailedSecureAckPreservesCommittedChoiceWithoutAgreementAndUnsupportedDoesNotCreateIt() {
+        val queue = TelefonQueue(context, codec).also { queues += it }
+        val storage = store()
+        var ready = false
+        val channel = MediaSyncTransport(expected, storage, queue) { ready }
+        val message = TelefonNachrichten.message(MediaSyncSettings.KIND, MediaSyncSettings.create(expected.peerActor), 60000)
+        channel.receive(message) { assertEquals(JsonPrimitive("rejected"), it["status"]) }
+        assertNull(storage.read(expected))
+        ready = true
+        reject { channel.receive(message) { throw java.io.IOException("Synthetic secure ACK failure") } }
+        assertNotNull(storage.read(expected)); assertFalse(channel.matched())
+        assertTrue(queue.due(expected.peerActor, TelefonTransportArt.WIFI).isEmpty())
+    }
 
     @Test fun readonlyPreviewAndIndependentFieldEditsPersistWithoutPermissionsOrQueue() {
         val store = store()

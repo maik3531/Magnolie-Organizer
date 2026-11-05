@@ -24,6 +24,14 @@ import javax.crypto.spec.SecretKeySpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 class GalleryPhotoPolicyTest {
+    @Test fun existingOnlyProjectionNeverCreatesAMissingIndex() {
+        Fixture().use { fixture ->
+            assertThrows(PhotoFolderScopeError::class.java) { PhotoSourceJobIndex.openExisting(fixture.root, fixture.protection) }
+            assertFalse(File(fixture.root, "photo-source-jobs.db").exists())
+            fixture.open().use { assertNull(it.galleryPolicy().policy) }
+            PhotoSourceJobIndex.openExisting(fixture.root, fixture.protection).use { assertNull(it.galleryPolicy().policy) }
+        }
+    }
     private class Fixture : AutoCloseable {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-policy329-").toFile()
         var key: SecretKey? = SecretKeySpec(ByteArray(32) { it.toByte() }, "AES")

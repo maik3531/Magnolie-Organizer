@@ -87,8 +87,10 @@ internal class IndexedPhotoSource internal constructor(private val index: PhotoS
 /** Dedicated source-job DB only. Never opens/migrates the personal phone DB.
  * Retired/uncertain jobs retain both quota and their actual persisted metadata.
  */
-internal class PhotoSourceJobIndex(private val directory: File, private val protection: DeviceTransferProtection,
-    private val boundary: (String) -> Unit = {}) : AutoCloseable {
+internal class PhotoSourceJobIndex private constructor(private val directory: File, private val protection: DeviceTransferProtection,
+    private val allowCreate: Boolean, private val boundary: (String) -> Unit) : AutoCloseable {
+    constructor(directory: File, protection: DeviceTransferProtection, boundary: (String) -> Unit = {}) :
+        this(directory, protection, true, boundary)
     private val root = directory.toPath()
     private val rootKey: Any = attributes(directory).fileKey() ?: fail("photo_jobs_root_identity_unavailable")
     private val path = File(directory, "photo-source-jobs.db")
@@ -102,6 +104,7 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
         require(directory.isAbsolute && directory.canonicalFile == directory)
         gated {
             val exists = Files.exists(path.toPath(), NOFOLLOW_LINKS)
+            if (!exists && !allowCreate) fail("photo_jobs_existing_index_required")
             val preparedHeader = if (!exists) {
                 Files.newDirectoryStream(root).use { entries ->
                     if (entries.any { it.fileName.toString() != "photo-source-jobs.lock" }) fail("photo_jobs_missing_index_preserved")
@@ -920,6 +923,8 @@ internal class PhotoSourceJobIndex(private val directory: File, private val prot
     override fun close() = synchronized(gate) { if (!closed) { closed = true; if (::db.isInitialized) db.close() } }
 
     companion object {
+        internal fun openExisting(directory: File, protection: DeviceTransferProtection) =
+            PhotoSourceJobIndex(directory, protection, false, {})
         const val MAX_JOBS = 8
         const val MAX_CIPHER_BYTES = DeviceFileManifest.MAX_TOTAL_BYTES + 8L * 1024 * 1024
         private val gate = Any()
