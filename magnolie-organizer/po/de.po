@@ -10121,3 +10121,103 @@ msgstr "Wiederherstellung ausstehend"
 #. Shared media trash retention and explicit manual removal (Refs #330, #335).
 msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
 msgstr "Für Medien gilt die oben eingestellte Aufbewahrungsfrist, einschließlich „Nie“. Mit „Endgültig löschen“ entfernen Sie einen einzelnen Medieneintrag sofort. Beim Wiederherstellen wird keine vorhandene Datei ersetzt."
+
+#. Native Windows media UI (Refs #330, #335).
+msgid "Photos"
+msgstr "Fotos"
+
+msgid "Videos"
+msgstr "Videos"
+
+msgid "Album selection changed. Read the albums again."
+msgstr "Die Albumauswahl hat sich geändert. Lesen Sie die Alben erneut ein."
+
+msgid "Check the access request on your phone, then read the albums again."
+msgstr "Prüfen Sie die Zugriffsanfrage auf dem Handy und lesen Sie danach die Alben erneut ein."
+
+msgid "Choose an album to compare. An incomplete catalog never proves deletion."
+msgstr "Wählen Sie ein Album zum Abgleichen. Ein unvollständiger Katalog gilt niemals als Löschungsnachweis."
+
+msgid "Choose destination…"
+msgstr "Zielordner wählen …"
+
+msgid "Local edits kept"
+msgstr "Lokale Bearbeitungen erhalten"
+
+msgid "Manual synchronization"
+msgstr "Manueller Abgleich"
+
+msgid "More albums"
+msgstr "Weitere Alben"
+
+msgid "Native media connection is unavailable."
+msgstr "Die native Medienverbindung ist nicht verfügbar."
+
+msgid "No destination selected"
+msgstr "Kein Zielordner ausgewählt"
+
+msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
+msgstr "Nur den Bestand auf dem Handy abgleichen. Lokale Bearbeitungen bleiben erhalten. Löschungen werden noch nicht abgeglichen."
+
+msgid "Replaced"
+msgstr "Ersetzt"
+
+msgid "Request access on phone"
+msgstr "Zugriff auf dem Handy anfragen"
+
+msgid "Synchronize videos"
+msgstr "Videos abgleichen"
+
+msgid "The book could not be saved. Media synchronization was not started."
+msgstr "Das Buch konnte nicht gespeichert werden. Der Medienabgleich wurde nicht gestartet."
+
+msgid "Too many pending requests. Wait for the current operation."
+msgstr "Zu viele offene Anfragen. Warten Sie auf den laufenden Vorgang."
+
+msgid "Unchanged"
+msgstr "Unverändert"
+
+msgid "Waiting for native media status"
+msgstr "Warte auf den nativen Medienstatus"
+
+msgid "Read photo albums"
+msgstr "Fotoalben einlesen"
+
+msgid "Read video albums"
+msgstr "Videoalben einlesen"
+
+msgid "Stopping… Waiting for the native operation to end."
+msgstr "Wird gestoppt … Warte auf das tatsächliche Ende des nativen Vorgangs."
+
+msgid "Comparing media content… The total is not known yet."
+msgstr "Medieninhalte werden verglichen … Der Gesamtumfang steht noch nicht fest."
+
+msgid "Stopped or incomplete. Original files and recovery history are retained."
+msgstr "Gestoppt oder unvollständig. Originaldateien und Wiederherstellungsnachweise bleiben erhalten."
+
+msgid "Media operation paused. No completion was confirmed."
+msgstr "Medienvorgang angehalten. Ein Abschluss wurde nicht bestätigt."
+
+msgid "Automatic synchronization is selected but is not available yet."
+msgstr "Automatischer Abgleich ist ausgewählt, aber noch nicht verfügbar."
+
+msgid "A native media operation is still running."
+msgstr "Ein nativer Medienvorgang läuft noch."
+
+msgid "Native settings loaded. No transfer has been started."
+msgstr "Native Einstellungen geladen. Es wurde keine Übertragung gestartet."
+
+msgid "Content comparison needs review."
+msgstr "Der Inhaltsabgleich muss geprüft werden."
+
+msgid "Content comparison finished."
+msgstr "Inhaltsabgleich abgeschlossen."
+
+msgid "No active media operation."
+msgstr "Kein Medienvorgang aktiv."
+
+msgid "Media transfer is not available on this connection yet."
+msgstr "Medienübertragung ist mit dieser Verbindung noch nicht verfügbar."
+
+msgid "Some source entries may not have been offered. Read the albums again."
+msgstr "Einige Quelleinträge wurden möglicherweise nicht angeboten. Lesen Sie die Alben erneut ein."

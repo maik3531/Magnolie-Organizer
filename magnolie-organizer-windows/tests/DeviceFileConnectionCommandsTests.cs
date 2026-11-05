@@ -24,7 +24,7 @@ internal static class DeviceFileConnectionCommandsTests
             ["enabled"] = true, ["associated"] = true, ["repair_pending"] = false,
             ["kinds"] = new JsonArray("camera", "downloads", "screenshots", "whatsapp_received"),
             ["videos"] = new JsonObject { ["enabled"] = video && enabled, ["revision"] = video ? 1 : 0 } });
-    private static JsonObject Catalog(JsonObject request, bool video = false)
+    internal static JsonObject Catalog(JsonObject request, bool video = false)
     {
         var body = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(),
             ["operation"] = "discover", ["version"] = SourceVersion,

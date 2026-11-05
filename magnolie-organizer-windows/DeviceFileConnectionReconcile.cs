@@ -74,9 +74,9 @@ internal sealed partial class TelefonConnection
         if (run.OfferedManifest is null) throw DeviceFileControl.Error("file_receive_native_offer_required");
     }
 
-    internal sealed record NativeMediaAlbumOutcome(IReadOnlyList<string> ReceivedJobs, IReadOnlyList<NativeMediaReconcileMember> Members)
+    internal sealed record NativeMediaAlbumOutcome(IReadOnlyList<string> ReceivedJobs, IReadOnlyList<NativeMediaReconcileMember> Members, bool CoverageUncertain = false)
     {
-        internal bool NeedsReview => Members.Any(item => item.Action is not ("copy_phone_new" or "replace_managed_desktop" or "unchanged" or "keep_local_edit"));
+        internal bool NeedsReview => CoverageUncertain || Members.Any(item => item.Action is not ("copy_phone_new" or "replace_managed_desktop" or "unchanged" or "keep_local_edit"));
         internal bool ProvesDeletion => false;
     }
 
@@ -115,7 +115,10 @@ internal sealed partial class TelefonConnection
                 if (run.Result.BatchEnd is true)
                 {
                     await EndNativeMediaAlbumAsync(run, token);
-                    return new(jobs.AsReadOnly(), members.AsReadOnly());
+                    // A count mismatch is uncertainty, never an invented absent
+                    // file/tombstone. In particular, skipped/oversized source
+                    // entries must not be presented as complete content coverage.
+                    return new(jobs.AsReadOnly(), members.AsReadOnly(), run.AlbumMetadata is null || run.AlbumMetadata.VisibleImages != members.Count);
                 }
                 if (run.Result.BatchEnd is not false) throw DeviceFileControl.Error("file_receive_native_album_end_unknown");
                 run = await NextNativeMediaBatchAsync(run, token);

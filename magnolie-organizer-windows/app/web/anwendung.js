@@ -28909,7 +28909,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (ja) Bruecke.sende({ cmd: "telefon_entfernen", kennung: telefon.device_id });
         });
       }));
-      if (telefon.device_id) zeile.append(baueTelefonPersonalSync(telefon));
+      if (telefon.device_id) {
+        zeile.append(baueTelefonPersonalSync(telefon));
+        if (window.MagnolieMedia) zeile.append(window.MagnolieMedia.createPanel(telefon.device_id, _,
+          message => Bruecke.sende(message), () => new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject))));
+      }
       liste.append(zeile);
     }
     ab.append(liste, el("p", "einst-hinweis",

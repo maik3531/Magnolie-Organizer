@@ -88,6 +88,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using (var parsed = BridgeDispatcherContract.Parse(rawMessage))
         {
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
+            if (command == "telefon_medien" && Text(parsed.RootElement, "action") is not ("status" or "settings" or "pick_destination" or "cancel"))
+            {
+                var mediaRequest = Text(parsed.RootElement, "requestId"); var mediaPeer = Text(parsed.RootElement, "device_id");
+                QueueNetworkCommand(() => HandleCoreAsync(rawMessage), "phone", code => form.SendAsync("MagnolieMedia.receive", new {
+                    requestId = mediaRequest, device_id = mediaPeer, ok = false, state = "held", error = code }));
+                return;
+            }
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "baum_mailbox_schreibpruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_mcp" or "kde_mcp" or "notiz_versand" or "telefon_ein" or "telefon_verbindung_ein" or
@@ -332,6 +339,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "graph_mcp_cancel": await GraphMcpSignInAsync(message, "cancel"); break;
                     case "telefon_stand":
                     case "telefon_verbindung_stand": await telefon.ReportStatusAsync(); break;
+                    case "telefon_medien":
+                        Task? mediaHandling = null;
+                        HandleNativeMediaUi(message, ref mediaHandling);
+                        if (mediaHandling is not null) await mediaHandling;
+                        else await form.SendAsync("MagnolieMedia.receive", new { requestId = Text(message, "requestId"), device_id = Text(message, "device_id"), ok = true, supported = false });
+                        break;
                     case "telefon_mcp": await TelefonMcpAsync(message); break;
                     case "telefon_ein":
                     case "telefon_verbindung_ein":
@@ -1806,6 +1819,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         // Restore callbacks adopt data on ok=true; their success toast ignores fehler.
         if (warning.Length != 0) await form.SendAsync("App.syncFehler", T("Saved") + " · " + warning);
     }
+
+    partial void HandleNativeMediaUi(JsonElement message, ref Task? handling);
 
     private async Task SelectFolderAsync()
     {

@@ -60,6 +60,8 @@
     <Compile Include="..\DeviceFileReplacement.cs" Link="DeviceFileReplacement.cs" />
     <Compile Include="..\DeviceFileBookPermit.cs" Link="DeviceFileBookPermit.cs" />
     <Compile Include="..\DeviceFileCoordinator.cs" Link="DeviceFileCoordinator.cs" />
+    <Compile Include="..\DeviceFileUiCoordinator.cs" Link="DeviceFileUiCoordinator.cs" />
+    <Compile Include="..\DeviceFileUiRequest.cs" Link="DeviceFileUiRequest.cs" />
     <Compile Include="..\DeviceFileReceiveResume.cs" Link="DeviceFileReceiveResume.cs" />
     <Compile Include="..\DeviceFileConnectionTransport.cs" Link="DeviceFileConnectionTransport.cs" />
     <Compile Include="..\DeviceFileConnectionSources.cs" Link="DeviceFileConnectionSources.cs" />

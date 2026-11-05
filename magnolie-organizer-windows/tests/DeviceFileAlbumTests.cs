@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 internal static class DeviceFileAlbumTests
 {
     private static readonly byte[][] Data = ["first native album file"u8.ToArray(), "second native album file"u8.ToArray()];
-    private static async Task<(string CatalogId, string AlbumId)> Catalog(DeviceFileReceiveJobTests.Fixture f, string label)
+    private static async Task<(string CatalogId, string AlbumId)> Catalog(DeviceFileReceiveJobTests.Fixture f, string label, long visible = 2)
     {
         var catalogId = Guid.NewGuid().ToString("D"); var albumId = Guid.NewGuid().ToString("D"); var version = new string('d', 64);
         DeviceFileConnectionRunsTests.Clear(f); var discover = f.Native.Connection.DiscoverNativeMediaAlbumsAsync(version); var request = DeviceFileConnectionRunsTests.Request(f);
@@ -15,7 +15,7 @@ internal static class DeviceFileAlbumTests
             ["kind"] = DeviceFileSources.CatalogKind, ["created_ms"] = now, ["expires_ms"] = now + 60000,
             ["body"] = new JsonObject { ["format"] = 1, ["request_id"] = request["message_id"]!.DeepClone(), ["operation"] = "discover", ["version"] = version,
                 ["page"] = new JsonObject { ["format"] = 1, ["catalog_id"] = catalogId, ["after"] = 0, ["next_cursor"] = null, ["coverage"] = "full_images", ["proves_deletion"] = false,
-                    ["albums"] = new JsonArray(new JsonObject { ["album_id"] = albumId, ["kind"] = "camera", ["display_name"] = label, ["visible_images"] = 2, ["needs_choice"] = false }) } } });
+                    ["albums"] = new JsonArray(new JsonObject { ["album_id"] = albumId, ["kind"] = "camera", ["display_name"] = label, ["visible_images"] = visible, ["needs_choice"] = false }) } } });
         await discover;
         return (catalogId, albumId);
     }
@@ -110,9 +110,11 @@ internal static class DeviceFileAlbumTests
         TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == operation, "Wrong whole-album source phase: " + operation); return request;
     }
 
-    internal static async Task WindowsWholeAlbumBatchLoopAsync()
+    internal static Task WindowsWholeAlbumBatchLoopAsync() => WholeAlbumBatchLoopAsync(false);
+    internal static Task WindowsPartialAlbumCoverageAsync() => WholeAlbumBatchLoopAsync(true);
+    private static async Task WholeAlbumBatchLoopAsync(bool countMismatch)
     {
-        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var (catalog, album) = await Catalog(f, "Kamera"); var epoch = new string('e', 64);
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); var (catalog, album) = await Catalog(f, "Kamera", countMismatch ? 3 : 2); var epoch = new string('e', 64);
         var manifest = f.Manifest(("first.jpg", Data[0]), ("second.jpg", Data[1])); DeviceFileConnectionRunsTests.Clear(f);
         var sync = f.Native.Connection.SynchronizeNativeMediaAlbumAsync(new string('d', 64), catalog, album, true);
         var request = await Source(f, 0, "batch_run"); var runId = Guid.NewGuid().ToString("D");
@@ -140,7 +142,7 @@ internal static class DeviceFileAlbumTests
         request = await Source(f, 8, "end_run"); await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, emptyId, "canceled_held"));
         request = await Source(f, 9, "end_album"); await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, emptyId, "canceled_held"));
         var result = await sync; var root = Path.Combine(f.Root, new NativeMediaAlbumContext(epoch, "Kamera").Folder);
-        TestAssert.That(result.ReceivedJobs.Count == 1 && result.Members.Count == 2 && !result.NeedsReview && !result.ProvesDeletion &&
+        TestAssert.That(result.ReceivedJobs.Count == 1 && result.Members.Count == 2 && result.NeedsReview == countMismatch && result.CoverageUncertain == countMismatch && !result.ProvesDeletion &&
             f.Native.Connection.CurrentNativeMediaSourceRun is null && f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (1, 0, 0L) &&
             File.ReadAllBytes(Path.Combine(root, "first.jpg")).SequenceEqual(Data[0]), "Whole-album operation failed its actual batch continuation/empty END/album release or fabricated deletion proof.");
     }

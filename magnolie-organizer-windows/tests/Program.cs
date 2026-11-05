@@ -323,6 +323,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native saved book / Windows actual failed save revokes media authority", DeviceFileBookPermitTests.WindowsFailedNativeSaveRevokesAsync);
     runner.Add("Device file native saved book / Windows canonical policy and prewrite rejection", DeviceFileBookPermitTests.WindowsSavedPolicyAndRejectedSaveAsync);
     runner.Add("Device file native saved book / Windows actual incoming data after book change HOLD", DeviceFileBookPermitTests.WindowsBookChangedDuringActualReceiveAsync);
+    runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
+    runner.Add("Device file native media UI / Windows explicit owner actual ACK and no locked-book revival", DeviceFileUiTests.WindowsExplicitNativeUiHandshakeAsync);
+    runner.Add("Device file native media UI / Windows actual status configure catalog and unknown album HOLD", DeviceFileUiTests.WindowsUiActualDiscoveryAsync);
+    runner.Add("Device file native media UI / Windows source count mismatch stays review without deletion proof", DeviceFileAlbumTests.WindowsPartialAlbumCoverageAsync);
     runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);
     runner.Add("Device file native album / Windows replaced album directory HOLD", DeviceFileAlbumTests.WindowsAlbumReplacementHoldAsync);
     runner.Add("Device file native album / Windows existing unowned album directory HOLD", DeviceFileAlbumTests.WindowsUnownedAlbumFolderHoldAsync);

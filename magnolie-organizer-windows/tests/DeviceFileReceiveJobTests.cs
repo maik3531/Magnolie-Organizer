@@ -15,7 +15,7 @@ internal static class DeviceFileReceiveJobTests
         internal NativeFileControlSession Owner = null!, Phone = null!;
         internal NativeMediaDestination Destination = null!;
         internal string Root => Destination.NativePath;
-        internal static async Task<Fixture> CreateAsync(bool sourceSend = true)
+        internal static async Task<Fixture> CreateAsync(bool sourceSend = true, Func<NativeBookSaveState?>? uiSavedBook = null)
         {
             var f = new Fixture();
             try
@@ -31,14 +31,22 @@ internal static class DeviceFileReceiveJobTests
                 using (var directory = DeviceFileNativeDirectory.OpenExistingForReceive(path))
                     f.Destination = f.Native.Store.SetNativeMediaDestination(f.Native.Peer.Id, "images", null, directory);
                 f.Native.Store.SetNativeMediaPreferences(f.Native.Peer.Id, null, true, false, false);
-                var local = f.Native.Store.ReadFileIdentity(); f.Owner = f.Native.Connection.OpenNativeFileControls(() => f.Local);
+                var local = f.Native.Store.ReadFileIdentity();
+                Task? uiPrepare = null;
+                if (uiSavedBook is null) f.Owner = f.Native.Connection.OpenNativeFileControls(() => f.Local);
                 var remoteIdentity = new NativeFileControlIdentity(f.Native.Peer.Id, Convert.ToHexString(SHA256.HashData(f.Native.Peer.PublicKey)).ToLowerInvariant());
                 var peer = new NativeFileControlPeer(local.DeviceId, local.IdentitySha256, new object(), true, true, true, true, true, f.Native.Peer.FilePairingEpoch);
                 f.RemotePeer = peer;
                 f.RemoteLocal = new(new(3, new string('a', 64), sourceSend, false), f.RemoteLocal.Owner, true);
                 f.Phone = new NativeFileControlSession(remoteIdentity, () => peer, () => f.RemoteLocal);
                 f.Native.Stream.SetLength(0); f.Native.Stream.Position = 0;
-                TestAssert.That(await f.Native.Connection.SendNativeFileControlsAsync(), "No actual secure control output.");
+                if (uiSavedBook is null) TestAssert.That(await f.Native.Connection.SendNativeFileControlsAsync(), "No actual secure control output.");
+                else
+                {
+                    uiPrepare = f.Native.Connection.PrepareNativeMediaUiAsync(uiSavedBook, "images", CancellationToken.None);
+                    _ = await DeviceFileConnectionReceiveTests.Outbound(f, DeviceFileControl.Kind);
+                    f.Owner = (NativeFileControlSession)typeof(TelefonConnection).GetField("fileControls", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Native.Connection)!;
+                }
                 var first = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single();
                 f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(first, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), peer);
                 var response = f.Phone.Packet(); f.Phone.MarkSent(response);
@@ -46,6 +54,7 @@ internal static class DeviceFileReceiveJobTests
                 await f.Native.Connection.HandlePlainAsync(DeviceFileControlEnvelope.Create(response, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
                 var echo = DeviceFileConnectionTransportTests.OpenFrames(f.Native.Stream.ToArray()).Single();
                 f.Phone.ObserveRemote(DeviceFileControlEnvelope.Validate(echo, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), peer);
+                if (uiPrepare is not null) await uiPrepare;
                 TestAssert.That((f.Current() is not null) == sourceSend && f.Current() == f.Phone.Binding(f.Destination.DestinationToken, senderIsLocal: true), "Actual bilateral secure file agreement did not join native destination token.");
                 return f;
             }
