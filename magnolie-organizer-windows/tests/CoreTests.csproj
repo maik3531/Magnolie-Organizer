@@ -197,6 +197,7 @@
     <Compile Include="..\SharedSyncSettings.cs" Link="SharedSyncSettings.cs" />
     <Compile Include="..\MediaSyncSettings.cs" Link="MediaSyncSettings.cs" />
     <Compile Include="..\DeviceFileSharedPreferences.cs" Link="DeviceFileSharedPreferences.cs" />
+    <Compile Include="..\DeviceFileConnectionSharedSettings.cs" Link="DeviceFileConnectionSharedSettings.cs" />
     <Compile Include="..\PhoneContentScope.cs" Link="PhoneContentScope.cs" />
     <Compile Include="..\TimeSyncContract.cs" Link="TimeSyncContract.cs" />
     <Compile Include="..\TimeControlContract.cs" Link="TimeControlContract.cs" />

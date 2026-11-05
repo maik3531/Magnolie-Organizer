@@ -113,7 +113,7 @@ internal static class TelefonMessageContract
         "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result",
         "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch", PersonalSyncContract.NoteModeKind, PersonalSyncContract.DesktopFeaturesKind,
         TimeSyncContract.Settings, TimeSyncContract.Request, TimeSyncContract.Batch, TimeControlContract.RequestKind, TimeControlContract.ReportKind,
-        SharedSyncSettings.Kind, SharedSyncSettings.StartKind, PhoneContentScope.Kind, PhoneContentScope.DataKind };
+        SharedSyncSettings.Kind, SharedSyncSettings.StartKind, PhoneContentScope.Kind, PhoneContentScope.DataKind, MediaSyncSettings.Kind };
     internal static void ValidateMessage(JsonObject message, long now, bool receiving)
     {
         var id = "00000000-0000-0000-0000-000000000000";
@@ -136,6 +136,7 @@ internal static class TelefonMessageContract
             else if (kind == PersonalSyncContract.NoteModeKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateNoteSettings(body); }
             else if (kind == PersonalSyncContract.DesktopFeaturesKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateDesktopFeatures(body); }
             else if (kind == SharedSyncSettings.Kind) { Maximum(ttl, 86_400_000); SharedSyncSettings.Validate(body); }
+            else if (kind == MediaSyncSettings.Kind) { Maximum(ttl, 86_400_000); MediaSyncSettings.Validate(body); }
             else if (kind == SharedSyncSettings.StartKind) { Maximum(ttl, 60_000); SharedSyncSettings.ValidateStart(body); }
             else if (kind == PhoneContentScope.Kind) { Maximum(ttl, 60_000); PhoneContentScope.ValidatePart(body); }
             else if (kind == PhoneContentScope.DataKind) { PhoneContentScope.ValidateData(body); Maximum(ttl, body["kind"]!.GetValue<string>() == "personal_sync.request" ? 3_600_000 : 86_400_000); }

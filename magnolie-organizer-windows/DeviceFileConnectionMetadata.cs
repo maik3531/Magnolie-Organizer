@@ -18,6 +18,7 @@ internal sealed partial class TelefonConnection
     {
         var kind = message["kind"]?.GetValue<string>();
         if (!IsFileMetadata(kind)) return;
+        InvalidateMediaSharedReceipts();
         var current = new FileMetadataAttempt(kind!, message.DeepClone().AsObject());
         lock (fileMetadataGate)
         {

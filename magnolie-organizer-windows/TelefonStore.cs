@@ -780,7 +780,7 @@ internal sealed partial class TelefonStore
             if (kind == "personal_sync.deletion_proposals")
                 RememberPersonalProposalKinds(connection, transaction,
                     actorRunId is null ? peerId : PersonalSyncActorContract.StoragePeer(actorRunId), body, true, now);
-            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind or SharedSyncSettings.Kind)
+            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind or SharedSyncSettings.Kind or MediaSyncSettings.Kind)
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
                 replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind=$kind";

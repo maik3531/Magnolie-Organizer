@@ -2232,6 +2232,11 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
+        if (plain["kind"]?.GetValue<string>() == MediaSyncSettings.Kind)
+        {
+            await HandleMediaSharedSettingsAsync(plain);
+            return;
+        }
         if (plain["kind"]?.GetValue<string>()?.StartsWith("file_transfer.", StringComparison.Ordinal) == true)
         {
             Task? nativeFileHandling = null;
@@ -2266,6 +2271,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             var queued = store.OutboxMessage(peer.Id, id!);
+            ObserveMediaSharedAck(id, status, error, queued);
             if (queued is not null && PersonalSyncActorContract.IsReservedMessage(queued)) return;
             if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             if (status is "accepted" or "duplicate" && queued?["kind"]?.GetValue<string>() == "personal_sync.custom_batch" &&
@@ -2539,6 +2545,10 @@ internal sealed partial class TelefonConnection : IDisposable
                 { store.CompleteOutbox(peer.Id, item.Id); continue; }
                 await SendPlainAsync(item.Message); sentSharedSettings = body.DeepClone().AsObject();
                 store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
+            if (kind == MediaSyncSettings.Kind)
+            {
+                await SendQueuedMediaSettingsAsync(item, body, now); continue;
             }
             if (TimeSyncContract.IsKind(kind))
             {

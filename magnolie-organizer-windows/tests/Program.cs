@@ -272,6 +272,8 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows preserve legacy choices and ambiguous deletions", DeviceFileSharedPreferencesTests.LegacyAsync);
     runner.Add("Media shared storage / Windows corruption pairing identity and restore HOLD", DeviceFileSharedPreferencesTests.BindingAsync);
+    runner.Add("Media shared transport / Windows actual bilateral ACK exact snapshot and no grants", DeviceFileSharedTransportTests.MatchedAsync);
+    runner.Add("Media shared transport / Windows old capability and failed secure ACK HOLD", DeviceFileSharedTransportTests.GuardsAsync);
     runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
     runner.Add("Media backup bytes / Windows held FID independent copy and new restore", DeviceFileBackupBytesTests.WindowsCopyRestoreAsync);
     runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);

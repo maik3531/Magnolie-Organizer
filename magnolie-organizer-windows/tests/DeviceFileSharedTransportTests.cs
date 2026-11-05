@@ -1,0 +1,98 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json.Nodes;
+using MagnolieOrganizer.Windows;
+
+namespace MagnolieOrganizer.Windows.Tests;
+
+internal static class DeviceFileSharedTransportTests
+{
+    private static void Identity(DeviceFileConnectionMetadataTests.Fixture f)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var identity = f.Store.LoadOrCreateIdentity(); CryptographicOperations.ZeroMemory(identity.PrivateKey);
+        File.WriteAllText(f.Paths.TelefonStorageKey, Convert.ToBase64String(ProtectedData.Protect(
+            Enumerable.Repeat((byte)29, 32).ToArray(), Encoding.UTF8.GetBytes("magnolie-phone-storage-v1"), DataProtectionScope.CurrentUser)));
+    }
+    private static JsonObject Message(JsonObject body)
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = MediaSyncSettings.Kind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body.DeepClone() };
+    }
+    private static JsonObject Ack(string id) => new() { ["type"] = "ack", ["message_id"] = id, ["status"] = "accepted", ["error"] = "none" };
+    private static string QueuedId(DeviceFileConnectionMetadataTests.Fixture f)
+    {
+        using var db = f.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+        read.CommandText = "SELECT message_id FROM outbox WHERE kind=$kind"; read.Parameters.AddWithValue("$kind", MediaSyncSettings.Kind);
+        return (string)read.ExecuteScalar()!;
+    }
+    private static async Task Seed(DeviceFileConnectionMetadataTests.Fixture f, bool supported = true)
+    {
+        Identity(f);
+        f.Connection.SharedLocalCapabilities = () => {
+            var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
+            capabilities["device_status"]!["versions"]!.AsArray().Add(23); return capabilities;
+        };
+        foreach (var kind in new[] { "capabilities.update", "grants.update", "personal_sync.settings" })
+        {
+            var message = f.Message(kind);
+            if (kind == "capabilities.update" && supported) message["body"]!["items"]!["device_status"]!["versions"]!.AsArray().Add(23);
+            await f.Connection.HandlePlainAsync(message);
+        }
+        TestAssert.That(f.Connection.MediaSharedControlsReady == supported, "Shared controls ignored current native metadata/capability.");
+    }
+
+    internal static async Task MatchedAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(); await Seed(f);
+        var beforeGrants = f.Store.LocalGrants().DeepClone(); var beforePersonal = f.Store.PersonalSettings(f.Peer.Id);
+        var version = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "enabled");
+        var local = f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "enabled", JsonValue.Create(true)!, version);
+        await f.Connection.SendMediaSharedSettingsAsync();
+        TestAssert.That(!f.Connection.MediaSharedSettingsReady, "Sending alone claimed matched settings.");
+        var actor = local["settings"]!["enabled"]!.AsObject().Single().Key;
+        var remote = MediaSyncSettings.Merge(MediaSyncSettings.Create(f.Peer.Id), local, f.Peer.Id, actor);
+        await f.Connection.HandlePlainAsync(Message(remote));
+        var persisted = f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)!;
+        await f.Connection.HandlePlainAsync(Message(persisted));
+        TestAssert.That(!f.Connection.MediaSharedSettingsReady, "Peer echo without actual matching outbound ACK claimed readiness.");
+        await f.Connection.HandlePlainAsync(Ack(Guid.NewGuid().ToString("D")));
+        TestAssert.That(!f.Connection.MediaSharedSettingsReady, "Foreign ACK matched media settings.");
+        var acceptedId = QueuedId(f);
+        await f.Connection.HandlePlainAsync(Ack(acceptedId));
+        TestAssert.That(f.Connection.MediaSharedSettingsReady && JsonNode.DeepEquals(beforeGrants, f.Store.LocalGrants()) &&
+            beforePersonal == f.Store.PersonalSettings(f.Peer.Id) && f.Store.ReadNativeMediaPreferences(f.Peer.Id).Version is null,
+            "Current bilateral matching failed or manufactured rights/personal/native policy.");
+        var capabilities = f.Message("capabilities.update", revision: 2);
+        capabilities["body"]!["items"]!["device_status"]!["versions"]!.AsArray().Add(23);
+        await f.Connection.HandlePlainAsync(capabilities);
+        await f.Connection.HandlePlainAsync(Ack(acceptedId));
+        TestAssert.That(f.Connection.MediaSharedControlsReady && !f.Connection.MediaSharedSettingsReady,
+            "A metadata renewal or replayed old ACK revived historical matching.");
+        await f.Connection.HandlePlainAsync(Message(persisted));
+        await f.Connection.HandlePlainAsync(Ack(QueuedId(f)));
+        TestAssert.That(f.Connection.MediaSharedSettingsReady, "Fresh settings exchange after metadata renewal failed.");
+        var nextVersion = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "videos_enabled");
+        f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "videos_enabled", JsonValue.Create(true)!, nextVersion);
+        TestAssert.That(!f.Connection.MediaSharedSettingsReady, "A local edit reused an old matched snapshot.");
+        f.Connection.Dispose(); TestAssert.That(!f.Connection.MediaSharedSettingsReady, "Closed channel retained matched settings.");
+    }
+
+    internal static async Task GuardsAsync()
+    {
+        using (var old = new DeviceFileConnectionMetadataTests.Fixture())
+        {
+            await Seed(old, supported: false);
+            await old.Connection.HandlePlainAsync(Message(MediaSyncSettings.Create(old.Peer.Id)));
+            TestAssert.That(old.Store.ReadNativeMediaSharedSettings(old.Peer.Id, old.Peer.PublicKey) is null &&
+                !old.Connection.MediaSharedSettingsReady, "Old discovery version admitted media intent.");
+        }
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(); await Seed(f);
+        f.Stream.Fail = true;
+        try { await f.Connection.HandlePlainAsync(Message(MediaSyncSettings.Create(f.Peer.Id))); throw new Exception("Failed secure ACK was ignored."); }
+        catch (IOException) { }
+        TestAssert.That(f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey) is not null &&
+            !f.Connection.MediaSharedSettingsReady, "Secure output failure lost durable choices or claimed matched state.");
+    }
+}
