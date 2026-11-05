@@ -345,6 +345,29 @@ internal sealed partial class DeviceFileNativeDirectory
             }
         }
 
+        // Only the trash lifecycle calls this after its durable purge_prepared
+        // event. This is the SAME held, fully verified FID, never Delete(path).
+        internal void RemoveOriginal(Action ensureNative)
+        {
+            lock (fileGate)
+            {
+                Current(); ensureNative();
+                if (published) throw DeviceFileControl.Error("media_trash_original_file_required");
+                var data = Marshal.AllocHGlobal(1);
+                try
+                {
+                    Marshal.WriteByte(data, 1);
+                    Current(); ensureNative();
+                    var status = NtSetInformationFile(file, out _, data, 1, 13); // FileDispositionInformation, delete on close.
+                    if (status < 0) throw new IOException("media_trash_native_remove_failed", new Win32Exception((int)RtlNtStatusToDosError(status)));
+                    // No rollback after the kernel accepted removal. A later
+                    // failure retains the prepared journal for explicit repair.
+                    closed = true; prefix.Dispose(); file.Dispose();
+                }
+                finally { Marshal.FreeHGlobal(data); }
+            }
+        }
+
         internal static Observation ReadFile(SafeFileHandle file)
         {
             if (!GetFileInformationByHandle(file, out var info)) throw NativeFailure("file_destination_file_attributes_unavailable");

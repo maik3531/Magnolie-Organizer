@@ -20,6 +20,29 @@ internal sealed partial class BridgeDispatcher
             var request = NativeMediaUiRequest.Parse(JsonNode.Parse(message.GetRawText())!.AsObject());
             switch (request.Action)
             {
+                case "trash_list":
+                    var items = telefon.ReadNativeMediaTrashUi(peerId).Where(item => item.Entry.State is not ("purged" or "restored")).ToArray();
+                    if (request.After > items.Length) throw DeviceFileControl.Error("media_trash_stale_selection");
+                    await Reply(new { requestId, device_id = peerId, ok = true, after = request.After,
+                        next_cursor = request.After + 128 < items.Length ? (int?)(request.After + 128) : null,
+                        trash = items.Skip(request.After).Take(128).Select(item => new { operation_id = item.Entry.Operation, version = item.Entry.Version,
+                            state = item.Entry.State, changed_ms = item.Entry.ChangedMs, display_name = item.DisplayName, media_type = item.MediaType }) });
+                    return;
+                case "trash_restore":
+                    var restored = telefon.RestoreNativeMediaTrashUi(peerId, request.TrashOperation!, request.Version!);
+                    await Reply(new { requestId, device_id = peerId, ok = true, state = restored.State }); return;
+                case "trash_purge":
+                    var removal = telefon.PrepareNativeMediaRemovalChoice(peerId, request.TrashOperation!, request.Version!);
+                    var question = removal.Permit.TrashEnabled ? "Permanently delete the one item? This cannot be undone."
+                        : "Recycle bin disabled: Delete the selected items permanently?";
+                    // The real native dialog, never a browser-confirmed flag.
+                    // The saved-book permit and selection are rechecked after it.
+                    if (MessageBox.Show(form, T(question) + "\n\n" + removal.Item.DisplayName, T("Delete permanently"),
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                    { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
+                    var consent = NativeMediaPermanentConsent.FromConfirmedNativeChoice(removal.Permit, removal.Item.Entry);
+                    var purged = await Task.Run(() => telefon.RemoveConfirmedNativeMediaTrash(removal, consent));
+                    await Reply(new { requestId, device_id = peerId, ok = true, state = purged.State }); return;
                 case "status":
                     var status = telefon.NativeMediaUiStatus(peerId); status["requestId"] = requestId; status["device_id"] = peerId; status["ok"] = true;
                     status["transfer_busy"] = nativeMediaUiRuns.ContainsKey(peerId) || status["automatic_busy"]?.GetValue<bool>() == true;

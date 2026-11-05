@@ -57,6 +57,7 @@
     <Compile Include="..\DeviceFileReconcile.cs" Link="DeviceFileReconcile.cs" />
     <Compile Include="..\DeviceFileAlbumRoot.cs" Link="DeviceFileAlbumRoot.cs" />
     <Compile Include="..\DeviceFileMediaTrash.cs" Link="DeviceFileMediaTrash.cs" />
+    <Compile Include="..\DeviceFileMediaPurge.cs" Link="DeviceFileMediaPurge.cs" />
     <Compile Include="..\DeviceFileReplacement.cs" Link="DeviceFileReplacement.cs" />
     <Compile Include="..\DeviceFileBookPermit.cs" Link="DeviceFileBookPermit.cs" />
     <Compile Include="..\DeviceFileCoordinator.cs" Link="DeviceFileCoordinator.cs" />

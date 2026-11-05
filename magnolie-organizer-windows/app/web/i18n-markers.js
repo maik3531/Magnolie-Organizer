@@ -1,4 +1,14 @@
 /* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+gettext("Media recycle bin");
+gettext("Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file.");
+gettext("Read media recycle bin");
+gettext("Next entries");
+gettext("Recover operation");
+gettext("Media recycle bin loaded. Permanent removal requires native confirmation.");
+gettext("No retained media entries on this page.");
+gettext("Media recycle-bin operation finished. Read the entries again before another operation.");
+gettext("Recycle bin disabled: Delete the selected items permanently?");
+gettext("Permanently delete the one item? This cannot be undone.");
 gettext("Automatic synchronization is paused. Switch to manual mode and enable it again to resume.");
 gettext("Automatic content comparison needs attention. No deletion completion was confirmed.");
 gettext("Automatic pass checked one album per media type. Further albums follow; deletions remain pending.");

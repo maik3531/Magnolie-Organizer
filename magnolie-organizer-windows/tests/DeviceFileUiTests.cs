@@ -9,6 +9,11 @@ internal static class DeviceFileUiTests
     {
         var request = new JsonObject { ["cmd"] = "telefon_medien", ["requestId"] = "synthetic-request", ["device_id"] = Guid.NewGuid().ToString("D"), ["action"] = "status" };
         _ = NativeMediaUiRequest.Parse(request);
+        var remove = request.DeepClone().AsObject(); remove["action"] = "trash_purge";
+        remove["operation_id"] = new string('a', 32); remove["version"] = new string('b', 64);
+        _ = NativeMediaUiRequest.Parse(remove);
+        remove["confirmed"] = true;
+        TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
         foreach (var mutation in new[] { "path", "grant", "unknown", "version", "kind" })
         {
             var changed = request.DeepClone().AsObject();

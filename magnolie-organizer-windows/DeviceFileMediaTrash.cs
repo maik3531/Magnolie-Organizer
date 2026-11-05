@@ -13,9 +13,16 @@ internal sealed record NativeMediaTrashEntry(string Operation, string Version, s
 internal sealed partial class TelefonStore
 {
     // Local native recovery, not a wire deletion handler or absence witness.
-    // Originals stay on the SAME volume in their original held parent. No
-    // unlink/purge is implemented here; retention=0 can never expire them.
+    // Originals stay on the SAME volume in their original held parent.
+    // Restore and permanent removal are exclusive append-only lifecycle branches.
     private sealed record MediaTrashHead(NativeMediaTrashEntry Entry, JsonObject Body);
+
+    private static int MediaTrashSequence(string state) => state switch {
+        "prepared" => 1, "trashed" => 2, "restore_prepared" or "purge_prepared" => 3,
+        "restored" or "purged" => 4, _ => throw DeviceFileControl.Error("media_trash_state_invalid") };
+    private static string? MediaTrashPrevious(string state) => state switch {
+        "prepared" => null, "trashed" => "prepared", "restore_prepared" or "purge_prepared" => "trashed",
+        "restored" => "restore_prepared", "purged" => "purge_prepared", _ => throw DeviceFileControl.Error("media_trash_state_invalid") };
 
     private List<MediaTrashHead> ReadMediaTrash(SqliteConnection db, SqliteTransaction? transaction, NativeMediaPreferenceScope scope)
     {
@@ -46,13 +53,15 @@ internal sealed partial class TelefonStore
                 var state = TelefonMessagingContract.String(body, "state"); var changed = TelefonProtocolContract.Integer(body["changed_ms"]);
                 if (jobId.Length != 32 || jobId.Any(c => !char.IsAsciiHexDigitLower(c)) || fileId.Length != 32 || fileId.Any(c => !char.IsAsciiHexDigitLower(c)) ||
                     !DeviceFileControl.Hash(TelefonMessagingContract.String(body, "job_version")) || changed <= 0 || changed > DeviceFileControl.MaximumRevision ||
-                    state != new[] { "prepared", "trashed", "restore_prepared", "restored" }[sequence - 1])
+                    MediaTrashSequence(state) != sequence)
                     throw DeviceFileControl.Error("media_trash_history_invalid");
                 heads.TryGetValue(operation, out var before);
-                if (sequence == 1 ? before is not null || body["previous_version"] is not null : before is null ||
+                if (before?.Entry.State != MediaTrashPrevious(state) || (sequence == 1 ? before is not null || body["previous_version"] is not null : before is null ||
                     TelefonMessagingContract.String(body, "previous_version") != before.Entry.Version || changed < before.Entry.ChangedMs ||
-                    jobId != before.Entry.JobId || fileId != before.Entry.FileId || !JsonNode.DeepEquals(body["job_version"], before.Body["job_version"]))
+                    jobId != before.Entry.JobId || fileId != before.Entry.FileId || !JsonNode.DeepEquals(body["job_version"], before.Body["job_version"])))
                     throw DeviceFileControl.Error("media_trash_original_history_required");
+                if (state is "purge_prepared" or "purged" && changed != before!.Entry.ChangedMs)
+                    throw DeviceFileControl.Error("media_trash_retention_origin_changed");
                 heads[operation] = new(new(operation, Text("version"), jobId, fileId, state, changed), body);
             }
             finally { CryptographicOperations.ZeroMemory(plain); }
@@ -67,8 +76,8 @@ internal sealed partial class TelefonStore
         if (before?.Entry.Version != expectedVersion || MediaPreferenceScope(scope.PeerId) != scope)
             throw DeviceFileControl.Error("media_trash_history_cas_conflict");
         var state = TelefonMessagingContract.String(body, "state");
-        var sequence = state switch { "prepared" => 1, "trashed" => 2, "restore_prepared" => 3, "restored" => 4, _ => throw DeviceFileControl.Error("media_trash_state_invalid") };
-        var expectedState = sequence == 1 ? null : new[] { "prepared", "trashed", "restore_prepared" }[sequence - 2];
+        var sequence = MediaTrashSequence(state);
+        var expectedState = MediaTrashPrevious(state);
         // Reserve all four lifecycle events up front: a full catalog must never
         // consume the capacity needed to complete an existing restore.
         if (sequence == 1 && heads.Count >= 2048)

@@ -316,6 +316,12 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);
     runner.Add("Device file native media trash / Windows album restore keeps incremental baseline", DeviceFileMediaTrashTests.WindowsAlbumTrashRestoreAsync);
     runner.Add("Device file native media trash / Windows corrupt protected journal HOLD", DeviceFileMediaTrashTests.WindowsCorruptTrashHistoryHoldAsync);
+    runner.Add("Device file native media purge / Windows canonical retention never and exact native confirmation", DeviceFileMediaPurgeTests.WindowsRetentionAndManualNeverAsync);
+    runner.Add("Device file native media purge / Windows actual expired original removal", DeviceFileMediaPurgeTests.WindowsActualExpiryAsync);
+    runner.Add("Device file native media purge / Windows foreign file destination and saved policy HOLD", DeviceFileMediaPurgeTests.WindowsForeignFileAndPolicyHoldAsync);
+    runner.Add("Device file native media purge / Windows prepared removed and foreign-name recovery", DeviceFileMediaPurgeTests.WindowsInterruptedRemovalRecoveryAsync);
+    runner.Add("Device file native media purge / Windows native UI lane Never sweep and actual failed save HOLD", DeviceFileMediaPurgeTests.WindowsNativeUiAndFailedSaveAsync);
+    runner.Add("Device file native media purge / Windows original replacement archive held through Saved and source END", DeviceFileMediaPurgeTests.WindowsReplacementArchiveUntilSavedEndAsync);
     runner.Add("Device file native replacement / Windows original trash latest baseline and repeated replacement", DeviceFileReplacementTests.WindowsReplacementChainAsync);
     runner.Add("Device file native replacement / Windows withdrawn consent and local edit HOLD", DeviceFileReplacementTests.WindowsReplacementWithdrawalAndEditAsync);
     runner.Add("Device file native replacement / Windows occupied publication preserves old and new user bytes", DeviceFileReplacementTests.WindowsReplacementOccupiedPublicationAsync);

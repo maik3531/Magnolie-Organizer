@@ -30,7 +30,11 @@ internal sealed partial class TelefonCoordinator
                     nativeAutomaticMedia.TryRemove(old.Key, out _);
             foreach (var item in current)
             {
-                try { await RunNativeMediaAutomaticOnceAsync(item.Key, token); }
+                try
+                {
+                    if (item.Value.NativeMediaUiMetadataAvailable()) SweepNativeMediaTrashFromSavedBook(item.Key, token);
+                    await RunNativeMediaAutomaticOnceAsync(item.Key, token);
+                }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
                 catch (Exception) { /* Retained jobs are repairable, never replay deletion or erase history. */ }
             }

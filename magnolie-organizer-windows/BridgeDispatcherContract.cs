@@ -80,7 +80,7 @@ internal static class BridgeDispatcherContract
         ["erinnerung_zeigen"] = S(T("kopf"), T("rumpf"), T("art"), T("stil")), ["erinnerung_einrichten"] = S(B("an"), B("wecken"), O("vorlauf", JsonValueKind.String, JsonValueKind.Number), O("termine", JsonValueKind.Array), O("requestId", JsonValueKind.String)),
         ["telefon_stand"] = S(), ["telefon_verbindung_stand"] = S(),
         ["telefon_medien"] = S(T("requestId"), T("device_id"), T("action"), O("media_type", JsonValueKind.String),
-            O("version", JsonValueKind.String, JsonValueKind.Null), O("automatic", JsonValueKind.True, JsonValueKind.False), O("catalog_id", JsonValueKind.String), O("album_id", JsonValueKind.String),
+            O("version", JsonValueKind.String, JsonValueKind.Null), O("operation_id", JsonValueKind.String), O("automatic", JsonValueKind.True, JsonValueKind.False), O("catalog_id", JsonValueKind.String), O("album_id", JsonValueKind.String),
             O("after", JsonValueKind.Number), O("photos", JsonValueKind.True, JsonValueKind.False), O("videos", JsonValueKind.True, JsonValueKind.False), O("skip_deletions", JsonValueKind.True, JsonValueKind.False)),
         ["telefon_kontaktfotos"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array), O("includePhoto", JsonValueKind.True, JsonValueKind.False)),
         ["telefon_kontakte"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),

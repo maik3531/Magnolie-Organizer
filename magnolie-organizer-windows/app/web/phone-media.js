@@ -19,6 +19,10 @@
     const automatic = check("Automatically synchronize over Wi-Fi", "automatic");
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     root.append(mode, destinations, controls, albumList, review);
+    const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
+      node("p", "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."), trashRows);
+    root.append(trashArea);
+    let nextTrash = null;
     let native = null, busy = false, transfer = false, catalog = null, kind = "images";
     const allButtons = [], actions = []; let refresh;
     const button = (text, action, parent = controls) => {
@@ -73,10 +77,13 @@
     const permission = button("Request access on phone", () => catalog && request("request_read", { media_type: kind, version: catalog.version })); permission.hidden = true;
     const stop = button("Stop", () => request("cancel", {}, false));
     refresh = button("Refresh", () => request("status", {}, false));
+    button("Read media recycle bin", () => request("trash_list", { after: 0 }), trashArea);
+    const moreTrash = button("Next entries", () => Number.isSafeInteger(nextTrash) && request("trash_list", { after: nextTrash }), trashArea); moreTrash.hidden = true;
     function receive(reply, action) {
       if (reply.supported === false) {
         root.hidden = true; native = null; busy = transfer = false; catalog = null;
-        albumList.replaceChildren(); review.replaceChildren(); more.hidden = permission.hidden = true; toggle(); return;
+        albumList.replaceChildren(); review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
+        more.hidden = permission.hidden = moreTrash.hidden = true; toggle(); return;
       }
       if (!native && reply.supported !== true && action !== "status") return;
       if (!native && !reply.ok) return;
@@ -91,6 +98,26 @@
         toggle(); return;
       }
       if (reply.canceled) { toggle(); return; }
+      if (action === "trash_list") {
+        trashRows.replaceChildren();
+        nextTrash = reply.next_cursor; moreTrash.hidden = !Number.isSafeInteger(nextTrash);
+        for (const item of (reply.trash || []).slice(0, 128)) {
+          const row = node("li"); row.append(document.createTextNode(String(item.display_name || "") + " · " + t(item.media_type === "video" ? "Videos" : "Photos")));
+          trashRows.append(row);
+          const data = { operation_id: item.operation_id, version: item.version };
+          if (["prepared", "trashed", "restore_prepared"].includes(item.state))
+            button(item.state === "prepared" ? "Recover operation" : "Restore", () => request("trash_restore", data), row);
+          if (["trashed", "purge_prepared"].includes(item.state))
+            button("Delete permanently", () => request("trash_purge", data), row);
+        }
+        status.textContent = t(trashRows.children.length ? "Media recycle bin loaded. Permanent removal requires native confirmation." : "No retained media entries on this page.");
+        toggle(); return;
+      }
+      if (action === "trash_restore" || action === "trash_purge") {
+        trashRows.replaceChildren(); nextTrash = null; moreTrash.hidden = true;
+        status.textContent = t("Media recycle-bin operation finished. Read the entries again before another operation.");
+        toggle(); return;
+      }
       if (action === "status" || action === "mode" || action === "settings" || action === "pick_destination") {
         native = reply; photos.checked = !!reply.photos; videos.checked = !!reply.videos;
         const videoAvailable = reply.metadata_ready?.video === true;
