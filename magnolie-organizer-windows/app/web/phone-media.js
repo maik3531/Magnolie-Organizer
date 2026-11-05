@@ -24,7 +24,12 @@
       label.className = "hak"; label.append(input, document.createTextNode(" " + t(text))); settingsArea.append(label); return input;
     };
     const photos = check("Synchronize photos", "photos"), videos = check("Synchronize videos", "videos"), skip = check("Skip deletions", "skip_deletions");
-    const automatic = check("Automatically synchronize over Wi-Fi", "automatic");
+    const automatic = node("select"); automatic.className = "feld"; automatic.dataset.media = "automatic";
+    automatic.setAttribute("aria-label", t("Synchronization"));
+    for (const [value, text] of [["manual", "Manual synchronization"], ["wifi", "Automatically synchronize over Wi-Fi"]]) {
+      const option = node("option", text); option.value = value; automatic.append(option);
+    }
+    const modeRow = node("label", "Synchronization"); modeRow.className = "formzeile"; modeRow.append(automatic); settingsArea.append(modeRow);
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     settingsArea.append(mode, destinations); manualArea.append(controls, albumList, review);
     const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
@@ -78,7 +83,7 @@
       return request("settings", { version: native.version ?? null, photos: photos.checked, videos: videos.checked, skip_deletions: skip.checked });
     };
     for (const input of [photos, videos, skip]) input.addEventListener("change", settings);
-    automatic.addEventListener("change", () => request("mode", { version: native.version ?? null, automatic: automatic.checked }));
+    automatic.addEventListener("change", () => request("mode", { version: native.version ?? null, automatic: automatic.value === "wifi" }));
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
       const row = node("div"), path = node("p", "No destination selected"); path.dataset.destination = mediaType;
@@ -163,7 +168,7 @@
         title.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
         busy = !!reply.busy || !!reply.transfer_busy || !!reply.automatic_busy;
         transfer = !!reply.transfer_busy || !!reply.automatic_busy;
-        automatic.checked = !!reply.automatic; automatic.parentElement.hidden = reply.automatic_ready !== true;
+        automatic.value = reply.automatic ? "wifi" : "manual"; automatic.parentElement.hidden = reply.automatic_ready !== true;
         skip.indeterminate = reply.skip_deletions === null; skip.checked = reply.skip_deletions !== false;
         mode.textContent = t(reply.automatic ? "Automatically synchronize over Wi-Fi" : "Manual synchronization");
         for (const [mediaType, , key] of kinds) destinations.querySelector(`[data-destination="${mediaType}"]`).textContent = reply[key]?.display_path || t("No destination selected");

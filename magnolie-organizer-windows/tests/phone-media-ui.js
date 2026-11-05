@@ -44,14 +44,14 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert(!buttons("Refresh")[0].disabled); assert(!buttons("Stop")[0].disabled);
   buttons("Refresh")[0].click(); await tick(); reply(enabled); assert(buttons("Stop")[0].disabled);
   const automaticChoice = panel.querySelector('[data-media="automatic"]');
-  assert(!automaticChoice.checked); assert(!automaticChoice.disabled);
-  automaticChoice.checked = true; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(automaticChoice.value, "manual"); assert(automaticChoice.classList.contains("feld")); assert(!automaticChoice.disabled);
+  automaticChoice.value = "wifi"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "mode"); assert.equal(last().automatic, true); assert(!("skip_deletions" in last()));
   reply({ ...enabled, automatic: true, automatic_phase: "content_pass" });
   assert(panel.textContent.includes("one album per media type")); assert(panel.textContent.includes("deletions remain pending"));
   buttons("Refresh")[0].click(); await tick(); reply({ ...enabled, automatic: true, automatic_busy: true, busy: true });
   assert(!automaticChoice.disabled); assert(!buttons("Stop")[0].disabled);
-  automaticChoice.checked = false; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
+  automaticChoice.value = "manual"; automaticChoice.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "mode"); assert.equal(last().automatic, false);
   reply(enabled);
   saveAllowed = false; const before = messages.length; buttons("Read photo albums")[0].click(); await tick();

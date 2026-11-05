@@ -4518,8 +4518,9 @@ textarea,
   align-items: flex-start;
   margin: 6px 0;
 }
-.telefon-karte .telefon-personal-sync { flex: 1 1 100%; min-width: 0; margin-top: 8px; }
-.telefon-karte .telefon-erweitert { flex: 1 1 100%; min-width: 0; margin-top: 8px; }
+.telefon-karte .telefon-personal-sync { flex: 1 1 100%; width: 100%; min-width: 0; box-sizing: border-box; margin: 8px 0 0; }
+/* The containing .baum-zeile already contributes a 10px row gap. */
+.telefon-karte .telefon-erweitert { flex: 1 1 100%; width: 100%; min-width: 0; box-sizing: border-box; margin: calc(5mm - 10px) 0 0; }
 .telefon-medien { min-width: 0; }
 .telefon-medien-gruppe { display: grid; gap: 8px; min-width: 0; margin-block: 12px; }
 .telefon-medien-gruppe > h4 { margin: 4px 0; }

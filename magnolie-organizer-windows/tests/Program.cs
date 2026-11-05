@@ -104,6 +104,7 @@ if (args.FirstOrDefault() == "--published-release-audit")
 
 var runner = new TestRunner();
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
+runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
 runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
 runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
 runner.Add("Notes contact group title / strict preparation and saved identity", PhoneContactGroupTitleWriteTests.RunAsync);
