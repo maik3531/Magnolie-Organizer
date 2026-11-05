@@ -134,10 +134,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
     private val fileChannelIdentities = java.util.IdentityHashMap<TelefonSecureChannel, NativeFileControlIdentity>()
     private var galleryFileConnection: NativeGalleryFileConnection? = null
-    // Native production acceptance gate, never a phone setting or wire claim.
-    // Notes always ships the implementation; this is not ContributorKey gating.
-    @Volatile private var nativeGalleryHandlersReady = false
-    @Volatile private var nativeGalleryVideoHandlersReady = false
+    // Compiled native source handlers. Availability is not a data grant: explicit
+    // desktop activation, own-peer control echoes, saved source policy and real
+    // foreground OS READ remain mandatory. Video policy still starts disabled.
+    // Notes always ships these implementations, independently of ContributorKey.
+    @Volatile private var nativeGalleryHandlersReady = true
+    @Volatile private var nativeGalleryVideoHandlersReady = true
     private data class NativeFileOwnDecision(val own: Boolean, val message: JsonObject)
     private val nativeFileOwnDecisions = java.util.WeakHashMap<TelefonSecureChannel, NativeFileOwnDecision>()
     private val galleryPermissionCommands = NativeGalleryPermissionCommands()

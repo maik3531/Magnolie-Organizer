@@ -1946,7 +1946,14 @@ class AndroidGalleryPhotoSourceTest {
             val signal = ended
             endedField.set(worker, { run: NativeGallerySourceRun -> try { originalEnd(run) } finally { signal.countDown() } })
         }
-        fun awaitEnd() { assertTrue(ended.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+        fun awaitEnd() {
+            val finished = ended.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            if (!finished) {
+                val sourceStacks = Thread.getAllStackTraces().filter { it.key.name == "magnolie-photo-source" }
+                    .entries.joinToString("\n") { (thread, stack) -> thread.state.toString() + ": " + stack.take(10).joinToString("\n") }
+                fail("Source completion deadline; quiescent=${worker.isQuiescent}\n$sourceStacks")
+            }
+        }
         fun echoControls() {
             if (runtime.sendControls(now)) desktop.observeRemote(DeviceFileControlEnvelope.validate(drain().single(), now), pcPeer)
             val packet = desktop.packet(); desktop.markSent(packet)

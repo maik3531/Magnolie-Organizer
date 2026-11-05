@@ -81,6 +81,7 @@ class NativeFilePairingBootstrapTest {
         assertTrue(DeviceFileControl.DISCOVERY_VERSION in TelefonCapabilities.phase1(fileHandlersReady = true).getValue("device_status").versions)
         withNativeTransport { work, channel, generation ->
             val original = storage.fileAuthorityPeers().peer!!
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, false)
             assertFalse(DeviceFileControl.DISCOVERY_VERSION in work.sharedLocalCapabilities().getValue("device_status").versions)
             field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
             assertTrue(DeviceFileControl.DISCOVERY_VERSION in work.sharedLocalCapabilities().getValue("device_status").versions)
@@ -294,8 +295,9 @@ class NativeFilePairingBootstrapTest {
             captureFileIdentity(work, channel)
             val legacy = storage.fileAuthorityPeers().peer!!
             val message = activationControl()
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, false)
             assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(legacy, message, channel, generation) }
-            assertEquals(legacy, storage.fileAuthorityPeers().peer) // Production gate is still OFF.
+            assertEquals(legacy, storage.fileAuthorityPeers().peer) // Incomplete native handlers cannot activate.
             field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, true)
             work.receiveMessage(legacy, message, channel, generation)
             val connection = field(TelefonWerk::class.java, "galleryFileConnection").get(work) as NativeGalleryFileConnection
@@ -518,6 +520,10 @@ class NativeFilePairingBootstrapTest {
 
     @Test fun actualFactoryKeepsVideoOffByDefaultAndCannotUpgradeAnImageOnlyPeerFromLocalReadiness() {
         withNativeTransport { work, channel, generation ->
+            // Exercise a genuinely incomplete native installation explicitly;
+            // the shipped source handlers are now compiled and available.
+            field(TelefonWerk::class.java, "nativeGalleryHandlersReady").setBoolean(work, false)
+            field(TelefonWerk::class.java, "nativeGalleryVideoHandlersReady").setBoolean(work, false)
             assertFalse(work.sharedLocalCapabilities().getValue("device_status").versions.contains(DeviceFileControl.VIDEO_DISCOVERY_VERSION))
             assertFalse(field(TelefonWerk::class.java, "nativeGalleryVideoHandlersReady").getBoolean(work))
             captureFileIdentity(work, channel)
@@ -539,6 +545,22 @@ class NativeFilePairingBootstrapTest {
                     connection.runtime.receiveSourceCommand(command, { writes++ })
                 }.code)
                 assertEquals(0, writes); assertEquals(before, connection.runtime.savedPolicy())
+                assertNull(connection.runtime.currentRequest(GalleryMediaType.VIDEO))
+            }
+        }
+    }
+
+    @Test fun shippedNativeSourceHandlersAdvertiseAvailabilityWithoutEnablingPhotoOrVideoPolicy() {
+        withNativeTransport { work, channel, generation ->
+            val versions = work.sharedLocalCapabilities().getValue("device_status").versions
+            assertTrue(versions.contains(DeviceFileControl.DISCOVERY_VERSION))
+            assertTrue(versions.contains(DeviceFileControl.VIDEO_DISCOVERY_VERSION))
+            captureFileIdentity(work, channel)
+            val peer = storage.fileAuthorityPeers().peer!!
+            work.prepareNativeFileRelationshipForExplicitActivation(peer.device_id, peer.static_public, channel, generation) { true }
+            work.openNativeGalleryFileConnection(peer.device_id, peer.static_public, channel, generation) { true }.use { connection ->
+                assertNull(connection.runtime.savedPolicy().policy)
+                assertNull(connection.runtime.currentRequest())
                 assertNull(connection.runtime.currentRequest(GalleryMediaType.VIDEO))
             }
         }
