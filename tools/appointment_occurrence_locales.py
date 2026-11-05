@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--messages', type=Path, default=Path(__file__).with_suffix('.json'))
     parser.add_argument('--comment', default='Single recurring appointment actions (Refs #379, #383).')
+    parser.add_argument('--platform', choices=('both', 'linux', 'windows'), default='both')
     args = parser.parse_args()
     translations = json.loads(args.messages.read_text())
     spec = importlib.util.spec_from_file_location('occurrence_catalog', ROOT / 'magnolie-organizer/werkzeuge/desktop_pot_merge.py')
@@ -27,6 +28,8 @@ def main():
     assert len(translations) == 20 and all(len(row) == len(translations['en']) and all(row) for row in translations.values())
     for base, tools in ((ROOT / 'magnolie-organizer', ROOT / 'magnolie-organizer/werkzeuge'),
                         (ROOT / 'magnolie-organizer-windows/app', ROOT / 'magnolie-organizer-windows/werkzeuge')):
+        if args.platform != 'both' and (base.name == 'app') != (args.platform == 'windows'):
+            continue
         assert {p.stem for p in (base / 'po').glob('*.po')} == translations.keys() - {'en'}
         for locale in ['en', *sorted(translations.keys() - {'en'})]:
             target = base / 'po' / ('magnolie-organizer.pot' if locale == 'en' else locale + '.po')
@@ -47,7 +50,7 @@ def main():
                 subprocess.run(['msgfmt', '--check', '--check-format', '-o', '/dev/null', str(target)], check=True)
                 if args.apply:
                     subprocess.run([sys.executable, str(tools / 'po_zu_js.py'), locale, str(target), str(base / 'web/i18n' / (locale + '.js'))], check=True)
-    print('PASS: occurrence deletion catalogs, both desktops, all 19 translations')
+    print(f'PASS: scoped catalogs, {args.platform}, all 19 translations')
 
 
 if __name__ == '__main__':

@@ -823,6 +823,9 @@ msgstr ""
 msgid "Allow this device to share this connection"
 msgstr ""
 
+msgid "Allow video access on phone"
+msgstr ""
+
 msgid "Allowed background functions"
 msgstr ""
 
@@ -842,6 +845,9 @@ msgid "Also remind me about anniversaries"
 msgstr ""
 
 msgid "Also remind me about missed appointments"
+msgstr ""
+
+msgid "Also synchronize videos"
 msgstr ""
 
 msgid "Also use the default notification"
@@ -1567,6 +1573,9 @@ msgid ""
 "days in the new appointment sheet. Day markers do not send notifications."
 msgstr ""
 
+msgid "Choose a valid replacement date and time."
+msgstr ""
+
 msgid "Choose a value and period to display its development."
 msgstr ""
 
@@ -1980,6 +1989,9 @@ msgstr ""
 msgid "Create a new appointment immediately"
 msgstr ""
 
+msgid "Create a replacement appointment"
+msgstr ""
+
 msgid "Create a separate connection to this computer?"
 msgstr ""
 
@@ -2231,6 +2243,9 @@ msgstr ""
 msgid "Delete selection"
 msgstr ""
 
+msgid "Delete series"
+msgstr ""
+
 msgid "Delete shift"
 msgstr ""
 
@@ -2252,6 +2267,9 @@ msgid "Delete this contact's history"
 msgstr ""
 
 msgid "Delete this note page (“%(title)s”)?"
+msgstr ""
+
+msgid "Delete this occurrence"
 msgstr ""
 
 msgid "Delete this recovery snapshot permanently?"
@@ -3476,6 +3494,9 @@ msgstr ""
 msgid "Later occurrence"
 msgstr ""
 
+msgid "Later occurrences remain unchanged."
+msgstr ""
+
 msgid "Latest alarm monitor entries:"
 msgstr ""
 
@@ -3771,6 +3792,12 @@ msgstr ""
 msgid ""
 "Media control is unavailable. Check the connection and the media app on the "
 "phone."
+msgstr ""
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
 msgstr ""
 
 msgid "Media player"
@@ -4882,6 +4909,9 @@ msgstr ""
 msgid "Pending SMS messages"
 msgstr ""
 
+msgid "Pending recovery"
+msgstr ""
+
 msgid "People"
 msgstr ""
 
@@ -5020,6 +5050,9 @@ msgstr ""
 
 msgid ""
 "Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+
+msgid "Photos and videos"
 msgstr ""
 
 msgid "Pick up"
@@ -5343,6 +5376,9 @@ msgid "Rectangle"
 msgstr ""
 
 msgid "Recycle bin"
+msgstr ""
+
+msgid "Recycle bin disabled: Delete the selected items permanently?"
 msgstr ""
 
 msgid "Redo"
@@ -6435,12 +6471,6 @@ msgstr ""
 msgid "Synchronize permanently"
 msgstr ""
 
-msgid "Also synchronize videos"
-msgstr ""
-
-msgid "Allow video access on phone"
-msgstr ""
-
 msgid "Synchronize photos"
 msgstr ""
 
@@ -7347,6 +7377,10 @@ msgstr ""
 msgid ""
 "The remote contact was deleted. Keep this contact and restore it on the next "
 "synchronization?"
+msgstr ""
+
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
 msgstr ""
 
 msgid "The request is unreadable."
@@ -8901,284 +8935,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "＋ Add appointment"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr ""
-
-
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr ""
-
-
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr ""
-
-
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr ""
-
-
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr ""
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
 msgstr ""

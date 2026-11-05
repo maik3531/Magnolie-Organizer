@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "手动"
-
-msgid "Also synchronize videos"
-msgstr "同时同步视频"
-
-msgid "Allow video access on phone"
-msgstr "允许访问手机上的视频"
-
-msgid "Synchronize photos"
-msgstr "同步照片"
-
-msgid "Canceled"
-msgstr "已取消"
-
-msgid "Phone camera active"
-msgstr "手机摄像头正在使用中"
-
-msgid "Synchronize only the phone's collection"
-msgstr "仅同步手机上的照片集"
-
-msgid "Mode"
-msgstr "模式"
-
-msgid "Destination folder"
-msgstr "目标文件夹"
-
-msgid "Preparing photo synchronization…"
-msgstr "正在准备照片同步…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "请在手机上允许访问照片，然后刷新相册。"
-
-msgid "Finding phone albums…"
-msgstr "正在查找手机相册…"
-
-msgid "Phone albums are ready."
-msgstr "手机相册已就绪。"
-
-msgid "Photo synchronization active"
-msgstr "照片同步进行中"
-
-msgid "Stopping photo synchronization…"
-msgstr "正在停止照片同步…"
-
-msgid "Selected album synchronized."
-msgstr "所选相册已同步。"
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "需要检查更改。未覆盖任何冲突版本。"
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "照片同步已安全停止。重试前请检查连接。"
-
-msgid "Allow photo access on phone"
-msgstr "在手机上允许访问照片"
-
-msgid "Refresh albums"
-msgstr "刷新相册"
-
-msgid "Phone album"
-msgstr "手机相册"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "将新拍摄的相机照片保存到单独的文件夹"
-
-msgid "Store new animations in a separate folder"
-msgstr "将新动画保存到单独的文件夹"
-
-msgid "Existing files stay in their current folders."
-msgstr "现有文件保留在原来的文件夹中。"
-
-msgid "Transfer recovery"
-msgstr "传输恢复"
-
-msgid "Review interrupted transfers"
-msgstr "检查中断的传输"
-
-msgid "Saved confirmation available."
-msgstr "已有保存确认。"
-
-msgid "Complete the saved mapping receipt."
-msgstr "补全保存与关联凭证。"
-
-msgid "Resume with a fresh phone album scan."
-msgstr "重新扫描手机相册后继续。"
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "传输状态不确定：不自动重试或更改文件。"
-
-msgid "Send saved confirmation again"
-msgstr "重新发送保存确认"
-
-msgid "Complete receipt"
-msgstr "补全凭证"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "已发送先前的确认。这并不确认新的传输。"
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "凭证已补全。请单独发送其先前的确认。"
-
-msgid "Photo synchronization could not be started."
-msgstr "无法启动照片同步。"
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "无法启动照片同步。请检查当前手机连接和权限。"
-
 msgid " (filtered)"
 msgstr "（已筛选）"
 
@@ -837,12 +728,6 @@ msgstr "地址"
 msgid "Advanced"
 msgstr "高级"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "需要 Android 上的 Magnolie Notes，无需 KDE Connect。"
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect 功能需要 Android 上的 KDE Connect 应用，而非 Magnolie Notes。"
-
 msgid "Advanced functions"
 msgstr "高级功能"
 
@@ -907,8 +792,17 @@ msgstr "全天日期不会转换为带时间的条目。"
 msgid "Allow notifications despite password protection"
 msgstr "即使有密码保护也允许通知"
 
+msgid "Allow photo access on phone"
+msgstr "在手机上允许访问照片"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "请在手机上允许访问照片，然后刷新相册。"
+
 msgid "Allow this device to share this connection"
 msgstr "允许此设备分享此连接"
+
+msgid "Allow video access on phone"
+msgstr "允许访问手机上的视频"
 
 msgid "Allowed background functions"
 msgstr "允许的后台功能"
@@ -930,6 +824,9 @@ msgstr "也提醒纪念日"
 
 msgid "Also remind me about missed appointments"
 msgstr "也提醒错过的约会"
+
+msgid "Also synchronize videos"
+msgstr "同时同步视频"
 
 msgid "Also use the default notification"
 msgstr "也使用默认通知"
@@ -1526,6 +1423,9 @@ msgstr "取消"
 msgid "Cancel sending"
 msgstr "取消发送"
 
+msgid "Canceled"
+msgstr "已取消"
+
 msgid "Canton"
 msgstr "州"
 
@@ -1574,6 +1474,9 @@ msgstr "更改密码"
 
 msgid "Changes are applied automatically"
 msgstr "更改会自动应用"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "需要检查更改。未覆盖任何冲突版本。"
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "个人资料的修改通过“保存”保存。"
@@ -1675,6 +1578,9 @@ msgid ""
 msgstr ""
 "选择预设班次或输入自定义班次。在新建约会页面中将其分配给一天或多天。日期标记"
 "不会发送通知。"
+
+msgid "Choose a valid replacement date and time."
+msgstr "请选择有效的替代日期和时间。"
 
 msgid "Choose a value and period to display its development."
 msgstr "请选择要查看其变化趋势的数值和时间段。"
@@ -1854,6 +1760,12 @@ msgstr "只有安装后的应用才能导入完整归档。"
 
 msgid "Complete pairing"
 msgstr "完成配对"
+
+msgid "Complete receipt"
+msgstr "补全凭证"
+
+msgid "Complete the saved mapping receipt."
+msgstr "补全保存与关联凭证。"
 
 msgid "Completed (%(count)s)"
 msgstr "已完成 (%(count)s)"
@@ -2090,6 +2002,9 @@ msgstr "创建 gettext POT 模板"
 
 msgid "Create a new appointment immediately"
 msgstr "立即创建新约会"
+
+msgid "Create a replacement appointment"
+msgstr "创建替代日程"
 
 msgid "Create a separate connection to this computer?"
 msgstr "创建与此电脑的独立连接？"
@@ -2340,6 +2255,9 @@ msgstr "永久删除"
 msgid "Delete selection"
 msgstr "删除所选项"
 
+msgid "Delete series"
+msgstr "删除整个系列"
+
 msgid "Delete shift"
 msgstr "删除班次"
 
@@ -2362,6 +2280,9 @@ msgstr "删除该联系人的历史记录"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "删除此笔记页面（“%(title)s”）？"
+
+msgid "Delete this occurrence"
+msgstr "仅删除本次"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "要永久删除此恢复快照吗？"
@@ -2405,6 +2326,9 @@ msgstr "送达状态不确定"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "牙医 Hill 医生 — 您的条目预览"
+
+msgid "Destination folder"
+msgstr "目标文件夹"
 
 msgid "Detect now"
 msgstr "立即检测"
@@ -2861,6 +2785,9 @@ msgstr "必须且只能有一部已配对、在线的 Magnolie Notes 手机允�
 msgid "Exclude contact groups"
 msgstr "排除联系人分组"
 
+msgid "Existing files stay in their current folders."
+msgstr "现有文件保留在原来的文件夹中。"
+
 msgid "Expand day groups by default"
 msgstr "默认展开每日分组"
 
@@ -2950,6 +2877,9 @@ msgstr "渐变填充"
 
 msgid "Fill with stored values"
 msgstr "填入已存储的数值"
+
+msgid "Finding phone albums…"
+msgstr "正在查找手机相册…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3205,6 +3135,9 @@ msgstr "隐藏过去的约会"
 
 msgid "Highlighter"
 msgstr "荧光笔"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "已发送先前的确认。这并不确认新的传输。"
 
 msgid "History"
 msgstr "历史趋势"
@@ -3506,6 +3439,12 @@ msgstr "KDE Connect 设备"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS 的 KDE Connect 仅在已安装的应用程序中可用。"
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect 功能需要 Android 上的 KDE Connect 应用，而非 Magnolie Notes。"
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect 不可用；其他后台服务仍在运行。"
 
@@ -3606,6 +3545,9 @@ msgstr "晚班"
 
 msgid "Later occurrence"
 msgstr "较晚的一次"
+
+msgid "Later occurrences remain unchanged."
+msgstr "后续重复日程保持不变。"
 
 msgid "Latest alarm monitor entries:"
 msgstr "最新提醒监控器记录："
@@ -3850,6 +3792,10 @@ msgstr "管理人员"
 msgid "Manual"
 msgstr "手册"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "手动"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "自定义"
@@ -3905,6 +3851,14 @@ msgid ""
 "Media control is unavailable. Check the connection and the media app on the "
 "phone."
 msgstr "媒体控制不可用。请检查连接和手机上的媒体应用。"
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体"
+"项目。恢复绝不会替换现有文件。"
 
 msgid "Media player"
 msgstr "媒体播放器"
@@ -3995,6 +3949,9 @@ msgstr "手机"
 
 msgid "Mobile network"
 msgstr "移动网络"
+
+msgid "Mode"
+msgstr "模式"
 
 msgid "Model"
 msgstr "模型"
@@ -5041,6 +4998,9 @@ msgstr "注射笔"
 msgid "Pending SMS messages"
 msgstr "待发送的 SMS"
 
+msgid "Pending recovery"
+msgstr "等待恢复"
+
 msgid "People"
 msgstr "人员"
 
@@ -5105,11 +5065,20 @@ msgstr "个人同步尚未获得两台设备的共同许可。"
 msgid "Phone"
 msgstr "电话"
 
+msgid "Phone album"
+msgstr "手机相册"
+
+msgid "Phone albums are ready."
+msgstr "手机相册已就绪。"
+
 msgid "Phone battery"
 msgstr "手机电池"
 
 msgid "Phone call"
 msgstr "电话通话"
+
+msgid "Phone camera active"
+msgstr "手机摄像头正在使用中"
 
 msgid "Phone connection"
 msgstr "手机连接"
@@ -5154,6 +5123,24 @@ msgstr "有照片"
 
 msgid "Photo of %(name)s"
 msgstr "%(name)s 的照片"
+
+msgid "Photo synchronization active"
+msgstr "照片同步进行中"
+
+msgid "Photo synchronization could not be started."
+msgstr "无法启动照片同步。"
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr "无法启动照片同步。请检查当前手机连接和权限。"
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "照片同步已安全停止。重试前请检查连接。"
+
+msgid "Photos and videos"
+msgstr "照片和视频"
 
 msgid "Pick up"
 msgstr "接取"
@@ -5272,6 +5259,9 @@ msgstr "有可靠的修改时间时，优先使用较新的联系人版本。"
 
 msgid "Preferred backup folder"
 msgstr "首选备份文件夹"
+
+msgid "Preparing photo synchronization…"
+msgstr "正在准备照片同步…"
 
 msgid "Preparing selected notes…"
 msgstr "正在准备所选笔记…"
@@ -5431,6 +5421,9 @@ msgstr "就绪。"
 msgid "Reason"
 msgstr "原因"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "凭证已补全。请单独发送其先前的确认。"
+
 msgid "Receive files"
 msgstr "接收文件"
 
@@ -5474,11 +5467,17 @@ msgstr "矩形"
 msgid "Recycle bin"
 msgstr "回收站"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "回收站已禁用：是否永久删除所选条目？"
+
 msgid "Redo"
 msgstr "重做"
 
 msgid "Refresh"
 msgstr "刷新"
+
+msgid "Refresh albums"
+msgstr "刷新相册"
 
 msgid "Region"
 msgstr "地区"
@@ -5640,6 +5639,9 @@ msgstr "已报告（%(method)s）：%(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "请求设备状态"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "需要 Android 上的 Magnolie Notes，无需 KDE Connect。"
+
 msgid "Requires a Nextcloud account."
 msgstr "需要 Nextcloud 账户。"
 
@@ -5699,6 +5701,9 @@ msgstr "恢复备份仅在已安装的应用中可用。"
 msgid "Restoring the backup"
 msgstr "正在恢复备份"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "重新扫描手机相册后继续。"
+
 msgid "Retrieval failed."
 msgstr "获取失败。"
 
@@ -5743,6 +5748,9 @@ msgstr "重试"
 
 msgid "Review and enable"
 msgstr "审核并启用"
+
+msgid "Review interrupted transfers"
+msgstr "检查中断的传输"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "确认前，请检查每位收件人的确切短信文本。"
@@ -5878,6 +5886,9 @@ msgstr "保存任务"
 
 msgid "Saved"
 msgstr "已保存"
+
+msgid "Saved confirmation available."
+msgstr "已有保存确认。"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6058,6 +6069,9 @@ msgstr "选择您的手机"
 msgid "Select, preview, print, export or delete health records"
 msgstr "选择、预览、打印、导出或删除健康记录"
 
+msgid "Selected album synchronized."
+msgstr "所选相册已同步。"
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "对于所有联系人都为空的已选列会自动省略。"
@@ -6079,6 +6093,9 @@ msgstr "发送文档"
 
 msgid "Send notes by email or fax"
 msgstr "通过邮件或传真发送笔记"
+
+msgid "Send saved confirmation again"
+msgstr "重新发送保存确认"
 
 msgid "Send secure request"
 msgstr "发送安全请求"
@@ -6438,6 +6455,15 @@ msgstr "停止"
 msgid "Stop retrying"
 msgstr "停止重试"
 
+msgid "Stopping photo synchronization…"
+msgstr "正在停止照片同步…"
+
+msgid "Store new animations in a separate folder"
+msgstr "将新动画保存到单独的文件夹"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "将新拍摄的相机照片保存到单独的文件夹"
+
 msgid "Street"
 msgstr "街道"
 
@@ -6538,8 +6564,14 @@ msgstr "同步联系人"
 msgid "Synchronize now"
 msgstr "立即同步"
 
+msgid "Synchronize only the phone's collection"
+msgstr "仅同步手机上的照片集"
+
 msgid "Synchronize permanently"
 msgstr "永久同步"
+
+msgid "Synchronize photos"
+msgstr "同步照片"
 
 msgid "Synchronize tasks"
 msgstr "同步联系人"
@@ -7470,6 +7502,10 @@ msgid ""
 "synchronization?"
 msgstr "远程联系人已被删除。是否保留此联系人，并在下次同步时恢复？"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "替代日程是单独的日程，系列的重复周期保持不变。"
+
 msgid "The request is unreadable."
 msgstr "请求无法读取。"
 
@@ -8037,6 +8073,9 @@ msgstr "工匠"
 msgid "Transfer received text to the clipboard"
 msgstr "将收到的文本传送到剪贴板"
 
+msgid "Transfer recovery"
+msgstr "传输恢复"
+
 msgid "Travel"
 msgstr "旅行"
 
@@ -8104,6 +8143,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "不可用"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "传输状态不确定：不自动重试或更改文件。"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "内容未更改时不会再创建恢复点。"
@@ -9417,282 +9459,164 @@ msgstr "＋ 添加约会"
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文"
+#~ "件。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "仅删除本次"
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr "无法更新媒体回收站。现有文件已保留。"
 
+#~ msgid "A native media operation is still running."
+#~ msgstr "原生媒体操作仍在运行。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "删除整个系列"
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "相册选择已更改。请重新读取相册。"
 
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr "自动内容比较需要注意。尚未确认任何删除操作已完成。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "后续重复日程保持不变。"
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "自动轮次已检查每种媒体类型的一个相册。其他相册将随后处理；删除仍待处理。"
 
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr "自动同步已暂停。请切换到手动模式，然后重新启用以继续。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "回收站已禁用：是否永久删除所选条目？"
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "已选择自动同步，但暂时无法使用。"
 
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr "请检查手机上的访问请求，然后重新读取相册。"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "创建替代日程"
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr "请选择要比较的相册。不完整的目录绝不能证明已删除。"
 
+#~ msgid "Choose destination…"
+#~ msgstr "选择目标位置…"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "替代日程是单独的日程，系列的重复周期保持不变。"
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "正在比较媒体内容… 总数尚不明确。"
 
+#~ msgid "Content comparison finished."
+#~ msgstr "内容比较已完成。"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "请选择有效的替代日期和时间。"
+#~ msgid "Content comparison needs review."
+#~ msgstr "内容比较需要检查。"
 
+#~ msgid "Local edits kept"
+#~ msgstr "已保留本地修改"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "照片和视频"
+#~ msgid "Manual synchronization"
+#~ msgstr "手动同步"
 
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "媒体文件使用已保存的回收站保留期限。“永不”表示仅手动移除。恢复绝不会替换现"
+#~ "有文件。"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "媒体文件单独保留；清空回收站中的其他项目不会删除它们。恢复绝不会替换现有文件。"
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "媒体操作已暂停。尚未确认完成。"
 
+#~ msgid "Media recycle bin"
+#~ msgstr "媒体回收站"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "无法更新媒体回收站。现有文件已保留。"
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr "已读取媒体回收站。永久移除需要在原生界面确认。"
 
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr "媒体回收站操作已完成。执行其他操作前请重新读取条目。"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "等待恢复"
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "此连接尚不支持媒体传输。"
 
+#~ msgid "More albums"
+#~ msgstr "更多相册"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "媒体文件使用上方设置的保留期限，包括“从不”。使用“永久删除”可立即移除单个媒体项目。恢复绝不会替换现有文件。"
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "原生媒体连接不可用。"
 
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "已读取原生设置。尚未开始任何传输。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "原生媒体操作仍在运行。"
+#~ msgid "Next entries"
+#~ msgstr "后续条目"
 
+#~ msgid "No active media operation."
+#~ msgstr "没有正在运行的媒体操作。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "相册选择已更改。请重新读取相册。"
+#~ msgid "No destination selected"
+#~ msgstr "未选择目标位置"
 
+#~ msgid "No retained media entries on this page."
+#~ msgstr "此页没有保留的媒体条目。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "自动内容比较需要注意。尚未确认任何删除操作已完成。"
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr "仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。"
 
+#~ msgid "Photos"
+#~ msgstr "照片"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "自动轮次已检查每种媒体类型的一个相册。其他相册将随后处理；删除仍待处理。"
+#~ msgid "Read media recycle bin"
+#~ msgstr "读取媒体回收站"
 
+#~ msgid "Read photo albums"
+#~ msgstr "读取照片相册"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "自动同步已暂停。请切换到手动模式，然后重新启用以继续。"
+#~ msgid "Read video albums"
+#~ msgstr "读取视频相册"
 
+#~ msgid "Recover operation"
+#~ msgstr "恢复操作"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "已选择自动同步，但暂时无法使用。"
+#~ msgid "Replaced"
+#~ msgstr "已替换"
 
+#~ msgid "Request access on phone"
+#~ msgstr "在手机上请求访问"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "请检查手机上的访问请求，然后重新读取相册。"
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr "部分源条目可能尚未提供。请重新读取相册。"
 
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr "已停止或未完成。原始文件和恢复历史均会保留。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "请选择要比较的相册。不完整的目录绝不能证明已删除。"
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "正在停止… 等待原生操作结束。"
 
+#~ msgid "Synchronize videos"
+#~ msgstr "同步视频"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "选择目标位置…"
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "无法保存笔记本。未开始媒体同步。"
 
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "待处理请求过多。请等待当前操作。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "正在比较媒体内容… 总数尚不明确。"
+#~ msgid "Unchanged"
+#~ msgstr "未更改"
 
+#~ msgid "Videos"
+#~ msgstr "视频"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "内容比较已完成。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "内容比较需要检查。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "已保留本地修改"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "手动同步"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "媒体文件使用已保存的回收站保留期限。“永不”表示仅手动移除。恢复绝不会替换现有文件。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "媒体操作已暂停。尚未确认完成。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "媒体回收站"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "已读取媒体回收站。永久移除需要在原生界面确认。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "媒体回收站操作已完成。执行其他操作前请重新读取条目。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "此连接尚不支持媒体传输。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "更多相册"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "原生媒体连接不可用。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "已读取原生设置。尚未开始任何传输。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "后续条目"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "没有正在运行的媒体操作。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "未选择目标位置"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "此页没有保留的媒体条目。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "照片"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "读取媒体回收站"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "读取照片相册"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "读取视频相册"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "恢复操作"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "已替换"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "在手机上请求访问"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "部分源条目可能尚未提供。请重新读取相册。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "已停止或未完成。原始文件和恢复历史均会保留。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "正在停止… 等待原生操作结束。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "同步视频"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "无法保存笔记本。未开始媒体同步。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "待处理请求过多。请等待当前操作。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "未更改"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "视频"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "等待原生媒体状态"
+#~ msgid "Waiting for native media status"
+#~ msgstr "等待原生媒体状态"

@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "手動"
-
-msgid "Also synchronize videos"
-msgstr "動画も同期"
-
-msgid "Allow video access on phone"
-msgstr "スマートフォンで動画へのアクセスを許可"
-
-msgid "Synchronize photos"
-msgstr "写真を同期"
-
-msgid "Canceled"
-msgstr "キャンセルしました"
-
-msgid "Phone camera active"
-msgstr "スマートフォンのカメラを使用中"
-
-msgid "Synchronize only the phone's collection"
-msgstr "スマートフォン内のコレクションのみ同期"
-
-msgid "Mode"
-msgstr "モード"
-
-msgid "Destination folder"
-msgstr "保存先フォルダー"
-
-msgid "Preparing photo synchronization…"
-msgstr "写真の同期を準備しています…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "スマートフォンで写真へのアクセスを許可してから、アルバムを更新してください。"
-
-msgid "Finding phone albums…"
-msgstr "スマートフォンのアルバムを検索しています…"
-
-msgid "Phone albums are ready."
-msgstr "スマートフォンのアルバムの準備ができました。"
-
-msgid "Photo synchronization active"
-msgstr "写真を同期中"
-
-msgid "Stopping photo synchronization…"
-msgstr "写真の同期を停止しています…"
-
-msgid "Selected album synchronized."
-msgstr "選択したアルバムを同期しました。"
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "変更の確認が必要です。競合するバージョンは上書きされていません。"
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "写真の同期を安全に停止しました。再試行する前に接続を確認してください。"
-
-msgid "Allow photo access on phone"
-msgstr "スマートフォンで写真へのアクセスを許可"
-
-msgid "Refresh albums"
-msgstr "アルバムを更新"
-
-msgid "Phone album"
-msgstr "スマートフォンのアルバム"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "カメラで撮影した新しい写真を別のフォルダーに保存"
-
-msgid "Store new animations in a separate folder"
-msgstr "新しいアニメーションを別のフォルダーに保存"
-
-msgid "Existing files stay in their current folders."
-msgstr "既存のファイルは現在のフォルダーにそのまま残ります。"
-
-msgid "Transfer recovery"
-msgstr "転送の復旧"
-
-msgid "Review interrupted transfers"
-msgstr "中断された転送を確認"
-
-msgid "Saved confirmation available."
-msgstr "保存確認があります。"
-
-msgid "Complete the saved mapping receipt."
-msgstr "保存と関連付けの記録を補完してください。"
-
-msgid "Resume with a fresh phone album scan."
-msgstr "スマートフォンのアルバムを再スキャンして再開してください。"
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "転送状態が不明です。自動再試行やファイル変更は行いません。"
-
-msgid "Send saved confirmation again"
-msgstr "保存確認を再送信"
-
-msgid "Complete receipt"
-msgstr "記録を補完"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "以前の確認を送信しました。新しい転送の確認ではありません。"
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "記録を補完しました。以前の確認は別途送信してください。"
-
-msgid "Photo synchronization could not be started."
-msgstr "写真の同期を開始できませんでした。"
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "写真の同期を開始できませんでした。現在のスマートフォンの接続と権限を確認してください。"
-
 msgid " (filtered)"
 msgstr "（フィルター済み）"
 
@@ -860,12 +751,6 @@ msgstr "住所"
 msgid "Advanced"
 msgstr "詳細設定"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Android の Magnolie Notes が必要です。KDE Connect は不要です。"
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect の機能には、Magnolie Notes ではなく Android の KDE Connect アプリが必要です。"
-
 msgid "Advanced functions"
 msgstr "高度な機能"
 
@@ -932,8 +817,18 @@ msgstr "終日の日付は時刻付きの項目には変換されません。"
 msgid "Allow notifications despite password protection"
 msgstr "パスワード保護中でも通知を許可"
 
+msgid "Allow photo access on phone"
+msgstr "スマートフォンで写真へのアクセスを許可"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr ""
+"スマートフォンで写真へのアクセスを許可してから、アルバムを更新してください。"
+
 msgid "Allow this device to share this connection"
 msgstr "このデバイスに接続の共有を許可"
+
+msgid "Allow video access on phone"
+msgstr "スマートフォンで動画へのアクセスを許可"
 
 msgid "Allowed background functions"
 msgstr "許可するバックグラウンド機能"
@@ -955,6 +850,9 @@ msgstr "記念日も通知する"
 
 msgid "Also remind me about missed appointments"
 msgstr "見逃した予定も通知する"
+
+msgid "Also synchronize videos"
+msgstr "動画も同期"
 
 msgid "Also use the default notification"
 msgstr "既定の通知も使用"
@@ -1575,6 +1473,9 @@ msgstr "キャンセル"
 msgid "Cancel sending"
 msgstr "送信を取り消す"
 
+msgid "Canceled"
+msgstr "キャンセルしました"
+
 msgid "Canton"
 msgstr "州"
 
@@ -1623,6 +1524,9 @@ msgstr "パスワードを変更"
 
 msgid "Changes are applied automatically"
 msgstr "変更は自動的に反映されます"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "変更の確認が必要です。競合するバージョンは上書きされていません。"
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "自分のプロフィールの変更は「保存」で保存されます。"
@@ -1732,6 +1636,9 @@ msgid ""
 msgstr ""
 "定義済みのシフトを選ぶか、独自のシフトを入力してください。新しい予定シートで "
 "1 日以上に割り当てます。日付マーカーは通知を送信しません。"
+
+msgid "Choose a valid replacement date and time."
+msgstr "代わりの予定の有効な日付と時刻を選択してください。"
 
 msgid "Choose a value and period to display its development."
 msgstr "推移を表示する項目と期間を選択してください。"
@@ -1920,6 +1827,12 @@ msgstr ""
 
 msgid "Complete pairing"
 msgstr "ペアリングを完了"
+
+msgid "Complete receipt"
+msgstr "記録を補完"
+
+msgid "Complete the saved mapping receipt."
+msgstr "保存と関連付けの記録を補完してください。"
 
 msgid "Completed (%(count)s)"
 msgstr "完了 (%(count)s)"
@@ -2167,6 +2080,9 @@ msgstr "gettext POT テンプレートを作成"
 
 msgid "Create a new appointment immediately"
 msgstr "新しい予定をすぐに作成"
+
+msgid "Create a replacement appointment"
+msgstr "代わりの予定を作成"
 
 msgid "Create a separate connection to this computer?"
 msgstr "このコンピューターへの独立した接続を作成しますか？"
@@ -2419,6 +2335,9 @@ msgstr "完全に削除"
 msgid "Delete selection"
 msgstr "選択項目を削除"
 
+msgid "Delete series"
+msgstr "繰り返し全体を削除"
+
 msgid "Delete shift"
 msgstr "シフトを削除"
 
@@ -2443,6 +2362,9 @@ msgstr "この連絡先の履歴を削除します"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "このメモページ（「%(title)s」）を削除しますか？"
+
+msgid "Delete this occurrence"
+msgstr "この回のみ削除"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "このリカバリースナップショットを完全に削除しますか？"
@@ -2492,6 +2414,9 @@ msgstr "配信状況が不明です"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "歯科医 Hill 先生 — 入力内容のプレビュー"
+
+msgid "Destination folder"
+msgstr "保存先フォルダー"
 
 msgid "Detect now"
 msgstr "今すぐ検出"
@@ -2966,6 +2891,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "連絡先グループを除外"
 
+msgid "Existing files stay in their current folders."
+msgstr "既存のファイルは現在のフォルダーにそのまま残ります。"
+
 msgid "Expand day groups by default"
 msgstr "日別グループを既定で展開"
 
@@ -3056,6 +2984,9 @@ msgstr "グラデーションで塗りつぶす"
 
 msgid "Fill with stored values"
 msgstr "保存済みの値を入力"
+
+msgid "Finding phone albums…"
+msgstr "スマートフォンのアルバムを検索しています…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3315,6 +3246,9 @@ msgstr "過去の予定を隠す"
 
 msgid "Highlighter"
 msgstr "蛍光ペン"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "以前の確認を送信しました。新しい転送の確認ではありません。"
 
 msgid "History"
 msgstr "推移"
@@ -3631,6 +3565,13 @@ msgstr ""
 "KDE Connect 用 SMS は、インストールされているアプリケーションでのみ使用できま"
 "す。"
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect の機能には、Magnolie Notes ではなく Android の KDE Connect アプリ"
+"が必要です。"
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "KDE Connect を利用できません。ほかのバックグラウンドサービスは引き続き動作し"
@@ -3737,6 +3678,9 @@ msgstr "遅番"
 
 msgid "Later occurrence"
 msgstr "後に現れる時刻"
+
+msgid "Later occurrences remain unchanged."
+msgstr "以降の予定は変更されません。"
 
 msgid "Latest alarm monitor entries:"
 msgstr "アラーム監視の最新エントリ:"
@@ -3986,6 +3930,10 @@ msgstr "担当者を管理"
 msgid "Manual"
 msgstr "マニュアル"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "手動"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "カスタム"
@@ -4042,6 +3990,15 @@ msgid ""
 "phone."
 msgstr ""
 "メディア操作を利用できません。接続と電話のメディアアプリを確認してください。"
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。個"
+"別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復元時"
+"に既存のファイルを置き換えることはありません。"
 
 msgid "Media player"
 msgstr "メディアプレーヤー"
@@ -4134,6 +4091,9 @@ msgstr "携帯電話"
 
 msgid "Mobile network"
 msgstr "モバイルネットワーク"
+
+msgid "Mode"
+msgstr "モード"
 
 msgid "Model"
 msgstr "モデル"
@@ -5221,6 +5181,9 @@ msgstr "ペン型注入器"
 msgid "Pending SMS messages"
 msgstr "送信待ちの SMS メッセージ"
 
+msgid "Pending recovery"
+msgstr "復元待ち"
+
 msgid "People"
 msgstr "担当者"
 
@@ -5286,11 +5249,20 @@ msgstr "パーソナル同期の許可が、両方の機器でそろっていま
 msgid "Phone"
 msgstr "電話"
 
+msgid "Phone album"
+msgstr "スマートフォンのアルバム"
+
+msgid "Phone albums are ready."
+msgstr "スマートフォンのアルバムの準備ができました。"
+
 msgid "Phone battery"
 msgstr "スマートフォンのバッテリー"
 
 msgid "Phone call"
 msgstr "電話をかける"
+
+msgid "Phone camera active"
+msgstr "スマートフォンのカメラを使用中"
 
 msgid "Phone connection"
 msgstr "電話接続"
@@ -5337,6 +5309,26 @@ msgstr "写真あり"
 
 msgid "Photo of %(name)s"
 msgstr "%(name)s の写真"
+
+msgid "Photo synchronization active"
+msgstr "写真を同期中"
+
+msgid "Photo synchronization could not be started."
+msgstr "写真の同期を開始できませんでした。"
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"写真の同期を開始できませんでした。現在のスマートフォンの接続と権限を確認して"
+"ください。"
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "写真の同期を安全に停止しました。再試行する前に接続を確認してください。"
+
+msgid "Photos and videos"
+msgstr "写真と動画"
 
 msgid "Pick up"
 msgstr "迎えに行く"
@@ -5456,6 +5448,9 @@ msgstr "信頼できる更新日時がある場合は、新しい連絡先の版
 
 msgid "Preferred backup folder"
 msgstr "優先するバックアップフォルダー"
+
+msgid "Preparing photo synchronization…"
+msgstr "写真の同期を準備しています…"
 
 msgid "Preparing selected notes…"
 msgstr "選択したノートを準備しています…"
@@ -5617,6 +5612,9 @@ msgstr "準備完了。"
 msgid "Reason"
 msgstr "理由"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "記録を補完しました。以前の確認は別途送信してください。"
+
 msgid "Receive files"
 msgstr "ファイルを受信"
 
@@ -5660,11 +5658,17 @@ msgstr "長方形"
 msgid "Recycle bin"
 msgstr "ゴミ箱"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"
+
 msgid "Redo"
 msgstr "やり直す"
 
 msgid "Refresh"
 msgstr "更新"
+
+msgid "Refresh albums"
+msgstr "アルバムを更新"
 
 msgid "Region"
 msgstr "地域"
@@ -5835,6 +5839,9 @@ msgstr "報告済み（%(method)s）：%(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "デバイスの状態を確認しています"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Android の Magnolie Notes が必要です。KDE Connect は不要です。"
+
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud アカウントが必要です。"
 
@@ -5900,6 +5907,9 @@ msgstr "バックアップの復元はインストール済みアプリでのみ
 msgid "Restoring the backup"
 msgstr "バックアップを復元しています"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "スマートフォンのアルバムを再スキャンして再開してください。"
+
 msgid "Retrieval failed."
 msgstr "取得に失敗しました。"
 
@@ -5944,6 +5954,9 @@ msgstr "再試行"
 
 msgid "Review and enable"
 msgstr "確認して有効にする"
+
+msgid "Review interrupted transfers"
+msgstr "中断された転送を確認"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "確定する前に、各宛先に送信される正確な SMS 本文を確認してください。"
@@ -6083,6 +6096,9 @@ msgstr "タスクを保存"
 
 msgid "Saved"
 msgstr "保存済み"
+
+msgid "Saved confirmation available."
+msgstr "保存確認があります。"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6267,6 +6283,9 @@ msgstr "携帯電話を選んでください"
 msgid "Select, preview, print, export or delete health records"
 msgstr "健康記録を選択、プレビュー、印刷、エクスポート、または削除"
 
+msgid "Selected album synchronized."
+msgstr "選択したアルバムを同期しました。"
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "すべての連絡先で空になっている選択列は自動的に省略されます。"
@@ -6288,6 +6307,9 @@ msgstr "文書を送信"
 
 msgid "Send notes by email or fax"
 msgstr "ノートをメールまたはファクスで送る"
+
+msgid "Send saved confirmation again"
+msgstr "保存確認を再送信"
 
 msgid "Send secure request"
 msgstr "安全なリクエストを送信"
@@ -6651,6 +6673,15 @@ msgstr "停止"
 msgid "Stop retrying"
 msgstr "再試行を停止"
 
+msgid "Stopping photo synchronization…"
+msgstr "写真の同期を停止しています…"
+
+msgid "Store new animations in a separate folder"
+msgstr "新しいアニメーションを別のフォルダーに保存"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "カメラで撮影した新しい写真を別のフォルダーに保存"
+
 msgid "Street"
 msgstr "通り"
 
@@ -6751,8 +6782,14 @@ msgstr "連絡先を同期"
 msgid "Synchronize now"
 msgstr "今すぐ同期"
 
+msgid "Synchronize only the phone's collection"
+msgstr "スマートフォン内のコレクションのみ同期"
+
 msgid "Synchronize permanently"
 msgstr "常時同期"
+
+msgid "Synchronize photos"
+msgstr "写真を同期"
 
 msgid "Synchronize tasks"
 msgstr "連絡先を同期"
@@ -7738,6 +7775,10 @@ msgstr ""
 "リモートの連絡先が削除されました。この連絡先を保持し、次回の同期時に復元しま"
 "すか？"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "代わりの予定は単独の予定です。繰り返しの周期は変わりません。"
+
 msgid "The request is unreadable."
 msgstr "要求を読み取れません。"
 
@@ -8335,6 +8376,9 @@ msgstr "職人"
 msgid "Transfer received text to the clipboard"
 msgstr "受信したテキストをクリップボードに転送"
 
+msgid "Transfer recovery"
+msgstr "転送の復旧"
+
 msgid "Travel"
 msgstr "旅行"
 
@@ -8402,6 +8446,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "利用できません"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "転送状態が不明です。自動再試行やファイル変更は行いません。"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "内容が変わらなければ新たな復元ポイントは作成されません。"
@@ -9786,282 +9833,180 @@ msgstr "＋ 予定を追加"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除され"
+#~ "ません。復元時に既存のファイルを置き換えることはありません。"
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "ネイティブのメディア操作がまだ実行中です。"
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "アルバムの選択が変わりました。アルバムを再読み込みしてください。"
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "自動コンテンツ比較に確認が必要です。削除の完了は確認されていません。"
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "自動処理でメディア種類ごとに1つのアルバムを確認しました。他のアルバムは順"
+#~ "次処理され、削除は保留のままです。"
+
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "自動同期は一時停止中です。手動モードに切り替えてから再度有効にすると再開で"
+#~ "きます。"
+
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "自動同期が選択されていますが、まだ利用できません。"
+
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr ""
+#~ "スマートフォンのアクセス要求を確認し、アルバムを再読み込みしてください。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "この回のみ削除"
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "比較するアルバムを選択してください。不完全なカタログは削除の証拠にはなりま"
+#~ "せん。"
+
+#~ msgid "Choose destination…"
+#~ msgstr "保存先を選択…"
+
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "メディアの内容を比較しています… 合計数はまだ不明です。"
+
+#~ msgid "Content comparison finished."
+#~ msgstr "コンテンツの比較が完了しました。"
+
+#~ msgid "Content comparison needs review."
+#~ msgstr "コンテンツの比較に確認が必要です。"
+
+#~ msgid "Local edits kept"
+#~ msgstr "ローカルの編集を保持"
+
+#~ msgid "Manual synchronization"
+#~ msgstr "手動同期"
 
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "メディアには保存済みのゴミ箱保存期間が適用されます。「無期限」では手動での"
+#~ "み削除されます。復元時に既存ファイルを置き換えることはありません。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "繰り返し全体を削除"
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "メディア操作は一時停止しました。完了は確認されていません。"
 
+#~ msgid "Media recycle bin"
+#~ msgstr "メディアのゴミ箱"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "以降の予定は変更されません。"
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr ""
+#~ "メディアのゴミ箱を読み込みました。完全な削除にはネイティブ画面での確認が必"
+#~ "要です。"
 
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "メディアのゴミ箱の操作が完了しました。次の操作の前に項目を再読み込みしてく"
+#~ "ださい。"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "ごみ箱は無効です。選択した項目を完全に削除しますか？"
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "この接続ではまだメディアを転送できません。"
 
+#~ msgid "More albums"
+#~ msgstr "他のアルバム"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "代わりの予定を作成"
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "ネイティブのメディア接続は利用できません。"
 
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "ネイティブ設定を読み込みました。転送は開始していません。"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "代わりの予定は単独の予定です。繰り返しの周期は変わりません。"
+#~ msgid "Next entries"
+#~ msgstr "次の項目"
 
+#~ msgid "No active media operation."
+#~ msgstr "実行中のメディア操作はありません。"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "代わりの予定の有効な日付と時刻を選択してください。"
+#~ msgid "No destination selected"
+#~ msgstr "保存先が選択されていません"
 
+#~ msgid "No retained media entries on this page."
+#~ msgstr "このページに保持されたメディア項目はありません。"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "写真と動画"
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "スマートフォンの内容のみを同期します。ローカルの編集は保持されます。削除は"
+#~ "まだ同期されません。"
 
+#~ msgid "Photos"
+#~ msgstr "写真"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "メディアファイルは別に保管されます。ごみ箱のほかの項目を空にしても削除されません。復元時に既存のファイルを置き換えることはありません。"
+#~ msgid "Read media recycle bin"
+#~ msgstr "メディアのゴミ箱を読み込み"
 
+#~ msgid "Read photo albums"
+#~ msgstr "写真アルバムを読み込み"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "メディアのごみ箱を更新できませんでした。既存のファイルは保持されています。"
+#~ msgid "Read video albums"
+#~ msgstr "動画アルバムを読み込み"
 
+#~ msgid "Recover operation"
+#~ msgstr "操作を復旧"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "復元待ち"
+#~ msgid "Replaced"
+#~ msgstr "置き換え済み"
 
+#~ msgid "Request access on phone"
+#~ msgstr "スマートフォンでアクセスを要求"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "メディアファイルにも上で設定した保存期間が適用され、「なし」も含まれます。個別のメディア項目を今すぐ削除するには「完全に削除」を使用してください。復元時に既存のファイルを置き換えることはありません。"
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "一部の元の項目が提示されていない可能性があります。アルバムを再読み込みして"
+#~ "ください。"
 
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr "停止または未完了です。元のファイルと復元履歴は保持されます。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "ネイティブのメディア操作がまだ実行中です。"
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "停止しています… ネイティブ操作の終了を待っています。"
 
+#~ msgid "Synchronize videos"
+#~ msgstr "動画を同期"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "アルバムの選択が変わりました。アルバムを再読み込みしてください。"
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "ブックを保存できませんでした。メディア同期は開始していません。"
 
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "保留中の要求が多すぎます。現在の操作の終了を待ってください。"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "自動コンテンツ比較に確認が必要です。削除の完了は確認されていません。"
+#~ msgid "Unchanged"
+#~ msgstr "変更なし"
 
+#~ msgid "Videos"
+#~ msgstr "動画"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "自動処理でメディア種類ごとに1つのアルバムを確認しました。他のアルバムは順次処理され、削除は保留のままです。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "自動同期は一時停止中です。手動モードに切り替えてから再度有効にすると再開できます。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "自動同期が選択されていますが、まだ利用できません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "スマートフォンのアクセス要求を確認し、アルバムを再読み込みしてください。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "比較するアルバムを選択してください。不完全なカタログは削除の証拠にはなりません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "保存先を選択…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "メディアの内容を比較しています… 合計数はまだ不明です。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "コンテンツの比較が完了しました。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "コンテンツの比較に確認が必要です。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "ローカルの編集を保持"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "手動同期"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "メディアには保存済みのゴミ箱保存期間が適用されます。「無期限」では手動でのみ削除されます。復元時に既存ファイルを置き換えることはありません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "メディア操作は一時停止しました。完了は確認されていません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "メディアのゴミ箱"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "メディアのゴミ箱を読み込みました。完全な削除にはネイティブ画面での確認が必要です。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "メディアのゴミ箱の操作が完了しました。次の操作の前に項目を再読み込みしてください。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "この接続ではまだメディアを転送できません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "他のアルバム"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "ネイティブのメディア接続は利用できません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "ネイティブ設定を読み込みました。転送は開始していません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "次の項目"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "実行中のメディア操作はありません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "保存先が選択されていません"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "このページに保持されたメディア項目はありません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "スマートフォンの内容のみを同期します。ローカルの編集は保持されます。削除はまだ同期されません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "写真"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "メディアのゴミ箱を読み込み"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "写真アルバムを読み込み"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "動画アルバムを読み込み"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "操作を復旧"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "置き換え済み"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "スマートフォンでアクセスを要求"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "一部の元の項目が提示されていない可能性があります。アルバムを再読み込みしてください。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "停止または未完了です。元のファイルと復元履歴は保持されます。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "停止しています… ネイティブ操作の終了を待っています。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "動画を同期"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "ブックを保存できませんでした。メディア同期は開始していません。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "保留中の要求が多すぎます。現在の操作の終了を待ってください。"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "変更なし"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "動画"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "ネイティブのメディア状態を待っています"
+#~ msgid "Waiting for native media status"
+#~ msgstr "ネイティブのメディア状態を待っています"

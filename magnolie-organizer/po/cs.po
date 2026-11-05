@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "Ručně"
-
-msgid "Also synchronize videos"
-msgstr "Synchronizovat také videa"
-
-msgid "Allow video access on phone"
-msgstr "Povolit přístup k videím v telefonu"
-
-msgid "Synchronize photos"
-msgstr "Synchronizovat fotografie"
-
-msgid "Canceled"
-msgstr "Zrušeno"
-
-msgid "Phone camera active"
-msgstr "Fotoaparát telefonu je aktivní"
-
-msgid "Synchronize only the phone's collection"
-msgstr "Synchronizovat pouze sbírku v telefonu"
-
-msgid "Mode"
-msgstr "Režim"
-
-msgid "Destination folder"
-msgstr "Cílová složka"
-
-msgid "Preparing photo synchronization…"
-msgstr "Příprava synchronizace fotografií…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "Povolte přístup k fotografiím v telefonu a poté obnovte alba."
-
-msgid "Finding phone albums…"
-msgstr "Hledání alb telefonu…"
-
-msgid "Phone albums are ready."
-msgstr "Alba telefonu jsou připravena."
-
-msgid "Photo synchronization active"
-msgstr "Synchronizace fotografií je aktivní"
-
-msgid "Stopping photo synchronization…"
-msgstr "Zastavování synchronizace fotografií…"
-
-msgid "Selected album synchronized."
-msgstr "Vybrané album bylo synchronizováno."
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "Změny vyžadují kontrolu. Žádná konfliktní verze nebyla přepsána."
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "Synchronizace fotografií byla bezpečně zastavena. Před dalším pokusem zkontrolujte připojení."
-
-msgid "Allow photo access on phone"
-msgstr "Povolit přístup k fotografiím v telefonu"
-
-msgid "Refresh albums"
-msgstr "Obnovit alba"
-
-msgid "Phone album"
-msgstr "Album telefonu"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "Ukládat nové fotografie z fotoaparátu do samostatné složky"
-
-msgid "Store new animations in a separate folder"
-msgstr "Ukládat nové animace do samostatné složky"
-
-msgid "Existing files stay in their current folders."
-msgstr "Stávající soubory zůstanou ve svých dosavadních složkách."
-
-msgid "Transfer recovery"
-msgstr "Obnova přenosů"
-
-msgid "Review interrupted transfers"
-msgstr "Zkontrolovat přerušené přenosy"
-
-msgid "Saved confirmation available."
-msgstr "Potvrzení uložení je k dispozici."
-
-msgid "Complete the saved mapping receipt."
-msgstr "Dokončit doklad o uložení a přiřazení."
-
-msgid "Resume with a fresh phone album scan."
-msgstr "Pokračovat po novém prohledání alba telefonu."
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "Nejistý přenos: bez automatického opakování a změn souborů."
-
-msgid "Send saved confirmation again"
-msgstr "Znovu odeslat potvrzení uložení"
-
-msgid "Complete receipt"
-msgstr "Dokončit doklad"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "Dřívější potvrzení odesláno. To nepotvrzuje nový přenos."
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "Doklad dokončen. Dřívější potvrzení odešlete samostatně."
-
-msgid "Photo synchronization could not be started."
-msgstr "Synchronizaci fotografií se nepodařilo spustit."
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "Synchronizaci fotografií se nepodařilo spustit. Zkontrolujte aktuální připojení telefonu a oprávnění."
-
 msgid " (filtered)"
 msgstr " (filtrováno)"
 
@@ -931,12 +822,6 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Pokročilé"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Vyžaduje Magnolie Notes na Androidu. KDE Connect není potřeba."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "Funkce KDE Connect vyžadují aplikaci KDE Connect na Androidu, nikoli Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Rozšířené funkce"
 
@@ -1002,8 +887,17 @@ msgstr "Celodenní data se nepřevádějí na záznamy s časem."
 msgid "Allow notifications despite password protection"
 msgstr "Povolit oznámení i při ochraně heslem"
 
+msgid "Allow photo access on phone"
+msgstr "Povolit přístup k fotografiím v telefonu"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Povolte přístup k fotografiím v telefonu a poté obnovte alba."
+
 msgid "Allow this device to share this connection"
 msgstr "Povolit zařízení sdílet toto spojení"
+
+msgid "Allow video access on phone"
+msgstr "Povolit přístup k videím v telefonu"
 
 msgid "Allowed background functions"
 msgstr "Povolené funkce na pozadí"
@@ -1025,6 +919,9 @@ msgstr "Připomínat také výročí"
 
 msgid "Also remind me about missed appointments"
 msgstr "Připomínat také zmeškané schůzky"
+
+msgid "Also synchronize videos"
+msgstr "Synchronizovat také videa"
 
 msgid "Also use the default notification"
 msgstr "Použít také výchozí oznámení"
@@ -1643,6 +1540,9 @@ msgstr "Zrušit"
 msgid "Cancel sending"
 msgstr "Zrušit odesílání"
 
+msgid "Canceled"
+msgstr "Zrušeno"
+
 msgid "Canton"
 msgstr "Kanton"
 
@@ -1691,6 +1591,9 @@ msgstr "Změnit heslo"
 
 msgid "Changes are applied automatically"
 msgstr "Změny se použijí automaticky"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr "Změny vyžadují kontrolu. Žádná konfliktní verze nebyla přepsána."
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "Změny vlastního profilu se ukládají tlačítkem Uložit."
@@ -1799,6 +1702,9 @@ msgid ""
 msgstr ""
 "Vyberte přednastavenou směnu nebo zadejte vlastní. Přiřaďte ji k jednomu či "
 "více dnům v listu nové schůzky. Značky dnů neposílají oznámení."
+
+msgid "Choose a valid replacement date and time."
+msgstr "Vyberte platné datum a čas náhradního termínu."
 
 msgid "Choose a value and period to display its development."
 msgstr "Vyberte hodnotu a období, pro které chcete zobrazit její vývoj."
@@ -1988,6 +1894,12 @@ msgstr "Import celého archivu je dostupný pouze v nainstalované aplikaci."
 
 msgid "Complete pairing"
 msgstr "Dokončit párování"
+
+msgid "Complete receipt"
+msgstr "Dokončit doklad"
+
+msgid "Complete the saved mapping receipt."
+msgstr "Dokončit doklad o uložení a přiřazení."
 
 msgid "Completed (%(count)s)"
 msgstr "Dokončeno (%(count)s)"
@@ -2232,6 +2144,9 @@ msgstr "Vytvořit šablonu gettext POT"
 
 msgid "Create a new appointment immediately"
 msgstr "Okamžitě vytvořit novou schůzku"
+
+msgid "Create a replacement appointment"
+msgstr "Vytvořit náhradní termín"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Vytvořit vlastní spojení s tímto počítačem?"
@@ -2487,6 +2402,9 @@ msgstr "Trvale odstranit"
 msgid "Delete selection"
 msgstr "Odstranit výběr"
 
+msgid "Delete series"
+msgstr "Smazat celou řadu"
+
 msgid "Delete shift"
 msgstr "Odstranit směnu"
 
@@ -2511,6 +2429,9 @@ msgstr "Smazat historii tohoto kontaktu"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Odstranit tuto stránku poznámek („%(title)s“)?"
+
+msgid "Delete this occurrence"
+msgstr "Smazat pouze tento výskyt"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Smazat tento snímek obnovení trvale?"
@@ -2560,6 +2481,9 @@ msgstr "Stav doručení je nejistý"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
+
+msgid "Destination folder"
+msgstr "Cílová složka"
 
 msgid "Detect now"
 msgstr "Zjistit nyní"
@@ -3033,6 +2957,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "Vyloučit skupiny kontaktů"
 
+msgid "Existing files stay in their current folders."
+msgstr "Stávající soubory zůstanou ve svých dosavadních složkách."
+
 msgid "Expand day groups by default"
 msgstr "Ve výchozím stavu rozbalit denní skupiny"
 
@@ -3123,6 +3050,9 @@ msgstr "Vyplnit přechodem"
 
 msgid "Fill with stored values"
 msgstr "Vyplnit uloženými hodnotami"
+
+msgid "Finding phone albums…"
+msgstr "Hledání alb telefonu…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3382,6 +3312,9 @@ msgstr "Skrýt minulé schůzky"
 
 msgid "Highlighter"
 msgstr "Zvýrazňovač"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Dřívější potvrzení odesláno. To nepotvrzuje nový přenos."
 
 msgid "History"
 msgstr "Historie"
@@ -3696,6 +3629,13 @@ msgstr "Zařízení KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect pro SMS je k dispozici pouze v nainstalované aplikaci."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"Funkce KDE Connect vyžadují aplikaci KDE Connect na Androidu, nikoli "
+"Magnolie Notes."
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "KDE Connect není dostupný; ostatní služby na pozadí zůstávají spuštěné."
@@ -3800,6 +3740,9 @@ msgstr "Odpolední směna"
 
 msgid "Later occurrence"
 msgstr "Pozdější výskyt"
+
+msgid "Later occurrences remain unchanged."
+msgstr "Pozdější výskyty zůstanou beze změny."
 
 msgid "Latest alarm monitor entries:"
 msgstr "Poslední záznamy monitoru upozornění:"
@@ -4049,6 +3992,10 @@ msgstr "Spravovat osoby"
 msgid "Manual"
 msgstr "Manuál"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Ručně"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Vlastní"
@@ -4106,6 +4053,15 @@ msgid ""
 msgstr ""
 "Ovládání médií není dostupné. Zkontrolujte připojení a mediální aplikaci v "
 "telefonu."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Pro mediální soubory platí výše nastavená doba uchování včetně možnosti "
+"„Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale "
+"odstranit“. Obnovení nikdy nenahradí existující soubor."
 
 msgid "Media player"
 msgstr "Přehrávač médií"
@@ -4200,6 +4156,9 @@ msgstr "Mobil"
 
 msgid "Mobile network"
 msgstr "Mobilní síť"
+
+msgid "Mode"
+msgstr "Režim"
 
 msgid "Model"
 msgstr "Model"
@@ -5290,6 +5249,9 @@ msgstr "Inzulínové pero"
 msgid "Pending SMS messages"
 msgstr "Čekající SMS"
 
+msgid "Pending recovery"
+msgstr "Čeká na obnovení"
+
 msgid "People"
 msgstr "Osoby"
 
@@ -5362,11 +5324,20 @@ msgstr "Osobní synchronizace není povolena na jednom nebo obou zařízeních."
 msgid "Phone"
 msgstr "Telefon"
 
+msgid "Phone album"
+msgstr "Album telefonu"
+
+msgid "Phone albums are ready."
+msgstr "Alba telefonu jsou připravena."
+
 msgid "Phone battery"
 msgstr "Baterie telefonu"
 
 msgid "Phone call"
 msgstr "Telefonní hovor"
+
+msgid "Phone camera active"
+msgstr "Fotoaparát telefonu je aktivní"
 
 msgid "Phone connection"
 msgstr "Připojení telefonu"
@@ -5413,6 +5384,28 @@ msgstr "Fotografie k dispozici"
 
 msgid "Photo of %(name)s"
 msgstr "Fotografie osoby %(name)s"
+
+msgid "Photo synchronization active"
+msgstr "Synchronizace fotografií je aktivní"
+
+msgid "Photo synchronization could not be started."
+msgstr "Synchronizaci fotografií se nepodařilo spustit."
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"Synchronizaci fotografií se nepodařilo spustit. Zkontrolujte aktuální "
+"připojení telefonu a oprávnění."
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+"Synchronizace fotografií byla bezpečně zastavena. Před dalším pokusem "
+"zkontrolujte připojení."
+
+msgid "Photos and videos"
+msgstr "Fotografie a videa"
 
 msgid "Pick up"
 msgstr "Vyzvednout"
@@ -5536,6 +5529,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Upřednostňovaná složka pro zálohy"
+
+msgid "Preparing photo synchronization…"
+msgstr "Příprava synchronizace fotografií…"
 
 msgid "Preparing selected notes…"
 msgstr "Připravují se vybrané poznámky…"
@@ -5701,6 +5697,9 @@ msgstr "Připraveno."
 msgid "Reason"
 msgstr "Důvod"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Doklad dokončen. Dřívější potvrzení odešlete samostatně."
+
 msgid "Receive files"
 msgstr "Přijímat soubory"
 
@@ -5744,11 +5743,17 @@ msgstr "Obdélník"
 msgid "Recycle bin"
 msgstr "Koš"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Koš je vypnutý: trvale smazat vybrané položky?"
+
 msgid "Redo"
 msgstr "Znovu"
 
 msgid "Refresh"
 msgstr "Obnovit"
+
+msgid "Refresh albums"
+msgstr "Obnovit alba"
 
 msgid "Region"
 msgstr "Region"
@@ -5921,6 +5926,9 @@ msgstr "Nahlášeno (%(method)s): %(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "Požadavek na stav zařízení"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Vyžaduje Magnolie Notes na Androidu. KDE Connect není potřeba."
+
 msgid "Requires a Nextcloud account."
 msgstr "Vyžaduje účet Nextcloud."
 
@@ -5984,6 +5992,9 @@ msgstr "Obnova záloh je k dispozici pouze v nainstalované aplikaci."
 msgid "Restoring the backup"
 msgstr "Obnovování zálohy"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "Pokračovat po novém prohledání alba telefonu."
+
 msgid "Retrieval failed."
 msgstr "Načtení se nezdařilo."
 
@@ -6028,6 +6039,9 @@ msgstr "Zkusit znovu"
 
 msgid "Review and enable"
 msgstr "Zkontrolovat a povolit"
+
+msgid "Review interrupted transfers"
+msgstr "Zkontrolovat přerušené přenosy"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "Před potvrzením zkontrolujte přesný text SMS pro každého příjemce."
@@ -6166,6 +6180,9 @@ msgstr "Uložit úkoly"
 
 msgid "Saved"
 msgstr "Uloženo"
+
+msgid "Saved confirmation available."
+msgstr "Potvrzení uložení je k dispozici."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6354,6 +6371,9 @@ msgstr ""
 "Vybrat, zobrazit náhled, vytisknout, exportovat nebo odstranit zdravotní "
 "záznamy"
 
+msgid "Selected album synchronized."
+msgstr "Vybrané album bylo synchronizováno."
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr ""
@@ -6377,6 +6397,9 @@ msgstr "Odeslat dokumenty"
 
 msgid "Send notes by email or fax"
 msgstr "Odesílat poznámky e-mailem nebo faxem"
+
+msgid "Send saved confirmation again"
+msgstr "Znovu odeslat potvrzení uložení"
 
 msgid "Send secure request"
 msgstr "Odeslat zabezpečený požadavek"
@@ -6741,6 +6764,15 @@ msgstr "Zastavit"
 msgid "Stop retrying"
 msgstr "Zastavit pokusy"
 
+msgid "Stopping photo synchronization…"
+msgstr "Zastavování synchronizace fotografií…"
+
+msgid "Store new animations in a separate folder"
+msgstr "Ukládat nové animace do samostatné složky"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "Ukládat nové fotografie z fotoaparátu do samostatné složky"
+
 msgid "Street"
 msgstr "Ulice"
 
@@ -6841,8 +6873,14 @@ msgstr "Synchronizovat kontakty"
 msgid "Synchronize now"
 msgstr "Synchronizovat nyní"
 
+msgid "Synchronize only the phone's collection"
+msgstr "Synchronizovat pouze sbírku v telefonu"
+
 msgid "Synchronize permanently"
 msgstr "Synchronizovat trvale"
+
+msgid "Synchronize photos"
+msgstr "Synchronizovat fotografie"
 
 msgid "Synchronize tasks"
 msgstr "Synchronizovat kontakty"
@@ -7821,6 +7859,10 @@ msgstr ""
 "Vzdálený kontakt byl odstraněn. Ponechat tento kontakt a obnovit jej při "
 "příští synchronizaci?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Náhrada je samostatný termín; rozvrh řady se nezmění."
+
 msgid "The request is unreadable."
 msgstr "Požadavek nelze přečíst."
 
@@ -8417,6 +8459,9 @@ msgstr "Řemeslník"
 msgid "Transfer received text to the clipboard"
 msgstr "Přenést přijatý text do schránky"
 
+msgid "Transfer recovery"
+msgstr "Obnova přenosů"
+
 msgid "Travel"
 msgstr "Cestování"
 
@@ -8484,6 +8529,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Nedostupné"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Nejistý přenos: bez automatického opakování a změn souborů."
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Nezměněný obsah nevytvoří další bod obnovení."
@@ -9894,282 +9942,177 @@ msgstr "＋ Přidat schůzku"
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek "
+#~ "koše je neodstraní. Obnovení nikdy nenahradí existující soubor."
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "Nativní operace s médii stále běží."
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "Výběr alba se změnil. Načtěte alba znovu."
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "Automatické porovnání obsahu vyžaduje pozornost. Dokončení odstranění "
+#~ "nebylo potvrzeno."
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "Automatický průchod zkontroloval jedno album každého typu média. Další "
+#~ "alba budou následovat; odstranění zůstávají nevyřízená."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Smazat pouze tento výskyt"
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "Automatická synchronizace je pozastavena. Pro pokračování přepněte do "
+#~ "ručního režimu a znovu ji zapněte."
 
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "Automatická synchronizace je vybrána, ale zatím není dostupná."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Smazat celou řadu"
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr "Zkontrolujte žádost o přístup v telefonu a poté znovu načtěte alba."
 
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "Vyberte album k porovnání. Neúplný katalog nikdy nedokazuje odstranění."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Pozdější výskyty zůstanou beze změny."
+#~ msgid "Choose destination…"
+#~ msgstr "Vybrat cíl…"
 
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "Porovnávání obsahu médií… Celkový počet zatím není znám."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Koš je vypnutý: trvale smazat vybrané položky?"
+#~ msgid "Content comparison finished."
+#~ msgstr "Porovnání obsahu dokončeno."
 
+#~ msgid "Content comparison needs review."
+#~ msgstr "Porovnání obsahu vyžaduje kontrolu."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Vytvořit náhradní termín"
+#~ msgid "Local edits kept"
+#~ msgstr "Místní úpravy zachovány"
 
+#~ msgid "Manual synchronization"
+#~ msgstr "Ruční synchronizace"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Náhrada je samostatný termín; rozvrh řady se nezmění."
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Média používají uloženou dobu uchování koše. Nikdy znamená pouze ruční "
+#~ "odstranění. Obnovení nikdy nenahrazuje existující soubor."
 
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "Operace s médii pozastavena. Dokončení nebylo potvrzeno."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Vyberte platné datum a čas náhradního termínu."
+#~ msgid "Media recycle bin"
+#~ msgstr "Koš médií"
 
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr "Koš médií načten. Trvalé odstranění vyžaduje nativní potvrzení."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fotografie a videa"
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "Operace s košem médií dokončena. Před další operací znovu načtěte položky."
 
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "Přenos médií zatím není na tomto připojení dostupný."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Mediální soubory se uchovávají odděleně; vyprázdnění ostatních položek koše je neodstraní. Obnovení nikdy nenahradí existující soubor."
+#~ msgid "More albums"
+#~ msgstr "Další alba"
 
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "Nativní připojení médií není dostupné."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Koš médií se nepodařilo aktualizovat. Existující soubory byly zachovány."
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "Nativní nastavení načteno. Žádný přenos nebyl zahájen."
 
+#~ msgid "Next entries"
+#~ msgstr "Další položky"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Čeká na obnovení"
+#~ msgid "No active media operation."
+#~ msgstr "Žádná aktivní operace s médii."
 
+#~ msgid "No destination selected"
+#~ msgstr "Není vybrán cíl"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Pro mediální soubory platí výše nastavená doba uchování včetně možnosti „Nikdy“. Jednotlivou položku můžete ihned odstranit pomocí „Trvale odstranit“. Obnovení nikdy nenahradí existující soubor."
+#~ msgid "No retained media entries on this page."
+#~ msgstr "Na této stránce nejsou žádné uchované položky médií."
 
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "Synchronizovat pouze obsah telefonu. Místní úpravy jsou zachovány. "
+#~ "Odstranění se zatím nesynchronizují."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "Nativní operace s médii stále běží."
+#~ msgid "Photos"
+#~ msgstr "Fotografie"
 
+#~ msgid "Read media recycle bin"
+#~ msgstr "Načíst koš médií"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "Výběr alba se změnil. Načtěte alba znovu."
+#~ msgid "Read photo albums"
+#~ msgstr "Načíst fotoalba"
 
+#~ msgid "Read video albums"
+#~ msgstr "Načíst videoalba"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "Automatické porovnání obsahu vyžaduje pozornost. Dokončení odstranění nebylo potvrzeno."
+#~ msgid "Recover operation"
+#~ msgstr "Obnovit operaci"
 
+#~ msgid "Replaced"
+#~ msgstr "Nahrazeno"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "Automatický průchod zkontroloval jedno album každého typu média. Další alba budou následovat; odstranění zůstávají nevyřízená."
+#~ msgid "Request access on phone"
+#~ msgstr "Vyžádat přístup v telefonu"
 
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "Některé zdrojové položky nemusely být nabídnuty. Načtěte alba znovu."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "Automatická synchronizace je pozastavena. Pro pokračování přepněte do ručního režimu a znovu ji zapněte."
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr ""
+#~ "Zastaveno nebo nedokončeno. Původní soubory a historie obnovení jsou "
+#~ "zachovány."
 
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "Zastavování… Čekání na ukončení nativní operace."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "Automatická synchronizace je vybrána, ale zatím není dostupná."
+#~ msgid "Synchronize videos"
+#~ msgstr "Synchronizovat videa"
 
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "Knihu se nepodařilo uložit. Synchronizace médií nebyla zahájena."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "Zkontrolujte žádost o přístup v telefonu a poté znovu načtěte alba."
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "Příliš mnoho nevyřízených požadavků. Počkejte na aktuální operaci."
 
+#~ msgid "Unchanged"
+#~ msgstr "Beze změny"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "Vyberte album k porovnání. Neúplný katalog nikdy nedokazuje odstranění."
+#~ msgid "Videos"
+#~ msgstr "Videa"
 
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "Vybrat cíl…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "Porovnávání obsahu médií… Celkový počet zatím není znám."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "Porovnání obsahu dokončeno."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "Porovnání obsahu vyžaduje kontrolu."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "Místní úpravy zachovány"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "Ruční synchronizace"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "Média používají uloženou dobu uchování koše. Nikdy znamená pouze ruční odstranění. Obnovení nikdy nenahrazuje existující soubor."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "Operace s médii pozastavena. Dokončení nebylo potvrzeno."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "Koš médií"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "Koš médií načten. Trvalé odstranění vyžaduje nativní potvrzení."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "Operace s košem médií dokončena. Před další operací znovu načtěte položky."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "Přenos médií zatím není na tomto připojení dostupný."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "Další alba"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "Nativní připojení médií není dostupné."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "Nativní nastavení načteno. Žádný přenos nebyl zahájen."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "Další položky"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "Žádná aktivní operace s médii."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "Není vybrán cíl"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "Na této stránce nejsou žádné uchované položky médií."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "Synchronizovat pouze obsah telefonu. Místní úpravy jsou zachovány. Odstranění se zatím nesynchronizují."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "Fotografie"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "Načíst koš médií"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "Načíst fotoalba"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "Načíst videoalba"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "Obnovit operaci"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "Nahrazeno"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "Vyžádat přístup v telefonu"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "Některé zdrojové položky nemusely být nabídnuty. Načtěte alba znovu."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "Zastaveno nebo nedokončeno. Původní soubory a historie obnovení jsou zachovány."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "Zastavování… Čekání na ukončení nativní operace."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "Synchronizovat videa"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "Knihu se nepodařilo uložit. Synchronizace médií nebyla zahájena."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "Příliš mnoho nevyřízených požadavků. Počkejte na aktuální operaci."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "Beze změny"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "Videa"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "Čekání na nativní stav médií"
+#~ msgid "Waiting for native media status"
+#~ msgstr "Čekání na nativní stav médií"

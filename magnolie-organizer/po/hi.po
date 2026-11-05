@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "मैन्युअल"
-
-msgid "Also synchronize videos"
-msgstr "वीडियो भी सिंक्रनाइज़ करें"
-
-msgid "Allow video access on phone"
-msgstr "फ़ोन पर वीडियो तक पहुँच की अनुमति दें"
-
-msgid "Synchronize photos"
-msgstr "फ़ोटो सिंक्रनाइज़ करें"
-
-msgid "Canceled"
-msgstr "रद्द किया गया"
-
-msgid "Phone camera active"
-msgstr "फ़ोन का कैमरा सक्रिय है"
-
-msgid "Synchronize only the phone's collection"
-msgstr "केवल फ़ोन के संग्रह को सिंक्रनाइज़ करें"
-
-msgid "Mode"
-msgstr "मोड"
-
-msgid "Destination folder"
-msgstr "गंतव्य फ़ोल्डर"
-
-msgid "Preparing photo synchronization…"
-msgstr "फ़ोटो सिंक्रनाइज़ेशन तैयार हो रहा है…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें, फिर एल्बम ताज़ा करें।"
-
-msgid "Finding phone albums…"
-msgstr "फ़ोन के एल्बम खोजे जा रहे हैं…"
-
-msgid "Phone albums are ready."
-msgstr "फ़ोन के एल्बम तैयार हैं।"
-
-msgid "Photo synchronization active"
-msgstr "फ़ोटो सिंक्रनाइज़ेशन सक्रिय है"
-
-msgid "Stopping photo synchronization…"
-msgstr "फ़ोटो सिंक्रनाइज़ेशन रोका जा रहा है…"
-
-msgid "Selected album synchronized."
-msgstr "चुना गया एल्बम सिंक्रनाइज़ हो गया।"
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "बदलावों की समीक्षा आवश्यक है। किसी भी परस्पर विरोधी संस्करण को अधिलेखित नहीं किया गया।"
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "फ़ोटो सिंक्रनाइज़ेशन सुरक्षित रूप से रुक गया। दोबारा प्रयास करने से पहले कनेक्शन जाँचें।"
-
-msgid "Allow photo access on phone"
-msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें"
-
-msgid "Refresh albums"
-msgstr "एल्बम ताज़ा करें"
-
-msgid "Phone album"
-msgstr "फ़ोन का एल्बम"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "कैमरे की नई तस्वीरें अलग फ़ोल्डर में सहेजें"
-
-msgid "Store new animations in a separate folder"
-msgstr "नए एनिमेशन अलग फ़ोल्डर में सहेजें"
-
-msgid "Existing files stay in their current folders."
-msgstr "मौजूदा फ़ाइलें अपने वर्तमान फ़ोल्डरों में रहेंगी।"
-
-msgid "Transfer recovery"
-msgstr "स्थानांतरण पुनर्प्राप्ति"
-
-msgid "Review interrupted transfers"
-msgstr "बाधित स्थानांतरणों की जाँच करें"
-
-msgid "Saved confirmation available."
-msgstr "सहेजे जाने की पुष्टि उपलब्ध है।"
-
-msgid "Complete the saved mapping receipt."
-msgstr "सहेजने और संबद्धता की रसीद पूरी करें।"
-
-msgid "Resume with a fresh phone album scan."
-msgstr "फ़ोन के एल्बम को दोबारा स्कैन करके जारी रखें।"
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "अनिश्चित स्थानांतरण: कोई स्वचालित पुनः प्रयास या फ़ाइल परिवर्तन नहीं।"
-
-msgid "Send saved confirmation again"
-msgstr "सहेजे जाने की पुष्टि दोबारा भेजें"
-
-msgid "Complete receipt"
-msgstr "रसीद पूरी करें"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "पिछली पुष्टि भेजी गई। यह नए स्थानांतरण की पुष्टि नहीं करती।"
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "रसीद पूरी हुई। उसकी पिछली पुष्टि अलग से भेजें।"
-
-msgid "Photo synchronization could not be started."
-msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका।"
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका। फ़ोन का मौजूदा कनेक्शन और अनुमतियाँ जाँचें।"
-
 msgid " (filtered)"
 msgstr " (फ़िल्टर किया हुआ)"
 
@@ -887,12 +778,6 @@ msgstr "पते"
 msgid "Advanced"
 msgstr "उन्नत"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Android पर Magnolie Notes आवश्यक है। KDE Connect आवश्यक नहीं है।"
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect की सुविधाओं के लिए Android पर KDE Connect ऐप आवश्यक है, Magnolie Notes नहीं।"
-
 msgid "Advanced functions"
 msgstr "उन्नत सुविधाएँ"
 
@@ -957,8 +842,17 @@ msgstr "पूरे दिन की तारीखों को समय व
 msgid "Allow notifications despite password protection"
 msgstr "पासवर्ड सुरक्षा के बावजूद सूचनाएँ अनुमति दें"
 
+msgid "Allow photo access on phone"
+msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "फ़ोन पर फ़ोटो तक पहुँच की अनुमति दें, फिर एल्बम ताज़ा करें।"
+
 msgid "Allow this device to share this connection"
 msgstr "इस डिवाइस को यह कनेक्शन साझा करने दें"
+
+msgid "Allow video access on phone"
+msgstr "फ़ोन पर वीडियो तक पहुँच की अनुमति दें"
 
 msgid "Allowed background functions"
 msgstr "अनुमत बैकग्राउंड फ़ंक्शन"
@@ -980,6 +874,9 @@ msgstr "वर्षगाँठों की भी याद दिलाए�
 
 msgid "Also remind me about missed appointments"
 msgstr "छूटे हुए अपॉइंटमेंट की भी याद दिलाएँ"
+
+msgid "Also synchronize videos"
+msgstr "वीडियो भी सिंक्रनाइज़ करें"
 
 msgid "Also use the default notification"
 msgstr "डिफ़ॉल्ट सूचना भी उपयोग करें"
@@ -1589,6 +1486,9 @@ msgstr "रद्द करें"
 msgid "Cancel sending"
 msgstr "भेजना रद्द करें"
 
+msgid "Canceled"
+msgstr "रद्द किया गया"
+
 msgid "Canton"
 msgstr "कैंटन"
 
@@ -1637,6 +1537,10 @@ msgstr "पासवर्ड बदलें"
 
 msgid "Changes are applied automatically"
 msgstr "परिवर्तन अपने-आप लागू होते हैं"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr ""
+"बदलावों की समीक्षा आवश्यक है। किसी भी परस्पर विरोधी संस्करण को अधिलेखित नहीं किया गया।"
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "निजी प्रोफ़ाइल में बदलाव सहेजें से सहेजे जाते हैं।"
@@ -1742,6 +1646,9 @@ msgid ""
 msgstr ""
 "पहले से तय शिफ़्ट चुनें या अपनी शिफ़्ट लिखें। नए अपॉइंटमेंट की शीट में इसे एक या अधिक दिनों पर "
 "लागू करें। दिन के चिह्न सूचनाएँ नहीं भेजते।"
+
+msgid "Choose a valid replacement date and time."
+msgstr "वैकल्पिक अपॉइंटमेंट के लिए मान्य तारीख और समय चुनें।"
 
 msgid "Choose a value and period to display its development."
 msgstr "उसका बदलाव दिखाने के लिए कोई मान और अवधि चुनें।"
@@ -1927,6 +1834,12 @@ msgstr "पूरा संग्रह केवल स्थापित क�
 
 msgid "Complete pairing"
 msgstr "पेयरिंग पूरी करें"
+
+msgid "Complete receipt"
+msgstr "रसीद पूरी करें"
+
+msgid "Complete the saved mapping receipt."
+msgstr "सहेजने और संबद्धता की रसीद पूरी करें।"
 
 msgid "Completed (%(count)s)"
 msgstr "पूर्ण (%(count)s)"
@@ -2165,6 +2078,9 @@ msgstr "gettext POT टेम्पलेट बनाएँ"
 
 msgid "Create a new appointment immediately"
 msgstr "तुरंत नया अपॉइंटमेंट बनाएँ"
+
+msgid "Create a replacement appointment"
+msgstr "वैकल्पिक अपॉइंटमेंट बनाएँ"
 
 msgid "Create a separate connection to this computer?"
 msgstr "इस कंप्यूटर से अपना अलग कनेक्शन बनाएँ?"
@@ -2417,6 +2333,9 @@ msgstr "हमेशा के लिए हटाएँ"
 msgid "Delete selection"
 msgstr "चयन हटाएँ"
 
+msgid "Delete series"
+msgstr "पूरी शृंखला हटाएँ"
+
 msgid "Delete shift"
 msgstr "शिफ़्ट हटाएँ"
 
@@ -2439,6 +2358,9 @@ msgstr "इस संपर्क का इतिहास हटाएँ"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "यह नोट पृष्ठ (“%(title)s”) हटाएँ?"
+
+msgid "Delete this occurrence"
+msgstr "केवल यह आवृत्ति हटाएँ"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "क्या इस रिकवरी स्नैपशॉट को स्थायी रूप से हटाना है?"
@@ -2488,6 +2410,9 @@ msgstr "डिलीवरी की स्थिति अनिश्चित
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "दंत चिकित्सक डॉ. Hill — आपकी प्रविष्टियों का पूर्वावलोकन"
+
+msgid "Destination folder"
+msgstr "गंतव्य फ़ोल्डर"
 
 msgid "Detect now"
 msgstr "अभी पता लगाएँ"
@@ -2949,6 +2874,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "संपर्क समूहों को बाहर रखें"
 
+msgid "Existing files stay in their current folders."
+msgstr "मौजूदा फ़ाइलें अपने वर्तमान फ़ोल्डरों में रहेंगी।"
+
 msgid "Expand day groups by default"
 msgstr "दिन के समूह डिफ़ॉल्ट रूप से फैलाएँ"
 
@@ -3038,6 +2966,9 @@ msgstr "रंग संक्रमण से भरें"
 
 msgid "Fill with stored values"
 msgstr "संग्रहित मानों से भरें"
+
+msgid "Finding phone albums…"
+msgstr "फ़ोन के एल्बम खोजे जा रहे हैं…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3295,6 +3226,9 @@ msgstr "बीते हुए अपॉइंटमेंट छिपाएँ
 
 msgid "Highlighter"
 msgstr "हाइलाइटर"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "पिछली पुष्टि भेजी गई। यह नए स्थानांतरण की पुष्टि नहीं करती।"
 
 msgid "History"
 msgstr "इतिहास"
@@ -3604,6 +3538,13 @@ msgstr "KDE Connect डिवाइस"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS के लिए KDE Connect केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect की सुविधाओं के लिए Android पर KDE Connect ऐप आवश्यक है, Magnolie "
+"Notes नहीं।"
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect उपलब्ध नहीं है; पृष्ठभूमि में चलने वाली अन्य सेवाएँ चालू हैं।"
 
@@ -3705,6 +3646,9 @@ msgstr "शाम की पाली"
 
 msgid "Later occurrence"
 msgstr "बाद की आवृत्ति"
+
+msgid "Later occurrences remain unchanged."
+msgstr "बाद की आवृत्तियाँ अपरिवर्तित रहेंगी।"
 
 msgid "Latest alarm monitor entries:"
 msgstr "अलार्म मॉनिटर की नवीनतम प्रविष्टियाँ:"
@@ -3954,6 +3898,10 @@ msgstr "लोग प्रबंधित करें"
 msgid "Manual"
 msgstr "मैनुअल"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "मैन्युअल"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "कस्टम"
@@ -4009,6 +3957,15 @@ msgid ""
 "Media control is unavailable. Check the connection and the media app on the "
 "phone."
 msgstr "मीडिया नियंत्रण उपलब्ध नहीं है। कनेक्शन और फ़ोन के मीडिया ऐप की जाँच करें।"
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"मीडिया फ़ाइलों पर ऊपर निर्धारित रखने की अवधि लागू होती है, जिसमें “कभी नहीं” भी शामिल "
+"है। किसी एक मीडिया प्रविष्टि को अभी हटाने के लिए “स्थायी रूप से हटाएँ” का उपयोग करें। "
+"पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
 
 msgid "Media player"
 msgstr "मीडिया प्लेयर"
@@ -4101,6 +4058,9 @@ msgstr "मोबाइल"
 
 msgid "Mobile network"
 msgstr "मोबाइल नेटवर्क"
+
+msgid "Mode"
+msgstr "मोड"
 
 msgid "Model"
 msgstr "मॉडल"
@@ -5172,6 +5132,9 @@ msgstr "पेन"
 msgid "Pending SMS messages"
 msgstr "लंबित SMS संदेश"
 
+msgid "Pending recovery"
+msgstr "पुनर्स्थापना लंबित"
+
 msgid "People"
 msgstr "लोग"
 
@@ -5243,11 +5206,20 @@ msgstr "व्यक्तिगत समन्वयन की अनुमत
 msgid "Phone"
 msgstr "फ़ोन"
 
+msgid "Phone album"
+msgstr "फ़ोन का एल्बम"
+
+msgid "Phone albums are ready."
+msgstr "फ़ोन के एल्बम तैयार हैं।"
+
 msgid "Phone battery"
 msgstr "फ़ोन की बैटरी"
 
 msgid "Phone call"
 msgstr "फ़ोन कॉल"
+
+msgid "Phone camera active"
+msgstr "फ़ोन का कैमरा सक्रिय है"
 
 msgid "Phone connection"
 msgstr "फ़ोन से जुड़ना"
@@ -5294,6 +5266,24 @@ msgstr "फ़ोटो उपलब्ध"
 
 msgid "Photo of %(name)s"
 msgstr "%(name)s की फ़ोटो"
+
+msgid "Photo synchronization active"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन सक्रिय है"
+
+msgid "Photo synchronization could not be started."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका।"
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन शुरू नहीं हो सका। फ़ोन का मौजूदा कनेक्शन और अनुमतियाँ जाँचें।"
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr "फ़ोटो सिंक्रनाइज़ेशन सुरक्षित रूप से रुक गया। दोबारा प्रयास करने से पहले कनेक्शन जाँचें।"
+
+msgid "Photos and videos"
+msgstr "फ़ोटो और वीडियो"
 
 msgid "Pick up"
 msgstr "लेने जाएँ"
@@ -5414,6 +5404,9 @@ msgstr "विश्वसनीय संशोधन समय उपलब्
 
 msgid "Preferred backup folder"
 msgstr "पसंदीदा बैकअप फ़ोल्डर"
+
+msgid "Preparing photo synchronization…"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन तैयार हो रहा है…"
 
 msgid "Preparing selected notes…"
 msgstr "चुने हुए नोट तैयार हो रहे हैं…"
@@ -5579,6 +5572,9 @@ msgstr "तैयार।"
 msgid "Reason"
 msgstr "कारण"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "रसीद पूरी हुई। उसकी पिछली पुष्टि अलग से भेजें।"
+
 msgid "Receive files"
 msgstr "फ़ाइलें प्राप्त करें"
 
@@ -5622,11 +5618,17 @@ msgstr "आयत"
 msgid "Recycle bin"
 msgstr "कूड़ेदान"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "रीसायकल बिन अक्षम है: चयनित प्रविष्टियाँ स्थायी रूप से हटाएँ?"
+
 msgid "Redo"
 msgstr "फिर से करें"
 
 msgid "Refresh"
 msgstr "रीफ़्रेश"
+
+msgid "Refresh albums"
+msgstr "एल्बम ताज़ा करें"
 
 msgid "Region"
 msgstr "क्षेत्र"
@@ -5792,6 +5794,9 @@ msgstr "रिपोर्ट किया गया (%(method)s): %(title)s –
 msgid "Requesting the device status"
 msgstr "डिवाइस की स्थिति का अनुरोध कर रहा हूँ"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Android पर Magnolie Notes आवश्यक है। KDE Connect आवश्यक नहीं है।"
+
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud खाता आवश्यक है।"
 
@@ -5855,6 +5860,9 @@ msgstr "बैकअप पुनर्स्थापित करना के
 msgid "Restoring the backup"
 msgstr "बैकअप पुनर्स्थापित किया जा रहा है"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "फ़ोन के एल्बम को दोबारा स्कैन करके जारी रखें।"
+
 msgid "Retrieval failed."
 msgstr "प्राप्ति विफल रही।"
 
@@ -5899,6 +5907,9 @@ msgstr "फिर कोशिश करें"
 
 msgid "Review and enable"
 msgstr "जाँचें और चालू करें"
+
+msgid "Review interrupted transfers"
+msgstr "बाधित स्थानांतरणों की जाँच करें"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "पुष्टि करने से पहले हर प्राप्तकर्ता के लिए SMS का सटीक पाठ जाँचें।"
@@ -6037,6 +6048,9 @@ msgstr "कार्य सहेजें"
 
 msgid "Saved"
 msgstr "सहेजा गया"
+
+msgid "Saved confirmation available."
+msgstr "सहेजे जाने की पुष्टि उपलब्ध है।"
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6220,6 +6234,9 @@ msgstr "अपना फ़ोन चुनें"
 msgid "Select, preview, print, export or delete health records"
 msgstr "स्वास्थ्य रिकॉर्ड चुनें, पूर्वावलोकन करें, प्रिंट करें, निर्यात करें या हटाएँ"
 
+msgid "Selected album synchronized."
+msgstr "चुना गया एल्बम सिंक्रनाइज़ हो गया।"
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "चुने गए ऐसे कॉलम जो हर संपर्क के लिए खाली हैं, अपने-आप छोड़ दिए जाते हैं।"
@@ -6241,6 +6258,9 @@ msgstr "दस्तावेज़ भेजें"
 
 msgid "Send notes by email or fax"
 msgstr "नोट ईमेल या फ़ैक्स से भेजें"
+
+msgid "Send saved confirmation again"
+msgstr "सहेजे जाने की पुष्टि दोबारा भेजें"
 
 msgid "Send secure request"
 msgstr "सुरक्षित अनुरोध भेजें"
@@ -6604,6 +6624,15 @@ msgstr "रोकें"
 msgid "Stop retrying"
 msgstr "कोशिश करना बंद करें"
 
+msgid "Stopping photo synchronization…"
+msgstr "फ़ोटो सिंक्रनाइज़ेशन रोका जा रहा है…"
+
+msgid "Store new animations in a separate folder"
+msgstr "नए एनिमेशन अलग फ़ोल्डर में सहेजें"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "कैमरे की नई तस्वीरें अलग फ़ोल्डर में सहेजें"
+
 msgid "Street"
 msgstr "सड़क"
 
@@ -6704,8 +6733,14 @@ msgstr "संपर्क सिंक्रनाइज़ करें"
 msgid "Synchronize now"
 msgstr "अभी सिंक्रोनाइज़ करें"
 
+msgid "Synchronize only the phone's collection"
+msgstr "केवल फ़ोन के संग्रह को सिंक्रनाइज़ करें"
+
 msgid "Synchronize permanently"
 msgstr "स्थायी रूप से सिंक्रनाइज़ करें"
+
+msgid "Synchronize photos"
+msgstr "फ़ोटो सिंक्रनाइज़ करें"
 
 msgid "Synchronize tasks"
 msgstr "संपर्क सिंक्रनाइज़ करें"
@@ -7660,6 +7695,10 @@ msgid ""
 msgstr ""
 "दूरस्थ संपर्क हटा दिया गया है। इस संपर्क को रखें और अगले समन्वयन पर उसे पुनर्स्थापित करें?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "विकल्प एक अलग अपॉइंटमेंट है; शृंखला का समयक्रम नहीं बदलेगा।"
+
 msgid "The request is unreadable."
 msgstr "अनुरोध पढ़ा नहीं जा सकता।"
 
@@ -8245,6 +8284,9 @@ msgstr "कारीगर"
 msgid "Transfer received text to the clipboard"
 msgstr "प्राप्त टेक्स्ट को क्लिपबोर्ड पर भेजें"
 
+msgid "Transfer recovery"
+msgstr "स्थानांतरण पुनर्प्राप्ति"
+
 msgid "Travel"
 msgstr "यात्रा"
 
@@ -8312,6 +8354,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "अनुपलब्ध"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "अनिश्चित स्थानांतरण: कोई स्वचालित पुनः प्रयास या फ़ाइल परिवर्तन नहीं।"
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "बिना बदली सामग्री से दूसरा पुनर्प्राप्ति बिंदु नहीं बनता।"
@@ -9683,282 +9728,170 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "मीडिया फ़ाइलें अलग रखी जाती हैं; रीसायकल बिन की अन्य प्रविष्टियाँ खाली करने से ये नहीं "
+#~ "हटतीं। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "केवल यह आवृत्ति हटाएँ"
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr "मीडिया रीसायकल बिन अपडेट नहीं किया जा सका। मौजूदा फ़ाइलें सुरक्षित रखी गईं।"
 
+#~ msgid "A native media operation is still running."
+#~ msgstr "एक स्थानीय मीडिया कार्य अभी चल रहा है।"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "पूरी शृंखला हटाएँ"
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "एल्बम का चयन बदल गया है। एल्बम फिर पढ़ें।"
 
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "स्वचालित सामग्री तुलना पर ध्यान देना आवश्यक है। किसी विलोपन के पूरा होने की पुष्टि "
+#~ "नहीं हुई।"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "बाद की आवृत्तियाँ अपरिवर्तित रहेंगी।"
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "स्वचालित चक्र ने हर मीडिया प्रकार का एक एल्बम जाँचा। अन्य एल्बम बाद में आएँगे; विलोपन "
+#~ "अभी लंबित हैं।"
 
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "स्वचालित समन्वयन रुका हुआ है। जारी रखने के लिए मैनुअल मोड चुनें और इसे फिर सक्षम करें।"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "रीसायकल बिन अक्षम है: चयनित प्रविष्टियाँ स्थायी रूप से हटाएँ?"
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "स्वचालित समन्वयन चुना गया है, लेकिन अभी उपलब्ध नहीं है।"
 
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr "फ़ोन पर पहुँच का अनुरोध देखें, फिर एल्बम दोबारा पढ़ें।"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "वैकल्पिक अपॉइंटमेंट बनाएँ"
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr "तुलना के लिए एल्बम चुनें। अधूरा कैटलॉग कभी विलोपन का प्रमाण नहीं है।"
 
+#~ msgid "Choose destination…"
+#~ msgstr "गंतव्य चुनें…"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "विकल्प एक अलग अपॉइंटमेंट है; शृंखला का समयक्रम नहीं बदलेगा।"
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "मीडिया सामग्री की तुलना जारी है… कुल संख्या अभी ज्ञात नहीं है।"
 
+#~ msgid "Content comparison finished."
+#~ msgstr "सामग्री की तुलना पूरी हुई।"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "वैकल्पिक अपॉइंटमेंट के लिए मान्य तारीख और समय चुनें।"
+#~ msgid "Content comparison needs review."
+#~ msgstr "सामग्री की तुलना की समीक्षा आवश्यक है।"
 
+#~ msgid "Local edits kept"
+#~ msgstr "स्थानीय बदलाव सुरक्षित रखे गए"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "फ़ोटो और वीडियो"
+#~ msgid "Manual synchronization"
+#~ msgstr "मैनुअल समन्वयन"
 
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "मीडिया फ़ाइलों पर कूड़ेदान की सहेजी गई संरक्षण अवधि लागू होती है। कभी नहीं का अर्थ "
+#~ "केवल मैनुअल हटाना है। बहाली कभी मौजूदा फ़ाइल नहीं बदलती।"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "मीडिया फ़ाइलें अलग रखी जाती हैं; रीसायकल बिन की अन्य प्रविष्टियाँ खाली करने से ये नहीं हटतीं। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "मीडिया कार्य रुका हुआ है। पूरा होने की पुष्टि नहीं हुई।"
 
+#~ msgid "Media recycle bin"
+#~ msgstr "मीडिया कूड़ेदान"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "मीडिया रीसायकल बिन अपडेट नहीं किया जा सका। मौजूदा फ़ाइलें सुरक्षित रखी गईं।"
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr "मीडिया कूड़ेदान पढ़ लिया गया। स्थायी रूप से हटाने के लिए ऐप में पुष्टि आवश्यक है।"
 
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr "मीडिया कूड़ेदान का कार्य पूरा हुआ। अगले कार्य से पहले प्रविष्टियाँ फिर पढ़ें।"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "पुनर्स्थापना लंबित"
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "इस कनेक्शन पर मीडिया स्थानांतरण अभी उपलब्ध नहीं है।"
 
+#~ msgid "More albums"
+#~ msgstr "और एल्बम"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "मीडिया फ़ाइलों पर ऊपर निर्धारित रखने की अवधि लागू होती है, जिसमें “कभी नहीं” भी शामिल है। किसी एक मीडिया प्रविष्टि को अभी हटाने के लिए “स्थायी रूप से हटाएँ” का उपयोग करें। पुनर्स्थापना कभी किसी मौजूदा फ़ाइल को प्रतिस्थापित नहीं करती।"
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "ऐप का मीडिया कनेक्शन उपलब्ध नहीं है।"
 
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "ऐप की सेटिंग पढ़ ली गईं। कोई स्थानांतरण शुरू नहीं हुआ।"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "एक स्थानीय मीडिया कार्य अभी चल रहा है।"
+#~ msgid "Next entries"
+#~ msgstr "अगली प्रविष्टियाँ"
 
+#~ msgid "No active media operation."
+#~ msgstr "कोई मीडिया कार्य सक्रिय नहीं है।"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "एल्बम का चयन बदल गया है। एल्बम फिर पढ़ें।"
+#~ msgid "No destination selected"
+#~ msgstr "कोई गंतव्य नहीं चुना गया"
 
+#~ msgid "No retained media entries on this page."
+#~ msgstr "इस पृष्ठ पर कोई सुरक्षित मीडिया प्रविष्टि नहीं है।"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "स्वचालित सामग्री तुलना पर ध्यान देना आवश्यक है। किसी विलोपन के पूरा होने की पुष्टि नहीं हुई।"
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "केवल फ़ोन की सामग्री का समन्वयन करें। स्थानीय बदलाव सुरक्षित रहते हैं। विलोपन का "
+#~ "समन्वयन अभी नहीं होता।"
 
+#~ msgid "Photos"
+#~ msgstr "फ़ोटो"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "स्वचालित चक्र ने हर मीडिया प्रकार का एक एल्बम जाँचा। अन्य एल्बम बाद में आएँगे; विलोपन अभी लंबित हैं।"
+#~ msgid "Read media recycle bin"
+#~ msgstr "मीडिया कूड़ेदान पढ़ें"
 
+#~ msgid "Read photo albums"
+#~ msgstr "फ़ोटो एल्बम पढ़ें"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "स्वचालित समन्वयन रुका हुआ है। जारी रखने के लिए मैनुअल मोड चुनें और इसे फिर सक्षम करें।"
+#~ msgid "Read video albums"
+#~ msgstr "वीडियो एल्बम पढ़ें"
 
+#~ msgid "Recover operation"
+#~ msgstr "कार्य पुनर्प्राप्त करें"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "स्वचालित समन्वयन चुना गया है, लेकिन अभी उपलब्ध नहीं है।"
+#~ msgid "Replaced"
+#~ msgstr "बदले गए"
 
+#~ msgid "Request access on phone"
+#~ msgstr "फ़ोन पर पहुँच माँगें"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "फ़ोन पर पहुँच का अनुरोध देखें, फिर एल्बम दोबारा पढ़ें।"
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr "स्रोत की कुछ प्रविष्टियाँ शायद पेश नहीं की गईं। एल्बम फिर पढ़ें।"
 
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr "रुका हुआ या अधूरा। मूल फ़ाइलें और पुनर्प्राप्ति इतिहास सुरक्षित हैं।"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "तुलना के लिए एल्बम चुनें। अधूरा कैटलॉग कभी विलोपन का प्रमाण नहीं है।"
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "रोका जा रहा है… ऐप का कार्य समाप्त होने की प्रतीक्षा है।"
 
+#~ msgid "Synchronize videos"
+#~ msgstr "वीडियो का समन्वयन करें"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "गंतव्य चुनें…"
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "पुस्तक सहेजी नहीं जा सकी। मीडिया समन्वयन शुरू नहीं हुआ।"
 
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "बहुत अधिक अनुरोध लंबित हैं। मौजूदा कार्य पूरा होने की प्रतीक्षा करें।"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "मीडिया सामग्री की तुलना जारी है… कुल संख्या अभी ज्ञात नहीं है।"
+#~ msgid "Unchanged"
+#~ msgstr "अपरिवर्तित"
 
+#~ msgid "Videos"
+#~ msgstr "वीडियो"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "सामग्री की तुलना पूरी हुई।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "सामग्री की तुलना की समीक्षा आवश्यक है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "स्थानीय बदलाव सुरक्षित रखे गए"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "मैनुअल समन्वयन"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "मीडिया फ़ाइलों पर कूड़ेदान की सहेजी गई संरक्षण अवधि लागू होती है। कभी नहीं का अर्थ केवल मैनुअल हटाना है। बहाली कभी मौजूदा फ़ाइल नहीं बदलती।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "मीडिया कार्य रुका हुआ है। पूरा होने की पुष्टि नहीं हुई।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "मीडिया कूड़ेदान"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "मीडिया कूड़ेदान पढ़ लिया गया। स्थायी रूप से हटाने के लिए ऐप में पुष्टि आवश्यक है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "मीडिया कूड़ेदान का कार्य पूरा हुआ। अगले कार्य से पहले प्रविष्टियाँ फिर पढ़ें।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "इस कनेक्शन पर मीडिया स्थानांतरण अभी उपलब्ध नहीं है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "और एल्बम"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "ऐप का मीडिया कनेक्शन उपलब्ध नहीं है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "ऐप की सेटिंग पढ़ ली गईं। कोई स्थानांतरण शुरू नहीं हुआ।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "अगली प्रविष्टियाँ"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "कोई मीडिया कार्य सक्रिय नहीं है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "कोई गंतव्य नहीं चुना गया"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "इस पृष्ठ पर कोई सुरक्षित मीडिया प्रविष्टि नहीं है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "केवल फ़ोन की सामग्री का समन्वयन करें। स्थानीय बदलाव सुरक्षित रहते हैं। विलोपन का समन्वयन अभी नहीं होता।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "फ़ोटो"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "मीडिया कूड़ेदान पढ़ें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "फ़ोटो एल्बम पढ़ें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "वीडियो एल्बम पढ़ें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "कार्य पुनर्प्राप्त करें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "बदले गए"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "फ़ोन पर पहुँच माँगें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "स्रोत की कुछ प्रविष्टियाँ शायद पेश नहीं की गईं। एल्बम फिर पढ़ें।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "रुका हुआ या अधूरा। मूल फ़ाइलें और पुनर्प्राप्ति इतिहास सुरक्षित हैं।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "रोका जा रहा है… ऐप का कार्य समाप्त होने की प्रतीक्षा है।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "वीडियो का समन्वयन करें"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "पुस्तक सहेजी नहीं जा सकी। मीडिया समन्वयन शुरू नहीं हुआ।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "बहुत अधिक अनुरोध लंबित हैं। मौजूदा कार्य पूरा होने की प्रतीक्षा करें।"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "अपरिवर्तित"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "वीडियो"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"
+#~ msgid "Waiting for native media status"
+#~ msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"

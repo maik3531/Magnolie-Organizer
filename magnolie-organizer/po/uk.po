@@ -18,115 +18,6 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "Вручну"
-
-msgid "Also synchronize videos"
-msgstr "Також синхронізувати відео"
-
-msgid "Allow video access on phone"
-msgstr "Дозволити доступ до відео на телефоні"
-
-msgid "Synchronize photos"
-msgstr "Синхронізувати фотографії"
-
-msgid "Canceled"
-msgstr "Скасовано"
-
-msgid "Phone camera active"
-msgstr "Камера телефону активна"
-
-msgid "Synchronize only the phone's collection"
-msgstr "Синхронізувати лише колекцію на телефоні"
-
-msgid "Mode"
-msgstr "Режим"
-
-msgid "Destination folder"
-msgstr "Тека призначення"
-
-msgid "Preparing photo synchronization…"
-msgstr "Підготовка синхронізації фотографій…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "Дозвольте доступ до фотографій на телефоні, потім оновіть альбоми."
-
-msgid "Finding phone albums…"
-msgstr "Пошук альбомів телефону…"
-
-msgid "Phone albums are ready."
-msgstr "Альбоми телефону готові."
-
-msgid "Photo synchronization active"
-msgstr "Синхронізація фотографій активна"
-
-msgid "Stopping photo synchronization…"
-msgstr "Зупинка синхронізації фотографій…"
-
-msgid "Selected album synchronized."
-msgstr "Вибраний альбом синхронізовано."
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "Зміни потребують перевірки. Жодну конфліктну версію не було перезаписано."
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "Синхронізацію фотографій безпечно зупинено. Перевірте з’єднання перед повторною спробою."
-
-msgid "Allow photo access on phone"
-msgstr "Дозволити доступ до фотографій на телефоні"
-
-msgid "Refresh albums"
-msgstr "Оновити альбоми"
-
-msgid "Phone album"
-msgstr "Альбом телефону"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "Зберігати нові фотографії камери в окремій теці"
-
-msgid "Store new animations in a separate folder"
-msgstr "Зберігати нові анімації в окремій теці"
-
-msgid "Existing files stay in their current folders."
-msgstr "Наявні файли залишаються у своїх поточних теках."
-
-msgid "Transfer recovery"
-msgstr "Відновлення передавань"
-
-msgid "Review interrupted transfers"
-msgstr "Перевірити перервані передавання"
-
-msgid "Saved confirmation available."
-msgstr "Підтвердження збереження доступне."
-
-msgid "Complete the saved mapping receipt."
-msgstr "Завершити квитанцію збереження та зіставлення."
-
-msgid "Resume with a fresh phone album scan."
-msgstr "Продовжити після нового сканування альбому телефона."
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "Невизначене передавання: без автоматичного повтору та змін файлів."
-
-msgid "Send saved confirmation again"
-msgstr "Повторно надіслати підтвердження збереження"
-
-msgid "Complete receipt"
-msgstr "Завершити квитанцію"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "Попереднє підтвердження надіслано. Це не підтверджує нове передавання."
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "Квитанцію завершено. Надішліть попереднє підтвердження окремо."
-
-msgid "Photo synchronization could not be started."
-msgstr "Не вдалося запустити синхронізацію фотографій."
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "Не вдалося запустити синхронізацію фотографій. Перевірте поточне з’єднання з телефоном і дозволи."
-
 msgid " (filtered)"
 msgstr " (відфільтровано)"
 
@@ -936,12 +827,6 @@ msgstr "Адреси"
 msgid "Advanced"
 msgstr "Додатково"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Потрібен Magnolie Notes на Android. KDE Connect не потрібен."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "Для функцій KDE Connect потрібен застосунок KDE Connect на Android, а не Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Розширені функції"
 
@@ -1007,8 +892,17 @@ msgstr "Дати на весь день не перетворюються на �
 msgid "Allow notifications despite password protection"
 msgstr "Дозволити сповіщення попри захист паролем"
 
+msgid "Allow photo access on phone"
+msgstr "Дозволити доступ до фотографій на телефоні"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Дозвольте доступ до фотографій на телефоні, потім оновіть альбоми."
+
 msgid "Allow this device to share this connection"
 msgstr "Дозволити пристрою передавати це з’єднання"
+
+msgid "Allow video access on phone"
+msgstr "Дозволити доступ до відео на телефоні"
 
 msgid "Allowed background functions"
 msgstr "Дозволені фонові функції"
@@ -1030,6 +924,9 @@ msgstr "Також нагадувати про річниці"
 
 msgid "Also remind me about missed appointments"
 msgstr "Також нагадувати про пропущені зустрічі"
+
+msgid "Also synchronize videos"
+msgstr "Також синхронізувати відео"
 
 msgid "Also use the default notification"
 msgstr "Також використовувати типове сповіщення"
@@ -1654,6 +1551,9 @@ msgstr "Скасувати"
 msgid "Cancel sending"
 msgstr "Скасувати надсилання"
 
+msgid "Canceled"
+msgstr "Скасовано"
+
 msgid "Canton"
 msgstr "Кантон"
 
@@ -1702,6 +1602,10 @@ msgstr "Змінити пароль"
 
 msgid "Changes are applied automatically"
 msgstr "Зміни застосовуються автоматично"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr ""
+"Зміни потребують перевірки. Жодну конфліктну версію не було перезаписано."
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "Зміни власного профілю зберігаються кнопкою «Зберегти»."
@@ -1811,6 +1715,9 @@ msgid ""
 msgstr ""
 "Виберіть готову зміну або введіть власну. Призначте її одному чи кільком "
 "дням на аркуші нової зустрічі. Позначки днів не надсилають сповіщень."
+
+msgid "Choose a valid replacement date and time."
+msgstr "Виберіть дійсні дату й час зустрічі на заміну."
 
 msgid "Choose a value and period to display its development."
 msgstr "Виберіть показник і період, щоб переглянути його динаміку."
@@ -1998,6 +1905,12 @@ msgstr "Імпорт повного архіву доступний лише у 
 
 msgid "Complete pairing"
 msgstr "Завершити сполучення"
+
+msgid "Complete receipt"
+msgstr "Завершити квитанцію"
+
+msgid "Complete the saved mapping receipt."
+msgstr "Завершити квитанцію збереження та зіставлення."
 
 msgid "Completed (%(count)s)"
 msgstr "Завершено (%(count)s)"
@@ -2241,6 +2154,9 @@ msgstr "Створити шаблон gettext POT"
 
 msgid "Create a new appointment immediately"
 msgstr "Негайно створити нову зустріч"
+
+msgid "Create a replacement appointment"
+msgstr "Створити зустріч на заміну"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Створити власне з’єднання з цим комп’ютером?"
@@ -2495,6 +2411,9 @@ msgstr "Видалити остаточно"
 msgid "Delete selection"
 msgstr "Видалити вибране"
 
+msgid "Delete series"
+msgstr "Видалити всю серію"
+
 msgid "Delete shift"
 msgstr "Видалити зміну"
 
@@ -2519,6 +2438,9 @@ msgstr "Видалити історію цього контакту"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Видалити цю сторінку нотатки («%(title)s»)?"
+
+msgid "Delete this occurrence"
+msgstr "Видалити лише це повторення"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Видалити цей знімок відновлення назавжди?"
@@ -2567,6 +2489,9 @@ msgstr "Статус доставки невідомий"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Стоматолог д-р Hill — Попередній перегляд ваших записів"
+
+msgid "Destination folder"
+msgstr "Тека призначення"
 
 msgid "Detect now"
 msgstr "Визначити зараз"
@@ -3041,6 +2966,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "Виключити групи контактів"
 
+msgid "Existing files stay in their current folders."
+msgstr "Наявні файли залишаються у своїх поточних теках."
+
 msgid "Expand day groups by default"
 msgstr "Типово розгортати групи днів"
 
@@ -3131,6 +3059,9 @@ msgstr "Заповнити градієнтом"
 
 msgid "Fill with stored values"
 msgstr "Заповнити збереженими значеннями"
+
+msgid "Finding phone albums…"
+msgstr "Пошук альбомів телефону…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3392,6 +3323,9 @@ msgstr "Приховати минулі зустрічі"
 
 msgid "Highlighter"
 msgstr "Маркер"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Попереднє підтвердження надіслано. Це не підтверджує нове передавання."
 
 msgid "History"
 msgstr "Історія"
@@ -3706,6 +3640,13 @@ msgstr "Пристрій KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect для SMS доступний лише у встановленому додатку."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"Для функцій KDE Connect потрібен застосунок KDE Connect на Android, а не "
+"Magnolie Notes."
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect недоступний; інші фонові служби продовжують працювати."
 
@@ -3811,6 +3752,9 @@ msgstr "Вечірня зміна"
 
 msgid "Later occurrence"
 msgstr "Пізніше входження"
+
+msgid "Later occurrences remain unchanged."
+msgstr "Наступні повторення залишаться без змін."
 
 msgid "Latest alarm monitor entries:"
 msgstr "Останні записи монітора нагадувань:"
@@ -4061,6 +4005,10 @@ msgstr "Керувати людьми"
 msgid "Manual"
 msgstr "Посібник"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Вручну"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Власне"
@@ -4118,6 +4066,15 @@ msgid ""
 msgstr ""
 "Керування мультимедіа недоступне. Перевірте з’єднання та медіазастосунок на "
 "телефоні."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Для медіафайлів діє встановлений вище термін зберігання, зокрема «Ніколи». "
+"Щоб одразу видалити окремий медіаелемент, скористайтеся «Видалити назавжди». "
+"Відновлення ніколи не замінює наявний файл."
 
 msgid "Media player"
 msgstr "Медіапрогравач"
@@ -4212,6 +4169,9 @@ msgstr "Мобільний"
 
 msgid "Mobile network"
 msgstr "Мобільна мережа"
+
+msgid "Mode"
+msgstr "Режим"
 
 msgid "Model"
 msgstr "Модель"
@@ -5311,6 +5271,9 @@ msgstr "Шприц-ручка"
 msgid "Pending SMS messages"
 msgstr "Заплановані SMS-повідомлення"
 
+msgid "Pending recovery"
+msgstr "Очікує на відновлення"
+
 msgid "People"
 msgstr "Люди"
 
@@ -5386,11 +5349,20 @@ msgstr ""
 msgid "Phone"
 msgstr "Телефон"
 
+msgid "Phone album"
+msgstr "Альбом телефону"
+
+msgid "Phone albums are ready."
+msgstr "Альбоми телефону готові."
+
 msgid "Phone battery"
 msgstr "Батарея телефона"
 
 msgid "Phone call"
 msgstr "Телефонний дзвінок"
+
+msgid "Phone camera active"
+msgstr "Камера телефону активна"
 
 msgid "Phone connection"
 msgstr "З'єднання з телефоном"
@@ -5437,6 +5409,28 @@ msgstr "Фото доступне"
 
 msgid "Photo of %(name)s"
 msgstr "Фото %(name)s"
+
+msgid "Photo synchronization active"
+msgstr "Синхронізація фотографій активна"
+
+msgid "Photo synchronization could not be started."
+msgstr "Не вдалося запустити синхронізацію фотографій."
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"Не вдалося запустити синхронізацію фотографій. Перевірте поточне з’єднання з "
+"телефоном і дозволи."
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+"Синхронізацію фотографій безпечно зупинено. Перевірте з’єднання перед "
+"повторною спробою."
+
+msgid "Photos and videos"
+msgstr "Фото й відео"
 
 msgid "Pick up"
 msgstr "Забрати"
@@ -5560,6 +5554,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Бажана папка резервних копій"
+
+msgid "Preparing photo synchronization…"
+msgstr "Підготовка синхронізації фотографій…"
 
 msgid "Preparing selected notes…"
 msgstr "Підготовка вибраних нотаток…"
@@ -5727,6 +5724,9 @@ msgstr "Готово."
 msgid "Reason"
 msgstr "Причина"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Квитанцію завершено. Надішліть попереднє підтвердження окремо."
+
 msgid "Receive files"
 msgstr "Отримувати файли"
 
@@ -5770,11 +5770,17 @@ msgstr "Прямокутник"
 msgid "Recycle bin"
 msgstr "Кошик"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Кошик вимкнено: видалити вибрані записи назавжди?"
+
 msgid "Redo"
 msgstr "Повторити"
 
 msgid "Refresh"
 msgstr "Оновити"
+
+msgid "Refresh albums"
+msgstr "Оновити альбоми"
 
 msgid "Region"
 msgstr "Регіон"
@@ -5946,6 +5952,9 @@ msgstr "Повідомлено (%(method)s): %(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "Запит стану пристрою"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Потрібен Magnolie Notes на Android. KDE Connect не потрібен."
+
 msgid "Requires a Nextcloud account."
 msgstr "Потрібен обліковий запис Nextcloud."
 
@@ -6010,6 +6019,9 @@ msgstr "Відновлення резервних копій доступне л
 msgid "Restoring the backup"
 msgstr "Відновлення резервної копії"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "Продовжити після нового сканування альбому телефона."
+
 msgid "Retrieval failed."
 msgstr "Не вдалося отримати."
 
@@ -6054,6 +6066,9 @@ msgstr "Спробувати знову"
 
 msgid "Review and enable"
 msgstr "Перевірити й увімкнути"
+
+msgid "Review interrupted transfers"
+msgstr "Перевірити перервані передавання"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr ""
@@ -6192,6 +6207,9 @@ msgstr "Зберегти завдання"
 
 msgid "Saved"
 msgstr "Збережено"
+
+msgid "Saved confirmation available."
+msgstr "Підтвердження збереження доступне."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6380,6 +6398,9 @@ msgstr ""
 "Вибрати, переглянути, надрукувати, експортувати або видалити дані про "
 "здоров’я"
 
+msgid "Selected album synchronized."
+msgstr "Вибраний альбом синхронізовано."
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr ""
@@ -6402,6 +6423,9 @@ msgstr "Надіслати документи"
 
 msgid "Send notes by email or fax"
 msgstr "Надсилати нотатки поштою або факсом"
+
+msgid "Send saved confirmation again"
+msgstr "Повторно надіслати підтвердження збереження"
 
 msgid "Send secure request"
 msgstr "Надіслати захищений запит"
@@ -6768,6 +6792,15 @@ msgstr "Зупинити"
 msgid "Stop retrying"
 msgstr "Припинити спроби"
 
+msgid "Stopping photo synchronization…"
+msgstr "Зупинка синхронізації фотографій…"
+
+msgid "Store new animations in a separate folder"
+msgstr "Зберігати нові анімації в окремій теці"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "Зберігати нові фотографії камери в окремій теці"
+
 msgid "Street"
 msgstr "Вулиця"
 
@@ -6868,8 +6901,14 @@ msgstr "Синхронізувати контакти"
 msgid "Synchronize now"
 msgstr "Синхронізувати зараз"
 
+msgid "Synchronize only the phone's collection"
+msgstr "Синхронізувати лише колекцію на телефоні"
+
 msgid "Synchronize permanently"
 msgstr "Синхронізувати постійно"
+
+msgid "Synchronize photos"
+msgstr "Синхронізувати фотографії"
 
 msgid "Synchronize tasks"
 msgstr "Синхронізувати контакти"
@@ -7852,6 +7891,10 @@ msgstr ""
 "Віддалений контакт видалено. Зберегти цей контакт і відновити його під час "
 "наступної синхронізації?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Заміна — окрема зустріч; розклад серії не зміниться."
+
 msgid "The request is unreadable."
 msgstr "Запит нечитабельний."
 
@@ -8454,6 +8497,9 @@ msgstr "Майстер"
 msgid "Transfer received text to the clipboard"
 msgstr "Перенести отриманий текст до буфера обміну"
 
+msgid "Transfer recovery"
+msgstr "Відновлення передавань"
+
 msgid "Travel"
 msgstr "Подорож"
 
@@ -8521,6 +8567,9 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Недоступно"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr "Невизначене передавання: без автоматичного повтору та змін файлів."
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Незмінений вміст не створює ще одну точку відновлення."
@@ -9942,282 +9991,181 @@ msgstr "＋ Додати зустріч"
 #~ "для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні "
 #~ "ролі не запитуються."
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Медіафайли зберігаються окремо; очищення інших елементів кошика їх не "
+#~ "видаляє. Відновлення ніколи не замінює наявний файл."
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "Власна операція з медіафайлами ще виконується."
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "Вибір альбому змінився. Прочитайте альбоми знову."
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "Автоматичне порівняння потребує уваги. Завершення видалення не "
+#~ "підтверджено."
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "Автоматичний прохід перевірив один альбом кожного типу медіа. Інші "
+#~ "альбоми будуть перевірені пізніше; видалення залишаються в очікуванні."
+
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "Автоматичну синхронізацію призупинено. Перейдіть у ручний режим і знову "
+#~ "ввімкніть її для продовження."
+
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "Вибрано автоматичну синхронізацію, але вона ще недоступна."
+
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr ""
+#~ "Перевірте запит доступу на телефоні, потім прочитайте альбоми знову."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Видалити лише це повторення"
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "Виберіть альбом для порівняння. Неповний каталог ніколи не доводить "
+#~ "видалення."
+
+#~ msgid "Choose destination…"
+#~ msgstr "Вибрати призначення…"
+
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "Порівняння медіавмісту… Загальна кількість ще невідома."
+
+#~ msgid "Content comparison finished."
+#~ msgstr "Порівняння вмісту завершено."
+
+#~ msgid "Content comparison needs review."
+#~ msgstr "Порівняння вмісту потребує перевірки."
+
+#~ msgid "Local edits kept"
+#~ msgstr "Локальні зміни збережено"
+
+#~ msgid "Manual synchronization"
+#~ msgstr "Ручна синхронізація"
 
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Медіафайли використовують збережений строк зберігання кошика. Ніколи "
+#~ "означає лише ручне видалення. Відновлення ніколи не замінює наявний файл."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Видалити всю серію"
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "Операцію з медіафайлами призупинено. Завершення не підтверджено."
 
+#~ msgid "Media recycle bin"
+#~ msgstr "Кошик медіафайлів"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Наступні повторення залишаться без змін."
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr ""
+#~ "Кошик медіафайлів завантажено. Остаточне видалення потребує підтвердження "
+#~ "у програмі."
 
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "Операцію кошика медіафайлів завершено. Перед наступною операцією "
+#~ "прочитайте записи знову."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Кошик вимкнено: видалити вибрані записи назавжди?"
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "Передавання медіафайлів через це з’єднання ще недоступне."
 
+#~ msgid "More albums"
+#~ msgstr "Інші альбоми"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Створити зустріч на заміну"
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "З’єднання з медіамодулем програми недоступне."
 
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "Налаштування програми завантажено. Передавання не починалося."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Заміна — окрема зустріч; розклад серії не зміниться."
+#~ msgid "Next entries"
+#~ msgstr "Наступні записи"
 
+#~ msgid "No active media operation."
+#~ msgstr "Немає активної операції з медіафайлами."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Виберіть дійсні дату й час зустрічі на заміну."
+#~ msgid "No destination selected"
+#~ msgstr "Призначення не вибрано"
 
+#~ msgid "No retained media entries on this page."
+#~ msgstr "На цій сторінці немає збережених медіазаписів."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Фото й відео"
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "Синхронізувати лише вміст телефону. Локальні зміни зберігаються. "
+#~ "Видалення ще не синхронізуються."
 
+#~ msgid "Photos"
+#~ msgstr "Фотографії"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Медіафайли зберігаються окремо; очищення інших елементів кошика їх не видаляє. Відновлення ніколи не замінює наявний файл."
+#~ msgid "Read media recycle bin"
+#~ msgstr "Прочитати кошик медіафайлів"
 
+#~ msgid "Read photo albums"
+#~ msgstr "Прочитати фотоальбоми"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Не вдалося оновити кошик медіафайлів. Наявні файли збережено."
+#~ msgid "Read video albums"
+#~ msgstr "Прочитати відеоальбоми"
 
+#~ msgid "Recover operation"
+#~ msgstr "Відновити операцію"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Очікує на відновлення"
+#~ msgid "Replaced"
+#~ msgstr "Замінено"
 
+#~ msgid "Request access on phone"
+#~ msgstr "Запросити доступ на телефоні"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Для медіафайлів діє встановлений вище термін зберігання, зокрема «Ніколи». Щоб одразу видалити окремий медіаелемент, скористайтеся «Видалити назавжди». Відновлення ніколи не замінює наявний файл."
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "Деякі записи джерела могли не бути запропоновані. Прочитайте альбоми "
+#~ "знову."
 
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr ""
+#~ "Зупинено або не завершено. Оригінали та історія відновлення зберігаються."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "Власна операція з медіафайлами ще виконується."
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "Зупинення… Очікування завершення операції програми."
 
+#~ msgid "Synchronize videos"
+#~ msgstr "Синхронізувати відео"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "Вибір альбому змінився. Прочитайте альбоми знову."
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "Не вдалося зберегти книгу. Синхронізація медіафайлів не почалася."
 
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "Забагато запитів в очікуванні. Дочекайтеся поточної операції."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "Автоматичне порівняння потребує уваги. Завершення видалення не підтверджено."
+#~ msgid "Unchanged"
+#~ msgstr "Без змін"
 
+#~ msgid "Videos"
+#~ msgstr "Відео"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "Автоматичний прохід перевірив один альбом кожного типу медіа. Інші альбоми будуть перевірені пізніше; видалення залишаються в очікуванні."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "Автоматичну синхронізацію призупинено. Перейдіть у ручний режим і знову ввімкніть її для продовження."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "Вибрано автоматичну синхронізацію, але вона ще недоступна."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "Перевірте запит доступу на телефоні, потім прочитайте альбоми знову."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "Виберіть альбом для порівняння. Неповний каталог ніколи не доводить видалення."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "Вибрати призначення…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "Порівняння медіавмісту… Загальна кількість ще невідома."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "Порівняння вмісту завершено."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "Порівняння вмісту потребує перевірки."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "Локальні зміни збережено"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "Ручна синхронізація"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "Медіафайли використовують збережений строк зберігання кошика. Ніколи означає лише ручне видалення. Відновлення ніколи не замінює наявний файл."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "Операцію з медіафайлами призупинено. Завершення не підтверджено."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "Кошик медіафайлів"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "Кошик медіафайлів завантажено. Остаточне видалення потребує підтвердження у програмі."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "Операцію кошика медіафайлів завершено. Перед наступною операцією прочитайте записи знову."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "Передавання медіафайлів через це з’єднання ще недоступне."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "Інші альбоми"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "З’єднання з медіамодулем програми недоступне."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "Налаштування програми завантажено. Передавання не починалося."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "Наступні записи"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "Немає активної операції з медіафайлами."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "Призначення не вибрано"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "На цій сторінці немає збережених медіазаписів."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "Синхронізувати лише вміст телефону. Локальні зміни зберігаються. Видалення ще не синхронізуються."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "Фотографії"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "Прочитати кошик медіафайлів"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "Прочитати фотоальбоми"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "Прочитати відеоальбоми"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "Відновити операцію"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "Замінено"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "Запросити доступ на телефоні"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "Деякі записи джерела могли не бути запропоновані. Прочитайте альбоми знову."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "Зупинено або не завершено. Оригінали та історія відновлення зберігаються."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "Зупинення… Очікування завершення операції програми."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "Синхронізувати відео"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "Не вдалося зберегти книгу. Синхронізація медіафайлів не почалася."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "Забагато запитів в очікуванні. Дочекайтеся поточної операції."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "Без змін"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "Відео"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "Очікування стану медіафайлів від програми"
+#~ msgid "Waiting for native media status"
+#~ msgstr "Очікування стану медіафайлів від програми"

@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "Manuel"
-
-msgid "Also synchronize videos"
-msgstr "Synkroniser også videoer"
-
-msgid "Allow video access on phone"
-msgstr "Tillad videoadgang på telefonen"
-
-msgid "Synchronize photos"
-msgstr "Synkroniser fotos"
-
-msgid "Canceled"
-msgstr "Annulleret"
-
-msgid "Phone camera active"
-msgstr "Telefonkamera aktivt"
-
-msgid "Synchronize only the phone's collection"
-msgstr "Synkroniser kun samlingen på telefonen"
-
-msgid "Mode"
-msgstr "Tilstand"
-
-msgid "Destination folder"
-msgstr "Destinationsmappe"
-
-msgid "Preparing photo synchronization…"
-msgstr "Forbereder fotosynkronisering…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "Tillad adgang til fotos på telefonen, og opdater derefter albummer."
-
-msgid "Finding phone albums…"
-msgstr "Søger efter telefonens albummer…"
-
-msgid "Phone albums are ready."
-msgstr "Telefonens albummer er klar."
-
-msgid "Photo synchronization active"
-msgstr "Fotosynkronisering aktiv"
-
-msgid "Stopping photo synchronization…"
-msgstr "Stopper fotosynkronisering…"
-
-msgid "Selected album synchronized."
-msgstr "Det valgte album er synkroniseret."
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "Ændringer skal gennemgås. Ingen version med konflikter blev overskrevet."
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "Fotosynkronisering blev stoppet sikkert. Kontroller forbindelsen, før du prøver igen."
-
-msgid "Allow photo access on phone"
-msgstr "Tillad adgang til fotos på telefonen"
-
-msgid "Refresh albums"
-msgstr "Opdater albummer"
-
-msgid "Phone album"
-msgstr "Telefonalbum"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "Gem nye kamerafotos i en separat mappe"
-
-msgid "Store new animations in a separate folder"
-msgstr "Gem nye animationer i en separat mappe"
-
-msgid "Existing files stay in their current folders."
-msgstr "Eksisterende filer bliver i deres nuværende mapper."
-
-msgid "Transfer recovery"
-msgstr "Gendannelse af overførsler"
-
-msgid "Review interrupted transfers"
-msgstr "Gennemgå afbrudte overførsler"
-
-msgid "Saved confirmation available."
-msgstr "Bekræftelse på lagring er tilgængelig."
-
-msgid "Complete the saved mapping receipt."
-msgstr "Færdiggør kvitteringen for lagring og tilknytning."
-
-msgid "Resume with a fresh phone album scan."
-msgstr "Fortsæt med en ny scanning af telefonens album."
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "Usikker overførsel: intet automatisk nyt forsøg eller ændringer i filer."
-
-msgid "Send saved confirmation again"
-msgstr "Send bekræftelse på lagring igen"
-
-msgid "Complete receipt"
-msgstr "Færdiggør kvittering"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "Tidligere bekræftelse sendt. Dette bekræfter ikke en ny overførsel."
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "Kvittering færdiggjort. Send den tidligere bekræftelse separat."
-
-msgid "Photo synchronization could not be started."
-msgstr "Fotosynkronisering kunne ikke startes."
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "Fotosynkronisering kunne ikke startes. Kontroller telefonens aktuelle forbindelse og tilladelser."
-
 msgid " (filtered)"
 msgstr " (filtreret)"
 
@@ -892,12 +783,6 @@ msgstr "Adresser"
 msgid "Advanced"
 msgstr "Avanceret"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Kræver Magnolie Notes på Android. KDE Connect er ikke nødvendigt."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "KDE Connect-funktioner kræver KDE Connect-appen på Android, ikke Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Avancerede funktioner"
 
@@ -963,8 +848,17 @@ msgstr "Heldagsdatoer omdannes ikke til poster med klokkeslæt."
 msgid "Allow notifications despite password protection"
 msgstr "Tillad meddelelser trods adgangskodebeskyttelse"
 
+msgid "Allow photo access on phone"
+msgstr "Tillad adgang til fotos på telefonen"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Tillad adgang til fotos på telefonen, og opdater derefter albummer."
+
 msgid "Allow this device to share this connection"
 msgstr "Tillad denne enhed at dele forbindelsen"
+
+msgid "Allow video access on phone"
+msgstr "Tillad videoadgang på telefonen"
 
 msgid "Allowed background functions"
 msgstr "Tilladte baggrundsfunktioner"
@@ -986,6 +880,9 @@ msgstr "Påmind mig også om mærkedage"
 
 msgid "Also remind me about missed appointments"
 msgstr "Påmind mig også om oversete aftaler"
+
+msgid "Also synchronize videos"
+msgstr "Synkroniser også videoer"
 
 msgid "Also use the default notification"
 msgstr "Brug også standardmeddelelsen"
@@ -1607,6 +1504,9 @@ msgstr "Annuller"
 msgid "Cancel sending"
 msgstr "Annuller afsendelse"
 
+msgid "Canceled"
+msgstr "Annulleret"
+
 msgid "Canton"
 msgstr "Kanton"
 
@@ -1655,6 +1555,10 @@ msgstr "Skift adgangskode"
 
 msgid "Changes are applied automatically"
 msgstr "Ændringer anvendes automatisk"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr ""
+"Ændringer skal gennemgås. Ingen version med konflikter blev overskrevet."
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "Ændringer i din egen profil gemmes med Gem."
@@ -1766,6 +1670,9 @@ msgid ""
 msgstr ""
 "Vælg en foruddefineret vagt, eller indtast din egen. Tildel den til en eller "
 "flere dage på arket for den nye aftale. Dagmarkører sender ikke meddelelser."
+
+msgid "Choose a valid replacement date and time."
+msgstr "Vælg en gyldig dato og tid for erstatningsaftalen."
 
 msgid "Choose a value and period to display its development."
 msgstr "Vælg en værdi og en periode for at vise udviklingen."
@@ -1954,6 +1861,12 @@ msgstr "Import af et komplet arkiv er kun mulig i det installerede program."
 
 msgid "Complete pairing"
 msgstr "Fuldfør parring"
+
+msgid "Complete receipt"
+msgstr "Færdiggør kvittering"
+
+msgid "Complete the saved mapping receipt."
+msgstr "Færdiggør kvitteringen for lagring og tilknytning."
 
 msgid "Completed (%(count)s)"
 msgstr "Fuldført (%(count)s)"
@@ -2201,6 +2114,9 @@ msgstr "Opret en gettext POT-skabelon"
 
 msgid "Create a new appointment immediately"
 msgstr "Opret straks en ny aftale"
+
+msgid "Create a replacement appointment"
+msgstr "Opret en erstatningsaftale"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Opret en selvstændig forbindelse til denne computer?"
@@ -2453,6 +2369,9 @@ msgstr "Slet permanent"
 msgid "Delete selection"
 msgstr "Slet markering"
 
+msgid "Delete series"
+msgstr "Slet serien"
+
 msgid "Delete shift"
 msgstr "Slet vagt"
 
@@ -2477,6 +2396,9 @@ msgstr "Slet denne kontakts historik"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Slet denne noteside (“%(title)s”)?"
+
+msgid "Delete this occurrence"
+msgstr "Slet kun denne forekomst"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Slet dette gendannelsesøjebliksbillede permanent?"
@@ -2524,6 +2446,9 @@ msgstr "Leveringsstatus er usikker"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Tandlæge dr. Hill — Forhåndsvisning af dine poster"
+
+msgid "Destination folder"
+msgstr "Destinationsmappe"
 
 msgid "Detect now"
 msgstr "Registrer nu"
@@ -3000,6 +2925,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "Udeluk kontaktgrupper"
 
+msgid "Existing files stay in their current folders."
+msgstr "Eksisterende filer bliver i deres nuværende mapper."
+
 msgid "Expand day groups by default"
 msgstr "Fold daggrupper ud som standard"
 
@@ -3090,6 +3018,9 @@ msgstr "Udfyld med farveovergang"
 
 msgid "Fill with stored values"
 msgstr "Udfyld med gemte værdier"
+
+msgid "Finding phone albums…"
+msgstr "Søger efter telefonens albummer…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3349,6 +3280,9 @@ msgstr "Skjul tidligere aftaler"
 
 msgid "Highlighter"
 msgstr "Overstregningspen"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Tidligere bekræftelse sendt. Dette bekræfter ikke en ny overførsel."
 
 msgid "History"
 msgstr "Forløb"
@@ -3663,6 +3597,13 @@ msgstr "KDE Connect-enhed"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect til SMS er kun tilgængelig i det installerede program."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"KDE Connect-funktioner kræver KDE Connect-appen på Android, ikke Magnolie "
+"Notes."
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "KDE Connect er ikke tilgængelig; andre baggrundstjenester kører fortsat."
@@ -3770,6 +3711,9 @@ msgstr "Aftenvagt"
 
 msgid "Later occurrence"
 msgstr "Senere forekomst"
+
+msgid "Later occurrences remain unchanged."
+msgstr "Senere forekomster forbliver uændrede."
 
 msgid "Latest alarm monitor entries:"
 msgstr "Seneste poster fra alarmovervågningen:"
@@ -4020,6 +3964,10 @@ msgstr "Administrér personer"
 msgid "Manual"
 msgstr "Manual"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuel"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Brugerdefineret"
@@ -4077,6 +4025,15 @@ msgid ""
 msgstr ""
 "Mediestyring er ikke tilgængelig. Kontrollér forbindelsen og medieappen på "
 "telefonen."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Mediefiler bruger opbevaringsperioden ovenfor, inklusive „Aldrig“. Brug "
+"„Slet permanent“ til at fjerne en enkelt mediepost nu. Gendannelse erstatter "
+"aldrig en eksisterende fil."
 
 msgid "Media player"
 msgstr "Medieafspiller"
@@ -4171,6 +4128,9 @@ msgstr "Mobil"
 
 msgid "Mobile network"
 msgstr "Mobilnetværk"
+
+msgid "Mode"
+msgstr "Tilstand"
 
 msgid "Model"
 msgstr "Model"
@@ -5262,6 +5222,9 @@ msgstr "Pen"
 msgid "Pending SMS messages"
 msgstr "Ventende SMS'er"
 
+msgid "Pending recovery"
+msgstr "Afventer gendannelse"
+
 msgid "People"
 msgstr "Personer"
 
@@ -5336,11 +5299,20 @@ msgstr ""
 msgid "Phone"
 msgstr "Telefon"
 
+msgid "Phone album"
+msgstr "Telefonalbum"
+
+msgid "Phone albums are ready."
+msgstr "Telefonens albummer er klar."
+
 msgid "Phone battery"
 msgstr "Telefonbatteri"
 
 msgid "Phone call"
 msgstr "Telefonopkald"
+
+msgid "Phone camera active"
+msgstr "Telefonkamera aktivt"
 
 msgid "Phone connection"
 msgstr "Telefonforbindelse"
@@ -5388,6 +5360,28 @@ msgstr "Foto tilgængeligt"
 
 msgid "Photo of %(name)s"
 msgstr "Foto af %(name)s"
+
+msgid "Photo synchronization active"
+msgstr "Fotosynkronisering aktiv"
+
+msgid "Photo synchronization could not be started."
+msgstr "Fotosynkronisering kunne ikke startes."
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"Fotosynkronisering kunne ikke startes. Kontroller telefonens aktuelle "
+"forbindelse og tilladelser."
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+"Fotosynkronisering blev stoppet sikkert. Kontroller forbindelsen, før du "
+"prøver igen."
+
+msgid "Photos and videos"
+msgstr "Fotos og videoer"
 
 msgid "Pick up"
 msgstr "Afhentning"
@@ -5510,6 +5504,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Foretrukken mappe til sikkerhedskopier"
+
+msgid "Preparing photo synchronization…"
+msgstr "Forbereder fotosynkronisering…"
 
 msgid "Preparing selected notes…"
 msgstr "Forbereder valgte noter…"
@@ -5673,6 +5670,9 @@ msgstr "Klar."
 msgid "Reason"
 msgstr "Årsag"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Kvittering færdiggjort. Send den tidligere bekræftelse separat."
+
 msgid "Receive files"
 msgstr "Modtag filer"
 
@@ -5716,11 +5716,17 @@ msgstr "Rektangel"
 msgid "Recycle bin"
 msgstr "Papirkurv"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papirkurven er deaktiveret: Slet de valgte poster permanent?"
+
 msgid "Redo"
 msgstr "Gentag"
 
 msgid "Refresh"
 msgstr "Opdatér"
+
+msgid "Refresh albums"
+msgstr "Opdater albummer"
 
 msgid "Region"
 msgstr "Region"
@@ -5893,6 +5899,9 @@ msgstr "Rapporteret (%(method)s): %(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "Anmoder om enhedsstatus"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Kræver Magnolie Notes på Android. KDE Connect er ikke nødvendigt."
+
 msgid "Requires a Nextcloud account."
 msgstr "Kræver en Nextcloud-konto."
 
@@ -5959,6 +5968,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr "Gendanner sikkerhedskopien"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "Fortsæt med en ny scanning af telefonens album."
+
 msgid "Retrieval failed."
 msgstr "Hentning mislykkedes."
 
@@ -6003,6 +6015,9 @@ msgstr "Prøv igen"
 
 msgid "Review and enable"
 msgstr "Kontrollér og aktivér"
+
+msgid "Review interrupted transfers"
+msgstr "Gennemgå afbrudte overførsler"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr ""
@@ -6142,6 +6157,9 @@ msgstr "Gem opgaver"
 
 msgid "Saved"
 msgstr "Gemt"
+
+msgid "Saved confirmation available."
+msgstr "Bekræftelse på lagring er tilgængelig."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6327,6 +6345,9 @@ msgstr "Vælg din telefon"
 msgid "Select, preview, print, export or delete health records"
 msgstr "Vælg, forhåndsvis, udskriv, eksportér eller slet sundhedsoptegnelser"
 
+msgid "Selected album synchronized."
+msgstr "Det valgte album er synkroniseret."
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "Valgte kolonner, der er tomme for alle kontakter, udelades automatisk."
@@ -6348,6 +6369,9 @@ msgstr "Send dokumenter"
 
 msgid "Send notes by email or fax"
 msgstr "Send noter via e-mail eller fax"
+
+msgid "Send saved confirmation again"
+msgstr "Send bekræftelse på lagring igen"
 
 msgid "Send secure request"
 msgstr "Send sikker anmodning"
@@ -6713,6 +6737,15 @@ msgstr "Stop"
 msgid "Stop retrying"
 msgstr "Stop forsøg"
 
+msgid "Stopping photo synchronization…"
+msgstr "Stopper fotosynkronisering…"
+
+msgid "Store new animations in a separate folder"
+msgstr "Gem nye animationer i en separat mappe"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "Gem nye kamerafotos i en separat mappe"
+
 msgid "Street"
 msgstr "Gade"
 
@@ -6813,8 +6846,14 @@ msgstr "Synkronisér kontakter"
 msgid "Synchronize now"
 msgstr "Synkroniser nu"
 
+msgid "Synchronize only the phone's collection"
+msgstr "Synkroniser kun samlingen på telefonen"
+
 msgid "Synchronize permanently"
 msgstr "Synkroniser permanent"
+
+msgid "Synchronize photos"
+msgstr "Synkroniser fotos"
 
 msgid "Synchronize tasks"
 msgstr "Synkronisér kontakter"
@@ -7803,6 +7842,10 @@ msgstr ""
 "Den eksterne kontakt blev slettet. Behold denne kontakt, og gendan den ved "
 "næste synkronisering?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Erstatningen er en særskilt aftale; seriens tidsplan ændres ikke."
+
 msgid "The request is unreadable."
 msgstr "Anmodningen kan ikke læses."
 
@@ -8403,6 +8446,9 @@ msgstr "Håndværker"
 msgid "Transfer received text to the clipboard"
 msgstr "Overfør modtaget tekst til udklipsholderen"
 
+msgid "Transfer recovery"
+msgstr "Gendannelse af overførsler"
+
 msgid "Travel"
 msgstr "Rejse"
 
@@ -8470,6 +8516,10 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Ikke tilgængelig"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr ""
+"Usikker overførsel: intet automatisk nyt forsøg eller ændringer i filer."
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Uændret indhold opretter ikke endnu et gendannelsespunkt."
@@ -9873,282 +9923,183 @@ msgstr "＋ Tilføj aftale"
 #~ "for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig "
 #~ "rolle anmodes."
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Mediefiler opbevares separat; tømning af de øvrige elementer i "
+#~ "papirkurven fjerner dem ikke. Gendannelse erstatter aldrig en "
+#~ "eksisterende fil."
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Mediepapirkurven kunne ikke opdateres. Eksisterende filer blev bevaret."
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "En indbygget mediehandling kører stadig."
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "Albumvalget er ændret. Læs albummerne igen."
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "Automatisk indholdssammenligning kræver opmærksomhed. Ingen afsluttet "
+#~ "sletning er bekræftet."
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "Den automatiske gennemgang kontrollerede ét album pr. medietype. Flere "
+#~ "albummer følger; sletninger afventer stadig."
+
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "Automatisk synkronisering er sat på pause. Skift til manuel tilstand og "
+#~ "aktivér den igen for at fortsætte."
+
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr "Automatisk synkronisering er valgt, men er endnu ikke tilgængelig."
+
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr ""
+#~ "Kontrollér adgangsanmodningen på telefonen, og læs derefter albummerne "
+#~ "igen."
+
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "Vælg et album til sammenligning. Et ufuldstændigt katalog beviser aldrig "
+#~ "sletning."
+
+#~ msgid "Choose destination…"
+#~ msgstr "Vælg destination…"
+
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "Sammenligner medieindhold… Det samlede antal kendes endnu ikke."
+
+#~ msgid "Content comparison finished."
+#~ msgstr "Indholdssammenligning afsluttet."
+
+#~ msgid "Content comparison needs review."
+#~ msgstr "Indholdssammenligning kræver gennemgang."
+
+#~ msgid "Local edits kept"
+#~ msgstr "Lokale ændringer bevaret"
+
+#~ msgid "Manual synchronization"
+#~ msgstr "Manuel synkronisering"
+
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Mediefiler bruger papirkurvens gemte opbevaringsperiode. Aldrig betyder "
+#~ "kun manuel fjernelse. Gendannelse erstatter aldrig en eksisterende fil."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Slet kun denne forekomst"
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "Mediehandling sat på pause. Ingen afslutning blev bekræftet."
 
+#~ msgid "Media recycle bin"
+#~ msgstr "Mediepapirkurv"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Slet serien"
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr ""
+#~ "Mediepapirkurven er indlæst. Permanent fjernelse kræver bekræftelse i "
+#~ "programmet."
 
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "Handlingen i mediepapirkurven er afsluttet. Læs posterne igen før en ny "
+#~ "handling."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Senere forekomster forbliver uændrede."
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "Medieoverførsel er endnu ikke tilgængelig på denne forbindelse."
 
+#~ msgid "More albums"
+#~ msgstr "Flere albummer"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Papirkurven er deaktiveret: Slet de valgte poster permanent?"
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "Programmets medieforbindelse er utilgængelig."
 
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "Programmets indstillinger er indlæst. Ingen overførsel er startet."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Opret en erstatningsaftale"
+#~ msgid "Next entries"
+#~ msgstr "Næste poster"
 
+#~ msgid "No active media operation."
+#~ msgstr "Ingen aktiv mediehandling."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Erstatningen er en særskilt aftale; seriens tidsplan ændres ikke."
+#~ msgid "No destination selected"
+#~ msgstr "Ingen destination valgt"
 
+#~ msgid "No retained media entries on this page."
+#~ msgstr "Ingen bevarede medieposter på denne side."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Vælg en gyldig dato og tid for erstatningsaftalen."
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "Synkroniser kun telefonens indhold. Lokale ændringer bevares. Sletninger "
+#~ "synkroniseres endnu ikke."
 
+#~ msgid "Photos"
+#~ msgstr "Billeder"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fotos og videoer"
+#~ msgid "Read media recycle bin"
+#~ msgstr "Læs mediepapirkurven"
 
+#~ msgid "Read photo albums"
+#~ msgstr "Læs fotoalbummer"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Mediefiler opbevares separat; tømning af de øvrige elementer i papirkurven fjerner dem ikke. Gendannelse erstatter aldrig en eksisterende fil."
+#~ msgid "Read video albums"
+#~ msgstr "Læs videoalbummer"
 
+#~ msgid "Recover operation"
+#~ msgstr "Gendan handling"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Mediepapirkurven kunne ikke opdateres. Eksisterende filer blev bevaret."
+#~ msgid "Replaced"
+#~ msgstr "Erstattet"
 
+#~ msgid "Request access on phone"
+#~ msgstr "Anmod om adgang på telefonen"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Afventer gendannelse"
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "Nogle kildeposter er muligvis ikke blevet tilbudt. Læs albummerne igen."
 
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr ""
+#~ "Stoppet eller ufuldstændig. Originalfiler og gendannelseshistorik bevares."
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Mediefiler bruger opbevaringsperioden ovenfor, inklusive „Aldrig“. Brug „Slet permanent“ til at fjerne en enkelt mediepost nu. Gendannelse erstatter aldrig en eksisterende fil."
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "Stopper… Venter på, at programmets handling afsluttes."
 
+#~ msgid "Synchronize videos"
+#~ msgstr "Synkroniser videoer"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "En indbygget mediehandling kører stadig."
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "Bogen kunne ikke gemmes. Mediesynkronisering blev ikke startet."
 
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "For mange ventende anmodninger. Vent på den aktuelle handling."
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "Albumvalget er ændret. Læs albummerne igen."
+#~ msgid "Unchanged"
+#~ msgstr "Uændret"
 
+#~ msgid "Videos"
+#~ msgstr "Videoer"
 
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "Automatisk indholdssammenligning kræver opmærksomhed. Ingen afsluttet sletning er bekræftet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "Den automatiske gennemgang kontrollerede ét album pr. medietype. Flere albummer følger; sletninger afventer stadig."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "Automatisk synkronisering er sat på pause. Skift til manuel tilstand og aktivér den igen for at fortsætte."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "Automatisk synkronisering er valgt, men er endnu ikke tilgængelig."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "Kontrollér adgangsanmodningen på telefonen, og læs derefter albummerne igen."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "Vælg et album til sammenligning. Et ufuldstændigt katalog beviser aldrig sletning."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "Vælg destination…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "Sammenligner medieindhold… Det samlede antal kendes endnu ikke."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "Indholdssammenligning afsluttet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "Indholdssammenligning kræver gennemgang."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "Lokale ændringer bevaret"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "Manuel synkronisering"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "Mediefiler bruger papirkurvens gemte opbevaringsperiode. Aldrig betyder kun manuel fjernelse. Gendannelse erstatter aldrig en eksisterende fil."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "Mediehandling sat på pause. Ingen afslutning blev bekræftet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "Mediepapirkurv"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "Mediepapirkurven er indlæst. Permanent fjernelse kræver bekræftelse i programmet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "Handlingen i mediepapirkurven er afsluttet. Læs posterne igen før en ny handling."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "Medieoverførsel er endnu ikke tilgængelig på denne forbindelse."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "Flere albummer"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "Programmets medieforbindelse er utilgængelig."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "Programmets indstillinger er indlæst. Ingen overførsel er startet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "Næste poster"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "Ingen aktiv mediehandling."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "Ingen destination valgt"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "Ingen bevarede medieposter på denne side."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "Synkroniser kun telefonens indhold. Lokale ændringer bevares. Sletninger synkroniseres endnu ikke."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "Billeder"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "Læs mediepapirkurven"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "Læs fotoalbummer"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "Læs videoalbummer"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "Gendan handling"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "Erstattet"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "Anmod om adgang på telefonen"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "Nogle kildeposter er muligvis ikke blevet tilbudt. Læs albummerne igen."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "Stoppet eller ufuldstændig. Originalfiler og gendannelseshistorik bevares."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "Stopper… Venter på, at programmets handling afsluttes."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "Synkroniser videoer"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "Bogen kunne ikke gemmes. Mediesynkronisering blev ikke startet."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "For mange ventende anmodninger. Vent på den aktuelle handling."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "Uændret"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "Videoer"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "Venter på programmets mediestatus"
+#~ msgid "Waiting for native media status"
+#~ msgstr "Venter på programmets mediestatus"

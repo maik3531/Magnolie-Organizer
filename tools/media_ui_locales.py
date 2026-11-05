@@ -95,7 +95,7 @@ def main():
     target = Path(__file__).with_suffix('.json')
     target.write_text(json.dumps(translations, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     subprocess.run([sys.executable, str(ROOT / 'tools/appointment_occurrence_locales.py'), '--messages', str(target),
-                    '--comment', 'Native media UI package completeness (Refs #330, #392).', '--apply'], check=True)
+                    '--comment', 'Native media UI package completeness (Refs #330, #392).', '--platform', 'windows', '--apply'], check=True)
 
 
 if __name__ == '__main__': main()

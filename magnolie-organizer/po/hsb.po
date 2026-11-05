@@ -18,115 +18,6 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "Manuelnje"
-
-msgid "Also synchronize videos"
-msgstr "Tež wideja synchronizować"
-
-msgid "Allow video access on phone"
-msgstr "Přistup k widejam na telefonje dowolić"
-
-msgid "Synchronize photos"
-msgstr "Fota synchronizować"
-
-msgid "Canceled"
-msgstr "Přetorhnjene"
-
-msgid "Phone camera active"
-msgstr "Kamera telefona je aktiwna"
-
-msgid "Synchronize only the phone's collection"
-msgstr "Jeno zběrku na telefonje synchronizować"
-
-msgid "Mode"
-msgstr "Modus"
-
-msgid "Destination folder"
-msgstr "Cilowy rjadowak"
-
-msgid "Preparing photo synchronization…"
-msgstr "Synchronizacija fotow so přihotuje…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "Dowolće přistup k fotam na telefonje a aktualizujće potom albumy."
-
-msgid "Finding phone albums…"
-msgstr "Albumy telefona so pytaja…"
-
-msgid "Phone albums are ready."
-msgstr "Albumy telefona su hotowe."
-
-msgid "Photo synchronization active"
-msgstr "Synchronizacija fotow je aktiwna"
-
-msgid "Stopping photo synchronization…"
-msgstr "Synchronizacija fotow so zastawja…"
-
-msgid "Selected album synchronized."
-msgstr "Wubrany album je synchronizowany."
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "Změny dyrbja so přepruwować. Žana konfliktna wersija njeje so přepisała."
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "Synchronizacija fotow je so wěsće zastajiła. Přepruwujće zwisk před dalšim pospytom."
-
-msgid "Allow photo access on phone"
-msgstr "Přistup k fotam na telefonje dowolić"
-
-msgid "Refresh albums"
-msgstr "Albumy aktualizować"
-
-msgid "Phone album"
-msgstr "Album telefona"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "Nowe kamerowe fota w separatnym rjadowaku składować"
-
-msgid "Store new animations in a separate folder"
-msgstr "Nowe animacije w separatnym rjadowaku składować"
-
-msgid "Existing files stay in their current folders."
-msgstr "Eksistowace dataje w swojich dotalnych rjadowakach wostanu."
-
-msgid "Transfer recovery"
-msgstr "Wobnowjenje přenjeseńow"
-
-msgid "Review interrupted transfers"
-msgstr "Přetorhnjene přenjesenja přepruwować"
-
-msgid "Saved confirmation available."
-msgstr "Wobkrućenje składowanja je k dispoziciji."
-
-msgid "Complete the saved mapping receipt."
-msgstr "Dokład wo składowanju a přirjadowanju dokónčić."
-
-msgid "Resume with a fresh phone album scan."
-msgstr "Po nowym přepytowanju telefonoweho albuma pokročować."
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "Njewěste přenjesenje: žane awtomatiske wospjetowanje ani změny datajow."
-
-msgid "Send saved confirmation again"
-msgstr "Wobkrućenje składowanja znowa pósłać"
-
-msgid "Complete receipt"
-msgstr "Dokład dokónčić"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "Prjedawše wobkrućenje pósłane. To nowe přenjesenje njewobkruća."
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "Dokład dokónčeny. Prjedawše wobkrućenje separatnje pósłać."
-
-msgid "Photo synchronization could not be started."
-msgstr "Synchronizacija fotow njeje so dała startować."
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "Synchronizacija fotow njeje so dała startować. Přepruwujće aktualny zwisk z telefonom a dowolnosće."
-
 msgid " (filtered)"
 msgstr " (filtrowane)"
 
@@ -978,12 +869,6 @@ msgstr "Adresy"
 msgid "Advanced"
 msgstr "Rozšěrjene"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Wužaduje sej Magnolie Notes na Androidźe. KDE Connect trěbny njeje."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "Funkcije KDE Connect wužaduja sej aplikaciju KDE Connect na Androidźe, nic Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Rozšěrjene funkcije"
 
@@ -1050,8 +935,17 @@ msgstr "Cyłodnjowe daty so do zapiskow z časom njepřetworjeja."
 msgid "Allow notifications despite password protection"
 msgstr "Zdźělenki tež při škitje z hesłom dowolić"
 
+msgid "Allow photo access on phone"
+msgstr "Přistup k fotam na telefonje dowolić"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr "Dowolće přistup k fotam na telefonje a aktualizujće potom albumy."
+
 msgid "Allow this device to share this connection"
 msgstr "Tutomu gratej dale daće tutoho zwiska dowolić"
+
+msgid "Allow video access on phone"
+msgstr "Přistup k widejam na telefonje dowolić"
 
 msgid "Allowed background functions"
 msgstr "Dowolene pozadkowe funkcije"
@@ -1073,6 +967,9 @@ msgstr "Tež na róčnicy dopominać"
 
 msgid "Also remind me about missed appointments"
 msgstr "Tež na zmeškane terminy dopominać"
+
+msgid "Also synchronize videos"
+msgstr "Tež wideja synchronizować"
 
 msgid "Also use the default notification"
 msgstr "Tež standardnu zdźělenku wužiwać"
@@ -1694,6 +1591,9 @@ msgstr "Přetorhnyć"
 msgid "Cancel sending"
 msgstr "Słanje přetorhnyć"
 
+msgid "Canceled"
+msgstr "Přetorhnjene"
+
 msgid "Canton"
 msgstr "Kanton"
 
@@ -1742,6 +1642,10 @@ msgstr "Hesło změnić"
 
 msgid "Changes are applied automatically"
 msgstr "Změny so awtomatisce přewozmu"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr ""
+"Změny dyrbja so přepruwować. Žana konfliktna wersija njeje so přepisała."
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "Změny na własnym profilu so z Tutu składować składuja."
@@ -1852,6 +1756,9 @@ msgstr ""
 "Wubjerće předdefinowanu směnu abo zapodajće swójsku. Připokazajće ju jednemu "
 "abo wjacorym dźenjam w nowym terminowym łopjenje. Dnjowe znamjenja zdźělenki "
 "njepósćelu."
+
+msgid "Choose a valid replacement date and time."
+msgstr "Wubjerće płaćiwy datum a čas za narunanski termin."
 
 msgid "Choose a value and period to display its development."
 msgstr "Wubjerće hódnotu a dobu, zo byšće jeje wuwiće zwobraznili."
@@ -2042,6 +1949,12 @@ msgstr "Import dospołneho archiwa je jenož w instalowanej aplikaciji móžny."
 
 msgid "Complete pairing"
 msgstr "Sparowanje dokónčić"
+
+msgid "Complete receipt"
+msgstr "Dokład dokónčić"
+
+msgid "Complete the saved mapping receipt."
+msgstr "Dokład wo składowanju a přirjadowanju dokónčić."
 
 msgid "Completed (%(count)s)"
 msgstr "Dokónčene (%(count)s)"
@@ -2288,6 +2201,9 @@ msgstr "Gettext POT-předłohu wutworić"
 
 msgid "Create a new appointment immediately"
 msgstr "Hnydom nowy termin wutworić"
+
+msgid "Create a replacement appointment"
+msgstr "Narunanski termin załožić"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Swójski zwisk k tutomu ličakej wutworić?"
@@ -2552,6 +2468,9 @@ msgstr "Na přeco zhašeć"
 msgid "Delete selection"
 msgstr "Wuběr zhašeć"
 
+msgid "Delete series"
+msgstr "Cyłu seriju zhašeć"
+
 msgid "Delete shift"
 msgstr "Směnu zhašeć"
 
@@ -2576,6 +2495,9 @@ msgstr "Historiju tutoho kontakta zhašeć"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Tutu stronu noticy („%(title)s“) zhašeć?"
+
+msgid "Delete this occurrence"
+msgstr "Jenož tute wuskutkowanje zhašeć"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Tutón wotnowjenski wobraz trajnje wotstronić?"
@@ -2624,6 +2546,9 @@ msgstr "Status doručenja njejasny"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubny lěkar dr. Hill — Přehlad wašich zapiskow"
+
+msgid "Destination folder"
+msgstr "Cilowy rjadowak"
 
 msgid "Detect now"
 msgstr "Nětko namakać"
@@ -3098,6 +3023,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "Skupiny kontaktow wuzamknyć"
 
+msgid "Existing files stay in their current folders."
+msgstr "Eksistowace dataje w swojich dotalnych rjadowakach wostanu."
+
 msgid "Expand day groups by default"
 msgstr "Skupiny dnjow standardnje pokazać"
 
@@ -3187,6 +3115,9 @@ msgstr "Z barbnym přechodom wupjelnić"
 
 msgid "Fill with stored values"
 msgstr "Ze składowanymi hódnotami wupjelnić"
+
+msgid "Finding phone albums…"
+msgstr "Albumy telefona so pytaja…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3447,6 +3378,9 @@ msgstr "Zańdźene terminy schować"
 
 msgid "Highlighter"
 msgstr "Wuzběhowak"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr "Prjedawše wobkrućenje pósłane. To nowe přenjesenje njewobkruća."
 
 msgid "History"
 msgstr "Stawizny"
@@ -3764,6 +3698,13 @@ msgstr "Grat KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect za SMS je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"Funkcije KDE Connect wužaduja sej aplikaciju KDE Connect na Androidźe, nic "
+"Magnolie Notes."
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect k dispoziciji njeje; druhe pozadkowe słužby dale běža."
 
@@ -3868,6 +3809,9 @@ msgstr "Wječorna změna"
 
 msgid "Later occurrence"
 msgstr "Pozdźiši wustup"
+
+msgid "Later occurrences remain unchanged."
+msgstr "Pozdźiše wuskutkowanja wostanu njezměnjene."
 
 msgid "Latest alarm monitor entries:"
 msgstr "Najnowše zapiski alarmoweho dohladowaka:"
@@ -4118,6 +4062,10 @@ msgstr "Wosoby zrjadować"
 msgid "Manual"
 msgstr "Ručnje"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manuelnje"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Swójske"
@@ -4175,6 +4123,15 @@ msgid ""
 msgstr ""
 "Medijowe wodźenje njeje k dispoziciji. Přepruwujće zwisk a medijowu "
 "aplikaciju na telefonje."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z "
+"„Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje "
+"ženje eksistowacu dataju njenaruna."
 
 msgid "Media player"
 msgstr "Medijowy wothrawak"
@@ -4269,6 +4226,9 @@ msgstr "Mobilny telefon"
 
 msgid "Mobile network"
 msgstr "Mobilna syć"
+
+msgid "Mode"
+msgstr "Modus"
 
 msgid "Model"
 msgstr "Model"
@@ -5375,6 +5335,9 @@ msgstr "Injekciski pisak"
 msgid "Pending SMS messages"
 msgstr "Čakace SMS-powěsće"
 
+msgid "Pending recovery"
+msgstr "Wobnowjenje wustaja"
+
 msgid "People"
 msgstr "Wosoby"
 
@@ -5458,11 +5421,20 @@ msgstr ""
 msgid "Phone"
 msgstr "Telefon"
 
+msgid "Phone album"
+msgstr "Album telefona"
+
+msgid "Phone albums are ready."
+msgstr "Albumy telefona su hotowe."
+
 msgid "Phone battery"
 msgstr "Telefonowa baterija"
 
 msgid "Phone call"
 msgstr "Telefonować"
+
+msgid "Phone camera active"
+msgstr "Kamera telefona je aktiwna"
 
 msgid "Phone connection"
 msgstr "Zwisk z telefonom"
@@ -5509,6 +5481,28 @@ msgstr "Foto k dispoziciji"
 
 msgid "Photo of %(name)s"
 msgstr "Foto wosoby %(name)s"
+
+msgid "Photo synchronization active"
+msgstr "Synchronizacija fotow je aktiwna"
+
+msgid "Photo synchronization could not be started."
+msgstr "Synchronizacija fotow njeje so dała startować."
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"Synchronizacija fotow njeje so dała startować. Přepruwujće aktualny zwisk z "
+"telefonom a dowolnosće."
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+"Synchronizacija fotow je so wěsće zastajiła. Přepruwujće zwisk před dalšim "
+"pospytom."
+
+msgid "Photos and videos"
+msgstr "Fota a wideja"
 
 msgid "Pick up"
 msgstr "Wotewzać"
@@ -5633,6 +5627,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Preferowany rjadowak zawěsćenjow"
+
+msgid "Preparing photo synchronization…"
+msgstr "Synchronizacija fotow so přihotuje…"
 
 msgid "Preparing selected notes…"
 msgstr "Wubrane noticy so přihotuja…"
@@ -5803,6 +5800,9 @@ msgstr "Hotowo."
 msgid "Reason"
 msgstr "Přičina"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Dokład dokónčeny. Prjedawše wobkrućenje separatnje pósłać."
+
 msgid "Receive files"
 msgstr "Dataje přijimać"
 
@@ -5846,11 +5846,17 @@ msgstr "Praworóžk"
 msgid "Recycle bin"
 msgstr "Papjerowy koš"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"
+
 msgid "Redo"
 msgstr "Wospjetować"
 
 msgid "Refresh"
 msgstr "Wokřewić"
+
+msgid "Refresh albums"
+msgstr "Albumy aktualizować"
 
 msgid "Region"
 msgstr "Region"
@@ -6024,6 +6030,9 @@ msgstr "Zdźělene (%(method)s): %(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "Naprašowanje za statusom nastroja"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Wužaduje sej Magnolie Notes na Androidźe. KDE Connect trěbny njeje."
+
 msgid "Requires a Nextcloud account."
 msgstr "Trjeba Nextcloud-konto."
 
@@ -6090,6 +6099,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr "Zawěsćenje so wobnowja"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "Po nowym přepytowanju telefonoweho albuma pokročować."
+
 msgid "Retrieval failed."
 msgstr "Wotwołanje njeje so poradźiło."
 
@@ -6134,6 +6146,9 @@ msgstr "Hišće raz spytać"
 
 msgid "Review and enable"
 msgstr "Přepruwować a aktiwizować"
+
+msgid "Review interrupted transfers"
+msgstr "Přetorhnjene přenjesenja přepruwować"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "Před wobkrućenjom přepruwće dokładny tekst SMS za kóždeho přijimarja."
@@ -6273,6 +6288,9 @@ msgstr "Nadawki składować"
 
 msgid "Saved"
 msgstr "Składowane"
+
+msgid "Saved confirmation available."
+msgstr "Wobkrućenje składowanja je k dispoziciji."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6460,6 +6478,9 @@ msgstr "Wubjerće swój telefon"
 msgid "Select, preview, print, export or delete health records"
 msgstr "Strowotne zapiski wubrać, přehladować, ćišćeć, eksportować abo zhašeć"
 
+msgid "Selected album synchronized."
+msgstr "Wubrany album je synchronizowany."
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr ""
@@ -6483,6 +6504,9 @@ msgstr "Dokumenty pósłać"
 
 msgid "Send notes by email or fax"
 msgstr "Noticy přez e-mejl abo faks słać"
+
+msgid "Send saved confirmation again"
+msgstr "Wobkrućenje składowanja znowa pósłać"
 
 msgid "Send secure request"
 msgstr "Wěste naprašowanje pósłać"
@@ -6847,6 +6871,15 @@ msgstr "Zastajić"
 msgid "Stop retrying"
 msgstr "Spytowanje skónčić"
 
+msgid "Stopping photo synchronization…"
+msgstr "Synchronizacija fotow so zastawja…"
+
+msgid "Store new animations in a separate folder"
+msgstr "Nowe animacije w separatnym rjadowaku składować"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "Nowe kamerowe fota w separatnym rjadowaku składować"
+
 msgid "Street"
 msgstr "Hasa"
 
@@ -6947,8 +6980,14 @@ msgstr "Kontakty synchronizować"
 msgid "Synchronize now"
 msgstr "Nětko synchronizować"
 
+msgid "Synchronize only the phone's collection"
+msgstr "Jeno zběrku na telefonje synchronizować"
+
 msgid "Synchronize permanently"
 msgstr "Trajnje synchronizować"
+
+msgid "Synchronize photos"
+msgstr "Fota synchronizować"
 
 msgid "Synchronize tasks"
 msgstr "Kontakty synchronizować"
@@ -7941,6 +7980,10 @@ msgstr ""
 "Zdaleny kontakt bu zhašeny. Tutón kontakt wobchować a při přichodnej "
 "synchronizaciji wobnowić?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr "Narunanje je samostatny termin; rytmus serije wostanje njezměnjeny."
+
 msgid "The request is unreadable."
 msgstr "Naprašowanje njeje čitajomne."
 
@@ -8539,6 +8582,9 @@ msgstr "Rjemjeslnik"
 msgid "Transfer received text to the clipboard"
 msgstr "Přijaty tekst do mjezyskłada přenjesć"
 
+msgid "Transfer recovery"
+msgstr "Wobnowjenje přenjeseńow"
+
 msgid "Travel"
 msgstr "Pućowanje"
 
@@ -8606,6 +8652,10 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Njesteji k dispoziciji"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr ""
+"Njewěste přenjesenje: žane awtomatiske wospjetowanje ani změny datajow."
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "Njezměnjeny wobsah dalši wobnowjenski dypk njewutworja."
@@ -10038,282 +10088,186 @@ msgstr "＋ Termin přidać"
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow "
+#~ "papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju "
+#~ "njenaruna."
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so "
+#~ "wobchowali."
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "Natiwna medijowa operacija hišće běži."
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "Wuběr albuma je so změnił. Wučitajće albumy znowa."
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "Awtomatiske přirunanje wobsaha sej kedźbnosć wužaduje. Dokónčene zhašenje "
+#~ "so njewobkrući."
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "Awtomatiski přeběh je jedyn album kóždeho medijoweho typa přepruwował. "
+#~ "Dalše albumy slěduja; zhašenja hišće čakaja."
+
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "Awtomatiska synchronizacija je zastajena. Přeńdźće do manuelneho modusa a "
+#~ "zmóžńće ju znowa, zo byšće pokročował."
+
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr ""
+#~ "Awtomatiska synchronizacija je wubrana, ale hišće k dispoziciji njeje."
+
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr ""
+#~ "Přepruwujće přistupne naprašowanje na telefonje a wučitajće albumy znowa."
+
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "Wubjerće album za přirunanje. Njedospołny katalog ženje zhašenje "
+#~ "njedopokazuje."
+
+#~ msgid "Choose destination…"
+#~ msgstr "Cil wubrać…"
+
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "Medijowy wobsah so přirunuje… Cyłkowna ličba hišće znata njeje."
+
+#~ msgid "Content comparison finished."
+#~ msgstr "Přirunanje wobsaha dokónčene."
+
+#~ msgid "Content comparison needs review."
+#~ msgstr "Přirunanje wobsaha sej kontrolu wužaduje."
+
+#~ msgid "Local edits kept"
+#~ msgstr "Lokalne změny wobchowane"
+
+#~ msgid "Manual synchronization"
+#~ msgstr "Manuelna synchronizacija"
+
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Medijowe dataje wužiwaja składowanu dobu wobchowanja papjernika. Ženje "
+#~ "rěka jenož manuelne wotstronjenje. Wobnowjenje ženje eksistowacu dataju "
+#~ "njenaruna."
+
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "Medijowa operacija zastajena. Dokónčenje so njewobkrući."
+
+#~ msgid "Media recycle bin"
+#~ msgstr "Medijowy papjernik"
+
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr ""
+#~ "Medijowy papjernik začitany. Trajne wotstronjenje sej natiwne wobkrućenje "
+#~ "wužaduje."
+
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "Operacija medijoweho papjernika dokónčena. Wučitajće zapiski před dalšej "
+#~ "operaciju znowa."
+
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "Medijowy přenos hišće na tutym zwisku k dispoziciji njeje."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Jenož tute wuskutkowanje zhašeć"
+#~ msgid "More albums"
+#~ msgstr "Dalše albumy"
 
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "Natiwny medijowy zwisk k dispoziciji njeje."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Cyłu seriju zhašeć"
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "Natiwne nastajenja začitane. Žadyn přenos so njespušći."
 
+#~ msgid "Next entries"
+#~ msgstr "Přichodne zapiski"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "Pozdźiše wuskutkowanja wostanu njezměnjene."
+#~ msgid "No active media operation."
+#~ msgstr "Žana aktiwna medijowa operacija."
 
+#~ msgid "No destination selected"
+#~ msgstr "Žadyn cil wubrany"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Papjernik je znjemóžnjeny: wubrane zapiski na přeco zhašeć?"
+#~ msgid "No retained media entries on this page."
+#~ msgstr "Na tutej stronje žane wobchowane medijowe zapiski njejsu."
 
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "Jenož wobsah telefona synchronizować. Lokalne změny so wobchowaja. "
+#~ "Zhašenja so hišće njesynchronizuja."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Narunanski termin załožić"
+#~ msgid "Photos"
+#~ msgstr "Fota"
 
+#~ msgid "Read media recycle bin"
+#~ msgstr "Medijowy papjernik wučitać"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "Narunanje je samostatny termin; rytmus serije wostanje njezměnjeny."
+#~ msgid "Read photo albums"
+#~ msgstr "Fotoalbumy wučitać"
 
+#~ msgid "Read video albums"
+#~ msgstr "Widejoalbumy wučitać"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Wubjerće płaćiwy datum a čas za narunanski termin."
+#~ msgid "Recover operation"
+#~ msgstr "Operaciju wobnowić"
 
+#~ msgid "Replaced"
+#~ msgstr "Narunane"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fota a wideja"
+#~ msgid "Request access on phone"
+#~ msgstr "Přistup na telefonje požadać"
 
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "Někotre žórłowe zapiski snano poskićene njeběchu. Wučitajće albumy znowa."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Medijowe dataje so separatnje wobchowaja; wuprózdnjenje druhich zapiskow papjernika je njewotstroni. Wobnowjenje ženje eksistowacu dataju njenaruna."
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr ""
+#~ "Zastajene abo njedokónčene. Originalne dataje a historija wobnowjenja so "
+#~ "wobchowaja."
 
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "Zastajuje so… Čaka so na kónc natiwneje operacije."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Medijowy papjernik njeda so aktualizować. Eksistowace dataje su so wobchowali."
+#~ msgid "Synchronize videos"
+#~ msgstr "Wideja synchronizować"
 
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr "Kniha njeda so składować. Medijowa synchronizacija so njespušći."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Wobnowjenje wustaja"
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "Přewjele naprašowanjow čaka. Čakajće na aktualnu operaciju."
 
+#~ msgid "Unchanged"
+#~ msgstr "Njezměnjene"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Za medijowe dataje płaći horjeka nastajeny čas wobchowanja, tež „Ženje“. Z „Na přeco zhašeć“ wotstroniće jednotliwy medijowy zapisk hnydom. Wobnowjenje ženje eksistowacu dataju njenaruna."
+#~ msgid "Videos"
+#~ msgstr "Wideja"
 
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "Natiwna medijowa operacija hišće běži."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "Wuběr albuma je so změnił. Wučitajće albumy znowa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "Awtomatiske přirunanje wobsaha sej kedźbnosć wužaduje. Dokónčene zhašenje so njewobkrući."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "Awtomatiski přeběh je jedyn album kóždeho medijoweho typa přepruwował. Dalše albumy slěduja; zhašenja hišće čakaja."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "Awtomatiska synchronizacija je zastajena. Přeńdźće do manuelneho modusa a zmóžńće ju znowa, zo byšće pokročował."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "Awtomatiska synchronizacija je wubrana, ale hišće k dispoziciji njeje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "Přepruwujće přistupne naprašowanje na telefonje a wučitajće albumy znowa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "Wubjerće album za přirunanje. Njedospołny katalog ženje zhašenje njedopokazuje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "Cil wubrać…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "Medijowy wobsah so přirunuje… Cyłkowna ličba hišće znata njeje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "Přirunanje wobsaha dokónčene."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "Přirunanje wobsaha sej kontrolu wužaduje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "Lokalne změny wobchowane"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "Manuelna synchronizacija"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "Medijowe dataje wužiwaja składowanu dobu wobchowanja papjernika. Ženje rěka jenož manuelne wotstronjenje. Wobnowjenje ženje eksistowacu dataju njenaruna."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "Medijowa operacija zastajena. Dokónčenje so njewobkrući."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "Medijowy papjernik"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "Medijowy papjernik začitany. Trajne wotstronjenje sej natiwne wobkrućenje wužaduje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "Operacija medijoweho papjernika dokónčena. Wučitajće zapiski před dalšej operaciju znowa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "Medijowy přenos hišće na tutym zwisku k dispoziciji njeje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "Dalše albumy"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "Natiwny medijowy zwisk k dispoziciji njeje."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "Natiwne nastajenja začitane. Žadyn přenos so njespušći."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "Přichodne zapiski"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "Žana aktiwna medijowa operacija."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "Žadyn cil wubrany"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "Na tutej stronje žane wobchowane medijowe zapiski njejsu."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "Jenož wobsah telefona synchronizować. Lokalne změny so wobchowaja. Zhašenja so hišće njesynchronizuja."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "Fota"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "Medijowy papjernik wučitać"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "Fotoalbumy wučitać"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "Widejoalbumy wučitać"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "Operaciju wobnowić"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "Narunane"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "Přistup na telefonje požadać"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "Někotre žórłowe zapiski snano poskićene njeběchu. Wučitajće albumy znowa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "Zastajene abo njedokónčene. Originalne dataje a historija wobnowjenja so wobchowaja."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "Zastajuje so… Čaka so na kónc natiwneje operacije."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "Wideja synchronizować"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "Kniha njeda so składować. Medijowa synchronizacija so njespušći."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "Přewjele naprašowanjow čaka. Čakajće na aktualnu operaciju."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "Njezměnjene"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "Wideja"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "Čaka so na natiwny medijowy status"
+#~ msgid "Waiting for native media status"
+#~ msgstr "Čaka so na natiwny medijowy status"

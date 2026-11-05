@@ -17,115 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgctxt "photo synchronization"
-msgid "Manual"
-msgstr "Manual"
-
-msgid "Also synchronize videos"
-msgstr "Sincronizar também vídeos"
-
-msgid "Allow video access on phone"
-msgstr "Permitir acesso aos vídeos no telefone"
-
-msgid "Synchronize photos"
-msgstr "Sincronizar fotografias"
-
-msgid "Canceled"
-msgstr "Cancelado"
-
-msgid "Phone camera active"
-msgstr "Câmara do telefone ativa"
-
-msgid "Synchronize only the phone's collection"
-msgstr "Sincronizar apenas a coleção do telefone"
-
-msgid "Mode"
-msgstr "Modo"
-
-msgid "Destination folder"
-msgstr "Pasta de destino"
-
-msgid "Preparing photo synchronization…"
-msgstr "A preparar a sincronização de fotografias…"
-
-msgid "Allow photo access on the phone, then refresh albums."
-msgstr "Permita o acesso às fotografias no telefone e depois atualize os álbuns."
-
-msgid "Finding phone albums…"
-msgstr "A procurar álbuns do telefone…"
-
-msgid "Phone albums are ready."
-msgstr "Os álbuns do telefone estão prontos."
-
-msgid "Photo synchronization active"
-msgstr "Sincronização de fotografias ativa"
-
-msgid "Stopping photo synchronization…"
-msgstr "A parar a sincronização de fotografias…"
-
-msgid "Selected album synchronized."
-msgstr "Álbum selecionado sincronizado."
-
-msgid "Changes need review. No conflicting version was overwritten."
-msgstr "É necessário rever as alterações. Nenhuma versão em conflito foi substituída."
-
-msgid "Photo synchronization stopped safely. Check the connection before retrying."
-msgstr "A sincronização de fotografias parou em segurança. Verifique a ligação antes de tentar novamente."
-
-msgid "Allow photo access on phone"
-msgstr "Permitir acesso às fotografias no telefone"
-
-msgid "Refresh albums"
-msgstr "Atualizar álbuns"
-
-msgid "Phone album"
-msgstr "Álbum do telefone"
-
-msgid "Store new camera photos in a separate folder"
-msgstr "Guardar novas fotografias da câmara numa pasta separada"
-
-msgid "Store new animations in a separate folder"
-msgstr "Guardar novas animações numa pasta separada"
-
-msgid "Existing files stay in their current folders."
-msgstr "Os ficheiros existentes permanecem nas pastas atuais."
-
-msgid "Transfer recovery"
-msgstr "Recuperação de transferências"
-
-msgid "Review interrupted transfers"
-msgstr "Rever transferências interrompidas"
-
-msgid "Saved confirmation available."
-msgstr "Confirmação de gravação disponível."
-
-msgid "Complete the saved mapping receipt."
-msgstr "Completar o comprovativo de gravação e associação."
-
-msgid "Resume with a fresh phone album scan."
-msgstr "Retomar com uma nova análise do álbum do telemóvel."
-
-msgid "Uncertain transfer: no automatic retry or file changes."
-msgstr "Transferência incerta: sem novas tentativas automáticas nem alterações de ficheiros."
-
-msgid "Send saved confirmation again"
-msgstr "Reenviar a confirmação de gravação"
-
-msgid "Complete receipt"
-msgstr "Completar comprovativo"
-
-msgid "Historical confirmation sent. This does not confirm a new transfer."
-msgstr "Confirmação anterior enviada. Isto não confirma uma nova transferência."
-
-msgid "Receipt completed. Send its historical confirmation separately."
-msgstr "Comprovativo completado. Envie a confirmação anterior separadamente."
-
-msgid "Photo synchronization could not be started."
-msgstr "Não foi possível iniciar a sincronização de fotografias."
-
-msgid "Photo synchronization could not be started. Check the current phone connection and permissions."
-msgstr "Não foi possível iniciar a sincronização de fotografias. Verifique a ligação atual do telefone e as permissões."
-
 msgid " (filtered)"
 msgstr " (filtrado)"
 
@@ -905,12 +796,6 @@ msgstr "Moradas"
 msgid "Advanced"
 msgstr "Avançado"
 
-msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
-msgstr "Requer o Magnolie Notes no Android. O KDE Connect não é necessário."
-
-msgid "KDE Connect functions require the KDE Connect app on Android, not Magnolie Notes."
-msgstr "As funções do KDE Connect requerem a aplicação KDE Connect no Android, não o Magnolie Notes."
-
 msgid "Advanced functions"
 msgstr "Funções avançadas"
 
@@ -976,8 +861,18 @@ msgstr "As datas de dia inteiro não são convertidas em entradas com hora."
 msgid "Allow notifications despite password protection"
 msgstr "Permitir notificações apesar da proteção por palavra-passe"
 
+msgid "Allow photo access on phone"
+msgstr "Permitir acesso às fotografias no telefone"
+
+msgid "Allow photo access on the phone, then refresh albums."
+msgstr ""
+"Permita o acesso às fotografias no telefone e depois atualize os álbuns."
+
 msgid "Allow this device to share this connection"
 msgstr "Permitir que este dispositivo partilhe esta ligação"
+
+msgid "Allow video access on phone"
+msgstr "Permitir acesso aos vídeos no telefone"
 
 msgid "Allowed background functions"
 msgstr "Funções em segundo plano permitidas"
@@ -999,6 +894,9 @@ msgstr "Lembrar-me também das datas comemorativas"
 
 msgid "Also remind me about missed appointments"
 msgstr "Lembrar-me também dos compromissos perdidos"
+
+msgid "Also synchronize videos"
+msgstr "Sincronizar também vídeos"
 
 msgid "Also use the default notification"
 msgstr "Utilizar também a notificação predefinida"
@@ -1626,6 +1524,9 @@ msgstr "Cancelar"
 msgid "Cancel sending"
 msgstr "Cancelar envio"
 
+msgid "Canceled"
+msgstr "Cancelado"
+
 msgid "Canton"
 msgstr "Cantão"
 
@@ -1675,6 +1576,10 @@ msgstr "Alterar palavra-passe"
 
 msgid "Changes are applied automatically"
 msgstr "As alterações são aplicadas automaticamente"
+
+msgid "Changes need review. No conflicting version was overwritten."
+msgstr ""
+"É necessário rever as alterações. Nenhuma versão em conflito foi substituída."
 
 msgid "Changes to your own profile are saved with Save."
 msgstr "As alterações ao perfil pessoal são guardadas com Guardar."
@@ -1789,6 +1694,9 @@ msgstr ""
 "Escolha um turno predefinido ou introduza um turno personalizado. Atribua-o "
 "a um ou mais dias na nova folha de compromisso. Os marcadores de dia não "
 "enviam notificações."
+
+msgid "Choose a valid replacement date and time."
+msgstr "Escolha uma data e hora válidas para o compromisso de substituição."
 
 msgid "Choose a value and period to display its development."
 msgstr "Escolha um valor e um período para apresentar a sua evolução."
@@ -1981,6 +1889,12 @@ msgstr ""
 
 msgid "Complete pairing"
 msgstr "Concluir emparelhamento"
+
+msgid "Complete receipt"
+msgstr "Completar comprovativo"
+
+msgid "Complete the saved mapping receipt."
+msgstr "Completar o comprovativo de gravação e associação."
 
 msgid "Completed (%(count)s)"
 msgstr "Concluídos (%(count)s)"
@@ -2234,6 +2148,9 @@ msgstr "Criar um modelo POT gettext"
 
 msgid "Create a new appointment immediately"
 msgstr "Criar imediatamente um novo compromisso"
+
+msgid "Create a replacement appointment"
+msgstr "Criar um compromisso de substituição"
 
 msgid "Create a separate connection to this computer?"
 msgstr "Criar uma ligação independente a este computador?"
@@ -2489,6 +2406,9 @@ msgstr "Eliminar definitivamente"
 msgid "Delete selection"
 msgstr "Eliminar seleção"
 
+msgid "Delete series"
+msgstr "Eliminar a série"
+
 msgid "Delete shift"
 msgstr "Eliminar turno"
 
@@ -2513,6 +2433,9 @@ msgstr "Excluir o histórico deste contato"
 
 msgid "Delete this note page (“%(title)s”)?"
 msgstr "Eliminar esta página de notas («%(title)s»)?"
+
+msgid "Delete this occurrence"
+msgstr "Eliminar apenas esta ocorrência"
 
 msgid "Delete this recovery snapshot permanently?"
 msgstr "Eliminar definitivamente este instantâneo de recuperação?"
@@ -2562,6 +2485,9 @@ msgstr "Estado da entrega incerto"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Dentista Dr. Hill — Pré-visualização das suas entradas"
+
+msgid "Destination folder"
+msgstr "Pasta de destino"
 
 msgid "Detect now"
 msgstr "Detetar agora"
@@ -3041,6 +2967,9 @@ msgstr ""
 msgid "Exclude contact groups"
 msgstr "Excluir grupos de contactos"
 
+msgid "Existing files stay in their current folders."
+msgstr "Os ficheiros existentes permanecem nas pastas atuais."
+
 msgid "Expand day groups by default"
 msgstr "Expandir os grupos diários por predefinição"
 
@@ -3131,6 +3060,9 @@ msgstr "Preencher com gradiente"
 
 msgid "Fill with stored values"
 msgstr "Preencher com os valores guardados"
+
+msgid "Finding phone albums…"
+msgstr "A procurar álbuns do telefone…"
 
 msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
@@ -3394,6 +3326,10 @@ msgstr "Ocultar compromissos passados"
 
 msgid "Highlighter"
 msgstr "Marcador"
+
+msgid "Historical confirmation sent. This does not confirm a new transfer."
+msgstr ""
+"Confirmação anterior enviada. Isto não confirma uma nova transferência."
 
 msgid "History"
 msgstr "Histórico"
@@ -3711,6 +3647,13 @@ msgstr "Dispositivo KDE Connect"
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect para SMS está disponível apenas no aplicativo instalado."
 
+msgid ""
+"KDE Connect functions require the KDE Connect app on Android, not Magnolie "
+"Notes."
+msgstr ""
+"As funções do KDE Connect requerem a aplicação KDE Connect no Android, não o "
+"Magnolie Notes."
+
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "O KDE Connect está indisponível; os restantes serviços em segundo plano "
@@ -3819,6 +3762,9 @@ msgstr "Turno da tarde"
 
 msgid "Later occurrence"
 msgstr "Ocorrência posterior"
+
+msgid "Later occurrences remain unchanged."
+msgstr "As ocorrências seguintes permanecem inalteradas."
 
 msgid "Latest alarm monitor entries:"
 msgstr "Entradas mais recentes do monitor de alarmes:"
@@ -4069,6 +4015,10 @@ msgstr "Gerir pessoas"
 msgid "Manual"
 msgstr "Manual"
 
+msgctxt "photo synchronization"
+msgid "Manual"
+msgstr "Manual"
+
 msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Personalizado"
@@ -4126,6 +4076,16 @@ msgid ""
 msgstr ""
 "O controlo multimédia está indisponível. Verifique a ligação e a aplicação "
 "multimédia do telefone."
+
+msgid ""
+"Media files use the retention period above, including “Never”. Use “Delete "
+"permanently” to remove an individual media entry now. Restoring never "
+"replaces an existing file."
+msgstr ""
+"Os ficheiros multimédia usam o período de conservação definido acima, "
+"incluindo «Nunca». Use «Eliminar permanentemente» para remover agora um "
+"elemento multimédia individual. O restauro nunca substitui um ficheiro "
+"existente."
 
 msgid "Media player"
 msgstr "Leitor multimédia"
@@ -4222,6 +4182,9 @@ msgstr "Telemóvel"
 
 msgid "Mobile network"
 msgstr "Rede móvel"
+
+msgid "Mode"
+msgstr "Modo"
 
 msgid "Model"
 msgstr "Modelo"
@@ -5335,6 +5298,9 @@ msgstr "Caneta"
 msgid "Pending SMS messages"
 msgstr "Mensagens SMS pendentes"
 
+msgid "Pending recovery"
+msgstr "Restauro pendente"
+
 msgid "People"
 msgstr "Pessoas"
 
@@ -5415,11 +5381,20 @@ msgstr ""
 msgid "Phone"
 msgstr "Telefone"
 
+msgid "Phone album"
+msgstr "Álbum do telefone"
+
+msgid "Phone albums are ready."
+msgstr "Os álbuns do telefone estão prontos."
+
 msgid "Phone battery"
 msgstr "Bateria do telefone"
 
 msgid "Phone call"
 msgstr "Chamada telefónica"
+
+msgid "Phone camera active"
+msgstr "Câmara do telefone ativa"
 
 msgid "Phone connection"
 msgstr "Ligação ao telefone"
@@ -5466,6 +5441,28 @@ msgstr "Foto disponível"
 
 msgid "Photo of %(name)s"
 msgstr "Foto de %(name)s"
+
+msgid "Photo synchronization active"
+msgstr "Sincronização de fotografias ativa"
+
+msgid "Photo synchronization could not be started."
+msgstr "Não foi possível iniciar a sincronização de fotografias."
+
+msgid ""
+"Photo synchronization could not be started. Check the current phone "
+"connection and permissions."
+msgstr ""
+"Não foi possível iniciar a sincronização de fotografias. Verifique a ligação "
+"atual do telefone e as permissões."
+
+msgid ""
+"Photo synchronization stopped safely. Check the connection before retrying."
+msgstr ""
+"A sincronização de fotografias parou em segurança. Verifique a ligação antes "
+"de tentar novamente."
+
+msgid "Photos and videos"
+msgstr "Fotografias e vídeos"
 
 msgid "Pick up"
 msgstr "Recolher"
@@ -5592,6 +5589,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Pasta preferida para cópias de segurança"
+
+msgid "Preparing photo synchronization…"
+msgstr "A preparar a sincronização de fotografias…"
 
 msgid "Preparing selected notes…"
 msgstr "A preparar as notas selecionadas…"
@@ -5758,6 +5758,9 @@ msgstr "Pronto."
 msgid "Reason"
 msgstr "Motivo"
 
+msgid "Receipt completed. Send its historical confirmation separately."
+msgstr "Comprovativo completado. Envie a confirmação anterior separadamente."
+
 msgid "Receive files"
 msgstr "Receber ficheiros"
 
@@ -5801,11 +5804,18 @@ msgstr "Retângulo"
 msgid "Recycle bin"
 msgstr "Lixo"
 
+msgid "Recycle bin disabled: Delete the selected items permanently?"
+msgstr ""
+"Reciclagem desativada: eliminar permanentemente as entradas selecionadas?"
+
 msgid "Redo"
 msgstr "Refazer"
 
 msgid "Refresh"
 msgstr "Atualizar"
+
+msgid "Refresh albums"
+msgstr "Atualizar álbuns"
 
 msgid "Region"
 msgstr "Região"
@@ -5980,6 +5990,9 @@ msgstr "Comunicado (%(method)s): %(title)s – %(body)s"
 msgid "Requesting the device status"
 msgstr "A solicitar o estado do dispositivo"
 
+msgid "Requires Magnolie Notes on Android. KDE Connect is not required."
+msgstr "Requer o Magnolie Notes no Android. O KDE Connect não é necessário."
+
 msgid "Requires a Nextcloud account."
 msgstr "Requer uma conta Nextcloud."
 
@@ -6048,6 +6061,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr "A restaurar a cópia de segurança"
 
+msgid "Resume with a fresh phone album scan."
+msgstr "Retomar com uma nova análise do álbum do telemóvel."
+
 msgid "Retrieval failed."
 msgstr "Falha na obtenção."
 
@@ -6092,6 +6108,9 @@ msgstr "Tentar novamente"
 
 msgid "Review and enable"
 msgstr "Rever e ativar"
+
+msgid "Review interrupted transfers"
+msgstr "Rever transferências interrompidas"
 
 msgid "Review the exact SMS text for every recipient before confirming."
 msgstr "Reveja o texto exato do SMS para cada destinatário antes de confirmar."
@@ -6232,6 +6251,9 @@ msgstr "Guardar tarefas"
 
 msgid "Saved"
 msgstr "Guardado"
+
+msgid "Saved confirmation available."
+msgstr "Confirmação de gravação disponível."
 
 msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
@@ -6418,6 +6440,9 @@ msgid "Select, preview, print, export or delete health records"
 msgstr ""
 "Selecionar, pré-visualizar, imprimir, exportar ou eliminar registos de saúde"
 
+msgid "Selected album synchronized."
+msgstr "Álbum selecionado sincronizado."
+
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr ""
@@ -6441,6 +6466,9 @@ msgstr "Enviar documentos"
 
 msgid "Send notes by email or fax"
 msgstr "Enviar notas por email ou fax"
+
+msgid "Send saved confirmation again"
+msgstr "Reenviar a confirmação de gravação"
 
 msgid "Send secure request"
 msgstr "Enviar pedido seguro"
@@ -6810,6 +6838,15 @@ msgstr "Parar"
 msgid "Stop retrying"
 msgstr "Parar de tentar"
 
+msgid "Stopping photo synchronization…"
+msgstr "A parar a sincronização de fotografias…"
+
+msgid "Store new animations in a separate folder"
+msgstr "Guardar novas animações numa pasta separada"
+
+msgid "Store new camera photos in a separate folder"
+msgstr "Guardar novas fotografias da câmara numa pasta separada"
+
 msgid "Street"
 msgstr "Rua"
 
@@ -6911,8 +6948,14 @@ msgstr "Sincronizar contactos"
 msgid "Synchronize now"
 msgstr "Sincronizar agora"
 
+msgid "Synchronize only the phone's collection"
+msgstr "Sincronizar apenas a coleção do telefone"
+
 msgid "Synchronize permanently"
 msgstr "Sincronizar permanentemente"
+
+msgid "Synchronize photos"
+msgstr "Sincronizar fotografias"
 
 msgid "Synchronize tasks"
 msgstr "Sincronizar contactos"
@@ -7932,6 +7975,11 @@ msgstr ""
 "O contacto remoto foi eliminado. Manter este contacto e restaurá-lo na "
 "próxima sincronização?"
 
+msgid ""
+"The replacement is a separate appointment; the series keeps its schedule."
+msgstr ""
+"A substituição é um compromisso separado; a série mantém o seu calendário."
+
 msgid "The request is unreadable."
 msgstr "O pedido é ilegível."
 
@@ -8541,6 +8589,9 @@ msgstr "Profissional de ofícios"
 msgid "Transfer received text to the clipboard"
 msgstr "Transferir o texto recebido para a área de transferência"
 
+msgid "Transfer recovery"
+msgstr "Recuperação de transferências"
+
 msgid "Travel"
 msgstr "Viagem"
 
@@ -8608,6 +8659,11 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Indisponível"
+
+msgid "Uncertain transfer: no automatic retry or file changes."
+msgstr ""
+"Transferência incerta: sem novas tentativas automáticas nem alterações de "
+"ficheiros."
 
 msgid "Unchanged contents do not create another recovery point."
 msgstr "O conteúdo inalterado não cria outro ponto de recuperação."
@@ -10027,282 +10083,189 @@ msgstr "＋ Adicionar compromisso"
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
 
+#~ msgid ""
+#~ "Media files are retained separately; emptying the other recycle bin "
+#~ "entries does not remove them. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Os ficheiros multimédia são guardados separadamente; esvaziar os "
+#~ "restantes itens da reciclagem não os elimina. O restauro nunca substitui "
+#~ "um ficheiro existente."
+
+#~ msgid ""
+#~ "The media recycle bin could not be updated. Existing files were kept."
+#~ msgstr ""
+#~ "Não foi possível atualizar a reciclagem multimédia. Os ficheiros "
+#~ "existentes foram preservados."
+
+#~ msgid "A native media operation is still running."
+#~ msgstr "Uma operação multimédia nativa ainda está em curso."
+
+#~ msgid "Album selection changed. Read the albums again."
+#~ msgstr "A seleção do álbum mudou. Volte a ler os álbuns."
+
+#~ msgid ""
+#~ "Automatic content comparison needs attention. No deletion completion was "
+#~ "confirmed."
+#~ msgstr ""
+#~ "A comparação automática requer atenção. Não foi confirmada nenhuma "
+#~ "eliminação concluída."
+
+#~ msgid ""
+#~ "Automatic pass checked one album per media type. Further albums follow; "
+#~ "deletions remain pending."
+#~ msgstr ""
+#~ "A passagem automática verificou um álbum por tipo de multimédia. Seguir-"
+#~ "se-ão outros álbuns; as eliminações continuam pendentes."
+
+#~ msgid ""
+#~ "Automatic synchronization is paused. Switch to manual mode and enable it "
+#~ "again to resume."
+#~ msgstr ""
+#~ "A sincronização automática está em pausa. Mude para o modo manual e volte "
+#~ "a ativá-la para retomar."
+
+#~ msgid "Automatic synchronization is selected but is not available yet."
+#~ msgstr ""
+#~ "A sincronização automática está selecionada, mas ainda não está "
+#~ "disponível."
+
+#~ msgid "Check the access request on your phone, then read the albums again."
+#~ msgstr "Verifique o pedido de acesso no telefone e volte a ler os álbuns."
+
+#~ msgid ""
+#~ "Choose an album to compare. An incomplete catalog never proves deletion."
+#~ msgstr ""
+#~ "Escolha um álbum para comparar. Um catálogo incompleto nunca comprova uma "
+#~ "eliminação."
+
+#~ msgid "Choose destination…"
+#~ msgstr "Escolher destino…"
+
+#~ msgid "Comparing media content… The total is not known yet."
+#~ msgstr "A comparar conteúdos multimédia… O total ainda não é conhecido."
+
+#~ msgid "Content comparison finished."
+#~ msgstr "Comparação de conteúdos concluída."
+
+#~ msgid "Content comparison needs review."
+#~ msgstr "A comparação de conteúdos requer revisão."
+
+#~ msgid "Local edits kept"
+#~ msgstr "Alterações locais preservadas"
+
+#~ msgid "Manual synchronization"
+#~ msgstr "Sincronização manual"
+
+#~ msgid ""
+#~ "Media files use the saved recycle-bin retention period. Never means "
+#~ "manual removal only. Restoring never replaces an existing file."
+#~ msgstr ""
+#~ "Os ficheiros multimédia usam o período de conservação guardado da "
+#~ "reciclagem. Nunca significa apenas remoção manual. Restaurar nunca "
+#~ "substitui um ficheiro existente."
+
+#~ msgid "Media operation paused. No completion was confirmed."
+#~ msgstr "Operação multimédia em pausa. A conclusão não foi confirmada."
+
+#~ msgid "Media recycle bin"
+#~ msgstr "Reciclagem multimédia"
+
+#~ msgid ""
+#~ "Media recycle bin loaded. Permanent removal requires native confirmation."
+#~ msgstr ""
+#~ "Reciclagem multimédia carregada. A remoção permanente requer confirmação "
+#~ "nativa."
+
+#~ msgid ""
+#~ "Media recycle-bin operation finished. Read the entries again before "
+#~ "another operation."
+#~ msgstr ""
+#~ "Operação da reciclagem multimédia concluída. Volte a ler as entradas "
+#~ "antes de outra operação."
+
+#~ msgid "Media transfer is not available on this connection yet."
+#~ msgstr "A transferência multimédia ainda não está disponível nesta ligação."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete this occurrence"
-msgstr "Eliminar apenas esta ocorrência"
+#~ msgid "More albums"
+#~ msgstr "Mais álbuns"
 
+#~ msgid "Native media connection is unavailable."
+#~ msgstr "A ligação multimédia nativa está indisponível."
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Delete series"
-msgstr "Eliminar a série"
+#~ msgid "Native settings loaded. No transfer has been started."
+#~ msgstr "Definições nativas carregadas. Nenhuma transferência foi iniciada."
 
+#~ msgid "Next entries"
+#~ msgstr "Entradas seguintes"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Later occurrences remain unchanged."
-msgstr "As ocorrências seguintes permanecem inalteradas."
+#~ msgid "No active media operation."
+#~ msgstr "Nenhuma operação multimédia ativa."
 
+#~ msgid "No destination selected"
+#~ msgstr "Nenhum destino selecionado"
 
-#. Single recurring appointment deletion (Refs #379).
-msgid "Recycle bin disabled: Delete the selected items permanently?"
-msgstr "Reciclagem desativada: eliminar permanentemente as entradas selecionadas?"
+#~ msgid "No retained media entries on this page."
+#~ msgstr "Nenhuma entrada multimédia conservada nesta página."
 
+#~ msgid ""
+#~ "Only synchronize the phone inventory. Local edits are preserved. "
+#~ "Deletions are not synchronized yet."
+#~ msgstr ""
+#~ "Sincronizar apenas o conteúdo do telefone. As alterações locais são "
+#~ "preservadas. As eliminações ainda não são sincronizadas."
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Create a replacement appointment"
-msgstr "Criar um compromisso de substituição"
+#~ msgid "Photos"
+#~ msgstr "Fotografias"
 
+#~ msgid "Read media recycle bin"
+#~ msgstr "Ler reciclagem multimédia"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "The replacement is a separate appointment; the series keeps its schedule."
-msgstr "A substituição é um compromisso separado; a série mantém o seu calendário."
+#~ msgid "Read photo albums"
+#~ msgstr "Ler álbuns de fotografias"
 
+#~ msgid "Read video albums"
+#~ msgstr "Ler álbuns de vídeos"
 
-#. Single recurring appointment actions (Refs #379, #383).
-msgid "Choose a valid replacement date and time."
-msgstr "Escolha uma data e hora válidas para o compromisso de substituição."
+#~ msgid "Recover operation"
+#~ msgstr "Recuperar operação"
 
+#~ msgid "Replaced"
+#~ msgstr "Substituídos"
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Photos and videos"
-msgstr "Fotografias e vídeos"
+#~ msgid "Request access on phone"
+#~ msgstr "Pedir acesso no telefone"
 
+#~ msgid ""
+#~ "Some source entries may not have been offered. Read the albums again."
+#~ msgstr ""
+#~ "Algumas entradas de origem podem não ter sido apresentadas. Volte a ler "
+#~ "os álbuns."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Media files are retained separately; emptying the other recycle bin entries does not remove them. Restoring never replaces an existing file."
-msgstr "Os ficheiros multimédia são guardados separadamente; esvaziar os restantes itens da reciclagem não os elimina. O restauro nunca substitui um ficheiro existente."
+#~ msgid ""
+#~ "Stopped or incomplete. Original files and recovery history are retained."
+#~ msgstr ""
+#~ "Parado ou incompleto. Os originais e o histórico de recuperação são "
+#~ "preservados."
 
+#~ msgid "Stopping… Waiting for the native operation to end."
+#~ msgstr "A parar… A aguardar o fim da operação nativa."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "The media recycle bin could not be updated. Existing files were kept."
-msgstr "Não foi possível atualizar a reciclagem multimédia. Os ficheiros existentes foram preservados."
+#~ msgid "Synchronize videos"
+#~ msgstr "Sincronizar vídeos"
 
+#~ msgid "The book could not be saved. Media synchronization was not started."
+#~ msgstr ""
+#~ "Não foi possível guardar o livro. A sincronização multimédia não foi "
+#~ "iniciada."
 
-#. Recoverable local media trash (Refs #330, #335).
-msgid "Pending recovery"
-msgstr "Restauro pendente"
+#~ msgid "Too many pending requests. Wait for the current operation."
+#~ msgstr "Demasiados pedidos pendentes. Aguarde pela operação atual."
 
+#~ msgid "Unchanged"
+#~ msgstr "Sem alterações"
 
-#. Shared media trash retention and explicit manual removal (Refs #330, #335).
-msgid "Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file."
-msgstr "Os ficheiros multimédia usam o período de conservação definido acima, incluindo «Nunca». Use «Eliminar permanentemente» para remover agora um elemento multimédia individual. O restauro nunca substitui um ficheiro existente."
+#~ msgid "Videos"
+#~ msgstr "Vídeos"
 
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "A native media operation is still running."
-msgstr "Uma operação multimédia nativa ainda está em curso."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Album selection changed. Read the albums again."
-msgstr "A seleção do álbum mudou. Volte a ler os álbuns."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic content comparison needs attention. No deletion completion was confirmed."
-msgstr "A comparação automática requer atenção. Não foi confirmada nenhuma eliminação concluída."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic pass checked one album per media type. Further albums follow; deletions remain pending."
-msgstr "A passagem automática verificou um álbum por tipo de multimédia. Seguir-se-ão outros álbuns; as eliminações continuam pendentes."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is paused. Switch to manual mode and enable it again to resume."
-msgstr "A sincronização automática está em pausa. Mude para o modo manual e volte a ativá-la para retomar."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Automatic synchronization is selected but is not available yet."
-msgstr "A sincronização automática está selecionada, mas ainda não está disponível."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Check the access request on your phone, then read the albums again."
-msgstr "Verifique o pedido de acesso no telefone e volte a ler os álbuns."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose an album to compare. An incomplete catalog never proves deletion."
-msgstr "Escolha um álbum para comparar. Um catálogo incompleto nunca comprova uma eliminação."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Choose destination…"
-msgstr "Escolher destino…"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Comparing media content… The total is not known yet."
-msgstr "A comparar conteúdos multimédia… O total ainda não é conhecido."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison finished."
-msgstr "Comparação de conteúdos concluída."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Content comparison needs review."
-msgstr "A comparação de conteúdos requer revisão."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Local edits kept"
-msgstr "Alterações locais preservadas"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Manual synchronization"
-msgstr "Sincronização manual"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."
-msgstr "Os ficheiros multimédia usam o período de conservação guardado da reciclagem. Nunca significa apenas remoção manual. Restaurar nunca substitui um ficheiro existente."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media operation paused. No completion was confirmed."
-msgstr "Operação multimédia em pausa. A conclusão não foi confirmada."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin"
-msgstr "Reciclagem multimédia"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle bin loaded. Permanent removal requires native confirmation."
-msgstr "Reciclagem multimédia carregada. A remoção permanente requer confirmação nativa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media recycle-bin operation finished. Read the entries again before another operation."
-msgstr "Operação da reciclagem multimédia concluída. Volte a ler as entradas antes de outra operação."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Media transfer is not available on this connection yet."
-msgstr "A transferência multimédia ainda não está disponível nesta ligação."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "More albums"
-msgstr "Mais álbuns"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native media connection is unavailable."
-msgstr "A ligação multimédia nativa está indisponível."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Native settings loaded. No transfer has been started."
-msgstr "Definições nativas carregadas. Nenhuma transferência foi iniciada."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Next entries"
-msgstr "Entradas seguintes"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No active media operation."
-msgstr "Nenhuma operação multimédia ativa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No destination selected"
-msgstr "Nenhum destino selecionado"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "No retained media entries on this page."
-msgstr "Nenhuma entrada multimédia conservada nesta página."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet."
-msgstr "Sincronizar apenas o conteúdo do telefone. As alterações locais são preservadas. As eliminações ainda não são sincronizadas."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Photos"
-msgstr "Fotografias"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read media recycle bin"
-msgstr "Ler reciclagem multimédia"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read photo albums"
-msgstr "Ler álbuns de fotografias"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Read video albums"
-msgstr "Ler álbuns de vídeos"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Recover operation"
-msgstr "Recuperar operação"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Replaced"
-msgstr "Substituídos"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Request access on phone"
-msgstr "Pedir acesso no telefone"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Some source entries may not have been offered. Read the albums again."
-msgstr "Algumas entradas de origem podem não ter sido apresentadas. Volte a ler os álbuns."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopped or incomplete. Original files and recovery history are retained."
-msgstr "Parado ou incompleto. Os originais e o histórico de recuperação são preservados."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Stopping… Waiting for the native operation to end."
-msgstr "A parar… A aguardar o fim da operação nativa."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Synchronize videos"
-msgstr "Sincronizar vídeos"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "The book could not be saved. Media synchronization was not started."
-msgstr "Não foi possível guardar o livro. A sincronização multimédia não foi iniciada."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Too many pending requests. Wait for the current operation."
-msgstr "Demasiados pedidos pendentes. Aguarde pela operação atual."
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Unchanged"
-msgstr "Sem alterações"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Videos"
-msgstr "Vídeos"
-
-
-#. Native media UI package completeness (Refs #330, #392).
-msgid "Waiting for native media status"
-msgstr "A aguardar o estado multimédia nativo"
+#~ msgid "Waiting for native media status"
+#~ msgstr "A aguardar o estado multimédia nativo"
