@@ -14,10 +14,13 @@ internal sealed partial class TelefonStore
                 ["manifest_sha256"] = ManifestHash(body), ["binding"] = body["binding"]!.DeepClone(),
                 ["destination"] = body["destination"]!.DeepClone(), ["destination_version"] = body["destination_version"]!.DeepClone(),
                 ["targets"] = new JsonArray(body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Select(file => (JsonNode)new JsonObject
-                { ["file_id"] = file["id"]!.DeepClone(), ["path"] = file["path"]!.DeepClone() }).ToArray()) };
+                { ["file_id"] = file["id"]!.DeepClone(), ["path"] = TargetPath(body, file) }).ToArray()) };
             if (body.ContainsKey("media")) result["media"] = body["media"]!.DeepClone();
+            if (body.ContainsKey("album_root")) result["album_root"] = body["album_root"]!.DeepClone();
             return result;
         }
+        private static string TargetPath(JsonObject body, JsonObject file) => body["album_root"] is JsonObject album
+            ? TelefonMessagingContract.String(album, "folder") + "/" + TelefonMessagingContract.String(file, "path") : TelefonMessagingContract.String(file, "path");
 
         private static void ValidateNativeMediaContext(JsonObject body, DeviceFileManifest manifest)
         {
@@ -77,6 +80,7 @@ internal sealed partial class TelefonStore
             var publication = new JsonObject { ["format"] = 1, ["job_id"] = jobId, ["manifest"] = body["manifest"]!.DeepClone(),
                 ["binding"] = body["binding"]!.DeepClone(), ["destination"] = body["destination"]!.DeepClone(),
                 ["stage_identity"] = body["stage_identity"]!.DeepClone(), ["files"] = body["files"]!.DeepClone() };
+            if (body.ContainsKey("album_root")) publication["album_root"] = body["album_root"]!.DeepClone();
             var publicationHash = Proof("magnolie-windows-native-publication-v1", publication);
             var acceptanceHash = TelefonMessagingContract.String(body["acceptance"]!.AsObject(), "sha256");
             var members = body["files"]!.AsArray().OfType<JsonObject>().ToArray();
@@ -89,9 +93,9 @@ internal sealed partial class TelefonStore
                     !JsonNode.DeepEquals(checkpoint["size"], file["size"]) || !JsonNode.DeepEquals(checkpoint["sha256"], file["sha256"]))
                     throw DeviceFileControl.Error("file_receive_local_saved_not_proved");
                 var receipt = new JsonObject { ["format"] = 1, ["job_id"] = jobId, ["accepted_sha256"] = acceptanceHash,
-                    ["publication_sha256"] = publicationHash, ["file_id"] = file["id"]!.DeepClone(), ["path"] = file["path"]!.DeepClone(),
+                    ["publication_sha256"] = publicationHash, ["file_id"] = file["id"]!.DeepClone(), ["path"] = TargetPath(body, file),
                     ["size"] = file["size"]!.DeepClone(), ["sha256"] = file["sha256"]!.DeepClone(), ["identity"] = member["identity"]!.DeepClone(),
-                    ["parent_identity"] = body["destination"]!["identity"]!.DeepClone(), ["checkpoint"] = checkpoint.DeepClone() };
+                    ["parent_identity"] = (body["album_root"]?["identity"] ?? body["destination"]!["identity"])!.DeepClone(), ["checkpoint"] = checkpoint.DeepClone() };
                 receipts.Add(new JsonObject { ["file_id"] = file["id"]!.DeepClone(), ["size"] = file["size"]!.DeepClone(),
                     ["sha256"] = file["sha256"]!.DeepClone(), ["receipt_sha256"] = Proof("magnolie-windows-native-saved-file-v1", receipt) });
             }
@@ -156,7 +160,7 @@ internal sealed partial class TelefonStore
                 {
                     var actual = files[file.Id].Observe();
                     var member = head.Body["files"]!.AsArray().OfType<JsonObject>().Single(value => TelefonMessagingContract.String(value, "id") == file.Id);
-                    if (actual.Size != file.Size || !JsonNode.DeepEquals(Key(actual.Identity), member["identity"]) || root!.FileIdentityAt(file.Path) != actual.Identity)
+                    if (actual.Size != file.Size || !JsonNode.DeepEquals(Key(actual.Identity), member["identity"]) || PublicationRoot.FileIdentityAt(file.Path) != actual.Identity)
                         throw DeviceFileControl.Error("file_receive_local_saved_identity_changed");
                 }
                 if (!head.Body.ContainsKey("saved"))

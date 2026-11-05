@@ -345,13 +345,14 @@ internal static class DeviceFileConnectionRunsTests
             f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Phase == "receiving", "Metadata resume END retired/erased local bytes or left a stale source owner.");
     }
 
-    internal static async Task<TelefonConnection.NativeMediaSourceRun> OfferReady(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest, string mediaType = "images")
+    internal static async Task<TelefonConnection.NativeMediaSourceRun> OfferReady(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest, string mediaType = "images", string? secondPhotoId = null)
     {
         var run = await Start(f, "snapshot_ready", false, mediaType);
         foreach (var after in new[] { 0, 1 })
         {
             Clear(f); var pageTask = f.Native.Connection.ReadNativeMediaPageAsync(run); var request = Request(f);
             var page = Media(request, run.Lease.RunId, after, after == 0); page["body"]!["page"]!["manifest_sha256"] = manifest.Fingerprint;
+            if (after == 1 && secondPhotoId is not null) page["body"]!["page"]!["entries"]![0]!["photo_id"] = secondPhotoId;
             await f.Native.Connection.HandlePlainAsync(page); await pageTask;
         }
         Clear(f); return run;

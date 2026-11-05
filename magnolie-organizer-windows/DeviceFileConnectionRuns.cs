@@ -16,6 +16,10 @@ internal sealed partial class TelefonConnection
         internal NativeMediaResumeLookup? Resume;
         internal TelefonStore.NativeMediaReceiveJob? Recovered;
         internal NativeMediaTransfer? Transfer;
+        internal IReadOnlyList<DeviceManifestFile>? SelectedFiles;
+        internal IReadOnlyList<DeviceFileMediaEntry>? SelectedMedia;
+        internal DeviceFileAlbumMetadata? AlbumMetadata;
+        internal object? AlbumOperation;
         internal DeviceFileManifest? OfferedManifest { get; private set; }
         internal string? OfferedMessageId { get; private set; }
         internal long OfferedExpires { get; private set; }
@@ -44,7 +48,7 @@ internal sealed partial class TelefonConnection
     }
 
     internal async Task<NativeMediaSourceRun> StartNativeMediaBatchAsync(string expectedVersion, string catalogId,
-        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default)
+        string albumId, bool desktopChoice, string mediaType = "images", CancellationToken token = default, object? albumOperation = null)
     {
         var choice = CaptureNativeSourceChoice(mediaType, true, true); var read = NativeSourceReadGuard(choice, expectedVersion);
         void Require()
@@ -67,6 +71,8 @@ internal sealed partial class TelefonConnection
                 {
                     var lease = choice.Owner.RetainSourceRun(ticket, result.RunId, result.Version, mediaType);
                     retained = new(choice.Owner, lease, catalogId, albumId, desktopChoice, result);
+                    retained.AlbumMetadata = KnownNativeAlbum(choice.Owner, mediaType, expectedVersion, catalogId, albumId);
+                    retained.AlbumOperation = albumOperation;
                     nativeMediaSourceRun = retained;
                 }
             });
@@ -129,6 +135,8 @@ internal sealed partial class TelefonConnection
                     if (offering && NativeSourceOfferedManifest(ticket) is { } offered)
                     {
                         DeviceFileSources.CorrelateMediaPages(run.Pages, offered.Manifest);
+                        if (run.SelectedFiles is not null && !offered.Manifest.Files.SequenceEqual(run.SelectedFiles))
+                            throw DeviceFileControl.Error("file_receive_native_selected_manifest_changed");
                         run.RememberOffer(offered.Manifest, result.OfferId, offered.Expires);
                     }
                     if (!result.RunEnded && (old.Batched != result.Batched || old.Batched && old.BatchEnd is not null && old.BatchEnd != result.BatchEnd) ||
@@ -179,6 +187,8 @@ internal sealed partial class TelefonConnection
                     var lease = choice.Owner.RetainSourceRun(ticket, result.RunId, result.Version, previous.Lease.MediaType);
                     retained = new(choice.Owner, lease, previous.CatalogId, previous.AlbumId, previous.DesktopChoice, result);
                     retained.AlbumScope = previous.AlbumScope;
+                    retained.AlbumMetadata = previous.AlbumMetadata;
+                    retained.AlbumOperation = previous.AlbumOperation;
                     nativeMediaSourceRun = retained; nativeEndedMediaBatch = null;
                     previous.Owner.ReleaseSourceRun(previous.Lease);
                 }
@@ -219,6 +229,9 @@ internal sealed partial class TelefonConnection
                         throw DeviceFileControl.Error("file_sources_native_media_scope_changed");
                     if (run.Resume is not null && page.NextCursor is null)
                         DeviceFileSources.CorrelateMediaPages(run.Pages.Append(page).ToArray(), run.Resume.Selection.Manifest);
+                    if (run.SelectedMedia is not null && (page.TotalFiles != run.SelectedMedia.Count ||
+                        !page.Entries.SequenceEqual(run.SelectedMedia.Skip(page.After).Take(page.Entries.Count))))
+                        throw DeviceFileControl.Error("file_receive_native_selected_media_changed");
                     run.AlbumScope = scope; run.Pages.Add(page);
                 }
             });

@@ -306,6 +306,16 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native wire receive / Windows stop drain original wire resume", DeviceFileConnectionReceiveTests.WindowsWireStopDrainAndOriginalResumeAsync);
     runner.Add("Device file native wire receive / Windows uncertain Saved or END retains budget", DeviceFileConnectionReceiveTests.WindowsUncertainSavedOrEndKeepsBudgetAsync);
     runner.Add("Device file native wire receive / Windows independently activated video destination", DeviceFileConnectionReceiveTests.WindowsSeparateVideoWireReceiveAsync);
+    runner.Add("Device file native reconcile / Windows repeat preserves local edit and skips unchanged", DeviceFileReconcileTests.WindowsRepeatKeepsLocalEditsAsync);
+    runner.Add("Device file native reconcile / Windows changed source held without destructive replacement", DeviceFileReconcileTests.WindowsChangedSourceIsHeldAsync);
+    runner.Add("Device file native reconcile / Windows mixed preview selects only new content", DeviceFileReconcileTests.WindowsMixedPreviewSelectsOnlyNewAsync);
+    runner.Add("Device file native reconcile / Windows corrupt subset and reused owner HOLD", DeviceFileReconcileTests.WindowsSelectionRejectsChangedSubsetAsync);
+    runner.Add("Device file native album / Windows stable namespace folders and same-name separation", DeviceFileAlbumTests.WindowsStableAlbumNamespaceAsync);
+    runner.Add("Device file native album / Windows replaced album directory HOLD", DeviceFileAlbumTests.WindowsAlbumReplacementHoldAsync);
+    runner.Add("Device file native album / Windows existing unowned album directory HOLD", DeviceFileAlbumTests.WindowsUnownedAlbumFolderHoldAsync);
+    runner.Add("Device file native album / Windows original album wire stop and resume", DeviceFileConnectionReceiveTests.WindowsAlbumWireStopDrainAndOriginalResumeAsync);
+    runner.Add("Device file native album / Windows whole album batch loop and empty terminal", DeviceFileAlbumTests.WindowsWholeAlbumBatchLoopAsync);
+    runner.Add("Device file native album / Windows whole album preparing cancellation and drain", DeviceFileAlbumTests.WindowsWholeAlbumPreparingCancelAsync);
 }
 else
     runner.Add("Device file native directory / non-Windows rejects ownership", DeviceFileNativeDirectoryTests.UnsupportedPlatformAsync);

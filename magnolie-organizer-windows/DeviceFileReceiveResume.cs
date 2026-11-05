@@ -95,6 +95,11 @@ internal sealed partial class TelefonStore
                     if (!JsonNode.DeepEquals(saved.Body["binding"], owner.binding.Snapshot()))
                         throw DeviceFileControl.Error("file_receive_original_binding_required");
                     owner.head = saved; owner.root = destination.OpenNative(); owner.Current();
+                    if (saved.Body["album_root"] is JsonObject originalAlbum)
+                    {
+                        owner.albumRoot = originalAlbum.DeepClone().AsObject();
+                        owner.albumDirectory = owner.root.OpenOriginalChild(TelefonMessagingContract.String(originalAlbum, "folder"), AlbumIdentity(originalAlbum["identity"]!.AsObject()));
+                    }
                     static DeviceFileNativeDirectory.Identity Identity(JsonNode node)
                     {
                         var value = node.AsObject();

@@ -136,6 +136,7 @@ internal sealed partial class TelefonStore
                 {
                     if (TelefonMessagingContract.String(head.Body["manifest"]!.AsObject(), "transfer_id") == transfer ||
                         TelefonMessagingContract.String(head.Body["binding"]!.AsObject(), "destination_token") == token &&
+                        string.Equals(head.Body["album_root"]?["folder"]?.GetValue<string>() ?? "", body["album_root"]?["folder"]?.GetValue<string>() ?? "", StringComparison.OrdinalIgnoreCase) &&
                         head.Body["manifest"]!["files"]!.AsArray().OfType<JsonObject>().Any(file => paths.Contains(TelefonMessagingContract.String(file, "path"))))
                         throw DeviceFileControl.Error("file_receive_original_job_resume_required");
                 }
@@ -149,6 +150,8 @@ internal sealed partial class TelefonStore
                 foreach (var key in new[] { "media", "acceptance", "saved", "source_end" })
                     if (before.Body.ContainsKey(key) && !JsonNode.DeepEquals(before.Body[key], body[key]))
                         throw DeviceFileControl.Error("file_receive_original_receipt_changed");
+                if (!JsonNode.DeepEquals(before.Body["album_root"], body["album_root"]) && !InitialAlbumIdentity(before.Body, body))
+                    throw DeviceFileControl.Error("file_receive_original_album_changed");
                 if (before.Revision >= DeviceFileControl.MaximumRevision) throw DeviceFileControl.Error("file_receive_history_revision_exhausted");
             }
             var result = new ReceiveHead(jobId, (before?.Revision ?? 0) + 1, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), body);
@@ -177,7 +180,7 @@ internal sealed partial class TelefonStore
     }
 
     internal NativeMediaReceiveJob BeginNativeMediaReceiveJob(string peerId, string mediaType, DeviceFileManifest manifest,
-        Func<DeviceTransferBinding?> currentBinding) => NativeMediaReceiveJob.Begin(this, peerId, mediaType, manifest, currentBinding);
+        Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null) => NativeMediaReceiveJob.Begin(this, peerId, mediaType, manifest, currentBinding, album);
 
     // Explicit native owner only. No route registration, file grant fabrication,
     // automatic worker or original-job resume is performed by construction.
@@ -225,15 +228,17 @@ internal sealed partial class TelefonStore
             if (!(mediaType == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled))
                 throw DeviceFileControl.Error("file_receive_native_choice_withdrawn");
             _ = root?.CurrentIdentity(); _ = stage?.CurrentIdentity();
+            _ = albumDirectory?.CurrentIdentity();
         }
 
         private void Save(JsonObject body) => head = store.SaveReceiveHead(peerId, JobId, head?.Version, body, Current);
         private JsonObject Change() => head?.Body.DeepClone().AsObject() ?? throw DeviceFileControl.Error("file_receive_original_reservation_required");
         private static JsonObject Key(DeviceFileNativeDirectory.Identity id) => new()
         { ["volume"] = id.VolumeSerial.ToString("x16", CultureInfo.InvariantCulture), ["low"] = id.FileIdLow.ToString("x16", CultureInfo.InvariantCulture), ["high"] = id.FileIdHigh.ToString("x16", CultureInfo.InvariantCulture) };
+        internal static JsonObject NativeIdentity(DeviceFileNativeDirectory.Identity id) => Key(id);
 
         internal static NativeMediaReceiveJob Begin(TelefonStore store, string peerId, string mediaType, DeviceFileManifest manifest,
-            Func<DeviceTransferBinding?> currentBinding)
+            Func<DeviceTransferBinding?> currentBinding, NativeMediaAlbumContext? album = null)
         {
             ArgumentNullException.ThrowIfNull(currentBinding);
             MediaDestinationKind(mediaType);
@@ -244,22 +249,39 @@ internal sealed partial class TelefonStore
             try
             {
                 owner.root = destination.OpenNative(); owner.Current();
+                if (album is not null)
+                {
+                    owner.albumRoot = store.FindNativeAlbumRoot(peerId, mediaType, destination, album.SourceEpoch);
+                    if (owner.albumRoot is null && album.DisplayName is not null)
+                        owner.albumRoot = new JsonObject { ["source_epoch"] = album.SourceEpoch, ["folder"] = album.Folder, ["identity"] = null };
+                    if (owner.albumRoot?["identity"] is JsonObject identity)
+                        owner.albumDirectory = owner.root.OpenOriginalChild(TelefonMessagingContract.String(owner.albumRoot, "folder"), AlbumIdentity(identity));
+                }
                 store.CheckReceiveStageInventory(peerId, destination, owner.root, owner.Current);
                 foreach (var file in manifest.Files)
                 {
-                    if (owner.root.ExistingFileIdentity(file.Path) is not null) throw DeviceFileControl.Error("file_receive_destination_occupied");
+                    if (owner.albumRoot?["identity"] is not null || owner.albumRoot is null)
+                        if (owner.PublicationRoot.ExistingFileIdentity(file.Path) is not null) throw DeviceFileControl.Error("file_receive_destination_occupied");
                     owner.Current();
                 }
                 var manifestBody = new JsonObject { ["format"] = 1, ["transfer_id"] = manifest.TransferId, ["source_id"] = manifest.SourceId,
                     ["sender_id"] = manifest.SenderId, ["receiver_id"] = manifest.ReceiverId, ["chunk_bytes"] = DeviceFileManifest.ChunkBytes,
                     ["total_bytes"] = manifest.TotalBytes, ["files"] = new JsonArray(manifest.Files.Select(file => (JsonNode)new JsonObject
                     { ["id"] = file.Id, ["path"] = file.Path, ["size"] = file.Size, ["sha256"] = file.Sha256 }).ToArray()) };
-                owner.Save(new JsonObject { ["manifest"] = manifestBody, ["binding"] = owner.binding.Snapshot(), ["media_type"] = mediaType,
+                var reserved = new JsonObject { ["manifest"] = manifestBody, ["binding"] = owner.binding.Snapshot(), ["media_type"] = mediaType,
                     ["destination_version"] = destination.Version, ["destination"] = new JsonObject { ["native_path"] = destination.NativePath,
                         ["volume_path"] = destination.VolumePath, ["identity"] = Key(destination.RootIdentity), ["token"] = destination.DestinationToken },
                     ["phase"] = "reserved", ["stage_name"] = ".magnolie-receive-" + owner.JobId,
                     ["stage_identity"] = null, ["files"] = new JsonArray(manifest.Files.Select(file => (JsonNode)new JsonObject
-                    { ["id"] = file.Id, ["phase"] = "pending", ["identity"] = null }).ToArray()) });
+                    { ["id"] = file.Id, ["phase"] = "pending", ["identity"] = null }).ToArray()) };
+                if (owner.albumRoot is not null) reserved["album_root"] = owner.albumRoot.DeepClone();
+                owner.Save(reserved);
+                if (owner.albumRoot is not null && owner.albumRoot["identity"] is null)
+                {
+                    owner.albumDirectory = owner.root.CreateChild(TelefonMessagingContract.String(owner.albumRoot, "folder"));
+                    owner.albumRoot["identity"] = Key(owner.albumDirectory.OriginalIdentity);
+                    var directory = owner.Change(); directory["album_root"] = owner.albumRoot.DeepClone(); owner.Save(directory);
+                }
                 owner.Current();
                 owner.stage = owner.root.CreateChild(".magnolie-receive-" + owner.JobId);
                 var staged = owner.Change(); staged["phase"] = "staging"; staged["stage_identity"] = Key(owner.stage.OriginalIdentity); owner.Save(staged);
@@ -313,7 +335,7 @@ internal sealed partial class TelefonStore
                         var prepared = Change(); prepared["phase"] = "publishing";
                         prepared["files"]!.AsArray().OfType<JsonObject>().Single(value => TelefonMessagingContract.String(value, "id") == file.Id)["phase"] = "publishing";
                         Save(prepared); // Durable exact original intent BEFORE the native rename.
-                        var observed = files[file.Id].Publish(root!, file.Path, file.Size, file.Sha256, Current);
+                        var observed = files[file.Id].Publish(PublicationRoot, file.Path, file.Size, file.Sha256, Current);
                         var committed = Change(); committed["phase"] = "receiving";
                         var member = committed["files"]!.AsArray().OfType<JsonObject>().Single(value => TelefonMessagingContract.String(value, "id") == file.Id);
                         if (!JsonNode.DeepEquals(member["identity"], Key(observed.Identity))) throw DeviceFileControl.Error("file_receive_original_file_changed");
@@ -336,7 +358,7 @@ internal sealed partial class TelefonStore
                 if (sourceId.Length != 32 || sourceId.Any(c => !char.IsAsciiHexDigitLower(c)) ||
                     !DeviceFileControl.Hash(TelefonMessagingContract.String(sourceJob, "job_version"))) throw DeviceFileControl.Error("file_receive_history_invalid");
             }
-            foreach (var key in new[] { "media", "acceptance", "saved", "source_end" }) if (body.ContainsKey(key)) fields.Add(key);
+            foreach (var key in new[] { "album_root", "media", "acceptance", "saved", "source_end" }) if (body.ContainsKey(key)) fields.Add(key);
             TelefonProtocolContract.ExactObject(body, fields.ToArray());
             using var document = JsonDocument.Parse(body["manifest"]!.ToJsonString()); var manifest = DeviceFileManifest.Parse(document.RootElement);
             var kind = TelefonMessagingContract.String(body, "media_type"); MediaDestinationKind(kind);
@@ -399,6 +421,7 @@ internal sealed partial class TelefonStore
             var publishing = members.OfType<JsonObject>().Count(member => TelefonMessagingContract.String(member, "phase") == "publishing");
             if (publishing != (phase == "publishing" ? 1 : 0)) throw DeviceFileControl.Error("file_receive_history_invalid");
             ValidateNativeMediaContext(body, manifest);
+            ValidateAlbumRoot(body);
             ValidateReceipts(body, jobId);
         }
 
@@ -407,7 +430,7 @@ internal sealed partial class TelefonStore
             lock (jobGate)
             {
                 if (disposed) return; disposed = true;
-                foreach (var file in files.Values) file.Dispose(); stage?.Dispose(); root?.Dispose();
+                foreach (var file in files.Values) file.Dispose(); stage?.Dispose(); albumDirectory?.Dispose(); root?.Dispose();
             }
         }
     }

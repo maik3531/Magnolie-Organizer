@@ -114,6 +114,41 @@ internal sealed partial class DeviceFileNativeDirectory
         catch (IOException error) when (error.InnerException is Win32Exception { NativeErrorCode: 2 }) { return null; }
     }
 
+    internal sealed record ManagedObservation(Identity Identity, long Size, string Sha256);
+
+    internal ManagedObservation? ObserveManagedFile(string nativeName, Action ensureNative)
+    {
+        var name = ReceiveLeaf(nativeName);
+        try
+        {
+            return WithHandle<ManagedObservation?>(parent =>
+            {
+                ensureNative();
+                // Read only, with no WRITE/DELETE sharing while observing the
+                // actual original leaf. Never hash a path reopened by name later.
+                using var file = OpenRelative(parent, name, 0x80100080, ShareRead, OpenOnly, FileSynchronousNoReparse);
+                var before = DeviceFileNativeStagedFile.ReadFile(file);
+                using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                var buffer = new byte[DeviceFileManifest.ChunkBytes]; long offset = 0;
+                try
+                {
+                    while (offset < before.Size)
+                    {
+                        ensureNative();
+                        var count = RandomAccess.Read(file, buffer.AsSpan(0, (int)Math.Min(buffer.Length, before.Size - offset)), offset);
+                        if (count == 0) throw DeviceFileControl.Error("file_destination_observation_short_read");
+                        digest.AppendData(buffer.AsSpan(0, count)); offset += count;
+                    }
+                    ensureNative();
+                    if (DeviceFileNativeStagedFile.ReadFile(file) != before) throw DeviceFileControl.Error("file_destination_observation_changed");
+                    return new(before.Identity, before.Size, Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant());
+                }
+                finally { CryptographicOperations.ZeroMemory(buffer); }
+            });
+        }
+        catch (IOException error) when (error.InnerException is Win32Exception { NativeErrorCode: 2 }) { ensureNative(); return null; }
+    }
+
     private static SafeFileHandle OpenRelative(SafeFileHandle parent, string name, uint access,
         uint share, uint disposition, uint options)
     {

@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class DeviceFileConnectionReceiveTests
 {
-    private static async Task<TelefonConnection.NativeMediaSourceRun> Ready(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest, TelefonConnection.NativeMediaSourceRun? existing = null, string mediaType = "images")
+    internal static async Task<TelefonConnection.NativeMediaSourceRun> Ready(DeviceFileReceiveJobTests.Fixture f, DeviceFileManifest manifest, TelefonConnection.NativeMediaSourceRun? existing = null, string mediaType = "images")
     {
         var run = existing ?? await DeviceFileConnectionRunsTests.OfferReady(f, manifest, mediaType);
         var pending = f.Native.Connection.OfferNativeMediaRunAsync(run); var request = DeviceFileConnectionRunsTests.Request(f);
@@ -17,7 +17,7 @@ internal static class DeviceFileConnectionReceiveTests
         await f.Native.Connection.HandlePlainAsync(result); await pending;
         DeviceFileConnectionRunsTests.Clear(f); return run;
     }
-    private static async Task<JsonObject> Outbound(DeviceFileReceiveJobTests.Fixture f, string kind, int occurrence = 0)
+    internal static async Task<JsonObject> Outbound(DeviceFileReceiveJobTests.Fixture f, string kind, int occurrence = 0)
     {
         var deadline = Environment.TickCount64 + 10000;
         while (Environment.TickCount64 < deadline)
@@ -37,7 +37,7 @@ internal static class DeviceFileConnectionReceiveTests
         }
         throw new TimeoutException("Missing actual native frame: " + kind);
     }
-    private static JsonObject Chunk(JsonObject request, byte[] bytes)
+    internal static JsonObject Chunk(JsonObject request, byte[] bytes)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); var body = request["body"]!.DeepClone().AsObject();
         body["request_id"] = request["message_id"]!.DeepClone(); body["data_base64"] = Convert.ToBase64String(bytes);
@@ -140,11 +140,16 @@ internal static class DeviceFileConnectionReceiveTests
         TestAssert.That(Head(f).ContainsKey("source_end") && f.Current() is null, "Exact Saved END required/revived receive permission.");
     }
 
-    internal static async Task WindowsWireStopDrainAndOriginalResumeAsync()
+    internal static Task WindowsWireStopDrainAndOriginalResumeAsync() => RunStoppedWireResumeAsync(false);
+    internal static Task WindowsAlbumWireStopDrainAndOriginalResumeAsync() => RunStoppedWireResumeAsync(true);
+
+    private static async Task RunStoppedWireResumeAsync(bool albumLayout)
     {
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync();
         var data = new[] { Enumerable.Range(0, 70000).Select(index => (byte)(index % 251)).ToArray(), "second"u8.ToArray() };
-        var manifest = f.Manifest(("resumed-first.jpg", data[0]), ("resumed-second.jpg", data[1])); var run = await Ready(f, manifest);
+        var manifest = f.Manifest(("resumed-first.jpg", data[0]), ("resumed-second.jpg", data[1]));
+        var run = albumLayout ? await DeviceFileAlbumTests.Preview(f, manifest, new string('e', 64), "Kamera") : await Ready(f, manifest);
+        var publishedRoot = albumLayout ? Path.Combine(f.Root, new NativeMediaAlbumContext(new string('e', 64), "Kamera").Folder) : f.Root;
         var receiving = f.Native.Connection.ReceiveNativeMediaRunAsync(run); var firstAcceptance = DeviceFileAcceptanceEnvelope.Parse(await Outbound(f, DeviceFileAcceptanceEnvelope.Kind), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         var first = await Outbound(f, DeviceFileChunkEnvelope.RequestKind);
         await f.Native.Connection.HandlePlainAsync(Chunk(first, data[0][..DeviceFileManifest.ChunkBytes]));
@@ -187,7 +192,7 @@ internal static class DeviceFileConnectionReceiveTests
         _ = await Outbound(f, DeviceFileSavedEnvelope.Kind); request = await StoppedEndRequest(f, resumed);
         TestAssert.That(request["body"]!["operation"]!.GetValue<string>() == "end_resume", "Resumed actual data path used ordinary source END.");
         await f.Native.Connection.HandlePlainAsync(DeviceFileConnectionRunsTests.Reply(request, newRunId, "canceled_held"));
-        TestAssert.That(await renewed == original.JobId && File.ReadAllBytes(Path.Combine(f.Root, "resumed-first.jpg")).SequenceEqual(data[0]) &&
+        TestAssert.That(await renewed == original.JobId && File.ReadAllBytes(Path.Combine(publishedRoot, "resumed-first.jpg")).SequenceEqual(data[0]) &&
             f.Native.Store.NativeMediaReceiveBudget(f.Native.Peer.Id) == (1, 0, 0L), "Original wire resume/Saved/END failed to preserve bytes and retire only original budget.");
     }
 

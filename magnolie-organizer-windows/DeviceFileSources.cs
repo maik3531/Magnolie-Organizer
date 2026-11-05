@@ -7,7 +7,8 @@ namespace MagnolieOrganizer.Windows;
 internal sealed record DeviceFileSourceRequest(string RequestId, string Operation, string? ExpectedVersion, bool? Enabled,
     IReadOnlyList<string> Kinds, string? CatalogId = null, int After = 0,
     string? AlbumId = null, bool? DesktopChoice = null, string? RunId = null, string MediaType = "images",
-    string? OriginalJobId = null, string? OriginalJobVersion = null, string? SourceId = null, string? TransferId = null, string? ManifestSha256 = null);
+    string? OriginalJobId = null, string? OriginalJobVersion = null, string? SourceId = null, string? TransferId = null, string? ManifestSha256 = null,
+    IReadOnlyList<string>? SelectedFileIds = null);
 internal sealed record DeviceFileSourceStatus(string RequestId, string Operation, string Version, long Revision,
     bool Enabled, bool Associated, bool RepairPending, IReadOnlyList<string> Kinds, DeviceFileSourceVideoStatus? Videos = null);
 internal sealed record DeviceFileSourceVideoStatus(bool Enabled, long Revision)
@@ -76,7 +77,7 @@ internal static class DeviceFileSources
     }
     private static bool ScopedOperation(string operation) => operation is "discover" or "catalog_page" or "request_read" or
         "run" or "batch_run" or "next_batch" or "run_status" or "cancel_run" or "offer_run" or "end_run" or "end_album" or
-        "media_page" or "resume_lookup" or "resume_run" or "resume_status" or "cancel_resume" or "offer_resume" or "end_resume" or "resume_media_page";
+        "media_page" or "select_run" or "resume_lookup" or "resume_run" or "resume_status" or "cancel_resume" or "offer_resume" or "end_resume" or "resume_media_page";
     private static JsonObject ScopedBody(JsonObject message, string kind, long now, string expectedMediaType)
     {
         if (expectedMediaType is not ("images" or "video")) throw Error();
@@ -115,6 +116,15 @@ internal static class DeviceFileSources
             var expected = Text(body, "expected_version"); var source = Text(body, "source_id"); var transfer = Text(body, "transfer_id"); var manifest = Text(body, "manifest_sha256");
             if (!DeviceFileControl.Hash(expected) || !DeviceFileControl.Hash(manifest) || !HexId(source) || !HexId(transfer)) throw Error();
             return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), SourceId: source, TransferId: transfer, ManifestSha256: manifest);
+        }
+        if (operation == "select_run")
+        {
+            Exact(body, "format", "operation", "expected_version", "run_id", "manifest_sha256", "file_ids");
+            var expected = Text(body, "expected_version"); var run = Text(body, "run_id"); var hash = Text(body, "manifest_sha256");
+            if (!DeviceFileControl.Hash(expected) || !TelefonProtocolContract.IsUuidV4(run) || !DeviceFileControl.Hash(hash) || body["file_ids"] is not JsonArray values || values.Count is < 1 or > 128) throw Error();
+            var ids = values.Select(value => value is JsonValue item && item.TryGetValue<string>(out var id) && HexId(id) ? id : throw Error()).ToArray();
+            if (!ids.SequenceEqual(ids.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))) throw Error();
+            return new(Text(message, "message_id"), operation, expected, null, Array.Empty<string>(), RunId: run, ManifestSha256: hash, SelectedFileIds: Array.AsReadOnly(ids));
         }
         if (operation is "media_page" or "resume_media_page")
         {
@@ -173,17 +183,25 @@ internal static class DeviceFileSources
     internal static JsonObject CreateRequest(string operation, long now, string? expectedVersion = null, bool? enabled = null,
         IEnumerable<string>? kinds = null, string? messageId = null, string? catalogId = null, int? after = null,
         string? albumId = null, bool? desktopChoice = null, string? runId = null, string mediaType = "images",
-        string? originalJobId = null, string? originalJobVersion = null, string? sourceId = null, string? transferId = null, string? manifestSha256 = null)
+        string? originalJobId = null, string? originalJobVersion = null, string? sourceId = null, string? transferId = null, string? manifestSha256 = null,
+        IEnumerable<string>? selectedFileIds = null)
     {
         if (now is < 0 or > 253402300739999) throw Error();
         if (mediaType is not ("images" or "video") || mediaType == "video" && !ScopedOperation(operation)) throw Error();
         var body = new JsonObject { ["format"] = 1, ["operation"] = operation };
         if (operation is not ("run" or "batch_run" or "next_batch" or "run_status" or "cancel_run" or "offer_run" or "end_run" or "end_album" or
-            "media_page" or "resume_run" or "resume_status" or "cancel_resume" or "offer_resume" or "end_resume" or "resume_media_page") &&
+            "media_page" or "select_run" or "resume_run" or "resume_status" or "cancel_resume" or "offer_resume" or "end_resume" or "resume_media_page") &&
             (albumId is not null || desktopChoice is not null || runId is not null)) throw Error();
         if (operation != "resume_run" && (originalJobId is not null || originalJobVersion is not null)) throw Error();
-        if (operation != "resume_lookup" && (sourceId is not null || transferId is not null || manifestSha256 is not null)) throw Error();
-        if (operation == "resume_lookup")
+        if (operation != "resume_lookup" && (sourceId is not null || transferId is not null) || operation is not ("resume_lookup" or "select_run") && manifestSha256 is not null ||
+            operation != "select_run" && selectedFileIds is not null) throw Error();
+        if (operation == "select_run")
+        {
+            if (enabled is not null || kinds is not null || catalogId is not null || after is not null || albumId is not null || desktopChoice is not null) throw Error();
+            body["expected_version"] = expectedVersion; body["run_id"] = runId; body["manifest_sha256"] = manifestSha256;
+            body["file_ids"] = new JsonArray((selectedFileIds ?? []).Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
+        }
+        else if (operation == "resume_lookup")
         {
             if (enabled is not null || kinds is not null || after is not null || catalogId is not null) throw Error();
             body["expected_version"] = expectedVersion; body["source_id"] = sourceId; body["transfer_id"] = transferId; body["manifest_sha256"] = manifestSha256;
@@ -315,7 +333,7 @@ internal static class DeviceFileSources
         var id = Text(body, "request_id"); var operation = Text(body, "operation"); var version = Text(body, "version");
         var offering = operation is "offer_run" or "offer_resume";
         var ending = operation is "end_run" or "end_album" or "end_resume";
-        var starting = operation is "run" or "batch_run" or "next_batch" or "resume_run";
+        var starting = operation is "run" or "batch_run" or "next_batch" or "select_run" or "resume_run";
         var batched = body.ContainsKey("batch_end");
         var fields = new List<string> { "format", "request_id", "operation", "version", "run_id", "state", "source_io_ended" };
         if (offering) fields.AddRange(["offer_id", "manifest_sha256"]);
@@ -328,7 +346,7 @@ internal static class DeviceFileSources
         bool? batchEnd = batched && body["batch_end"] is not null ? Flag(body, "batch_end") : null;
         var runEnded = ending && Flag(body, "run_ended");
         if (!TelefonProtocolContract.IsUuidV4(id) || id != expectedRequestId || operation != expectedOperation ||
-            operation is not ("run" or "batch_run" or "next_batch" or "run_status" or "cancel_run" or "offer_run" or "end_run" or "end_album" or
+            operation is not ("run" or "batch_run" or "next_batch" or "select_run" or "run_status" or "cancel_run" or "offer_run" or "end_run" or "end_album" or
                 "resume_run" or "resume_status" or "cancel_resume" or "offer_resume" or "end_resume") || !DeviceFileControl.Hash(version) || version != expectedVersion ||
             !TelefonProtocolContract.IsUuidV4(run) || !starting && (!TelefonProtocolContract.IsUuidV4(expectedRunId) || run != expectedRunId) ||
             starting && expectedRunId is not null && run != expectedRunId ||
@@ -337,7 +355,7 @@ internal static class DeviceFileSources
             (operation is "cancel_run" or "cancel_resume") && state is not ("cancel_pending" or "canceled_held") ||
             ending && (state != "canceled_held" || !runEnded) ||
             (operation is "batch_run" or "next_batch") && !batched ||
-            batched && (operation is not ("batch_run" or "next_batch" or "run_status" or "cancel_run" or "offer_run") ||
+            batched && (operation is not ("batch_run" or "next_batch" or "select_run" or "run_status" or "cancel_run" or "offer_run") ||
                 (state is "snapshot_ready" or "empty_ready") && batchEnd is null) ||
             state == "empty_ready" && (!batched || batchEnd is not true) ||
             offering && (state != "snapshot_ready" || !TelefonProtocolContract.IsUuidV4(offer) || !DeviceFileControl.Hash(manifest))) throw Error();

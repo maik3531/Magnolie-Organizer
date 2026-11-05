@@ -23,10 +23,26 @@ internal sealed partial class TelefonConnection
         internal readonly Action<NativeReceiverCommandTicket, object>? Accept = accept;
         internal readonly TaskCompletionSource<object> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool OutputConfirmed;
+        internal readonly long Issued = Environment.TickCount64;
         internal JsonObject? SourceOffer;
         internal DeviceFileManifest? SourceOfferManifest;
     }
     private NativeSourceCommandPending? nativeSourceCommand;
+    private NativeSourceCommandPending? nativeRetiredAlbumStatus;
+    private sealed class NativeKnownCatalog(NativeFileControlSession owner, string version, string catalogId)
+    {
+        internal readonly NativeFileControlSession Owner = owner;
+        internal readonly string Version = version, CatalogId = catalogId;
+        internal int? NextCursor = 0;
+        internal readonly Dictionary<string, DeviceFileAlbumMetadata> Albums = new(StringComparer.Ordinal);
+    }
+    private readonly Dictionary<string, NativeKnownCatalog> nativeKnownCatalogs = new(StringComparer.Ordinal);
+
+    private DeviceFileAlbumMetadata? KnownNativeAlbum(NativeFileControlSession owner, string mediaType, string version, string catalogId, string albumId)
+    {
+        lock (fileRouteGate) return nativeKnownCatalogs.TryGetValue(mediaType, out var catalog) && ReferenceEquals(catalog.Owner, owner) &&
+            catalog.Version == version && catalog.CatalogId == catalogId && catalog.Albums.TryGetValue(albumId, out var album) ? album : null;
+    }
 
     private NativeSourceChoice CaptureNativeSourceChoice(string mediaType, bool positive, bool dataReady)
     {
@@ -144,7 +160,21 @@ internal sealed partial class TelefonConnection
         var message = DeviceFileSources.CreateRequest(operation, Now(), expectedVersion, catalogId: catalogId,
             after: catalogId is null ? null : after, mediaType: mediaType);
         return await ExchangeNativeSourceCommandAsync<DeviceFileCatalogPage>(choice, message, DeviceFileSources.CatalogKind,
-            raw => DeviceFileSources.ParseCatalog(raw, message["message_id"]!.GetValue<string>(), operation, expectedVersion, Now(), catalogId, after, mediaType), current, token);
+            raw => DeviceFileSources.ParseCatalog(raw, message["message_id"]!.GetValue<string>(), operation, expectedVersion, Now(), catalogId, after, mediaType), current, token,
+            accept: (_, value) =>
+            {
+                var page = (DeviceFileCatalogPage)value;
+                lock (fileRouteGate)
+                {
+                    if (operation == "discover") nativeKnownCatalogs[mediaType] = new(choice.Owner, expectedVersion, page.CatalogId);
+                    if (!nativeKnownCatalogs.TryGetValue(mediaType, out var known) || !ReferenceEquals(known.Owner, choice.Owner) ||
+                        known.Version != expectedVersion || known.CatalogId != page.CatalogId || known.NextCursor != page.After ||
+                        page.Albums.Any(album => known.Albums.ContainsKey(album.AlbumId)))
+                        throw DeviceFileControl.Error("file_sources_native_catalog_changed");
+                    foreach (var album in page.Albums) known.Albums.Add(album.AlbumId, album);
+                    known.NextCursor = page.NextCursor;
+                }
+            });
     }
 
     internal async Task<DeviceFilePermissionResult> RequestNativeMediaReadAsync(string expectedVersion, string mediaType = "images", CancellationToken token = default)
@@ -181,7 +211,15 @@ internal sealed partial class TelefonConnection
         { throw new TimeoutException("file_sources_native_command_timeout", error); }
         finally
         {
-            lock (fileRouteGate) if (ReferenceEquals(nativeSourceCommand, pending)) nativeSourceCommand = null;
+            lock (fileRouteGate)
+            {
+                var run = nativeMediaSourceRun;
+                if (pending is not null && !pending.Completion.Task.IsCompletedSuccessfully && run?.AlbumOperation is not null &&
+                    (pending.Message["body"]?["operation"]?.GetValue<string>() is "run_status" or "resume_status") &&
+                    pending.Message["body"]?["run_id"]?.GetValue<string>() == run.Lease.RunId)
+                    nativeRetiredAlbumStatus = pending;
+                if (ReferenceEquals(nativeSourceCommand, pending)) nativeSourceCommand = null;
+            }
             if (pending is not null)
             {
                 pending.Completion.TrySetCanceled();
@@ -226,6 +264,20 @@ internal sealed partial class TelefonConnection
         await fileControlIo.WaitAsync(cancellation);
         try
         {
+            NativeSourceCommandPending? retired;
+            lock (fileRouteGate) retired = nativeRetiredAlbumStatus;
+            if (retired is not null && message["kind"]?.GetValue<string>() == DeviceFileSources.RunResultKind &&
+                message["body"]?["request_id"]?.GetValue<string>() == retired.Message["message_id"]!.GetValue<string>())
+            {
+                RequireNativeFileControls(retired.Choice.Owner);
+                var witness = retired.Choice.Owner.RemoteControlWitness(); var tick = Environment.TickCount64;
+                if (witness?.SessionEpoch != retired.Witness.SessionEpoch || tick < retired.Issued || tick - retired.Issued >= DeviceFileControl.MaximumTtlMs ||
+                    Now() >= TelefonProtocolContract.Integer(retired.Message["expires_ms"]) || TelefonProtocolContract.Integer(message["expires_ms"]) > TelefonProtocolContract.Integer(retired.Message["expires_ms"]))
+                    throw DeviceFileControl.Error("file_sources_native_retired_status_changed");
+                _ = retired.Parse(message); // Pure exact correlation; no Accept callback, state update, lease or READ.
+                lock (fileRouteGate) if (ReferenceEquals(nativeRetiredAlbumStatus, retired)) nativeRetiredAlbumStatus = null;
+                return;
+            }
             NativeSourceCommandPending pending;
             lock (fileRouteGate)
             {
@@ -306,6 +358,8 @@ internal sealed partial class TelefonConnection
         {
             if (expected is not null && !ReferenceEquals(nativeSourceCommand, expected)) return;
             pending = nativeSourceCommand; nativeSourceCommand = null; nativeVideoSourceActivation = null; nativeVideoConfigurationAttempt = null;
+            nativeKnownCatalogs.Clear();
+            nativeRetiredAlbumStatus = null;
         }
         pending?.Completion.TrySetException(DeviceFileControl.Error(reason));
     }
