@@ -6,6 +6,9 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_photo_destination import NativePhotoDestinationController,photo_folder_component,native_pictures_directory
 from magnolie_file_transfer import TransferError
+from magnolie_photo_destination import media_directory_is_backup,NativeVideoDestinationController
+from magnolie_photo_preferences import PhotoPreferences,VideoPreferences
+from magnolie_file_acceptance import NativeAcceptedDestination
 from test_file_authenticated_desktop import native,bind
 
 @pytest.fixture
@@ -85,3 +88,36 @@ def test_unavailable_native_pictures_directory_does_not_fall_back_or_create_pare
     _,_,_,controller,pictures,_=chooser
     with pytest.raises(TransferError):controller.choose_default(controller.issue_action(),pictures_provider=lambda:None)
     assert not list(pictures.iterdir())
+
+@pytest.mark.parametrize('path',[
+    '/media/offline/Backup','/media/former/Backup/album/nested',
+    '/media/alternative/BACKUP/videos','/home/user/Pictures/phone/Backup/objects'])
+def test_backup_subtrees_are_excluded_independently_of_catalog_or_pair(path):
+    assert media_directory_is_backup(path)
+
+@pytest.mark.parametrize('path',['/','/media/former/Backup-other/album','/home/user/myBackup','/media/alternative'])
+def test_backup_exclusion_matches_a_whole_directory_component_only(path):
+    assert not media_directory_is_backup(path)
+
+def test_backup_destinations_hold_before_folder_creation_and_preserve_history(chooser,tmp_path):
+    _,_,authority,controller,_,_=chooser
+    parent=tmp_path/'old-pair'/'Backup';parent.mkdir(parents=True,mode=0o700)
+    child=parent/'deep';child.mkdir(mode=0o700)
+    original=child/'original.jpg';original.write_bytes(b'unchanged original backup')
+    before={entry.relative_to(parent).as_posix() for entry in parent.rglob('*')}
+    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+        controller.choose_default(controller.issue_action(),pictures_provider=lambda:parent)
+    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+        controller.choose_custom(controller.issue_action(),child)
+    video=NativeVideoDestinationController(authority)
+    try:
+        with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+            video.choose_custom(video.issue_action(),child)
+    finally:video.close()
+    destination=NativeAcceptedDestination.capture(child)
+    policy=PhotoPreferences(2,'a'*64,'b'*64,True,'manual',False,False,destination,'c'*64)
+    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):PhotoPreferences.parse(policy.wire())
+    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+        VideoPreferences.parse(VideoPreferences(True,destination,'d'*64).wire())
+    assert original.read_bytes()==b'unchanged original backup'
+    assert {entry.relative_to(parent).as_posix() for entry in parent.rglob('*')}==before

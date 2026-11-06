@@ -11,6 +11,24 @@ from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_file_transfer import TransferError
 
+def media_directory_is_backup(path):
+    """Deny-only recursive exclusion; no catalog, pairing or IO authority.
+
+    All managed backup locations keep their dedicated Backup child, including
+    alternative parents and retained former locations. Missing metadata must
+    never turn that subtree into synchronization input/output.
+    """
+    if not isinstance(path,(str,Path)):
+        raise TransferError('photo_destination_native_path_required')
+    value=str(path)
+    if (not value.startswith('/') or '\x00' in value
+            or any(part in ('.','..') for part in value.split('/'))):
+        raise TransferError('photo_destination_native_path_required')
+    return any(part.casefold()=='backup' for part in value.split('/'))
+
+def require_media_directory(path):
+    if media_directory_is_backup(path):raise TransferError('media_backup_subtree_excluded')
+
 def native_pictures_directory():
     from gi.repository import GLib
     value=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
@@ -111,6 +129,7 @@ class NativePhotoDestinationController:
         if not isinstance(pictures,(str,Path)) or not Path(pictures).is_absolute():
             raise TransferError(unavailable)
         base=NativeAcceptedDestination.capture(pictures)
+        require_media_directory(base.path)
         fallback=self._username() if not _safe_media_name(peer.display_name) else ''
         component=folder_component(peer.display_name,fallback_user_name=fallback)
         self._peer();base.verify()
@@ -129,11 +148,13 @@ class NativePhotoDestinationController:
     def choose_custom(self,action,selected_native_directory):
         self._take(action)
         destination=NativeAcceptedDestination.capture(selected_native_directory)
+        require_media_directory(destination.path)
         self._peer();self._open();action.validate(self)
         return self._choice_type(destination,secrets.token_hex(32),self)
     def verify_choice(self,choice):
         if type(choice) is not self._choice_type or choice.owner is not self:
             raise TransferError('photo_destination_choice_not_native')
+        require_media_directory(choice.destination.path)
         self._peer();choice.destination.verify();self._peer()
         return choice.destination
     def close(self):

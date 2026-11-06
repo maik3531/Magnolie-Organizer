@@ -20,7 +20,7 @@ from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_file_control import FileGrantState, NativeLocalFileGrant, MAX_REVISION, _hex
 from magnolie_file_native_authority import NativeDesktopFileAuthority
 from magnolie_photo_destination import (NativePhotoDestinationAction, NativePhotoDestinationChoice, NativePhotoDestinationController,
-    NativeVideoDestinationChoice, NativeVideoDestinationController)
+    NativeVideoDestinationChoice, NativeVideoDestinationController, require_media_directory)
 from magnolie_file_transfer import TransferError
 from magnolie_photo_mapping_witness import PhotoMappingStoreWitness,NativePhotoMappingStoreChoice
 from magnolie_job_catalog_witness import JobCatalogWitness,NativeJobCatalogChoice
@@ -41,6 +41,7 @@ class VideoPreferences:
         if (type(value) is not dict or set(value)!={'enabled','destination','destination_token'}
                 or type(value['enabled']) is not bool):raise TransferError('video_preferences_invalid_record')
         destination=NativeAcceptedDestination.parse(value['destination']) if value['destination'] is not None else None
+        if destination is not None:require_media_directory(destination.path)
         if ((destination is None)!=(value['destination_token'] is None)
                 or destination is not None and not _hex(value['destination_token'])
                 or value['enabled'] and destination is None):raise TransferError('video_preferences_invalid_destination')
@@ -96,6 +97,7 @@ class PhotoPreferences:
                 or value['mode'] not in ('manual','automatic')):
             raise TransferError('photo_preferences_invalid_record')
         destination=NativeAcceptedDestination.parse(value['destination']) if value['destination'] is not None else None
+        if destination is not None:require_media_directory(destination.path)
         if ((destination is None)!=(value['destination_token'] is None) or destination is not None and not _hex(value['destination_token'])
                 or value['enabled'] and destination is None):
             raise TransferError('photo_preferences_invalid_destination')

@@ -18,7 +18,7 @@ import time
 from magnolie_file_control import MAX_REVISION, _hex
 from magnolie_file_transfer import CHUNK_BYTES, TransferError
 from magnolie_file_protection import ExistingFileTransferProtection
-from magnolie_photo_destination import NativePhotoDestinationAction
+from magnolie_photo_destination import NativePhotoDestinationAction,require_media_directory
 from magnolie_photo_mappings import ProtectedPhotoMappings, PhotoMappingAssociation, NativeSavedPhotoMapping
 from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_telefon import canonical, strict_json
@@ -412,6 +412,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         mapping_snapshot,records=mappings.lookup((association,));mapping=records[0]
         if not mapping_snapshot.associated or mapping is None or mapping.protected_record_sha256!=expected_mapping_sha256:
             raise TransferError('media_trash_original_mapping_changed')
+        require_media_directory(os.path.join(mapping.destination.path,os.path.dirname(mapping.relative_path)))
         with self._operation():
             self._open(create=True,validate=lambda:action.validate(self))
             with self._locked():
@@ -475,6 +476,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
     @contextmanager
     def _target_context(self,entry,fresh):
         mapping=entry.mapping;names=mapping.relative_path.split('/');fds=[]
+        require_media_directory(os.path.join(mapping.destination.path,*names[:-1]))
         def directories():
             fresh();mapping.destination.verify()
             for index,fd in enumerate(fds):

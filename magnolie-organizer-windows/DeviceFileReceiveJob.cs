@@ -239,8 +239,9 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("file_receive_local_consent_withdrawn");
             if (!(mediaType == "images" ? preferences.PhotosEnabled : preferences.VideosEnabled))
                 throw DeviceFileControl.Error("file_receive_native_choice_withdrawn");
-            _ = root?.CurrentIdentity(); _ = stage?.CurrentIdentity();
-            _ = albumDirectory?.CurrentIdentity();
+            _ = stage?.CurrentIdentity();
+            if (root is not null) NativeMediaBackupExclusions.RequireMediaDirectory(root);
+            if (albumDirectory is not null) NativeMediaBackupExclusions.RequireMediaDirectory(albumDirectory);
         }
 
         private void Save(JsonObject body) => head = store.SaveReceiveHead(peerId, JobId, head?.Version, body, Current);

@@ -80,6 +80,7 @@ internal sealed partial class TelefonStore
             var volumePath = Text("volume_path");
             if (!volumePath.StartsWith(@"\\?\Volume{", StringComparison.Ordinal) || volumePath.Length > 16048 ||
                 volumePath.Any(c => c < 32 || c == 127)) throw DeviceFileControl.Error("file_destination_record_invalid");
+            NativeMediaBackupExclusions.RequireMediaDirectory(path, volumePath);
             var identity = new DeviceFileNativeDirectory.Identity(Hex("volume_serial"), Hex("file_id_low"), Hex("file_id_high"));
             if (identity.FileIdLow == 0 && identity.FileIdHigh == 0) throw DeviceFileControl.Error("file_destination_record_invalid");
             return new(revision, version, mediaType, path, volumePath, identity, token);
@@ -96,6 +97,7 @@ internal sealed partial class TelefonStore
         lock (gate)
         {
             var scope = MediaPreferenceScope(peerId); var root = owner.CurrentReceiveIdentity();
+            NativeMediaBackupExclusions.RequireMediaDirectory(owner.NativePath, owner.VolumePath);
             using var connection = OpenNativeMediaDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
             var before = ReadNativeMediaDestination(connection, transaction, scope, mediaType);
             if (before?.Version != expectedVersion) throw DeviceFileControl.Error("file_destination_stale_choice");

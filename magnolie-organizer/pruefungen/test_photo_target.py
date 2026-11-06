@@ -12,6 +12,8 @@ from magnolie_photo_plan import (NativePhotoAssociation, NativePhotoBaseline, Na
     PhotoContentWitness, compare_photo)
 from test_file_saved_receipts import fixture
 from test_file_receive import feed
+from magnolie_file_acceptance import NativeAcceptedTransfer
+from test_file_transfer_stage import description
 
 
 def saved(f, data=b'hello'):
@@ -20,6 +22,28 @@ def saved(f, data=b'hello'):
     operation.publish_completed()
     receipt = operation.commit_saved_receipts()[0]
     return operation, receipt, f.destination/receipt.relative_path
+
+def test_historical_backup_target_is_unknown_without_reading_payload_or_proving_deletion(fixture,monkeypatch):
+    f=fixture;data=b'old original backup'
+    folder=f.destination/'Backup'/'deep';folder.mkdir(parents=True,mode=0o700)
+    (f.destination/'Backup').chmod(0o700)
+    manifest=description(data)
+    accepted=NativeAcceptedTransfer.capture(manifest,f.binding,{file.id:'Backup/deep/photo.jpg' for file in manifest.files},f.destination,lambda:f.current)
+    op=f.accept(data,accepted=accepted);feed(op,data);op.publish_completed();receipt=op.commit_saved_receipts()[0]
+    target=f.destination/receipt.relative_path
+    before=op._index._db.execute('SELECT file_id,payload FROM receipts').fetchall()
+    original=os.read;reads=[]
+    def read(fd,count):
+        value=os.fstat(fd)
+        if (value.st_dev,value.st_ino)==receipt.file_key:reads.append(fd)
+        return original(fd,count)
+    monkeypatch.setattr(os,'read',read)
+    observed=op.observe_saved_photo(receipt.file_id).observation
+    assert observed.state=='unknown' and observed.content is None and not observed.managed and reads==[]
+    association=NativePhotoAssociation(op.job.accepted.binding,'a'*64,'b'*64,'c'*64)
+    baseline=NativePhotoBaseline(association,PhotoContentWitness(receipt.sha256,receipt.size),receipt.protected_record_sha256)
+    assert compare_photo(association,baseline,NativePhotoObservation('deleted'),observed).kind=='pause_unknown'
+    assert op._index._db.execute('SELECT file_id,payload FROM receipts').fetchall()==before and target.read_bytes()==data
 
 
 @pytest.mark.parametrize('data', [b'hello', b''])

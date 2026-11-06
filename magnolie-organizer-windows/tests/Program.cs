@@ -105,6 +105,7 @@ if (args.FirstOrDefault() == "--published-release-audit")
 var runner = new TestRunner();
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
+runner.Add("Media backup exclusions / recursive independent native component classifier", DeviceFileBackupExclusionTests.ClassifierAsync);
 runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
 runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
 runner.Add("Notes contact group title / strict preparation and saved identity", PhoneContactGroupTitleWriteTests.RunAsync);
@@ -281,6 +282,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared projection / Windows VIDEO-only base bootstrap and actual data ACK", DeviceFileConnectionCommandsTests.WindowsSharedVideoOnlyBootstrapAsync);
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
     runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
+    runner.Add("Media backup exclusions / Windows former backup destination rejection without catalog", DeviceFileBackupExclusionTests.WindowsDestinationAsync);
     runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
     runner.Add("Media backup bytes / Windows held FID independent copy and new restore", DeviceFileBackupBytesTests.WindowsCopyRestoreAsync);
     runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);
