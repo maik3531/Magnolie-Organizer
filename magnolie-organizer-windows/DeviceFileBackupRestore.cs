@@ -159,7 +159,7 @@ internal sealed partial class TelefonCoordinator
             permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination &&
                 store.ReadNativeMediaBackupLocations(peerId, kind).Version == locations.Version;
         }
-        try { return new(locations, source, store.NativeMediaBackupVersions(destination, Current, source)); }
+        try { return new(locations, source, store.NativeMediaBackupRecoverableVersions(destination, Current, source)); }
         catch (InvalidDataException error) when (error.Message == "media_backup_original_catalog_required")
         {
             if (!Current()) throw DeviceFileControl.Error("media_backup_locations_stale_choice");
@@ -174,7 +174,7 @@ internal sealed partial class TelefonCoordinator
         var source = locationId is null ? locations.Current : locations.Parents.SingleOrDefault(value => value.Id == locationId)
             ?? throw DeviceFileControl.Error("media_backup_original_parent_required");
         bool Current() { permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination; }
-        var selected = store.NativeMediaBackupVersions(destination, Current, source).SingleOrDefault(item => item.Id == id && item.RecordSha256 == revision)
+        var selected = store.NativeMediaBackupRecoverableVersions(destination, Current, source).SingleOrDefault(item => item.Id == id && item.RecordSha256 == revision)
             ?? throw DeviceFileControl.Error("media_backup_stale_selection");
         permit.Require(); return new(peerId, destination, selected, permit, source);
     }

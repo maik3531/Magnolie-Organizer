@@ -126,10 +126,14 @@ internal sealed partial class TelefonStore
 
         private void Validate(JsonObject value)
         {
-            TelefonProtocolContract.ExactObject(value, "format", "scope", "revision", "folder", "objects", "versions");
+            if(value.ContainsKey("pending")) TelefonProtocolContract.ExactObject(value,"format","scope","revision","folder","objects","versions","pending");
+            else TelefonProtocolContract.ExactObject(value, "format", "scope", "revision", "folder", "objects", "versions");
             if (Number(value, "format") != 1 || Text(value, "scope") != scope || Number(value, "revision") is < 0 or > 8192 ||
                 Identity(value["folder"]!) != folder.OriginalIdentity || value["objects"] is not JsonArray objects || objects.Count > MaxRecords ||
                 value["versions"] is not JsonArray versions || versions.Count > MaxRecords) throw DeviceFileControl.Error("media_backup_catalog_invalid");
+            if(value.ContainsKey("pending")&&value["pending"] is not JsonArray) throw DeviceFileControl.Error("media_backup_catalog_invalid");
+            var pending=Pending(value);
+            if(versions.Count+pending.Count>MaxRecords) throw DeviceFileControl.Error("media_backup_catalog_capacity");
             var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var item in objects)
             {
@@ -142,14 +146,26 @@ internal sealed partial class TelefonStore
             var refs = new HashSet<string>(StringComparer.Ordinal);
             foreach (var item in versions)
             {
+                ValidateReference(item,objects,refs,true);
+            }
+            foreach(var item in pending) ValidateReference(item,objects,refs,false);
+        }
+
+        private static JsonArray Pending(JsonObject value)=>value["pending"] as JsonArray??new JsonArray();
+
+        private static void ValidateReference(JsonNode? item,JsonArray objects,HashSet<string> refs,bool completed)
+        {
                 var version = TelefonProtocolContract.ExactObject(item!, "id", "object_key", "saved_ms", "name", "provenance");
                 if (!DeviceFileControl.Hash(Text(version, "id")) || !refs.Add(Text(version, "id")) || Number(version, "saved_ms") is < 1 or > NativeMediaBackupPolicy.MaximumTimestampMs ||
                     Text(version, "name").Length is < 1 or > 4096 || version["provenance"] is not JsonObject provenance ||
                     Text(version, "id") != DeviceFileControl.Digest("magnolie-native-media-backup-version-v1\0", provenance))
                     throw DeviceFileControl.Error("media_backup_version_invalid");
                 var obj = objects.OfType<JsonObject>().SingleOrDefault(obj => Text(obj, "id") == Text(version, "object_key"));
-                if (obj is null || obj["complete"]!.GetValue<bool>() != true) throw DeviceFileControl.Error("media_backup_version_object_required");
-            }
+                if (completed&&(obj is null || obj["complete"]!.GetValue<bool>() != true)) throw DeviceFileControl.Error("media_backup_version_object_required");
+                var parts=Text(version,"object_key").Split('-');
+                if(parts.Length!=2||!DeviceFileControl.Hash(parts[0])||!long.TryParse(parts[1],System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,out var size)||NativeMediaBackupPolicy.ContentKey(size,parts[0])!=Text(version,"object_key"))
+                    throw DeviceFileControl.Error("media_backup_version_invalid");
         }
 
         private void Commit(JsonObject next, bool initial = false)
@@ -205,6 +221,24 @@ internal sealed partial class TelefonStore
             Current(); return state["versions"]!.AsArray().OfType<JsonObject>().Select(Version).ToArray();
         }
 
+        private NativeMediaBackupVersion? VerifiedPending(JsonObject version)
+        {
+            Current();var obj=state["objects"]!.AsArray().OfType<JsonObject>().SingleOrDefault(item=>Text(item,"id")==Text(version,"object_key"));
+            if(obj is null)return null; // Original intent precedes inode creation.
+            var observed=folder.ObserveManagedFile(Text(obj,"name"),Current)??throw DeviceFileControl.Error("media_backup_original_candidate_required");
+            if(observed.Identity!=Identity(obj["identity"]!)||observed.Size>Number(obj,"size"))throw DeviceFileControl.Error("media_backup_original_candidate_changed");
+            if(observed.Size!=Number(obj,"size")||observed.Sha256!=Text(obj,"sha256"))return null;
+            using var held=OpenObject(obj);_=NativeMediaBackupBytes.Verify(held,Number(obj,"size"),Text(obj,"sha256"),Current);
+            return Version(version);
+        }
+
+        internal IReadOnlyList<NativeMediaBackupVersion> RecoveryVersions()
+        {
+            Current();var result=Versions().ToList();
+            foreach(var item in Pending(state).OfType<JsonObject>())if(VerifiedPending(item) is {} version)result.Add(version);
+            return result;
+        }
+
         private DeviceFileNativeDirectory.DeviceFileNativeStagedFile OpenObject(JsonObject obj, bool prepared = false)
         {
             Current(); var name = Text(obj, "name"); var expected = Identity(obj["identity"]!);
@@ -231,7 +265,21 @@ internal sealed partial class TelefonStore
                 using var existing = OpenObject(obj); _ = NativeMediaBackupBytes.Verify(existing, size, hash, Current);
                 return Version(original); // No second copy and no retention-origin renewal.
             }
-            if (state["versions"]!.AsArray().Count >= MaxRecords) throw DeviceFileControl.Error("media_backup_catalog_capacity");
+            var version=Pending(state).OfType<JsonObject>().SingleOrDefault(item=>Text(item,"id")==id);
+            if(version is not null)
+            {
+                if(Text(version,"object_key")!=key||Text(version,"name")!=name||!JsonNode.DeepEquals(version["provenance"],provenance))
+                    throw DeviceFileControl.Error("media_backup_original_version_changed");
+            }
+            else
+            {
+                if (state["versions"]!.AsArray().Count+Pending(state).Count >= MaxRecords) throw DeviceFileControl.Error("media_backup_catalog_capacity");
+                version=new JsonObject { ["id"]=id,["object_key"]=key,["name"]=name,
+                    ["saved_ms"]=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),["provenance"]=provenance.DeepClone() };
+                var intent=state.DeepClone().AsObject();var pendingVersions=Pending(intent);
+                if(!intent.ContainsKey("pending"))intent["pending"]=pendingVersions;
+                pendingVersions.Add(version.DeepClone());Commit(intent); // Original Saved lineage BEFORE any backup payload.
+            }
             if (obj is null)
             {
                 if (state["objects"]!.AsArray().Count >= MaxRecords) throw DeviceFileControl.Error("media_backup_catalog_capacity");
@@ -249,15 +297,17 @@ internal sealed partial class TelefonStore
             }
             var next = state.DeepClone().AsObject();
             next["objects"]!.AsArray().OfType<JsonObject>().Single(item => Text(item, "id") == key)["complete"] = true;
-            var version = new JsonObject { ["id"] = id, ["object_key"] = key, ["name"] = name,
-                ["saved_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["provenance"] = provenance.DeepClone() };
-            next["versions"]!.AsArray().Add(version); Commit(next); return Version(version);
+            var consumed=Pending(next);var intentIndex=consumed.Select((item,index)=>(item,index)).Single(pair=>Text(pair.item!.AsObject(),"id")==id).index;
+            consumed.RemoveAt(intentIndex);if(consumed.Count==0)next.Remove("pending");
+            next["versions"]!.AsArray().Add(version.DeepClone()); Commit(next); return Version(version);
         }
 
         private JsonObject SelectedObject(NativeMediaBackupVersion selected)
         {
             Current(); var version = state["versions"]!.AsArray().OfType<JsonObject>().SingleOrDefault(item => Text(item, "id") == selected.Id);
-            if (version is null || Version(version) != selected) throw DeviceFileControl.Error("media_backup_stale_selection");
+            var pending=version is null;
+            version??=Pending(state).OfType<JsonObject>().SingleOrDefault(item=>Text(item,"id")==selected.Id);
+            if (version is null || Version(version) != selected || pending&&VerifiedPending(version) is null) throw DeviceFileControl.Error("media_backup_stale_selection");
             return state["objects"]!.AsArray().OfType<JsonObject>().Single(item => Text(item, "id") == selected.ObjectKey);
         }
         internal NativeMediaBackupBytes.VerifiedRaw VerifySelected(NativeMediaBackupVersion selected)
@@ -297,6 +347,15 @@ internal sealed partial class TelefonStore
         {
             void Current() { if (RestoreFenced || !nativePermit()) throw DeviceFileControl.Error("media_backup_native_permit_changed"); }
             using var catalog = new MediaBackupCatalog(this, destination, Current, false); return catalog.Restore(selected, target);
+        }
+    }
+    internal IReadOnlyList<NativeMediaBackupVersion> NativeMediaBackupRecoverableVersions(NativeMediaDestination destination, Func<bool> nativePermit,
+        NativeMediaBackupParent? storageParent = null)
+    {
+        lock(gate)
+        {
+            void Current(){if(RestoreFenced||!nativePermit())throw DeviceFileControl.Error("media_backup_native_permit_changed");}
+            using var catalog=new MediaBackupCatalog(this,destination,Current,false,storageParent);return catalog.RecoveryVersions();
         }
     }
     internal NativeMediaBackupVersion SaveNativeMediaBackup(string peerId, string jobId, string jobVersion, string fileId,

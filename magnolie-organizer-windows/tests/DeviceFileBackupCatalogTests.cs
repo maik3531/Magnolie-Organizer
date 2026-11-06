@@ -116,6 +116,75 @@ internal static class DeviceFileBackupCatalogTests
             "Corrupted candidate HOLD changed data or manufactured a version.");
     }
 
+    internal static async Task WindowsCompleteInterruptedOfflineAsync()
+    {
+        using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await Seed(f);
+        var payload = Path.Combine(Folder(f),"object-"+NativeMediaBackupPolicy.ContentKey(Data.Length,Convert.ToHexString(SHA256.HashData(Data)).ToLowerInvariant())+".raw");
+        TestAssert.Throws<InvalidDataException>(()=>Save(f,permit:()=>!File.Exists(payload)||new FileInfo(payload).Length<Data.Length),
+            "A withdrawn owner was marked as a completed backup.");
+        TestAssert.That(File.ReadAllBytes(payload).SequenceEqual(Data)&&f.Native.Store.NativeMediaBackupVersions(f.Destination,()=>true).Count==0,
+            "The complete interrupted payload was lost or falsely marked complete.");
+        var source=Directory.GetFiles(f.Root,"first.jpg",SearchOption.AllDirectories).Single();File.Move(source,source+".source-held");
+        var history=f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).ToArray();f.Native.Connection.Dispose();
+        var before=Directory.GetFiles(Folder(f)).ToDictionary(path=>path,path=>Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))));
+        var versions=f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true);
+        TestAssert.That(versions.Count==1,"Complete owned interrupted bytes lost their original recovery lineage after the source disappeared.");
+        using var coordinator = new TelefonCoordinator(f.Native.Paths, (_, _) => Task.CompletedTask, dataStore: f.Native.Store, localOnly: true);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "native-book"), "{\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":0}}}");
+        coordinator.NativeProducerBook=host.Snapshot;coordinator.NativeSavedBook=host.Saved;
+        TestAssert.That(coordinator.ReadNativeMediaBackupUi(f.Native.Peer.Id,"images").Single()==versions[0],"Native offline recovery UI did not retain interrupted original lineage.");
+        var choice=coordinator.PrepareNativeMediaBackupRestore(f.Native.Peer.Id,"images",versions[0].Id,versions[0].RecordSha256);
+        var result=coordinator.RestoreConfirmedNativeMediaBackup(choice);
+        TestAssert.That(result.State=="restored"&&!result.IsRemoteSavedReceipt&&File.ReadAllBytes(Path.Combine(f.Root,result.Name)).SequenceEqual(Data),
+            "Pending backup recovery forged Saved, overwrote data or needed the original source/connection.");
+        TestAssert.That(f.Native.Store.NativeMediaBackupVersions(f.Destination,()=>true).Count==0&&
+            f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).SequenceEqual(history)&&
+            before.All(item=>File.Exists(item.Key)&&Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(item.Key)))==item.Value)&&
+            Directory.GetFiles(Folder(f)).Length==before.Count,"A recovery read/publication migrated the backup catalog or phone history.");
+    }
+
+    internal static async Task WindowsPendingRetryAsync()
+    {
+        foreach(var complete in new[]{false,true})
+        {
+            using var f=await DeviceFileReceiveJobTests.Fixture.CreateAsync();var raw=RandomNumberGenerator.GetBytes(DeviceFileManifest.ChunkBytes*2+7);await Seed(f,raw);
+            var payload=Path.Combine(Folder(f),"object-"+NativeMediaBackupPolicy.ContentKey(raw.Length,Convert.ToHexString(SHA256.HashData(raw)).ToLowerInvariant())+".raw");
+            TestAssert.Throws<InvalidDataException>(()=>Save(f,permit:()=>!File.Exists(payload)||new FileInfo(payload).Length<(complete?raw.Length:1)),"Withdrawn backup was marked complete.");
+            var pending=f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true);
+            TestAssert.That(pending.Count==(complete?1:0)&&f.Native.Store.NativeMediaBackupVersions(f.Destination,()=>true).Count==0,"Partial bytes acquired completed/recovery authority.");
+            DeviceFileNativeDirectory.Identity identity;
+            using(var root=DeviceFileNativeDirectory.OpenExistingForReceive(Folder(f)))identity=root.FileIdentityAt(Path.GetFileName(payload));
+            var saved=Save(f);
+            TestAssert.That(!complete||saved==pending.Single(),"Completing an interrupted copy renewed its original time/hash/lineage.");
+            using(var root=DeviceFileNativeDirectory.OpenExistingForReceive(Folder(f)))TestAssert.That(root.FileIdentityAt(Path.GetFileName(payload))==identity,"Retry replaced its exact owned candidate.");
+            TestAssert.That(f.Native.Store.NativeMediaBackupVersions(f.Destination,()=>true).Single()==saved&&
+                f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true).Single()==saved&&File.ReadAllBytes(payload).SequenceEqual(raw),
+                "Retry duplicated pending/completed versions or lost original bytes.");
+        }
+    }
+
+    internal static async Task WindowsPendingCorruptionAsync()
+    {
+        foreach(var replace in new[]{false,true})
+        {
+            using var f=await DeviceFileReceiveJobTests.Fixture.CreateAsync();await Seed(f);
+            var payload=Path.Combine(Folder(f),"object-"+NativeMediaBackupPolicy.ContentKey(Data.Length,Convert.ToHexString(SHA256.HashData(Data)).ToLowerInvariant())+".raw");
+            TestAssert.Throws<InvalidDataException>(()=>Save(f,permit:()=>!File.Exists(payload)||new FileInfo(payload).Length<Data.Length),"Withdrawn backup was marked complete.");
+            var selected=f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true).Single();
+            if(replace){File.Move(payload,payload+".original-held");File.WriteAllBytes(payload,Data);}
+            else{var corrupt=Data.ToArray();corrupt[0]^=1;File.WriteAllBytes(payload,corrupt);}
+            var before=File.ReadAllBytes(payload);
+            if(replace)TestAssert.Throws<InvalidDataException>(()=>f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true),"Recovery adopted a foreign replacement FID.");
+            else TestAssert.That(f.Native.Store.NativeMediaBackupRecoverableVersions(f.Destination,()=>true).Count==0,"Corrupt complete pending bytes were offered for recovery.");
+            using(var root=f.Destination.OpenNative())using(var target=root.CreateStagedFile("untouched-pending.jpg"))
+            {
+                TestAssert.Throws<InvalidDataException>(()=>f.Native.Store.RestoreNativeMediaBackup(f.Destination,selected,target,()=>true),"A stale pending selection wrote corrupt or foreign bytes.");
+                TestAssert.That(target.Observe().Size==0,"Held pending restore changed its target.");
+            }
+            TestAssert.That(File.ReadAllBytes(payload).SequenceEqual(before)&&f.Native.Store.NativeMediaBackupVersions(f.Destination,()=>true).Count==0,"Pending corruption HOLD mutated the source or completed history.");
+        }
+    }
+
     internal static async Task WindowsForeignFolderAsync()
     {
         using var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(); await Seed(f);

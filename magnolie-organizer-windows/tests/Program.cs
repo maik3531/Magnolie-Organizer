@@ -294,6 +294,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media backup catalog / Windows actual Saved dedup across names and new restore", DeviceFileBackupCatalogTests.WindowsDedupAsync);
     runner.Add("Media backup catalog / Windows different bytes versions and PC edits HOLD", DeviceFileBackupCatalogTests.WindowsDifferentVersionsAsync);
     runner.Add("Media backup catalog / Windows partial registered candidate same FID resume", DeviceFileBackupCatalogTests.WindowsInterruptedAsync);
+    runner.Add("Media backup pending / Windows complete interrupted copy offline recoverable", DeviceFileBackupCatalogTests.WindowsCompleteInterruptedOfflineAsync);
+    runner.Add("Media backup pending / Windows partial and complete exact-FID retry", DeviceFileBackupCatalogTests.WindowsPendingRetryAsync);
+    runner.Add("Media backup pending / Windows corrupt bytes and replaced FID HOLD", DeviceFileBackupCatalogTests.WindowsPendingCorruptionAsync);
     runner.Add("Media backup catalog / Windows corrupt candidate prefix preserved HOLD", DeviceFileBackupCatalogTests.WindowsCorruptCandidateAsync);
     runner.Add("Media backup catalog / Windows foreign Backup folder never adopted", DeviceFileBackupCatalogTests.WindowsForeignFolderAsync);
     runner.Add("Media backup catalog / Windows local restore after source and connection gone", DeviceFileBackupCatalogTests.WindowsLocalRestoreAsync);

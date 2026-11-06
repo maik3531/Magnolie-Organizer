@@ -246,3 +246,22 @@ or corrupt catalogs stay held without replacement or metadata repair. Original
 user files and all completed version references are unchanged. This joins idle
 compression, not backup-version expiry/garbage collection, reverse upload or
 physical installed-package acceptance; those remain outstanding.
+
+## Interrupted Windows backup copies
+
+Windows likewise commits the original Saved-version intent into its existing
+authenticated immutable catalog snapshot before payload creation. Pending rows
+carry the same original provenance, timestamp and reference hash as the eventual
+completed version. Final object/version commit consumes the pending entry
+atomically; retry keeps the original time and exact candidate FID. Format-1
+completed versions and legacy snapshots without pending rows remain readable
+without read-time migration.
+
+`NativeMediaBackupVersions` stays completed-only. The separate recoverable view
+used by the local native source chooser/preflight also verifies complete pending
+objects by exact registered identity, length and hash. Partial/corrupt bytes are
+not offered; a substituted FID is held. The actual saved-book coordinator can
+publish a new local file after disconnect and source-file loss without changing
+the backup catalog or original phone Saved/END history. Neither listing nor
+restoring marks the interrupted backup complete. Any future Windows maintenance
+must pin pending references alongside completed versions before retiring bytes.
