@@ -14,6 +14,8 @@ from magnolie_media_backup_codec import NativeBackupIdlePermit, NativeBackupIdle
 from magnolie_media_trash import NativeMediaRetentionPermit
 from magnolie_file_protection import ExistingFileTransferProtection
 from magnolie_file_transfer import FileManifest, ManifestFile, TransferError, CHUNK_BYTES
+from magnolie_file_acceptance import NativeAcceptedDestination
+from magnolie_telefon import canonical
 from magnolie_photo_mappings import PhotoMappingAssociation
 from test_file_authenticated_desktop import native, bind
 from test_file_desktop_receive import receiving, chunk
@@ -60,6 +62,59 @@ def vault(mappings, request):
 def add_all(vault):
     _, mappings, records, owner, _, _ = vault
     return tuple(owner.save_from_mappings(mappings, record.association, record.protected_record_sha256) for record in records)
+
+def test_alternative_storage_keeps_original_data_scope_and_old_catalog_separate(mappings,tmp_path):
+    fixture,store=mappings;raw=b'original JPEG with EXIF remains unchanged'
+    record=save_native(fixture,store,raw,count=1)[0]
+    protection=fixture[3]._authority.protection
+    with NativeMediaBackups(record.destination,protection,lambda:True,create=True) as default:
+        original=default.save_from_mappings(store,record.association,record.protected_record_sha256)
+        assert default.scope==sha256(canonical(record.destination.wire())).hexdigest()
+    folder=fixture[4]/'Backup';before={p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()}
+    parent=tmp_path/'alternative-parent';parent.mkdir(mode=0o700)
+    storage=NativeAcceptedDestination.capture(parent)
+    with NativeMediaBackups(record.destination,protection,lambda:True,create=True,storage_parent=storage) as alternative:
+        assert alternative.scope==sha256(canonical(storage.wire())).hexdigest() and alternative.versions()==()
+        assert not list((parent/'Backup').glob('object-*'))
+        saved=alternative.save_from_mappings(store,record.association,record.protected_record_sha256)
+        assert saved.object_key==original.object_key and len(list((parent/'Backup').glob('object-*.raw')))==1
+        assert (fixture[4]/record.relative_path).read_bytes()==raw
+    assert before=={p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()}
+    with NativeMediaBackups(record.destination,protection,lambda:True,storage_parent=record.destination) as legacy:
+        assert legacy.versions()==(original,) and (folder/'.owner.seal').read_bytes()==before['.owner.seal']
+
+def test_alternative_backup_reads_and_restores_after_original_data_directory_is_gone(mappings,tmp_path):
+    fixture,store=mappings;raw=b'PC original bytes for later phone recovery'
+    record=save_native(fixture,store,raw,count=1)[0];protection=fixture[3]._authority.protection
+    parent=tmp_path/'retained-backups';parent.mkdir(mode=0o700);storage=NativeAcceptedDestination.capture(parent)
+    with NativeMediaBackups(record.destination,protection,lambda:True,create=True,storage_parent=storage) as owner:
+        selected=owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    data=fixture[4];moved=data.with_name(data.name+'-held-for-test');data.rename(moved)
+    try:
+        with pytest.raises((TransferError,FileNotFoundError)):record.destination.verify()
+        with NativeMediaBackups(record.destination,protection,lambda:True,storage_parent=storage) as owner:
+            assert owner.versions()==(selected,)
+            target=tmp_path/'new-recovered-original.jpg'
+            fd=os.open(target,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            try:owner.restore(selected,fd)
+            finally:os.close(fd)
+            assert target.read_bytes()==raw and not data.exists()
+            with pytest.raises((TransferError,FileNotFoundError)):
+                owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    finally:moved.rename(data)
+    assert (data/record.relative_path).read_bytes()==raw
+
+def test_alternative_parent_never_adopts_foreign_backup_or_a_backup_subtree(mappings,tmp_path):
+    fixture,store=mappings;record=save_native(fixture,store,b'original',count=1)[0]
+    parent=tmp_path/'foreign-parent';parent.mkdir(mode=0o700);folder=parent/'Backup';folder.mkdir(mode=0o700)
+    foreign=folder/'personal.jpg';foreign.write_bytes(b'foreign original')
+    storage=NativeAcceptedDestination.capture(parent)
+    with pytest.raises(FileExistsError):
+        NativeMediaBackups(record.destination,fixture[3]._authority.protection,lambda:True,create=True,storage_parent=storage)
+    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+        NativeMediaBackups(record.destination,fixture[3]._authority.protection,lambda:True,create=True,
+            storage_parent=NativeAcceptedDestination.capture(folder))
+    assert list(folder.iterdir())==[foreign] and foreign.read_bytes()==b'foreign original'
 
 
 def test_identical_saved_files_with_different_names_share_one_verified_object_and_keep_versions(vault):

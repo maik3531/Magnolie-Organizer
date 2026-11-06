@@ -23,6 +23,7 @@ from magnolie_media_backup_codec import (VerifiedBackupRepresentation, NativeBac
     compression_due, content_key, copy_unique, verify_raw, verify_xz, compress_candidate, restore_to_new_file)
 from magnolie_media_trash import NativeMediaRetentionPermit
 from magnolie_photo_mappings import ProtectedPhotoMappings, NativeSavedPhotoMapping, PhotoMappingAssociation
+from magnolie_photo_destination import require_media_directory
 from magnolie_telefon import canonical, strict_json
 
 
@@ -39,10 +40,13 @@ class NativeMediaBackupVersion:
 
 
 class NativeMediaBackups:
-    """One Backup folder per native destination; no adoption of foreign folders.
+    """One Backup folder per native storage parent; no adoption of foreign folders.
 
     Constructor opens EXISTING storage only. Explicit create is a native local
     choice guarded by the already saved/unlocked book, never a wire path/boolean.
+    Storage and original data destination are independent; only saving original
+    mappings requires the original data owner. Local history reads/restoration
+    can keep using verified backup storage after those source files are gone.
     No thread, scheduler, keys, peers, retention settings or service is created.
     """
     MAX_VERSIONS = 4096
@@ -54,19 +58,23 @@ class NativeMediaBackups:
         'CREATE TABLE objects (id TEXT PRIMARY KEY NOT NULL, sealed BLOB NOT NULL)',
     )
 
-    def __init__(self, destination, protection, native_gate, *, create=False, clock_ms=lambda: time.time_ns() // 1000000):
+    def __init__(self, destination, protection, native_gate, *, create=False, storage_parent=None,
+            clock_ms=lambda: time.time_ns() // 1000000):
         if (type(destination) is not NativeAcceptedDestination or type(protection) is not ExistingFileTransferProtection
+                or storage_parent is not None and type(storage_parent) is not NativeAcceptedDestination
                 or not callable(native_gate) or not callable(clock_ms)):
             raise TransferError('media_backup_native_owner_required')
         self.destination, self.protection, self._native_gate, self._clock = destination, protection, native_gate, clock_ms
+        self.storage_parent = destination if storage_parent is None else storage_parent
         self._gate = threading.Lock(); self._closed = False; self._revoked = False; self._uncertain = False; self._observed = None
         self._parent = self._root = self._lock = self._dbfile = None; self._db = None
-        self.scope = sha256(canonical(destination.wire())).hexdigest()
+        self.scope = sha256(canonical(self.storage_parent.wire())).hexdigest()
         self._domain = 'magnolie-media-backup-v1/' + self.scope + '/'
         try:
-            self._require_native(); destination.verify()
-            self._parent = os.open(destination.path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
-            if self._key(os.fstat(self._parent)) != destination.ancestor_keys[0]:
+            self._require_native(); self.storage_parent.verify()
+            if create:require_media_directory(self.storage_parent.path)
+            self._parent = os.open(self.storage_parent.path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+            if self._key(os.fstat(self._parent)) != self.storage_parent.ancestor_keys[0]:
                 raise TransferError('media_backup_original_parent_required')
             if create:
                 # Probe the EXISTING key before creating any backup entry.
@@ -125,7 +133,7 @@ class NativeMediaBackups:
             raise TransferError('media_backup_private_storage_required')
 
     def _header(self):
-        return dict(format=1, scope=self.scope, parent=list(self.destination.ancestor_keys[0]), root=list(self._root_key),
+        return dict(format=1, scope=self.scope, parent=list(self.storage_parent.ancestor_keys[0]), root=list(self._root_key),
             database=list(self._db_key), lock=list(self._lock_key))
 
     def _require_native(self):
@@ -136,7 +144,7 @@ class NativeMediaBackups:
             self._revoked = True; raise
 
     def _current(self):
-        self._require_native(); self.protection._read_key(); self.destination.verify()
+        self._require_native(); self.protection._read_key(); self.storage_parent.verify()
         for fd, name, key, directory in ((self._root, 'Backup', self._root_key, True),):
             held = os.fstat(fd); named = os.stat(name, dir_fd=self._parent, follow_symlinks=False)
             self._private(held, directory=directory); self._private(named, directory=directory)
