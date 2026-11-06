@@ -1,5 +1,29 @@
 # Dedicated own-peer file controls (integration in #330)
 
+### Independent incoming configuration bootstrap (Refs #338; receive default closed)
+
+The native Android control session has a separate incoming-configuration ticket
+and authority type. It requires the current authenticated own-PC relationship,
+an actual native pairing epoch, the PC's positively acknowledged send-files
+consent and an explicit native receive-handler readiness callback. That callback
+defaults to false; existing source-only runtime construction cannot bootstrap
+incoming configuration merely because its source handlers work.
+
+Source and incoming tickets cannot be exchanged. The incoming authority uses an
+independent domain-bound session/peer/permission identity, has a short native
+lifetime and retires on observed clock rollback, handler loss/failure, grant or
+relationship turnover. Returning to the same visible settings does not revive
+the old ticket. Finishing/closing the original ticket remains exact and bounded.
+
+This type only permits a future explicit native local-consent transaction. It
+does not enable receive-files, request Android permissions, accept an offer,
+write a Gallery row or manufacture a local archive-restoration session. Even an
+actual local grant change must complete the ordinary fresh data-control ACK/echo
+before a transfer binding exists. Existing source configuration and wire shapes
+are unchanged; no incoming handler, bidirectional UI or capability is enabled by
+this step. Native local write consent, protected MediaStore receive/publication,
+PC source ownership/inventory/upload and both-direction safeguards remain required.
+
 ### Supported desktop video UI and native destination choice (Refs #330, #335)
 
 The existing Linux native media frontend now exposes **Also synchronize videos**

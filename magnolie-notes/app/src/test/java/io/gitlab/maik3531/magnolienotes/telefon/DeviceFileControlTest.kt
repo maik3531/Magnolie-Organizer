@@ -31,6 +31,122 @@ class DeviceFileControlTest {
     }
     private fun vector() = Json.parseToJsonElement(File("../contracts/file-transfer-control-v1-vectors.json").readText()).jsonObject
 
+    private fun incomingPair(ready: () -> Boolean = { true }, clock: () -> Long = { DeviceFileControl.monotonicMs() },
+        pairingEpoch: String? = "f".repeat(64)): Pair<Side, Side> {
+        val (pc, phone) = pair()
+        pc.peer = pc.peer.copy(pairingEpoch = pairingEpoch); phone.peer = phone.peer.copy(pairingEpoch = pairingEpoch)
+        phone.local = NativeLocalFileGrant(DeviceFileGrantState(7, "b".repeat(64), false, false), phone.local.owner, true)
+        pc.session.close(); phone.session.close(); pc.session = pc.newSession()
+        phone.session = NativeFileControlSession(phone.identity, { phone.peer }, { phone.local }, clock, ready)
+        return pc to phone
+    }
+
+    @Test fun incomingBootstrapNeedsActualReceiveHandlersAndNativePairingNotOnlyPcSendConsent() {
+        for ((ready, pairing) in listOf(false to "f".repeat(64), true to null)) {
+            val (pc, phone) = incomingPair({ ready }, pairingEpoch = pairing); handshake(pc, phone)
+            assertThrows(PhotoFolderScopeError::class.java) { phone.session.receiveConfigurationTicket() }
+            assertFalse(phone.local.grants.receiveFiles); assertNull(phone.session.binding("c".repeat(64)))
+            pc.session.close(); phone.session.close()
+        }
+        val (pc, phone) = incomingPair()
+        phone.session.close(); phone.session = NativeFileControlSession(phone.identity, { phone.peer }, { phone.local })
+        handshake(pc, phone)
+        assertThrows(PhotoFolderScopeError::class.java) { phone.session.receiveConfigurationTicket() } // Production default remains closed.
+        pc.session.close(); phone.session.close()
+    }
+
+    @Test fun incomingBootstrapNeedsFreshEchoAndPcSendNotPcReceiveOnly() {
+        val (pc, phone) = incomingPair()
+        assertThrows(PhotoFolderScopeError::class.java) { phone.session.receiveConfigurationTicket() }
+        send(pc, phone); send(phone, pc)
+        assertThrows(PhotoFolderScopeError::class.java) { phone.session.receiveConfigurationTicket() }
+        handshake(pc, phone)
+        val ticket = phone.session.receiveConfigurationTicket()
+        assertNotNull(phone.session.receiveConfigurationAuthority(ticket))
+        phone.session.finishConfiguration(ticket)
+        pc.local = NativeLocalFileGrant(DeviceFileGrantState(4, "d".repeat(64), false, true), pc.local.owner, true)
+        handshake(pc, phone)
+        assertThrows(PhotoFolderScopeError::class.java) { phone.session.receiveConfigurationTicket() }
+        assertNotNull(phone.session.configurationAuthority(phone.session.configurationTicket()))
+        assertFalse(phone.local.grants.receiveFiles); assertNull(phone.session.binding("c".repeat(64)))
+        pc.session.close(); phone.session.close()
+    }
+
+    @Test fun sourceAndIncomingConfigurationTicketsAreNotInterchangeableAndNeverGrantData() {
+        val (pc, phone) = incomingPair(); handshake(pc, phone)
+        val before = phone.local.grants
+        val incoming = phone.session.receiveConfigurationTicket()
+        val authority = phone.session.receiveConfigurationAuthority(incoming)!!
+        assertSame(incoming, authority.owner); assertEquals(pc.identity.deviceId, authority.peerId)
+        assertEquals("f".repeat(64), authority.pairingEpoch)
+        assertNull(phone.session.configurationAuthority(incoming)); assertNull(phone.session.photoReceiver())
+        assertNull(phone.session.binding("c".repeat(64))); assertSame(before, phone.local.grants)
+        assertThrows(PhotoFolderScopeError::class.java) { phone.session.configurationTicket() }
+        phone.session.finishConfiguration(incoming)
+        assertNull(phone.session.receiveConfigurationAuthority(incoming))
+        pc.local = NativeLocalFileGrant(DeviceFileGrantState(4, "d".repeat(64), true, true), pc.local.owner, true)
+        handshake(pc, phone)
+        val source = phone.session.configurationTicket()
+        assertNotNull(phone.session.configurationAuthority(source)); assertNull(phone.session.receiveConfigurationAuthority(source))
+        phone.session.finishConfiguration(source); pc.session.close(); phone.session.close()
+    }
+
+    @Test fun incomingConfigurerAllowsOnlyLocalConsentTransactionAndDataStillNeedsFreshActualAck() {
+        val (pc, phone) = incomingPair(); handshake(pc, phone)
+        val ticket = phone.session.receiveConfigurationTicket(); val before = phone.session.receiveConfigurationAuthority(ticket)!!
+        phone.local = NativeLocalFileGrant(DeviceFileGrantState(8, "c".repeat(64), false, true), phone.local.owner, true, policyReady = false)
+        assertSame(before.owner, phone.session.receiveConfigurationAuthority(ticket)!!.owner)
+        assertNull(phone.session.binding("e".repeat(64))); assertFalse(phone.session.needsPacket())
+        phone.local = NativeLocalFileGrant(phone.local.grants, phone.local.owner, true)
+        assertNull(phone.session.binding("e".repeat(64)))
+        handshake(pc, phone)
+        assertNotNull(phone.session.binding("e".repeat(64)))
+        assertEquals(pc.session.binding("e".repeat(64), true), phone.session.binding("e".repeat(64)))
+        phone.session.finishConfiguration(ticket); pc.session.close(); phone.session.close()
+    }
+
+    @Test fun incomingHandlerWithdrawalOrLookupFailureIsStickyAndOldTicketCannotRevive() {
+        for (throws in listOf(false, true)) {
+            var enabled = true
+            val (pc, phone) = incomingPair({ if (!enabled && throws) error("native receive handlers failed") else enabled })
+            handshake(pc, phone); val ticket = phone.session.receiveConfigurationTicket()
+            enabled = false
+            if (throws) assertThrows(IllegalStateException::class.java) { phone.session.receiveConfigurationAuthority(ticket) }
+            else assertNull(phone.session.receiveConfigurationAuthority(ticket))
+            enabled = true; assertNull(phone.session.receiveConfigurationAuthority(ticket))
+            phone.session.finishConfiguration(ticket)
+            val fresh = phone.session.receiveConfigurationTicket(); assertNotNull(phone.session.receiveConfigurationAuthority(fresh))
+            phone.session.close(); assertNull(phone.session.receiveConfigurationAuthority(fresh)); phone.session.finishConfiguration(fresh)
+            pc.session.close()
+        }
+    }
+
+    @Test fun incomingTicketExpiresAndObservedClockRollbackRetiresItPermanently() {
+        for (rollback in listOf(false, true)) {
+            var now = 100L
+            val (pc, phone) = incomingPair(clock = { now }); handshake(pc, phone)
+            val ticket = phone.session.receiveConfigurationTicket()
+            now = 200; assertNotNull(phone.session.receiveConfigurationAuthority(ticket))
+            now = if (rollback) 150 else 100 + DeviceFileControl.MAX_TTL_MS
+            assertNull(phone.session.receiveConfigurationAuthority(ticket))
+            now = 200; assertNull(phone.session.receiveConfigurationAuthority(ticket))
+            phone.session.finishConfiguration(ticket); pc.session.close(); phone.session.close()
+        }
+    }
+
+    @Test fun incomingTicketCannotSurvivePcGrantTurnoverOrNativeOwnDeviceWithdrawal() {
+        val (pc, phone) = incomingPair(); handshake(pc, phone)
+        val ticket = phone.session.receiveConfigurationTicket()
+        pc.local = NativeLocalFileGrant(DeviceFileGrantState(4, "d".repeat(64), false, false), pc.local.owner, true)
+        send(pc, phone); assertNull(phone.session.receiveConfigurationAuthority(ticket))
+        pc.local = NativeLocalFileGrant(DeviceFileGrantState(5, "e".repeat(64), true, false), pc.local.owner, true)
+        handshake(pc, phone); assertNull(phone.session.receiveConfigurationAuthority(ticket)); phone.session.finishConfiguration(ticket)
+        val fresh = phone.session.receiveConfigurationTicket(); val original = phone.peer
+        phone.peer = original.copy(ownDevice = false); assertNull(phone.session.receiveConfigurationAuthority(fresh))
+        phone.peer = original; assertNull(phone.session.receiveConfigurationAuthority(fresh))
+        phone.session.finishConfiguration(fresh); pc.session.close(); phone.session.close()
+    }
+
     @Test fun revocationDoesNotWaitForNativeLookupAndExactTicketCleanupStillCannotRestoreAuthority() {
         val (first, second) = pair()
         val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)

@@ -96,9 +96,15 @@ internal data class NativeFileControlPeer(val peerId: String, val identitySha256
 
 internal class NativeFileConfigurationTicket internal constructor()
 
+/** Fresh incoming-configuration authority only. Not source READ, Android media
+ * consent, destination acceptance, a received file or a historical restore. */
+internal class NativeFileReceiveConfigurer internal constructor(val peerId: String, val identitySha256: String,
+    val owner: Any, val permissionEpoch: String, val pairingEpoch: String)
+
 internal class NativeFileControlSession(private val identity: NativeFileControlIdentity,
     private val currentPeer: () -> NativeFileControlPeer?, private val currentLocal: () -> NativeLocalFileGrant?,
-    private val monotonicMs: () -> Long = { DeviceFileControl.monotonicMs() }) : AutoCloseable {
+    private val monotonicMs: () -> Long = { DeviceFileControl.monotonicMs() },
+    private val receiveHandlersReady: () -> Boolean = { false }) : AutoCloseable {
     private val revoked = AtomicBoolean(false)
     private val peer = currentPeer()?.takeIf { it.allowed && it.peerId != identity.deviceId }
         ?: DeviceFileControl.fail("file_control_native_scope_required")
@@ -112,7 +118,7 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
     private var sentEcho: String? = null
     private var faulted = false
     private data class ConfigurationScope(val remoteEpoch: String, val permission: JsonObject, val issued: Long, val expires: Long,
-        var invalidated: Boolean = false)
+        val receiving: Boolean = false, var last: Long = issued, var invalidated: Boolean = false)
     private val configurations = IdentityHashMap<NativeFileConfigurationTicket, ConfigurationScope>()
 
     private fun scope(): Pair<NativeFileControlPeer, NativeLocalFileGrant>? {
@@ -189,35 +195,68 @@ internal class NativeFileControlSession(private val identity: NativeFileControlI
      * send-files is still OFF; it is not a photo read/send permission.
      */
     @Synchronized fun configurationTicket(): NativeFileConfigurationTicket {
-        val (_, _, received) = agreed() ?: DeviceFileControl.fail("file_control_configuration_not_ready")
-        if (!received.grants.receiveFiles || configurations.isNotEmpty()) DeviceFileControl.fail("file_control_configuration_not_ready")
+        return newConfigurationTicket(false)
+    }
+
+    /** Independent incoming bootstrap: the actual own PC must have SEND enabled
+     * and this native session must own real receive handlers. Local receive-files
+     * can still be OFF; the ticket itself never enables it or accepts an offer. */
+    @Synchronized fun receiveConfigurationTicket(): NativeFileConfigurationTicket {
+        return newConfigurationTicket(true)
+    }
+
+    private fun newConfigurationTicket(receiving: Boolean): NativeFileConfigurationTicket {
+        val (current, _, received) = agreed() ?: DeviceFileControl.fail("file_control_configuration_not_ready")
+        if ((if (receiving) current.pairingEpoch == null || !receiveHandlersReady() || !received.grants.sendFiles else !received.grants.receiveFiles) ||
+            configurations.isNotEmpty()) DeviceFileControl.fail("file_control_configuration_not_ready")
         val now = monotonicMs()
         if (now < 0 || now > Long.MAX_VALUE - DeviceFileControl.MAX_TTL_MS) DeviceFileControl.fail("file_control_configuration_not_ready")
         return NativeFileConfigurationTicket().also {
-            configurations[it] = ConfigurationScope(received.sessionEpoch, received.grants.permissionWire(), now, now + DeviceFileControl.MAX_TTL_MS)
+            configurations[it] = ConfigurationScope(received.sessionEpoch, received.grants.permissionWire(), now,
+                now + DeviceFileControl.MAX_TTL_MS, receiving)
         }
     }
 
     @Synchronized fun configurationAuthority(ticket: NativeFileConfigurationTicket): NativeGalleryConfigurer? {
-        val configured = configurations[ticket] ?: return null
-        if (configured.invalidated) return null
-        val (current, state) = scope() ?: run { configured.invalidated = true; return null }
-        val received = remote ?: return null
-        val now = monotonicMs()
-        if (!state.handlersReady || now < configured.issued || now >= configured.expires || received.sessionEpoch != configured.remoteEpoch ||
-            !received.grants.receiveFiles || received.grants.permissionWire() != configured.permission ||
-            1 !in received.grants.manifestVersions || 1 !in state.grants.manifestVersions) {
-            configured.invalidated = true; return null
-        }
-        // Do not bind to local grant bytes/policyReady: this exact authorized
-        // policy transaction intentionally changes them and temporarily fences
-        // ordinary data I/O. The remote consent/native owner must stay current.
-        val epoch = DeviceFileControl.digest("magnolie-file-configurer-v1\u0000", JsonObject(mapOf(
-            "local_session" to JsonPrimitive(sessionEpoch), "remote_session" to JsonPrimitive(received.sessionEpoch),
-            "peer_id" to JsonPrimitive(current.peerId), "peer_identity" to JsonPrimitive(current.identitySha256),
-            "remote_permission" to configured.permission)))
+        val (current, configured) = configurationScope(ticket, false) ?: return null
+        val epoch = configurationEpoch(current, configured, "magnolie-file-configurer-v1\u0000")
         return NativeGalleryConfigurer(current.peerId, current.identitySha256, ticket, epoch, true,
             current.paired, current.ownDevice, current.remoteOwnDevice, current.pairingEpoch)
+    }
+
+    @Synchronized fun receiveConfigurationAuthority(ticket: NativeFileConfigurationTicket): NativeFileReceiveConfigurer? {
+        val (current, configured) = configurationScope(ticket, true) ?: return null
+        return NativeFileReceiveConfigurer(current.peerId, current.identitySha256, ticket,
+            configurationEpoch(current, configured, "magnolie-file-receive-configurer-v1\u0000"),
+            current.pairingEpoch ?: DeviceFileControl.fail("file_control_configuration_not_ready"))
+    }
+
+    private fun configurationScope(ticket: NativeFileConfigurationTicket, receiving: Boolean): Pair<NativeFileControlPeer, ConfigurationScope>? {
+        val configured = configurations[ticket] ?: return null
+        if (configured.invalidated || configured.receiving != receiving) return null
+        try {
+            val (current, state) = scope() ?: run { configured.invalidated = true; return null }
+            val received = remote ?: return null
+            val now = monotonicMs()
+            if (!state.handlersReady || now < configured.last || now >= configured.expires || received.sessionEpoch != configured.remoteEpoch ||
+                (if (receiving) current.pairingEpoch == null || !receiveHandlersReady() || !received.grants.sendFiles else !received.grants.receiveFiles) ||
+                received.grants.permissionWire() != configured.permission ||
+                1 !in received.grants.manifestVersions || 1 !in state.grants.manifestVersions) {
+                configured.invalidated = true; return null
+            }
+            configured.last = now
+            // Do not bind to local grant bytes/policyReady: this exact authorized
+            // policy transaction intentionally changes them and temporarily fences
+            // ordinary data I/O. The remote consent/native owner must stay current.
+            return current to configured
+        } catch (error: Exception) { configured.invalidated = true; throw error }
+    }
+
+    private fun configurationEpoch(current: NativeFileControlPeer, configured: ConfigurationScope, domain: String): String {
+        return DeviceFileControl.digest(domain, JsonObject(mapOf(
+            "local_session" to JsonPrimitive(sessionEpoch), "remote_session" to JsonPrimitive(configured.remoteEpoch),
+            "peer_id" to JsonPrimitive(current.peerId), "peer_identity" to JsonPrimitive(current.identitySha256),
+            "remote_permission" to configured.permission)))
     }
 
     @Synchronized fun finishConfiguration(ticket: NativeFileConfigurationTicket) {
