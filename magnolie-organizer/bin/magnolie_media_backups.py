@@ -274,7 +274,7 @@ class NativeMediaBackupLocations:
                 yield backups
 
     def versions(self,default,source_id):
-        with self._history(default,source_id) as backups:return backups.versions()
+        with self._history(default,source_id) as backups:return backups.recovery_versions()
 
     def restore(self,default,source_id,version,candidate_fd):
         """Prepare a new owned file only; publication/phone mapping is separate."""
@@ -486,7 +486,7 @@ class NativeMediaBackupRecoveryUi:
         if not _hex(reference) or not _hex(reference_sha256):raise TransferError('media_backup_native_selection_required')
         with self._source(scope,source_id) as (locations,default):
             with locations._history(default,source_id) as backups:
-                selected=next((row for row in backups.versions() if row.id==reference and row.record_sha256==reference_sha256),None)
+                selected=next((row for row in backups.recovery_versions() if row.id==reference and row.record_sha256==reference_sha256),None)
                 if selected is None:raise TransferError('media_backup_stale_selection')
                 return selected,backups.selected_mapping(selected)
 
@@ -974,21 +974,35 @@ class NativeMediaBackups:
 
     def _write_membership(self, revision):
         body = dict(format=1, revision=revision, versions=self._members('versions'), objects=self._members('objects'))
+        pending=self._pending_members()
+        if pending:body['pending']=pending
         blob = self.protection.seal(canonical(body), self._domain + 'membership')
         self._db.execute("INSERT OR REPLACE INTO meta VALUES('membership',?)", (blob,))
+
+    def _pending_members(self):
+        rows=self._db.execute("SELECT name,sealed FROM meta WHERE name!='membership' ORDER BY name LIMIT ?",
+            (self.MAX_VERSIONS+1,)).fetchall()
+        if len(rows)>self.MAX_VERSIONS:raise TransferError('media_backup_catalog_capacity')
+        for name,blob in rows:
+            if (type(name) is not str or not name.startswith('pending-') or not _hex(name[8:])
+                    or type(blob) is not bytes or not 28<=len(blob)<=16384):
+                raise TransferError('media_backup_pending_invalid')
+        return [[name[8:],sha256(blob).hexdigest()] for name,blob in rows]
 
     def _verify(self):
         if tuple(row[0] for row in self._db.execute("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name")) != tuple(sorted(self.SCHEMA, key=lambda sql: sql.split()[2])):
             raise TransferError('media_backup_schema_changed')
-        lengths = self._db.execute('SELECT name,length(sealed) FROM meta LIMIT 2').fetchall()
-        if len(lengths) != 1 or lengths[0][0] != 'membership' or not 28 <= lengths[0][1] <= self.MAX_MEMBERSHIP_BYTES:
+        length = self._db.execute("SELECT length(sealed) FROM meta WHERE name='membership'").fetchone()
+        if length is None or not 28 <= length[0] <= self.MAX_MEMBERSHIP_BYTES:
             raise TransferError('media_backup_membership_required')
-        rows = self._db.execute('SELECT name,sealed FROM meta LIMIT 2').fetchall()
-        if len(rows) != 1 or rows[0][0] != 'membership': raise TransferError('media_backup_membership_required')
-        blob = rows[0][1]; value = strict_json(self.protection.unseal(blob, self._domain + 'membership'))
-        if (type(value) is not dict or set(value) != {'format', 'revision', 'versions', 'objects'} or type(value['format']) is not int or value['format'] != 1
+        blob = self._db.execute("SELECT sealed FROM meta WHERE name='membership'").fetchone()[0]
+        value = strict_json(self.protection.unseal(blob, self._domain + 'membership'))
+        pending=self._pending_members()
+        if (type(value) is not dict or set(value) not in ({'format', 'revision', 'versions', 'objects'},
+                    {'format', 'revision', 'versions', 'objects', 'pending'}) or type(value['format']) is not int or value['format'] != 1
                 or type(value['revision']) is not int or not 1 <= value['revision'] <= 2**53 - 1
-                or value['versions'] != self._members('versions') or value['objects'] != self._members('objects')):
+                or value['versions'] != self._members('versions') or value['objects'] != self._members('objects')
+                or value.get('pending',[])!=pending):
             raise TransferError('media_backup_membership_changed')
         observed = value['revision'], sha256(blob).hexdigest()
         if self._observed is not None and (observed[0] < self._observed[0] or observed[0] == self._observed[0] and observed[1] != self._observed[1]):
@@ -1013,13 +1027,7 @@ class NativeMediaBackups:
         value = strict_json(self.protection.unseal(row[0], self._domain + table + '/' + key))
         if type(value) is not dict or value.get('id') != key: raise TransferError('media_backup_record_invalid')
         if table == 'versions':
-            if (set(value) != {'id', 'object_key', 'saved_ms', 'name', 'mapping'} or not _hex(key)
-                    or type(value['saved_ms']) is not int or not 0 < value['saved_ms'] <= 253402300799999):
-                raise TransferError('media_backup_record_invalid')
-            association = PhotoMappingAssociation(**value['mapping']['association'])
-            mapping = NativeSavedPhotoMapping.parse(value['mapping'], association, key)
-            if value['object_key'] != content_key(mapping.saved_size, mapping.saved_sha256) or value['name'] != mapping.relative_path:
-                raise TransferError('media_backup_record_invalid')
+            self._validate_version(value,key)
         else:
             fields = {'id', 'size', 'sha256', 'codec', 'name', 'key', 'stored_size', 'stored_sha256', 'raw_name', 'raw_key', 'raw_retired', 'trial', 'prepared', 'candidate'}
             if (set(value) != fields or type(value['raw_retired']) is not bool or type(value['trial']) is not bool
@@ -1052,7 +1060,27 @@ class NativeMediaBackups:
                         or witness[1] == 0 or witness == value['raw_key']): raise TransferError('media_backup_record_invalid')
         return value
 
-    def _commit(self, *, version=None, obj=None):
+    @staticmethod
+    def _validate_version(value,key):
+        if (type(value) is not dict or set(value) != {'id', 'object_key', 'saved_ms', 'name', 'mapping'}
+                or value['id']!=key or not _hex(key) or type(value['saved_ms']) is not int
+                or not 0 < value['saved_ms'] <= 253402300799999 or type(value['mapping']) is not dict
+                or type(value['mapping'].get('association')) is not dict
+                or set(value['mapping']['association'])!={'source_epoch','photo_id','media_type'}):
+            raise TransferError('media_backup_record_invalid')
+        association=PhotoMappingAssociation(**value['mapping']['association'])
+        mapping=NativeSavedPhotoMapping.parse(value['mapping'],association,key)
+        if value['object_key']!=content_key(mapping.saved_size,mapping.saved_sha256) or value['name']!=mapping.relative_path:
+            raise TransferError('media_backup_record_invalid')
+        return value
+
+    def _pending(self,key):
+        row=self._db.execute('SELECT sealed FROM meta WHERE name=?',('pending-'+key,)).fetchone()
+        if row is None:return None
+        value=strict_json(self.protection.unseal(row[0],self._domain+'pending/'+key))
+        return self._validate_version(value,key)
+
+    def _commit(self, *, version=None, obj=None, pending=None):
         revision = self._verify()
         try:
             self._db.execute('BEGIN IMMEDIATE'); self._current()
@@ -1061,6 +1089,11 @@ class NativeMediaBackups:
                     blob = self.protection.seal(canonical(value), self._domain + table + '/' + value['id'])
                     verb = 'INSERT' if table == 'versions' else 'INSERT OR REPLACE'
                     self._db.execute(f'{verb} INTO {table} VALUES(?,?)', (value['id'], blob))
+            if pending is not None:
+                self._validate_version(pending,pending['id'])
+                blob=self.protection.seal(canonical(pending),self._domain+'pending/'+pending['id'])
+                self._db.execute('INSERT INTO meta VALUES(?,?)',('pending-'+pending['id'],blob))
+            if version is not None:self._db.execute('DELETE FROM meta WHERE name=?',('pending-'+version['id'],))
             self._write_membership(revision + 1); self._current(); self._db.commit(); os.fsync(self._root)
             if self._verify() != revision + 1: raise TransferError('media_backup_commit_not_proven')
         except BaseException:
@@ -1138,7 +1171,18 @@ class NativeMediaBackups:
                 if before is not None:
                     if before['mapping'] != mapping.wire() or obj is None: raise TransferError('media_backup_original_mapping_changed')
                     return self._version(before)
-                if len(self._members('versions')) >= self.MAX_VERSIONS: raise TransferError('media_backup_catalog_capacity')
+                version=self._pending(version_id)
+                if version is not None:
+                    if version['mapping']!=mapping.wire():raise TransferError('media_backup_original_mapping_changed')
+                else:
+                    if len(self._members('versions'))+len(self._pending_members())>=self.MAX_VERSIONS:
+                        raise TransferError('media_backup_catalog_capacity')
+                    now=self._clock()
+                    if type(now) is not int or not 0 < now <= 253402300799999:raise TransferError('media_backup_invalid_clock')
+                    version=dict(id=version_id,object_key=key,saved_ms=now,name=mapping.relative_path,mapping=mapping.wire())
+                    # Authenticated original lineage must survive even if the
+                    # source disappears after payload but before final commit.
+                    mapping_now();self._commit(pending=version)
                 if obj is None:
                     free = os.fstatvfs(self._root)
                     if free.f_bavail * free.f_frsize < mapping.saved_size + 1024**3: raise TransferError('media_backup_insufficient_space')
@@ -1151,6 +1195,7 @@ class NativeMediaBackups:
                             raw_retired=False, trial=False, prepared=True, candidate=None)
                         # Register the NEW owned inode before the first payload
                         # write. Interrupted copying can never adopt another file.
+                        os.fsync(fd);os.fsync(self._root)
                         self._commit(obj=obj)
                     finally: os.close(fd)
                     os.fsync(self._root)
@@ -1165,9 +1210,6 @@ class NativeMediaBackups:
                             mapping_now(); os.ftruncate(fd, 0)
                             copy_unique(source, fd, mapping.saved_size, mapping.saved_sha256, mapping_now)
                     obj = dict(obj, prepared=False)
-                now = self._clock()
-                if type(now) is not int or not 0 < now <= 253402300799999: raise TransferError('media_backup_invalid_clock')
-                version = dict(id=version_id, object_key=key, saved_ms=now, name=mapping.relative_path, mapping=mapping.wire())
                 mapping_now(); self._commit(version=version, obj=obj)
                 self._verify_object(obj); return self._version(version)
 
@@ -1179,21 +1221,62 @@ class NativeMediaBackups:
         with self._operation():
             return tuple(self._version(self._record('versions', key)) for key, _ in self._members('versions'))
 
+    def _recoverable_pending(self,key):
+        value=self._pending(key)
+        if value is None:return None
+        if self._record('versions',key) is not None:raise TransferError('media_backup_pending_invalid')
+        obj=self._record('objects',value['object_key'])
+        if obj is None:return None # Intent was committed before inode creation.
+        if obj['prepared']:
+            with self._object(obj) as fd:
+                try:verify_raw(fd,obj['size'],obj['sha256'],self._current)
+                except TransferError as error:
+                    if str(error)!='media_backup_original_content_changed':raise
+                    return None # Partial/unverified bytes never become a version.
+        else:self._verify_object(obj)
+        return value
+
+    def pending_recovery_versions(self):
+        """Read-only verified bytes with original intent, not completed backups."""
+        with self._operation():
+            result=[]
+            for key,_ in self._pending_members():
+                value=self._recoverable_pending(key)
+                if value is not None:result.append(self._version(value))
+            return tuple(result)
+
+    def recovery_versions(self):
+        # Keep versions() completed-only. Local recovery can also use exact
+        # fully verified interrupted copies without forging a Saved completion.
+        with self._operation():
+            result=[self._version(self._record('versions',key)) for key,_ in self._members('versions')]
+            for key,_ in self._pending_members():
+                value=self._recoverable_pending(key)
+                if value is not None:result.append(self._version(value))
+            return tuple(sorted(result,key=lambda value:value.id))
+
+    def _selected_version(self,selected):
+        value=self._record('versions',selected.id)
+        if value is None:value=self._recoverable_pending(selected.id)
+        if value is None or self._version(value)!=selected:raise TransferError('media_backup_stale_selection')
+        return value
+
     def selected_mapping(self,selected):
         if type(selected) is not NativeMediaBackupVersion:raise TransferError('media_backup_native_selection_required')
         with self._operation():
-            value=self._record('versions',selected.id)
-            if value is None or self._version(value)!=selected:raise TransferError('media_backup_stale_selection')
+            value=self._selected_version(selected)
             association=value['mapping']['association']
             return NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**association),selected.id)
 
     def restore(self, selected, candidate_fd):
         if type(selected) is not NativeMediaBackupVersion: raise TransferError('media_backup_native_selection_required')
         with self._operation():
-            value = self._record('versions', selected.id)
-            if value is None or self._version(value) != selected: raise TransferError('media_backup_stale_selection')
+            value = self._selected_version(selected)
             obj = self._record('objects', selected.object_key)
             if obj is None: raise TransferError('media_backup_original_object_required')
+            # Only an explicitly selected, freshly verified pending intent may
+            # read a complete prepared object. Do not migrate the catalog here.
+            if obj['prepared'] and self._record('versions',selected.id) is None:obj=dict(obj,prepared=False)
             representation = self._verify_object(obj)
             with self._object(obj) as fd:
                 return restore_to_new_file(fd, candidate_fd, representation, self._current)
@@ -1205,6 +1288,8 @@ class NativeMediaBackups:
         with self._operation():
             current(); obj = self._record('objects', object_key)
             if obj is None: raise TransferError('media_backup_original_object_required')
+            if any(self._pending(key)['object_key']==object_key for key,_ in self._pending_members()):
+                return False # Pending lineage pins bytes against maintenance.
             refs = [self._record('versions', key) for key, _ in self._members('versions')]
             refs = [ref for ref in refs if ref['object_key'] == object_key]
             if not refs: raise TransferError('media_backup_original_version_required')

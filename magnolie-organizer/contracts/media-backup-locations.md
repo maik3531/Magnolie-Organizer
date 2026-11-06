@@ -178,3 +178,28 @@ foreground run; ordinary source/version reads retain their short deadline.
 Available destination space is checked before new payload creation. Read-only
 legacy discovery, original-version retention and no-overwrite publication remain
 unchanged. Physical native dialog/package acceptance is still pending.
+
+## Interrupted Linux backup copies
+
+An actual authenticated Saved-mapping lease now persists the original version
+intent before creating or writing a backup payload. The sealed intent is bound
+to catalog membership and includes the original mapping, content key, timestamp
+and version identity. The empty owned inode and its directory entry are synced
+before object registration. Final version/object commit atomically consumes the
+intent; retries preserve its original timestamp and do not recopy verified bytes.
+
+`versions()` remains completed-only. Explicit `pending_recovery_versions()` and
+the local recovery view additionally expose interrupted copies only after fresh
+size/hash verification of their exact registered inode. A complete prepared
+object can thus be restored through the existing native new-file confirmation
+and lineage journal without the original PC file, active peer or a fabricated
+phone receipt. Merely listing or restoring it does not mark its backup complete
+or migrate catalog metadata. Missing, partial or corrupt payload is never offered
+as a recoverable version; a substituted inode or missing intent membership holds
+the operation. Intent-only interruptions remain inert and retryable.
+
+Pending references pin shared objects against compression/retirement. Future
+garbage collection must preserve them as well. Existing format-1 schemas,
+headers and completed version records stay unchanged; absent pending records
+need no read-time migration. Copies interrupted before this intent mechanism
+existed cannot acquire reconstructed historical authority from bytes alone.

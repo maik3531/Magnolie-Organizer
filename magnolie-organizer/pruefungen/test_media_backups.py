@@ -63,6 +63,133 @@ def add_all(vault):
     _, mappings, records, owner, _, _ = vault
     return tuple(owner.save_from_mappings(mappings, record.association, record.protected_record_sha256) for record in records)
 
+def test_interrupted_complete_backup_retains_original_intent_and_recovers_offline_without_source(vault,tmp_path,monkeypatch):
+    fixture,store,records,owner,raw,_=vault;record=records[0]
+    original=backup_module.copy_unique
+    def interrupted(*args,**kwargs):
+        original(*args,**kwargs)
+        raise RuntimeError('crash after fsynced payload before version commit')
+    monkeypatch.setattr(backup_module,'copy_unique',interrupted)
+    with pytest.raises(RuntimeError,match='crash after'):
+        owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    assert owner.versions()==()
+    pending=owner.pending_recovery_versions();assert len(pending)==1 and pending[0].id==record.protected_record_sha256
+    assert owner.selected_mapping(pending[0])==record
+    directory=fixture[3]._authority.binding.native_directory;scope='9'*64
+    with NativeMediaBackupLocations(directory,scope,lambda:True) as locations:
+        locations.choose(locations.issue_action(),locations.read(),record.destination,None)
+    owner.close();fixture[3].close()
+    source=fixture[4]/record.relative_path;held=source.with_name(source.name+'.original-held');source.rename(held)
+    target=tmp_path/'pending-local-restored';target.mkdir(mode=0o700)
+    folder=fixture[4]/'Backup'
+    before={p.name:(p.stat().st_ino,p.read_bytes()) for p in folder.iterdir() if p.is_file()}
+    recovery=NativeMediaBackupRecoveryUi(directory,lambda:True)
+    source_id=NativeMediaBackupLocations.source_id(record.destination)
+    internal=sha256(canonical(dict(local_backup_scope=scope))).hexdigest()
+    page=recovery.versions(internal,source_id)
+    assert len(page['entries'])==1 and page['entries'][0]['id']==pending[0].id
+    result=recovery.restore(internal,source_id,pending[0].id,pending[0].record_sha256,NativeAcceptedDestination.capture(target))
+    assert (target/result.name).read_bytes()==raw and result.original_mapping==record and not result.is_saved_receipt
+    assert not source.exists() and held.read_bytes()==raw
+    assert before=={p.name:(p.stat().st_ino,p.read_bytes()) for p in folder.iterdir() if p.is_file()}
+    with ExistingFileTransferProtection(directory) as protection:
+        with NativeMediaBackups(record.destination,protection,lambda:True) as reader:
+            assert reader.versions()==() and reader.pending_recovery_versions()==pending
+
+@pytest.mark.parametrize('stop',('before_payload','partial_payload'))
+def test_pending_intent_never_exposes_incomplete_bytes_and_resumes_exact_owned_object(vault,monkeypatch,stop):
+    _,store,records,owner,raw,_=vault;record=records[0]
+    original=backup_module.copy_unique
+    def interrupted(source,target,*args,**kwargs):
+        if stop=='partial_payload':os.pwrite(target,raw[:max(1,len(raw)//2)],0);os.fsync(target)
+        raise RuntimeError('interrupted private payload')
+    monkeypatch.setattr(backup_module,'copy_unique',interrupted)
+    with pytest.raises(RuntimeError,match='interrupted'):
+        owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    assert owner.versions()==owner.pending_recovery_versions()==owner.recovery_versions()==()
+    intent=owner._pending(record.protected_record_sha256);assert intent['mapping']==record.wire()
+    obj=owner._record('objects',intent['object_key']);inode=obj['raw_key']
+    monkeypatch.setattr(backup_module,'copy_unique',original)
+    version=owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    assert version.saved_ms==intent['saved_ms'] and owner.versions()==(version,)
+    assert owner.pending_recovery_versions()==() and owner._pending_members()==[]
+    assert owner._record('objects',intent['object_key'])['raw_key']==inode
+
+def test_pending_intent_authentication_membership_and_owned_inode_cannot_be_bypassed(vault,monkeypatch):
+    fixture,store,records,owner,raw,_=vault;record=records[0]
+    original=backup_module.copy_unique
+    def interrupted(*args,**kwargs):
+        original(*args,**kwargs);raise RuntimeError('stop')
+    monkeypatch.setattr(backup_module,'copy_unique',interrupted)
+    with pytest.raises(RuntimeError):owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    pending=owner.pending_recovery_versions()[0];obj=owner._record('objects',pending.object_key)
+    path=fixture[4]/'Backup'/obj['name'];path.rename(path.with_suffix('.held'))
+    path.write_bytes(raw);path.chmod(0o600)
+    with pytest.raises(TransferError,match='original_object_changed'):owner.pending_recovery_versions()
+    with owner._db:owner._db.execute("DELETE FROM meta WHERE name=?",('pending-'+pending.id,))
+    with pytest.raises(TransferError,match='membership_changed'):owner.versions()
+
+def test_pending_intent_before_inode_is_inert_and_later_copy_preserves_original_time(vault,monkeypatch):
+    _,store,records,owner,_,now=vault;record=records[0];commit=owner._commit
+    def interrupted(**changes):
+        commit(**changes)
+        if changes.get('pending') is not None:raise RuntimeError('after intent before inode')
+    monkeypatch.setattr(owner,'_commit',interrupted)
+    with pytest.raises(RuntimeError,match='after intent'):
+        owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    assert owner._members('objects')==[] and owner.recovery_versions()==owner.versions()==()
+    intent=owner._pending(record.protected_record_sha256);now[0]+=DAY_MS
+    monkeypatch.setattr(owner,'_commit',commit)
+    version=owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    assert version.saved_ms==intent['saved_ms'] and owner.pending_recovery_versions()==()
+
+def test_pending_deduplicated_version_pins_shared_bytes_against_maintenance_and_needs_no_source(vault,monkeypatch,tmp_path):
+    fixture,store,records,owner,raw,now=vault
+    first=owner.save_from_mappings(store,records[0].association,records[0].protected_record_sha256)
+    commit=owner._commit
+    def interrupted(**changes):
+        if changes.get('version') is not None:raise RuntimeError('before deduplicated version')
+        return commit(**changes)
+    monkeypatch.setattr(owner,'_commit',interrupted)
+    monkeypatch.setattr(backup_module,'copy_unique',lambda *args,**kwargs:pytest.fail('Shared verified payload was recopied'))
+    with pytest.raises(RuntimeError,match='before deduplicated'):
+        owner.save_from_mappings(store,records[1].association,records[1].protected_record_sha256)
+    second=owner.pending_recovery_versions()[0]
+    assert owner.versions()==(first,) and second.object_key==first.object_key
+    now[0]+=31*DAY_MS
+    assert owner.compress_one(first.object_key,idle(),NativeMediaRetentionPermit(0,lambda:0)) is False
+    source=fixture[4]/records[1].relative_path;source.rename(source.with_suffix('.original-held'))
+    fd=os.open(tmp_path/'new-from-pending-dedup',os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+    try:
+        owner.restore(second,fd);assert os.pread(fd,len(raw),0)==raw
+    finally:os.close(fd)
+    assert owner.versions()==(first,) and owner.pending_recovery_versions()==(second,)
+
+def test_pending_corrupt_or_partial_bytes_never_become_completed_or_restore_selection(vault,monkeypatch,tmp_path):
+    fixture,store,records,owner,raw,_=vault;record=records[0];copy=backup_module.copy_unique
+    def interrupted(*args,**kwargs):copy(*args,**kwargs);raise RuntimeError('stop')
+    monkeypatch.setattr(backup_module,'copy_unique',interrupted)
+    with pytest.raises(RuntimeError):owner.save_from_mappings(store,record.association,record.protected_record_sha256)
+    pending=owner.pending_recovery_versions()[0];obj=owner._record('objects',pending.object_key)
+    path=fixture[4]/'Backup'/obj['name']
+    with path.open('r+b') as payload:payload.write(b'X' if raw[:1]!=b'X' else b'Y')
+    assert owner.pending_recovery_versions()==owner.versions()==()
+    fd=os.open(tmp_path/'unwritten-target',os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+    try:
+        with pytest.raises(TransferError,match='stale_selection'):owner.restore(pending,fd)
+        assert os.fstat(fd).st_size==0
+    finally:os.close(fd)
+
+def test_completed_version_cannot_use_pending_recovery_to_bypass_incomplete_object_guard(vault,tmp_path):
+    _,store,records,owner,_,_=vault
+    version=owner.save_from_mappings(store,records[0].association,records[0].protected_record_sha256)
+    obj=owner._record('objects',version.object_key);owner._commit(obj=dict(obj,prepared=True))
+    fd=os.open(tmp_path/'untouched-completed-target',os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+    try:
+        with pytest.raises(TransferError,match='object_not_complete'):owner.restore(version,fd)
+        assert os.fstat(fd).st_size==0
+    finally:os.close(fd)
+
 def test_missing_entire_original_backup_folder_is_held_before_any_replacement_bootstrap(vault):
     fixture,_,records,owner,_,_=vault;versions=add_all(vault);owner.close()
     folder=fixture[4]/'Backup';held=fixture[4]/'original-backup-preserved-for-test';folder.rename(held)
@@ -884,3 +1011,8 @@ def test_actual_saved_end_backup_uses_active_copy_owner_not_cleanup_writer_trans
     destination=NativeAcceptedDestination.capture(fixture[4])
     with NativeMediaBackups(destination,connection._authority.protection,lambda:True) as backups:
         assert bool(backups.versions()) is (mode!='book_pause')
+        pending=backups.pending_recovery_versions()
+        assert bool(pending) is (mode=='book_pause')
+        if pending:
+            mapping=backups.selected_mapping(pending[0])
+            assert mapping.saved_sha256==sha256(b'hello').hexdigest() and not mapping.is_saved_receipt
