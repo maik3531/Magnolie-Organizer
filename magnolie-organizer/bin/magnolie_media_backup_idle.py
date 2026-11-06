@@ -115,3 +115,40 @@ def lower_current_backup_thread_priority():
     if threading.current_thread() is threading.main_thread():
         raise TransferError('media_backup_background_thread_required')
     os.setpriority(os.PRIO_PROCESS, threading.get_native_id(), 19)
+
+
+class NativeLinuxBackupMaintenanceWorker:
+    """One dedicated low-priority bounded pass; native UI owns polling/lifetime."""
+    def __init__(self,directory,*,probe=NativeLinuxBackupIdleProbe):
+        from magnolie_media_backups import NativeMediaBackupMaintenance
+        self.directory=directory;self._maintenance=NativeMediaBackupMaintenance(directory)
+        self._probe=probe;self._stop=threading.Event();self._gate=threading.Lock();self._thread=None
+        self.last_result=None;self.last_error=None
+
+    def start(self,current):
+        if not callable(current):raise TransferError('media_backup_native_idle_required')
+        with self._gate:
+            if self._stop.is_set() or self._thread is not None and self._thread.is_alive():return False
+            self.last_result=self.last_error=None
+            def run():
+                try:
+                    def active():return not self._stop.is_set() and current() is True
+                    if not active():return
+                    lower_current_backup_thread_priority()
+                    probe=self._probe();probe.observe()
+                    # Native CPU load needs two real observations. Cancellation
+                    # wakes this short sampling wait; never sleep on the UI.
+                    if self._stop.wait(0.55) or not active():return
+                    from magnolie_media_backup_codec import NativeBackupIdlePermit
+                    idle=NativeBackupIdlePermit(probe.observe,active)
+                    self.last_result=self._maintenance.run_once(idle,active);self.last_error=None
+                except Exception as error:self.last_error=type(error).__name__
+            self._thread=threading.Thread(target=run,name='magnolie-backup-maintenance',daemon=True)
+            self._thread.start();return True
+
+    def stop(self):self._stop.set()
+
+    def join(self,timeout=None):
+        with self._gate:thread=self._thread
+        if thread is not None:thread.join(timeout)
+        return thread is None or not thread.is_alive()

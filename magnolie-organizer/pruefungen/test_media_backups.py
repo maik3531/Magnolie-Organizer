@@ -157,6 +157,7 @@ def test_pending_deduplicated_version_pins_shared_bytes_against_maintenance_and_
     second=owner.pending_recovery_versions()[0]
     assert owner.versions()==(first,) and second.object_key==first.object_key
     now[0]+=31*DAY_MS
+    assert owner.compression_candidates(0)==()
     assert owner.compress_one(first.object_key,idle(),NativeMediaRetentionPermit(0,lambda:0)) is False
     source=fixture[4]/records[1].relative_path;source.rename(source.with_suffix('.original-held'))
     fd=os.open(tmp_path/'new-from-pending-dedup',os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)

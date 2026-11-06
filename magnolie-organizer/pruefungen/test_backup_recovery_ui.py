@@ -146,3 +146,38 @@ def test_native_saved_book_pause_during_actual_copy_is_not_blocked_and_stops_pub
     invoke();assert answers[-1][1]['ok'] is False
     paths=tuple(Path(target.path).iterdir());assert len(paths)==1 and paths[0].suffix=='.part' and paths[0].read_bytes()==raw
     with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as owner:assert owner.history()[0].state=='prepared'
+
+
+def test_actual_native_maintenance_timer_is_single_book_owned_optional_and_stops_on_destroy(tmp_path,monkeypatch):
+    import magnolie_media_backup_idle as module
+    tree=ast.parse((Path(__file__).parents[1]/'bin/magnolie-organizer').read_text())
+    method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
+        if isinstance(node,ast.FunctionDef) and node.name=='_medien_backup_wartung_planen')
+    scheduled=[];removed=[];workers=[];destroy=[];root=[tmp_path/'native-book']
+    class Worker:
+        def __init__(self,directory):self.directory=directory;self.starts=[];self.stopped=False;workers.append(self)
+        def start(self,current):self.starts.append(current)
+        def stop(self):self.stopped=True
+    monkeypatch.setattr(module,'NativeLinuxBackupMaintenanceWorker',Worker)
+    monkeypatch.setattr(magnolie_optional_phone,'available',lambda name:True)
+    def schedule(seconds,callback):assert seconds==60;scheduled.append(callback);return 42
+    namespace={'os':os,'threading':threading,'daten_verzeichnis':lambda:str(root[0]),
+        'GLib':SimpleNamespace(timeout_add_seconds=schedule,source_remove=removed.append)}
+    exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-native-maintenance-timer','exec'),namespace)
+    owner=NativeBookOwnerScope();owner.set_ready(True)
+    window=SimpleNamespace(_gesperrt=False,_organizer_geladen=True,_aktuelle_daten={},_organizer_vertraut=lambda:True,
+        _telefon_actor_buchquelle=lambda:owner.current('actual-fixed-native-binding',True),connect=lambda name,callback:destroy.append(callback))
+    plan=namespace['_medien_backup_wartung_planen'];plan(window);plan(window)
+    assert len(workers)==len(scheduled)==len(destroy)==1
+    tick=scheduled[0];worker=workers[0]
+    assert tick() is True and worker.starts==[] and not root[0].exists()
+    native=root[0]/'telefon';native.mkdir(parents=True,mode=0o700);(native/'phone.db').touch(mode=0o600)
+    assert tick() is True and len(worker.starts)==1 and worker.starts[-1]() is True
+    previous=worker.starts[-1];owner.set_ready(False);owner.set_ready(True)
+    assert previous() is False
+    assert tick() is True and worker.starts[-1]() is True
+    previous=worker.starts[-1];window._aktuelle_daten={};assert previous() is False
+    window._gesperrt=True;before=len(worker.starts);assert tick() is True and len(worker.starts)==before
+    window._gesperrt=False;root[0]=tmp_path/'another-profile'
+    assert tick() is True and len(worker.starts)==before and not root[0].exists()
+    destroy[0]();assert worker.stopped and removed==[42] and tick() is False

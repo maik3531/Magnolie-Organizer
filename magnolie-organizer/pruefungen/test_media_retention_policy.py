@@ -355,10 +355,13 @@ def test_actual_native_load_unlock_helper_adopts_saved_book_not_mutable_ui_data(
     monkeypatch.setattr(magnolie_optional_phone,'available',lambda feature:feature=='photo_sync')
     password='Synthetic fixture password' if encrypted else ''
     m.speichere_text(m.daten_text_erzeugen(book(0),password or None))
-    probe=SimpleNamespace(_gesperrt=False,_ladefehler='',_kennwort=password,_aktuelle_daten=book(7))
+    scheduled=[]
+    probe=SimpleNamespace(_gesperrt=False,_ladefehler='',_kennwort=password,_aktuelle_daten=book(7),
+        _medien_backup_wartung_planen=lambda:scheduled.append(True))
     with NativeMediaRetention(str(directory)) as policy:
         if encrypted:
             assert not policy.adopt_existing_saved() # No unattended decrypt/default days.
     m.Fenster._medien_papierkorb_aufbewahrung_laden(probe)
+    assert scheduled==[True]
     with NativeMediaRetention(str(directory)) as policy:
         with policy.permit() as permit:assert permit.require_current()==0

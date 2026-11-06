@@ -220,3 +220,29 @@ The activity lease remains held through actual worker IO end and error cleanup.
 Independent processes cannot admit exclusive maintenance alongside shared copies,
 and ordinary copies can coexist. Exceptional exits release admission. These
 guards are prerequisites, not by themselves the compression/GC scheduler join.
+
+## Native Linux idle-compression join
+
+The existing native load/unlock retention helper now installs one optional
+window-owned 60-second polling callback. It neither constructs a phone service
+nor creates native storage. Only an existing native phone database and current
+immutable saved/unlocked-book owner can start a dedicated pass. Book-object,
+lifecycle, lock or profile-root turnover retires the old pass; the worker remains
+bound to its original native root. Window destruction removes polling and signals
+the worker. No frontend flag or shared media preference supplies idle authority.
+
+Each dedicated thread lowers only its own priority to nice 19, samples native
+desktop idle/CPU/available-memory evidence twice, and fails closed on unknown
+evidence. A pass has a 60-second guard, visits at most 16 retained sources with
+in-memory rotation and attempts at most one object of at most 400 MiB. The actual
+exclusive saved-book maintenance permit excludes active sync/copy/recovery.
+Only versions strictly older than 30 days with saved retention 90/365 or Never
+are candidates; already expired versions are not compressed. Pending intents
+pin shared objects. No-savings trials retain the raw bytes and are not repeated.
+
+The existing bounded XZ/hash/readback and verified at-least-10-percent total
+saving checks still decide publication and raw-representation retirement. Offline
+or corrupt catalogs stay held without replacement or metadata repair. Original
+user files and all completed version references are unchanged. This joins idle
+compression, not backup-version expiry/garbage collection, reverse upload or
+physical installed-package acceptance; those remain outstanding.

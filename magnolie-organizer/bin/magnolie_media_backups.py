@@ -1333,6 +1333,24 @@ class NativeMediaBackups:
                 self._commit(obj=dict(obj, raw_retired=True))
             return True
 
+    def compression_candidates(self,days):
+        """Bounded metadata-only scheduling; never byte or retention authority."""
+        with self._operation():
+            if type(days) is not int or days not in (0,90,365):return ()
+            pinned={self._pending(key)['object_key'] for key,_ in self._pending_members()}
+            newest={}
+            for key,_ in self._members('versions'):
+                version=self._record('versions',key)
+                newest[version['object_key']]=max(newest.get(version['object_key'],0),version['saved_ms'])
+            result=[];now=self._clock()
+            for key,saved in newest.items():
+                if key in pinned or not compression_due(saved,now,days) or days and now-saved>=days*86400000:continue
+                obj=self._record('objects',key)
+                if obj is None:raise TransferError('media_backup_original_object_required')
+                if obj['prepared'] or obj['codec']=='raw' and obj['trial'] or obj['codec']=='xz' and obj['raw_retired']:continue
+                result.append((saved,key,obj['size']))
+            return tuple((key,size) for _,key,size in sorted(result))
+
     def close(self):
         if self._closed: return
         if not self._gate.acquire(blocking=False): raise TransferError('media_backup_worker_busy')
@@ -1349,3 +1367,55 @@ class NativeMediaBackups:
 
     def __enter__(self): return self
     def __exit__(self, *args): self.close()
+
+
+class NativeMediaBackupMaintenance:
+    """One bounded caller-owned idle pass, no timer/thread/network/bootstrap.
+
+    Rotation is in-memory and carries no deletion/inventory authority. A missing
+    or offline catalog is held independently, never considered empty or reset.
+    """
+    MAX_SOURCES=16
+    MAX_INPUT_BYTES=400*1024**2
+    MAX_SECONDS=60
+
+    def __init__(self,directory,*,clock=time.monotonic):
+        self.directory=directory;self.clock=clock;self._cursor=0;self._gate=threading.Lock()
+
+    def run_once(self,idle,current=lambda:True):
+        if type(idle) is not NativeBackupIdlePermit or not callable(current):
+            raise TransferError('media_backup_native_maintenance_required')
+        if not self._gate.acquire(blocking=False):raise TransferError('media_backup_worker_busy')
+        try:
+            started=self.clock()
+            def active():
+                now=self.clock()
+                if now<started or now-started>=self.MAX_SECONDS or current() is not True:
+                    raise TransferError('media_backup_maintenance_ended')
+                idle.require_current();return True
+            active()
+            sources=NativeMediaBackupRecoveryUi(self.directory,active).sources()
+            result=dict(checked=0,attempted=0,compressed=0,held=0)
+            if not sources:return result
+            from magnolie_media_retention import NativeMediaRetention
+            with NativeMediaRetention(self.directory) as policy:
+                for _ in range(min(self.MAX_SOURCES,len(sources))):
+                    active();row=sources[self._cursor%len(sources)];self._cursor=(self._cursor+1)%len(sources)
+                    result['checked']+=1
+                    with policy.permit(active) as retention:
+                        if retention is None:return result
+                        if retention.days not in (0,90,365):return result
+                        recovery=NativeMediaBackupRecoveryUi(self.directory,active)
+                        try:
+                            with recovery._source(row['scope'],row['source_id']) as (locations,default):
+                                with locations._history(default,row['source_id']) as backups:
+                                    for key,size in backups.compression_candidates(retention.days):
+                                        active()
+                                        if size>self.MAX_INPUT_BYTES:continue
+                                        result['attempted']+=1
+                                        if backups.compress_one(key,idle,retention):result['compressed']+=1
+                                        return result # At most one actual trial per pass.
+                        except Exception:
+                            active();result['held']+=1 # Preserve offline/corrupt originals, no repair or fallback.
+            return result
+        finally:self._gate.release()

@@ -24879,6 +24879,34 @@ class Fenster(_FENSTER_BASIS):
         except FileNotFoundError:pass # No native root/key/database bootstrap.
         except Exception as error:
             debug_notiz("media-trash.retention-adoption-held",error=type(error).__name__)
+        self._medien_backup_wartung_planen()
+
+    def _medien_backup_wartung_planen(self):
+        """Existing native window owns a single optional idle-maintenance lane."""
+        if getattr(self,"_medien_backup_wartung_worker",None) is not None:return
+        from magnolie_optional_phone import available
+        if not available("photo_sync"):return
+        import importlib
+        worker=importlib.import_module("magnolie_media_backup_idle").NativeLinuxBackupMaintenanceWorker(
+            os.path.join(daten_verzeichnis(),"telefon"))
+        self._medien_backup_wartung_worker=worker
+        stopped=threading.Event()
+        def tick():
+            if stopped.is_set():return False
+            if self._gesperrt or not self._organizer_vertraut() or getattr(self,"_ladefehler",""):return True
+            source=self._telefon_actor_buchquelle();data=self._aktuelle_daten
+            root=os.path.join(daten_verzeichnis(),"telefon")
+            if (root!=worker.directory or source is None or not isinstance(data,dict)
+                    or not os.path.lexists(os.path.join(root,"phone.db"))):return True
+            def current():
+                return (not stopped.is_set() and not self._gesperrt and bool(self._organizer_geladen)
+                    and self._telefon_actor_buchquelle()==source and self._aktuelle_daten is data
+                    and root==os.path.join(daten_verzeichnis(),"telefon"))
+            worker.start(current);return True
+        timer=GLib.timeout_add_seconds(60,tick)
+        def close(*_args):
+            stopped.set();worker.stop();GLib.source_remove(timer)
+        self.connect("destroy",close)
 
     def _medien_backup_aktion(self,nachricht):
         """Offline local backup recovery; browser paths/confirmation are forbidden."""
