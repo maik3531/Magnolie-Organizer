@@ -28,11 +28,12 @@ internal sealed partial class TelefonStore
         private static JsonObject Identity(DeviceFileNativeDirectory.Identity value) => NativeMediaReceiveJob.NativeIdentity(value);
         private static DeviceFileNativeDirectory.Identity Identity(JsonNode value) => NativeMediaReceiveJob.NativeAlbumIdentity(value.AsObject());
 
-        internal MediaBackupCatalog(TelefonStore store, NativeMediaDestination destination, Action native, bool create)
+        internal MediaBackupCatalog(TelefonStore store, NativeMediaDestination destination, Action native, bool create,
+            NativeMediaBackupParent? storageParent = null)
         {
             this.store = store; this.native = native;
             native(); store.RequireNativeMediaStorageKey();
-            root = destination.OpenNative();
+            root = storageParent?.OpenNative() ?? destination.OpenNative();
             scope = DeviceFileControl.Digest("magnolie-native-media-backup-root-v1\0", new JsonObject
             { ["volume_path"] = root.VolumePath, ["identity"] = Identity(root.OriginalIdentity) });
             try
@@ -280,12 +281,13 @@ internal sealed partial class TelefonStore
 
     // Explicit native owner entry points, not wire handlers. Construction/import
     // starts no worker. Local restore is independent of any current peer session.
-    internal IReadOnlyList<NativeMediaBackupVersion> NativeMediaBackupVersions(NativeMediaDestination destination, Func<bool> nativePermit)
+    internal IReadOnlyList<NativeMediaBackupVersion> NativeMediaBackupVersions(NativeMediaDestination destination, Func<bool> nativePermit,
+        NativeMediaBackupParent? storageParent = null)
     {
         lock (gate)
         {
             void Current() { if (RestoreFenced || !nativePermit()) throw DeviceFileControl.Error("media_backup_native_permit_changed"); }
-            using var catalog = new MediaBackupCatalog(this, destination, Current, false); return catalog.Versions();
+            using var catalog = new MediaBackupCatalog(this, destination, Current, false, storageParent); return catalog.Versions();
         }
     }
     internal NativeMediaBackupBytes.VerifiedRaw RestoreNativeMediaBackup(NativeMediaDestination destination, NativeMediaBackupVersion selected,
@@ -317,6 +319,7 @@ internal sealed partial class TelefonStore
             var member = job.Body["files"]!.AsArray().OfType<JsonObject>().Single(item => TelefonMessagingContract.String(item, "id") == fileId);
             var receipt = job.Body["saved"]!["receipts"]!.AsArray().OfType<JsonObject>().Single(item => TelefonMessagingContract.String(item, "file_id") == fileId);
             var kind = TelefonMessagingContract.String(job.Body, "media_type");
+            var backupLocations = ReadNativeMediaBackupLocations(peerId, kind);
             var destination = ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
             if (destination.Version != TelefonMessagingContract.String(job.Body, "destination_version") ||
                 destination.DestinationToken != TelefonMessagingContract.String(job.Body["binding"]!.AsObject(), "destination_token"))
@@ -329,11 +332,13 @@ internal sealed partial class TelefonStore
             {
                 Current(); _ = root.CurrentIdentity(); _ = parent.CurrentIdentity();
                 if (ReadNativeMediaDestination(peerId, kind) != destination) throw DeviceFileControl.Error("media_backup_original_destination_changed");
+                if (ReadNativeMediaBackupLocations(peerId, kind).Version != backupLocations.Version)
+                    throw DeviceFileControl.Error("media_backup_locations_stale_choice");
             }
             var name = DeviceFileNativeDirectory.ReceiveLeaf(TelefonMessagingContract.String(file, "path"));
             var size = TelefonProtocolContract.Integer(file["size"]); var hash = TelefonMessagingContract.String(file, "sha256");
             using var source = parent.OpenOriginalStagedFile(name, NativeMediaReceiveJob.NativeAlbumIdentity(member["identity"]!.AsObject()), size, hash);
-            using var catalog = new MediaBackupCatalog(this, destination, Bound, createBackup);
+            using var catalog = new MediaBackupCatalog(this, destination, Bound, createBackup, backupLocations.Current);
             var provenance = new JsonObject { ["peer_id"] = peerId, ["pairing_epoch"] = scope.PairingEpoch, ["job_id"] = jobId,
                 ["job_version"] = jobVersion, ["file_id"] = fileId, ["receipt"] = receipt.DeepClone() };
             return catalog.Save(source, size, hash, album is null ? name : TelefonMessagingContract.String(job.Body["album_root"]!.AsObject(), "folder") + "/" + name, provenance);

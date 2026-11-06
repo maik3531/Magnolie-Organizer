@@ -5,14 +5,15 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, string Action, string MediaType, string? Version,
     string? Catalog, string? Album, int After, bool Photos, bool Videos, bool SkipDeletions, bool Automatic = false, string? TrashOperation = null, string? BackupId = null,
-    string? SharedField = null, JsonNode? SharedValue = null, bool ReceiveConsent = false)
+    string? SharedField = null, JsonNode? SharedValue = null, bool ReceiveConsent = false, string? BackupLocation = null)
 {
     internal static NativeMediaUiRequest Parse(JsonObject value)
     {
         string Text(string key) => TelefonMessagingContract.String(value, key);
         var action = Text("action"); var fields = new List<string> { "cmd", "requestId", "device_id", "action" };
-        if (action is "backup_list" or "backup_restore" or "pick_destination" or "discover" or "page" or "sync" or "request_read") fields.Add("media_type");
-        if (action is "backup_restore" or "trash_restore" or "trash_purge" or "mode" or "settings" or "pick_destination" or "page" or "sync" or "request_read") fields.Add("version");
+        if (action is "pick_backup_parent" or "backup_default" or "backup_list" or "backup_restore" or "pick_destination" or "discover" or "page" or "sync" or "request_read") fields.Add("media_type");
+        if (action is "pick_backup_parent" or "backup_default" or "backup_restore" or "trash_restore" or "trash_purge" or "mode" or "settings" or "pick_destination" or "page" or "sync" or "request_read") fields.Add("version");
+        if (action is "backup_list" or "backup_restore" && value.ContainsKey("location_id")) fields.Add("location_id");
         if (action == "backup_restore") fields.Add("backup_id");
         if (action is "trash_restore" or "trash_purge") fields.Add("operation_id");
         if (action == "mode") fields.Add("automatic");
@@ -23,7 +24,7 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (action == "shared_setting") fields.AddRange(["field", "value", "version"]);
         if (action == "receive_consent") fields.AddRange(["granted", "version"]);
         TelefonProtocolContract.ExactObject(value, fields.ToArray());
-        if (Text("cmd") != "telefon_medien" || action is not ("shared_setting" or "receive_consent" or "activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
+        if (Text("cmd") != "telefon_medien" || action is not ("pick_backup_parent" or "backup_default" or "shared_setting" or "receive_consent" or "activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
             !Regex.IsMatch(Text("requestId"), "\\A[A-Za-z0-9_-]{8,80}\\z") || !DeviceFileControl.Identity(Text("device_id")))
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var kind = value.ContainsKey("media_type") ? Text("media_type") : "images";
@@ -40,6 +41,8 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (trash is not null && (trash.Length != 32 || trash.Any(c => !char.IsAsciiHexDigitLower(c))) || action == "trash_list" && after > 2048)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var backup = value.ContainsKey("backup_id") ? Text("backup_id") : null;
+        var location = value.ContainsKey("location_id") ? Text("location_id") : null;
+        if (location is not null && !DeviceFileControl.Hash(location)) throw DeviceFileControl.Error("file_media_ui_request_invalid");
         if (backup is not null && !DeviceFileControl.Hash(backup) || action == "backup_list" && after > 4096)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         bool Flag(string key) => value[key] is JsonValue item && item.TryGetValue<bool>(out var flag) ? flag : throw DeviceFileControl.Error("file_media_ui_request_invalid");
@@ -53,6 +56,6 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         }
         return new(Text("requestId"), Text("device_id"), action, kind, version, catalog, album, (int)after,
             action == "settings" && Flag("photos"), action == "settings" && Flag("videos"), action != "settings" || Flag("skip_deletions"), action == "mode" && Flag("automatic"), trash, backup,
-            sharedField, action == "shared_setting" ? value["value"]!.DeepClone() : null, action == "receive_consent" && Flag("granted"));
+            sharedField, action == "shared_setting" ? value["value"]!.DeepClone() : null, action == "receive_consent" && Flag("granted"), location);
     }
 }

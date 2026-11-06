@@ -152,6 +152,15 @@ internal static class DeviceFileUiTests
         var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";
         backup["backup_id"] = new string('a', 64); backup["version"] = new string('b', 64);
         TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");
+        backup["location_id"] = new string('c', 64);
+        TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupLocation == new string('c', 64), "Historical backup source locator was not parsed independently.");
+        foreach (var action in new[] { "pick_backup_parent", "backup_default" })
+        {
+            var pick = request.DeepClone().AsObject(); pick["action"] = action; pick["media_type"] = "images"; pick["version"] = null;
+            _ = NativeMediaUiRequest.Parse(pick);
+            pick["path"] = @"C:\untrusted";
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(pick), "Backup parent action accepted a browser path.");
+        }
         foreach (var field in new[] { "path", "confirmed", "identity", "version", "backup_id" })
         {
             var changed = backup.DeepClone().AsObject();

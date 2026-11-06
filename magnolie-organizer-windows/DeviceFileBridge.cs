@@ -35,14 +35,36 @@ internal sealed partial class BridgeDispatcher
                     telefon.ActivateLegacyNativeMediaUi(peerId);
                     await Reply(new { requestId, device_id = peerId, ok = true, supported = true, activation_required = true }); return;
                 case "backup_list":
-                    var backups = telefon.ReadNativeMediaBackupUi(peerId, request.MediaType);
+                    var backupPage = telefon.ReadNativeMediaBackupUiPage(peerId, request.MediaType, request.BackupLocation);
+                    var backups = backupPage.Versions;
                     if (request.After > backups.Count) throw DeviceFileControl.Error("media_backup_stale_selection");
                     await Reply(new { requestId, device_id = peerId, ok = true, media_type = request.MediaType,
+                        location_id = backupPage.Source?.Id,
+                        backup_location = backupPage.Locations is { } locations ? new { version = locations.Version,
+                            display_path = Path.Combine(locations.Current.NativePath, "Backup"), is_default = locations.SelectedId is null,
+                            sources = locations.Parents.Select(value => new { location_id = value.Id, display_path = Path.Combine(value.NativePath, "Backup") }) } : null,
                         next_cursor = request.After + 128 < backups.Count ? (int?)(request.After + 128) : null,
                         backups = backups.Skip(request.After).Take(128).Select(item => new { backup_id = item.Id, version = item.RecordSha256, display_name = item.Name, saved_ms = item.SavedMs }) });
                     return;
+                case "pick_backup_parent":
+                    var backupBook = NativeActorSavedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                    var backupLocations = telefon.NativeMediaBackupUiLocations(peerId, request.MediaType);
+                    if (backupLocations.Version != request.Version) throw DeviceFileControl.Error("media_backup_locations_stale_choice");
+                    using (var dialog = new FolderBrowserDialog { Description = T("Backups") + " · " + T("Choose folder …"),
+                        UseDescriptionForTitle = true, ShowNewFolderButton = true, SelectedPath = backupLocations.Current.NativePath })
+                    {
+                        if (dialog.ShowDialog(form) != DialogResult.OK)
+                        { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }
+                        if (NativeActorSavedBook() != backupBook) throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                        using var backupParentOwner = DeviceFileNativeDirectory.OpenExistingForReceive(dialog.SelectedPath);
+                        telefon.SetNativeMediaBackupUiParent(peerId, request.MediaType, request.Version, backupParentOwner);
+                    }
+                    await Reply(new { requestId, device_id = peerId, ok = true }); return;
+                case "backup_default":
+                    telefon.SetNativeMediaBackupUiParent(peerId, request.MediaType, request.Version, null);
+                    await Reply(new { requestId, device_id = peerId, ok = true }); return;
                 case "backup_restore":
-                    var backupChoice = telefon.PrepareNativeMediaBackupRestore(peerId, request.MediaType, request.BackupId!, request.Version!);
+                    var backupChoice = telefon.PrepareNativeMediaBackupRestore(peerId, request.MediaType, request.BackupId!, request.Version!, request.BackupLocation);
                     if (MessageBox.Show(form, T("Restore") + ":\n\n" + backupChoice.Selected.Name, T("Restore backup …"),
                         MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                     { await Reply(new { requestId, device_id = peerId, ok = true, canceled = true }); return; }

@@ -9,7 +9,10 @@ internal sealed record NativeMediaBackupRestoration(string Operation, string Sta
     internal bool IsRemoteSavedReceipt => false;
 }
 
-internal sealed record NativeMediaBackupRestoreChoice(string PeerId, NativeMediaDestination Destination, NativeMediaBackupVersion Selected, NativeMediaBookPermit Permit);
+internal sealed record NativeMediaBackupRestoreChoice(string PeerId, NativeMediaDestination Destination, NativeMediaBackupVersion Selected, NativeMediaBookPermit Permit,
+    NativeMediaBackupParent? StorageParent = null);
+internal sealed record NativeMediaBackupUiPage(NativeMediaBackupLocations? Locations, NativeMediaBackupParent? Source,
+    IReadOnlyList<NativeMediaBackupVersion> Versions);
 
 internal sealed partial class TelefonStore
 {
@@ -75,7 +78,8 @@ internal sealed partial class TelefonStore
         current(); return actual;
     }
 
-    internal NativeMediaBackupRestoration RestoreNativeMediaBackupToDestination(NativeMediaDestination destination, NativeMediaBackupVersion selected, Func<bool> nativePermit)
+    internal NativeMediaBackupRestoration RestoreNativeMediaBackupToDestination(NativeMediaDestination destination, NativeMediaBackupVersion selected, Func<bool> nativePermit,
+        NativeMediaBackupParent? storageParent = null)
     {
         lock (gate)
         {
@@ -91,7 +95,7 @@ internal sealed partial class TelefonStore
             }
             Current(); using var root = destination.OpenNative();
             NativeMediaBackupExclusions.RequireMediaDirectory(root);
-            using var catalog = new MediaBackupCatalog(this, destination, Current, false);
+            using var catalog = new MediaBackupCatalog(this, destination, Current, false, storageParent);
             var source = catalog.VerifySelected(selected);
             var scope = DeviceFileControl.Digest("magnolie-native-media-backup-restore-root-v1\0", new JsonObject
                 { ["identity"] = NativeMediaReceiveJob.NativeIdentity(root.OriginalIdentity), ["volume_path"] = root.VolumePath });
@@ -140,24 +144,55 @@ internal sealed partial class TelefonStore
 internal sealed partial class TelefonCoordinator
 {
     internal IReadOnlyList<NativeMediaBackupVersion> ReadNativeMediaBackupUi(string peerId, string kind)
+        => ReadNativeMediaBackupUiPage(peerId, kind, null).Versions;
+
+    internal NativeMediaBackupUiPage ReadNativeMediaBackupUiPage(string peerId, string kind, string? locationId)
     {
         var permit = NativeMediaLocalBookPermit();
         var destination = store.ReadNativeMediaDestination(peerId, kind);
-        if (destination is null) return [];
-        bool Current() { permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination; }
-        try { return store.NativeMediaBackupVersions(destination, Current); }
-        catch (InvalidDataException error) when (error.Message == "media_backup_original_catalog_required") { return []; }
+        if (destination is null) return new(null, null, []);
+        var locations = store.ReadNativeMediaBackupLocations(peerId, kind);
+        var source = locationId is null ? locations.Current : locations.Parents.SingleOrDefault(value => value.Id == locationId)
+            ?? throw DeviceFileControl.Error("media_backup_original_parent_required");
+        bool Current()
+        {
+            permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination &&
+                store.ReadNativeMediaBackupLocations(peerId, kind).Version == locations.Version;
+        }
+        try { return new(locations, source, store.NativeMediaBackupVersions(destination, Current, source)); }
+        catch (InvalidDataException error) when (error.Message == "media_backup_original_catalog_required")
+        {
+            if (!Current()) throw DeviceFileControl.Error("media_backup_locations_stale_choice");
+            return new(locations, source, []);
+        }
     }
-    internal NativeMediaBackupRestoreChoice PrepareNativeMediaBackupRestore(string peerId, string kind, string id, string revision)
+    internal NativeMediaBackupRestoreChoice PrepareNativeMediaBackupRestore(string peerId, string kind, string id, string revision, string? locationId = null)
     {
         var permit = NativeMediaLocalBookPermit();
         var destination = store.ReadNativeMediaDestination(peerId, kind) ?? throw DeviceFileControl.Error("media_backup_original_destination_required");
+        var locations = store.ReadNativeMediaBackupLocations(peerId, kind);
+        var source = locationId is null ? locations.Current : locations.Parents.SingleOrDefault(value => value.Id == locationId)
+            ?? throw DeviceFileControl.Error("media_backup_original_parent_required");
         bool Current() { permit.Require(); return store.ReadNativeMediaDestination(peerId, kind) == destination; }
-        var selected = store.NativeMediaBackupVersions(destination, Current).SingleOrDefault(item => item.Id == id && item.RecordSha256 == revision)
+        var selected = store.NativeMediaBackupVersions(destination, Current, source).SingleOrDefault(item => item.Id == id && item.RecordSha256 == revision)
             ?? throw DeviceFileControl.Error("media_backup_stale_selection");
-        permit.Require(); return new(peerId, destination, selected, permit);
+        permit.Require(); return new(peerId, destination, selected, permit, source);
     }
     internal NativeMediaBackupRestoration RestoreConfirmedNativeMediaBackup(NativeMediaBackupRestoreChoice choice)
         => NativeMediaLocalOperation(() => store.RestoreNativeMediaBackupToDestination(choice.Destination, choice.Selected,
-            () => { choice.Permit.Require(); return store.ReadNativeMediaDestination(choice.PeerId, choice.Destination.MediaType) == choice.Destination; }));
+            () => { choice.Permit.Require(); return store.ReadNativeMediaDestination(choice.PeerId, choice.Destination.MediaType) == choice.Destination; }, choice.StorageParent));
+
+    internal NativeMediaBackupLocations NativeMediaBackupUiLocations(string peerId, string kind)
+    {
+        var permit = NativeMediaLocalBookPermit(); permit.Require();
+        return store.ReadNativeMediaBackupLocations(peerId, kind);
+    }
+
+    internal void SetNativeMediaBackupUiParent(string peerId, string kind, string? version, DeviceFileNativeDirectory? parent)
+        => NativeMediaLocalOperation(() =>
+        {
+            var permit = NativeMediaLocalBookPermit();
+            store.ChangeNativeMediaBackupParent(peerId, kind, version, parent, permit.Require);
+            return true;
+        });
 }

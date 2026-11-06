@@ -283,6 +283,9 @@ if (OperatingSystem.IsWindows())
     runner.Add("Media shared projection / Windows explicit manual inventory actual receive Saved END", DeviceFileAutomaticTests.WindowsSharedManualReceiveSavedAsync);
     runner.Add("Media shared transport / Windows manual duplicate deadline stale intent and failed ACK guards", DeviceFileSharedTransportTests.ManualGuardsAsync);
     runner.Add("Media backup exclusions / Windows former backup destination rejection without catalog", DeviceFileBackupExclusionTests.WindowsDestinationAsync);
+    runner.Add("Media backup locations / Windows retained parents default and idempotence", DeviceFileBackupLocationTests.WindowsChoicesAsync);
+    runner.Add("Media backup locations / Windows actual catalogs and historical restore source", DeviceFileBackupLocationTests.WindowsCatalogsAndRestoreAsync);
+    runner.Add("Media backup locations / Windows rollback foreign folder and corruption HOLD", DeviceFileBackupLocationTests.WindowsFencesAsync);
     runner.Add("Media backup maintenance / Windows actual input CPU and memory sample", DeviceFileBackupMaintenanceTests.WindowsNativeSampleAsync);
     runner.Add("Media backup bytes / Windows held FID independent copy and new restore", DeviceFileBackupBytesTests.WindowsCopyRestoreAsync);
     runner.Add("Media backup bytes / Windows digest existing target and stale identity HOLD", DeviceFileBackupBytesTests.WindowsRejectAsync);

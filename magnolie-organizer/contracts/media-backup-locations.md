@@ -35,3 +35,26 @@ existing file or replay historical deletion. It is not a phone write grant.
 The exclusion invariant does not itself implement alternative-parent selection,
 historical catalog discovery, PC upload or bilateral deletion. Those require
 their separate real native owners and functional acceptance before rollout.
+
+## Windows local parent choice and historical sources
+
+Backup parent selection is separate from synchronization destinations and shared
+phone intent. The native folder picker supplies the existing parent owner; the
+browser supplies only the media kind and opaque current selection version.
+The saved/unlocked book, native parent identity and version are rechecked. A
+choice alone creates no `Backup` directory and moves/copies/deletes no history.
+The next actual Saved/END backup uses the selected parent's `Backup` child.
+
+The protected local record retains the original default and every former parent.
+Choosing **Use default** changes only future storage selection, not those retained
+references. Unchanged choices do not rewrite the ciphertext or renew versions.
+An existing foreign or damaged catalog is held, never adopted or reset.
+
+The recovery-source selector is independent of the active future storage parent.
+It lists one original catalog at a time using an opaque retained location ID;
+an unavailable or changed parent is held, never treated as empty deletion
+evidence or silently replaced by another source. Native confirmation captures
+the exact selected source parent and version. Recovery publishes a new file into
+the data destination, not into either current or historical backup storage.
+Source-channel access and phone write authority are not prerequisites for this
+local recovery and are not created by choosing a storage/recovery location.

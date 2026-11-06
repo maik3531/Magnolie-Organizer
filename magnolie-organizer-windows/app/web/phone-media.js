@@ -283,42 +283,69 @@
     const t = translate, root = document.createElement("details"), title = document.createElement("summary"), rows = document.createElement("ul"), status = document.createElement("p");
     root.hidden = true; root.className = "telefon-medien-sicherungen einst-gruppe";
     title.textContent = t("Backups") + " · " + t(mediaType === "video" ? "Videos" : "Photos");
-    status.setAttribute("role", "status"); root.append(title, rows, status);
-    let busy = false, next = null;
+    const location = document.createElement("p"), sources = document.createElement("select");
+    sources.className = "feld"; sources.setAttribute("aria-label", t("Backups") + " · " + t("Location"));
+    sources.addEventListener("change", () => request("backup_list", { after: 0, location_id: sources.value }));
+    status.setAttribute("role", "status"); root.append(title, location, sources, rows, status);
+    let busy = false, next = null, locationVersion = null, sourceId = null, hasLocation = false, usesDefault = true;
     const button = (label, action, parent) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "knopf klein"; b.textContent = t(label); b.addEventListener("click", action); parent.append(b); return b;
     };
-    function toggle() { for (const b of root.querySelectorAll("button")) b.disabled = busy; }
+    function toggle() {
+      for (const b of root.querySelectorAll("button")) b.disabled = busy;
+      pick.disabled = busy || !hasLocation; useDefault.disabled = busy || !hasLocation || usesDefault;
+      sources.disabled = busy || !hasLocation;
+    }
     async function request(action, data = {}) {
       if (busy) return;
-      if (action === "backup_restore") {
+      if (["backup_restore", "pick_backup_parent", "backup_default"].includes(action)) {
         try { await saveBefore(); } catch { status.textContent = t("The book could not be saved. Media synchronization was not started."); return; }
       }
       const requestId = crypto.randomUUID(); busy = true; toggle();
-      pending.set(requestId, { root, peerId, action, receive, until: Date.now() + 60000 });
+      const nativeDialog = ["backup_restore", "pick_backup_parent"].includes(action);
+      pending.set(requestId, { root, peerId, action, receive, until: Date.now() + (nativeDialog ? 2 * 60 * 60 * 1000 : 60000) });
       if (!send({ cmd: "telefon_medien", requestId, device_id: peerId, media_type: mediaType, action, ...data })) {
         pending.delete(requestId); busy = false; toggle();
       }
     }
     function receive(reply, action) {
       busy = false;
-      if (!reply.ok) { status.textContent = t("Media operation paused. No completion was confirmed."); toggle(); return; }
+      if (!reply.ok) {
+        if (sourceId) sources.value = sourceId;
+        status.textContent = t("Media operation paused. No completion was confirmed."); toggle(); return;
+      }
       if (reply.canceled) { toggle(); return; }
       if (action === "backup_list") {
+        hasLocation = !!reply.backup_location;
+        usesDefault = reply.backup_location?.is_default !== false;
+        locationVersion = reply.backup_location?.version ?? null; sourceId = reply.location_id ?? null;
+        location.textContent = hasLocation ? t("Backups") + ": " + String(reply.backup_location.display_path || "") : "";
+        sources.replaceChildren();
+        for (const item of (reply.backup_location?.sources || []).slice(0, 64)) {
+          const option = document.createElement("option"); option.value = String(item.location_id || "");
+          option.textContent = String(item.display_path || ""); sources.append(option);
+        }
+        if (sourceId) sources.value = sourceId;
+        sources.hidden = sources.options.length < 2;
         rows.replaceChildren(); next = reply.next_cursor;
         more.hidden = !Number.isSafeInteger(next);
         for (const item of (reply.backups || []).slice(0, 128)) {
           const row = document.createElement("li"); row.append(document.createTextNode(String(item.display_name || "") + " · " + new Date(item.saved_ms).toLocaleString()));
-          button("Restore", () => request("backup_restore", { backup_id: item.backup_id, version: item.version }), row); rows.append(row);
+          button("Restore", () => request("backup_restore", { backup_id: item.backup_id, version: item.version,
+            ...(sourceId ? { location_id: sourceId } : {}) }), row); rows.append(row);
         }
-        root.hidden = rows.children.length === 0; status.textContent = "";
+        root.hidden = !hasLocation && rows.children.length === 0; status.textContent = "";
       } else if (action === "backup_restore") {
         status.textContent = t("Restore") + ": " + String(reply.display_name || "");
       }
       toggle();
+      if (["pick_backup_parent", "backup_default"].includes(action)) request("backup_list", { after: 0 });
     }
-    button("Refresh", () => request("backup_list", { after: 0 }), root);
-    const more = button("Next entries", () => Number.isSafeInteger(next) && request("backup_list", { after: next }), root); more.hidden = true;
+    const pick = button("Choose another folder…", () => request("pick_backup_parent", { version: locationVersion }), root);
+    const useDefault = button("Use default", () => request("backup_default", { version: locationVersion }), root);
+    button("Refresh", () => request("backup_list", { after: 0, ...(sourceId ? { location_id: sourceId } : {}) }), root);
+    const more = button("Next entries", () => Number.isSafeInteger(next) && request("backup_list", { after: next,
+      ...(sourceId ? { location_id: sourceId } : {}) }), root); more.hidden = true;
     // Read-only existing local history, even while the phone is disconnected.
     request("backup_list", { after: 0 }); return root;
   }

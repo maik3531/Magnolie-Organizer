@@ -11,12 +11,12 @@ internal static class DeviceFileBackupCatalogTests
     private static string Folder(DeviceFileReceiveJobTests.Fixture f) => Path.Combine(f.Root, "Backup");
     private static (string JobId, string Version, string Phase) Job(DeviceFileReceiveJobTests.Fixture f)
         => f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Last();
-    private static NativeMediaBackupVersion Save(DeviceFileReceiveJobTests.Fixture f, string fileId = "00000000000000000000000000000001", Func<bool>? permit = null)
+    internal static NativeMediaBackupVersion Save(DeviceFileReceiveJobTests.Fixture f, string fileId = "00000000000000000000000000000001", Func<bool>? permit = null)
     {
         var job = Job(f);
         return f.Native.Store.SaveNativeMediaBackup(f.Native.Peer.Id, job.JobId, job.Version, fileId, permit ?? (() => true), createBackup: true);
     }
-    private static async Task Seed(DeviceFileReceiveJobTests.Fixture f, byte[]? raw = null, Action? nativeGuard = null)
+    internal static async Task Seed(DeviceFileReceiveJobTests.Fixture f, byte[]? raw = null, Action? nativeGuard = null)
     {
         raw ??= Data;
         var run = await DeviceFileAlbumTests.Preview(f, f.Manifest(("first.jpg", raw), ("second.jpg", raw)), new string('e', 64), "Kamera");
