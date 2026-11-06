@@ -134,3 +134,20 @@ The native local recovery controller supports bounded source discovery, exact
 historical-source version pages and explicit publication. Its GTK/browser surface
 and physical installed-package acceptance still need joining; these APIs alone
 do not complete PC-to-phone restoration or bilateral deletion synchronization.
+
+## Linux independent original-catalog witness
+
+The native private telephone directory retains a sealed original-catalog witness
+separate from the `Backup` folder. It binds the exact parent/catalog/DB/lock
+identity and original sealed header; a reciprocal catalog marker also binds the
+external witness identity. A known catalog whose entire folder vanished cannot
+be silently bootstrapped again. Missing, changed or corrupt external witnesses
+are held before writable catalog opening, without deleting or replacing bytes.
+
+Both ownership files are atomically published from private new metadata files.
+New catalogs bind ownership before any backup payload. Existing format-1 catalog
+headers, versions and object bytes are unchanged. Older authenticated catalogs
+without these witnesses stay passively readable; only a real verified Saved
+backup action adds the binding. Interrupted marker completion does not poison a
+valid external witness or force payload recopy. Neither passive history nor a
+folder-choice preview creates or repairs these records.

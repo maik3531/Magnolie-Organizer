@@ -712,6 +712,8 @@ class NativeMediaBackups:
         self._parent = self._root = self._lock = self._dbfile = None; self._db = None
         self.scope = sha256(canonical(self.storage_parent.wire())).hexdigest()
         self._domain = 'magnolie-media-backup-v1/' + self.scope + '/'
+        self._native_owner_name='media-backup-owner-v1-'+self.scope+'.seal'
+        self._native_owner_identity=self._catalog_owner_identity=None
         try:
             self._require_native(); self.storage_parent.verify()
             if create:require_media_directory(self.storage_parent.path)
@@ -719,6 +721,9 @@ class NativeMediaBackups:
             if self._key(os.fstat(self._parent)) != self.storage_parent.ancestor_keys[0]:
                 raise TransferError('media_backup_original_parent_required')
             if create:
+                try:os.stat(self._native_owner_name,dir_fd=protection._root_fd,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:raise TransferError('media_backup_original_storage_required')
                 # Probe the EXISTING key before creating any backup entry.
                 protection.seal(b'probe', self._domain + 'probe')
                 os.mkdir('Backup', 0o700, dir_fd=self._parent)
@@ -741,6 +746,7 @@ class NativeMediaBackups:
                     self._header_blob = self._read_file('.owner.seal', 16384)
                     if strict_json(protection.unseal(self._header_blob, self._domain + 'header')) != self._header():
                         raise TransferError('media_backup_original_storage_required')
+                    self._check_native_owner()
                     self._db = sqlite3.connect(f'file:/proc/self/fd/{self._root}/catalog.sqlite3?mode=ro', uri=True,
                         isolation_level=None, check_same_thread=False)
                     self._verify()
@@ -761,6 +767,7 @@ class NativeMediaBackups:
                     raise TransferError('media_backup_original_storage_required')
                 self._current()
                 self._verify()
+                if create:self._ensure_native_owner()
             finally: fcntl.flock(self._lock, fcntl.LOCK_UN)
         except BaseException:
             self.close(); raise
@@ -777,6 +784,75 @@ class NativeMediaBackups:
     def _header(self):
         return dict(format=1, scope=self.scope, parent=list(self.storage_parent.ancestor_keys[0]), root=list(self._root_key),
             database=list(self._db_key), lock=list(self._lock_key))
+
+    def _owner_file(self,parent,name):
+        try:fd=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=parent)
+        except FileNotFoundError:return None
+        try:
+            before=os.fstat(fd);self._private(before)
+            if not 28<=before.st_size<=16384:raise TransferError('media_backup_original_storage_required')
+            blob=os.pread(fd,16385,0);after=os.fstat(fd);named=os.stat(name,dir_fd=parent,follow_symlinks=False)
+            self._private(named)
+            signature=self.protection._signature
+            if len(blob)!=before.st_size or signature(before)!=signature(after) or signature(before)!=signature(named):
+                raise TransferError('media_backup_original_storage_required')
+            return self._key(before),blob
+        finally:os.close(fd)
+
+    def _native_owner_value(self):
+        return dict(format=1,header=self._header(),header_sha256=sha256(self._header_blob).hexdigest(),
+            native_directory=list(self.protection.native_directory_identity))
+
+    def _check_native_owner(self):
+        native=self._owner_file(self.protection._root_fd,self._native_owner_name)
+        marker=self._owner_file(self._root,'.native-owner.required')
+        if native is None:
+            if marker is not None or self._native_owner_identity is not None:
+                raise TransferError('media_backup_original_storage_required')
+            return None # Authenticated legacy catalog; passive reads never migrate.
+        value=self.protection.unseal(native[1],self._domain+'native-owner')
+        if value!=canonical(self._native_owner_value()):raise TransferError('media_backup_original_storage_required')
+        identity=native[0],sha256(native[1]).hexdigest()
+        if self._native_owner_identity is not None and self._native_owner_identity!=identity:
+            raise TransferError('media_backup_original_storage_required')
+        if marker is not None:
+            expected=dict(format=1,native_key=list(native[0]),native_sha256=identity[1],header_sha256=sha256(self._header_blob).hexdigest())
+            if self.protection.unseal(marker[1],self._domain+'catalog-owner')!=canonical(expected):
+                raise TransferError('media_backup_original_storage_required')
+            marked=marker[0],sha256(marker[1]).hexdigest()
+            if self._catalog_owner_identity is not None and self._catalog_owner_identity!=marked:
+                raise TransferError('media_backup_original_storage_required')
+            self._catalog_owner_identity=marked
+        elif self._catalog_owner_identity is not None:raise TransferError('media_backup_original_storage_required')
+        self._native_owner_identity=identity;return native
+
+    def _atomic_owner_file(self,parent,name,blob):
+        # Never publish a partially written ownership record. Interrupted legacy
+        # binding leaves its old catalog readable; unknown temp files are kept.
+        temporary='.magnolie-backup-owner-'+secrets.token_hex(16)+'.tmp'
+        fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
+        try:
+            key=self._key(os.fstat(fd));offset=0
+            while offset<len(blob):
+                self._require_native();count=os.write(fd,blob[offset:])
+                if count<=0:raise TransferError('media_backup_short_write')
+                offset+=count
+            os.fsync(fd);self._require_native();self.protection._read_key()
+            if self._key(os.stat(temporary,dir_fd=parent,follow_symlinks=False))!=key:
+                raise TransferError('media_backup_original_storage_required')
+            _rename_no_replace(parent,temporary,name);os.fsync(parent)
+        finally:os.close(fd)
+
+    def _ensure_native_owner(self):
+        self._current();native=self._check_native_owner()
+        if native is None:
+            blob=self.protection.seal(canonical(self._native_owner_value()),self._domain+'native-owner')
+            self._atomic_owner_file(self.protection._root_fd,self._native_owner_name,blob)
+            native=self._check_native_owner()
+        if self._catalog_owner_identity is None:
+            value=dict(format=1,native_key=list(native[0]),native_sha256=sha256(native[1]).hexdigest(),header_sha256=sha256(self._header_blob).hexdigest())
+            self._atomic_owner_file(self._root,'.native-owner.required',self.protection.seal(canonical(value),self._domain+'catalog-owner'))
+        self._check_native_owner();self._current()
 
     def _require_native(self):
         try:
@@ -795,6 +871,7 @@ class NativeMediaBackups:
             value = os.stat(name, dir_fd=self._root, follow_symlinks=False); self._private(value)
             if self._key(value) != key or self._key(os.fstat(fd)) != key: raise TransferError('media_backup_original_storage_required')
         if self._read_file('.owner.seal', 16384) != self._header_blob: raise TransferError('media_backup_original_storage_required')
+        self._check_native_owner()
         self._metadata_files()
 
     def _metadata_files(self):
@@ -995,6 +1072,9 @@ class NativeMediaBackups:
             def mapping_now(): self._current(); mapping_current()
             version_id = mapping.protected_record_sha256
             with self._saved_file(mapping, mapping_now) as source:
+                # Legacy ownership binding is an actual authenticated Saved
+                # backup action, never a side effect of listing old catalogs.
+                self._ensure_native_owner()
                 before = self._record('versions', version_id)
                 key = content_key(mapping.saved_size, mapping.saved_sha256); obj = self._record('objects', key)
                 if obj is not None and not obj['prepared']: self._verify_object(obj)

@@ -63,6 +63,63 @@ def add_all(vault):
     _, mappings, records, owner, _, _ = vault
     return tuple(owner.save_from_mappings(mappings, record.association, record.protected_record_sha256) for record in records)
 
+def test_missing_entire_original_backup_folder_is_held_before_any_replacement_bootstrap(vault):
+    fixture,_,records,owner,_,_=vault;versions=add_all(vault);owner.close()
+    folder=fixture[4]/'Backup';held=fixture[4]/'original-backup-preserved-for-test';folder.rename(held)
+    before={path.name:path.read_bytes() for path in held.iterdir() if path.is_file()};fresh=None
+    try:
+        with pytest.raises(TransferError,match='original_storage_required'):
+            fresh=NativeMediaBackups(records[0].destination,fixture[3]._authority.protection,lambda:True,create=True)
+    finally:
+        if fresh is not None:fresh.close()
+    assert not folder.exists() and before=={path.name:path.read_bytes() for path in held.iterdir() if path.is_file()}
+    assert versions
+
+@pytest.mark.parametrize('change',('missing','replaced','corrupt'))
+def test_native_catalog_owner_witness_changes_hold_original_bytes_and_never_repair_during_read(vault,change):
+    fixture,_,records,owner,_,_=vault;add_all(vault);name=owner._native_owner_name;owner.close()
+    root=Path(fixture[3]._authority.binding.native_directory);anchor=root/name
+    original=anchor.read_bytes();anchor.rename(root/(name+'-preserved'))
+    if change!='missing':
+        anchor.write_bytes(original if change=='replaced' else b'corrupt'*8);anchor.chmod(0o600)
+    folder=fixture[4]/'Backup';before={p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()}
+    from cryptography.exceptions import InvalidTag
+    with pytest.raises((TransferError,InvalidTag)):
+        NativeMediaBackups(records[0].destination,fixture[3]._authority.protection,lambda:True)
+    assert before=={p.name:p.read_bytes() for p in folder.iterdir() if p.is_file()}
+    assert anchor.exists() is (change!='missing') and (root/(name+'-preserved')).read_bytes()==original
+
+@pytest.mark.parametrize('interrupt_marker',(False,True))
+def test_legacy_catalog_reads_are_inert_and_actual_saved_backup_binds_owner_without_recopy(vault,monkeypatch,interrupt_marker):
+    fixture,mapping_store,records,owner,_,_=vault;versions=add_all(vault);name=owner._native_owner_name;owner.close()
+    protection=fixture[3]._authority.protection;root=Path(protection.native_directory);folder=fixture[4]/'Backup'
+    # Model the original format-1 catalog: only the two new witnesses are absent.
+    # No header, encrypted version, object byte or native key is rewritten.
+    (root/name).unlink();(folder/'.native-owner.required').unlink()
+    header=(folder/'.owner.seal').read_bytes()
+    before={p.name:(p.stat().st_ino,p.read_bytes()) for p in folder.glob('object-*')}
+    with NativeMediaBackups(records[0].destination,protection,lambda:True) as reader:
+        assert reader.versions()==tuple(sorted(versions,key=lambda row:row.id))
+        assert not (root/name).exists() and not (folder/'.native-owner.required').exists()
+        if interrupt_marker:
+            original=reader._atomic_owner_file
+            def fail(parent,leaf,blob):
+                if leaf=='.native-owner.required':raise OSError('simulated marker interruption')
+                return original(parent,leaf,blob)
+            monkeypatch.setattr(reader,'_atomic_owner_file',fail)
+            with pytest.raises(OSError,match='marker interruption'):
+                reader.save_from_mappings(mapping_store,records[0].association,records[0].protected_record_sha256)
+            assert reader.versions()==tuple(sorted(versions,key=lambda row:row.id))
+        else:assert reader.save_from_mappings(mapping_store,records[0].association,records[0].protected_record_sha256)==versions[0]
+    with NativeMediaBackups(records[0].destination,protection,lambda:True) as resumed:
+        assert resumed.versions()==tuple(sorted(versions,key=lambda row:row.id))
+        if interrupt_marker:
+            assert (root/name).exists() and not (folder/'.native-owner.required').exists()
+            assert resumed.save_from_mappings(mapping_store,records[0].association,records[0].protected_record_sha256)==versions[0]
+    assert (root/name).exists() and (folder/'.native-owner.required').exists()
+    assert before=={p.name:(p.stat().st_ino,p.read_bytes()) for p in folder.glob('object-*')}
+    assert (folder/'.owner.seal').read_bytes()==header
+
 @pytest.fixture
 def local_locations(tmp_path):
     root=tmp_path/'existing-private-phone';root.mkdir(mode=0o700)
@@ -588,7 +645,8 @@ def test_corrupt_shared_object_is_not_silently_replaced_or_copied_to_restore_tar
 def test_unknown_backup_folder_or_missing_anchor_is_never_adopted(vault):
     fixture, _, records, owner, _, _ = vault
     protection = fixture[3]._authority.protection
-    with pytest.raises(FileExistsError): NativeMediaBackups(records[0].destination, protection, lambda: True, create=True)
+    with pytest.raises(TransferError,match='original_storage_required'):
+        NativeMediaBackups(records[0].destination, protection, lambda: True, create=True)
     folder = fixture[4] / 'Backup'; owner.close()
     before = {path.name for path in folder.iterdir()}
     (folder / '.owner.seal').rename(folder / '.owner-preserved-test')
