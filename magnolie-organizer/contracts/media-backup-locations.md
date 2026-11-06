@@ -58,3 +58,23 @@ the exact selected source parent and version. Recovery publishes a new file into
 the data destination, not into either current or historical backup storage.
 Source-channel access and phone write authority are not prerequisites for this
 local recovery and are not created by choosing a storage/recovery location.
+
+## Linux local storage ownership
+
+Linux Saved/END backup copying resolves a separate protected local storage-parent
+selection. Its stable local peer/domain scope is independent of pairing epochs
+and source-grant revisions. Unconfigured reads create no metadata or directories;
+the data destination remains the default parent. A native local action with a
+short-lived owner ticket and exact selection-version CAS changes future storage
+only. Default and former parents are retained without opening offline drives.
+
+The settings record uses the existing private telephone key without constructing
+PhoneStore or creating keys. A separate native-root anchor prevents a missing
+original settings database from being silently reset. Foreign Backup catalogs,
+replaced native parents, corrupt settings and stale native actions are held.
+Selection does not create Backup storage, copy bytes, rotate media grants or
+enable synchronization. Actual Saved/END copying captures the chosen settings
+version and checks it throughout original-byte backup creation.
+
+The Linux native picker/recovery publication surface is not yet joined; these
+storage APIs and worker checks alone are not full user-visible acceptance.

@@ -171,6 +171,12 @@ class ProtectedPhotoPreferences:
         if peer is None or self._closed.is_set():raise TransferError('photo_preferences_authority_changed')
         return peer
 
+    def _native_directory(self):
+        return self._authority.binding.native_directory
+
+    def _protection(self):
+        return self._authority.protection
+
     @staticmethod
     def _key(value):return value.st_dev,value.st_ino
 
@@ -203,8 +209,8 @@ class ProtectedPhotoPreferences:
         self._peer()
         if self._db is not None:return True
         if self._parent_fd is None:
-            self._parent_fd=os.open(self._authority.binding.native_directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
-        if self._key(os.fstat(self._parent_fd))!=self._authority.protection.native_directory_identity:
+            self._parent_fd=os.open(self._native_directory(),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        if self._key(os.fstat(self._parent_fd))!=self._protection().native_directory_identity:
             raise TransferError('photo_preferences_native_root_changed')
         created=False
         try:self._root_fd=os.open(self._name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=self._parent_fd)
@@ -219,7 +225,7 @@ class ProtectedPhotoPreferences:
         self._lock_fd=os.open('prefs.lock',flags,0o600,dir_fd=self._root_fd);self._lock_key=self._key(os.fstat(self._lock_fd))
         self._db_fd=os.open('prefs.sqlite',flags,0o600,dir_fd=self._root_fd);self._db_key=self._key(os.fstat(self._db_fd))
         with self._locked():
-            path=Path(self._authority.binding.native_directory)/self._name/'prefs.sqlite'
+            path=Path(self._native_directory())/self._name/'prefs.sqlite'
             self._db=sqlite3.connect(path.as_uri()+'?mode=rw',uri=True,timeout=0,check_same_thread=False)
             self._db.execute('PRAGMA busy_timeout=0');self._db.execute('PRAGMA synchronous=FULL')
             if created:
@@ -238,7 +244,7 @@ class ProtectedPhotoPreferences:
     def _fresh(self):
         self._peer()
         self._private(os.fstat(self._parent_fd),directory=True)
-        if self._key(os.fstat(self._parent_fd))!=self._authority.protection.native_directory_identity:
+        if self._key(os.fstat(self._parent_fd))!=self._protection().native_directory_identity:
             raise TransferError('photo_preferences_native_root_changed')
         root=os.stat(self._name,dir_fd=self._parent_fd,follow_symlinks=False);self._private(root,directory=True)
         if self._key(root)!=self._root_key or self._key(os.fstat(self._root_fd))!=self._root_key:
@@ -279,12 +285,12 @@ class ProtectedPhotoPreferences:
         value=dict(format=1,subject=self._subject,root_key=list(self._root_key),database_key=list(self._db_key),lock_key=list(self._lock_key),payload=payload)
         raw=canonical(value)
         if len(raw)>self.MAX_RECORD_BYTES:raise TransferError('photo_preferences_record_size')
-        blob=self._authority.protection.seal(raw,self._domain+label);self._fresh()
+        blob=self._protection().seal(raw,self._domain+label);self._fresh()
         return blob
 
     def _unprotect(self,blob,label):
         if type(blob) is not bytes or not 28<=len(blob)<=self.MAX_RECORD_BYTES+28:raise TransferError('photo_preferences_record_size')
-        plain=self._authority.protection.unseal(blob,self._domain+label);value=strict_json(plain)
+        plain=self._protection().unseal(blob,self._domain+label);value=strict_json(plain)
         if (type(value) is not dict or set(value)!={'format','subject','root_key','database_key','lock_key','payload'}
                 or type(value['format']) is not int or value['format']!=1 or value['subject']!=self._subject
                 or value['root_key']!=list(self._root_key) or value['database_key']!=list(self._db_key) or value['lock_key']!=list(self._lock_key)

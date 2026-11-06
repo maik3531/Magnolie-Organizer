@@ -24,7 +24,194 @@ from magnolie_media_backup_codec import (VerifiedBackupRepresentation, NativeBac
 from magnolie_media_trash import NativeMediaRetentionPermit
 from magnolie_photo_mappings import ProtectedPhotoMappings, NativeSavedPhotoMapping, PhotoMappingAssociation
 from magnolie_photo_destination import require_media_directory
+from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_telefon import canonical, strict_json
+
+
+@dataclass(frozen=True)
+class NativeBackupLocationsSnapshot:
+    version: str
+    revision: int
+    selected: NativeAcceptedDestination | None
+    parents: tuple
+
+    def current(self,default):
+        if type(default) is not NativeAcceptedDestination:raise TransferError('media_backup_default_required')
+        return default if self.selected is None else self.selected
+
+
+class _ProtectedBackupLocations(ProtectedPhotoPreferences):
+    """Descriptor/AEAD storage only; no transport peer or media grant authority."""
+    MAX_RECORD_BYTES=256*1024
+    MAX_DATABASE_BYTES=2*1024*1024
+    MAX_PARENTS=64
+
+    def __init__(self,directory,scope,guard,clock):
+        self.local_protection=ExistingFileTransferProtection(directory)
+        self.directory=directory;self.local_guard=guard
+        self._initialize_store(None,dict(local_backup_scope=scope),clock)
+        self._name='media-backup-locations-v1-'+self._scope
+        self._domain='magnolie-media-backup-locations-v1/'+self._scope+'/'
+        self._absent=sha256((self._domain+'absent').encode()).hexdigest()
+        self._anchor=self._name+'.seal';self._anchor_identity=None
+
+    def _native_directory(self):return self.directory
+    def _protection(self):return self.local_protection
+
+    def _close_handles(self):
+        closed=super()._close_handles()
+        if closed:self.local_protection.close()
+        return closed
+
+    def _peer(self):
+        if self._closed.is_set() or self._uncertain or self.local_guard() is not True:
+            raise TransferError('media_backup_local_owner_changed')
+        self.local_protection._read_key()
+
+    def _initial_owner(self):return dict(revision=1,locations_sha256=None)
+
+    def _anchor_value(self):
+        return dict(format=1,subject=self._subject,root_key=list(self._root_key),
+            database_key=list(self._db_key),lock_key=list(self._lock_key))
+
+    def _check_anchor(self):
+        fd=os.open(self._anchor,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=self._parent_fd)
+        try:
+            before=os.fstat(fd);self._private(before)
+            if not 28<=before.st_size<=8192:raise TransferError('media_backup_locations_anchor_changed')
+            blob=os.read(fd,8193);after=os.fstat(fd);named=os.stat(self._anchor,dir_fd=self._parent_fd,follow_symlinks=False)
+            self._private(named)
+            signature=lambda v:(v.st_dev,v.st_ino,v.st_size,v.st_mtime_ns,v.st_ctime_ns)
+            if len(blob)!=before.st_size or signature(before)!=signature(after) or signature(before)!=signature(named):
+                raise TransferError('media_backup_locations_anchor_changed')
+            value=self.local_protection.unseal(blob,self._domain+'anchor')
+            if value!=canonical(self._anchor_value()):raise TransferError('media_backup_locations_anchor_changed')
+            identity=self._key(before),sha256(blob).hexdigest()
+            if self._anchor_identity is not None and self._anchor_identity!=identity:
+                raise TransferError('media_backup_locations_anchor_changed')
+            self._anchor_identity=identity
+        finally:os.close(fd)
+
+    def _fresh(self):
+        super()._fresh()
+        if self._anchor_identity is not None:self._check_anchor()
+
+    def _open(self,*,create=False,validate=lambda:None):
+        self._peer()
+        parent=os.open(self.directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            if self._key(os.fstat(parent))!=self.local_protection.native_directory_identity:
+                raise TransferError('media_backup_local_root_changed')
+            def exists(name):
+                try:os.stat(name,dir_fd=parent,follow_symlinks=False);return True
+                except FileNotFoundError:return False
+            present,anchored=exists(self._name),exists(self._anchor)
+            if present!=anchored or not present and self._anchor_identity is not None:
+                raise TransferError('media_backup_locations_original_required')
+            if not present and not create:return False
+            result=super()._open(create=create,validate=validate)
+            if not present:
+                validate();self._fresh()
+                blob=self.local_protection.seal(canonical(self._anchor_value()),self._domain+'anchor')
+                fd=os.open(self._anchor,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=parent)
+                with os.fdopen(fd,'wb') as stream:
+                    stream.write(blob);stream.flush();os.fsync(stream.fileno())
+                os.fsync(parent)
+            self._check_anchor();self._fresh();return result
+        finally:os.close(parent)
+
+    def _snapshot(self):
+        owners=self._db.execute('SELECT id,payload FROM owner').fetchall()
+        rows=self._db.execute('SELECT id,payload FROM policy').fetchall()
+        if len(owners)!=1 or owners[0][0]!=1 or len(rows)>1 or rows and rows[0][0]!=1:
+            raise TransferError('media_backup_locations_invalid_rows')
+        head=self._unprotect(owners[0][1],'owner')
+        if not rows:
+            if head!=self._initial_owner():raise TransferError('media_backup_locations_missing_record')
+            result=NativeBackupLocationsSnapshot(self._absent,1,None,())
+        else:
+            version=sha256(rows[0][1]).hexdigest();value=self._unprotect(rows[0][1],'locations')
+            if (type(value) is not dict or set(value)!={'revision','selected','parents'}
+                    or type(value['revision']) is not int or not 2<=value['revision']<2**53
+                    or type(value['parents']) is not list or not 1<=len(value['parents'])<=self.MAX_PARENTS
+                    or head!=dict(revision=value['revision'],locations_sha256=version)):
+                raise TransferError('media_backup_locations_invalid_record')
+            parents=tuple(NativeAcceptedDestination.parse(p) for p in value['parents'])
+            if len(set(parents))!=len(parents):raise TransferError('media_backup_locations_duplicate_parent')
+            for parent in parents:require_media_directory(parent.path)
+            selected=None if value['selected'] is None else NativeAcceptedDestination.parse(value['selected'])
+            if selected is not None and selected not in parents:raise TransferError('media_backup_locations_unknown_parent')
+            result=NativeBackupLocationsSnapshot(version,value['revision'],selected,parents)
+        mark=result.revision,result.version
+        if self._last is not None and (mark[0]<self._last[0] or mark[0]==self._last[0] and mark[1]!=self._last[1]):
+            self._uncertain=True;raise TransferError('media_backup_locations_rollback')
+        self._last=mark;return result
+
+    def read_locations(self):
+        with self._operation():
+            if not self._open():return NativeBackupLocationsSnapshot(self._absent,1,None,())
+            with self._locked():self._schema();return self._snapshot()
+
+    def choose(self,action,expected,default,parent):
+        if type(action) is not NativePhotoDestinationAction:raise TransferError('media_backup_native_action_required')
+        action.consume(self)
+        if (type(expected) is not NativeBackupLocationsSnapshot or type(default) is not NativeAcceptedDestination
+                or parent is not None and type(parent) is not NativeAcceptedDestination):
+            raise TransferError('media_backup_native_parent_required')
+        def validate():
+            action.validate(self);self._peer()
+            require_media_directory(default.path)
+            if parent is not None:require_media_directory(parent.path)
+            selected=default if parent is None else parent
+            selected.verify()
+            # Existing foreign Backup trees must never become writable storage.
+            if os.path.lexists(os.path.join(selected.path,'Backup')):
+                with NativeMediaBackups(default,self.local_protection,lambda:self.local_guard() is True,storage_parent=selected):pass
+        with self._operation():
+            self._open(create=True,validate=validate)
+            with self._locked():
+                self._schema();current=self._snapshot()
+                if current.version!=expected.version:raise TransferError('media_backup_locations_cas_conflict')
+                parents=list(current.parents)
+                for retained in (default,parent):
+                    if retained is not None and retained not in parents:parents.append(retained)
+                if len(parents)>self.MAX_PARENTS:raise TransferError('media_backup_locations_parent_limit')
+                validate()
+                if current.selected==parent and current.parents==tuple(parents):return current
+                revision=current.revision+1
+                if revision>=2**53:raise TransferError('media_backup_locations_revision_limit')
+                value=dict(revision=revision,selected=None if parent is None else parent.wire(),parents=[p.wire() for p in parents])
+                blob=self._protect(value,'locations');version=sha256(blob).hexdigest()
+                head=self._protect(dict(revision=revision,locations_sha256=version),'owner')
+                try:
+                    self._db.execute('BEGIN IMMEDIATE')
+                    self._db.execute('INSERT OR REPLACE INTO policy VALUES(1,?)',(blob,))
+                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
+                    self._fresh();validate();self._db.commit();self._sync()
+                    result=self._snapshot();action.validate(self);return result
+                except BaseException:
+                    if self._db.in_transaction:self._db.rollback()
+                    self._uncertain=True;raise
+
+
+class NativeMediaBackupLocations:
+    """Local-only settings owner. Scope is supplied by native peer/domain metadata.
+
+    No PhoneStore creation, current channel, pairing impersonation or source grant
+    is involved. Passive reads neither create settings nor touch retained drives.
+    """
+    def __init__(self,directory,scope,local_guard,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000):
+        if not _hex(scope) or not callable(local_guard) or not callable(monotonic_ms) or local_guard() is not True:
+            raise TransferError('media_backup_local_owner_required')
+        self._store=_ProtectedBackupLocations(directory,scope,local_guard,monotonic_ms)
+
+    def read(self):return self._store.read_locations()
+    def issue_action(self):return self._store.issue_action()
+    def choose(self,action,expected,default,parent):return self._store.choose(action,expected,default,parent)
+    def close(self):return self._store.close()
+    def __enter__(self):return self
+    def __exit__(self,*_):self.close()
 
 
 @dataclass(frozen=True)

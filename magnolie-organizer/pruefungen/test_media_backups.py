@@ -8,7 +8,7 @@ import threading
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
-from magnolie_media_backups import NativeMediaBackups
+from magnolie_media_backups import NativeMediaBackups, NativeMediaBackupLocations
 import magnolie_media_backups as backup_module
 from magnolie_media_backup_codec import NativeBackupIdlePermit, NativeBackupIdleObservation, MIN_IDLE_MS, MIN_AVAILABLE_BYTES, DAY_MS
 from magnolie_media_trash import NativeMediaRetentionPermit
@@ -62,6 +62,102 @@ def vault(mappings, request):
 def add_all(vault):
     _, mappings, records, owner, _, _ = vault
     return tuple(owner.save_from_mappings(mappings, record.association, record.protected_record_sha256) for record in records)
+
+@pytest.fixture
+def local_locations(tmp_path):
+    root=tmp_path/'existing-private-phone';root.mkdir(mode=0o700)
+    fd=os.open(root/'storage.key',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(fd,'wb') as stream:stream.write(os.urandom(32))
+    default=tmp_path/'native-photo-data';default.mkdir(mode=0o700)
+    parent=tmp_path/'chosen-parent';parent.mkdir(mode=0o700)
+    return root,NativeAcceptedDestination.capture(default),NativeAcceptedDestination.capture(parent)
+
+def test_local_backup_locations_passive_read_is_inert_and_choice_retains_former_parents(local_locations,tmp_path):
+    root,default,parent=local_locations;scope='1'*64
+    before={p.name:p.read_bytes() for p in root.iterdir()}
+    with NativeMediaBackupLocations(root,scope,lambda:True) as locations:
+        absent=locations.read()
+        assert absent.selected is None and absent.parents==() and absent.current(default)==default
+        assert before=={p.name:p.read_bytes() for p in root.iterdir()}
+        chosen=locations.choose(locations.issue_action(),absent,default,parent)
+        assert chosen.current(default)==parent and chosen.parents==(default,parent)
+        assert not (Path(parent.path)/'Backup').exists() and not (Path(default.path)/'Backup').exists()
+        same=locations.choose(locations.issue_action(),chosen,default,parent)
+        assert same==chosen
+        with pytest.raises(TransferError,match='cas_conflict'):
+            locations.choose(locations.issue_action(),absent,default,None)
+        reset=locations.choose(locations.issue_action(),same,default,None)
+        assert reset.selected is None and reset.parents==chosen.parents
+    # No current transport/pair/PhoneStore is available or needed for recovery metadata.
+    Path(parent.path).rename(tmp_path/'offline-old-drive')
+    with NativeMediaBackupLocations(root,scope,lambda:True) as reopened:
+        assert reopened.read()==reset
+    with NativeMediaBackupLocations(root,'2'*64,lambda:True) as videos:
+        assert videos.read().parents==()
+    assert (root/'storage.key').read_bytes()==before['storage.key']
+
+def test_local_backup_locations_reject_foreign_catalog_and_backup_subtree(local_locations,tmp_path):
+    root,default,parent=local_locations
+    foreign=Path(parent.path)/'Backup';foreign.mkdir(mode=0o700);(foreign/'original').write_bytes(b'personal')
+    with NativeMediaBackupLocations(root,'3'*64,lambda:True) as locations:
+        absent=locations.read()
+        with pytest.raises((OSError,TransferError)):
+            locations.choose(locations.issue_action(),absent,default,parent)
+        assert locations.read()==absent
+        with pytest.raises(TransferError,match='subtree_excluded'):
+            locations.choose(locations.issue_action(),absent,default,NativeAcceptedDestination.capture(foreign))
+        assert locations.read()==absent
+    assert (foreign/'original').read_bytes()==b'personal' and len(list(foreign.iterdir()))==1
+
+def test_local_backup_locations_missing_original_and_corrupt_record_are_held(local_locations):
+    from cryptography.exceptions import InvalidTag
+    root,default,parent=local_locations;scope='4'*64
+    with NativeMediaBackupLocations(root,scope,lambda:True) as locations:
+        locations.choose(locations.issue_action(),locations.read(),default,parent)
+        store=locations._store
+        with store._db:
+            store._db.execute('UPDATE policy SET payload=? WHERE id=1',(b'corrupt'*8,))
+        with pytest.raises((TransferError,InvalidTag)):locations.read()
+        name=store._name
+    with NativeMediaBackupLocations(root,scope,lambda:True) as reopened:
+        with pytest.raises((TransferError,InvalidTag)):reopened.read()
+    (root/name).rename(root/(name+'-preserved'))
+    with NativeMediaBackupLocations(root,scope,lambda:True) as reopened:
+        with pytest.raises(TransferError,match='original_required'):reopened.read()
+        with pytest.raises(TransferError,match='original_required'):
+            reopened.choose(reopened.issue_action(),backup_module.NativeBackupLocationsSnapshot('0'*64,1,None,()),default,None)
+    assert (root/(name+'-preserved')).is_dir() and not (root/name).exists()
+
+def test_local_backup_locations_revoked_native_owner_and_expired_action_cannot_choose(local_locations):
+    root,default,parent=local_locations;allowed=[True];clock=[10]
+    with NativeMediaBackupLocations(root,'5'*64,lambda:allowed[0],monotonic_ms=lambda:clock[0]) as locations:
+        absent=locations.read();action=locations.issue_action();clock[0]+=60000
+        with pytest.raises(TransferError,match='action_not_current'):locations.choose(action,absent,default,parent)
+        allowed[0]=False
+        with pytest.raises(TransferError,match='local_owner_changed'):locations.read()
+        assert len(list(root.iterdir()))==1
+
+def test_local_backup_locations_close_keeps_owned_descriptors_until_active_operation_ends(local_locations):
+    root,default,parent=local_locations
+    locations=NativeMediaBackupLocations(root,'6'*64,lambda:True)
+    chosen=locations.choose(locations.issue_action(),locations.read(),default,parent)
+    store=locations._store;fd=store._db_fd
+    with store._operation():
+        assert locations.close() is False
+        assert os.fstat(fd) and not store.local_protection._closed
+    assert store.local_protection._closed and store._db_fd is None
+    with NativeMediaBackupLocations(root,'6'*64,lambda:True) as reopened:assert reopened.read()==chosen
+
+def test_local_backup_locations_replacement_parent_is_not_silently_recaptured(local_locations,tmp_path):
+    root,default,parent=local_locations;scope='7'*64
+    with NativeMediaBackupLocations(root,scope,lambda:True) as locations:
+        chosen=locations.choose(locations.issue_action(),locations.read(),default,parent)
+        Path(parent.path).rename(tmp_path/'original-parent-held');Path(parent.path).mkdir(mode=0o700)
+        assert locations.read()==chosen
+        with pytest.raises(TransferError,match='destination_changed'):
+            locations.choose(locations.issue_action(),chosen,default,parent)
+        assert not (Path(parent.path)/'Backup').exists()
+        assert locations.read()==chosen
 
 def test_alternative_storage_keeps_original_data_scope_and_old_catalog_separate(mappings,tmp_path):
     fixture,store=mappings;raw=b'original JPEG with EXIF remains unchanged'
@@ -362,22 +458,32 @@ def test_saved_book_revocation_is_sticky_and_never_destroys_backup_records(vault
         assert fresh.versions() == tuple(sorted(versions, key=lambda item: item.id))
 
 
-def test_actual_desktop_worker_backs_up_after_end_and_unchanged_pass_does_not_copy_again(receiving):
+@pytest.mark.parametrize('alternative',(False,True))
+def test_actual_desktop_worker_backs_up_after_end_and_unchanged_pass_does_not_copy_again(receiving,tmp_path,alternative):
     fixture=receiving;connection=fixture[3]
     # receiving supplies the actual fixed saved-book file/policy used by the
     # application, not an independent retention flag or backup permit.
     full=prepared(fixture)[0]
     connection.desktop_session()
+    default=NativeAcceptedDestination.capture(fixture[4]);storage=default
+    prefs=connection._preferences.read()
+    if alternative:
+        path=tmp_path/'actual-worker-alternative';path.mkdir(mode=0o700);storage=NativeAcceptedDestination.capture(path)
+        scope=sha256(canonical(dict(subject=connection._preferences._subject,media_type='images'))).hexdigest()
+        with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,lambda:True) as locations:
+            locations.choose(locations.issue_action(),locations.read(),default,storage)
+        assert connection._preferences.read()==prefs
     result=cycle(fixture,full)[0]
     assert result['state']=='complete',result
-    folder=fixture[4]/'Backup';objects=tuple(folder.glob('object-*.raw'))
+    folder=Path(storage.path)/'Backup';objects=tuple(folder.glob('object-*.raw'))
     assert len(objects)==1 and objects[0].read_bytes()==b'hello'
+    if alternative:assert not (fixture[4]/'Backup').exists()
     association=PhotoMappingAssociation('c'*64,sha256(b'worker-photo-0').hexdigest(),'images')
     _,(record,)=connection._mappings.lookup((association,))
-    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True) as backups:
+    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True,storage_parent=storage) as backups:
         versions=backups.versions();assert versions
     before={path.name:(path.stat().st_ino,path.stat().st_size) for path in folder.iterdir() if path.name.startswith('object-')}
     assert cycle(fixture,full)[0]['state']=='complete'
     assert {path.name:(path.stat().st_ino,path.stat().st_size) for path in folder.iterdir() if path.name.startswith('object-')}==before
-    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True) as backups:
+    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True,storage_parent=storage) as backups:
         assert backups.versions()==versions

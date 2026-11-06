@@ -2205,9 +2205,10 @@ class NativePhotoAlbumWorker:
 
     def _backup_completed_versions(self):
         """Same actual media lane, AFTER source END; no timer or UI-thread IO."""
+        from hashlib import sha256
         connection = self._connection
         if not self._backup_versions:return
-        from magnolie_media_backups import NativeMediaBackups
+        from magnolie_media_backups import NativeMediaBackups,NativeMediaBackupLocations
         from magnolie_media_retention import NativeMediaRetention
         def native_current():
             connection._ready()
@@ -2233,9 +2234,19 @@ class NativePhotoAlbumWorker:
                         # historical version, not a current head or a UI path.
                         with connection._mappings.saved_record_lease(association,expected) as (record, _):
                             destination=record.destination
-                        create=not os.path.lexists(Path(destination.path)/'Backup')
-                        with NativeMediaBackups(destination,connection._authority.protection,current,create=create) as backups:
-                            backups.save_from_mappings(connection._mappings,association,expected)
+                        # Stable local peer/domain scope, not a transport epoch
+                        # or source grant. Passive lookup creates no settings.
+                        scope=sha256(canonical(dict(subject=prefs._subject,media_type=self._media_type))).hexdigest()
+                        with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,current) as locations:
+                            selected=locations.read();storage=selected.current(destination)
+                            def storage_current():
+                                current()
+                                if locations.read()!=selected:raise TransferError('media_backup_locations_changed')
+                                return True
+                            create=not os.path.lexists(Path(storage.path)/'Backup')
+                            with NativeMediaBackups(destination,connection._authority.protection,storage_current,
+                                    create=create,storage_parent=storage) as backups:
+                                backups.save_from_mappings(connection._mappings,association,expected)
                         current();self._backup_versions.remove((association,expected))
 
     def _lookup(self, job):
