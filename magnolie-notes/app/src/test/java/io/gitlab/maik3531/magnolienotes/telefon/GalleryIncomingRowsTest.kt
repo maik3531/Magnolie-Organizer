@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.Intent
+import android.content.res.AssetFileDescriptor
+import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.database.sqlite.SQLiteDatabase
@@ -12,6 +14,7 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Environment
 import android.os.Process
+import android.os.ParcelFileDescriptor
 import android.os.storage.StorageManager
 import android.provider.MediaStore
 import kotlinx.serialization.json.*
@@ -39,10 +42,12 @@ class GalleryIncomingRowsTest {
         assertTrue(MediaStore.VOLUME_EXTERNAL_PRIMARY in MediaStore.getExternalVolumeNames(app))
     }
     private val fileId = "1".repeat(32)
-    private fun manifest(pc: String, kind: GalleryMediaType = GalleryMediaType.IMAGES) = DeviceFileManifest.parse(buildJsonObject {
-        put("format", 1); put("chunk_bytes", 65536); put("total_bytes", 5)
+    private fun manifest(pc: String, kind: GalleryMediaType = GalleryMediaType.IMAGES, raw: ByteArray? = null) = DeviceFileManifest.parse(buildJsonObject {
+        val size = raw?.size ?: 5
+        val hash = raw?.let { java.security.MessageDigest.getInstance("SHA-256").digest(it).joinToString("") { byte -> "%02x".format(byte) } } ?: "a".repeat(64)
+        put("format", 1); put("chunk_bytes", 65536); put("total_bytes", size)
         put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32)); put("sender_id", pc); put("receiver_id", "phone_fixture_0001")
-        put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", 5); put("sha256", "a".repeat(64)) })))
+        put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", size); put("sha256", hash) })))
     })
     private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
@@ -54,14 +59,21 @@ class GalleryIncomingRowsTest {
         }
         return MediaSyncTransport.IntentToken(body)
     }
-    private class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES) : ContentProvider() {
+    private class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES,
+        private val payload: File? = null) : ContentProvider() {
         var inserts = 0
         var namespace = "incoming-provider-v1"
         var afterInsert: () -> Unit = {}
         var wrongOwner = false
         var generation = 10L
         var pending = 1L
+        var writeOpens = 0
+        var readOpens = 0
+        var failReadback = false
+        var corruptReadback: File? = null
+        private var lastSize = 0L
         private var values: ContentValues? = null
+        init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
         override fun onCreate() = true
         override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
             check(method == "get_version"); return Bundle().apply { putString(Intent.EXTRA_TEXT, namespace) }
@@ -74,14 +86,35 @@ class GalleryIncomingRowsTest {
         override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, cancellationSignal: CancellationSignal?): Cursor {
             check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
             val v = values!!
+            val size = payload?.length() ?: 0L
+            if (size != lastSize) { generationModified++; lastSize = size }
             val data: Map<String, Any> = mapOf("_id" to 99L, "_display_name" to v.getAsString("_display_name"), "mime_type" to v.getAsString("mime_type"),
-                "relative_path" to v.getAsString("relative_path"), "_size" to 0L, "date_added" to 100L, "generation_added" to generation,
-                "generation_modified" to generation, "is_pending" to pending, "is_trashed" to 0L,
+                "relative_path" to v.getAsString("relative_path"), "_size" to size, "date_added" to 100L, "generation_added" to generation,
+                "generation_modified" to maxOf(generation, generationModified), "is_pending" to pending, "is_trashed" to 0L,
                 "owner_package_name" to if (wrongOwner) "foreign.application" else app.packageName)
             return MatrixCursor(projection).apply { addRow(projection!!.map { data.getValue(it) }.toTypedArray()) }
         }
         override fun query(uri: Uri, p: Array<out String>?, s: String?, a: Array<out String>?, o: String?): Cursor = error("Unexpected legacy query")
         override fun getType(uri: Uri): String = "image/jpeg"
+        private var generationModified = 10L
+        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            val file = payload ?: error("Unexpected byte IO")
+            check(pending == 1L)
+            if (mode == "w") {
+                check(file.length() == 0L); writeOpens++
+                return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_WRITE)
+            }
+            check(mode == "r"); readOpens++; return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        }
+        override fun openTypedAssetFile(uri: Uri, mimeType: String, opts: Bundle?): AssetFileDescriptor {
+            check(MediaStore.getRequireOriginal(uri))
+            check(opts?.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT) == true)
+            if (failReadback) throw java.io.IOException("explicit original readback failure")
+            val clean = uri.buildUpon().clearQuery().build()
+            return AssetFileDescriptor(corruptReadback?.let { ParcelFileDescriptor.open(it, ParcelFileDescriptor.MODE_READ_ONLY) }
+                ?: openFile(clean, "r"), 0, AssetFileDescriptor.UNKNOWN_LENGTH)
+        }
         override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?): Int = error("No publication permitted")
         override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion permitted")
     }
@@ -282,6 +315,116 @@ class GalleryIncomingRowsTest {
                 }
             }
             assertEquals(1, provider.inserts)
+        }
+    }
+
+    @Test fun originalChunksAreCopiedSyncedAndReadBackWithoutPublishingOrReencoding() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val bytes = ByteArray(65536 + 17) { (it % 251).toByte() }; val chunks = mutableListOf<ByteArray>()
+            val file = File(f.root, "native-pending-bytes")
+            val provider = Provider(f.app, payload = file); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = bytes), GalleryMediaType.IMAGES).use { owner ->
+                    val pending = rows.prepare(owner, fileId, "image/jpeg")
+                    val verified = rows.copyAndVerify(owner, pending, { chunk ->
+                        bytes.copyOfRange(chunk * 65536, minOf(bytes.size, (chunk + 1) * 65536)).also { chunks += it }
+                    })
+                    assertEquals("copy_verified", verified.state); assertFalse(verified.isSavedReceipt)
+                    assertEquals(verified.body, f.index.incomingPublication(verified.id)!!.body)
+                    assertEquals(verified.body, rows.copyAndVerify(owner, verified, { error("Verified bytes must not be recopied") }).body)
+                }
+            }
+            assertArrayEquals(bytes, file.readBytes()); assertEquals(1, provider.writeOpens); assertEquals(2, provider.readOpens)
+            assertTrue(chunks.all { chunk -> chunk.all { it == 0.toByte() } }); assertEquals(1L, provider.pending)
+        }
+    }
+
+    @Test fun completeInterruptedCopyResumesByFreshOriginalReadbackWithoutOpeningWriteOrSourceAgain() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val bytes = "original bytes including original EXIF".toByteArray(); val file = File(f.root, "native-pending-complete")
+            val provider = Provider(f.app, payload = file); provider.failReadback = true
+            ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = bytes), GalleryMediaType.IMAGES).use { owner ->
+                    val pending = rows.prepare(owner, fileId, "image/jpeg")
+                    assertThrows(java.io.IOException::class.java) { rows.copyAndVerify(owner, pending, { bytes.copyOf() }) }
+                    val interrupted = f.index.incomingPublication(pending.id)!!
+                    assertEquals("copying", interrupted.state); assertArrayEquals(bytes, file.readBytes())
+                    provider.failReadback = false
+                    val verified = rows.copyAndVerify(owner, interrupted, { error("Interrupted complete bytes must not use source or write") })
+                    assertEquals("copy_verified", verified.state)
+                }
+            }
+            assertEquals(1, provider.writeOpens); assertEquals(1, provider.readOpens); assertEquals(1L, provider.pending)
+        }
+    }
+
+    @Test fun partialInterruptedCopyAndWrongChunksNeverReopenWriteOrBecomeVerified() {
+        for (change in listOf("partial", "short", "hash")) GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val bytes = ByteArray(65536 + 7) { 43 }; val file = File(f.root, "native-pending-partial")
+            val provider = Provider(f.app, payload = file); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = bytes), GalleryMediaType.IMAGES).use { owner ->
+                    val pending = rows.prepare(owner, fileId, "image/jpeg")
+                    assertThrows(Exception::class.java) {
+                        rows.copyAndVerify(owner, pending, { chunk ->
+                            if (change == "partial" && chunk == 1) throw java.io.IOException("explicit source interruption")
+                            if (change == "short") byteArrayOf(43)
+                            else bytes.copyOfRange(chunk * 65536, minOf(bytes.size, (chunk + 1) * 65536)).apply { if (change == "hash") this[0] = 44 }
+                        })
+                    }
+                    val held = f.index.incomingPublication(pending.id)!!; val before = file.takeIf { it.exists() }?.readBytes() ?: byteArrayOf()
+                    assertEquals("copying", held.state)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.copyAndVerify(owner, held, { error("Never rewrite partial/corrupt bytes") }) }
+                    assertArrayEquals(before, file.readBytes()); assertEquals(held.body, f.index.incomingPublication(pending.id)!!.body)
+                }
+            }
+            assertEquals(1, provider.writeOpens); assertEquals(1L, provider.pending)
+        }
+    }
+
+    @Test fun originalReadbackMismatchDoesNotBecomeVerifiedAndStoredVerifiedCopyIsNotBlindlyTrusted() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val bytes = "original media bytes".toByteArray(); val file = File(f.root, "native-pending-readback")
+            val corrupt = File(f.root, "different-original-readback").apply { writeBytes(ByteArray(bytes.size) { 3 }) }
+            val provider = Provider(f.app, payload = file); provider.corruptReadback = corrupt
+            ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = bytes), GalleryMediaType.IMAGES).use { owner ->
+                    val pending = rows.prepare(owner, fileId, "image/jpeg")
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.copyAndVerify(owner, pending, { bytes.copyOf() }) }
+                    val copying = f.index.incomingPublication(pending.id)!!; assertEquals("copying", copying.state)
+                    provider.corruptReadback = null
+                    val verified = rows.copyAndVerify(owner, copying, { error("No second byte copy") })
+                    file.writeBytes(ByteArray(bytes.size) { 4 })
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.copyAndVerify(owner, verified, { error("No recopy") }) }
+                    assertEquals(verified.body, f.index.incomingPublication(verified.id)!!.body)
+                }
+            }
+            assertEquals(1, provider.writeOpens); assertEquals(1L, provider.pending)
+        }
+    }
+
+    @Test fun consentWithdrawalDuringChunkReadStopsBeforeBytesAndKeepsDurableUnpublishedCopyIntent() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val bytes = "unchanged original bytes".toByteArray(); val file = File(f.root, "native-pending-revoked")
+            val provider = Provider(f.app, payload = file); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = bytes), GalleryMediaType.IMAGES).use { owner ->
+                    val pending = rows.prepare(owner, fileId, "image/jpeg"); val chunk = bytes.copyOf()
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        rows.copyAndVerify(owner, pending, { f.currentDocuments = null; chunk })
+                    }
+                    assertTrue(chunk.all { it == 0.toByte() }); assertEquals(0L, file.length())
+                    assertEquals("copying", f.index.incomingPublication(pending.id)!!.state)
+                }
+            }
+            assertEquals(1, provider.writeOpens); assertEquals(1L, provider.pending)
         }
     }
 }

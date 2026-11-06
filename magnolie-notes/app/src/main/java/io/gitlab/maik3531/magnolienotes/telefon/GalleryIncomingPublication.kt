@@ -22,6 +22,18 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         return parse(JsonObject(body + ("state" to JsonPrimitive("inserting"))))
     }
 
+    internal fun beforeCopy(): GalleryIncomingPublication {
+        if (state != "inserted" || row == null) fail()
+        return parse(JsonObject(body + ("state" to JsonPrimitive("copying"))))
+    }
+
+    internal fun withVerifiedCopy(witness: JsonObject): GalleryIncomingPublication {
+        val previous = row ?: fail()
+        if (state != "copying" || previous.filterKeys { it != "revision" } != witness.filterKeys { it != "revision" } ||
+            (witness["revision"] as? JsonPrimitive)?.content?.toLongOrNull()?.let { it >= previous.string("revision").toLong() } != true) fail()
+        return parse(JsonObject(body + mapOf("state" to JsonPrimitive("copy_verified"), "row" to witness)))
+    }
+
     companion object {
         internal const val MAX_RECORDS = 4096
         internal const val PREFIX = "gallery-incoming-v1/"
@@ -65,7 +77,7 @@ internal class GalleryIncomingPublication private constructor(internal val body:
             if (!Regex(if (kind == GalleryMediaType.IMAGES) "image/[a-z0-9.+-]{1,80}" else "video/[a-z0-9.+-]{1,80}").matches(mime)) fail()
             when (text(value, "state")) {
                 "planned", "inserting" -> if (value["row"] != JsonNull) fail()
-                "inserted" -> {
+                "inserted", "copying", "copy_verified" -> {
                     val row = value["row"] as? JsonObject ?: fail()
                     validateRow(row, kind)
                     if (text(row, "mime_type") != mime) fail()

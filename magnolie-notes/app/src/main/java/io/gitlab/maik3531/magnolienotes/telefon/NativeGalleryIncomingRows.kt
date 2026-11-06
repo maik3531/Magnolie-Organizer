@@ -7,10 +7,13 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Looper
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import kotlinx.serialization.json.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.security.MessageDigest
 
 /** Current actual incoming control/policy/intent ownership, not a historical
  * journal record or local archive restoration. Runtime must serialize this
@@ -65,7 +68,7 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
     }
 }
 
-/** Actual new app-owned PENDING MediaStore rows only. No bytes, publication,
+/** Actual new app-owned PENDING MediaStore rows only. No publication,
  * deletion, permission request or Saved receipt. An uncertain insertion is
  * retained, never retried by name, overwritten or silently adopted. */
 internal class NativeGalleryIncomingRows(context: Context, private val index: PhotoSourceJobIndex) {
@@ -109,7 +112,85 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         return recorded
     }
 
-    private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String): JsonObject {
+    /** Copy original bytes once into the exact new empty pending row. A durable
+     * copying head forbids reopening for write after ANY interruption. Complete
+     * interrupted copies can only be reverified read-only; partial ones hold.
+     * This is not MIME/content admission, row publication or Saved output. */
+    internal fun copyAndVerify(owner: NativeGalleryIncomingOwner, selected: GalleryIncomingPublication,
+        readChunk: (Int) -> ByteArray, cancellation: CancellationSignal = CancellationSignal()): GalleryIncomingPublication {
+        if (Looper.myLooper() == Looper.getMainLooper()) fail("gallery_incoming_io_android30_required")
+        fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+        current()
+        val body = selected.body
+        val origin = body["origin"] as? JsonObject ?: fail("gallery_incoming_original_changed")
+        val planned = GalleryIncomingPublication.plan(owner.binding, owner.manifest, origin.string("file_id"), owner.pairingEpoch,
+            owner.kind, body.string("mime_type"))
+        if (planned.body.filterKeys { it !in setOf("state", "row") } != body.filterKeys { it !in setOf("state", "row") } ||
+            index.incomingPublication(selected.id)?.body != body || selected.state !in setOf("inserted", "copying", "copy_verified"))
+            fail("gallery_incoming_original_changed")
+        val uri = Uri.parse(selected.row!!.string("uri")); val size = body.long("size"); val hash = body.string("sha256")
+        fun sameMember(row: JsonObject) = row.filterKeys { it != "revision" } == selected.row!!.filterKeys { it != "revision" } &&
+            row.string("revision").toLong() >= selected.row!!.string("revision").toLong()
+        val initial = observe(owner, uri, body.string("mime_type"), if (selected.state == "inserted") 0L..0L else 0L..size)
+        if (!sameMember(initial)) fail("gallery_incoming_original_row_changed")
+        val copying = if (selected.state == "inserted") index.beginIncomingCopy(selected, owner::requireLocal) else selected
+        current()
+        if (selected.state == "inserted") {
+            if (observe(owner, uri, body.string("mime_type")) != initial) fail("gallery_incoming_original_row_changed")
+            val descriptor = resolver.openFileDescriptor(uri, "w", cancellation) ?: fail("gallery_incoming_output_missing")
+            ParcelFileDescriptor.AutoCloseOutputStream(descriptor).use { output ->
+                current()
+                if (descriptor.statSize != 0L) fail("gallery_incoming_empty_row_required")
+                val digest = MessageDigest.getInstance("SHA-256")
+                val chunks = ((size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()
+                for (chunk in 0 until chunks) {
+                    current(); val bytes = readChunk(chunk)
+                    try {
+                        current()
+                        val wanted = minOf(DeviceFileManifest.CHUNK_BYTES.toLong(), size - chunk.toLong() * DeviceFileManifest.CHUNK_BYTES).toInt()
+                        if (bytes.size != wanted) fail("gallery_incoming_chunk_size_changed")
+                        output.write(bytes); digest.update(bytes); current()
+                    } finally { bytes.fill(0) }
+                }
+                if (digest.digest().joinToString("") { "%02x".format(it) } != hash) fail("gallery_incoming_content_changed")
+                output.flush(); descriptor.fileDescriptor.sync(); current()
+            }
+        }
+        val copied = observe(owner, uri, body.string("mime_type"), size..size)
+        if (!sameMember(copied)) fail("gallery_incoming_original_row_changed")
+        current()
+        val original = MediaStore.setRequireOriginal(uri)
+        val stream = if (Build.VERSION.SDK_INT >= 31) {
+            val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+            }, cancellation) ?: fail("gallery_incoming_readback_missing")
+            try { asset.createInputStream() } catch (error: Exception) { asset.close(); throw error }
+        } else ParcelFileDescriptor.AutoCloseInputStream(resolver.openFileDescriptor(original, "r", cancellation)
+            ?: fail("gallery_incoming_readback_missing"))
+        stream.use { input ->
+            val digest = MessageDigest.getInstance("SHA-256"); var count = 0L
+            val buffer = ByteArray(DeviceFileManifest.CHUNK_BYTES)
+            try {
+                while (true) {
+                    current(); val read = input.read(buffer); current()
+                    if (read == -1) break
+                    if (read <= 0 || count + read > size) fail("gallery_incoming_content_changed")
+                    count += read; digest.update(buffer, 0, read)
+                }
+                if (count != size || digest.digest().joinToString("") { "%02x".format(it) } != hash) fail("gallery_incoming_content_changed")
+            } finally { buffer.fill(0) }
+        }
+        if (observe(owner, uri, body.string("mime_type"), size..size) != copied) fail("gallery_incoming_original_row_changed")
+        current()
+        if (selected.state == "copy_verified") {
+            if (copied != selected.row) fail("gallery_incoming_original_row_changed")
+            return selected // Fresh readback, never a cached completion assertion.
+        }
+        val verified = index.recordIncomingVerifiedCopy(copying, copied, owner::requireLocal)
+        current(); return verified
+    }
+
+    private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange = 0L..0L): JsonObject {
         owner.requireCurrent()
         val volume = MediaStore.VOLUME_EXTERNAL_PRIMARY
         val id = uri.lastPathSegment?.toLongOrNull()?.takeIf { it > 0 } ?: fail("gallery_incoming_insert_invalid")
@@ -138,7 +219,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             if (number("_id") != id || number("is_pending") != 1L || number("is_trashed") != 0L ||
                 text("owner_package_name") != app.packageName || text("relative_path") != path(owner.kind) ||
                 text("mime_type") != mimeType || added < 0 || generation <= 0 || revision < generation ||
-                !cursor.isNull(size) && number("_size") != 0L) fail("gallery_incoming_row_changed")
+                (if (cursor.isNull(size)) 0L !in bytes else number("_size") !in bytes)) fail("gallery_incoming_row_changed")
             buildJsonObject {
                 put("uri", uri.toString()); put("namespace", namespace); put("volume", volume)
                 put("member", "$id:$added:$generation"); put("revision", revision.toString()); put("path", path(owner.kind))

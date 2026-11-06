@@ -42,8 +42,8 @@ New incoming lineage is sealed into bounded existing native index metadata and
 its exact membership aggregate, without changing the schema, key, source-job
 quota or previous records. Reads create nothing. A record binds original
 manifest/source/transfer/file identities, authenticated binding, pairing, media
-kind, MIME, size/hash and display name. It progresses through planned, inserting
-and inserted only; none is a Saved receipt or file-write permission. Lifetime
+kind, MIME, size/hash and display name. It progresses through planned, inserting,
+inserted, copying and copy_verified; none is a Saved receipt or file-write permission. Lifetime
 capacity is 4096 records; exhaustion holds rather than deleting old lineage.
 
 Before a new MediaStore insertion, the inserting intent is durable. Actual
@@ -55,9 +55,21 @@ An inserted record can only re-inspect that exact unchanged row. An uncertain
 inserting record never causes another insertion, name-based adoption, overwrite
 or deletion. Missing-volume preflight stays retryable before insertion admission.
 
-This step neither writes media bytes nor publishes rows. Complete protected
-staging/chunk validation, original-byte copy/readback, conditional publication,
-durable published native-phone association and genuine Saved output remain
+The original-byte copy lane now seals copying intent before opening the exact
+new empty pending row for its first and only write. It enforces immutable
+manifest/chunk size bounds, computes the original SHA-256, syncs the descriptor
+and freshly reads back exact original bytes without format conversion. Owned
+chunk/readback buffers are cleared. Row identity, namespace, owner, metadata and
+size are checked again before recording copy_verified in the protected journal.
+
+After any interruption a copying head is never reopened for write. An explicitly
+reselected complete original can only advance after fresh read-only hash/row
+verification; partial/corrupt copies hold without rewriting them. Even a stored
+copy_verified head is freshly verified rather than trusted as cached success.
+No copying state can mark a row visible, remove data or produce Saved output.
+
+MIME/container admission, complete protected transport acceptance/staging,
+conditional publication, durable published native-phone association and genuine Saved output remain
 required, as do PC source ownership/upload, runtime/dispatcher joining and full
 native acceptance. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.
