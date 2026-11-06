@@ -61,7 +61,7 @@ class GalleryIncomingRowsTest {
         }
         return MediaSyncTransport.IntentToken(body)
     }
-    private class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES,
+    internal class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES,
         private val payload: File? = null) : ContentProvider() {
         var inserts = 0
         var namespace = "incoming-provider-v1"

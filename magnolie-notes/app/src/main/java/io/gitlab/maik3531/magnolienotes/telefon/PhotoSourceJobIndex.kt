@@ -625,6 +625,37 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
     }
 
+    internal fun incomingAcceptance(id: String): GalleryIncomingAcceptance? = gated {
+        if (!DeviceFileControl.hash(id)) fail("gallery_incoming_acceptance_invalid")
+        val name = GalleryIncomingAcceptance.PREFIX + id
+        meta(name)?.let { cipher ->
+            GalleryIncomingAcceptance.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also {
+                if (it.id != id) fail("gallery_incoming_acceptance_changed")
+            }
+        }
+    }
+
+    internal fun reserveIncomingAcceptance(value: GalleryIncomingAcceptance, current: () -> Unit): GalleryIncomingAcceptance = gated {
+        writableMembership(); current()
+        incomingAcceptance(value.id)?.let {
+            if (it.body != value.body) fail("gallery_incoming_acceptance_changed")
+            return@gated it
+        }
+        db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryIncomingAcceptance.PREFIX + "%")).use {
+            if (!it.moveToFirst() || it.getLong(0) >= GalleryIncomingAcceptance.MAX_RECORDS) fail("gallery_incoming_acceptance_capacity")
+        }
+        val name = GalleryIncomingAcceptance.PREFIX + value.id
+        val cipher = protection.seal(frame(value.body), "photo-source-jobs-v1/" + name)
+        transaction {
+            if (meta(name) != null) fail("gallery_incoming_acceptance_changed")
+            current(); putMeta(name, cipher); current()
+        }
+        boundary("gallery-incoming-acceptance-recorded"); current()
+        val saved = incomingAcceptance(value.id) ?: fail("gallery_incoming_acceptance_readback_failed")
+        if (saved.body != value.body) fail("gallery_incoming_acceptance_readback_failed")
+        saved
+    }
+
     internal fun reserveIncomingPublication(planned: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
         writableMembership(); current()
         if (planned.state != "planned" || planned.row != null) fail("gallery_incoming_planned_required")

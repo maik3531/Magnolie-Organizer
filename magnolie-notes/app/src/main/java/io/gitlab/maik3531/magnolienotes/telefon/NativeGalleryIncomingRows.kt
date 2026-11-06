@@ -57,6 +57,10 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
         } catch (error: Exception) { ended.set(true); throw error }
     }
     override fun close() { ended.set(true) }
+    internal fun requireChannel(channel: TelefonSecureChannel) {
+        requireCurrent()
+        if (originalPeer.owner !== channel) { ended.set(true); fail() }
+    }
     companion object {
         internal fun capture(session: NativeFileControlSession, index: PhotoSourceJobIndex, book: NativeGalleryReceiveBookPermit,
             currentPeer: () -> NativeFileControlPeer?, incomingIntent: () -> Any?, manifest: DeviceFileManifest,

@@ -98,6 +98,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
             fail("photo_jobs_membership_quota_changed")
         val metadata = mutableListOf<JsonObject>()
         var incomingRecords = 0
+        var incomingAcceptances = 0
         db.query("source_meta", arrayOf("name", "sealed"), "name<>?", arrayOf(NAME), null, null, "name").use {
             while (it.moveToNext()) {
                 val name = it.getString(0)
@@ -112,9 +113,13 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
                     DeviceFileControl.hash(name.removePrefix(GalleryIncomingPublication.PREFIX))
                 if (incoming && ++incomingRecords > GalleryIncomingPublication.MAX_RECORDS)
                     fail("gallery_incoming_publication_capacity")
+                val acceptance = name.startsWith(GalleryIncomingAcceptance.PREFIX) &&
+                    DeviceFileControl.hash(name.removePrefix(GalleryIncomingAcceptance.PREFIX))
+                if (acceptance && ++incomingAcceptances > GalleryIncomingAcceptance.MAX_RECORDS)
+                    fail("gallery_incoming_acceptance_capacity")
                 if ((name !in setOf("format", "gallery-policy-v1", "gallery-policy-v1-repair") &&
-                    !incoming && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
-                    metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS + GalleryIncomingPublication.MAX_RECORDS)
+                    !incoming && !acceptance && (remoteJob == null || members.none { member -> member["id"] == JsonPrimitive(remoteJob) })) ||
+                    metadata.size >= 3 + 4 * PhotoSourceJobIndex.MAX_JOBS + GalleryIncomingPublication.MAX_RECORDS + GalleryIncomingAcceptance.MAX_RECORDS)
                     fail("photo_jobs_membership_unknown_metadata")
                 val bytes = it.getBlob(1)
                 if (bytes.size !in 28..DeviceTransferProtection.MAX_CLEAR_BYTES + 28) fail("photo_jobs_membership_invalid")

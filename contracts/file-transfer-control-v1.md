@@ -94,10 +94,39 @@ history is also rechecked; it is not renewed consent or automatic network Saved.
 These tests include actual native PNG parsing with fixture PFD bytes and a
 simulated conditional provider, not physical Android provider acceptance.
 
-Complete protected transport acceptance/staging and genuine Saved output remain
-required, as do PC source ownership/upload, runtime/dispatcher joining and full
-native acceptance. Tests use real protected index/control/consent paths with a
+#### Explicit incoming secure-transfer worker lane (Refs #338; runtime still closed)
+
+An explicitly prepared native incoming transfer now binds the actual offer,
+manifest and exact authenticated secure channel to current native receive
+ownership. It seals original acceptance intent and per-file planned lineage
+before sending accept; historical acceptance does not prove actual output or
+renew permission. Original acceptance metadata is bounded to 128 retained
+records in existing exact index membership, without changing source-job quota.
+
+Only successful actual encrypted acceptance output admits chunk requests.
+There is one outstanding correlated request and at most one owned bounded chunk.
+Actual secure request-send completion gates even a response arriving during the
+send. Responses must match request, transfer, manifest, acceptance, permission,
+destination, file, chunk, exact canonical base64 length/hash and original expiry.
+Native close retires ownership, clears bytes and wakes outstanding waits without
+closing the shared transport socket. No index lock spans network IO or waiting.
+
+The caller-owned IO lane copies and publishes each exact member through the
+native checks above. Only the complete ordered manifest with durable published
+associations can produce Saved, using their protected native fingerprints as
+receipt hashes and the original acceptance/binding. ActualSavedOutput is marked
+only after the synchronous encrypted write returns and ownership remains current.
+Failed output preserves published originals but returns no completion. This is
+not peer acknowledgement, quota/END retirement or bilateral sync completion.
+
+The transfer itself starts no thread, dispatcher or production factory. Native
+runtime/lifecycle/foreground consent host, source-versus-receiver IO exclusion,
+incoming inventory/baseline scope admission, PC source ownership/upload and full
+native acceptance remain required. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.
+They encrypt and decrypt actual transfer frames; they are not physical network
+or Android video-parser acceptance. No capability or production receiver is
+enabled from this helper alone.
 
 The native Android control session has a separate incoming-configuration ticket
 and authority type. It requires the current authenticated own-PC relationship,
