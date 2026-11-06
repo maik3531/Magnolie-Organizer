@@ -2275,7 +2275,7 @@ class NativePhotoAlbumWorker:
             with prefs._operation(), prefs._locked(), NativeMediaRetention(connection._authority.binding.native_directory) as policy:
                 native_current()
                 for association, expected in tuple(self._backup_versions):
-                    with policy.permit(native_current) as retention:
+                    with policy.active_copy_permit(native_current) as retention:
                         if retention is None:raise TransferError('media_backup_current_saved_book_required')
                         def current():
                             native_current();retention.require_current();return True

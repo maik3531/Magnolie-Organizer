@@ -14,6 +14,7 @@ w.peer = peer; w.telefonStand = { peers: [peer] }; w._ = text => text;
 w.el = (tag, cls, text) => { const value = w.document.createElement(tag); if (cls) value.className = cls; if (text != null) value.textContent = text; return value; };
 w.knopf = (label, cls, callback) => { const button = w.el("button", cls, label); button.addEventListener("click", callback); return button; };
 w.formZeile = (label, control) => { const row = w.el("div", null, label); row.append(control); return row; };
+w.baueMedienBackupWiederherstellung = () => w.el("div", "native-backup-recovery-slot");
 w.Bruecke = { sende: value => sent.push(JSON.parse(JSON.stringify(value))) };
 const stand = { destination: "/native/photos", video_supported: true, video_destination: "/native/videos", busy: false };
 let panel;

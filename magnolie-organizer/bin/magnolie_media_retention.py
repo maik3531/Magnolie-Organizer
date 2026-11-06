@@ -19,9 +19,29 @@ from magnolie_photo_preferences import ProtectedPhotoPreferences
 from magnolie_telefon import canonical,strict_json
 
 
+class NativeMediaBackupCopyPermit:
+    """Active local-copy book witness; never a purge/compression permit."""
+    def __init__(self,book_version,current):
+        if (type(book_version) is not str or len(book_version)!=64 or any(c not in '0123456789abcdef' for c in book_version)
+                or not callable(current)):raise TransferError('media_retention_lease_changed')
+        self.book_version=book_version;self._current=current;self._revoked=False
+
+    def require_current(self):
+        try:allowed=self._current()
+        except BaseException:
+            self._revoked=True;raise
+        if self._revoked or allowed is not True:
+            self._revoked=True;raise TransferError('media_retention_lease_changed')
+        return True
+
+    @property
+    def grants_write_authority(self):return False
+
+
 class NativeMediaRetention:
     KEY='media_trash_retention:local:v1'
     DOMAIN='media-trash-retention-v1/local'
+    MAX_ACTIVE_COPY_SECONDS=2*60*60
 
     def __init__(self,native_directory):
         self._protection=ExistingFileTransferProtection(native_directory)
@@ -148,6 +168,27 @@ class NativeMediaRetention:
             self._write(dict(format=1,token=secrets.token_hex(32),days=days,
                 book_sha256=sha256(canonical(saved)).hexdigest(),book_file=signature))
             return True
+
+    @contextmanager
+    def active_copy_permit(self,current):
+        """Recheck the actual saved book without holding a DB writer lock.
+
+        Backup/recovery only creates a new file; unlike destructive cleanup it does not
+        need to serialize every other phone/book write behind the entire copy.
+        Any pause/save/root/lock-owner change retires the captured witness.
+        """
+        if not callable(current) or current() is not True:raise TransferError('media_retention_lease_changed')
+        value=self._read()
+        if value is None or value['days'] is None:
+            yield None;return
+        started=time.monotonic();deadline=started+self.MAX_ACTIVE_COPY_SECONDS
+        def require():
+            now=time.monotonic()
+            if (now<started or now>=deadline or current() is not True or self._read()!=value
+                    or self._book_file()!=value['book_file']):raise TransferError('media_retention_lease_changed')
+            return True
+        require()
+        yield NativeMediaBackupCopyPermit(sha256(canonical(value)).hexdigest(),require)
 
     @contextmanager
     def permit(self,current=lambda:True):

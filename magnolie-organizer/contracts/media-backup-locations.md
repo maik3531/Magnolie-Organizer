@@ -94,9 +94,8 @@ The initially closed Backups fold reads actual storage choices and exposes nativ
 folder/default choices separately for photos and available video destinations.
 Correlated failures/cancel preserve existing choices; opening settings does not
 start synchronization, and failed reads do not automatically retry. Existing
-translations are reused. Physical GTK dialog acceptance and native recovery
-publication/source-selection UI remain pending; source/controller tests alone
-are not full installed-package acceptance.
+translations are reused. Native recovery publication/source selection is joined
+below; physical GTK dialog and installed-package acceptance remain required.
 
 ## Linux durable local recovery publication
 
@@ -131,9 +130,8 @@ empty location bootstrap after a failed CAS does not hide that older default.
 Corrupt or missing originals are held, never reset or silently treated as empty.
 
 The native local recovery controller supports bounded source discovery, exact
-historical-source version pages and explicit publication. Its GTK/browser surface
-and physical installed-package acceptance still need joining; these APIs alone
-do not complete PC-to-phone restoration or bilateral deletion synchronization.
+historical-source version pages and explicit publication. These local operations
+alone do not complete PC-to-phone restoration or bilateral deletion synchronization.
 
 ## Linux independent original-catalog witness
 
@@ -151,3 +149,32 @@ without these witnesses stay passively readable; only a real verified Saved
 backup action adds the binding. Interrupted marker completion does not poison a
 valid external witness or force payload recopy. Neither passive history nor a
 folder-choice preview creates or repairs these records.
+
+## Linux recovery surface and foreground ownership
+
+The closed Photos/videos recovery fold is available both in general Backups
+settings and in the paired local backup controls, without requiring an online
+phone. Source and version pages are bounded to 128 rows. The browser sends only
+correlated request IDs and opaque scope/source/reference hashes, never a target
+path or a claimed confirmation. Unavailable historical sources remain held; a
+refresh or pagination cannot silently replace the selected source. Failure or
+cancel preserves the version, and lost replies cause no automatic retry.
+
+The native handler captures the existing immutable book lifecycle owner, current
+data-object identity and actual saved-book witness before the GTK folder dialog
+and native Yes/No confirmation. After the dialog it rechecks those same witnesses
+on the IO lane before publication. Lock/unlock, profile or book turnover retires
+the old owner even when the final visible settings look unchanged. Local recovery
+uses no PhoneService bootstrap, peer impersonation or phone permission.
+
+A distinct active-copy permit continuously checks the actual saved book and
+native operation owner without holding a SQLite writer transaction for the
+duration of a large video copy. Actual Saved/END backup copying uses the same
+non-destructive permit; concurrent phone metadata writes remain possible and
+concurrent saves can pause and retire a copy promptly. It is not a
+cleanup/compression permit and has no retention-day authority. The
+short-lived native start ticket remains distinct from the bounded two-hour owned
+foreground run; ordinary source/version reads retain their short deadline.
+Available destination space is checked before new payload creation. Read-only
+legacy discovery, original-version retention and no-overwrite publication remain
+unchanged. Physical native dialog/package acceptance is still pending.

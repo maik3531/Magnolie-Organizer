@@ -462,6 +462,42 @@ def test_local_backup_restore_stale_version_and_expired_native_action_create_no_
         assert owner.history()==() and not list(Path(target.path).iterdir())
         assert not (Path(directory)/owner._journal._name).exists()
 
+@pytest.mark.parametrize('elapsed_ms',(61000,2*60*60*1000))
+def test_local_backup_restore_fresh_foreground_run_is_separate_from_start_ticket_deadline(local_restore,elapsed_ms):
+    _,record,raw,directory,scope,locations,source,version,target=local_restore;clock=[100]
+    def boundary(phase):
+        if phase=='copied':clock[0]+=elapsed_ms
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,monotonic_ms=lambda:clock[0],boundary=boundary) as owner:
+        if elapsed_ms<2*60*60*1000:
+            result=owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+            assert (Path(target.path)/result.name).read_bytes()==raw and owner.history()==(result,)
+        else:
+            with pytest.raises(TransferError,match='run_expired'):
+                owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+            assert owner.history()[0].state=='prepared'
+            stages=tuple(Path(target.path).iterdir());assert len(stages)==1 and stages[0].suffix=='.part' and stages[0].read_bytes()==raw
+
+def test_local_backup_restore_insufficient_space_holds_before_candidate_payload_or_target_creation(local_restore,monkeypatch):
+    from types import SimpleNamespace
+    _,record,_,directory,scope,locations,source,version,target=local_restore
+    monkeypatch.setattr(os,'fstatvfs',lambda _fd:SimpleNamespace(f_bavail=0,f_frsize=4096))
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as owner:
+        with pytest.raises(TransferError,match='insufficient_space'):
+            owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        assert owner.history()==() and not list(Path(target.path).iterdir())
+
+def test_local_recovery_foreground_copy_does_not_extend_read_only_preflight_owner(local_restore,monkeypatch):
+    _,_,raw,directory,_,locations,source,version,target=local_restore;clock=[100.0]
+    original=NativeMediaBackupRestoreOwner.__init__
+    def boundary(phase):
+        if phase=='copied':clock[0]+=61
+    def init(self,*args,**kwargs):original(self,*args,**kwargs,boundary=boundary)
+    monkeypatch.setattr(NativeMediaBackupRestoreOwner,'__init__',init)
+    recovery=NativeMediaBackupRecoveryUi(directory,lambda:True,clock=lambda:clock[0])
+    result=recovery.restore(locations._store._scope,source,version.id,version.record_sha256,target)
+    assert (Path(target.path)/result.name).read_bytes()==raw
+    with pytest.raises(TransferError,match='local_owner_changed'):recovery.sources()
+
 def test_local_backup_recovery_discovers_offline_sources_without_opening_drives_then_publishes_exact_version(local_restore,tmp_path):
     fixture,record,raw,directory,_,locations,source,version,target=local_restore
     fixture[3].close()
@@ -821,3 +857,30 @@ def test_actual_desktop_worker_backs_up_after_end_and_unchanged_pass_does_not_co
     assert {path.name:(path.stat().st_ino,path.stat().st_size) for path in folder.iterdir() if path.name.startswith('object-')}==before
     with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True,storage_parent=storage) as backups:
         assert backups.versions()==versions
+
+@pytest.mark.parametrize('mode',('long_copy','other_writer','book_pause'))
+def test_actual_saved_end_backup_uses_active_copy_owner_not_cleanup_writer_transaction(receiving,monkeypatch,mode):
+    import sqlite3
+    from types import SimpleNamespace
+    import magnolie_media_retention as retention_module
+    fixture=receiving;connection=fixture[3];full=prepared(fixture)[0];connection.desktop_session()
+    directory=connection._authority.binding.native_directory;clock=[100.0]
+    if mode=='long_copy':monkeypatch.setattr(retention_module,'time',SimpleNamespace(monotonic=lambda:clock[0]))
+    original=backup_module.copy_unique;entered=[]
+    def copy(*args,**kwargs):
+        result=original(*args,**kwargs);entered.append(True)
+        if mode=='long_copy':clock[0]+=61
+        elif mode=='other_writer':
+            with sqlite3.connect(Path(directory)/'phone.db',timeout=0) as writer:
+                writer.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',('fixture_active_copy_writer',b'local unrelated metadata'))
+        else:
+            with retention_module.NativeMediaRetention(directory) as writer:writer.pause()
+        return result
+    monkeypatch.setattr(backup_module,'copy_unique',copy)
+    state=cycle(fixture,full)[0]
+    assert entered and (fixture[4]/full.files[0].path).read_bytes()==b'hello'
+    if mode=='book_pause':assert state['state']=='held',state
+    else:assert state['state']=='complete',state
+    destination=NativeAcceptedDestination.capture(fixture[4])
+    with NativeMediaBackups(destination,connection._authority.protection,lambda:True) as backups:
+        assert bool(backups.versions()) is (mode!='book_pause')

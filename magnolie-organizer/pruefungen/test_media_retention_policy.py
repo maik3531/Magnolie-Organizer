@@ -7,6 +7,8 @@ import pytest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_media_retention import NativeMediaRetention,saved_book_retention,maintain_native_media_trash
+from magnolie_media_retention import NativeMediaBackupCopyPermit
+from magnolie_media_trash import NativeMediaRetentionPermit
 from magnolie_media_trash_ui import NativeMediaTrashUi
 from magnolie_file_transfer import TransferError
 from test_file_authenticated_desktop import native,bind
@@ -36,6 +38,43 @@ def test_no_native_store_or_key_is_created_for_saving_settings(tmp_path):
     with saved_book_retention(str(existing),book(7)):pass
     assert list(existing.iterdir())==[]
     assert maintain_native_media_trash(str(missing))==0 and not missing.exists()
+
+def test_foreground_restore_witness_does_not_block_other_phone_writes_and_is_not_cleanup_authority(receiving):
+    directory=receiving[3]._authority.binding.native_directory
+    with NativeMediaRetention(directory) as reader,NativeMediaRetention(directory) as writer:
+        with reader.active_copy_permit(lambda:True) as permit:
+            assert type(permit) is NativeMediaBackupCopyPermit and type(permit) is not NativeMediaRetentionPermit
+            assert not permit.grants_write_authority and permit.require_current() is True
+            assert not reader._db.in_transaction
+            # This write would fail/busy if the restoration held BEGIN IMMEDIATE
+            # for the duration of a large video copy.
+            writer.pause()
+            with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
+        with reader.active_copy_permit(lambda:True) as permit:assert permit is None
+
+def test_foreground_restore_witness_allows_long_video_but_expires_and_checks_native_lock(receiving,monkeypatch):
+    import magnolie_media_retention as module
+    from types import SimpleNamespace
+    directory=receiving[3]._authority.binding.native_directory;clock=[100.0];unlocked=[True]
+    monkeypatch.setattr(module,'time',SimpleNamespace(monotonic=lambda:clock[0]))
+    with NativeMediaRetention(directory) as policy:
+        with policy.active_copy_permit(lambda:unlocked[0]) as permit:
+            clock[0]+=61;assert permit.require_current() is True
+            unlocked[0]=False
+            with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
+            unlocked[0]=True
+            with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
+        unlocked[0]=True
+        with policy.active_copy_permit(lambda:unlocked[0]) as permit:
+            clock[0]+=policy.MAX_ACTIVE_COPY_SECONDS
+            with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
+
+def test_foreground_restore_witness_rejects_changed_actual_book_bytes_without_policy_publication(receiving):
+    directory=receiving[3]._authority.binding.native_directory
+    with NativeMediaRetention(directory) as policy:
+        with policy.active_copy_permit(lambda:True) as permit:
+            path=Path(directory).parent/'daten.json';path.write_bytes(path.read_bytes()+b' ')
+            with pytest.raises(TransferError,match='lease_changed'):permit.require_current()
 
 
 def test_policy_is_absent_until_commit_then_persists_and_is_encrypted(trash):

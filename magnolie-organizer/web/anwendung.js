@@ -26487,6 +26487,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       Bruecke.sende({ cmd: "sicherung_waehlen" });
     });
     wiederherstellen.id = "allgemein-sicherung-wiederherstellen";
+    ab.append(baueMedienBackupWiederherstellung());
     const wiederReihe = el("div", "knopfreihe"); wiederReihe.append(wiederherstellen); ab.append(wiederReihe);
     ab.append(el("p", "einst-hinweis", _("Choose a backup file. Before restoring it, the organizer automatically " +
       "creates a copy of the current data. An encrypted backup requires its password.")));
@@ -28928,6 +28929,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       row.append(buttons); fold.append(row);
     }
+    fold.append(baueMedienBackupWiederherstellung());
     return fold;
   }
 
@@ -30632,6 +30634,147 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(rechteGruppe);
 
     wurzel.append(ab);
+  }
+
+  const medienBackupWiederherstellung = { supported: null, open: false, tried: false, sources: [], pinnedSource: null, sourceKey: "", entries: [],
+    nextSources: null, nextVersions: null, pending: null, error: false };
+
+  function verwerfeMedienBackupWiederherstellung() {
+    clearTimeout(medienBackupWiederherstellung.pending?.timer);
+    Object.assign(medienBackupWiederherstellung, { supported: null, open: false, tried: false, sources: [], pinnedSource: null, sourceKey: "", entries: [],
+      nextSources: null, nextVersions: null, pending: null, error: false });
+    zeichneMedienBackupWiederherstellung();
+  }
+
+  function medienBackupQuelleKey(source) { return source.scope + ":" + source.source_id; }
+
+  function medienBackupQuellen() {
+    const state = medienBackupWiederherstellung;
+    return state.pinnedSource && !state.sources.some(source => medienBackupQuelleKey(source) === medienBackupQuelleKey(state.pinnedSource))
+      ? [state.pinnedSource, ...state.sources] : state.sources;
+  }
+
+  function medienBackupAnfordern(action = "sources", source = null, entry = null, cursor = 0) {
+    const state = medienBackupWiederherstellung;
+    if (!Bruecke.vorhanden || gesperrt || state.pending) return;
+    if (action !== "sources" && !medienBackupQuellen().includes(source)) return;
+    if (action === "restore" && !state.entries.includes(entry)) return;
+    const request_id = uid(), request = { cmd: "medien_backup", request_id, action };
+    if (action !== "restore") request.cursor = cursor;
+    if (source) Object.assign(request, { scope: source.scope, source_id: source.source_id });
+    if (entry) Object.assign(request, { reference: entry.id, reference_sha256: entry.record_sha256 });
+    const pending = { request_id, action, source, entry, cursor, timer: null };
+    state.pending = pending; state.error = false; state.tried = true;
+    pending.timer = setTimeout(() => {
+      if (state.pending !== pending) return;
+      state.pending = null; state.error = true; zeichneMedienBackupWiederherstellung();
+    }, action === "restore" ? 2 * 60 * 60 * 1000 : 65000);
+    try { Bruecke.sende(request); }
+    catch { clearTimeout(pending.timer); state.pending = null; state.error = true; }
+    zeichneMedienBackupWiederherstellung();
+  }
+
+  function baueMedienBackupWiederherstellung() {
+    const root = el("div", "medien-backup-wiederherstellung"); root.dataset.mediaBackupRecovery = "true";
+    zeichneMedienBackupWiederherstellung(root); return root;
+  }
+
+  function zeichneMedienBackupWiederherstellung(einzelneWurzel = null) {
+    const state = medienBackupWiederherstellung;
+    for (const root of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-media-backup-recovery]")) {
+      root.replaceChildren(); root.hidden = gesperrt || !Bruecke.vorhanden || state.supported === false;
+      if (root.hidden) continue;
+      const fold = el("details", "einst-gruppe"); fold.open = state.open;
+      fold.append(el("summary", null, _("Photos and videos") + " · " + _("Restore")));
+      fold.addEventListener("toggle", () => {
+        state.open = fold.open;
+        if (fold.open && !state.tried && !state.pending) medienBackupAnfordern();
+      });
+      fold.append(el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
+      if (state.error) fold.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
+      const refresh = knopf(_("Refresh"), "klein", () => medienBackupAnfordern());
+      refresh.dataset.backupRecovery = "refresh"; refresh.disabled = !!state.pending; fold.append(refresh);
+      const sources = medienBackupQuellen(), selected = sources.find(source => medienBackupQuelleKey(source) === state.sourceKey);
+      if (sources.length) {
+        const choice = document.createElement("select"); choice.dataset.backupRecovery = "source";
+        choice.setAttribute("aria-label", _("Source"));
+        for (const source of sources) {
+          const option = document.createElement("option"); option.value = medienBackupQuelleKey(source); option.textContent = source.path;
+          choice.append(option);
+        }
+        choice.value = state.sourceKey; choice.disabled = !!state.pending;
+        choice.addEventListener("change", () => {
+          if (state.pending) { choice.value = state.sourceKey; return; }
+          const source = medienBackupQuellen().find(item => medienBackupQuelleKey(item) === choice.value);
+          if (!source) return;
+          state.sourceKey = choice.value; state.entries = []; state.nextVersions = null;
+          medienBackupAnfordern("versions", source);
+        });
+        fold.append(formZeile(_("Source"), choice));
+      }
+      for (const entry of state.entries) {
+        const row = el("div", "pk-zeile"); row.dataset.backupVersion = entry.id;
+        row.append(el("span", "pk-name", entry.name), el("span", "pk-wann", journalDatum(new Date(entry.saved_ms).toISOString())));
+        const restore = knopf(_("Restore"), "klein", () => medienBackupAnfordern("restore", selected, entry));
+        restore.dataset.backupRecovery = "restore"; restore.disabled = !!state.pending || !selected; row.append(restore); fold.append(row);
+      }
+      if (state.nextSources !== null) {
+        const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("sources", null, null, state.nextSources));
+        more.dataset.backupRecovery = "more-sources"; more.disabled = !!state.pending; fold.append(more);
+      }
+      if (state.nextVersions !== null && selected) {
+        const more = knopf(_("Show more"), "klein", () => medienBackupAnfordern("versions", selected, null, state.nextVersions));
+        more.dataset.backupRecovery = "more-versions"; more.disabled = !!state.pending; fold.append(more);
+      }
+      root.append(fold);
+    }
+  }
+
+  function medienBackupErgebnis(value) {
+    const state = medienBackupWiederherstellung, pending = state.pending;
+    if (gesperrt) { verwerfeMedienBackupWiederherstellung(); return; }
+    if (!pending || value?.request_id !== pending.request_id) return;
+    clearTimeout(pending.timer); state.pending = null;
+    const fail = () => { state.error = true; zeichneMedienBackupWiederherstellung(); };
+    if (value.supported === false) { state.supported = false; zeichneMedienBackupWiederherstellung(); return; }
+    state.supported = value.supported === true || state.supported;
+    if (value.ok !== true || value.action !== pending.action) { fail(); return; }
+    if (pending.action === "restore") {
+      if (value.canceled === true) { zeichneMedienBackupWiederherstellung(); return; }
+      const done = value.completed;
+      if (!done || done.scope !== pending.source.scope || done.source_id !== pending.source.source_id || done.reference !== pending.entry.id ||
+          done.reference_sha256 !== pending.entry.record_sha256 || done.state !== "restored" || !/^[0-9a-f]{32}$/.test(done.operation) ||
+          typeof done.name !== "string" || !done.name || done.name.length > 255 || /[\u0000-\u001f\u007f/\\]/.test(done.name)) { fail(); return; }
+      zettel(uebersetzt("“%(name)s” was restored.", { name: done.name })); zeichneMedienBackupWiederherstellung(); return;
+    }
+    const hash = text => typeof text === "string" && /^[0-9a-f]{64}$/.test(text);
+    const valid = pending.action === "sources" ? row => row && hash(row.scope) && hash(row.source_id) && typeof row.path === "string" &&
+      row.path.length > 0 && row.path.length <= 4096 && typeof row.selected === "boolean" : row => row && hash(row.id) && hash(row.record_sha256) &&
+      typeof row.name === "string" && row.name.length > 0 && row.name.length <= 1024 && !/[\u0000-\u001f\u007f]/.test(row.name) &&
+      Number.isSafeInteger(row.saved_ms) && row.saved_ms > 0 && row.saved_ms <= 253402300799999;
+    const key = pending.action === "sources" ? medienBackupQuelleKey : row => row.id;
+    const old = pending.action === "sources" ? state.sources : state.entries;
+    if (!Array.isArray(value.entries) || value.entries.length > 128 || !value.entries.every(valid) ||
+        !Number.isSafeInteger(value.total) || value.total < pending.cursor + value.entries.length || value.total > (pending.action === "sources" ? 8448 : 4096) ||
+        value.next_cursor !== null && (!Number.isSafeInteger(value.next_cursor) || value.next_cursor !== pending.cursor + value.entries.length || value.next_cursor >= value.total) ||
+        pending.cursor && old.length !== pending.cursor) { fail(); return; }
+    const rows = pending.cursor ? [...old, ...value.entries] : value.entries;
+    if (new Set(rows.map(key)).size !== rows.length) { fail(); return; }
+    if (pending.action === "sources") {
+      const previous = medienBackupQuellen().find(row => key(row) === state.sourceKey);
+      if (!pending.cursor && state.sourceKey && !rows.some(row => key(row) === state.sourceKey)) {
+        if (value.next_cursor === null || !previous) { fail(); return; }
+        state.pinnedSource = previous;
+      }
+      if (state.pinnedSource && rows.some(row => key(row) === key(state.pinnedSource))) state.pinnedSource = null;
+      state.sources = rows; state.nextSources = value.next_cursor;
+      if (!state.sourceKey && rows.length) state.sourceKey = key(rows.find(row => row.selected) || rows[0]);
+      zeichneMedienBackupWiederherstellung();
+      if (!pending.cursor && state.sourceKey) medienBackupAnfordern("versions", medienBackupQuellen().find(row => key(row) === state.sourceKey));
+    } else {
+      if (medienBackupQuelleKey(pending.source) !== state.sourceKey) { fail(); return; }
+      state.entries = rows; state.nextVersions = value.next_cursor; zeichneMedienBackupWiederherstellung();
+    }
   }
 
   const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
@@ -34091,6 +34234,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     init(nutzlast) {
       verwerfeMedienPapierkorb();
+      verwerfeMedienBackupWiederherstellung();
       kontaktFotoDialogSchliessen?.();
       kontaktDateiPruefungSchliessen?.();
       kontaktKartenAuswahlSchliessen?.();
@@ -34461,6 +34605,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     telefonEntwicklerDiagnose,
     medienPapierkorbStand: medienPapierkorbErgebnis,
+    medienBackupStand: medienBackupErgebnis,
     telefonBackupErgebnis,
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;

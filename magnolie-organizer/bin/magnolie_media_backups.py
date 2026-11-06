@@ -451,8 +451,54 @@ class NativeMediaBackupRecoveryUi:
             return dict(entries=[dict(id=row.id,name=row.name,saved_ms=row.saved_ms,record_sha256=row.record_sha256)
                 for row in rows[cursor:end]],next_cursor=end if end<len(rows) else None,total=len(rows))
 
+    @staticmethod
+    def validate_request(request):
+        import re
+        if (type(request) is not dict or request.get('cmd')!='medien_backup'
+                or type(request.get('request_id')) is not str or re.fullmatch(r'[A-Za-z0-9_-]{8,80}',request['request_id']) is None):
+            raise TransferError('media_backup_recovery_request_invalid')
+        action=request.get('action');fields={'cmd','request_id','action'}
+        if action=='sources':
+            if not fields<=set(request)<=fields|{'cursor'}:raise TransferError('media_backup_recovery_request_invalid')
+        elif action in ('versions','restore'):
+            wanted=fields|{'scope','source_id'}|({'reference','reference_sha256'} if action=='restore' else set())
+            if (not wanted<=set(request)<=wanted|({'cursor'} if action=='versions' else set())
+                    or any(not _hex(request[key]) for key in wanted-fields)):
+                raise TransferError('media_backup_recovery_request_invalid')
+        else:raise TransferError('media_backup_recovery_request_invalid')
+        cursor=request.get('cursor',0)
+        if type(cursor) is not int or not 0<=cursor<=NativeMediaBackupRecoveryUi.MAX_SCOPES*(_ProtectedBackupLocations.MAX_PARENTS+2):
+            raise TransferError('media_backup_recovery_cursor_invalid')
+        return action
+
+    def read_request(self,request):
+        action=self.validate_request(request)
+        if action=='sources':
+            rows=self.sources();cursor=request.get('cursor',0)
+            if cursor>len(rows):raise TransferError('media_backup_recovery_page_changed')
+            end=cursor+self.PAGE_SIZE
+            page=dict(entries=list(rows[cursor:end]),next_cursor=end if end<len(rows) else None,total=len(rows))
+        elif action=='versions':page=self.versions(request['scope'],request['source_id'],request.get('cursor',0))
+        else:raise TransferError('media_backup_native_confirmation_required')
+        return dict(page,ok=True,supported=True,request_id=request['request_id'],action=action)
+
+    def selection(self,scope,source_id,reference,reference_sha256):
+        if not _hex(reference) or not _hex(reference_sha256):raise TransferError('media_backup_native_selection_required')
+        with self._source(scope,source_id) as (locations,default):
+            with locations._history(default,source_id) as backups:
+                selected=next((row for row in backups.versions() if row.id==reference and row.record_sha256==reference_sha256),None)
+                if selected is None:raise TransferError('media_backup_stale_selection')
+                return selected,backups.selected_mapping(selected)
+
     def restore(self,scope,source_id,reference,reference_sha256,native_destination):
         if not _hex(reference) or not _hex(reference_sha256):raise TransferError('media_backup_native_selection_required')
+        from magnolie_media_retention import NativeMediaRetention
+        self._current()
+        run=NativeMediaBackupRecoveryUi(self.directory,self.guard,clock=self.clock)
+        run.deadline=self.clock()+NativeMediaRetention.MAX_ACTIVE_COPY_SECONDS
+        return run._restore(scope,source_id,reference,reference_sha256,native_destination)
+
+    def _restore(self,scope,source_id,reference,reference_sha256,native_destination):
         with self._source(scope,source_id) as (locations,default):
             selected=next((row for row in locations.versions(default,source_id) if row.id==reference and row.record_sha256==reference_sha256),None)
             if selected is None:raise TransferError('media_backup_stale_selection')
@@ -599,8 +645,14 @@ class NativeMediaBackupRestoreOwner:
                 or locations._store._subject!=journal._subject or locations._store.directory!=journal.directory):
             raise TransferError('media_backup_restore_native_owner_required')
         action.consume(journal)
+        from magnolie_media_retention import NativeMediaRetention
+        started=journal._clock()
         def current():
-            action.validate(journal);journal._peer();locations._store._peer()
+            now=journal._clock()
+            if (type(now) is not int or type(started) is not int or now<started
+                    or now-started>=NativeMediaRetention.MAX_ACTIVE_COPY_SECONDS*1000):
+                raise TransferError('media_backup_restore_run_expired')
+            journal._peer();locations._store._peer()
             if (source_id,backups.storage_parent) not in locations.sources(default):raise TransferError('media_backup_source_not_retained')
             require_media_directory(destination.path);destination.verify();return True
         with journal._operation(),locations._history(default,source_id) as backups:
@@ -621,6 +673,8 @@ class NativeMediaBackupRestoreOwner:
                     if pending:event=pending[0]
                     else:
                         if len(heads)>=journal.MAX_OPERATIONS:raise TransferError('media_backup_restore_history_capacity')
+                        free=os.fstatvfs(parent)
+                        if free.f_bavail*free.f_frsize<mapping.saved_size+1024**3:raise TransferError('media_backup_insufficient_space')
                         operation=secrets.token_hex(16);stage='.magnolie-restore-'+operation+'.part'
                         leaf=PurePosixPath(selected.name).name;extension=PurePosixPath(leaf).suffix
                         if len(extension)>16:extension=''
@@ -663,6 +717,9 @@ class NativeMediaBackupRestoreOwner:
                             except TransferError as error:
                                 if str(error)!='media_backup_original_content_changed':raise
                         if not complete:
+                            free=os.fstatvfs(parent);allocated=os.fstat(fd).st_blocks*512
+                            if free.f_bavail*free.f_frsize+allocated<event['size']+1024**3:
+                                raise TransferError('media_backup_insufficient_space')
                             candidate_current();os.ftruncate(fd,0);os.fsync(fd)
                             backups.restore(selected,fd);candidate_current()
                         verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True)

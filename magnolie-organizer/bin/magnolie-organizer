@@ -22353,6 +22353,8 @@ class Fenster(_FENSTER_BASIS):
             self._telefon_videoziel_waehlen(nachricht)
         elif befehl == "telefon_backupziel":
             self._telefon_backupziel(nachricht)
+        elif befehl == "medien_backup":
+            self._medien_backup_aktion(nachricht)
 
         elif befehl == "medien_papierkorb":
             self._medien_papierkorb_aktion(nachricht)
@@ -24877,6 +24879,89 @@ class Fenster(_FENSTER_BASIS):
         except FileNotFoundError:pass # No native root/key/database bootstrap.
         except Exception as error:
             debug_notiz("media-trash.retention-adoption-held",error=type(error).__name__)
+
+    def _medien_backup_aktion(self,nachricht):
+        """Offline local backup recovery; browser paths/confirmation are forbidden."""
+        request_id=nachricht.get("request_id") if isinstance(nachricht,dict) else None
+        failure={"ok":False,"supported":True,"request_id":request_id}
+        owned=[False]
+        def answer(result,current=lambda:True):
+            if owned[0]:self._medien_backup_busy=False
+            self.antwort("App.medienBackupStand",lambda:result if current() and self._organizer_vertraut() else failure)
+        try:
+            if self._gesperrt or not self._organizer_vertraut():raise ValueError("media_backup_local_owner_changed")
+            from magnolie_optional_phone import available
+            if not available("photo_sync"):
+                answer(dict(failure,ok=True,supported=False));return
+            import importlib
+            module=importlib.import_module("magnolie_media_backups")
+            action=module.NativeMediaBackupRecoveryUi.validate_request(nachricht)
+            if getattr(self,"_medien_backup_busy",False):raise ValueError("media_backup_native_ui_busy")
+            book_source=self._telefon_actor_buchquelle();book_data=self._aktuelle_daten
+            if book_source is None or not isinstance(book_data,dict):raise ValueError("media_backup_local_owner_changed")
+            if not hasattr(self,"_medien_backup_cancel"):
+                self._medien_backup_cancel=threading.Event()
+                self.connect("destroy",lambda *_args:self._medien_backup_cancel.set())
+            native_root=os.path.join(daten_verzeichnis(),"telefon")
+            def current():
+                return (not self._gesperrt and bool(self._organizer_geladen) and not self._medien_backup_cancel.is_set()
+                    and self._aktuelle_daten is book_data and self._telefon_actor_buchquelle()==book_source
+                    and native_root==os.path.join(daten_verzeichnis(),"telefon"))
+            if not current():raise ValueError("media_backup_local_owner_changed")
+            self._medien_backup_busy=True;owned[0]=True
+            def start(work):
+                worker=threading.Thread(target=work,name="magnolie-media-backup-native-ui",daemon=True)
+                self._medien_backup_worker=worker;worker.start();return worker
+            def commit(path,book_version):
+                try:
+                    from magnolie_media_retention import NativeMediaRetention
+                    from magnolie_file_acceptance import NativeAcceptedDestination
+                    if not current():raise ValueError("media_backup_local_owner_changed")
+                    with NativeMediaRetention(native_root) as policy:
+                        with policy.active_copy_permit(current) as permit:
+                            if permit is None or permit.book_version!=book_version:raise ValueError("media_backup_saved_book_changed")
+                            def guarded():
+                                if not current():raise ValueError("media_backup_local_owner_changed")
+                                return permit.require_current()
+                            destination=NativeAcceptedDestination.capture(path)
+                            result=module.NativeMediaBackupRecoveryUi(native_root,guarded).restore(nachricht["scope"],nachricht["source_id"],
+                                nachricht["reference"],nachricht["reference_sha256"],destination)
+                            guarded()
+                    answer(dict(ok=True,supported=True,request_id=request_id,action="restore",
+                        completed=dict(scope=nachricht["scope"],source_id=nachricht["source_id"],reference=nachricht["reference"],
+                            reference_sha256=nachricht["reference_sha256"],operation=result.operation,state=result.state,name=result.name)),current)
+                except Exception:answer(failure,current)
+            def work():
+                try:
+                    recovery=module.NativeMediaBackupRecoveryUi(native_root,current)
+                    if action!="restore":answer(recovery.read_request(nachricht),current);return
+                    selected,mapping=recovery.selection(nachricht["scope"],nachricht["source_id"],nachricht["reference"],nachricht["reference_sha256"])
+                    from magnolie_media_retention import NativeMediaRetention
+                    with NativeMediaRetention(native_root) as policy:
+                        with policy.active_copy_permit(current) as permit:
+                            if permit is None:raise ValueError("media_backup_current_saved_book_required")
+                            book_version=permit.book_version;permit.require_current()
+                    def dialog():
+                        try:
+                            if not current() or not self._organizer_vertraut():raise ValueError("media_backup_local_owner_changed")
+                            path=self._ordner_waehlen(_("Destination folder"),standard=mapping.destination.path)
+                            if not current() or not self._organizer_vertraut():raise ValueError("media_backup_local_owner_changed")
+                            if not path:answer(dict(failure,ok=True,action="restore",canceled=True),current);return False
+                            question=Gtk.MessageDialog(transient_for=self,flags=Gtk.DialogFlags.MODAL,message_type=Gtk.MessageType.QUESTION,
+                                buttons=Gtk.ButtonsType.YES_NO,text=_("Restore"))
+                            try:
+                                question.format_secondary_text(selected.name+"\n"+path)
+                                confirmed=question.run()==Gtk.ResponseType.YES
+                            finally:question.destroy()
+                            if not current() or not self._organizer_vertraut():raise ValueError("media_backup_local_owner_changed")
+                            if confirmed:start(lambda:commit(path,book_version))
+                            else:answer(dict(failure,ok=True,action="restore",canceled=True),current)
+                        except Exception:answer(failure,current)
+                        return False
+                    GLib.idle_add(dialog)
+                except Exception:answer(failure,current)
+            return start(work)
+        except Exception:answer(failure)
 
     def _medien_papierkorb_aktion(self, nachricht):
         """Own native telephone root only; no PhoneService/listener bootstrap."""
