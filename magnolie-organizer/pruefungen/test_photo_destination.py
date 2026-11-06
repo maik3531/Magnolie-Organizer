@@ -6,7 +6,7 @@ import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bin'))
 from magnolie_photo_destination import NativePhotoDestinationController,photo_folder_component,native_pictures_directory
 from magnolie_file_transfer import TransferError
-from magnolie_photo_destination import media_directory_is_backup,NativeVideoDestinationController
+from magnolie_photo_destination import media_directory_is_backup,media_path_is_excluded,require_media_directory,NativeVideoDestinationController
 from magnolie_photo_preferences import PhotoPreferences,VideoPreferences
 from magnolie_file_acceptance import NativeAcceptedDestination
 from test_file_authenticated_desktop import native,bind
@@ -98,6 +98,22 @@ def test_backup_subtrees_are_excluded_independently_of_catalog_or_pair(path):
 @pytest.mark.parametrize('path',['/','/media/former/Backup-other/album','/home/user/myBackup','/media/alternative'])
 def test_backup_exclusion_matches_a_whole_directory_component_only(path):
     assert not media_directory_is_backup(path)
+
+@pytest.mark.parametrize('path,excluded',(
+    ('/native/Backup/photo.jpg',True),
+    ('/native/.magnolie-restore-'+'a'*32+'.part',True),
+    ('/native/.magnolie-restore-'+'a'*32+'.part/sub/file.jpg',True),
+    ('/native/.magnolie-publication-'+'b'*32+'/photo.jpg',True),
+    ('/native/photo - restored '+'a'*32+'.jpg',False),
+    ('/native/.magnolie-restore-personal.part',False),
+    ('/native/.magnolie-restore-'+'a'*31+'.part',False),
+    ('/native/.magnolie-restore-'+'a'*32+'.part-personal.jpg',False),
+    ('/native/.magnolie-publication-personal/photo.jpg',False)))
+def test_unpublished_native_stages_are_deny_only_and_restored_new_files_remain_eligible(path,excluded):
+    assert media_path_is_excluded(path) is excluded
+    if excluded:
+        with pytest.raises(TransferError,match='excluded'):require_media_directory(path)
+    else:require_media_directory(path)
 
 def test_backup_destinations_hold_before_folder_creation_and_preserve_history(chooser,tmp_path):
     _,_,authority,controller,_,_=chooser

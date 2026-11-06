@@ -412,7 +412,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
         mapping_snapshot,records=mappings.lookup((association,));mapping=records[0]
         if not mapping_snapshot.associated or mapping is None or mapping.protected_record_sha256!=expected_mapping_sha256:
             raise TransferError('media_trash_original_mapping_changed')
-        require_media_directory(os.path.join(mapping.destination.path,os.path.dirname(mapping.relative_path)))
+        require_media_directory(os.path.join(mapping.destination.path,mapping.relative_path))
         with self._operation():
             self._open(create=True,validate=lambda:action.validate(self))
             with self._locked():
@@ -476,7 +476,7 @@ class ProtectedMediaTrash(ProtectedPhotoPreferences):
     @contextmanager
     def _target_context(self,entry,fresh):
         mapping=entry.mapping;names=mapping.relative_path.split('/');fds=[]
-        require_media_directory(os.path.join(mapping.destination.path,*names[:-1]))
+        require_media_directory(os.path.join(mapping.destination.path,*names))
         def directories():
             fresh();mapping.destination.verify()
             for index,fd in enumerate(fds):

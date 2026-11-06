@@ -2287,7 +2287,13 @@ class NativePhotoAlbumWorker:
                         # or source grant. Passive lookup creates no settings.
                         scope=sha256(canonical(dict(subject=prefs._subject,media_type=self._media_type))).hexdigest()
                         with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,current) as locations:
-                            selected=locations.read();storage=selected.current(destination)
+                            selected=locations.read()
+                            if not selected.parents:
+                                # Register the authenticated original default
+                                # before any backup bytes, so local/offline
+                                # recovery does not depend on a surviving peer.
+                                selected=locations.choose(locations.issue_action(),selected,destination,None)
+                            storage=selected.current(destination)
                             def storage_current():
                                 current()
                                 if locations.read()!=selected:raise TransferError('media_backup_locations_changed')

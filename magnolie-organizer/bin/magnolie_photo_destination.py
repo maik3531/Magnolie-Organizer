@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import os
+import re
 import secrets
 import threading
 import time
@@ -28,6 +29,17 @@ def media_directory_is_backup(path):
 
 def require_media_directory(path):
     if media_directory_is_backup(path):raise TransferError('media_backup_subtree_excluded')
+    if media_path_is_excluded(path):raise TransferError('media_private_stage_excluded')
+
+def media_path_is_excluded(path):
+    """Deny-only sync classification, including unpublished restoration bytes.
+
+    The same function is suitable before descending an inventory directory or
+    opening a leaf. Excluded stages never attest deletion or a content baseline.
+    """
+    if media_directory_is_backup(path):return True
+    return any(re.fullmatch(r'\.magnolie-(?:restore-[0-9a-f]{32}\.part|publication-[0-9a-f]{32})',part)
+        is not None for part in str(path).split('/'))
 
 def native_pictures_directory():
     from gi.repository import GLib

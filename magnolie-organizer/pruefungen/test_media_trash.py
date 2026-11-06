@@ -44,15 +44,18 @@ def test_absent_read_creates_no_trash_and_cannot_be_a_delete_receipt(trash):
     assert snapshot.count==0 and not entries and set(root.iterdir())==before
     assert not (root/owner._name).exists()
 
-def test_backup_parent_is_rejected_before_any_target_io_or_delete_evidence(trash):
+@pytest.mark.parametrize('relative,error',(('Backup/deep/photo.jpg','media_backup_subtree_excluded'),
+    ('.magnolie-restore-'+'a'*32+'.part','media_private_stage_excluded'),
+    ('.magnolie-publication-'+'b'*32+'/photo.jpg','media_private_stage_excluded')))
+def test_backup_parent_is_rejected_before_any_target_io_or_delete_evidence(trash,relative,error):
     fixture,_,_,mapping,owner=trash
     _,entry=prepare(trash)
     original=fixture[4]/mapping.relative_path;before=original.read_bytes()
     # Deny-only coverage: even a historical/private caller supplying a Backup
     # parent must not get as far as opening the directory or invoking an IO gate.
-    excluded=replace(entry,mapping=replace(mapping,relative_path='Backup/deep/photo.jpg'))
+    excluded=replace(entry,mapping=replace(mapping,relative_path=relative))
     def gate():pytest.fail('Excluded backup target reached native mutation admission')
-    with pytest.raises(TransferError,match='media_backup_subtree_excluded'):
+    with pytest.raises(TransferError,match=error):
         with owner._target_context(excluded,gate):pytest.fail('Excluded backup context was yielded')
     assert original.read_bytes()==before and not (fixture[4]/'Backup').exists()
 

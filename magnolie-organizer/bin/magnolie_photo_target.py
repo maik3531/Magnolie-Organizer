@@ -12,7 +12,7 @@ from magnolie_file_acceptance import NativeAcceptedTransfer
 from magnolie_file_receipt import NativeSavedFileReceipt
 from magnolie_file_transfer import CHUNK_BYTES, MAX_FILE_BYTES, TransferError
 from magnolie_photo_plan import NativePhotoObservation, PhotoContentWitness
-from magnolie_photo_destination import media_directory_is_backup
+from magnolie_photo_destination import media_path_is_excluded
 
 
 @dataclass(frozen=True)
@@ -71,7 +71,7 @@ def observe_saved_target(accepted, receipt, current_binding):
                 value.st_gid, value.st_nlink, value.st_mtime_ns, value.st_ctime_ns)
 
     fresh()
-    if media_directory_is_backup(os.path.join(accepted.destination.path,*names[:-1])):
+    if media_path_is_excluded(os.path.join(accepted.destination.path,*names)):
         # A saved historical mapping is not permission to compare backup bytes.
         # Excluded content is UNKNOWN, never missing/deleted or a new baseline.
         return result('unknown')

@@ -1,6 +1,6 @@
 """Actual protected Saved mappings, private backup objects, versions and restore."""
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path,PurePosixPath
 import os
 import sys
 import threading
@@ -8,7 +8,7 @@ import threading
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bin'))
-from magnolie_media_backups import NativeMediaBackups, NativeMediaBackupLocations
+from magnolie_media_backups import NativeMediaBackups, NativeMediaBackupLocations, NativeMediaBackupRestoreOwner,NativeMediaBackupRecoveryUi
 import magnolie_media_backups as backup_module
 from magnolie_media_backup_codec import NativeBackupIdlePermit, NativeBackupIdleObservation, MIN_IDLE_MS, MIN_AVAILABLE_BYTES, DAY_MS
 from magnolie_media_trash import NativeMediaRetentionPermit
@@ -277,6 +277,216 @@ def test_native_backup_picker_rejects_saved_book_turnover_during_dialog(receivin
     after=connection.native_backup_locations('images')
     assert after['version']==first['version'] and after['sources']==first['sources'] and after['book_version']!=first['book_version']
     assert not list(path.iterdir())
+
+@pytest.fixture
+def local_restore(mappings,tmp_path):
+    fixture,store=mappings;raw=b'original JPEG or MP4 bytes for native publication'
+    record=save_native(fixture,store,raw,count=1)[0]
+    directory=fixture[3]._authority.binding.native_directory;scope='9'*64
+    parent_path=tmp_path/'local-restore-source';parent_path.mkdir(mode=0o700);parent=NativeAcceptedDestination.capture(parent_path)
+    locations=NativeMediaBackupLocations(directory,scope,lambda:True)
+    locations.choose(locations.issue_action(),locations.read(),record.destination,parent)
+    with NativeMediaBackups(record.destination,fixture[3]._authority.protection,lambda:True,create=True,storage_parent=parent) as backups:
+        version=backups.save_from_mappings(store,record.association,record.protected_record_sha256)
+    target=tmp_path/'new-native-data-destination';target.mkdir(mode=0o700)
+    try:yield fixture,record,raw,directory,scope,locations,locations.source_id(parent),version,NativeAcceptedDestination.capture(target)
+    finally:locations.close()
+
+def test_local_backup_restore_publishes_new_file_offline_with_original_lineage_and_no_overwrite(local_restore):
+    fixture,record,raw,directory,scope,locations,source,version,target=local_restore
+    original=Path(target.path)/Path(record.relative_path).name;original.write_bytes(b'personal edited original')
+    fixture[3].close()
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as owner:
+        assert owner.history()==()
+        data=fixture[4];held=data.with_name(data.name+'-held-during-publication');data.rename(held)
+        try:result=owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        finally:held.rename(data)
+        assert result.state=='restored' and result.original_mapping==record
+        assert not result.is_saved_receipt and not result.grants_write_authority
+        assert (Path(target.path)/result.name).read_bytes()==raw
+        assert original.read_bytes()==b'personal edited original'
+        assert not list(Path(target.path).glob('.magnolie-restore-*'))
+        assert owner.history()==(result,)
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:assert reopened.history()==(result,)
+
+@pytest.mark.parametrize('stop_at',('prepared','copied','published'))
+def test_local_backup_restore_resumes_exact_owned_candidate_after_interruption(local_restore,stop_at,monkeypatch):
+    _,record,raw,directory,scope,locations,source,version,target=local_restore
+    def boundary(phase):
+        if phase==stop_at:raise RuntimeError('explicit simulated process interruption')
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,boundary=boundary) as owner:
+        with pytest.raises(RuntimeError,match='simulated'):
+            owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        prepared=owner.history()[0];assert prepared.state=='prepared'
+        before=tuple(Path(target.path).iterdir());assert len(before)==1
+        inode=before[0].stat().st_ino
+    if stop_at in ('copied','published'):
+        monkeypatch.setattr(NativeMediaBackups,'restore',lambda *args:pytest.fail('Verified complete or published candidate was recopied'))
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:
+        result=reopened.restore(reopened.issue_action(),locations,record.destination,source,version,target)
+        assert result.operation==prepared.operation and result.file_key==prepared.file_key
+        published=Path(target.path)/result.name
+        assert published.stat().st_ino==inode and published.read_bytes()==raw
+        assert tuple(Path(target.path).iterdir())==(published,) and reopened.history()==(result,)
+
+def test_local_backup_restore_collision_preserves_both_foreign_target_and_prepared_bytes(local_restore):
+    _,record,raw,directory,scope,locations,source,version,target=local_restore
+    # Inject the collision at the filesystem boundary without any journal reentry.
+    def boundary(phase):
+        if phase=='copied':
+            stage=next(Path(target.path).glob('.magnolie-restore-*.part'))
+            operation=stage.name[len('.magnolie-restore-'):-len('.part')]
+            leaf=PurePosixPath(version.name).name
+            extension=PurePosixPath(leaf).suffix
+            stem=leaf[:-len(extension)] if extension else leaf
+            (Path(target.path)/(stem[:40]+' - restored '+operation+extension)).write_bytes(b'foreign file')
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,boundary=boundary) as owner:
+        with pytest.raises(FileExistsError):owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        assert owner.history()[0].state=='prepared'
+        values=[path.read_bytes() for path in Path(target.path).iterdir()]
+        assert sorted(values)==sorted([raw,b'foreign file'])
+
+def test_local_backup_restore_replaced_stage_is_held_without_mutating_foreign_bytes(local_restore):
+    _,record,_,directory,scope,locations,source,version,target=local_restore
+    def boundary(phase):
+        if phase=='prepared':
+            stage=next(Path(target.path).glob('.magnolie-restore-*.part'))
+            stage.rename(stage.with_suffix('.original-held'))
+            stage.write_bytes(b'foreign replacement');stage.chmod(0o600)
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,boundary=boundary) as owner:
+        with pytest.raises(TransferError,match='original_candidate_required'):
+            owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        assert owner.history()[0].state=='prepared'
+    before={p.name:p.read_bytes() for p in Path(target.path).iterdir()}
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:
+        with pytest.raises(TransferError,match='original_candidate_required'):
+            reopened.restore(reopened.issue_action(),locations,record.destination,source,version,target)
+    assert {p.name:p.read_bytes() for p in Path(target.path).iterdir()}==before
+
+def test_local_backup_restore_revocation_stops_before_publication_and_preserves_prepared_history(local_restore):
+    _,record,raw,directory,scope,locations,source,version,target=local_restore;allowed=[True]
+    def boundary(phase):
+        if phase=='copied':allowed[0]=False
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:allowed[0],boundary=boundary) as owner:
+        with pytest.raises(TransferError,match='local_owner_changed'):
+            owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+    stages=tuple(Path(target.path).iterdir());assert len(stages)==1 and stages[0].suffix=='.part' and stages[0].read_bytes()==raw
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as fresh:
+        assert fresh.history()[0].state=='prepared'
+        result=fresh.restore(fresh.issue_action(),locations,record.destination,source,version,target)
+        assert (Path(target.path)/result.name).read_bytes()==raw
+
+def test_local_backup_restore_missing_journal_and_corrupt_lineage_are_not_reset(local_restore):
+    from cryptography.exceptions import InvalidTag
+    _,record,raw,directory,scope,locations,source,version,target=local_restore
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as owner:
+        result=owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        journal=owner._journal;name=journal._name
+        with journal._db:journal._db.execute('UPDATE policy SET payload=? WHERE id=1',(b'corrupt'*8,))
+        with pytest.raises((TransferError,InvalidTag)):owner.history()
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:
+        with pytest.raises((TransferError,InvalidTag)):reopened.history()
+    folder=Path(directory)/name;held=folder.with_name(name+'-preserved');folder.rename(held)
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:
+        with pytest.raises(TransferError,match='original_required'):reopened.history()
+        with pytest.raises(TransferError,match='original_required'):
+            reopened.restore(reopened.issue_action(),locations,record.destination,source,version,target)
+    assert not folder.exists() and held.exists() and (Path(target.path)/result.name).read_bytes()==raw
+
+def test_local_backup_restore_stale_version_and_expired_native_action_create_no_target(local_restore):
+    from dataclasses import replace
+    _,record,_,directory,scope,locations,source,version,target=local_restore;clock=[1]
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,monotonic_ms=lambda:clock[0]) as owner:
+        with pytest.raises(TransferError,match='stale_selection'):
+            owner.restore(owner.issue_action(),locations,record.destination,source,replace(version,record_sha256='0'*64),target)
+        action=owner.issue_action();clock[0]+=60000
+        with pytest.raises(TransferError,match='action_not_current'):
+            owner.restore(action,locations,record.destination,source,version,target)
+        assert owner.history()==() and not list(Path(target.path).iterdir())
+        assert not (Path(directory)/owner._journal._name).exists()
+
+def test_local_backup_recovery_discovers_offline_sources_without_opening_drives_then_publishes_exact_version(local_restore,tmp_path):
+    fixture,record,raw,directory,_,locations,source,version,target=local_restore
+    fixture[3].close()
+    data=fixture[4];held_data=data.with_name(data.name+'-offline');data.rename(held_data)
+    parent=next(parent for key,parent in locations.sources(record.destination) if key==source)
+    drive=Path(parent.path);held_drive=drive.with_name(drive.name+'-offline');drive.rename(held_drive)
+    try:
+        recovery=NativeMediaBackupRecoveryUi(directory,lambda:True)
+        before=locations.read();rows=recovery.sources()
+        chosen=next(row for row in rows if row['source_id']==source)
+        assert chosen['path']==str(drive/'Backup') and chosen['scope']==locations._store._scope
+        assert locations.read()==before
+        with pytest.raises((OSError,TransferError)):recovery.versions(chosen['scope'],source)
+        held_drive.rename(drive)
+        page=recovery.versions(chosen['scope'],source)
+        assert page['entries']==[dict(id=version.id,name=version.name,saved_ms=version.saved_ms,record_sha256=version.record_sha256)]
+        assert page['next_cursor'] is None and page['total']==1
+        with pytest.raises(TransferError,match='stale_selection'):
+            recovery.restore(chosen['scope'],source,version.id,'0'*64,target)
+        assert not list(Path(target.path).iterdir())
+        result=recovery.restore(chosen['scope'],source,version.id,version.record_sha256,target)
+        assert result.original_mapping==record and (Path(target.path)/result.name).read_bytes()==raw
+        assert locations.read()==before
+    finally:
+        if held_drive.exists():held_drive.rename(drive)
+        held_data.rename(data)
+
+def test_local_backup_recovery_missing_original_anchor_is_held_not_empty_or_recreated(local_restore):
+    _,_,_,directory,_,locations,_,_,_=local_restore
+    anchor=Path(directory)/locations._store._anchor
+    preserved=anchor.with_name(anchor.name+'-preserved');anchor.rename(preserved)
+    before=set(Path(directory).iterdir())
+    with pytest.raises(TransferError,match='original_required'):
+        NativeMediaBackupRecoveryUi(directory,lambda:True).sources()
+    assert set(Path(directory).iterdir())==before and not anchor.exists() and preserved.exists()
+
+@pytest.mark.parametrize('empty_anchor',(False,True))
+def test_local_backup_recovery_reads_legacy_default_without_pair_or_new_location_metadata(mappings,tmp_path,empty_anchor):
+    fixture,store=mappings;raw=b'legacy default backup original bytes'
+    record=save_native(fixture,store,raw,count=1)[0];connection=fixture[3]
+    directory=connection._authority.binding.native_directory
+    with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True,create=True) as backups:
+        version=backups.save_from_mappings(store,record.association,record.protected_record_sha256)
+    outer=sha256(canonical(dict(subject=connection._preferences._subject,media_type='images'))).hexdigest()
+    scope=sha256(canonical(dict(local_backup_scope=outer))).hexdigest()
+    if empty_anchor:
+        with NativeMediaBackupLocations(directory,outer,lambda:True) as choice:
+            stale=backup_module.NativeBackupLocationsSnapshot('0'*64,1,None,())
+            with pytest.raises(TransferError,match='cas_conflict'):
+                choice.choose(choice.issue_action(),stale,record.destination,None)
+            assert choice.read().parents==()
+    connection.close()
+    location_paths=tuple(Path(directory).glob('media-backup-locations-v1-*'))
+    assert bool(location_paths) is empty_anchor
+    before={p.name:p.read_bytes() for p in Path(directory).iterdir() if p.is_file()}
+    recovery=NativeMediaBackupRecoveryUi(directory,lambda:True)
+    rows=recovery.sources();row=next(row for row in rows if row['scope']==scope)
+    assert row['path']==str(fixture[4]/'Backup') and before=={p.name:p.read_bytes() for p in Path(directory).iterdir() if p.is_file()}
+    assert recovery.versions(scope,row['source_id'])['entries'][0]['id']==version.id
+    target=tmp_path/'legacy-restored-data';target.mkdir(mode=0o700)
+    result=recovery.restore(scope,row['source_id'],version.id,version.record_sha256,NativeAcceptedDestination.capture(target))
+    assert (target/result.name).read_bytes()==raw and result.original_mapping==record
+    assert tuple(Path(directory).glob('media-backup-locations-v1-*'))==location_paths
+
+def test_local_backup_recovery_absent_native_root_does_not_create_keys_or_default_directories(tmp_path):
+    root=tmp_path/'unconfigured-phone-root'
+    assert NativeMediaBackupRecoveryUi(root,lambda:True).sources()==()
+    assert not root.exists()
+
+def test_local_backup_recovery_corrupt_legacy_policy_is_held_without_resetting_valid_catalog(local_restore):
+    from cryptography.exceptions import InvalidTag
+    fixture,record,raw,directory,_,locations,source,version,target=local_restore
+    prefs=fixture[3]._preferences
+    with prefs._db:prefs._db.execute('UPDATE policy SET payload=? WHERE id=1',(b'corrupt'*8,))
+    fixture[3].close()
+    recovery=NativeMediaBackupRecoveryUi(directory,lambda:True)
+    with pytest.raises((TransferError,InvalidTag)):recovery.sources()
+    # Explicit known anchored recovery remains independent of an unrelated
+    # damaged legacy policy. Neither source gets adopted, erased or reset.
+    scope=locations._store._scope
+    result=recovery.restore(scope,source,version.id,version.record_sha256,target)
+    assert result.original_mapping==record and (Path(target.path)/result.name).read_bytes()==raw
 
 
 def test_identical_saved_files_with_different_names_share_one_verified_object_and_keep_versions(vault):

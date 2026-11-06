@@ -23,12 +23,22 @@ def saved(f, data=b'hello'):
     receipt = operation.commit_saved_receipts()[0]
     return operation, receipt, f.destination/receipt.relative_path
 
-def test_historical_backup_target_is_unknown_without_reading_payload_or_proving_deletion(fixture,monkeypatch):
+@pytest.mark.parametrize('relative',('Backup/deep/photo.jpg','.magnolie-restore-'+'a'*32+'.part',
+    '.magnolie-publication-'+'b'*32+'/photo.jpg'))
+def test_historical_backup_target_is_unknown_without_reading_payload_or_proving_deletion(fixture,monkeypatch,relative):
     f=fixture;data=b'old original backup'
-    folder=f.destination/'Backup'/'deep';folder.mkdir(parents=True,mode=0o700)
-    (f.destination/'Backup').chmod(0o700)
+    folder=(f.destination/relative).parent;folder.mkdir(parents=True,mode=0o700,exist_ok=True)
+    if relative.startswith('Backup/'):(f.destination/'Backup').chmod(0o700)
     manifest=description(data)
-    accepted=NativeAcceptedTransfer.capture(manifest,f.binding,{file.id:'Backup/deep/photo.jpg' for file in manifest.files},f.destination,lambda:f.current)
+    accepted=NativeAcceptedTransfer.capture(manifest,f.binding,{file.id:relative for file in manifest.files},f.destination,lambda:f.current)
+    if relative.startswith('.magnolie-publication-'):
+        from magnolie_file_receive import NativeReceiveStartError
+        # Existing publication admission already prevents this private directory
+        # from acquiring a Saved receipt; retain that stronger native barrier.
+        with pytest.raises(NativeReceiveStartError,match='native_publication_reserved_mapping'):
+            f.accept(data,accepted=accepted)
+        assert not (f.destination/relative).exists()
+        return
     op=f.accept(data,accepted=accepted);feed(op,data);op.publish_completed();receipt=op.commit_saved_receipts()[0]
     target=f.destination/receipt.relative_path
     before=op._index._db.execute('SELECT file_id,payload FROM receipts').fetchall()

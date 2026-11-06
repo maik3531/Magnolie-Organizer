@@ -97,3 +97,40 @@ start synchronization, and failed reads do not automatically retry. Existing
 translations are reused. Physical GTK dialog acceptance and native recovery
 publication/source-selection UI remain pending; source/controller tests alone
 are not full installed-package acceptance.
+
+## Linux durable local recovery publication
+
+The native recovery owner now publishes a new file through an independent
+anchored, encrypted prepared/restored journal. The prepared event records the
+exact historical source/version hash, original Saved mapping, new data destination,
+private stage inode, generated new name and original byte hash before the first
+payload write. The empty stage inode and directory entry are synced first.
+Recovery checks that same owned inode after interruption and uses no-replace
+publication; a foreign target or replaced stage is held and preserved. Verified
+complete stages and already published candidates are not copied again.
+
+The restored record preserves original lineage but is neither a phone Saved ACK,
+a deletion receipt nor a new phone write grant. Original Saved mappings and user
+edits are not replaced. Local publication works without the original transport
+owner or original data directory; the native caller supplies an explicitly owned
+new destination and the current saved/unlocked-book guard.
+
+Unpublished `.magnolie-restore-<32hex>.part` files and private publication
+directories are deny-only synchronization exclusions. Target comparison returns
+unknown without reading their payload; trash/deletion admission rejects them.
+New generated restored filenames remain eligible for the future PC source lane.
+That lane must apply the same exclusion before directory descent or leaf access.
+
+Native local discovery reads authenticated location anchors without opening old
+drives. The actual Saved/END worker registers its default parent before backup
+bytes so later recovery does not depend on the pairing. Older default catalogs
+remain discoverable through read-only, physically bound decryption of existing
+photo/video preference metadata, without creating a preference/transport authority,
+claiming association, changing grants or migrating settings during a read. An
+empty location bootstrap after a failed CAS does not hide that older default.
+Corrupt or missing originals are held, never reset or silently treated as empty.
+
+The native local recovery controller supports bounded source discovery, exact
+historical-source version pages and explicit publication. Its GTK/browser surface
+and physical installed-package acceptance still need joining; these APIs alone
+do not complete PC-to-phone restoration or bilateral deletion synchronization.

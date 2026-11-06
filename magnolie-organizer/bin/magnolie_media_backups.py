@@ -1,12 +1,14 @@
 """Native, content-addressed LOCAL media backup catalog (#392).
 
 Immutable version references share verified private content objects, never
-hardlinks to editable originals. This is not a remote deletion handler. Restore
-only prepares a new file; the native publication/mapping owner remains required.
+hardlinks to editable originals. This is not a remote deletion handler. Catalog
+restore prepares a new file; a separate local owner journals its no-replace
+publication and original lineage without manufacturing a remote Saved receipt.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha256
+from pathlib import PurePosixPath
 import fcntl
 import os
 import secrets
@@ -22,9 +24,10 @@ from magnolie_file_transfer import TransferError
 from magnolie_media_backup_codec import (VerifiedBackupRepresentation, NativeBackupIdlePermit,
     compression_due, content_key, copy_unique, verify_raw, verify_xz, compress_candidate, restore_to_new_file)
 from magnolie_media_trash import NativeMediaRetentionPermit
+from magnolie_media_trash import _move_no_replace as _rename_no_replace
 from magnolie_photo_mappings import ProtectedPhotoMappings, NativeSavedPhotoMapping, PhotoMappingAssociation
 from magnolie_photo_destination import require_media_directory
-from magnolie_photo_preferences import ProtectedPhotoPreferences
+from magnolie_photo_preferences import ProtectedPhotoPreferences,PhotoPreferences
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_telefon import canonical, strict_json
 
@@ -207,6 +210,37 @@ class NativeMediaBackupLocations:
         self._store=_ProtectedBackupLocations(directory,scope,local_guard,monotonic_ms)
 
     def read(self):return self._store.read_locations()
+
+    @classmethod
+    def open_existing_scope(cls,directory,internal_scope,local_guard):
+        """Resolve an authenticated local anchor, not a peer or transport scope."""
+        if not _hex(internal_scope) or not callable(local_guard) or local_guard() is not True:
+            raise TransferError('media_backup_local_owner_required')
+        with ExistingFileTransferProtection(directory) as protection:
+            name='media-backup-locations-v1-'+internal_scope+'.seal'
+            fd=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=protection._root_fd)
+            try:
+                before=os.fstat(fd);ProtectedPhotoPreferences._private(before)
+                if not 28<=before.st_size<=8192:raise TransferError('media_backup_locations_anchor_changed')
+                blob=os.read(fd,8193);after=os.fstat(fd);named=os.stat(name,dir_fd=protection._root_fd,follow_symlinks=False)
+                if (len(blob)!=before.st_size or protection._signature(before)!=protection._signature(after)
+                        or protection._signature(before)!=protection._signature(named)):
+                    raise TransferError('media_backup_locations_anchor_changed')
+                plain=protection.unseal(blob,'magnolie-media-backup-locations-v1/'+internal_scope+'/anchor');value=strict_json(plain)
+                subject=value.get('subject') if type(value) is dict else None
+                if (type(subject) is not dict or set(subject)!={'local_backup_scope'} or not _hex(subject['local_backup_scope'])
+                        or sha256(canonical(subject)).hexdigest()!=internal_scope or canonical(value)!=plain):
+                    raise TransferError('media_backup_locations_anchor_changed')
+                local_guard_result=local_guard()
+                if local_guard_result is not True:raise TransferError('media_backup_local_owner_changed')
+            finally:os.close(fd)
+        owner=cls(directory,subject['local_backup_scope'],local_guard)
+        try:
+            owner.read()
+            if owner._store._scope!=internal_scope or owner._store._anchor_identity is None:
+                raise TransferError('media_backup_locations_original_required')
+            return owner
+        except BaseException:owner.close();raise
     def issue_action(self):return self._store.issue_action()
     def choose(self,action,expected,default,parent):return self._store.choose(action,expected,default,parent)
 
@@ -251,6 +285,182 @@ class NativeMediaBackupLocations:
     def __exit__(self,*_):self.close()
 
 
+class NativeMediaBackupRecoveryUi:
+    """Bounded local source discovery; no PhoneStore or online peer admission."""
+    MAX_SCOPES=128
+    MAX_PARENT_ENTRIES=4096
+    PAGE_SIZE=128
+
+    def __init__(self,directory,local_guard,*,clock=time.monotonic):
+        if not callable(local_guard) or not callable(clock):raise TransferError('media_backup_local_owner_required')
+        self.directory=directory;self.guard=local_guard;self.clock=clock;self.deadline=clock()+60
+
+    def _current(self):
+        if self.clock()>=self.deadline or self.guard() is not True:raise TransferError('media_backup_local_owner_changed')
+        return True
+
+    def _legacy_policy(self,scope):
+        """Authenticate existing policy metadata without inventing a live peer.
+
+        This is a read-only legacy-location witness, never a preference store,
+        grant, association decision or permission to save/receive media.
+        """
+        self._current()
+        name='photo-preferences-v1-'+scope;fds=[];db=None
+        with ExistingFileTransferProtection(self.directory) as protection:
+            try:
+                root=os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=protection._root_fd);fds.append(root)
+                lock=os.open('prefs.lock',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=root);fds.append(lock)
+                data=os.open('prefs.sqlite',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=root);fds.append(data)
+                for index,fd in enumerate(fds):ProtectedPhotoPreferences._private(os.fstat(fd),directory=index==0)
+                keys=[list(protection._key(os.fstat(fd))) for fd in fds]
+                try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                except BlockingIOError as error:raise TransferError('media_backup_legacy_policy_busy') from error
+                def current():
+                    self._current();protection._read_key()
+                    for index,(fd,parent,leaf) in enumerate(((root,protection._root_fd,name),(lock,root,'prefs.lock'),(data,root,'prefs.sqlite'))):
+                        held=os.fstat(fd);named=os.stat(leaf,dir_fd=parent,follow_symlinks=False)
+                        ProtectedPhotoPreferences._private(named,directory=index==0)
+                        if list(protection._key(held))!=keys[index] or list(protection._key(named))!=keys[index]:
+                            raise TransferError('media_backup_legacy_policy_changed')
+                    if os.fstat(lock).st_size or os.fstat(data).st_size>ProtectedPhotoPreferences.MAX_DATABASE_BYTES:
+                        raise TransferError('media_backup_legacy_policy_size')
+                    with os.scandir(root) as entries:
+                        for index,entry in enumerate(entries):
+                            if index>=2 or entry.name not in ('prefs.lock','prefs.sqlite'):
+                                raise TransferError('media_backup_legacy_policy_pending')
+                current()
+                db=sqlite3.connect('file:/proc/self/fd/'+str(root)+'/prefs.sqlite?mode=ro',uri=True,timeout=0)
+                if (dict(db.execute("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"))!=ProtectedPhotoPreferences._SCHEMA
+                        or db.execute('PRAGMA user_version').fetchone()!=(1,) or db.execute('PRAGMA quick_check').fetchall()!=[('ok',)]):
+                    raise TransferError('media_backup_legacy_policy_schema')
+                owners=db.execute('SELECT id,payload FROM owner').fetchall();policies=db.execute('SELECT id,payload FROM policy').fetchall()
+                if len(owners)!=1 or owners[0][0]!=1 or len(policies)>1 or policies and policies[0][0]!=1:
+                    raise TransferError('media_backup_legacy_policy_rows')
+                subject=None
+                def opened(blob,label):
+                    nonlocal subject
+                    if type(blob) is not bytes or not 28<=len(blob)<=ProtectedPhotoPreferences.MAX_RECORD_BYTES+28:
+                        raise TransferError('media_backup_legacy_policy_size')
+                    plain=protection.unseal(blob,'magnolie-photo-preferences-v1/'+scope+'/'+label);value=strict_json(plain)
+                    if (type(value) is not dict or set(value)!={'format','subject','root_key','database_key','lock_key','payload'}
+                            or type(value['format']) is not int or value['format']!=1 or canonical(value)!=plain
+                            or type(value['subject']) is not dict or sha256(canonical(value['subject'])).hexdigest()!=scope
+                            or value['root_key']!=keys[0] or value['database_key']!=keys[2] or value['lock_key']!=keys[1]
+                            or subject is not None and value['subject']!=subject):raise TransferError('media_backup_legacy_policy_changed')
+                    subject=value['subject'];return value['payload']
+                head=opened(owners[0][1],'owner');policy=None
+                if (type(head) is not dict or set(head)!={'revision','policy_sha256'} or type(head['revision']) is not int):
+                    raise TransferError('media_backup_legacy_policy_changed')
+                if not policies:
+                    if head!=dict(revision=1,policy_sha256=None):raise TransferError('media_backup_legacy_policy_missing')
+                else:
+                    policy=PhotoPreferences.parse(opened(policies[0][1],'policy'))
+                    if head!=dict(revision=policy.revision,policy_sha256=sha256(policies[0][1]).hexdigest()):
+                        raise TransferError('media_backup_legacy_policy_changed')
+                current();return subject,policy
+            finally:
+                if db is not None:db.close()
+                for fd in reversed(fds):os.close(fd)
+
+    def _legacy_sources(self):
+        import re
+        with ExistingFileTransferProtection(self.directory) as protection:
+            scopes=[]
+            with os.scandir(protection._root_fd) as entries:
+                for index,entry in enumerate(entries):
+                    self._current()
+                    if index>=self.MAX_PARENT_ENTRIES:raise TransferError('media_backup_recovery_scan_bound')
+                    match=re.fullmatch(r'photo-preferences-v1-([0-9a-f]{64})',entry.name)
+                    if match:scopes.append(match[1])
+                    if len(scopes)>self.MAX_SCOPES:raise TransferError('media_backup_recovery_scope_bound')
+        for scope in sorted(scopes):
+            subject,policy=self._legacy_policy(scope)
+            if policy is None:continue
+            for media_type,parent in (('images',policy.destination),('video',policy.videos.destination if policy.videos else None)):
+                if parent is None:continue
+                outer=sha256(canonical(dict(subject=subject,media_type=media_type))).hexdigest()
+                internal=sha256(canonical(dict(local_backup_scope=outer))).hexdigest()
+                yield internal,outer,parent
+
+    def sources(self):
+        import re
+        self._current()
+        try:protection=ExistingFileTransferProtection(self.directory)
+        except FileNotFoundError:
+            if os.path.lexists(self.directory):raise
+            self._current();return ()
+        with protection:
+            roots=set();anchors=set()
+            with os.scandir(protection._root_fd) as entries:
+                for index,entry in enumerate(entries):
+                    self._current()
+                    if index>=self.MAX_PARENT_ENTRIES:raise TransferError('media_backup_recovery_scan_bound')
+                    match=re.fullmatch(r'media-backup-locations-v1-([0-9a-f]{64})(\.seal)?',entry.name)
+                    if match:(anchors if match[2] else roots).add(match[1])
+                    if len(roots|anchors)>self.MAX_SCOPES:raise TransferError('media_backup_recovery_scope_bound')
+            if roots!=anchors:raise TransferError('media_backup_locations_original_required')
+        result=[]
+        for scope in sorted(roots):
+            with NativeMediaBackupLocations.open_existing_scope(self.directory,scope,self._current) as locations:
+                snapshot=locations.read()
+                if not snapshot.parents:continue
+                default=snapshot.parents[0]
+                for source_id,parent in locations.sources(default):
+                    result.append(dict(scope=scope,source_id=source_id,path=os.path.join(parent.path,'Backup'),
+                        selected=parent==snapshot.current(default)))
+        known={(row['scope'],row['source_id']) for row in result}
+        for internal,_,parent in self._legacy_sources():
+            source_id=NativeMediaBackupLocations.source_id(parent)
+            if (internal,source_id) not in known:
+                result.append(dict(scope=internal,source_id=source_id,path=os.path.join(parent.path,'Backup'),selected=internal not in roots))
+                known.add((internal,source_id))
+        self._current();return tuple(result)
+
+    @contextmanager
+    def _source(self,scope,source_id):
+        self._current()
+        if not _hex(scope) or not _hex(source_id):raise TransferError('media_backup_source_required')
+        anchor=os.path.join(self.directory,'media-backup-locations-v1-'+scope+'.seal')
+        root=os.path.join(self.directory,'media-backup-locations-v1-'+scope)
+        if os.path.lexists(anchor) or os.path.lexists(root):
+            owner=NativeMediaBackupLocations.open_existing_scope(self.directory,scope,self._current);default=None
+        else:
+            legacy=next(((outer,parent) for internal,outer,parent in self._legacy_sources() if internal==scope),None)
+            if legacy is None:raise TransferError('media_backup_source_not_retained')
+            outer,default=legacy;owner=NativeMediaBackupLocations(self.directory,outer,self._current)
+        with owner as locations:
+            snapshot=locations.read()
+            if snapshot.parents:default=snapshot.parents[0]
+            if default is None or not any(key==source_id for key,_ in locations.sources(default)):
+                # An authenticated but empty location bootstrap must not hide
+                # an older default catalog after a failed native choice/CAS.
+                legacy=next((parent for internal,_,parent in self._legacy_sources()
+                    if internal==scope and NativeMediaBackupLocations.source_id(parent)==source_id),None)
+                if legacy is None:raise TransferError('media_backup_source_not_retained')
+                default=legacy
+            if not any(key==source_id for key,_ in locations.sources(default)):raise TransferError('media_backup_source_not_retained')
+            yield locations,default
+
+    def versions(self,scope,source_id,cursor=0):
+        if type(cursor) is not int or not 0<=cursor<=NativeMediaBackups.MAX_VERSIONS:raise TransferError('media_backup_recovery_cursor_invalid')
+        with self._source(scope,source_id) as (locations,default):
+            rows=sorted(locations.versions(default,source_id),key=lambda row:(-row.saved_ms,row.id))
+            if cursor>len(rows):raise TransferError('media_backup_recovery_page_changed')
+            end=cursor+self.PAGE_SIZE
+            return dict(entries=[dict(id=row.id,name=row.name,saved_ms=row.saved_ms,record_sha256=row.record_sha256)
+                for row in rows[cursor:end]],next_cursor=end if end<len(rows) else None,total=len(rows))
+
+    def restore(self,scope,source_id,reference,reference_sha256,native_destination):
+        if not _hex(reference) or not _hex(reference_sha256):raise TransferError('media_backup_native_selection_required')
+        with self._source(scope,source_id) as (locations,default):
+            selected=next((row for row in locations.versions(default,source_id) if row.id==reference and row.record_sha256==reference_sha256),None)
+            if selected is None:raise TransferError('media_backup_stale_selection')
+            outer_scope=locations._store._subject['local_backup_scope']
+            with NativeMediaBackupRestoreOwner(self.directory,outer_scope,self._current) as owner:
+                return owner.restore(owner.issue_action(),locations,default,source_id,selected,native_destination)
+
+
 @dataclass(frozen=True)
 class NativeMediaBackupVersion:
     id: str
@@ -261,6 +471,214 @@ class NativeMediaBackupVersion:
 
     @property
     def grants_write_authority(self): return False
+
+
+@dataclass(frozen=True)
+class NativeMediaBackupRestoration:
+    operation: str
+    state: str
+    name: str
+    file_key: tuple
+    original_mapping: NativeSavedPhotoMapping
+
+    @property
+    def is_saved_receipt(self):return False
+    @property
+    def grants_write_authority(self):return False
+
+
+class _ProtectedBackupRestorations(_ProtectedBackupLocations):
+    """Independent append-only local restoration evidence, not phone receipts."""
+    MAX_RECORD_BYTES=1024*1024
+    MAX_DATABASE_BYTES=4*1024*1024
+    MAX_OPERATIONS=128
+
+    def __init__(self,*args):
+        super().__init__(*args)
+        self._name='media-backup-restores-v1-'+self._scope
+        self._domain='magnolie-media-backup-restores-v1/'+self._scope+'/'
+        self._absent=sha256((self._domain+'absent').encode()).hexdigest()
+        self._anchor=self._name+'.seal'
+
+    def _initial_owner(self):return dict(revision=1,restores_sha256=None)
+
+    @staticmethod
+    def mapping(event):
+        value=event['original_mapping'];association=value.get('association') if type(value) is dict else None
+        if type(association) is not dict or set(association)!={'source_epoch','photo_id','media_type'}:
+            raise TransferError('media_backup_restore_invalid_lineage')
+        return NativeSavedPhotoMapping.parse(value,PhotoMappingAssociation(**association),event['reference'])
+
+    def _snapshot(self):
+        owners=self._db.execute('SELECT id,payload FROM owner').fetchall();rows=self._db.execute('SELECT id,payload FROM policy').fetchall()
+        if len(owners)!=1 or owners[0][0]!=1 or len(rows)>1 or rows and rows[0][0]!=1:
+            raise TransferError('media_backup_restore_invalid_rows')
+        head=self._unprotect(owners[0][1],'owner');events=[];version=self._absent
+        if type(head) is not dict or set(head)!={'revision','restores_sha256'} or type(head['revision']) is not int:
+            raise TransferError('media_backup_restore_invalid_history')
+        if not rows:
+            if head!=self._initial_owner():raise TransferError('media_backup_restore_missing_history')
+        else:
+            version=sha256(rows[0][1]).hexdigest();events=self._unprotect(rows[0][1],'restores')
+            if (type(events) is not list or not 1<=len(events)<=2*self.MAX_OPERATIONS
+                    or head!=dict(revision=len(events)+1,restores_sha256=version)):
+                raise TransferError('media_backup_restore_invalid_history')
+        heads={}
+        for event in events:
+            if (type(event) is not dict or set(event)!={'operation','state','source_id','reference','reference_sha256',
+                    'destination','stage','name','file_key','size','sha256','original_mapping'}
+                    or type(event['operation']) is not str or len(event['operation'])!=32 or not _hex(event['operation']*2)
+                    or event['state'] not in ('prepared','restored')
+                    or any(not _hex(event[key]) for key in ('source_id','reference','reference_sha256','sha256'))
+                    or event['stage']!='.magnolie-restore-'+event['operation']+'.part'
+                    or type(event['name']) is not str or not event['name'] or '/' in event['name'] or '\\' in event['name']
+                    or event['name'] in ('.','..') or '\x00' in event['name']
+                    or type(event['file_key']) is not list or len(event['file_key'])!=2
+                    or any(type(v) is not int or not 0<=v<2**64 for v in event['file_key']) or event['file_key'][1]==0):
+                raise TransferError('media_backup_restore_invalid_event')
+            destination=NativeAcceptedDestination.parse(event['destination']);require_media_directory(destination.path)
+            mapping=self.mapping(event)
+            if (type(event['size']) is not int or event['size']!=mapping.saved_size or event['sha256']!=mapping.saved_sha256
+                    or event['file_key'][0]!=destination.ancestor_keys[0][0]):
+                raise TransferError('media_backup_restore_invalid_content')
+            previous=heads.get(event['operation'])
+            if previous is None:
+                if event['state']!='prepared' or len(heads)>=self.MAX_OPERATIONS:raise TransferError('media_backup_restore_invalid_transition')
+            elif (previous['state']!='prepared' or event['state']!='restored'
+                    or dict(previous,state='restored')!=event):raise TransferError('media_backup_restore_invalid_transition')
+            heads[event['operation']]=event
+        mark=len(events)+1,version
+        if self._last is not None and (mark[0]<self._last[0] or mark[0]==self._last[0] and mark[1]!=self._last[1]):
+            self._uncertain=True;raise TransferError('media_backup_restore_history_rollback')
+        self._last=mark;return version,events,heads
+
+    def append(self,event,current):
+        _,events,_=self._snapshot();events=[*events,event]
+        if len(events)>2*self.MAX_OPERATIONS:raise TransferError('media_backup_restore_history_capacity')
+        blob=self._protect(events,'restores');version=sha256(blob).hexdigest()
+        head=self._protect(dict(revision=len(events)+1,restores_sha256=version),'owner')
+        try:
+            self._db.execute('BEGIN IMMEDIATE')
+            self._db.execute('INSERT OR REPLACE INTO policy VALUES(1,?)',(blob,))
+            self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
+            self._fresh();current();self._db.commit();self._sync()
+            actual=self._snapshot()
+            if actual[0]!=version:raise TransferError('media_backup_restore_readback_failed')
+            current();return actual[2][event['operation']]
+        except BaseException:
+            if self._db.in_transaction:self._db.rollback()
+            self._uncertain=True;raise
+
+
+class NativeMediaBackupRestoreOwner:
+    """Local explicit new-file publication with durable original-version lineage.
+
+    The native caller owns the saved/unlocked-book guard. No synthetic transfer,
+    trash operation, phone permission or Saved ACK is manufactured here.
+    """
+    def __init__(self,directory,scope,local_guard,*,monotonic_ms=lambda:time.monotonic_ns()//1_000_000,boundary=lambda _:None):
+        if not _hex(scope) or not callable(local_guard) or not callable(monotonic_ms) or not callable(boundary):
+            raise TransferError('media_backup_local_owner_required')
+        self._journal=_ProtectedBackupRestorations(directory,scope,local_guard,monotonic_ms);self._boundary=boundary
+
+    def issue_action(self):return self._journal.issue_action()
+
+    def history(self):
+        journal=self._journal
+        with journal._operation():
+            if not journal._open():return ()
+            with journal._locked():
+                journal._schema();_,_,heads=journal._snapshot()
+                return tuple(NativeMediaBackupRestoration(event['operation'],event['state'],event['name'],
+                    tuple(event['file_key']),journal.mapping(event)) for _,event in sorted(heads.items()))
+
+    def restore(self,action,locations,default,source_id,selected,destination):
+        journal=self._journal
+        if (type(action) is not NativePhotoDestinationAction or type(locations) is not NativeMediaBackupLocations
+                or type(selected) is not NativeMediaBackupVersion or type(destination) is not NativeAcceptedDestination
+                or locations._store._subject!=journal._subject or locations._store.directory!=journal.directory):
+            raise TransferError('media_backup_restore_native_owner_required')
+        action.consume(journal)
+        def current():
+            action.validate(journal);journal._peer();locations._store._peer()
+            if (source_id,backups.storage_parent) not in locations.sources(default):raise TransferError('media_backup_source_not_retained')
+            require_media_directory(destination.path);destination.verify();return True
+        with journal._operation(),locations._history(default,source_id) as backups:
+            current();mapping=backups.selected_mapping(selected)
+            journal._open(create=True,validate=current)
+            with journal._locked():
+                _,_,heads=journal._snapshot()
+                pending=[event for event in heads.values() if event['state']=='prepared' and event['source_id']==source_id
+                    and event['reference']==selected.id and event['destination']==destination.wire()]
+                if len(pending)>1:raise TransferError('media_backup_restore_multiple_candidates')
+                parent=os.open(destination.path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+                fd=None
+                try:
+                    def directories():
+                        current()
+                        if journal._key(os.fstat(parent))!=destination.ancestor_keys[0]:raise TransferError('media_backup_restore_parent_changed')
+                    directories()
+                    if pending:event=pending[0]
+                    else:
+                        if len(heads)>=journal.MAX_OPERATIONS:raise TransferError('media_backup_restore_history_capacity')
+                        operation=secrets.token_hex(16);stage='.magnolie-restore-'+operation+'.part'
+                        leaf=PurePosixPath(selected.name).name;extension=PurePosixPath(leaf).suffix
+                        if len(extension)>16:extension=''
+                        stem=leaf[:-len(extension)] if extension else leaf
+                        name=stem[:40]+' - restored '+operation+extension
+                        fd=os.open(stage,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,0o600,dir_fd=parent)
+                        event=dict(operation=operation,state='prepared',source_id=source_id,reference=selected.id,
+                            reference_sha256=selected.record_sha256,destination=destination.wire(),stage=stage,name=name,
+                            file_key=list(journal._key(os.fstat(fd))),size=mapping.saved_size,sha256=mapping.saved_sha256,original_mapping=mapping.wire())
+                        directories();os.fsync(fd);os.fsync(parent)
+                        journal.append(event,current);self._boundary('prepared')
+                    if event['reference_sha256']!=selected.record_sha256 or event['original_mapping']!=mapping.wire():
+                        raise TransferError('media_backup_restore_original_selection_required')
+                    def observe(name):
+                        directories()
+                        try:value=os.stat(name,dir_fd=parent,follow_symlinks=False)
+                        except FileNotFoundError:return None
+                        journal._private(value)
+                        if list(journal._key(value))!=event['file_key']:raise TransferError('media_backup_restore_original_candidate_required')
+                        return value
+                    stage_value=observe(event['stage']);published=stage_value is None
+                    name=event['name'] if published else event['stage'];observed=observe(name)
+                    if observed is None:raise TransferError('media_backup_restore_original_candidate_required')
+                    if fd is None:fd=os.open(name,os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,dir_fd=parent)
+                    journal._private(os.fstat(fd))
+                    if list(journal._key(os.fstat(fd)))!=event['file_key']:raise TransferError('media_backup_restore_original_candidate_required')
+                    def candidate_current():
+                        directories()
+                        if observe(name) is None:raise TransferError('media_backup_restore_original_candidate_required')
+                        if list(journal._key(os.fstat(fd)))!=event['file_key']:raise TransferError('media_backup_restore_original_candidate_required')
+                    if published:verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True)
+                    else:
+                        # Only this journal's private unpublished inode may be
+                        # restarted. A published/user file is never truncated.
+                        if os.fstat(fd).st_size>event['size']:raise TransferError('media_backup_restore_candidate_changed')
+                        complete=False
+                        if os.fstat(fd).st_size==event['size']:
+                            try:
+                                verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True);complete=True
+                            except TransferError as error:
+                                if str(error)!='media_backup_original_content_changed':raise
+                        if not complete:
+                            candidate_current();os.ftruncate(fd,0);os.fsync(fd)
+                            backups.restore(selected,fd);candidate_current()
+                        verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True)
+                        self._boundary('copied');candidate_current()
+                        _rename_no_replace(parent,event['stage'],event['name']);os.fsync(parent)
+                        name=event['name'];candidate_current();self._boundary('published')
+                    verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True)
+                    completed=journal.append(dict(event,state='restored'),current);self._boundary('restored')
+                    return NativeMediaBackupRestoration(completed['operation'],'restored',completed['name'],tuple(completed['file_key']),mapping)
+                finally:
+                    if fd is not None:os.close(fd)
+                    os.close(parent)
+
+    def close(self):return self._journal.close()
+    def __enter__(self):return self
+    def __exit__(self,*_):self.close()
 
 
 class NativeMediaBackups:
@@ -623,6 +1041,14 @@ class NativeMediaBackups:
     def versions(self):
         with self._operation():
             return tuple(self._version(self._record('versions', key)) for key, _ in self._members('versions'))
+
+    def selected_mapping(self,selected):
+        if type(selected) is not NativeMediaBackupVersion:raise TransferError('media_backup_native_selection_required')
+        with self._operation():
+            value=self._record('versions',selected.id)
+            if value is None or self._version(value)!=selected:raise TransferError('media_backup_stale_selection')
+            association=value['mapping']['association']
+            return NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**association),selected.id)
 
     def restore(self, selected, candidate_fd):
         if type(selected) is not NativeMediaBackupVersion: raise TransferError('media_backup_native_selection_required')
