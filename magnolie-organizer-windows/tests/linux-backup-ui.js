@@ -6,6 +6,9 @@ const block = source.slice(source.indexOf("  const telefonBackupAnsichten = new 
 assert(block.includes("function baueTelefonBackupOrdner"));
 const dom = new JSDOM("<!doctype html><body></body>", { runScripts: "outside-only", url: "https://native-backup.invalid" });
 const w = dom.window, sent = [];
+const timers = new Map(); let timerId = 0;
+w.setTimeout = (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; };
+w.clearTimeout = id => timers.delete(id);
 const peer = { device_id: "11111111-1111-4111-8111-111111111111", fingerprint: "a".repeat(64) };
 w.peer = peer; w.telefonStand = { peers: [peer] }; w._ = text => text;
 w.el = (tag, cls, text) => { const value = w.document.createElement(tag); if (cls) value.className = cls; if (text != null) value.textContent = text; return value; };
@@ -45,6 +48,14 @@ const reply = value => w.api.reply({ device_id: peer.device_id, requestId: sent.
   button("video", "read").click(); assert.equal(sent.at(-1).media_type, "video");
   reply({ page: { current_path: "/native/videos/Backup", is_default: true } }); await tick();
   assert(panel.textContent.includes("/alternative/Backup") && panel.textContent.includes("/native/videos/Backup"));
+  assert.equal(timers.size, 0);
+  button("images", "read").click(); const expiredRequest = { ...sent.at(-1) };
+  assert.equal(timers.size, 1); const timeout = [...timers.values()][0]; assert.equal(timeout.delay, 2 * 60 * 60 * 1000);
+  timers.clear(); timeout.callback(); await tick();
+  assert(!button("images", "read").disabled); assert(panel.querySelector(".einst-warnung"));
+  w.api.reply({ device_id: peer.device_id, requestId: expiredRequest.requestId, media_type: "images", ok: true,
+    page: { current_path: "/expired-owner/Backup", is_default: false } });
+  assert(!panel.textContent.includes("/expired-owner/Backup"));
   stand.busy = true; w.zeichneTelefonFotos(); assert([...panel.querySelectorAll("button")].every(item => item.disabled));
   stand.busy = false; stand.video_supported = false; w.zeichneTelefonFotos(); assert(!panel.querySelector('[data-backup-media="video"]'));
   peer.fingerprint = "b".repeat(64); w.zeichneTelefonFotos(); assert(!panel.textContent.includes("/alternative/Backup")); assert(!panel.open);

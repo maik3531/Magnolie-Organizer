@@ -28863,6 +28863,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function telefonBackupAnsicht(peer) {
     let value = telefonBackupAnsichten.get(peer.device_id);
     if (!value || value.fingerprint !== peer.fingerprint) {
+      for (const old of telefonBackupAnsichten.values()) if (old.pending) clearTimeout(old.pending.timer);
       value = { fingerprint: peer.fingerprint, open: false, domains: {}, pending: null };
       telefonBackupAnsichten.clear(); telefonBackupAnsichten.set(peer.device_id, value);
     }
@@ -28874,6 +28875,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (view.pending) return;
     const requestId = crypto.randomUUID();
     view.pending = { requestId, mediaType, until: Date.now() + 2 * 60 * 60 * 1000 };
+    view.pending.timer = setTimeout(() => {
+      if (telefonBackupAnsichten.get(peer.device_id) !== view || view.pending?.requestId !== requestId) return;
+      view.pending = null; view.domains[mediaType].error = true; zeichneTelefonFotos();
+    }, 2 * 60 * 60 * 1000);
     view.domains[mediaType] ||= {};
     view.domains[mediaType].error = false;
     zeichneTelefonFotos();
@@ -28881,6 +28886,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       Bruecke.sende({ cmd: "telefon_backupziel", kennung: peer.device_id, fingerprint: peer.fingerprint,
         media_type: mediaType, action, requestId });
     } catch {
+      clearTimeout(view.pending?.timer);
       view.pending = null; view.domains[mediaType].error = true; zeichneTelefonFotos();
     }
   }
@@ -28890,6 +28896,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!peer) return;
     const view = telefonBackupAnsicht(peer), pending = view.pending;
     if (!pending || pending.requestId !== value.requestId || pending.mediaType !== value.media_type) return;
+    clearTimeout(pending.timer);
     view.pending = null;
     const domain = view.domains[pending.mediaType];
     if (pending.until < Date.now() || value.ok !== true || typeof value.page?.current_path !== "string") domain.error = true;
