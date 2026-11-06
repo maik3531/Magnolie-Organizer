@@ -16,6 +16,8 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         private val values = MediaSyncSettings.effective(body)
         internal fun requested(mediaType: GalleryMediaType): Boolean = values["enabled"] == JsonPrimitive(true) &&
             values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
+        internal fun requestedIncoming(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
+            values["direction"] == JsonPrimitive("two_way")
     }
     @Volatile private var currentIntent: IntentToken? = null
     private data class ManualRequest(val id: String, val intent: IntentToken, val started: Long)
@@ -57,6 +59,11 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     // Native source checks may hold their index lock. This projection MUST NOT
     // acquire transport/Werk/storage locks or manufacture any permission.
     internal fun intentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requested(mediaType) }
+
+    // Incoming media needs the independently matched two-way direction. This
+    // remains intent only: never Android consent or a file-control grant. Keep
+    // it lock-free for receiver/index guards just like the outgoing projection.
+    internal fun incomingIntentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requestedIncoming(mediaType) }
 
     private fun publish() {
         val body = try { if (ready()) storage.read(binding) else null }

@@ -47,6 +47,21 @@ keine lokale PC-Schreibberechtigung, startet keinen Lauf und öffnet keinen
 Betriebssystemdialog. Einträge für Zielpfade, Schlüssel, Berechtigungsbelege,
 Löschbeweise oder Saved-Quittungen gehören nicht in diese Nachricht.
 
+Für den Rückweg besitzt Android eine getrennte, sperrfreie native
+`incomingIntentFor`-Sicht: derselbe tatsächlich gespeicherte, gesendete,
+bestätigte und vom Partner sicher bestätigte exakte Snapshot muss Hauptschalter,
+betroffene Medienart und ausdrücklich `two_way` enthalten. Die bisherige
+Quellsicht bleibt auch bei `phone_to_pc` gültig; sie darf nicht als Empfangswahl
+wiederverwendet werden. Videos übernehmen keine Fotoauswahl.
+
+Beide Sichten halten nur denselben unveränderlichen Inprozess-Absichtsbesitzer,
+keine Datei- oder Android-Schreibberechtigung. Abgleichverlust, Ausschalten oder
+erneute Übereinstimmung zieht den alten Besitzer zurück, selbst bei wieder
+gleichen sichtbaren Werten. Abfragen betreten weder Transportmonitor noch
+geschützten Speicher und verändern keine gespeicherten Register. Die eigentlichen
+lokalen Rechte und Empfangs-/Veröffentlichungshandler bleiben separat erforderlich;
+dieser Schritt gibt weder Erweiterung 23 noch beidseitige Bedienung frei.
+
 Der Hauptschalter „Foto- und Video-Synchronisation aktivieren“ steht über den
 Zugriffsrechten und ist bei neuen Einstellungen ausgeschaltet. Solange er aus
 ist, ist unabhängig von den gemerkten Unteroptionen keine Medien-Synchronisation

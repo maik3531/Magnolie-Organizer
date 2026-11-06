@@ -25,6 +25,7 @@ class MediaSyncStorageTest {
     private var current: MediaSettingsBinding? = expected
     private var restoring = false
     private var failSeal = false
+    private var unsealReads = 0
     private val queues = mutableListOf<TelefonQueue>()
     private val secret = SecretKeySpec(ByteArray(32) { 29 }, "AES")
     private val codec = object : TelefonPayloadStorage {
@@ -35,6 +36,7 @@ class MediaSyncStorageTest {
             return cipher.iv + cipher.doFinal(clear)
         }
         override fun decryptPayload(value: ByteArray, type: String, id: String): ByteArray {
+            unsealReads++
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, secret, GCMParameterSpec(128, value.copyOfRange(0, 12)))
             cipher.updateAAD("$type\u0000$id".toByteArray()); return cipher.doFinal(value.copyOfRange(12, value.size))
@@ -49,7 +51,7 @@ class MediaSyncStorageTest {
     }
     @Before fun setup() {
         context = ApplicationProvider.getApplicationContext(); context.deleteDatabase("magnolie_phone.db")
-        helper = TelefonDatenbank(context); current = expected; restoring = false; failSeal = false
+        helper = TelefonDatenbank(context); current = expected; restoring = false; failSeal = false; unsealReads = 0
     }
     @After fun cleanup() {
         queues.forEach { queue ->
@@ -133,6 +135,71 @@ class MediaSyncStorageTest {
         reject { channel.receive(message) { throw java.io.IOException("Synthetic secure ACK failure") } }
         assertNotNull(storage.read(expected)); assertFalse(channel.matched())
         assertTrue(queue.due(expected.peerActor, TelefonTransportArt.WIFI).isEmpty())
+    }
+
+    @Test fun incomingIntentRequiresExactMatchedTwoWayMasterAndIndependentMediaChoiceWithoutCreatingPermissions() {
+        val queue = TelefonQueue(context, codec).also { queues += it }; val storage = store()
+        fun tables(): Set<String> = helper.readableDatabase.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor ->
+            buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+        val expectedTables = tables() + "native_media_shared_settings"
+        var ready = true
+        val channel = MediaSyncTransport(expected, storage, queue) { ready }
+        fun edit(field: String, value: JsonElement) {
+            channel.invalidate(); storage.change(expected, field, value, storage.fieldVersion(expected, field))
+        }
+        fun match() {
+            channel.queueSettings()
+            val sent = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
+            assertTrue(channel.send(sent) { })
+            channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, storage.read(expected)!!, 60_000)) { }
+            assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+            channel.acknowledge(TelefonNachrichten.ack(sent.string("message_id"), "accepted", "none"))
+            queue.acknowledge(expected.peerActor, sent.string("message_id")); assertTrue(channel.matched())
+        }
+        assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES))
+        edit("enabled", JsonPrimitive(true)); match()
+        assertNotNull(channel.intentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES))
+        assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        edit("direction", JsonPrimitive("two_way")); match()
+        val first = channel.incomingIntentFor(GalleryMediaType.IMAGES)!!
+        assertSame(first, channel.intentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        val unchanged = storage.read(expected)!!
+        channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, unchanged, 60_000)) { }
+        assertSame(first, channel.incomingIntentFor(GalleryMediaType.IMAGES))
+        val before = blob(); val reads = unsealReads
+        repeat(1000) { assertSame(first, channel.incomingIntentFor(GalleryMediaType.IMAGES)) }
+        assertEquals(reads, unsealReads); assertArrayEquals(before, blob())
+        channel.invalidate(); assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); match()
+        assertNotSame(first, channel.incomingIntentFor(GalleryMediaType.IMAGES))
+        edit("videos_enabled", JsonPrimitive(true)); match()
+        assertSame(channel.incomingIntentFor(GalleryMediaType.IMAGES), channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        edit("photos_enabled", JsonPrimitive(false)); match()
+        assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNotNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        edit("enabled", JsonPrimitive(false)); match()
+        assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES)); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        edit("enabled", JsonPrimitive(true)); match(); assertNotNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        ready = false; channel.queueSettings(); assertNull(channel.incomingIntentFor(GalleryMediaType.VIDEO))
+        assertEquals("Shared intent must not construct a receiver policy or gallery index", expectedTables, tables())
+    }
+
+    @Test fun incomingIntentLookupDoesNotWaitForTransportMonitorOrReadProtectedMetadata() {
+        val queue = TelefonQueue(context, codec).also { queues += it }; val storage = store()
+        storage.change(expected, "enabled", JsonPrimitive(true), storage.fieldVersion(expected, "enabled"))
+        storage.change(expected, "direction", JsonPrimitive("two_way"), storage.fieldVersion(expected, "direction"))
+        val channel = MediaSyncTransport(expected, storage, queue) { true }; channel.queueSettings()
+        val message = queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload
+        channel.send(message) { }; channel.receive(TelefonNachrichten.message(MediaSyncSettings.KIND, storage.read(expected)!!, 60_000)) { }
+        channel.acknowledge(TelefonNachrichten.ack(message.string("message_id"), "accepted", "none"))
+        val intent = channel.incomingIntentFor(GalleryMediaType.IMAGES); assertNotNull(intent)
+        val ended = java.util.concurrent.CountDownLatch(1); val observed = java.util.concurrent.atomic.AtomicReference<Any?>()
+        val worker = Thread { try { observed.set(channel.incomingIntentFor(GalleryMediaType.IMAGES)) } finally { ended.countDown() } }
+        val reads = unsealReads
+        try {
+            synchronized(channel) { worker.start(); assertTrue(ended.await(1, java.util.concurrent.TimeUnit.SECONDS)) }
+        } finally { worker.join(5000); assertFalse(worker.isAlive) }
+        assertSame(intent, observed.get()); assertEquals(reads, unsealReads)
+        channel.invalidate(); assertNull(channel.incomingIntentFor(GalleryMediaType.IMAGES))
     }
 
     @Test fun readonlyPreviewAndIndependentFieldEditsPersistWithoutPermissionsOrQueue() {
