@@ -22351,6 +22351,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "telefon_videoziel_waehlen":
             self._telefon_videoziel_waehlen(nachricht)
+        elif befehl == "telefon_backupziel":
+            self._telefon_backupziel(nachricht)
 
         elif befehl == "medien_papierkorb":
             self._medien_papierkorb_aktion(nachricht)
@@ -24765,6 +24767,57 @@ class Fenster(_FENSTER_BASIS):
         if current_call and not self._gesperrt:
             self._telefon_ereignis("incoming_call", current_call)
         GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), self._tray_medien_aktualisieren(), False)[2])
+
+    def _telefon_backupziel(self,nachricht):
+        """Read native owners off the UI thread, then open only a native picker."""
+        kennung=nachricht.get("kennung");source=self._telefon
+        owned=[False]
+        result=dict(requestId=nachricht.get("requestId"),device_id=kennung,media_type=nachricht.get("media_type"))
+        def antwort(**values):
+            if owned[0]:self._telefon_backupziel_pending=False
+            self.antwort("App.telefonBackupErgebnis",{**result,**values})
+        def aktuell():
+            if self._gesperrt or self._telefon is not source or source is None or not self._organizer_vertraut():
+                raise ValueError("photo_sync_unavailable")
+        try:
+            if (set(nachricht)!={"cmd","kennung","fingerprint","media_type","action","requestId"}
+                    or nachricht["cmd"]!="telefon_backupziel" or type(kennung) is not str
+                    or type(nachricht["fingerprint"]) is not str or nachricht["media_type"] not in ("images","video")
+                    or nachricht["action"] not in ("read","choose","default")
+                    or type(nachricht["requestId"]) is not str or not 1<=len(nachricht["requestId"])<=128):
+                raise ValueError("photo_sync_invalid_action")
+            aktuell()
+            if getattr(self,"_telefon_backupziel_pending",False):
+                self.antwort("App.telefonBackupErgebnis",{**result,"ok":False})
+                return
+            self._telefon_backupziel_pending=True
+            owned[0]=True
+            def auftrag(operation,page=None,path=None):
+                try:
+                    aktuell()
+                    value=source.photo_sync_backup_locations(kennung,nachricht["fingerprint"],nachricht["media_type"],operation,
+                        None if page is None else page["version"],None if page is None else page["book_version"],path)
+                    aktuell()
+                    if operation=="read" and nachricht["action"]=="choose":
+                        def dialog():
+                            try:
+                                aktuell()
+                                selected=self._ordner_waehlen(_("Backups"),standard=os.path.dirname(value["current_path"]))
+                                aktuell()
+                                if selected:start("choose",value,selected)
+                                else:antwort(ok=True,canceled=True,page=value)
+                            except (ValueError,RuntimeError,OSError):antwort(ok=False)
+                            return False
+                        GLib.idle_add(dialog)
+                    elif operation=="read" and nachricht["action"]=="default":start("default",value)
+                    else:antwort(ok=True,page=value)
+                except (ValueError,RuntimeError,OSError):antwort(ok=False)
+            def start(operation,page=None,path=None):
+                worker=threading.Thread(target=auftrag,args=(operation,page,path),name="magnolie-backup-native-choice",daemon=True)
+                self._telefon_backupziel_worker=worker;worker.start()
+                return worker
+            return start("read")
+        except (ValueError,RuntimeError,OSError):antwort(ok=False)
 
     def _telefon_videoziel_waehlen(self, nachricht):
         kennung=nachricht.get("kennung")

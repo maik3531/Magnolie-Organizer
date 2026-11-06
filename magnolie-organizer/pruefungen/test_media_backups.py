@@ -245,6 +245,39 @@ def test_local_backup_history_uses_exact_retained_source_offline_and_never_falls
     finally:moved.rename(data)
     assert (data/record.relative_path).read_bytes()==raw
 
+def test_native_backup_picker_preflight_and_choice_preserve_grants_and_require_exact_cas(receiving,tmp_path):
+    fixture=receiving;connection=fixture[3];prepared(fixture)
+    before=connection._preferences.read();grant=connection._preferences.local_grant(True).grants
+    sent=fixture[2].send.call_count
+    first=connection.native_backup_locations('images')
+    assert first['is_default'] and first['current_path']==str(fixture[4]/'Backup')
+    path=tmp_path/'native-backup-picker-selection';path.mkdir(mode=0o700)
+    chosen=connection.native_backup_locations('images',operation='choose',version=first['version'],
+        book_version=first['book_version'],native_path=str(path))
+    assert not chosen['is_default'] and chosen['current_path']==str(path/'Backup') and len(chosen['sources'])==2
+    assert not list(path.iterdir()) and not (fixture[4]/'Backup').exists()
+    with pytest.raises(TransferError,match='cas_conflict'):
+        connection.native_backup_locations('images',operation='default',version=first['version'],book_version=first['book_version'])
+    reset=connection.native_backup_locations('images',operation='default',version=chosen['version'],book_version=chosen['book_version'])
+    assert reset['is_default'] and reset['sources']==chosen['sources']
+    assert connection._preferences.read()==before and connection._preferences.local_grant(True).grants==grant
+    assert fixture[2].send.call_count==sent and connection._album_worker is None
+
+def test_native_backup_picker_rejects_saved_book_turnover_during_dialog(receiving,tmp_path):
+    from magnolie_media_retention import NativeMediaRetention
+    from magnolie_telefon import strict_json
+    connection=receiving[3];prepared(receiving)
+    first=connection.native_backup_locations('images');directory=Path(connection._authority.binding.native_directory)
+    with NativeMediaRetention(directory) as policy:
+        token=policy.pause();policy.publish_saved(token,strict_json((directory.parent/'daten.json').read_bytes()))
+    path=tmp_path/'choice-after-another-save';path.mkdir(mode=0o700)
+    with pytest.raises(TransferError,match='saved_book_changed'):
+        connection.native_backup_locations('images',operation='choose',version=first['version'],
+            book_version=first['book_version'],native_path=str(path))
+    after=connection.native_backup_locations('images')
+    assert after['version']==first['version'] and after['sources']==first['sources'] and after['book_version']!=first['book_version']
+    assert not list(path.iterdir())
+
 
 def test_identical_saved_files_with_different_names_share_one_verified_object_and_keep_versions(vault):
     fixture, mappings, records, owner, raw, now = vault

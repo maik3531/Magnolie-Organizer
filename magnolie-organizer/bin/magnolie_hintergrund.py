@@ -808,6 +808,7 @@ def _request_shape(operation, arguments):
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_photo_sync_action": {"peer_id", "fingerprint", "request"},
         "phone_photo_sync_video_destination": {"peer_id", "fingerprint", "path"},
+        "phone_photo_sync_backup_locations": {"peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_scope": {"peer_id", "fingerprint", "subscriber", "book_source", "expected_source", "offset", "limit"},
         "phone_actor_producer": {"subscriber", "book_source", "request"},
@@ -2032,6 +2033,7 @@ class IPCServer:
             "phone_report": ("report", ()),
             "phone_photo_sync_action": ("photo_sync_action", ("peer_id", "fingerprint", "request")),
             "phone_photo_sync_video_destination": ("photo_sync_video_destination", ("peer_id", "fingerprint", "path")),
+            "phone_photo_sync_backup_locations": ("photo_sync_backup_locations", ("peer_id", "fingerprint", "media_type", "backup_action", "version", "book_version", "path")),
             "phone_contact_groups": ("contact_groups", ("peer_id", "fingerprint", "request")),
             "phone_contact_values": ("contact_values", ("peer_id", "fingerprint", "request")),
             "phone_contact_group_title": ("contact_group_title", ("peer_id", "fingerprint", "request")),
@@ -2801,6 +2803,10 @@ class PhoneServiceProxy:
         return self._call("photo_sync_action", peer_id=peer_id, fingerprint=fingerprint, request=request)
     def photo_sync_video_destination(self, peer_id, fingerprint, path):
         return self._call("photo_sync_video_destination", peer_id=peer_id, fingerprint=fingerprint, path=path)
+
+    def photo_sync_backup_locations(self,peer_id,fingerprint,media_type,operation,version=None,book_version=None,path=None):
+        return self._call("photo_sync_backup_locations",peer_id=peer_id,fingerprint=fingerprint,media_type=media_type,
+            backup_action=operation,version=version,book_version=book_version,path=path)
     def mcp_status(self): return self._call("mcp_status")
     def mcp_action(self, request): return self._call("mcp_action", request=request)
     def mcp_device_status_result(self, request_id):

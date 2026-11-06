@@ -28858,6 +28858,71 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   const telefonFotoFehler = new Map();
   const telefonFotoAnsichten = new Map();
+  const telefonBackupAnsichten = new Map();
+
+  function telefonBackupAnsicht(peer) {
+    let value = telefonBackupAnsichten.get(peer.device_id);
+    if (!value || value.fingerprint !== peer.fingerprint) {
+      value = { fingerprint: peer.fingerprint, open: false, domains: {}, pending: null };
+      telefonBackupAnsichten.clear(); telefonBackupAnsichten.set(peer.device_id, value);
+    }
+    return value;
+  }
+
+  function telefonBackupAnfordern(peer, action, mediaType) {
+    const view = telefonBackupAnsicht(peer);
+    if (view.pending) return;
+    const requestId = crypto.randomUUID();
+    view.pending = { requestId, mediaType, until: Date.now() + 2 * 60 * 60 * 1000 };
+    view.domains[mediaType] ||= {};
+    view.domains[mediaType].error = false;
+    zeichneTelefonFotos();
+    try {
+      Bruecke.sende({ cmd: "telefon_backupziel", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        media_type: mediaType, action, requestId });
+    } catch {
+      view.pending = null; view.domains[mediaType].error = true; zeichneTelefonFotos();
+    }
+  }
+
+  function telefonBackupErgebnis(value) {
+    const peer = telefonStand?.peers?.find(item => item.device_id === value?.device_id);
+    if (!peer) return;
+    const view = telefonBackupAnsicht(peer), pending = view.pending;
+    if (!pending || pending.requestId !== value.requestId || pending.mediaType !== value.media_type) return;
+    view.pending = null;
+    const domain = view.domains[pending.mediaType];
+    if (pending.until < Date.now() || value.ok !== true || typeof value.page?.current_path !== "string") domain.error = true;
+    else { domain.page = value.page; domain.error = false; }
+    zeichneTelefonFotos();
+  }
+
+  function baueTelefonBackupOrdner(peer, stand) {
+    const view = telefonBackupAnsicht(peer), fold = el("details", "einst-gruppe notes-backup-ordner");
+    fold.dataset.mediaBackups = "true"; fold.open = view.open;
+    fold.append(el("summary", null, _("Backups")));
+    fold.addEventListener("toggle", () => {
+      view.open = fold.open;
+      if (fold.open && !view.domains.images && !view.pending) telefonBackupAnfordern(peer, "read", "images");
+    });
+    const domains = [["images", _("Photos")]];
+    if (stand.video_supported === true && stand.video_destination) domains.push(["video", _("Videos")]);
+    for (const [kind, title] of domains) {
+      const state = view.domains[kind] || {}, row = el("div", "notes-backup-ordner-zeile");
+      row.dataset.backupMedia = kind; row.append(el("h4", null, title));
+      if (state.page) row.append(formZeile(_("Location"), el("span", null, state.page.current_path)));
+      if (state.error) row.append(el("p", "einst-warnung", _("Uncertain transfer: no automatic retry or file changes.")));
+      const buttons = el("div", "knopfreihe");
+      for (const [action, label] of [["read", _("Refresh")], ["choose", _("Choose folder …")], ["default", _("Use default")]]) {
+        const button = knopf(label, "", () => telefonBackupAnfordern(peer, action, kind));
+        button.dataset.backupAction = action;
+        button.disabled = !!view.pending || stand.busy === true || action !== "read" && !state.page || action === "default" && state.page?.is_default === true;
+        buttons.append(button);
+      }
+      row.append(buttons); fold.append(row);
+    }
+    return fold;
+  }
 
   function zeichneTelefonFotos(einzelneWurzel = null) {
     for (const wurzel of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-notes-photo-root]")) {
@@ -29016,6 +29081,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           gruppe.append(videos);
         }
       }
+      if (stand.destination) gruppe.append(baueTelefonBackupOrdner(peer, stand));
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       erweitert.append(gruppe); wurzel.append(erweitert);
     }
@@ -34388,6 +34454,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     telefonEntwicklerDiagnose,
     medienPapierkorbStand: medienPapierkorbErgebnis,
+    telefonBackupErgebnis,
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;
       if (value.ok) telefonFotoFehler.delete(value.device_id);

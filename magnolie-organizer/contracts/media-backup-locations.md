@@ -83,5 +83,17 @@ directory disappear. An unknown or unavailable historical source is held; there
 is no automatic fallback. The new-file preparation does not publish a mapping,
 overwrite a target, replay deletions or create phone write authority.
 
-The Linux native picker/recovery publication surface is not yet joined; these
-storage APIs and worker checks alone are not full user-visible acceptance.
+The Linux native picker uses a read-only preflight on the native IO lane before
+opening the GTK folder dialog on the UI thread. Preflight captures the exact
+selection CAS and saved-book witness; both are rechecked after the dialog. The
+private IPC route accepts the native picker path, while browser requests contain
+only the peer/fingerprint, media kind, action and correlated request ID. No path
+is accepted through the public photo-action or source-wire schemas.
+
+The initially closed Backups fold reads actual storage choices and exposes native
+folder/default choices separately for photos and available video destinations.
+Correlated failures/cancel preserve existing choices; opening settings does not
+start synchronization, and failed reads do not automatically retry. Existing
+translations are reused. Physical GTK dialog acceptance and native recovery
+publication/source-selection UI remain pending; source/controller tests alone
+are not full installed-package acceptance.

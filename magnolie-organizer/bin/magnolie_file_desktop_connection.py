@@ -356,6 +356,55 @@ class NativeDesktopFileConnection:
         session=self._desktop_session
         return session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
 
+    def native_backup_locations(self,media_type,*,operation='read',version=None,book_version=None,native_path=None):
+        """Private native picker/preflight API; never a source-wire command.
+
+        The preflight returns an opaque saved-book witness as well as selection
+        CAS. A delayed folder dialog cannot apply a choice to another saved book.
+        No peer file permission or synchronization action is produced here.
+        """
+        from hashlib import sha256
+        from magnolie_media_backups import NativeMediaBackupLocations
+        from magnolie_media_retention import NativeMediaRetention
+        from magnolie_file_acceptance import NativeAcceptedDestination
+        from magnolie_file_control import _hex
+        if (media_type not in ('images','video') or operation not in ('read','choose','default')
+                or (operation=='choose')!=(native_path is not None)
+                or native_path is not None and (type(native_path) is not str or not native_path or len(native_path)>4096)
+                or operation=='read' and (version is not None or book_version is not None)
+                or operation!='read' and (not _hex(version) or not _hex(book_version))):
+            raise TransferError('media_backup_native_request_invalid')
+        with self._operation():
+            expected=self._preferences.read();policy=expected.policy
+            destination=(policy.destination if media_type=='images' else policy.videos.destination if policy.videos is not None else None) if policy else None
+            if destination is None:raise TransferError('media_backup_default_required')
+            directory=self._authority.binding.native_directory
+            scope=sha256(canonical(dict(subject=self._preferences._subject,media_type=media_type))).hexdigest()
+            def current():
+                self._ready()
+                if self._authority.current_peer() is None or self._preferences.read()!=expected:
+                    raise TransferError('media_backup_native_owner_changed')
+                return True
+            with NativeMediaRetention(directory) as retention:
+                with retention.permit(current) as permit:
+                    if permit is None:raise TransferError('media_backup_current_saved_book_required')
+                    saved=sha256(canonical(retention._read())).hexdigest()
+                    if operation!='read' and book_version!=saved:raise TransferError('media_backup_saved_book_changed')
+                    def owned():
+                        current();permit.require_current();return True
+                    with NativeMediaBackupLocations(directory,scope,owned) as locations:
+                        snapshot=locations.read()
+                        if operation!='read':
+                            if self._album_worker is not None or self.desktop_snapshot().get('busy'):
+                                raise TransferError('media_backup_native_worker_busy')
+                            if snapshot.version!=version:raise TransferError('media_backup_locations_cas_conflict')
+                            parent=NativeAcceptedDestination.capture(native_path) if operation=='choose' else None
+                            snapshot=locations.choose(locations.issue_action(),snapshot,destination,parent)
+                        owned()
+                        return dict(version=snapshot.version,book_version=saved,is_default=snapshot.selected is None,
+                            current_path=str(Path(snapshot.current(destination).path)/'Backup'),
+                            sources=[dict(id=source_id,path=str(Path(parent.path)/'Backup')) for source_id,parent in locations.sources(destination)])
+
     def _source_command_authority(self, pending, clock):
         closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume')
         self._receiving_policy(closing=closing)

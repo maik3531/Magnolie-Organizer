@@ -2983,6 +2983,18 @@ class PhoneService:
         if connection is None:raise ValueError('photo_sync_not_enabled')
         return connection.desktop_session().start('videos_destination',destination_path=path)
 
+    def photo_sync_backup_locations(self,peer_id,expected_fingerprint,media_type,operation,version,book_version,path):
+        """Private native IPC only, separate from public photo action/wire schemas."""
+        if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+        with self.lock:
+            channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+            if (binding is None or type(expected_fingerprint) is not str
+                    or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                raise ValueError('phone_control_conflict')
+            connection=self._native_file_connections.get(channel)
+        if connection is None:raise ValueError('photo_sync_not_enabled')
+        return connection.native_backup_locations(media_type,operation=operation,version=version,book_version=book_version,native_path=path)
+
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
