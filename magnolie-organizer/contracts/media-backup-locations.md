@@ -76,5 +76,12 @@ Selection does not create Backup storage, copy bytes, rotate media grants or
 enable synchronization. Actual Saved/END copying captures the chosen settings
 version and checks it throughout original-byte backup creation.
 
+Linux local-history APIs resolve an opaque source ID to one exact retained native
+parent, independently of the active future-storage choice. Reads and preparation
+of a new recovery file continue after the transport owner and original data
+directory disappear. An unknown or unavailable historical source is held; there
+is no automatic fallback. The new-file preparation does not publish a mapping,
+overwrite a target, replay deletions or create phone write authority.
+
 The Linux native picker/recovery publication surface is not yet joined; these
 storage APIs and worker checks alone are not full user-visible acceptance.

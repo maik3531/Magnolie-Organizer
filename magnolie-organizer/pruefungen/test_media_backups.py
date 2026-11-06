@@ -212,6 +212,39 @@ def test_alternative_parent_never_adopts_foreign_backup_or_a_backup_subtree(mapp
             storage_parent=NativeAcceptedDestination.capture(folder))
     assert list(folder.iterdir())==[foreign] and foreign.read_bytes()==b'foreign original'
 
+def test_local_backup_history_uses_exact_retained_source_offline_and_never_falls_back(mappings,tmp_path):
+    fixture,store=mappings;raw=b'original recoverable after phone trash and source are gone'
+    record=save_native(fixture,store,raw,count=1)[0]
+    directory=fixture[3]._authority.binding.native_directory;scope='8'*64
+    path=tmp_path/'historical-backup-parent';path.mkdir(mode=0o700);parent=NativeAcceptedDestination.capture(path)
+    with NativeMediaBackupLocations(directory,scope,lambda:True) as locations:
+        chosen=locations.choose(locations.issue_action(),locations.read(),record.destination,parent)
+        with NativeMediaBackups(record.destination,fixture[3]._authority.protection,lambda:True,
+                create=True,storage_parent=parent) as backups:
+            version=backups.save_from_mappings(store,record.association,record.protected_record_sha256)
+        reset=locations.choose(locations.issue_action(),chosen,record.destination,None)
+        source_id=locations.source_id(parent)
+        assert source_id!=locations.source_id(record.destination)
+    fixture[3].close() # Actual transport/preference/mapping authority is gone.
+    data=fixture[4];moved=data.with_name(data.name+'-held-for-local-history');data.rename(moved)
+    try:
+        with NativeMediaBackupLocations(directory,scope,lambda:True) as offline:
+            assert offline.read()==reset
+            assert (source_id,parent) in offline.sources(record.destination)
+            assert offline.versions(record.destination,source_id)==(version,)
+            target=tmp_path/'new-offline-recovery.jpg'
+            fd=os.open(target,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            try:offline.restore(record.destination,source_id,version,fd)
+            finally:os.close(fd)
+            assert target.read_bytes()==raw and not data.exists() and offline.read()==reset
+            with pytest.raises(TransferError,match='source_not_retained'):
+                offline.versions(record.destination,'0'*64)
+            path.rename(tmp_path/'unavailable-historical-drive')
+            with pytest.raises((OSError,TransferError)):offline.versions(record.destination,source_id)
+            assert offline.read()==reset
+    finally:moved.rename(data)
+    assert (data/record.relative_path).read_bytes()==raw
+
 
 def test_identical_saved_files_with_different_names_share_one_verified_object_and_keep_versions(vault):
     fixture, mappings, records, owner, raw, now = vault

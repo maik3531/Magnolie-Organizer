@@ -209,6 +209,43 @@ class NativeMediaBackupLocations:
     def read(self):return self._store.read_locations()
     def issue_action(self):return self._store.issue_action()
     def choose(self,action,expected,default,parent):return self._store.choose(action,expected,default,parent)
+
+    @staticmethod
+    def source_id(parent):
+        if type(parent) is not NativeAcceptedDestination:raise TransferError('media_backup_native_parent_required')
+        return sha256(canonical(parent.wire())).hexdigest()
+
+    def sources(self,default):
+        if type(default) is not NativeAcceptedDestination:raise TransferError('media_backup_default_required')
+        snapshot=self.read();parents=snapshot.parents
+        if default not in parents:parents=(default,*parents)
+        return tuple((self.source_id(parent),parent) for parent in parents)
+
+    @contextmanager
+    def _history(self,default,source_id):
+        if not _hex(source_id):raise TransferError('media_backup_source_required')
+        parent=next((parent for key,parent in self.sources(default) if key==source_id),None)
+        if parent is None:raise TransferError('media_backup_source_not_retained')
+        def current():
+            self._store._peer()
+            if (source_id,parent) not in self.sources(default):raise TransferError('media_backup_source_not_retained')
+            return True
+        # Never follow the active future-storage choice or fall back from an
+        # unavailable historical source. Recovery needs no source channel/grant.
+        # The catalog owns its own key descriptor until its IO has drained;
+        # closing the settings facade invalidates current(), not that descriptor.
+        with ExistingFileTransferProtection(self._store.directory) as protection:
+            current()
+            with NativeMediaBackups(default,protection,current,storage_parent=parent) as backups:
+                yield backups
+
+    def versions(self,default,source_id):
+        with self._history(default,source_id) as backups:return backups.versions()
+
+    def restore(self,default,source_id,version,candidate_fd):
+        """Prepare a new owned file only; publication/phone mapping is separate."""
+        with self._history(default,source_id) as backups:return backups.restore(version,candidate_fd)
+
     def close(self):return self._store.close()
     def __enter__(self):return self
     def __exit__(self,*_):self.close()
