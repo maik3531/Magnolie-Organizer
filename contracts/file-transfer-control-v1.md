@@ -68,7 +68,19 @@ verification; partial/corrupt copies hold without rewriting them. Even a stored
 copy_verified head is freshly verified rather than trusted as cached success.
 No copying state can mark a row visible, remove data or produce Saved output.
 
-MIME/container admission, complete protected transport acceptance/staging,
+The separate native media-inspection primitive admits image MIME and bounded
+dimensions only from Android's bounds-only decoder, without pixel allocation.
+Video inspection requires matching native container MIME, video metadata and
+an actual video track among at most 16 tracks. It uses a read-only regular held
+descriptor with exact size and stable identity/timestamps; missing/unsupported
+metadata, native owner withdrawal or a claimed MIME mismatch holds admission.
+Its observation is neither publication permission nor a Saved receipt. It still
+needs joining to fresh original-byte verification and conditional publication.
+Image tests use the native decoder on synthetic PNG/JPEG files; video parser
+metadata/tracks and descriptor stat adaptation are explicitly test fixtures,
+not physical Android syscall or MP4 parser acceptance.
+
+Complete protected transport acceptance/staging,
 conditional publication, durable published native-phone association and genuine Saved output remain
 required, as do PC source ownership/upload, runtime/dispatcher joining and full
 native acceptance. Tests use real protected index/control/consent paths with a
