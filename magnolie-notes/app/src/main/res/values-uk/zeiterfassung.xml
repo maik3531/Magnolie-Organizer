@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Перемістити цей запис до кошика Notes на 30 днів? Записи в Organizer збережуться.</string>
     <string name="zeit_papierkorb_bis">У кошику до %1$s</string>
     <string name="zeit_monat">Місяць</string>
-    <string name="zeit_monat_entfernen">Видалити місяць із Notes</string>
+    <string name="zeit_monat_entfernen">Видалити вибране</string>
     <string name="zeit_monat_entfernen_frage">Перемістити записи цього місяця до кошика Notes на 30 днів? Записи в Organizer збережуться.</string>
     <string name="zeit_druck_name">Ім’я</string><string name="zeit_druck_datum">Дата</string>
     <string name="zeit_druck_enddatum">Дата завершення</string><string name="zeit_druck_stunden">Години</string>

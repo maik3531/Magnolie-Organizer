@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">यह प्रविष्टि 30 दिनों के लिए Notes के कूड़ेदान में भेजें? Organizer की प्रविष्टियाँ बनी रहेंगी।</string>
     <string name="zeit_papierkorb_bis">कूड़ेदान में %1$s तक</string>
     <string name="zeit_monat">महीना</string>
-    <string name="zeit_monat_entfernen">महीने को Notes से हटाएँ</string>
+    <string name="zeit_monat_entfernen">चयन हटाएँ</string>
     <string name="zeit_monat_entfernen_frage">इस महीने की प्रविष्टियाँ 30 दिनों के लिए Notes के कूड़ेदान में भेजें? Organizer की प्रविष्टियाँ बनी रहेंगी।</string>
     <string name="zeit_druck_name">नाम</string><string name="zeit_druck_datum">दिनांक</string>
     <string name="zeit_druck_enddatum">समाप्ति की तारीख</string><string name="zeit_druck_stunden">घंटे</string>

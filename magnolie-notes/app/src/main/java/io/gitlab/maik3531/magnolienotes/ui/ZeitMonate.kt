@@ -33,6 +33,8 @@ import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
+private data class ZeitEntfernenAuswahl(val month: String, val wholeMonth: Boolean, val entries: List<Zeiteintrag>)
+
 @Composable
 internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern: ZeitSpeichern,
                         beiPapierkorb: () -> Unit,
@@ -45,13 +47,14 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
     val months = entries.map { YearMonth.from(it.localStart()) }.distinct().sortedDescending()
     var selected by rememberSaveable { mutableStateOf((months.firstOrNull() ?: YearMonth.now()).toString()) }
     var menu by remember { mutableStateOf(false) }
-    var removal by remember { mutableStateOf<Pair<String, List<Zeiteintrag>>?>(null) }
+    var removal by remember { mutableStateOf<ZeitEntfernenAuswahl?>(null) }
     var reportName by remember(stand.reportName) { mutableStateOf(stand.reportName) }
     var allDays by rememberSaveable(selected) { mutableStateOf(true) }
     var picked by remember(selected) { mutableStateOf(emptySet<Int>()) }
     val month = YearMonth.parse(selected)
     val formatter = remember(locale) { DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale) }
     val monthEntries = entries.filter { YearMonth.from(it.localStart()) == month }
+    val selectedEntries = monthEntries.filter { allDays || it.localStart().dayOfMonth in picked }
     val druckAuswahl = ZeitMonatsDruckAuswahl(month,
         if (allDays) (1..month.lengthOfMonth()).toSet() else picked.toSet(), reportName)
     val aktuelleDruckAuswahl by androidx.compose.runtime.rememberUpdatedState(beiDruckAuswahl)
@@ -89,19 +92,20 @@ internal fun ZeitMonate(stand: ZeiterfassungStand, speichert: Boolean, speichern
             }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && monthEntries.isNotEmpty(), destruktiv = true) {
-                removal = selected to monthEntries.toList()
+            Papierknopf(stringResource(R.string.zeit_monat_entfernen), aktiv = !speichert && selectedEntries.isNotEmpty(), destruktiv = true) {
+                removal = ZeitEntfernenAuswahl(selected, allDays, selectedEntries.toList())
             }
             if (papierkorb.an) Papierknopf(stringResource(R.string.papierkorb_titel), beiKlick = beiPapierkorb)
         }
     }
-    removal?.let { (key, snapshot) ->
+    removal?.let { (key, wholeMonth, snapshot) ->
+        val removedMonth = key.takeIf { wholeMonth }
         AlertDialog(onDismissRequest = { if (!speichert) removal = null }, containerColor = Magnolie.papier,
             title = { Text(formatter.format(YearMonth.parse(key).atDay(1))) },
             text = { Text(loeschHinweis(papierkorb.an, lokal = true)) },
             confirmButton = { TextButton(enabled = !speichert, onClick = {
-                if (beiEntfernen != null) beiEntfernen(snapshot, key, papierkorb) { removal = null }
-                else speichern({ it.removeLocal(snapshot, month = key, papierkorb = papierkorb) }, { removal = null })
+                if (beiEntfernen != null) beiEntfernen(snapshot, removedMonth, papierkorb) { removal = null }
+                else speichern({ it.removeLocal(snapshot, month = removedMonth, papierkorb = papierkorb) }, { removal = null })
             }) { Text(stringResource(R.string.loeschen), color = Magnolie.rot) } },
             dismissButton = { TextButton(enabled = !speichert, onClick = { removal = null }) { Text(stringResource(R.string.abbrechen), color = Magnolie.braun) } })
     }

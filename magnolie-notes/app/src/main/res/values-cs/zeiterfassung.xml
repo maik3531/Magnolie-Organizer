@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Přesunout tento záznam na 30 dní do koše Notes? Záznamy v Organizer zůstanou zachovány.</string>
     <string name="zeit_papierkorb_bis">V koši do %1$s</string>
     <string name="zeit_monat">Měsíc</string>
-    <string name="zeit_monat_entfernen">Odebrat měsíc z Notes</string>
+    <string name="zeit_monat_entfernen">Odstranit výběr</string>
     <string name="zeit_monat_entfernen_frage">Přesunout záznamy tohoto měsíce na 30 dní do koše Notes? Záznamy v Organizer zůstanou zachovány.</string>
     <string name="zeit_druck_name">Jméno</string><string name="zeit_druck_datum">Datum</string>
     <string name="zeit_druck_enddatum">Datum konce</string><string name="zeit_druck_stunden">Hodiny</string>

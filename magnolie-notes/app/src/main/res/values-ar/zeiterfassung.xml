@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">نقل هذا السجل إلى سلة محذوفات Notes لمدة 30 يومًا؟ ستبقى سجلات Organizer محفوظة.</string>
     <string name="zeit_papierkorb_bis">في سلة المحذوفات حتى %1$s</string>
     <string name="zeit_monat">الشهر</string>
-    <string name="zeit_monat_entfernen">إزالة الشهر من Notes</string>
+    <string name="zeit_monat_entfernen">إزالة التحديد</string>
     <string name="zeit_monat_entfernen_frage">نقل سجلات هذا الشهر إلى سلة محذوفات Notes لمدة 30 يومًا؟ ستبقى سجلات Organizer محفوظة.</string>
     <string name="zeit_druck_name">الاسم</string><string name="zeit_druck_datum">التاريخ</string>
     <string name="zeit_druck_enddatum">تاريخ الانتهاء</string><string name="zeit_druck_stunden">الساعات</string>

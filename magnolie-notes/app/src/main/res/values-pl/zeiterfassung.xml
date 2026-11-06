@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Przenieść ten wpis do kosza Notes na 30 dni? Wpisy w Organizer zostaną zachowane.</string>
     <string name="zeit_papierkorb_bis">W koszu do %1$s</string>
     <string name="zeit_monat">Miesiąc</string>
-    <string name="zeit_monat_entfernen">Usuń miesiąc z Notes</string>
+    <string name="zeit_monat_entfernen">Usuń wybrane wpisy</string>
     <string name="zeit_monat_entfernen_frage">Przenieść wpisy z tego miesiąca do kosza Notes na 30 dni? Wpisy w Organizer zostaną zachowane.</string>
     <string name="zeit_druck_name">Imię i nazwisko</string><string name="zeit_druck_datum">Data</string>
     <string name="zeit_druck_enddatum">Data zakończenia</string><string name="zeit_druck_stunden">Godziny</string>

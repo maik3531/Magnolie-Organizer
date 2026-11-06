@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Placer cette saisie dans la corbeille de Notes pendant 30 jours ? Les saisies dans Organizer sont conservées.</string>
     <string name="zeit_papierkorb_bis">Dans la corbeille jusqu’au %1$s</string>
     <string name="zeit_monat">Mois</string>
-    <string name="zeit_monat_entfernen">Retirer le mois de Notes</string>
+    <string name="zeit_monat_entfernen">Supprimer la sélection</string>
     <string name="zeit_monat_entfernen_frage">Placer les saisies de ce mois dans la corbeille de Notes pendant 30 jours ? Les saisies dans Organizer sont conservées.</string>
     <string name="zeit_druck_name">Nom</string><string name="zeit_druck_datum">Date</string>
     <string name="zeit_druck_enddatum">Date de fin</string><string name="zeit_druck_stunden">Heures</string>

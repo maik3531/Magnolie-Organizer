@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Mover este registo para o lixo de Notes durante 30 dias? Os registos no Organizer são mantidos.</string>
     <string name="zeit_papierkorb_bis">No lixo até %1$s</string>
     <string name="zeit_monat">Mês</string>
-    <string name="zeit_monat_entfernen">Remover o mês de Notes</string>
+    <string name="zeit_monat_entfernen">Remover seleção</string>
     <string name="zeit_monat_entfernen_frage">Mover os registos deste mês para o lixo de Notes durante 30 dias? Os registos no Organizer são mantidos.</string>
     <string name="zeit_druck_name">Nome</string><string name="zeit_druck_datum">Data</string>
     <string name="zeit_druck_enddatum">Data de fim</string><string name="zeit_druck_stunden">Horas</string>

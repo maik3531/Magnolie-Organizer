@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">¿Mover este registro a la papelera de Notes durante 30 días? Los registros de Organizer se conservan.</string>
     <string name="zeit_papierkorb_bis">En la papelera hasta %1$s</string>
     <string name="zeit_monat">Mes</string>
-    <string name="zeit_monat_entfernen">Quitar el mes de Notes</string>
+    <string name="zeit_monat_entfernen">Eliminar selección</string>
     <string name="zeit_monat_entfernen_frage">¿Mover los registros de este mes a la papelera de Notes durante 30 días? Los registros de Organizer se conservan.</string>
     <string name="zeit_druck_name">Nombre</string><string name="zeit_druck_datum">Fecha</string>
     <string name="zeit_druck_enddatum">Fecha de fin</string><string name="zeit_druck_stunden">Horas</string>

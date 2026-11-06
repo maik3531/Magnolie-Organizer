@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Flytte denne registreringen til papirkurven i Notes i 30 dager? Registreringer i Organizer beholdes.</string>
     <string name="zeit_papierkorb_bis">I papirkurven til %1$s</string>
     <string name="zeit_monat">Måned</string>
-    <string name="zeit_monat_entfernen">Fjern måneden fra Notes</string>
+    <string name="zeit_monat_entfernen">Fjern valgte oppføringer</string>
     <string name="zeit_monat_entfernen_frage">Flytte denne månedens registreringer til papirkurven i Notes i 30 dager? Registreringer i Organizer beholdes.</string>
     <string name="zeit_druck_name">Navn</string><string name="zeit_druck_datum">Dato</string>
     <string name="zeit_druck_enddatum">Sluttdato</string><string name="zeit_druck_stunden">Timer</string>

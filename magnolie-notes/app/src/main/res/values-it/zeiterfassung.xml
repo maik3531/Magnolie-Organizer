@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Spostare questa registrazione nel cestino di Notes per 30 giorni? Le registrazioni in Organizer vengono conservate.</string>
     <string name="zeit_papierkorb_bis">Nel cestino fino al %1$s</string>
     <string name="zeit_monat">Mese</string>
-    <string name="zeit_monat_entfernen">Rimuovi il mese da Notes</string>
+    <string name="zeit_monat_entfernen">Rimuovi selezione</string>
     <string name="zeit_monat_entfernen_frage">Spostare le registrazioni di questo mese nel cestino di Notes per 30 giorni? Le registrazioni in Organizer vengono conservate.</string>
     <string name="zeit_druck_name">Nome</string><string name="zeit_druck_datum">Data</string>
     <string name="zeit_druck_enddatum">Data di fine</string><string name="zeit_druck_stunden">Ore</string>

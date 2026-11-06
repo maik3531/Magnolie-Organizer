@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Diesen Eintrag für 30 Tage in den Papierkorb von Notes verschieben? Einträge im Organizer bleiben erhalten.</string>
     <string name="zeit_papierkorb_bis">Im Papierkorb bis %1$s</string>
     <string name="zeit_monat">Monat</string>
-    <string name="zeit_monat_entfernen">Monat aus Notes entfernen</string>
+    <string name="zeit_monat_entfernen">Auswahl entfernen</string>
     <string name="zeit_monat_entfernen_frage">Die Einträge dieses Monats für 30 Tage in den Papierkorb von Notes verschieben? Einträge im Organizer bleiben erhalten.</string>
     <string name="zeit_druck_name">Name</string><string name="zeit_druck_datum">Datum</string>
     <string name="zeit_druck_enddatum">Enddatum</string><string name="zeit_druck_stunden">Stunden</string>

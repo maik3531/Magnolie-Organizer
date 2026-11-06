@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Перамясціць гэты запіс у сметніцу Notes на 30 дзён? Запісы ў Organizer застануцца.</string>
     <string name="zeit_papierkorb_bis">У сметніцы да %1$s</string>
     <string name="zeit_monat">Месяц</string>
-    <string name="zeit_monat_entfernen">Выдаліць месяц з Notes</string>
+    <string name="zeit_monat_entfernen">Выдаліць выбранае</string>
     <string name="zeit_monat_entfernen_frage">Перамясціць запісы гэтага месяца ў сметніцу Notes на 30 дзён? Запісы ў Organizer застануцца.</string>
     <string name="zeit_druck_name">Імя</string><string name="zeit_druck_datum">Дата</string>
     <string name="zeit_druck_enddatum">Дата заканчэння</string><string name="zeit_druck_stunden">Гадзіны</string>

@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">この記録を Notes のごみ箱に移して30日間保持しますか？Organizer の記録は保持されます。</string>
     <string name="zeit_papierkorb_bis">ごみ箱で %1$s まで保持</string>
     <string name="zeit_monat">月</string>
-    <string name="zeit_monat_entfernen">この月を Notes から削除</string>
+    <string name="zeit_monat_entfernen">選択項目を削除</string>
     <string name="zeit_monat_entfernen_frage">この月の記録を Notes のごみ箱に移して30日間保持しますか？Organizer の記録は保持されます。</string>
     <string name="zeit_druck_name">氏名</string><string name="zeit_druck_datum">日付</string>
     <string name="zeit_druck_enddatum">終了日</string><string name="zeit_druck_stunden">時間</string>

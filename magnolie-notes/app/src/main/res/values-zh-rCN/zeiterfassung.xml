@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">将此记录移至 Notes 回收站并保留 30 天？Organizer 中的记录将保留。</string>
     <string name="zeit_papierkorb_bis">在回收站中保留至 %1$s</string>
     <string name="zeit_monat">月份</string>
-    <string name="zeit_monat_entfernen">从 Notes 移除此月份</string>
+    <string name="zeit_monat_entfernen">移除所选内容</string>
     <string name="zeit_monat_entfernen_frage">将此月份的记录移至 Notes 回收站并保留 30 天？Organizer 中的记录将保留。</string>
     <string name="zeit_druck_name">姓名</string><string name="zeit_druck_datum">日期</string>
     <string name="zeit_druck_enddatum">结束日期</string><string name="zeit_druck_stunden">小时</string>

@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Move this record to the Notes trash for 30 days? Organizer entries are kept.</string>
     <string name="zeit_papierkorb_bis">Kept in trash until %1$s</string>
     <string name="zeit_monat">Month</string>
-    <string name="zeit_monat_entfernen">Remove month from Notes</string>
+    <string name="zeit_monat_entfernen">Remove selection</string>
     <string name="zeit_monat_entfernen_frage">Move this month’s records to the Notes trash for 30 days? Organizer entries are kept.</string>
     <string name="zeit_druck_name">Name</string><string name="zeit_druck_datum">Date</string>
     <string name="zeit_druck_enddatum">End date</string><string name="zeit_druck_stunden">Hours</string>

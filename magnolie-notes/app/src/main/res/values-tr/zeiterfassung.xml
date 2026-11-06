@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Bu kayıt 30 günlüğüne Notes çöp kutusuna taşınsın mı? Organizer kayıtları korunur.</string>
     <string name="zeit_papierkorb_bis">Çöp kutusunda tutulacağı tarih: %1$s</string>
     <string name="zeit_monat">Ay</string>
-    <string name="zeit_monat_entfernen">Ayı Notes’tan kaldır</string>
+    <string name="zeit_monat_entfernen">Seçilenleri kaldır</string>
     <string name="zeit_monat_entfernen_frage">Bu ayın kayıtları 30 günlüğüne Notes çöp kutusuna taşınsın mı? Organizer kayıtları korunur.</string>
     <string name="zeit_druck_name">Ad</string><string name="zeit_druck_datum">Tarih</string>
     <string name="zeit_druck_enddatum">Bitiş tarihi</string><string name="zeit_druck_stunden">Saat</string>

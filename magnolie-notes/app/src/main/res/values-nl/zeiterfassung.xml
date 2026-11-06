@@ -32,7 +32,7 @@
     <string name="zeit_loeschen_frage">Deze registratie 30 dagen in de prullenbak van Notes bewaren? Registraties in Organizer blijven behouden.</string>
     <string name="zeit_papierkorb_bis">In de prullenbak tot %1$s</string>
     <string name="zeit_monat">Maand</string>
-    <string name="zeit_monat_entfernen">Maand uit Notes verwijderen</string>
+    <string name="zeit_monat_entfernen">Selectie verwijderen</string>
     <string name="zeit_monat_entfernen_frage">De registraties van deze maand 30 dagen in de prullenbak van Notes bewaren? Registraties in Organizer blijven behouden.</string>
     <string name="zeit_druck_name">Naam</string><string name="zeit_druck_datum">Datum</string>
     <string name="zeit_druck_enddatum">Einddatum</string><string name="zeit_druck_stunden">Uren</string>
