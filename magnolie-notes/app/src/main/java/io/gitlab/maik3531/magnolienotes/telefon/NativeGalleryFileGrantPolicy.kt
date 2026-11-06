@@ -8,7 +8,8 @@ import kotlinx.serialization.json.*
  * reader (for example NativeGalleryPhotoWorkflow.savedPolicy).
  */
 internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> NativeFileControlPeer?,
-    private val readPolicy: () -> GalleryPhotoPolicySnapshot, private val handlersReady: () -> Boolean) {
+    private val readPolicy: () -> GalleryPhotoPolicySnapshot, private val handlersReady: () -> Boolean,
+    private val receiveHandlersReady: () -> Boolean = { false }) {
     private val owner = Any()
     private var confirmed: DeviceFileGrantState? = null
     private var relationship: Triple<String, String, String>? = null
@@ -35,12 +36,13 @@ internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> Nativ
                 // that would collide with the repaired confirmed grant later.
                 val held = confirmed ?: return null
                 val ready = handlersReady()
-                if (!ready && held.sendFiles) return null
+                if (!ready && (held.sendFiles || held.receiveFiles) || held.receiveFiles && !receiveHandlersReady()) return null
                 return NativeLocalFileGrant(held, owner, ready, policyReady = false)
             }
             val associated = policy != null && policy.receiverId == peer.peerId && policy.receiverIdentitySha256 == peer.identitySha256 &&
                 policy.pairingEpoch == pairing
-            val next = if (associated) DeviceFileGrantState(policy!!.fileGrantRevision, policy.epoch, policy.enabled, false) else off
+            val next = if (associated) DeviceFileGrantState(policy!!.fileGrantRevision, policy.epoch, policy.enabled,
+                policy.receiving?.anyEnabled == true) else off
             val before = confirmed
             if (before != null && (next.revision < before.revision || next.revision == before.revision &&
                     next.permissionWire() != before.permissionWire())) { uncertain = true; return null }
@@ -48,7 +50,7 @@ internal class NativeGalleryFileGrantPolicy(private val currentPeer: () -> Nativ
             val ready = handlersReady()
             // A disabled handler cannot wrap an enabled native grant. Keep the
             // confirmed bytes intact for a later fresh native owner instead.
-            if (!ready && next.sendFiles) return null
+            if (!ready && (next.sendFiles || next.receiveFiles) || next.receiveFiles && !receiveHandlersReady()) return null
             return NativeLocalFileGrant(next, owner, ready)
         } catch (error: Exception) { uncertain = true; throw error }
     }

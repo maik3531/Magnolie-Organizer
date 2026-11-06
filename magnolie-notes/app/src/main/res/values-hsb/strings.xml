@@ -437,6 +437,7 @@
     <string name="shared_sync_time_direction">Směr synchronizacije časoweho zapisowanja</string>
     <string name="telefon_code_gegenstelle">Wobkrućće tutón kod na druhim graće.</string>
     <string name="baum_kontakt_gruppen">Kontaktowe skupiny</string>
+    <string name="medien_empfang_bestaetigen">Tutomu ličadłu dowolić nowe dataje tutoho medijoweho typa w galeriji wutworić? Eksistowace dataje so njenarunaja.</string>
     <string name="medien_sync_titel">Fota a wideja</string>
     <string name="medien_sync_aktivieren">Synchronizaciju fotow a widejow zmóžnić</string>
     <string name="medien_sync_scope_phone">Jenož wobsah telefona</string>

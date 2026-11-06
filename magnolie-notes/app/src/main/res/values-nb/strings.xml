@@ -415,6 +415,7 @@
     <string name="shared_sync_time_direction">Synkroniseringsretning for tidsregistrering</string>
     <string name="telefon_code_gegenstelle">Bekreft denne koden på den andre enheten.</string>
     <string name="baum_kontakt_gruppen">Kontaktgrupper</string>
+    <string name="medien_empfang_bestaetigen">Tillate at denne datamaskinen oppretter nye gallerifiler av denne typen? Eksisterende filer erstattes ikke.</string>
     <string name="medien_sync_titel">Bilder og videoer</string>
     <string name="medien_sync_aktivieren">Aktiver synkronisering av bilder og videoer</string>
     <string name="medien_sync_scope_phone">Bare telefonens innhold</string>

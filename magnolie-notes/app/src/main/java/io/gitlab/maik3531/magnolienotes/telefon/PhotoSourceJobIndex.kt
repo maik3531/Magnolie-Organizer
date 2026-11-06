@@ -537,9 +537,12 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
             if (next.fileGrantRevision == oldPolicy.fileGrantRevision &&
                 (next.epoch != oldPolicy.epoch || next.enabled != oldPolicy.enabled || next.kinds != oldPolicy.kinds ||
                     next.receiverId != oldPolicy.receiverId || next.receiverIdentitySha256 != oldPolicy.receiverIdentitySha256 ||
-                    next.pairingEpoch != oldPolicy.pairingEpoch)) fail("gallery_policy_permission_revision_conflict")
+                    next.pairingEpoch != oldPolicy.pairingEpoch || next.receiving != oldPolicy.receiving))
+                fail("gallery_policy_permission_revision_conflict")
             if (oldPolicy.videos != null && (next.videos == null || next.videos.revision < oldPolicy.videos.revision))
                 fail("gallery_video_policy_downgrade")
+            if (oldPolicy.receiving != null && (next.receiving == null || next.receiving.revision < oldPolicy.receiving.revision))
+                fail("gallery_receive_policy_downgrade")
         }
         if (!permitted()) fail("gallery_policy_revoked")
         val wanted = protection.seal(frame(next.wire()), "photo-source-jobs-v1/" + GALLERY_POLICY)

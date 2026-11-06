@@ -444,6 +444,7 @@
     <string name="shared_sync_time_direction">Кірунак сінхранізацыі ўліку часу</string>
     <string name="telefon_code_gegenstelle">Пацвердзіце гэты код на іншай прыладзе.</string>
     <string name="baum_kontakt_gruppen">Групы кантактаў</string>
+    <string name="medien_empfang_bestaetigen">Дазволіць гэтаму камп’ютару ствараць новыя файлы гэтага тыпу ў галерэі? Існыя файлы не будуць заменены.</string>
     <string name="medien_sync_titel">Фота і відэа</string>
     <string name="medien_sync_aktivieren">Уключыць сінхранізацыю фота і відэа</string>
     <string name="medien_sync_scope_phone">Толькі змесціва тэлефона</string>

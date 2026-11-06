@@ -395,6 +395,7 @@
     <string name="shared_sync_time_direction">时间记录同步方向</string>
     <string name="telefon_code_gegenstelle">请在另一台设备上确认此代码。</string>
     <string name="baum_kontakt_gruppen">联系人分组</string>
+    <string name="medien_empfang_bestaetigen">允许此电脑在图库中创建此类型的新文件吗？现有文件不会被替换。</string>
     <string name="medien_sync_titel">照片和视频</string>
     <string name="medien_sync_aktivieren">启用照片和视频同步</string>
     <string name="medien_sync_scope_phone">仅手机中的内容</string>

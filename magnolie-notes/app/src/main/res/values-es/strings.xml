@@ -433,6 +433,7 @@
     <string name="shared_sync_time_direction">Dirección de sincronización del registro de tiempo</string>
     <string name="telefon_code_gegenstelle">Confirma este código en el otro dispositivo.</string>
     <string name="baum_kontakt_gruppen">Grupos de contactos</string>
+    <string name="medien_empfang_bestaetigen">¿Permitir que este ordenador cree archivos nuevos de este tipo en la galería? No se sustituirán los archivos existentes.</string>
     <string name="medien_sync_titel">Fotos y vídeos</string>
     <string name="medien_sync_aktivieren">Activar la sincronización de fotos y vídeos</string>
     <string name="medien_sync_scope_phone">Solo el contenido del teléfono</string>

@@ -432,6 +432,7 @@
     <string name="shared_sync_time_direction">Direzione di sincronizzazione del rilevamento tempi</string>
     <string name="telefon_code_gegenstelle">Conferma questo codice sull’altro dispositivo.</string>
     <string name="baum_kontakt_gruppen">Gruppi di contatti</string>
+    <string name="medien_empfang_bestaetigen">Consentire a questo computer di creare nuovi file di questo tipo nella galleria? I file esistenti non verranno sostituiti.</string>
     <string name="medien_sync_titel">Foto e video</string>
     <string name="medien_sync_aktivieren">Attiva la sincronizzazione di foto e video</string>
     <string name="medien_sync_scope_phone">Solo i contenuti del telefono</string>

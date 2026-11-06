@@ -510,6 +510,7 @@
     <string name="shared_sync_time_direction">Time synchronization direction</string>
     <string name="telefon_code_gegenstelle">Confirm this code on the other device.</string>
     <string name="baum_kontakt_gruppen">Contact groups</string>
+    <string name="medien_empfang_bestaetigen">Allow this computer to create new gallery files of this type? Existing files will not be replaced.</string>
     <string name="medien_sync_titel">Photos and videos</string>
     <string name="medien_sync_aktivieren">Enable photo and video synchronization</string>
     <string name="medien_sync_scope_phone">Only the phone inventory</string>

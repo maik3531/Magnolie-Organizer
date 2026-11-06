@@ -436,6 +436,7 @@
     <string name="shared_sync_time_direction">Sens de synchronisation du suivi du temps</string>
     <string name="telefon_code_gegenstelle">Confirmez ce code sur l’autre appareil.</string>
     <string name="baum_kontakt_gruppen">Groupes de contacts</string>
+    <string name="medien_empfang_bestaetigen">Autoriser cet ordinateur à créer de nouveaux fichiers de ce type dans la galerie ? Les fichiers existants ne seront pas remplacés.</string>
     <string name="medien_sync_titel">Photos et vidéos</string>
     <string name="medien_sync_aktivieren">Activer la synchronisation des photos et vidéos</string>
     <string name="medien_sync_scope_phone">Uniquement le contenu du téléphone</string>

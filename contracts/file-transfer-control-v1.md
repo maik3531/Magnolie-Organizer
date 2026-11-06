@@ -2,6 +2,33 @@
 
 ### Independent incoming configuration bootstrap (Refs #338; receive default closed)
 
+#### Explicit local Android receive consent (Refs #338; not runtime enablement)
+
+Android has a separate foreground positive-button selection for receiving photos
+or videos from the current own PC. It requires the current document instance,
+unchanged successfully saved/unlocked book and resumed native activity. Cancel,
+pause, expiry, book/profile change or changed incoming configurer retires the
+selection. It is one-use consent for protected policy CAS on the serialized IO
+lane, not Android OS permission or authority to insert/publish a MediaStore row.
+
+Protected policy format 5 retains independent photo/video receive choices and
+their epoch/revision alongside existing source/video choices. Receive changes
+advance the common file-grant revision; source/video configuration preserves
+these choices and re-pairing cannot inherit them. Protected membership rejects
+receive-policy downgrade and changes without a permission revision. Local
+decrease requires a current saved book but no online PC; absent settings remain
+absent. Interrupted publication or exhausted counters hold the current owner
+without pretending a stored positive choice was successfully switched off.
+
+The native grant projection additionally requires explicitly supplied real
+receive-handler readiness, default false. Stored local consent alone cannot
+activate existing source-only factories. Even a tested positive consent change
+needs fresh actual data-control agreement. No receive dispatcher, MediaStore
+publication, Saved receipt, bidirectional UI or capability is enabled here.
+The new question is translated in all 20 catalogs without changing existing
+resources. Robolectric dialog/control/protected-policy tests are not physical
+Android provider/network/package acceptance.
+
 The native Android control session has a separate incoming-configuration ticket
 and authority type. It requires the current authenticated own-PC relationship,
 an actual native pairing epoch, the PC's positively acknowledged send-files

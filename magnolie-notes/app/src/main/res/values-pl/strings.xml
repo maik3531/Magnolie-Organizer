@@ -437,6 +437,7 @@
     <string name="shared_sync_time_direction">Kierunek synchronizacji ewidencji czasu</string>
     <string name="telefon_code_gegenstelle">Potwierdź ten kod na drugim urządzeniu.</string>
     <string name="baum_kontakt_gruppen">Grupy kontaktów</string>
+    <string name="medien_empfang_bestaetigen">Zezwolić temu komputerowi na tworzenie w galerii nowych plików tego typu? Istniejące pliki nie będą zastępowane.</string>
     <string name="medien_sync_titel">Zdjęcia i filmy</string>
     <string name="medien_sync_aktivieren">Włącz synchronizację zdjęć i filmów</string>
     <string name="medien_sync_scope_phone">Tylko zawartość telefonu</string>

@@ -8,9 +8,8 @@ import java.util.Collections
 import java.security.SecureRandom
 import java.util.Locale
 
-/** Dedicated source policy; Android read permission is separate. No remote
- * access epochs, phone writes/deletions, destination paths or book settings.
- */
+/** Dedicated native media policy; Android OS permissions remain separate. No
+ * remote access epochs, destination paths or document settings are persisted. */
 internal data class GalleryVideoPolicy(val enabled: Boolean, val epoch: String, val revision: Long = 1) {
     init { require(DeviceFileControl.hash(epoch) && revision in 1..DeviceFileControl.MAX_REVISION) }
     internal fun wire() = JsonObject(mapOf("enabled" to JsonPrimitive(enabled), "epoch" to JsonPrimitive(epoch), "revision" to JsonPrimitive(revision)))
@@ -26,20 +25,43 @@ internal data class GalleryVideoPolicy(val enabled: Boolean, val epoch: String, 
     }
 }
 
+/** Explicit LOCAL per-kind receive consent, never projected from shared intent
+ * or source READ. It does not authorize MediaStore access/publication itself. */
+internal data class GalleryReceivePolicy(val photos: Boolean, val videos: Boolean, val epoch: String, val revision: Long = 1) {
+    init { require(DeviceFileControl.hash(epoch) && revision in 1..DeviceFileControl.MAX_REVISION) }
+    internal fun enabled(kind: GalleryMediaType) = if (kind == GalleryMediaType.IMAGES) photos else videos
+    internal val anyEnabled: Boolean get() = photos || videos
+    internal fun wire() = JsonObject(mapOf("photos_enabled" to JsonPrimitive(photos), "videos_enabled" to JsonPrimitive(videos),
+        "epoch" to JsonPrimitive(epoch), "revision" to JsonPrimitive(revision)))
+    companion object {
+        internal fun parse(value: JsonObject): GalleryReceivePolicy {
+            fun fail(): Nothing = throw PhotoFolderScopeError("gallery_receive_policy_invalid_record")
+            if (value.keys != setOf("photos_enabled", "videos_enabled", "epoch", "revision")) fail()
+            fun flag(name: String) = (value[name] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
+            val epoch = (value["epoch"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
+            val revision = (value["revision"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail()
+            return try { GalleryReceivePolicy(flag("photos_enabled"), flag("videos_enabled"), epoch, revision) }
+            catch (_: IllegalArgumentException) { fail() }
+        }
+    }
+}
+
 internal class GalleryPhotoPolicy(val receiverId: String, val receiverIdentitySha256: String,
     val epoch: String, val enabled: Boolean, kinds: Set<GallerySourceKind>, val revision: Long = 1,
     private val recordFormat: Int = 1, val pairingEpoch: String? = null,
-    val videos: GalleryVideoPolicy? = null, private val permissionRevision: Long? = null) {
+    val videos: GalleryVideoPolicy? = null, private val permissionRevision: Long? = null,
+    val receiving: GalleryReceivePolicy? = null) {
     val kinds: Set<GallerySourceKind> = Collections.unmodifiableSet(kinds.toSet())
     val fileGrantRevision: Long get() = permissionRevision ?: revision
     init {
         require(Regex("[A-Za-z0-9_-]{16,160}").matches(receiverId))
         require(Regex("[0-9a-f]{64}").matches(receiverIdentitySha256) && Regex("[0-9a-f]{64}").matches(epoch))
         require(!enabled || kinds.isNotEmpty())
-        require(recordFormat in 1..4 && revision in 1..DeviceFileControl.MAX_REVISION && (recordFormat != 1 || revision == 1L))
+        require(recordFormat in 1..5 && revision in 1..DeviceFileControl.MAX_REVISION && (recordFormat != 1 || revision == 1L))
         require(if (recordFormat >= 3) pairingEpoch != null && DeviceFileControl.hash(pairingEpoch) else pairingEpoch == null)
-        require(if (recordFormat == 4) videos != null && permissionRevision != null && permissionRevision in 1..revision
+        require(if (recordFormat >= 4) videos != null && permissionRevision != null && permissionRevision in 1..revision
             else videos == null && permissionRevision == null)
+        require(if (recordFormat == 5) receiving != null else receiving == null)
     }
     override fun equals(other: Any?): Boolean = other is GalleryPhotoPolicy && wire() == other.wire()
     override fun hashCode(): Int = wire().hashCode()
@@ -48,16 +70,18 @@ internal class GalleryPhotoPolicy(val receiverId: String, val receiverIdentitySh
         "enabled" to JsonPrimitive(enabled), "kinds" to JsonArray(kinds.sortedBy { it.ordinal }.map { JsonPrimitive(it.name) })) +
         (if (recordFormat >= 2) mapOf("revision" to JsonPrimitive(revision)) else emptyMap()) +
         (if (recordFormat >= 3) mapOf("pairing_epoch" to JsonPrimitive(pairingEpoch)) else emptyMap()) +
-        (if (recordFormat == 4) mapOf("videos" to videos!!.wire(), "permission_revision" to JsonPrimitive(permissionRevision)) else emptyMap()))
+        (if (recordFormat >= 4) mapOf("videos" to videos!!.wire(), "permission_revision" to JsonPrimitive(permissionRevision)) else emptyMap()) +
+        (if (recordFormat == 5) mapOf("receiving" to receiving!!.wire()) else emptyMap()))
 
     companion object {
         internal fun parse(value: JsonObject): GalleryPhotoPolicy {
             fun fail(): Nothing = throw PhotoFolderScopeError("gallery_policy_invalid_record")
             fun text(name: String) = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
-            val format = when (value["format"]) { JsonPrimitive(1) -> 1; JsonPrimitive(2) -> 2; JsonPrimitive(3) -> 3; JsonPrimitive(4) -> 4; else -> fail() }
+            val format = when (value["format"]) { JsonPrimitive(1) -> 1; JsonPrimitive(2) -> 2; JsonPrimitive(3) -> 3; JsonPrimitive(4) -> 4; JsonPrimitive(5) -> 5; else -> fail() }
             if (value.keys != setOf("format", "receiver_id", "receiver_identity_sha256", "epoch", "enabled", "kinds") +
                 (if (format >= 2) setOf("revision") else emptySet()) + (if (format >= 3) setOf("pairing_epoch") else emptySet()) +
-                (if (format == 4) setOf("videos", "permission_revision") else emptySet())) fail()
+                (if (format >= 4) setOf("videos", "permission_revision") else emptySet()) +
+                (if (format == 5) setOf("receiving") else emptySet())) fail()
             val revision = if (format == 1) 1L else (value["revision"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail()
             val enabled = (value["enabled"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fail()
             val rawKinds = value["kinds"] as? JsonArray ?: fail()
@@ -67,10 +91,11 @@ internal class GalleryPhotoPolicy(val receiverId: String, val receiverIdentitySh
                 GallerySourceKind.entries.singleOrNull { it.name == name } ?: fail()
             }
             if (kinds.distinct().size != kinds.size) fail()
-            val videos = if (format == 4) GalleryVideoPolicy.parse(value["videos"] as? JsonObject ?: fail()) else null
-            val permissionRevision = if (format == 4) (value["permission_revision"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail() else null
+            val videos = if (format >= 4) GalleryVideoPolicy.parse(value["videos"] as? JsonObject ?: fail()) else null
+            val permissionRevision = if (format >= 4) (value["permission_revision"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail() else null
+            val receiving = if (format == 5) GalleryReceivePolicy.parse(value["receiving"] as? JsonObject ?: fail()) else null
             return try { GalleryPhotoPolicy(text("receiver_id"), text("receiver_identity_sha256"), text("epoch"), enabled, kinds.toSet(), revision, format,
-                if (format >= 3) text("pairing_epoch") else null, videos, permissionRevision) }
+                if (format >= 3) text("pairing_epoch") else null, videos, permissionRevision, receiving) }
             catch (_: IllegalArgumentException) { fail() }
         }
     }
@@ -148,9 +173,10 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         if ((old?.revision ?: 1L) >= DeviceFileControl.MAX_REVISION) fail("gallery_policy_revision_exhausted")
         val epoch = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
         val next = GalleryPhotoPolicy(peer, identity, epoch, enabled, kinds, (old?.revision ?: 1L) + 1,
-            if (old?.videos != null) 4 else if (pairingEpoch == null) 2 else 3, pairingEpoch,
+            if (old?.receiving != null) 5 else if (old?.videos != null) 4 else if (pairingEpoch == null) 2 else 3, pairingEpoch,
             old?.videos?.let { if (old.pairingEpoch == pairingEpoch) it else it.copy(enabled = false) },
-            if (old?.videos != null) old.revision + 1 else null)
+            if (old?.videos != null) old.revision + 1 else null,
+            old?.receiving?.let { if (old.pairingEpoch == pairingEpoch) it else it.copy(photos = false, videos = false) })
         try {
             val saved = index.compareAndSetGalleryPolicy(expected, next, ::allowed)
             if (saved.repairPending || saved.policy != next || index.galleryPolicy() != saved || !allowed())
@@ -192,7 +218,8 @@ internal class GalleryPhotoPolicyController private constructor(private val inde
         }
         val epoch = ByteArray(32).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
         val next = GalleryPhotoPolicy(old.receiverId, old.receiverIdentitySha256, old.epoch, old.enabled, old.kinds,
-            old.revision + 1, 4, old.pairingEpoch, GalleryVideoPolicy(enabled, epoch, (old.videos?.revision ?: 0L) + 1), old.fileGrantRevision)
+            old.revision + 1, if (old.receiving != null) 5 else 4, old.pairingEpoch,
+            GalleryVideoPolicy(enabled, epoch, (old.videos?.revision ?: 0L) + 1), old.fileGrantRevision, old.receiving)
         try {
             val saved = index.compareAndSetGalleryPolicy(expected, next, ::allowed)
             if (saved.repairPending || saved.policy != next || index.galleryPolicy() != saved || !allowed())

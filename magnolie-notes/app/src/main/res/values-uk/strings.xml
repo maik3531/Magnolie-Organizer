@@ -444,6 +444,7 @@
     <string name="shared_sync_time_direction">Напрямок синхронізації обліку часу</string>
     <string name="telefon_code_gegenstelle">Підтвердьте цей код на іншому пристрої.</string>
     <string name="baum_kontakt_gruppen">Групи контактів</string>
+    <string name="medien_empfang_bestaetigen">Дозволити цьому комп’ютеру створювати нові файли цього типу в галереї? Наявні файли не будуть замінені.</string>
     <string name="medien_sync_titel">Фото й відео</string>
     <string name="medien_sync_aktivieren">Увімкнути синхронізацію фото й відео</string>
     <string name="medien_sync_scope_phone">Лише вміст телефону</string>

@@ -478,6 +478,7 @@
     <string name="shared_sync_time_direction">Richtung der Zeiterfassungs-Synchronisation</string>
     <string name="telefon_code_gegenstelle">Bestätige diesen Code auf dem anderen Gerät.</string>
     <string name="baum_kontakt_gruppen">Personengruppen</string>
+    <string name="medien_empfang_bestaetigen">Diesem PC erlauben, neue Galerie-Dateien dieser Medienart anzulegen? Vorhandene Dateien werden nicht ersetzt.</string>
     <string name="medien_sync_titel">Fotos und Videos</string>
     <string name="medien_sync_aktivieren">Foto- und Video-Synchronisation aktivieren</string>
     <string name="medien_sync_scope_phone">Nur der Bestand auf dem Telefon</string>

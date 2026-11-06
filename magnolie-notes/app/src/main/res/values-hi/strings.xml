@@ -415,6 +415,7 @@
     <string name="shared_sync_time_direction">समय लेखन की सिंक दिशा</string>
     <string name="telefon_code_gegenstelle">दूसरे डिवाइस पर इस कोड की पुष्टि करें।</string>
     <string name="baum_kontakt_gruppen">संपर्क समूह</string>
+    <string name="medien_empfang_bestaetigen">क्या इस कंप्यूटर को गैलरी में इस प्रकार की नई फ़ाइलें बनाने की अनुमति दें? मौजूदा फ़ाइलें बदली नहीं जाएँगी।</string>
     <string name="medien_sync_titel">फ़ोटो और वीडियो</string>
     <string name="medien_sync_aktivieren">फ़ोटो और वीडियो समन्वयन सक्षम करें</string>
     <string name="medien_sync_scope_phone">केवल फ़ोन की सामग्री</string>

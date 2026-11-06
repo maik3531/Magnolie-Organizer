@@ -437,6 +437,7 @@
     <string name="shared_sync_time_direction">Směr synchronizace evidence času</string>
     <string name="telefon_code_gegenstelle">Potvrďte tento kód na druhém zařízení.</string>
     <string name="baum_kontakt_gruppen">Skupiny kontaktů</string>
+    <string name="medien_empfang_bestaetigen">Povolit tomuto počítači vytvářet v galerii nové soubory tohoto typu? Stávající soubory nebudou nahrazeny.</string>
     <string name="medien_sync_titel">Fotografie a videa</string>
     <string name="medien_sync_aktivieren">Povolit synchronizaci fotografií a videí</string>
     <string name="medien_sync_scope_phone">Pouze obsah telefonu</string>

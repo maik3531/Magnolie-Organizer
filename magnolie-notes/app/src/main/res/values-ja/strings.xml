@@ -395,6 +395,7 @@
     <string name="shared_sync_time_direction">時間記録の同期方向</string>
     <string name="telefon_code_gegenstelle">もう一方の端末でこのコードを確認してください。</string>
     <string name="baum_kontakt_gruppen">連絡先グループ</string>
+    <string name="medien_empfang_bestaetigen">このパソコンがギャラリーにこの種類の新しいファイルを作成することを許可しますか？既存のファイルは置き換えられません。</string>
     <string name="medien_sync_titel">写真と動画</string>
     <string name="medien_sync_aktivieren">写真と動画の同期を有効にする</string>
     <string name="medien_sync_scope_phone">スマートフォン内の項目のみ</string>

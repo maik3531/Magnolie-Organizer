@@ -465,6 +465,7 @@
     <string name="shared_sync_time_direction">اتجاه مزامنة تتبع الوقت</string>
     <string name="telefon_code_gegenstelle">أكّد هذا الرمز على الجهاز الآخر.</string>
     <string name="baum_kontakt_gruppen">مجموعات جهات الاتصال</string>
+    <string name="medien_empfang_bestaetigen">هل تسمح لهذا الكمبيوتر بإنشاء ملفات جديدة من هذا النوع في المعرض؟ لن يتم استبدال الملفات الحالية.</string>
     <string name="medien_sync_titel">الصور ومقاطع الفيديو</string>
     <string name="medien_sync_aktivieren">تفعيل مزامنة الصور والفيديو</string>
     <string name="medien_sync_scope_phone">محتويات الهاتف فقط</string>
