@@ -29,6 +29,39 @@ The new question is translated in all 20 catalogs without changing existing
 resources. Robolectric dialog/control/protected-policy tests are not physical
 Android provider/network/package acceptance.
 
+#### Native incoming pending-row journal (Refs #338; still no data receiver)
+
+The native incoming row owner separately checks current incoming file-control
+agreement, exact peer/pairing ownership, saved book, protected per-kind local
+consent and the same matched two-way intent token. It has a bounded native
+lifetime and retires permanently on observed turnover. Index guards check only
+the local book/token/retirement witness; full control/peer/policy checks occur
+outside index locks. Existing source-only factories remain closed to receiving.
+
+New incoming lineage is sealed into bounded existing native index metadata and
+its exact membership aggregate, without changing the schema, key, source-job
+quota or previous records. Reads create nothing. A record binds original
+manifest/source/transfer/file identities, authenticated binding, pairing, media
+kind, MIME, size/hash and display name. It progresses through planned, inserting
+and inserted only; none is a Saved receipt or file-write permission. Lifetime
+capacity is 4096 records; exhaustion holds rather than deleting old lineage.
+
+Before a new MediaStore insertion, the inserting intent is durable. Actual
+native insertion creates only an app-owned pending row on mounted primary
+external storage, in Pictures/Magnolie or Movies/Magnolie. Typed single-row
+readback pins exact URI, provider namespace, member/date/generation, app owner,
+path, MIME, display name and empty/pending/untrashed state before journaling it.
+An inserted record can only re-inspect that exact unchanged row. An uncertain
+inserting record never causes another insertion, name-based adoption, overwrite
+or deletion. Missing-volume preflight stays retryable before insertion admission.
+
+This step neither writes media bytes nor publishes rows. Complete protected
+staging/chunk validation, original-byte copy/readback, conditional publication,
+durable published native-phone association and genuine Saved output remain
+required, as do PC source ownership/upload, runtime/dispatcher joining and full
+native acceptance. Tests use real protected index/control/consent paths with a
+Robolectric MediaStore provider, not physical Android provider/package proof.
+
 The native Android control session has a separate incoming-configuration ticket
 and authority type. It requires the current authenticated own-PC relationship,
 an actual native pairing epoch, the PC's positively acknowledged send-files

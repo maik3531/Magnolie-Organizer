@@ -1,0 +1,97 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import kotlinx.serialization.json.*
+
+/** Durable incoming lineage only. Neither an upload acceptance nor MediaStore
+ * authority. Planned/inserted rows can never be emitted as file_transfer.saved. */
+internal class GalleryIncomingPublication private constructor(internal val body: JsonObject) {
+    internal val id: String get() = body.string("id")
+    internal val state: String get() = body.string("state")
+    internal val row: JsonObject? get() = body["row"] as? JsonObject
+    internal val grantsWriteAuthority: Boolean get() = false
+    internal val isSavedReceipt: Boolean get() = false
+    internal val fingerprint: String get() = DeviceFileControl.digest("magnolie-gallery-incoming-publication-v1\u0000", body)
+
+    internal fun withInsertedRow(witness: JsonObject): GalleryIncomingPublication {
+        if (state != "inserting" || row != null) fail()
+        return parse(JsonObject(body + mapOf("state" to JsonPrimitive("inserted"), "row" to witness)))
+    }
+
+    internal fun beforeInsert(): GalleryIncomingPublication {
+        if (state != "planned" || row != null) fail()
+        return parse(JsonObject(body + ("state" to JsonPrimitive("inserting"))))
+    }
+
+    companion object {
+        internal const val MAX_RECORDS = 4096
+        internal const val PREFIX = "gallery-incoming-v1/"
+        internal fun plan(binding: DeviceTransferBinding, manifest: DeviceFileManifest, fileId: String,
+            pairingEpoch: String, kind: GalleryMediaType, mimeType: String): GalleryIncomingPublication {
+            val file = manifest.files.singleOrNull { it.id == fileId } ?: fail()
+            if (binding.senderId != manifest.senderId || binding.receiverId != manifest.receiverId) fail()
+            val identity = buildJsonObject {
+                put("binding", binding.snapshot()); put("manifest_sha256", manifest.fingerprint)
+                put("transfer_id", manifest.transferId); put("source_id", manifest.sourceId); put("file_id", file.id)
+                put("pairing_epoch", pairingEpoch)
+            }
+            return parse(buildJsonObject {
+                put("format", 1); put("id", DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", identity))
+                put("origin", identity); put("state", "planned"); put("row", JsonNull)
+                put("size", file.size); put("sha256", file.sha256); put("name", file.path.substringAfterLast('/'))
+                put("media_type", kind.uriSegment); put("mime_type", mimeType)
+            })
+        }
+
+        internal fun parse(value: JsonObject): GalleryIncomingPublication {
+            if (value.keys != setOf("format", "id", "origin", "state", "row", "size", "sha256", "name", "media_type", "mime_type") ||
+                value["format"] != JsonPrimitive(1)) fail()
+            val origin = value["origin"] as? JsonObject ?: fail()
+            if (origin.keys != setOf("binding", "manifest_sha256", "transfer_id", "source_id", "file_id", "pairing_epoch")) fail()
+            val binding = origin["binding"] as? JsonObject ?: fail()
+            if (binding.keys != setOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256", "permission_epoch", "destination_token")) fail()
+            // Reuse the actual native binding validator, not a JSON truth flag.
+            DeviceTransferBinding(text(binding, "sender_id"), text(binding, "receiver_id"), text(binding, "sender_identity_sha256"),
+                text(binding, "receiver_identity_sha256"), text(binding, "permission_epoch"), text(binding, "destination_token"))
+            for (field in listOf("manifest_sha256", "pairing_epoch")) if (!DeviceFileControl.hash(text(origin, field))) fail()
+            for (field in listOf("transfer_id", "source_id", "file_id")) if (!Regex("[0-9a-f]{32}").matches(text(origin, field))) fail()
+            val id = text(value, "id")
+            if (id != DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", origin)) fail()
+            val size = (value["size"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toLongOrNull() ?: fail()
+            if (size !in 1..DeviceFileManifest.MAX_FILE_BYTES || !DeviceFileControl.hash(text(value, "sha256"))) fail()
+            val name = text(value, "name")
+            if (!DeviceFileManifest.portablePath(name) || '/' in name) fail()
+            val kind = GalleryMediaType.entries.singleOrNull { it.uriSegment == text(value, "media_type") } ?: fail()
+            val mime = text(value, "mime_type")
+            if (!Regex(if (kind == GalleryMediaType.IMAGES) "image/[a-z0-9.+-]{1,80}" else "video/[a-z0-9.+-]{1,80}").matches(mime)) fail()
+            when (text(value, "state")) {
+                "planned", "inserting" -> if (value["row"] != JsonNull) fail()
+                "inserted" -> {
+                    val row = value["row"] as? JsonObject ?: fail()
+                    validateRow(row, kind)
+                    if (text(row, "mime_type") != mime) fail()
+                }
+                else -> fail() // No publication/Saved transition without an actual verified native publisher.
+            }
+            return GalleryIncomingPublication(value)
+        }
+
+        private fun validateRow(row: JsonObject, kind: GalleryMediaType) {
+            if (row.keys != setOf("uri", "namespace", "volume", "member", "revision", "path", "name", "mime_type", "owner")) fail()
+            val volume = text(row, "volume")
+            if (!Regex("[a-z0-9_-]{1,128}").matches(volume)) fail()
+            val parts = text(row, "member").split(':')
+            if (parts.size != 3 || parts.any { !Regex("0|[1-9][0-9]*").matches(it) || it.toLongOrNull() == null } ||
+                parts[0].toLong() <= 0 || parts[2].toLong() <= 0) fail()
+            val revision = text(row, "revision").toLongOrNull() ?: fail()
+            if (revision < parts[2].toLong() || text(row, "uri") != "content://media/$volume/${kind.uriSegment}/media/${parts[0]}") fail()
+            val namespace = text(row, "namespace")
+            if (namespace.length !in 1..1024 || namespace.any { it.code < 32 || it.code == 127 }) fail()
+            if (text(row, "path") != if (kind == GalleryMediaType.IMAGES) "Pictures/Magnolie/" else "Movies/Magnolie/") fail()
+            val name = text(row, "name")
+            if (!DeviceFileManifest.portablePath(name) || '/' in name || text(row, "owner").length !in 1..255) fail()
+        }
+
+        private fun text(value: JsonObject, name: String): String = (value[name] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: fail()
+        private fun fail(): Nothing = DeviceFileControl.fail("gallery_incoming_publication_invalid")
+    }
+}

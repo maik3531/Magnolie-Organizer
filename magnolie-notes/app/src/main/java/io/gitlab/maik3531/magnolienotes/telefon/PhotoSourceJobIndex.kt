@@ -611,6 +611,60 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
     }
 
+    /** Incoming lineage shares existing exact-root protection/membership, never
+     * source cache quota or source READ ownership. No row is created on reads.
+     * The native caller must serialize source/receive IO; current must be a
+     * lock-free book/intent/retirement guard, not a transport/Werk monitor. */
+    internal fun incomingPublication(id: String): GalleryIncomingPublication? = gated {
+        if (!DeviceFileControl.hash(id)) fail("gallery_incoming_publication_invalid")
+        val name = GalleryIncomingPublication.PREFIX + id
+        meta(name)?.let { cipher ->
+            GalleryIncomingPublication.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also {
+                if (it.id != id) fail("gallery_incoming_publication_changed")
+            }
+        }
+    }
+
+    internal fun reserveIncomingPublication(planned: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
+        writableMembership(); current()
+        if (planned.state != "planned" || planned.row != null) fail("gallery_incoming_planned_required")
+        incomingPublication(planned.id)?.let {
+            if (it.body.filterKeys { key -> key !in setOf("row", "state") } != planned.body.filterKeys { key -> key !in setOf("row", "state") })
+                fail("gallery_incoming_original_changed")
+            return@gated it // An inserted row is never replanned/reinserted.
+        }
+        db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryIncomingPublication.PREFIX + "%")).use {
+            if (!it.moveToFirst() || it.getLong(0) >= GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
+        }
+        writeIncomingPublication(null, planned, current)
+    }
+
+    internal fun recordIncomingRow(expected: GalleryIncomingPublication, row: JsonObject, current: () -> Unit): GalleryIncomingPublication = gated {
+        writableMembership(); current()
+        val next = expected.withInsertedRow(row)
+        writeIncomingPublication(expected, next, current)
+    }
+
+    internal fun beginIncomingInsertion(expected: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
+        writableMembership(); current()
+        writeIncomingPublication(expected, expected.beforeInsert(), current)
+    }
+
+    private fun writeIncomingPublication(expected: GalleryIncomingPublication?, next: GalleryIncomingPublication,
+        current: () -> Unit): GalleryIncomingPublication {
+        val name = GalleryIncomingPublication.PREFIX + next.id
+        val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
+        transaction {
+            if (incomingPublication(next.id)?.body != expected?.body) fail("gallery_incoming_publication_cas_conflict")
+            current(); putMeta(name, cipher); current()
+        }
+        boundary("gallery-incoming-" + next.state)
+        current()
+        val saved = incomingPublication(next.id) ?: fail("gallery_incoming_publication_readback_failed")
+        if (saved.body != next.body) fail("gallery_incoming_publication_readback_failed")
+        return saved
+    }
+
     private fun readGalleryPolicy(): GalleryPhotoPolicySnapshot {
         verifyHeader()
         val state = meta(GALLERY_POLICY)

@@ -32,8 +32,8 @@ import javax.crypto.spec.SecretKeySpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
 class GalleryReceiveConsentTest {
-    private class Prompt(val dialog: AlertDialog, val result: AtomicReference<Result<NativeGalleryReceiveConsent>?>)
-    private class Fixture : AutoCloseable {
+    internal class Prompt(val dialog: AlertDialog, val result: AtomicReference<Result<NativeGalleryReceiveConsent>?>)
+    internal class Fixture : AutoCloseable {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-receive338-").toFile()
         val app = RuntimeEnvironment.getApplication()
         private val bookRoot = Files.createTempDirectory(root.toPath(), "book-").toFile()

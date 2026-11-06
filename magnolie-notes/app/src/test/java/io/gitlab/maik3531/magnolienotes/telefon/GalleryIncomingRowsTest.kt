@@ -1,0 +1,287 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.app.Application
+import android.content.ContentProvider
+import android.content.ContentValues
+import android.content.Intent
+import android.database.Cursor
+import android.database.MatrixCursor
+import android.database.sqlite.SQLiteDatabase
+import android.net.Uri
+import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.Environment
+import android.os.Process
+import android.os.storage.StorageManager
+import android.provider.MediaStore
+import kotlinx.serialization.json.*
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.Before
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowContentResolver
+import org.robolectric.shadows.StorageVolumeBuilder
+import java.io.File
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = Application::class)
+class GalleryIncomingRowsTest {
+    @Before fun mountedPrimaryVolume() {
+        val app = RuntimeEnvironment.getApplication()
+        val storage = Shadows.shadowOf(app.getSystemService(StorageManager::class.java))
+        storage.resetStorageVolumeList()
+        storage.addStorageVolume(StorageVolumeBuilder("primary", File("/storage/emulated/0"), "Synthetic primary",
+            Process.myUserHandle(), Environment.MEDIA_MOUNTED).setIsPrimary(true).setIsEmulated(true).build())
+        assertTrue(MediaStore.VOLUME_EXTERNAL_PRIMARY in MediaStore.getExternalVolumeNames(app))
+    }
+    private val fileId = "1".repeat(32)
+    private fun manifest(pc: String, kind: GalleryMediaType = GalleryMediaType.IMAGES) = DeviceFileManifest.parse(buildJsonObject {
+        put("format", 1); put("chunk_bytes", 65536); put("total_bytes", 5)
+        put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32)); put("sender_id", pc); put("receiver_id", "phone_fixture_0001")
+        put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", 5); put("sha256", "a".repeat(64)) })))
+    })
+    private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true): MediaSyncTransport.IntentToken {
+        val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
+        var body = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
+        if (twoWay) body = MediaSyncSettings.change(body, a, b, "direction", JsonPrimitive("two_way"))
+        if (kind == GalleryMediaType.VIDEO) {
+            body = MediaSyncSettings.change(body, a, b, "videos_enabled", JsonPrimitive(true))
+            body = MediaSyncSettings.change(body, a, b, "photos_enabled", JsonPrimitive(false))
+        }
+        return MediaSyncTransport.IntentToken(body)
+    }
+    private class Provider(private val app: Application, private val kind: GalleryMediaType = GalleryMediaType.IMAGES) : ContentProvider() {
+        var inserts = 0
+        var namespace = "incoming-provider-v1"
+        var afterInsert: () -> Unit = {}
+        var wrongOwner = false
+        var generation = 10L
+        var pending = 1L
+        private var values: ContentValues? = null
+        override fun onCreate() = true
+        override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
+            check(method == "get_version"); return Bundle().apply { putString(Intent.EXTRA_TEXT, namespace) }
+        }
+        override fun insert(uri: Uri, values: ContentValues?): Uri {
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media")
+            this.values = ContentValues(values!!); inserts++; afterInsert()
+            return Uri.withAppendedPath(uri, "99")
+        }
+        override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, cancellationSignal: CancellationSignal?): Cursor {
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            val v = values!!
+            val data: Map<String, Any> = mapOf("_id" to 99L, "_display_name" to v.getAsString("_display_name"), "mime_type" to v.getAsString("mime_type"),
+                "relative_path" to v.getAsString("relative_path"), "_size" to 0L, "date_added" to 100L, "generation_added" to generation,
+                "generation_modified" to generation, "is_pending" to pending, "is_trashed" to 0L,
+                "owner_package_name" to if (wrongOwner) "foreign.application" else app.packageName)
+            return MatrixCursor(projection).apply { addRow(projection!!.map { data.getValue(it) }.toTypedArray()) }
+        }
+        override fun query(uri: Uri, p: Array<out String>?, s: String?, a: Array<out String>?, o: String?): Cursor = error("Unexpected legacy query")
+        override fun getType(uri: Uri): String = "image/jpeg"
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?): Int = error("No publication permitted")
+        override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion permitted")
+    }
+
+    private fun ready(f: GalleryReceiveConsentTest.Fixture) {
+        val consent = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
+    }
+
+    @Test fun actualPendingRowHasProtectedOriginalLineageAndRetryNeverReinsertsOrClaimsSaved() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            val result = f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    val saved = rows.prepare(owner, fileId, "image/jpeg")
+                    assertEquals(saved.body, rows.prepare(owner, fileId, "image/jpeg").body)
+                    saved
+                }
+            }
+            assertEquals(1, provider.inserts); assertEquals("inserted", result.state)
+            assertFalse(result.grantsWriteAuthority); assertFalse(result.isSavedReceipt)
+            val witness = result.row!!
+            assertEquals("Pictures/Magnolie/", witness.string("path")); assertEquals("original.jpg", witness.string("name"))
+            assertEquals(result.body, f.index.incomingPublication(result.id)!!.body)
+            // Persisted lineage remains readable without a live PC; it is NOT renewed authority.
+            f.session.close()
+            PhotoSourceJobIndex(f.indexRoot, f.protection).use { reopened -> assertEquals(result.body, reopened.incomingPublication(result.id)!!.body) }
+            assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
+    @Test fun preinsertCrashRemainsUncertainAndDoesNotCreateAnotherRowAfterRestart() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    f.hook = { if (it == "gallery-incoming-inserting") throw java.io.IOException("crash before actual insert") }
+                    assertThrows(java.io.IOException::class.java) { rows.prepare(owner, fileId, "image/jpeg") }
+                    f.hook = {}
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(owner, fileId, "image/jpeg") }
+                }
+            }
+            assertEquals(0, provider.inserts)
+        }
+    }
+
+    @Test fun postinsertWithdrawalRetainsUncertainPendingRowWithoutAdoptionOrSecondInsert() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            var token: Any? = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            provider.afterInsert = { token = null }
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(owner, fileId, "image/jpeg") }
+                    token = intent()
+                    assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
+                }
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { fresh ->
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(fresh, fileId, "image/jpeg") }
+                }
+            }
+            assertEquals(1, provider.inserts)
+        }
+    }
+
+    @Test fun sourceOnlyIntentWrongKindAndMissingReceiveConsentCannotAdmitIncomingRows() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val twoWay = intent(); val oneWay = intent(twoWay = false)
+            f.io { assertThrows(PhotoFolderScopeError::class.java) {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { twoWay }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES)
+            } }
+            ready(f)
+            f.io {
+                for ((token, kind) in listOf(oneWay to GalleryMediaType.IMAGES, twoWay to GalleryMediaType.VIDEO))
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), kind)
+                    }
+            }
+            assertEquals(0, provider.inserts)
+        }
+    }
+
+    @Test fun changedProviderOwnerNamespaceGenerationOrPendingStateNeverReusesHistoricalRow() {
+        for (change in listOf("owner", "namespace", "generation", "published")) GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    rows.prepare(owner, fileId, "image/jpeg")
+                    when (change) { "owner" -> provider.wrongOwner = true; "namespace" -> provider.namespace = "replacement-provider"
+                        "generation" -> provider.generation++; else -> provider.pending = 0 }
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(owner, fileId, "image/jpeg") }
+                }
+            }
+            assertEquals(1, provider.inserts)
+        }
+    }
+
+    @Test fun protectedMembershipDetectsDeletedIncomingLineageWithoutChangingSourcePolicy() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val policy = f.index.galleryPolicy(); val token = intent()
+            val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val row = f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "image/jpeg")
+                }
+            }
+            assertEquals(policy, f.index.galleryPolicy())
+            SQLiteDatabase.openDatabase(File(f.indexRoot, "photo-source-jobs.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                assertEquals(1, db.delete("source_meta", "name=?", arrayOf(GalleryIncomingPublication.PREFIX + row.id)))
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { f.index.incomingPublication(row.id) }
+        }
+    }
+
+    @Test fun missingVolumeHoldsWithoutInsertionAndCanRetryOnlyWhenActuallyMounted() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            Shadows.shadowOf(f.app.getSystemService(StorageManager::class.java)).resetStorageVolumeList()
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    val error = assertThrows(PhotoFolderScopeError::class.java) { rows.prepare(owner, fileId, "image/jpeg") }
+                    assertEquals("gallery_incoming_volume_missing", error.message)
+                }
+            }
+            assertEquals(0, provider.inserts)
+            mountedPrimaryVolume()
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    assertEquals("inserted", rows.prepare(owner, fileId, "image/jpeg").state)
+                }
+            }
+            assertEquals(1, provider.inserts)
+        }
+    }
+
+    @Test fun videoOnlyLocalConsentAndIntentInsertOnlyIntoNativeMoviesWithoutPhotoAdmission() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            val consent = f.approve(GalleryMediaType.VIDEO)
+            f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
+            val token = intent(GalleryMediaType.VIDEO)
+            val provider = Provider(f.app, GalleryMediaType.VIDEO); ShadowContentResolver.registerProviderInternal("media", provider)
+            f.io {
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES)
+                }
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, GalleryMediaType.VIDEO), GalleryMediaType.VIDEO).use { owner ->
+                    val result = NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "video/mp4")
+                    assertEquals("Movies/Magnolie/", result.row!!.string("path"))
+                    assertFalse(result.isSavedReceipt)
+                }
+            }
+            assertEquals(1, provider.inserts)
+        }
+    }
+
+    @Test fun capturedOwnerCannotWriteAfterBookPeerPolicyOrIntentTurnoverOrExplicitClose() {
+        for (change in listOf("book", "peer", "policy", "intent", "close")) GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            var token: Any? = intent()
+            val owner = f.io { NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES) }
+            try {
+                when (change) {
+                    "book" -> f.currentDocuments = null
+                    "peer" -> f.peer = f.peer.copy(owner = Any())
+                    "policy" -> f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }
+                    "intent" -> token = intent()
+                    else -> owner.close()
+                }
+                f.io { assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "image/jpeg") } }
+                assertEquals(0, provider.inserts)
+            } finally { owner.close() }
+        }
+    }
+
+    @Test fun malformedLineageCannotClaimPublicationSavedOrForeignRowAndStaleJournalCannotRewindInsertion() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val token = intent(); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId), GalleryMediaType.IMAGES).use { owner ->
+                    val planned = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, "image/jpeg")
+                    for (state in listOf("published", "saved")) assertThrows(PhotoFolderScopeError::class.java) {
+                        GalleryIncomingPublication.parse(JsonObject(planned.body + ("state" to JsonPrimitive(state))))
+                    }
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, "video/mp4")
+                    }
+                    val saved = NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "image/jpeg")
+                    assertThrows(PhotoFolderScopeError::class.java) { f.index.beginIncomingInsertion(planned, owner::requireLocal) }
+                    for ((key, value) in listOf("uri" to "content://foreign/images/media/99", "path" to "DCIM/Camera/", "mime_type" to "image/png")) {
+                        val row = JsonObject(saved.row!! + (key to JsonPrimitive(value)))
+                        assertThrows(PhotoFolderScopeError::class.java) { GalleryIncomingPublication.parse(JsonObject(saved.body + ("row" to row))) }
+                    }
+                    assertEquals(saved.body, f.index.incomingPublication(saved.id)!!.body)
+                }
+            }
+            assertEquals(1, provider.inserts)
+        }
+    }
+}
