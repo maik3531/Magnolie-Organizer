@@ -6,6 +6,7 @@ the exact pause token. A failed publication leaves cleanup disabled.
 """
 from contextlib import contextmanager
 from hashlib import sha256
+import fcntl
 import os
 from pathlib import Path
 import secrets
@@ -45,7 +46,7 @@ class NativeMediaRetention:
 
     def __init__(self,native_directory):
         self._protection=ExistingFileTransferProtection(native_directory)
-        self._fd=None;self._db=None
+        self._fd=None;self._db=None;self._activity_held=False
         try:
             root=Path(self._protection.native_directory)
             self._fd=os.open(root/'phone.db',os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
@@ -170,6 +171,34 @@ class NativeMediaRetention:
             return True
 
     @contextmanager
+    def activity(self,current=lambda:True,*,exclusive=False):
+        """Cross-process media activity on the EXISTING native phone DB inode.
+
+        flock is independent of SQLite byte-range locks: an active copy never
+        holds a DB transaction and concurrent saved-book writers can retire it.
+        No extra lock path/key/metadata or missing-lock bootstrap is needed.
+        Maintenance uses exclusive admission; copies/sync use shared admission.
+        """
+        if self._activity_held or type(exclusive) is not bool or not callable(current):
+            raise TransferError('media_retention_activity_owner_required')
+        self._fresh()
+        if current() is not True:raise TransferError('media_retention_lease_changed')
+        try:fcntl.flock(self._fd,(fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)|fcntl.LOCK_NB)
+        except BlockingIOError:
+            yield None;return
+        self._activity_held=True;active=[True]
+        def require():
+            if not active[0] or not self._activity_held:raise TransferError('media_retention_activity_ended')
+            self._fresh()
+            if current() is not True:raise TransferError('media_retention_lease_changed')
+            return True
+        try:
+            require();yield require
+        finally:
+            active[0]=False;self._activity_held=False
+            fcntl.flock(self._fd,fcntl.LOCK_UN)
+
+    @contextmanager
     def active_copy_permit(self,current):
         """Recheck the actual saved book without holding a DB writer lock.
 
@@ -177,7 +206,12 @@ class NativeMediaRetention:
         need to serialize every other phone/book write behind the entire copy.
         Any pause/save/root/lock-owner change retires the captured witness.
         """
-        if not callable(current) or current() is not True:raise TransferError('media_retention_lease_changed')
+        with self.activity(current) as activity:
+            if activity is None:raise TransferError('media_retention_maintenance_busy')
+            with self._active_copy_permit(activity) as permit:yield permit
+
+    @contextmanager
+    def _active_copy_permit(self,current):
         value=self._read()
         if value is None or value['days'] is None:
             yield None;return
@@ -192,6 +226,13 @@ class NativeMediaRetention:
 
     @contextmanager
     def permit(self,current=lambda:True):
+        with self.activity(current,exclusive=True) as activity:
+            if activity is None:
+                yield None;return
+            with self._maintenance_permit(activity) as permit:yield permit
+
+    @contextmanager
+    def _maintenance_permit(self,current):
         # One purge at a time under SQLite's cross-process writer lease. A save
         # cannot publish/commit a new policy while these bytes are being released.
         deadline=time.monotonic()+60

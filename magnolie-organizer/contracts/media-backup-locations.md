@@ -203,3 +203,20 @@ garbage collection must preserve them as well. Existing format-1 schemas,
 headers and completed version records stay unchanged; absent pending records
 need no read-time migration. Copies interrupted before this intent mechanism
 existed cannot acquire reconstructed historical authority from bytes alone.
+
+## Cross-process Linux maintenance exclusion
+
+Active backup copies, local recovery and the full actual album worker share a
+nonblocking native activity lease. Destructive maintenance takes the exclusive
+lease before its existing bounded saved-book writer transaction. Both use flock
+on the exact already-existing private `phone.db` inode, independently of SQLite
+byte-range locks. No extra lock path, key, metadata migration or missing-lock
+bootstrap is introduced. Saved-book writers still do not wait for a long copy;
+their policy pause retires the copy normally.
+
+An exclusive owner holds new album/source work before its first source command;
+it neither sends cleanup commands for an unadmitted run nor automatically retries.
+The activity lease remains held through actual worker IO end and error cleanup.
+Independent processes cannot admit exclusive maintenance alongside shared copies,
+and ordinary copies can coexist. Exceptional exits release admission. These
+guards are prerequisites, not by themselves the compression/GC scheduler join.

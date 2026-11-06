@@ -985,6 +985,39 @@ def test_actual_desktop_worker_backs_up_after_end_and_unchanged_pass_does_not_co
     with NativeMediaBackups(record.destination,connection._authority.protection,lambda:True,storage_parent=storage) as backups:
         assert backups.versions()==versions
 
+def test_actual_album_worker_holds_exclusive_maintenance_until_real_io_end(receiving,monkeypatch):
+    from magnolie_file_desktop_connection import NativePhotoAlbumWorker
+    from magnolie_media_retention import NativeMediaRetention
+    fixture=receiving;full=prepared(fixture)[0]
+    directory=fixture[3]._authority.binding.native_directory;observed=[]
+    command=NativePhotoAlbumWorker._command
+    def guarded(worker,*args,**kwargs):
+        with NativeMediaRetention(directory) as maintenance:
+            with maintenance.permit() as permit:assert permit is None
+        observed.append(args[0]);return command(worker,*args,**kwargs)
+    monkeypatch.setattr(NativePhotoAlbumWorker,'_command',guarded)
+    assert cycle(fixture,full)[0]['state']=='complete'
+    assert 'batch_run' in observed and 'end_run' in observed
+    with NativeMediaRetention(directory) as maintenance:
+        with maintenance.permit() as permit:assert permit is not None
+
+def test_actual_album_worker_held_before_source_io_during_exclusive_maintenance_then_retries_explicitly(receiving,monkeypatch):
+    from magnolie_file_desktop_connection import NativePhotoAlbumWorker
+    from magnolie_media_retention import NativeMediaRetention
+    fixture=receiving;full=prepared(fixture)[0]
+    directory=fixture[3]._authority.binding.native_directory
+    command=NativePhotoAlbumWorker._command
+    def denied(*args,**kwargs):pytest.fail('Held worker started source IO or cleanup commands')
+    with NativeMediaRetention(directory) as maintenance:
+        with maintenance.permit() as permit:
+            assert permit is not None
+            monkeypatch.setattr(NativePhotoAlbumWorker,'_command',denied)
+            state,chunks,saved=cycle(fixture,full)
+            assert state['state']=='held' and state['error']=='media_retention_maintenance_busy' and state['io_ended']
+            assert not chunks and not saved and not (fixture[4]/full.files[0].path).exists()
+    monkeypatch.setattr(NativePhotoAlbumWorker,'_command',command)
+    assert cycle(fixture,full)[0]['state']=='complete'
+
 @pytest.mark.parametrize('mode',('long_copy','other_writer','book_pause'))
 def test_actual_saved_end_backup_uses_active_copy_owner_not_cleanup_writer_transaction(receiving,monkeypatch,mode):
     import sqlite3

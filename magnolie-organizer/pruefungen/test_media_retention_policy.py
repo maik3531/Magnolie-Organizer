@@ -20,6 +20,52 @@ from test_save_restore_boundary import native as gui_native,Probe,fixture_data
 
 def book(days):return dict(einstellungen=dict(papierkorb=dict(an=True,tage=days)))
 
+def test_media_copy_activity_blocks_cleanup_without_blocking_saved_book_writer(receiving):
+    directory=receiving[3]._authority.binding.native_directory
+    with NativeMediaRetention(directory) as copy,NativeMediaRetention(directory) as cleanup,NativeMediaRetention(directory) as writer:
+        with copy.active_copy_permit(lambda:True) as active:
+            assert active is not None and active.require_current() is True
+            assert not copy._db.in_transaction
+            with cleanup.permit() as permit:assert permit is None
+            writer.pause()
+            with pytest.raises(ValueError,match='lease_changed'):active.require_current()
+        with pytest.raises(ValueError,match='activity_ended'):active.require_current()
+        with cleanup.activity(exclusive=True) as exclusive:assert exclusive() is True
+
+def test_exclusive_media_maintenance_holds_new_copy_and_releases_on_exception(receiving):
+    directory=receiving[3]._authority.binding.native_directory
+    with NativeMediaRetention(directory) as maintenance,NativeMediaRetention(directory) as copy:
+        with pytest.raises(RuntimeError,match='explicit worker interruption'):
+            with maintenance.permit() as permit:
+                assert permit is not None
+                with pytest.raises(ValueError,match='maintenance_busy'):
+                    with copy.active_copy_permit(lambda:True):pytest.fail('Copy admitted during exclusive maintenance')
+                raise RuntimeError('explicit worker interruption')
+        with copy.active_copy_permit(lambda:True) as permit:assert permit.require_current() is True
+
+def test_native_media_activity_is_cross_process_and_shared_copies_remain_nonblocking(receiving):
+    import subprocess
+    directory=receiving[3]._authority.binding.native_directory
+    script='''
+import sys
+sys.path.insert(0,sys.argv[1])
+from magnolie_media_retention import NativeMediaRetention
+with NativeMediaRetention(sys.argv[2]) as policy:
+    with policy.activity(exclusive=sys.argv[3]=='exclusive') as lease:
+        print('held' if lease is None else 'admitted')
+'''
+    def child(mode):
+        result=subprocess.run([sys.executable,'-c',script,str(Path(__file__).parents[1]/'bin'),directory,mode],
+            text=True,capture_output=True,timeout=10,check=True)
+        return result.stdout.strip()
+    with NativeMediaRetention(directory) as policy:
+        with policy.activity() as lease:
+            assert lease() is True and child('shared')=='admitted' and child('exclusive')=='held'
+        assert child('exclusive')=='admitted'
+        with policy.activity(exclusive=True) as lease:
+            assert lease() is True and child('shared')=='held'
+        assert child('shared')=='admitted'
+
 
 def root(trash):
     directory=Path(trash[0][0].store.root)

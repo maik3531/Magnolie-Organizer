@@ -5,7 +5,7 @@ OFF by default, including when a protected enabled preference exists. Constructi
 does not send packets, create preferences or start a worker. Accepted controllers
 may drive automatic runs only from protected explicit desktop mode consent.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import os
@@ -2370,7 +2370,13 @@ class NativePhotoAlbumWorker:
         connection = self._connection
         self._activity(True)
         with self._state_gate: self._state = 'running'
+        activity=ExitStack();admitted=False
         try:
+            from magnolie_media_retention import NativeMediaRetention
+            policy=activity.enter_context(NativeMediaRetention(connection._authority.binding.native_directory))
+            lease=activity.enter_context(policy.activity(lambda:not connection._closed.is_set()))
+            if lease is None:raise TransferError('media_retention_maintenance_busy')
+            admitted=True
             if self._stop.is_set(): raise TransferError('file_desktop_album_stop_requested')
             result = self._prepared(self._command('batch_run', album_id=self._album_id, desktop_choice=self._desktop_choice))
             while True:
@@ -2419,16 +2425,19 @@ class NativePhotoAlbumWorker:
                 result = self._prepared(self._command('next_batch'))
         except Exception as error:
             cleanup_error = None
-            try: self._cleanup()
+            try:
+                if admitted:self._cleanup()
             except Exception as failure: cleanup_error = str(failure)
             with self._state_gate:
                 self._state = 'canceled' if self._stop.is_set() and cleanup_error is None else 'held'
                 self._error = cleanup_error or str(error)
         finally:
-            with connection._gate:
-                if connection._album_worker is self: connection._album_worker = None
-            self._ended.set() # All actual worker I/O has returned, not just a cancel request.
-            self._activity(False)
+            try:activity.close()
+            finally:
+                with connection._gate:
+                    if connection._album_worker is self: connection._album_worker = None
+                self._ended.set() # All actual worker I/O has returned, not just a cancel request.
+                self._activity(False)
 
 
 class NativePhotoDesktopSession:
