@@ -661,6 +661,17 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         writeIncomingPublication(expected, expected.withVerifiedCopy(row), current)
     }
 
+    internal fun beginIncomingPublishing(expected: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
+        writableMembership(); current()
+        writeIncomingPublication(expected, expected.beforePublish(), current)
+    }
+
+    internal fun recordIncomingPublished(expected: GalleryIncomingPublication, row: JsonObject,
+        current: () -> Unit): GalleryIncomingPublication = gated {
+        writableMembership(); current()
+        writeIncomingPublication(expected, expected.withPublishedRow(row), current)
+    }
+
     private fun writeIncomingPublication(expected: GalleryIncomingPublication?, next: GalleryIncomingPublication,
         current: () -> Unit): GalleryIncomingPublication {
         val name = GalleryIncomingPublication.PREFIX + next.id

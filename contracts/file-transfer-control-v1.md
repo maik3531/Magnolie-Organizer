@@ -43,7 +43,8 @@ its exact membership aggregate, without changing the schema, key, source-job
 quota or previous records. Reads create nothing. A record binds original
 manifest/source/transfer/file identities, authenticated binding, pairing, media
 kind, MIME, size/hash and display name. It progresses through planned, inserting,
-inserted, copying and copy_verified; none is a Saved receipt or file-write permission. Lifetime
+inserted, copying, copy_verified, publishing and published; none is a network
+Saved receipt or file-write permission. Lifetime
 capacity is 4096 records; exhaustion holds rather than deleting old lineage.
 
 Before a new MediaStore insertion, the inserting intent is durable. Actual
@@ -74,14 +75,26 @@ Video inspection requires matching native container MIME, video metadata and
 an actual video track among at most 16 tracks. It uses a read-only regular held
 descriptor with exact size and stable identity/timestamps; missing/unsupported
 metadata, native owner withdrawal or a claimed MIME mismatch holds admission.
-Its observation is neither publication permission nor a Saved receipt. It still
-needs joining to fresh original-byte verification and conditional publication.
+Its observation is neither publication permission nor a Saved receipt.
 Image tests use the native decoder on synthetic PNG/JPEG files; video parser
 metadata/tracks and descriptor stat adaptation are explicitly test fixtures,
 not physical Android syscall or MP4 parser acceptance.
 
-Complete protected transport acceptance/staging,
-conditional publication, durable published native-phone association and genuine Saved output remain
+The native publisher now joins fresh original-byte SHA verification, this native
+media probe and a second original-byte SHA verification with stable row metadata.
+It journals publishing before a conditional pending-to-visible update, guarded
+by exact id/date/generations/app owner/path/MIME/name/size and untrashed state.
+Fresh visible-row, original-byte and media checks must succeed before committing
+the published native-row association. No original is replaced, removed or linked.
+
+A lost update reply or owner withdrawal after visibility changes leaves publishing
+without a success assertion. A fresh permitted retry verifies that same row
+read-only and does not insert, copy or update visibility a second time. Published
+history is also rechecked; it is not renewed consent or automatic network Saved.
+These tests include actual native PNG parsing with fixture PFD bytes and a
+simulated conditional provider, not physical Android provider acceptance.
+
+Complete protected transport acceptance/staging and genuine Saved output remain
 required, as do PC source ownership/upload, runtime/dispatcher joining and full
 native acceptance. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.

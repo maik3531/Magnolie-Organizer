@@ -158,8 +158,21 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         }
         val copied = observe(owner, uri, body.string("mime_type"), size..size)
         if (!sameMember(copied)) fail("gallery_incoming_original_row_changed")
+        current(); verifyOriginalBytes(owner, uri, size, hash, cancellation)
+        if (observe(owner, uri, body.string("mime_type"), size..size) != copied) fail("gallery_incoming_original_row_changed")
         current()
-        val original = MediaStore.setRequireOriginal(uri)
+        if (selected.state == "copy_verified") {
+            if (copied != selected.row) fail("gallery_incoming_original_row_changed")
+            return selected // Fresh readback, never a cached completion assertion.
+        }
+        val verified = index.recordIncomingVerifiedCopy(copying, copied, owner::requireLocal)
+        current(); return verified
+    }
+
+    private fun verifyOriginalBytes(owner: NativeGalleryIncomingOwner, uri: Uri, size: Long, hash: String,
+        cancellation: CancellationSignal) {
+        fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+        current(); val original = MediaStore.setRequireOriginal(uri)
         val stream = if (Build.VERSION.SDK_INT >= 31) {
             val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
                 putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
@@ -180,17 +193,83 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 if (count != size || digest.digest().joinToString("") { "%02x".format(it) } != hash) fail("gallery_incoming_content_changed")
             } finally { buffer.fill(0) }
         }
-        if (observe(owner, uri, body.string("mime_type"), size..size) != copied) fail("gallery_incoming_original_row_changed")
         current()
-        if (selected.state == "copy_verified") {
-            if (copied != selected.row) fail("gallery_incoming_original_row_changed")
-            return selected // Fresh readback, never a cached completion assertion.
-        }
-        val verified = index.recordIncomingVerifiedCopy(copying, copied, owner::requireLocal)
-        current(); return verified
     }
 
-    private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange = 0L..0L): JsonObject {
+    /** Native new-row publication only. No remote Saved output or source/cache
+     * retirement is implied. Lost update replies leave a durable publishing
+     * head; retries verify the exact visible row without another update/copy. */
+    internal fun publish(owner: NativeGalleryIncomingOwner, selected: GalleryIncomingPublication,
+        cancellation: CancellationSignal = CancellationSignal()): GalleryIncomingPublication {
+        if (Looper.myLooper() == Looper.getMainLooper()) fail("gallery_incoming_io_android30_required")
+        fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+        current()
+        val body = selected.body; val savedRow = selected.row ?: fail("gallery_incoming_verified_copy_required")
+        val fileId = (body["origin"] as? JsonObject)?.string("file_id") ?: fail("gallery_incoming_original_changed")
+        val expected = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, body.string("mime_type"))
+        if (selected.state !in setOf("copy_verified", "publishing", "published") || index.incomingPublication(selected.id)?.body != body ||
+            expected.body.filterKeys { it !in setOf("state", "row") } != body.filterKeys { it !in setOf("state", "row") })
+            fail("gallery_incoming_verified_copy_required")
+        val uri = Uri.parse(savedRow.string("uri")); val size = body.long("size"); val mime = body.string("mime_type")
+        fun sameMember(row: JsonObject) = savedRow.filterKeys { it != "revision" } == row.filterKeys { it != "revision" } &&
+            row.string("revision").toLong() >= savedRow.string("revision").toLong()
+        fun inspect(row: NativeRow) {
+            current()
+            verifyOriginalBytes(owner, uri, size, body.string("sha256"), cancellation)
+            val original = MediaStore.setRequireOriginal(uri)
+            fun probe(descriptor: ParcelFileDescriptor) {
+                NativeIncomingMediaInspection.inspect(descriptor.fileDescriptor, size, owner.kind, mime, ::current)
+            }
+            if (Build.VERSION.SDK_INT >= 31) {
+                val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                    putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+                }, cancellation) ?: fail("gallery_incoming_readback_missing")
+                asset.use {
+                    if (it.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                    probe(it.parcelFileDescriptor)
+                }
+            } else {
+                val descriptor = resolver.openFileDescriptor(original, "r", cancellation) ?: fail("gallery_incoming_readback_missing")
+                descriptor.use(::probe)
+            }
+            // Inspecting headers does not replace original-byte verification.
+            verifyOriginalBytes(owner, uri, size, body.string("sha256"), cancellation)
+            if (observeRow(owner, uri, mime, size..size, null) != row) fail("gallery_incoming_original_row_changed")
+        }
+        val before = observeRow(owner, uri, mime, size..size, null)
+        if (!sameMember(before.witness) || selected.state == "copy_verified" && (before.pending != 1L || before.witness != savedRow) ||
+            selected.state == "published" && (before.pending != 0L || before.witness != savedRow)) fail("gallery_incoming_original_row_changed")
+        inspect(before)
+        if (selected.state == "published") return selected // Revalidated history, never automatic Saved output.
+        val publishing = if (selected.state == "copy_verified") index.beginIncomingPublishing(selected, owner::requireLocal) else selected
+        current()
+        if (before.pending == 1L) {
+            if (before.witness != savedRow || observeRow(owner, uri, mime, size..size, 1) != before)
+                fail("gallery_incoming_original_row_changed")
+            val parts = savedRow.string("member").split(':')
+            val count = resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                "_id = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND owner_package_name = ? AND relative_path = ? AND mime_type = ? AND _display_name = ? AND _size = ? AND is_pending = 1 AND is_trashed = 0",
+                arrayOf(parts[0], parts[1], parts[2], savedRow.string("revision"), app.packageName, savedRow.string("path"),
+                    mime, savedRow.string("name"), size.toString()))
+            if (count != 1) fail("gallery_incoming_publish_not_proven")
+        }
+        current()
+        val visible = observeRow(owner, uri, mime, size..size, 0)
+        if (!sameMember(visible.witness) || visible.witness.string("revision").toLong() <= savedRow.string("revision").toLong())
+            fail("gallery_incoming_publish_not_proven")
+        inspect(visible)
+        val published = index.recordIncomingPublished(publishing, visible.witness, owner::requireLocal)
+        current()
+        if (observeRow(owner, uri, mime, size..size, 0) != visible) fail("gallery_incoming_original_row_changed")
+        return published
+    }
+
+    private data class NativeRow(val witness: JsonObject, val pending: Long)
+    private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange = 0L..0L): JsonObject =
+        observeRow(owner, uri, mimeType, bytes, 1).witness
+
+    private fun observeRow(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange,
+        pending: Long?): NativeRow {
         owner.requireCurrent()
         val volume = MediaStore.VOLUME_EXTERNAL_PRIMARY
         val id = uri.lastPathSegment?.toLongOrNull()?.takeIf { it > 0 } ?: fail("gallery_incoming_insert_invalid")
@@ -216,15 +295,16 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             }
             val added = number("date_added"); val generation = number("generation_added"); val revision = number("generation_modified")
             val size = cursor.getColumnIndexOrThrow("_size")
-            if (number("_id") != id || number("is_pending") != 1L || number("is_trashed") != 0L ||
+            val actualPending = number("is_pending")
+            if (number("_id") != id || actualPending !in 0L..1L || pending != null && actualPending != pending || number("is_trashed") != 0L ||
                 text("owner_package_name") != app.packageName || text("relative_path") != path(owner.kind) ||
                 text("mime_type") != mimeType || added < 0 || generation <= 0 || revision < generation ||
                 (if (cursor.isNull(size)) 0L !in bytes else number("_size") !in bytes)) fail("gallery_incoming_row_changed")
-            buildJsonObject {
+            NativeRow(buildJsonObject {
                 put("uri", uri.toString()); put("namespace", namespace); put("volume", volume)
                 put("member", "$id:$added:$generation"); put("revision", revision.toString()); put("path", path(owner.kind))
                 put("name", text("_display_name")); put("mime_type", mimeType); put("owner", app.packageName)
-            }.also { if (cursor.moveToNext()) fail("gallery_incoming_row_changed") }
+            }, actualPending).also { if (cursor.moveToNext()) fail("gallery_incoming_row_changed") }
         } ?: fail("gallery_incoming_row_missing")
         owner.requireCurrent()
         if (MediaStore.getVersion(app, volume) != namespace) fail("gallery_incoming_namespace_changed")

@@ -26,12 +26,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowContentResolver
 import org.robolectric.shadows.StorageVolumeBuilder
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+@Config(sdk = [35], application = Application::class, shadows = [NativeIncomingMediaInspectionTest.FixtureLinux::class])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GalleryIncomingRowsTest {
     @Before fun mountedPrimaryVolume() {
         val app = RuntimeEnvironment.getApplication()
@@ -71,6 +73,9 @@ class GalleryIncomingRowsTest {
         var readOpens = 0
         var failReadback = false
         var corruptReadback: File? = null
+        var allowPublish = false
+        var publishes = 0
+        var afterPublish: () -> Unit = {}
         private var lastSize = 0L
         private var values: ContentValues? = null
         init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
@@ -100,12 +105,15 @@ class GalleryIncomingRowsTest {
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
             check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
             val file = payload ?: error("Unexpected byte IO")
-            check(pending == 1L)
             if (mode == "w") {
+                check(pending == 1L)
                 check(file.length() == 0L); writeOpens++
                 return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_WRITE)
             }
-            check(mode == "r"); readOpens++; return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            check(mode == "r"); readOpens++
+            return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).also {
+                NativeIncomingMediaInspectionTest.FixtureLinux.files[it.fileDescriptor] = file
+            }
         }
         override fun openTypedAssetFile(uri: Uri, mimeType: String, opts: Bundle?): AssetFileDescriptor {
             check(MediaStore.getRequireOriginal(uri))
@@ -115,7 +123,17 @@ class GalleryIncomingRowsTest {
             return AssetFileDescriptor(corruptReadback?.let { ParcelFileDescriptor.open(it, ParcelFileDescriptor.MODE_READ_ONLY) }
                 ?: openFile(clean, "r"), 0, AssetFileDescriptor.UNKNOWN_LENGTH)
         }
-        override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?): Int = error("No publication permitted")
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?): Int {
+            check(allowPublish)
+            check(values!!.keySet() == setOf("is_pending") && values.getAsLong("is_pending") == 0L)
+            check(selection == "_id = ? AND date_added = ? AND generation_added = ? AND generation_modified = ? AND owner_package_name = ? AND relative_path = ? AND mime_type = ? AND _display_name = ? AND _size = ? AND is_pending = 1 AND is_trashed = 0")
+            check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
+            val v = this.values!!
+            check(args!!.toList() == listOf("99", "100", generation.toString(), maxOf(generation, generationModified).toString(), app.packageName,
+                v.getAsString("relative_path"), v.getAsString("mime_type"), v.getAsString("_display_name"), payload!!.length().toString()))
+            if (pending != 1L || wrongOwner) return 0
+            pending = 0; generationModified++; publishes++; afterPublish(); return 1
+        }
         override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = error("No deletion permitted")
     }
 
@@ -425,6 +443,103 @@ class GalleryIncomingRowsTest {
                 }
             }
             assertEquals(1, provider.writeOpens); assertEquals(1L, provider.pending)
+        }
+    }
+
+    private fun pngBytes(): ByteArray {
+        val bitmap = android.graphics.Bitmap.createBitmap(16, 9, android.graphics.Bitmap.Config.ARGB_8888)
+        return try { java.io.ByteArrayOutputStream().use { output ->
+            check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray()
+        } } finally { bitmap.recycle() }
+    }
+
+    @Test fun actualNativeImagePublicationVerifiesOriginalsAndJournalsNewVisibleRowWithoutSavedOrSecondUpdate() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val policy = f.index.galleryPolicy(); val raw = pngBytes(); val file = File(f.root, "native-publish.png")
+            val provider = Provider(f.app, payload = file).apply { allowPublish = true }; ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES).use { owner ->
+                    val inserted = rows.prepare(owner, fileId, "image/png")
+                    val verified = rows.copyAndVerify(owner, inserted, { raw.copyOf() })
+                    val published = rows.publish(owner, verified)
+                    assertEquals("published", published.state); assertFalse(published.isSavedReceipt); assertFalse(published.grantsWriteAuthority)
+                    assertEquals(published.body, f.index.incomingPublication(published.id)!!.body)
+                    assertEquals(verified.row!!.string("member"), published.row!!.string("member"))
+                    assertTrue(published.row!!.string("revision").toLong() > verified.row!!.string("revision").toLong())
+                    assertEquals(published.body, rows.publish(owner, published).body)
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.publish(owner, verified) }
+                }
+            }
+            assertEquals(0L, provider.pending); assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            assertArrayEquals(raw, file.readBytes()); assertEquals(policy, f.index.galleryPolicy()); assertTrue(f.index.jobs().isEmpty())
+        }
+    }
+
+    @Test fun lostPublicationReplyOrPreUpdateCrashResumesFromProtectedHeadWithoutSecondInsertCopyOrVisibilityUpdate() {
+        for (phase in listOf("before_update", "lost_reply")) GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val raw = pngBytes(); val file = File(f.root, "native-publish-lost.png")
+            val provider = Provider(f.app, payload = file).apply { allowPublish = true }; ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES).use { owner ->
+                    val verified = rows.copyAndVerify(owner, rows.prepare(owner, fileId, "image/png"), { raw.copyOf() })
+                    if (phase == "before_update") f.hook = { if (it == "gallery-incoming-publishing") throw java.io.IOException("explicit pre-update crash") }
+                    else provider.afterPublish = { throw java.io.IOException("explicit lost publication reply") }
+                    assertThrows(java.io.IOException::class.java) { rows.publish(owner, verified) }
+                    val interrupted = f.index.incomingPublication(verified.id)!!
+                    assertEquals("publishing", interrupted.state)
+                    assertEquals(if (phase == "before_update") 1L else 0L, provider.pending)
+                    f.hook = {}; provider.afterPublish = {}
+                    val result = rows.publish(owner, interrupted)
+                    assertEquals("published", result.state); assertFalse(result.isSavedReceipt)
+                }
+            }
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            assertArrayEquals(raw, file.readBytes())
+        }
+    }
+
+    @Test fun bookWithdrawalAfterActualVisibilityChangeReturnsNoCompletionAndNeedsFreshOwnerReadback() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val raw = pngBytes(); val file = File(f.root, "native-publish-withdraw.png")
+            val provider = Provider(f.app, payload = file).apply { allowPublish = true }; ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                val old = NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES)
+                val verified = rows.copyAndVerify(old, rows.prepare(old, fileId, "image/png"), { raw.copyOf() })
+                provider.afterPublish = { f.currentDocuments = null }
+                try {
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.publish(old, verified) }
+                    val held = f.index.incomingPublication(verified.id)!!
+                    assertEquals("publishing", held.state); assertEquals(0L, provider.pending)
+                    provider.afterPublish = {}; f.currentDocuments = f.documents
+                    assertThrows(PhotoFolderScopeError::class.java) { old.requireCurrent() }
+                    NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES).use { fresh ->
+                        assertEquals("published", rows.publish(fresh, held).state)
+                    }
+                } finally { old.close() }
+            }
+            assertEquals(1, provider.publishes); assertEquals(1, provider.writeOpens); assertArrayEquals(raw, file.readBytes())
+        }
+    }
+
+    @Test fun forgedMimeOrChangedVerifiedBytesCannotPublishOrAcquirePublishedJournalState() {
+        for (mode in listOf("garbage", "mime", "hash")) GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val raw = if (mode == "garbage") "not actual gallery media".toByteArray() else pngBytes()
+            val file = File(f.root, "native-publish-held")
+            val provider = Provider(f.app, payload = file).apply { allowPublish = true }; ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest(f.pc.deviceId, raw = raw), GalleryMediaType.IMAGES).use { owner ->
+                    val mime = if (mode == "mime") "image/jpeg" else "image/png"
+                    val verified = rows.copyAndVerify(owner, rows.prepare(owner, fileId, mime), { raw.copyOf() })
+                    if (mode == "hash") file.writeBytes(ByteArray(raw.size) { 13 })
+                    assertThrows(PhotoFolderScopeError::class.java) { rows.publish(owner, verified) }
+                    assertEquals(verified.body, f.index.incomingPublication(verified.id)!!.body)
+                }
+            }
+            assertEquals(0, provider.publishes); assertEquals(1L, provider.pending)
         }
     }
 }
