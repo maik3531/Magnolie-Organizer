@@ -1,5 +1,14 @@
 # Gemeinsame Medien-Einstellungen (Refs #393, #394)
 
+Unter Linux implementiert `magnolie_media_sync.py` jetzt das getrennte
+Medienformat und die geschützte native Speicherung (Refs #338). Passive fehlende
+Werte erzeugen keine Vorgaben; fremde Register, beschädigte verschlüsselte Werte,
+fehlende Originaldatenbank, ungeeigneter Partner und widerrufener Besitzer halten.
+17 gezielte Format-/Speicherfälle sind geprüft. Dies ist noch kein angeschlossener
+Transport: sichere Ausgabe, korrelierte positive Bestätigung und aktuelles
+Partner-Echo müssen weiterhin separat verbunden werden. Daraus entstehen weder
+Dateirechte noch ein Lauf oder eine Freigabe der Erweiterung 23.
+
 Die native `device_status`-Erweiterung **23** kennzeichnet die vollständig
 angeschlossene gemeinsame Medienbedienung. Sie ersetzt weder die bestehenden
 Foto-/Video-Erweiterungen 21/22 noch Datei-, Betriebssystem- oder Ordnerrechte.
