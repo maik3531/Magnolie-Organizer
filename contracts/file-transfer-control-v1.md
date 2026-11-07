@@ -379,6 +379,24 @@ cancellation with retained OS ownership. This is recovery of an already
 authorized local archive operation, not general interrupted transfer resume,
 old-binding phone-row write/recovery authority, GC or production readiness.
 
+A separate private native read-only owner can inspect an already `published`
+Android incoming row across a renewed acknowledged control binding (#408).
+Fresh current saved-book/unlocked ownership, positive per-kind receive policy,
+actual incoming two-way intent and the same static sender/receiver identities
+are required. Historical permission/pairing epochs are not current authority.
+The exact protected published journal and original row witness must remain
+unchanged; missing/changed/pending histories are not adopted or repaired.
+
+Inspection holds the process media IO lane through actual provider IO/drain,
+verifies original bytes before and after native MIME/metadata inspection and
+rechecks the original visible non-trashed app-owned row/namespace/revision.
+The result is metadata only: no incoming write owner, insert/update/delete,
+journal change, acceptance, Saved output, transfer resume or new source mapping.
+This primitive is not connected to production UI/dispatcher or a foreground
+read-only selection flow; those and physical/platform acceptance remain open.
+Six new and eleven affected native test methods pass, including grouped
+authority/evidence failures and real blocked-provider cancellation ownership.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

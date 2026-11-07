@@ -224,6 +224,170 @@ class GalleryIncomingRowsTest {
         }
     }
 
+    private fun withPublishedInspection(action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
+        Provider, GalleryIncomingPublication, ByteArray, File, MediaSyncTransport.IntentToken) -> Unit) {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f)
+            val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888)
+            val raw = try { java.io.ByteArrayOutputStream().use { output ->
+                check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray()
+            } } finally { bitmap.recycle() }
+            val payload = File(f.root, "published-read-only.png")
+            val provider = Provider(f.app, payload = payload).apply { allowPublish = true }
+            ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val manifest = manifest(f.pc.deviceId, raw = raw)
+            val rows = NativeGalleryIncomingRows(f.app, f.index)
+            val published = f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                    rows.publish(owner, rows.copyAndVerify(owner, rows.prepare(owner, fileId, "image/png"), { raw.copyOf() }))
+                }
+            }
+            renewReceiving(f)
+            action(f, rows, provider, published, raw, payload, token)
+        }
+    }
+
+    @Test fun renewedBindingInspectsPublishedOriginalReadOnlyWithoutJournalMutationOrAnotherInsert() =
+        withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+            val before = f.rows(); val reads = provider.readOpens
+            f.io {
+                assertNotEquals(published.body.getValue("origin").jsonObject.getValue("binding").jsonObject.string("permission_epoch"),
+                    f.session.binding(published.body.getValue("origin").jsonObject.string("manifest_sha256"))!!.permissionEpoch)
+                val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                assertFalse(owner.grantsWriteAuthority); assertFalse(owner.isSavedReceipt)
+                val observation = rows.inspectPublished(owner)
+                assertEquals("image/png", observation.mimeType); assertEquals(8, observation.width); assertEquals(8, observation.height)
+                assertFalse(observation.grantsWriteAuthority); assertFalse(observation.isSavedReceipt)
+                assertThrows(PhotoFolderScopeError::class.java) { rows.inspectPublished(owner) }
+            }
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertTrue(provider.readOpens > reads); assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
+    @Test fun publishedReadOnlyInspectionRejectsMissingCurrentRightsAndChangedOriginalEvidence() {
+        for (change in listOf("consent", "intent", "book", "peer", "namespace", "member", "owner", "pending", "bytes"))
+            withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+                var currentToken = token
+                val selected = f.io { NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { currentToken }, published) }
+                when (change) {
+                    "consent" -> { f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake() }
+                    "intent" -> currentToken = intent(twoWay = false)
+                    "book" -> f.unlocked = false
+                    "peer" -> f.peer = f.peer.copy(identitySha256 = "b".repeat(64))
+                    "namespace" -> provider.namespace = "replaced-provider"
+                    "member" -> provider.generation++
+                    "owner" -> provider.wrongOwner = true
+                    "pending" -> provider.pending = 1L
+                    else -> payload.writeBytes(raw.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+                }
+                val before = f.rows(); val bytes = payload.readBytes()
+                f.io { assertThrows(PhotoFolderScopeError::class.java) { rows.inspectPublished(selected) } }
+                assertEquals(change, before, f.rows()); assertArrayEquals(bytes, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+    }
+
+    @Test fun canceledPublishedReadKeepsActualMediaLaneUntilBlockedProviderQueryDrains() =
+        withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+            val owner = f.io { NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published) }
+            val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+            val ended = java.util.concurrent.CountDownLatch(1); val errors = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val before = f.rows()
+            provider.beforeQuery = { entered.countDown(); check(release.await(8, java.util.concurrent.TimeUnit.SECONDS)) }
+            val worker = Thread {
+                try { f.io { rows.inspectPublished(owner) } } catch (error: Throwable) { errors.set(error) } finally { ended.countDown() }
+            }.also { it.start() }
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); owner.close()
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe)); assertEquals(1L, ended.count)
+            } finally { release.countDown(); worker.join(5000); provider.beforeQuery = {} }
+            assertFalse(worker.isAlive); assertTrue(errors.get() is PhotoFolderScopeError)
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+
+    @Test fun publishedReadOwnerCannotAdoptMissingOrUnpublishedOriginalJournal() {
+        for (change in listOf("missing", "unpublished", "foreign_pair"))
+            withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+                var selected = published
+                when (change) {
+                    "missing" -> SQLiteDatabase.openDatabase(File(f.indexRoot, "photo-source-jobs.db").path, null,
+                        SQLiteDatabase.OPEN_READWRITE).use { db ->
+                        db.delete("source_meta", "name=?", arrayOf(GalleryIncomingPublication.PREFIX + published.id))
+                    }
+                    "unpublished" -> selected = GalleryIncomingPublication.parse(JsonObject(published.body + ("state" to JsonPrimitive("publishing"))))
+                    else -> {
+                        val origin = published.body.getValue("origin").jsonObject
+                        val binding = origin.getValue("binding").jsonObject
+                        val changedOrigin = JsonObject(origin + ("binding" to JsonObject(binding + ("receiver_identity_sha256" to JsonPrimitive("c".repeat(64))))))
+                        selected = GalleryIncomingPublication.parse(JsonObject(published.body + mapOf("origin" to changedOrigin,
+                            "id" to JsonPrimitive(DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", changedOrigin)))))
+                    }
+                }
+                val before = f.rows(); val readOpens = provider.readOpens
+                f.io {
+                    assertThrows(PhotoFolderScopeError::class.java) {
+                        NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, selected).use {
+                            rows.inspectPublished(it)
+                        }
+                    }
+                }
+                assertEquals(change, before, f.rows()); assertEquals(readOpens, provider.readOpens)
+                assertArrayEquals(raw, payload.readBytes()); assertEquals(1, provider.inserts)
+                assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+    }
+
+    @Test fun publishedInspectionRejectsForeignIndexAndBusyLaneBeforeProviderRead() =
+        withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+            val before = f.rows(); val reads = provider.readOpens
+            val otherRoot = java.nio.file.Files.createTempDirectory(f.root.toPath(), "foreign-published-index-").toFile()
+            PhotoSourceJobIndex(otherRoot, f.protection).use { other ->
+                f.io {
+                    NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published).use { owner ->
+                        assertThrows(PhotoFolderScopeError::class.java) { NativeGalleryIncomingRows(f.app, other).inspectPublished(owner) }
+                        assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
+                    }
+                    NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published).use { owner ->
+                        val occupied = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(occupied))
+                        try {
+                            assertEquals("gallery_incoming_worker_busy", assertThrows(PhotoFolderScopeError::class.java) { rows.inspectPublished(owner) }.code)
+                        } finally { NativeGalleryMediaIoLane.release(occupied) }
+                        assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
+                    }
+                }
+            }
+            assertEquals(before, f.rows()); assertEquals(reads, provider.readOpens); assertArrayEquals(raw, payload.readBytes())
+        }
+
+    @Test fun publishedReadbackFailureOrChangedOriginalDescriptorNeverReturnsInspectionOrMutatesRow() {
+        for (change in listOf("read_failure", "changed_descriptor", "canceled"))
+            withPublishedInspection { f, rows, provider, published, raw, payload, token ->
+                val before = f.rows(); val cancellation = CancellationSignal()
+                when (change) {
+                    "read_failure" -> provider.failReadback = true
+                    "changed_descriptor" -> provider.corruptReadback = File(f.root, "wrong-original-readback").apply {
+                        writeBytes(raw.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() })
+                    }
+                    else -> cancellation.cancel()
+                }
+                f.io {
+                    NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published).use { owner ->
+                        when (change) {
+                            "read_failure" -> assertThrows(java.io.IOException::class.java) { rows.inspectPublished(owner, cancellation) }
+                            "changed_descriptor" -> assertThrows(PhotoFolderScopeError::class.java) { rows.inspectPublished(owner, cancellation) }
+                            else -> assertThrows(android.os.OperationCanceledException::class.java) { rows.inspectPublished(owner, cancellation) }
+                        }
+                        assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
+                    }
+                }
+                val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+                assertEquals(change, before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+    }
+
     @Test fun renewedReceivingConsentCannotForkAnUnpublishedOriginalIntoAnotherInsert() {
         GalleryReceiveConsentTest.Fixture().use { f ->
             ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)

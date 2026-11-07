@@ -182,8 +182,10 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
     }
 
     private fun verifyOriginalBytes(owner: NativeGalleryIncomingOwner, uri: Uri, size: Long, hash: String,
-        cancellation: CancellationSignal) {
-        fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+        cancellation: CancellationSignal) = verifyOriginalBytes(uri, size, hash, cancellation, owner::requireCurrent)
+
+    private fun verifyOriginalBytes(uri: Uri, size: Long, hash: String, cancellation: CancellationSignal, ensureCurrent: () -> Unit) {
+        fun current() { cancellation.throwIfCanceled(); ensureCurrent() }
         current(); val original = MediaStore.setRequireOriginal(uri)
         val stream = if (Build.VERSION.SDK_INT >= 31) {
             val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
@@ -276,16 +278,59 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         return published
     }
 
+    /** Read-only native verification of an existing published row under fresh
+     * current rights. No journal mutation or receipt is generated. Lane ownership
+     * drains real provider I/O even when the caller cancels/closes its owner. */
+    internal fun inspectPublished(owner: NativeGalleryPublishedInspection,
+        cancellation: CancellationSignal = CancellationSignal()): NativeIncomingMediaObservation {
+        if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
+            fail("gallery_incoming_io_android30_required")
+        owner.requireIndex(index); owner.consume()
+        val lane = Any()
+        if (!NativeGalleryMediaIoLane.acquire(lane)) { owner.close(); fail("gallery_incoming_worker_busy") }
+        try {
+            fun current() { cancellation.throwIfCanceled(); owner.requireCurrent() }
+            current()
+            val selected = owner.selected; val body = selected.body; val row = selected.row!!
+            val uri = Uri.parse(row.string("uri")); val size = body.long("size"); val mime = body.string("mime_type")
+            fun checkRow() {
+                if (observeRow(owner.kind, ::current, uri, mime, size..size, 0).witness != row)
+                    fail("gallery_incoming_original_row_changed")
+            }
+            checkRow(); verifyOriginalBytes(uri, size, body.string("sha256"), cancellation, ::current)
+            val original = MediaStore.setRequireOriginal(uri)
+            fun probe(descriptor: ParcelFileDescriptor) = NativeIncomingMediaInspection.inspect(
+                descriptor.fileDescriptor, size, owner.kind, mime, ::current)
+            val observation = if (Build.VERSION.SDK_INT >= 31) {
+                val asset = resolver.openTypedAssetFileDescriptor(original, "*/*", Bundle().apply {
+                    putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true)
+                }, cancellation) ?: fail("gallery_incoming_readback_missing")
+                asset.use {
+                    if (it.startOffset != 0L) fail("gallery_incoming_original_offset_changed")
+                    probe(it.parcelFileDescriptor)
+                }
+            } else {
+                val descriptor = resolver.openFileDescriptor(original, "r", cancellation) ?: fail("gallery_incoming_readback_missing")
+                descriptor.use(::probe)
+            }
+            current(); verifyOriginalBytes(uri, size, body.string("sha256"), cancellation, ::current); checkRow(); current()
+            return observation
+        } finally { owner.close(); NativeGalleryMediaIoLane.release(lane) }
+    }
+
     private data class NativeRow(val witness: JsonObject, val pending: Long)
     private fun observe(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange = 0L..0L): JsonObject =
         observeRow(owner, uri, mimeType, bytes, 1).witness
 
     private fun observeRow(owner: NativeGalleryIncomingOwner, uri: Uri, mimeType: String, bytes: LongRange,
+        pending: Long?): NativeRow = observeRow(owner.kind, owner::requireCurrent, uri, mimeType, bytes, pending)
+
+    private fun observeRow(kind: GalleryMediaType, current: () -> Unit, uri: Uri, mimeType: String, bytes: LongRange,
         pending: Long?): NativeRow {
-        owner.requireCurrent()
+        current()
         val volume = MediaStore.VOLUME_EXTERNAL_PRIMARY
         val id = uri.lastPathSegment?.toLongOrNull()?.takeIf { it > 0 } ?: fail("gallery_incoming_insert_invalid")
-        if (uri != ContentUris.withAppendedId(owner.kind.collection(volume, true), id) || volume !in MediaStore.getExternalVolumeNames(app))
+        if (uri != ContentUris.withAppendedId(kind.collection(volume, true), id) || volume !in MediaStore.getExternalVolumeNames(app))
             fail("gallery_incoming_insert_invalid")
         val namespace = MediaStore.getVersion(app, volume)
         val columns = arrayOf("_id", "_display_name", "mime_type", "relative_path", "_size", "date_added", "generation_added",
@@ -309,16 +354,16 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
             val size = cursor.getColumnIndexOrThrow("_size")
             val actualPending = number("is_pending")
             if (number("_id") != id || actualPending !in 0L..1L || pending != null && actualPending != pending || number("is_trashed") != 0L ||
-                text("owner_package_name") != app.packageName || text("relative_path") != path(owner.kind) ||
+                text("owner_package_name") != app.packageName || text("relative_path") != path(kind) ||
                 text("mime_type") != mimeType || added < 0 || generation <= 0 || revision < generation ||
                 (if (cursor.isNull(size)) 0L !in bytes else number("_size") !in bytes)) fail("gallery_incoming_row_changed")
             NativeRow(buildJsonObject {
                 put("uri", uri.toString()); put("namespace", namespace); put("volume", volume)
-                put("member", "$id:$added:$generation"); put("revision", revision.toString()); put("path", path(owner.kind))
+                put("member", "$id:$added:$generation"); put("revision", revision.toString()); put("path", path(kind))
                 put("name", text("_display_name")); put("mime_type", mimeType); put("owner", app.packageName)
             }, actualPending).also { if (cursor.moveToNext()) fail("gallery_incoming_row_changed") }
         } ?: fail("gallery_incoming_row_missing")
-        owner.requireCurrent()
+        current()
         if (MediaStore.getVersion(app, volume) != namespace) fail("gallery_incoming_namespace_changed")
         // Shared strict parser checks canonical URI, provider names and namespace.
         return result
