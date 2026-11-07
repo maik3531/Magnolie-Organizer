@@ -175,7 +175,7 @@ class _NativeSourceCatalog:
 
     def require_free_slot(self,parent,current):
         # Deny-only metadata/layout admission, never archive READ or adoption.
-        from magnolie_media_source_retirement import _NativeSourceRetirementJournal,verify_archived_cache
+        from magnolie_media_source_retirement import _NativeSourceRetirementJournal,verify_archived_cache,verify_retirement_exchange
         current();value=os.fstat(parent)
         if (value.st_dev,value.st_ino)!=self._authority.protection.native_directory_identity:
             raise TransferError('media_source_slot_original_parent_required')
@@ -197,6 +197,7 @@ class _NativeSourceCatalog:
                         or body['proof_witness']['sha256']!=original['proof_sha256']
                         or versions.get(self._exchange+job)!=body['exchange_version']):
                     raise TransferError('media_source_slot_original_job_required')
+                verify_retirement_exchange(self._jobs,db,key,ready,body)
                 verify_archived_cache(self._jobs,parent,body,current);expected.add(body['archive'])
         self.observe(catalog);current();prefix='.magnolie-source-'+self._jobs._scope[:32]
         found=set();count=0

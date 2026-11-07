@@ -12,8 +12,39 @@ import secrets
 from magnolie_file_control import _hex
 from magnolie_file_transfer import TransferError
 from magnolie_file_accept_message import parse_acceptance
-from magnolie_media_source_exchange import _NativeSourceExchange,NativeSourceExchangeObservation
+from magnolie_media_source_exchange import _NativeSourceExchange,NativeSourceExchangeObservation,_validate_exchange_body,_read_source_exchange
 from magnolie_telefon import canonical,strict_json
+
+
+def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher):
+    name=jobs._catalog._retry+job
+    if type(cipher) is not bytes or not 29<=len(cipher)<=_NativeSourceRetryExchange.MAX_BYTES+28:
+        raise TransferError('media_source_retry_invalid_head')
+    plain=jobs._authority.protection.unseal(cipher,name);body=strict_json(plain)
+    if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','original_exchange_version','attempts'}
+            or type(body['format']) is not int or body['format']!=1 or body['scope']!=jobs._scope
+            or body['database_key']!=list(key) or body['job_id']!=job or body['original_exchange_version']!=original_version
+            or canonical(body)!=plain or type(body['attempts']) is not list
+            or not 1<=len(body['attempts'])<=_NativeSourceRetryExchange.MAX_ATTEMPTS):raise TransferError('media_source_retry_invalid_head')
+    ids=set()
+    for index,attempt in enumerate(body['attempts']):
+        if (type(attempt) is not dict or set(attempt)!={'id','previous_head','record'} or type(attempt['id']) is not str
+                or len(attempt['id'])!=32 or not _hex(attempt['id']*2) or attempt['id'] in ids
+                or (attempt['previous_head'] is not None if index==0 else not _hex(attempt['previous_head']))):
+            raise TransferError('media_source_retry_invalid_head')
+        ids.add(attempt['id']);_validate_exchange_body(attempt['record'],key,jobs._scope,job,nonce,ready_version)
+        if len(canonical(attempt['record']))>_NativeSourceExchange.MAX_BYTES:raise TransferError('media_source_retry_invalid_head')
+    return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
+
+
+def _read_retry_history(jobs,db,key,job,ready,original_version):
+    """Authenticated metadata witness only, never current wire/READ authority."""
+    original=_read_source_exchange(jobs,db,key,job,ready)
+    if original is None or original.version!=original_version or original.body['phase']=='peer_saved':
+        raise TransferError('media_source_retry_original_exchange_required')
+    row=db.execute('SELECT value FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone()
+    if row is None:return None
+    return _decode_retry_head(jobs,key,job,ready.body['nonce'],ready.version,original_version,row[0])
 
 
 class _NativeSourceRetryExchange(_NativeSourceExchange):
@@ -33,26 +64,8 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
         if original.body['phase']=='peer_saved':raise TransferError('media_source_retry_completed_held')
         row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()
         if row is None:return None
-        cipher=row[0]
-        if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:
-            raise TransferError('media_source_retry_invalid_head')
-        plain=self._sender._authority.protection.unseal(cipher,self._key);body=strict_json(plain)
-        if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','original_exchange_version','attempts'}
-                or type(body['format']) is not int or body['format']!=1 or body['scope']!=self._jobs._scope
-                or body['database_key']!=list(key) or body['job_id']!=self._sender._job
-                or body['original_exchange_version']!=self._original_version or canonical(body)!=plain
-                or type(body['attempts']) is not list or not 1<=len(body['attempts'])<=self.MAX_ATTEMPTS):
-            raise TransferError('media_source_retry_invalid_head')
-        ids=set()
-        for index,attempt in enumerate(body['attempts']):
-            if (type(attempt) is not dict or set(attempt)!={'id','previous_head','record'} or type(attempt['id']) is not str
-                    or len(attempt['id'])!=32 or not _hex(attempt['id']*2) or attempt['id'] in ids
-                    or (attempt['previous_head'] is not None if index==0 else not _hex(attempt['previous_head']))):
-                raise TransferError('media_source_retry_invalid_head')
-            ids.add(attempt['id']);self._validate(attempt['record'],key)
-            if len(canonical(attempt['record']))>_NativeSourceExchange.MAX_BYTES:
-                raise TransferError('media_source_retry_invalid_head')
-        return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
+        return _decode_retry_head(self._jobs,key,self._sender._job,self._sender._cache._job_nonce,
+            self._sender._cache._job_version,self._original_version,row[0])
 
     def require_owner(self):
         with self._jobs._database() as (db,key):
@@ -62,7 +75,11 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
             if head is not None and head.body['attempts'][-1]['id']!=self._attempt and head.body['attempts'][-1]['record']['phase']=='peer_saved':
                 raise TransferError('media_source_retry_completed_held')
             if db.execute('SELECT 1 FROM meta WHERE key=?',(self._jobs._catalog._retirement+self._sender._job,)).fetchone():
-                raise TransferError('media_source_retry_retirement_held')
+                from magnolie_media_source_retirement import _NativeSourceRetirement,_NativeSourceRetirementJournal
+                owner=getattr(self._sender._active,'retirement',None)
+                record=_NativeSourceRetirementJournal(self._jobs)._read(db,key,self._sender._job)
+                if type(owner) is not _NativeSourceRetirement or owner._sender is not self._sender or not owner._permits_retry_record(record):
+                    raise TransferError('media_source_retry_retirement_held')
 
     def history(self):
         with self._jobs._database() as (db,key):

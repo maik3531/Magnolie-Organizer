@@ -13,7 +13,7 @@ from magnolie_file_transfer import FileManifest,TransferError
 from magnolie_media_source_jobs import _NativeSourceJobs
 from magnolie_media_source_cache import FrozenNativeMediaSource
 from magnolie_media_source_recovery import verify_encrypted_source
-from magnolie_media_source_retirement import _private,_NativeSourceRetirementJournal,verify_archived_cache
+from magnolie_media_source_retirement import _private,_NativeSourceRetirementJournal,verify_archived_cache,verify_retirement_exchange
 
 
 class _NativeSourceRepreparation:
@@ -41,6 +41,7 @@ class _NativeSourceRepreparation:
                         or body['root_key']!=original['root_key'] or body['parent_key']!=original['parent_key']
                         or body['proof_witness']['sha256']!=original['proof_sha256'] or versions.get(catalog._exchange+job)!=body['exchange_version']):
                     raise TransferError('media_source_reprepare_original_catalog_required')
+                verify_retirement_exchange(self._jobs,db,key,ready,body)
                 verify_archived_cache(self._jobs,parent,body,current);expected.add(body['archive'])
         catalog.observe(head)
         prefix='.magnolie-source-'+self._jobs._scope[:32];found=set();count=0

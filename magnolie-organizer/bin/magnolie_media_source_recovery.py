@@ -14,7 +14,7 @@ from magnolie_file_transfer import CHUNK_BYTES,FileManifest,TransferError
 from magnolie_media_source import NativeMappedMediaSource
 from magnolie_media_source_jobs import _NativeSourceJobs
 from magnolie_media_source_retirement import (_NativeSourceRetirementJournal,_private,_move_no_replace,
-    verified_source_backup,verify_archived_cache)
+    verified_source_backup,verify_archived_cache,verify_retirement_exchange)
 from magnolie_media_retention import NativeMediaRetention
 from magnolie_photo_destination import NativePhotoDestinationAction
 from magnolie_photo_preferences import PhotoPreferencesSnapshot
@@ -113,6 +113,9 @@ class _NativeSourceRetirementRecovery:
             members=dict(self._jobs._catalog.lookup().body['members'])
             if members.get(self._jobs._catalog._exchange+self._job)!=self._record.body['exchange_version']:
                 raise TransferError('media_source_recovery_original_exchange_required')
+            with self._jobs._database() as (db,key):
+                db.execute('BEGIN');self._jobs._catalog.verify(db,key)
+                verify_retirement_exchange(self._jobs,db,key,self._ready,self._record.body)
 
     def _require_planned(self):
         self._current();actual=self._journal.lookup(self._job)

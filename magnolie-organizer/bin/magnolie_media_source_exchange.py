@@ -25,6 +25,27 @@ class NativeSourceExchangeObservation:
     def permits_retirement(self):return False
 
 
+def _validate_exchange_body(body,key,scope,job,nonce,ready_version):
+    if (type(body) is not dict or set(body)!={'format','database_key','scope','job_id','nonce','ready_version',
+            'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'}
+            or type(body['format']) is not int or body['format']!=1 or body['database_key']!=list(key)
+            or body['scope']!=scope or body['job_id']!=job or body['nonce']!=nonce or body['ready_version']!=ready_version
+            or body['phase'] not in _NativeSourceExchange.PHASES):raise TransferError('media_source_exchange_invalid_record')
+
+
+def _read_source_exchange(jobs,db,key,job,ready):
+    """Passive exact metadata only; never construct a sender or source reader."""
+    name=jobs._catalog._exchange+job;row=db.execute('SELECT value FROM meta WHERE key=?',(name,)).fetchone()
+    if row is None:return None
+    cipher=row[0]
+    if type(cipher) is not bytes or not 29<=len(cipher)<=_NativeSourceExchange.MAX_BYTES+28:
+        raise TransferError('media_source_exchange_invalid_record')
+    plain=jobs._authority.protection.unseal(cipher,name);body=strict_json(plain)
+    _validate_exchange_body(body,key,jobs._scope,job,ready.body['nonce'],ready.version)
+    if canonical(body)!=plain:raise TransferError('media_source_exchange_invalid_record')
+    return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
+
+
 class _NativeSourceExchange:
     MAX_BYTES=16384
     PHASES=frozenset(('offer_planned','offer_sent','accepted','peer_saved'))
@@ -43,13 +64,7 @@ class _NativeSourceExchange:
         return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
 
     def _validate(self,body,key):
-        if (type(body) is not dict or set(body)!={'format','database_key','scope','job_id','nonce','ready_version',
-                'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'}
-                or type(body['format']) is not int or body['format']!=1 or body['database_key']!=list(key)
-                or body['scope']!=self._jobs._scope or body['job_id']!=self._sender._job
-                or body['nonce']!=self._sender._cache._job_nonce or body['ready_version']!=self._sender._cache._job_version
-                or body['phase'] not in self.PHASES):
-            raise TransferError('media_source_exchange_invalid_record')
+        _validate_exchange_body(body,key,self._jobs._scope,self._sender._job,self._sender._cache._job_nonce,self._sender._cache._job_version)
 
     def _read(self,db,key):
         row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()

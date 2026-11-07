@@ -44,14 +44,18 @@ class _NativeSourceRetirementJournal:
         cipher=row[0]
         if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:raise TransferError('media_source_retirement_invalid_record')
         plain=self._jobs._authority.protection.unseal(cipher,name);body=strict_json(plain)
+        retry=type(body) is dict and body.get('format')==2
         if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','nonce','ready_version','exchange_version',
-                'state','stage','archive','root_key','parent_key','manifest','proof_witness','backup'}
-                or type(body['format']) is not int or body['format']!=1 or body['scope']!=self._jobs._scope
+                'state','stage','archive','root_key','parent_key','manifest','proof_witness','backup'} | ( {'retry_version','retry_attempt_id'} if retry else set())
+                or type(body['format']) is not int or body['format'] not in (1,2) or body['scope']!=self._jobs._scope
                 or body['database_key']!=list(key) or body['job_id']!=job or body['state'] not in ('archive_planned','archived')
                 or any(not _hex(body[name]) for name in ('nonce','ready_version','exchange_version'))
                 or body['stage']!='.magnolie-source-'+self._jobs._scope[:32]+'.part'
                 or body['archive']!='.magnolie-source-'+self._jobs._scope[:32]+'-'+job+'.retired'
                 or canonical(body)!=plain):raise TransferError('media_source_retirement_invalid_record')
+        if retry and (not _hex(body['retry_version']) or type(body['retry_attempt_id']) is not str
+                or len(body['retry_attempt_id'])!=32 or not _hex(body['retry_attempt_id']*2)):
+            raise TransferError('media_source_retirement_invalid_record')
         manifest=FileManifest.parse(body['manifest'])
         if manifest.source_id!=job or len(manifest.files)!=1:raise TransferError('media_source_retirement_invalid_record')
         for field in ('root_key','parent_key'):
@@ -93,7 +97,8 @@ class _NativeSourceRetirementJournal:
             db.execute('BEGIN IMMEDIATE');catalog=self._jobs._catalog.verify(db,key);before=self._read(db,key,job)
             if expected is None:
                 if before is not None:raise TransferError('media_source_retirement_existing_intent_held')
-                body=dict(body,format=1,scope=self._jobs._scope,database_key=list(key),job_id=job)
+                body=dict(body,format=2 if owner._sender._retry_spec is not None else 1,
+                    scope=self._jobs._scope,database_key=list(key),job_id=job)
                 if body['state']!='archive_planned':raise TransferError('media_source_retirement_invalid_transition')
             elif (before is None or before.version!=expected.version or before.body['state']!='archive_planned'
                     or body!=dict(before.body,state='archived')):raise TransferError('media_source_retirement_original_intent_required')
@@ -110,6 +115,40 @@ class _NativeSourceRetirementJournal:
 def _private(value,*,directory=False):
     if (value.st_uid!=os.geteuid() or value.st_mode&0o077 or not (stat.S_ISDIR(value.st_mode) if directory else stat.S_ISREG(value.st_mode))
             or not directory and value.st_nlink!=1):raise TransferError('media_source_retirement_unsafe_entry')
+
+
+def verify_retirement_exchange(jobs,db,key,ready,body):
+    """Exact pinned historical evidence, never current wire or raw READ rights."""
+    from magnolie_media_source_exchange import _read_source_exchange
+    job=body['job_id'];original=_read_source_exchange(jobs,db,key,job,ready)
+    if original is None or original.version!=body['exchange_version']:
+        raise TransferError('media_source_retirement_original_exchange_required')
+    if body['format']==1:
+        if original.body['phase']!='peer_saved' or db.execute('SELECT 1 FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone():
+            raise TransferError('media_source_retirement_original_exchange_required')
+        return
+    from magnolie_media_source_retry import _read_retry_history
+    from magnolie_file_accept_message import parse_acceptance
+    from magnolie_file_saved_message import parse_saved
+    from magnolie_file_offer import validate_offer
+    history=_read_retry_history(jobs,db,key,job,ready,body['exchange_version'])
+    if history is None or history.version!=body['retry_version'] or history.body['attempts'][-1]['id']!=body['retry_attempt_id']:
+        raise TransferError('media_source_retirement_original_retry_required')
+    record=history.body['attempts'][-1]['record'];manifest=FileManifest.parse(ready.body['manifest'])
+    if (record['phase']!='peer_saved' or record['pending_chunk'] is not None or type(record['sent_bits']) is not int
+            or record['sent_bits']!=(1<<manifest.files[0].chunks)-1
+            or any(type(record[field]) is not dict for field in ('offer','acceptance','peer_saved'))):
+        raise TransferError('media_source_retirement_completed_retry_required')
+    offer=record['offer'];accepted_message=record['acceptance'];saved_message=record['peer_saved']
+    if validate_offer(offer,sender_id=manifest.sender_id,receiver_id=manifest.receiver_id,now=offer.get('created_ms'))!=manifest:
+        raise TransferError('media_source_retirement_completed_retry_required')
+    accepted=parse_acceptance(accepted_message,now=accepted_message.get('created_ms'))
+    saved=parse_saved(saved_message,manifest,now=saved_message.get('created_ms'))
+    if (accepted.offer_id!=offer['message_id'] or accepted.manifest_sha256!=manifest.fingerprint
+            or accepted.transfer_id!=manifest.transfer_id or accepted.permission_epoch!=record['permission_epoch']
+            or any(getattr(accepted,field)!=getattr(saved,field) for field in
+                ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))):
+        raise TransferError('media_source_retirement_completed_retry_required')
 
 
 def verify_archived_cache(jobs,parent,body,current):
@@ -168,12 +207,19 @@ class _NativeSourceRetirement:
         if (type(sender) is not _NativeMediaSourceSender or type(backups) is not NativeMediaBackups
                 or type(selected) is not NativeMediaBackupVersion or not callable(boundary)):
             raise TransferError('media_source_retirement_native_completed_owner_required')
-        if sender._retry_spec is not None:raise TransferError('media_source_retirement_retry_completion_held')
         self._sender=sender;self._job=sender._job;self._backups=backups;self._selected=selected;self._boundary=boundary
         self._jobs=sender._jobs;self._journal=_NativeSourceRetirementJournal(self._jobs)
-        self._reader=None;self._permit=None;self._record=None;self._closed=threading.Event();self._thread=None
+        self._reader=None;self._permit=None;self._record=None;self._closed=threading.Event();self._thread=None;self._planned=None
 
     def close(self):self._closed.set() # Never release another thread's actual IO.
+
+    def _permits_retry_record(self,record):
+        if (self._closed.is_set() or self._thread!=threading.get_ident() or self._planned is None or record is None
+                or self._reader is None or getattr(self._sender._active,'reader',None) is not self._reader
+                or getattr(self._sender._source._cache_scope,'permit',None) is not self._permit
+                or self._permit[3]!=threading.get_ident()):return False
+        expected=dict(self._planned,format=2,scope=self._jobs._scope,database_key=list(self._jobs._database_key),job_id=self._job)
+        return record.body==expected or record.body==dict(expected,state='archived')
 
     def _current(self):
         sender=self._sender
@@ -207,7 +253,7 @@ class _NativeSourceRetirement:
         try:
             with sender._source.prepared_cache(sender._job) as reader:
                 self._reader=reader;self._thread=threading.get_ident();self._permit=sender._source._cache_scope.permit
-                self._current();sender._active.reader=reader
+                self._current();sender._active.reader=reader;sender._active.retirement=self
                 try:
                     sender._current();backup=self._backup_proof();cache=sender._cache
                     parent=os.open(sender._authority.binding.native_directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -216,6 +262,10 @@ class _NativeSourceRetirement:
                     body=dict(nonce=cache._job_nonce,ready_version=cache._job_version,exchange_version=sender._record.version,
                         state='archive_planned',stage=cache.directory.name,archive=archive,root_key=list(cache.root_key),parent_key=parent_key,
                         manifest=cache.manifest.wire(),proof_witness=copy.deepcopy(reader._proof_witness),backup=backup)
+                    if sender._retry_spec is not None:
+                        body.update(exchange_version=sender._journal._original_version,retry_version=sender._record.version,
+                            retry_attempt_id=sender._journal._attempt)
+                    self._planned=copy.deepcopy(body)
                     self._record=self._journal.write(self,None,body);self._boundary('source_retirement_planned');self._require_planned()
                     reader._handoff_retirement(self);handed=True
                     self._current();_move_no_replace(parent,body['stage'],archive);os.fsync(parent)
@@ -223,11 +273,11 @@ class _NativeSourceRetirement:
                     self._backup_proof();self._require_planned()
                     self._record=self._journal.write(self,self._record,dict(self._record.body,state='archived'))
                     self._boundary('source_retirement_archived');self._current();result=self._record
-                finally:sender._active.reader=None
+                finally:sender._active.reader=None;sender._active.retirement=None
             return result
         except BaseException:
             sender.close();raise
         finally:
             if parent is not None:os.close(parent)
             if handed:sender.close()
-            self._reader=None;self._permit=None;self._thread=None;sender._gate.release()
+            self._reader=None;self._permit=None;self._thread=None;self._planned=None;sender._gate.release()

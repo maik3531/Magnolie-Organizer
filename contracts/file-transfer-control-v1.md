@@ -462,6 +462,33 @@ Twenty-two new and twenty-four affected native cases pass, including the
 confirmed old-request replay regression, all-eight-attempt capacity retention,
 actual blocked socket IO and unchanged original archival/recovery behavior.
 
+Exact retry-bound archival is now implemented separately (#412). A still-live
+actually completed retry and independently reverified completed local source
+backup can mint a format-2 retirement intent pinning BOTH the immutable original
+exchange version and exact completed retry-head version/latest attempt ID.
+Format-1 original retirement records remain readable without migration.
+
+The retry retirement fence is bypassed only for that exact typed live retirer's
+own precomputed record on the owning thread, real cache-reader/book permit and
+source OS lane; no global guard is removed. It ends after real IO drains.
+No-replace archival preserves every cache inode/byte and both wire histories.
+Slot admission, fresh original re-preparation and explicit metadata-only archive
+recovery independently recheck the same original/retry/attempt pins and completed
+wire correlation. Passive codecs create neither a sender nor a raw-cache reader;
+historical envelopes are parsed at their original recorded times, never renewed
+as current rights. Recovery still requires a fresh action/current local rights,
+actual shared intent, exact original book and complete local backup.
+
+Missing/resealed retry heads, another attempt, original-only approval, pending
+backup, foreign archive collisions and lost current ownership hold without
+repair/deletion. This completes only private retry-bound local archival/recovery,
+not the actual phone recovery-response producer or end-to-end transfer resume,
+production dispatch/UI, GC, Windows parity or physical/package acceptance.
+Eleven new and eleven affected native cases pass, including exact retry-bound
+no-loss archival, metadata-only recovery before/after rename, missing/changed
+pins, pending-only backup denial, foreign collisions, real blocked rename
+cancellation and unchanged format-1 archive/recovery and retry replay guards.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

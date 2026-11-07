@@ -196,7 +196,7 @@ def test_retry_cannot_supersede_actual_blocked_original_socket_io_or_release_its
     assert cached.directory.exists() and h.target.read_bytes()==b'hello'
 
 
-def test_retry_completion_cannot_be_used_as_original_live_retirement_approval(source):
+def test_retry_completion_requires_distinct_retry_pins_instead_of_original_exchange_approval(source):
     from test_media_source_backup import open_backup
     from magnolie_media_source_backup import backup_prepared_source
     from magnolie_media_source_retirement import _NativeSourceRetirement
@@ -206,8 +206,10 @@ def test_retry_completion_cannot_be_used_as_original_live_retirement_approval(so
         deliver(h,new,accepted);deliver(h,new,request(accepted,cached));h.wire.receive();deliver(h,new,saved(accepted,cached))
         with open_backup(h) as backups:
             version=backup_prepared_source(backups,h.source,cached.manifest.source_id)
-            with pytest.raises(TransferError,match='retry_completion_held'):_NativeSourceRetirement(new,backups,version)
-        assert cached.directory.exists()
+            result=_NativeSourceRetirement(new,backups,version).run()
+            assert result.body['format']==2 and result.body['exchange_version']==old.observation().version
+            assert result.body['retry_version']==new.observation().version and result.body['retry_attempt_id']==new._journal._attempt
+        assert not cached.directory.exists() and (cached.directory.parent/result.body['archive']).exists()
     finally:new.close();old.close()
 
 
