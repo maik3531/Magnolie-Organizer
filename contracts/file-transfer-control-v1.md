@@ -132,7 +132,19 @@ Video additionally requires actual joined video handlers and native peer video
 capability, never image fallback. The runtime seam is not a production Werk/UI
 dispatcher rollout or a substitute for local foreground consent.
 
-Native foreground consent host, incoming inventory/baseline scope admission,
+The native runtime also joins foreground receive-configuration authority to the
+real positive dialog's protected policy transaction. Both ticket preparation and
+positive policy CAS use the serialized IO lane and exact process media admission;
+another source/recovery job starting while the dialog is open holds the grant.
+The freshly checked control authority is frozen only during that transaction;
+index guards use revocable local ticket/peer snapshots, never transport monitors.
+UI cancellation cannot finish another ticket. Wrong-thread grant rejection occurs
+before consuming approval, and completed/failed attempts close their selection.
+Actual data still requires a new control ACK/echo after consent changes. Explicit
+saved-book decrease works without an online PC and preserves source choices and
+epoch; uncertain/exhausted updates hold readiness without inventing stored OFF.
+
+Production foreground/Werk/UI wiring, incoming inventory/baseline scope admission,
 PC source ownership/upload and full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.

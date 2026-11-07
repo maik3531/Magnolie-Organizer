@@ -79,12 +79,15 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private val localRunCommands = NativeGalleryRunCommands()
     private val localResumeCommands = NativeGalleryResumeCommands()
     private val ticket = AtomicReference<NativeFileConfigurationTicket?>()
+    private val receiveTicket = AtomicReference<NativeFileConfigurationTicket?>()
+    private val receiveConfiguration = AtomicReference<Pair<NativeFileReceiveConfigurer, NativeFileControlPeer>?>()
+    private val receivePolicyHealthy = AtomicBoolean(true)
     private val commandLive = AtomicReference<(() -> Boolean)?>()
     private val wireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
     private val videoWireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
     private fun wireCatalog(mediaType: GalleryMediaType) = if (mediaType == GalleryMediaType.IMAGES) wireCatalog else videoWireCatalog
     private val nativePeer = { if (closed.get() || revoked.get()) null else currentPeer() }
-    private val incomingAvailable = { handlersReady() && receiveHandlersReady() && currentIncomingIntent != null && nativePeer()?.allowed == true }
+    private val incomingAvailable = { receivePolicyHealthy.get() && handlersReady() && receiveHandlersReady() && currentIncomingIntent != null && nativePeer()?.allowed == true }
     private val videoAvailable = { handlersReady() && videoHandlersReady() && nativePeer()?.let { it.allowed && it.videoSupported } == true }
     private val index = PhotoSourceJobIndex(directory, protection)
     private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady, incomingAvailable)
@@ -92,6 +95,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private val incomingRows = NativeGalleryIncomingRows(context, index)
     private val nativeChannel = channel
     private val controls: NativeFileControlChannel
+    private val receivePolicy: GalleryReceivePolicyController
     private val workflow: NativeGalleryPhotoWorkflow
     private val sourceWorker: NativeGallerySourceWorker
     private var closeCompletion: (() -> Unit)? = null // Guarded by this runtime monitor.
@@ -101,6 +105,9 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         try {
             prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() }, incomingAvailable)
             controls = prepared
+            val receivePeer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+            receivePolicy = GalleryReceivePolicyController(index, NativeFileControlIdentity(receivePeer.peerId, receivePeer.identitySha256),
+                ::currentReceiveConfiguration)
             workflow = NativeGalleryPhotoWorkflow.forSharedMediaIntent(context, directory, identity.deviceId, protection,
                 { if (closed.get() || revoked.get()) null else controls.session.photoReceiver() },
                  { if (commandLive.get()?.invoke() == false) null else ticket.get()?.let { controls.session.configurationAuthority(it) } },
@@ -145,6 +152,91 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         run.cancel()
     }
     internal fun incomingContextWithdrawn() { incomingWorker.current?.cancel() }
+
+    /** No transport/session/Werk monitor inside protected index guards. The
+     * control authority is freshly checked under operationGate before freezing;
+     * its exact ticket/native peer remain revocable during the local policy CAS. */
+    private fun currentReceiveConfiguration(): NativeFileReceiveConfigurer? {
+        val frozen = receiveConfiguration.get() ?: return null
+        if (receiveTicket.get() !== frozen.first.owner) return null
+        val peer = nativePeer()?.takeIf { it.allowed } ?: return null
+        if (peer.owner !== frozen.second.owner || peer.peerId != frozen.second.peerId || peer.identitySha256 != frozen.second.identitySha256 ||
+            peer.pairingEpoch != frozen.second.pairingEpoch) return null
+        return frozen.first
+    }
+
+    private inline fun <T> withReceiveIdleLane(action: () -> T): T {
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (!sourceWorker.isQuiescent || !incomingWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        val lease = Any()
+        if (!NativeGalleryMediaIoLane.acquire(lease)) DeviceFileControl.fail("gallery_incoming_worker_busy")
+        try { return action() } finally { NativeGalleryMediaIoLane.release(lease) }
+    }
+
+    /** Native IO-lane preparation only. The UI must still present the real
+     * foreground positive dialog with its current saved-book witness. */
+    internal fun beginReceiveConfiguration(): NativeFileReceiveConfigurer = withOperation {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_receive_policy_io_thread_required")
+        withReceiveIdleLane {
+            val issued = controls.session.receiveConfigurationTicket()
+            if (!receiveTicket.compareAndSet(null, issued)) {
+                controls.session.finishConfiguration(issued); DeviceFileControl.fail("file_control_configuration_busy")
+            }
+            try { controls.session.receiveConfigurationAuthority(issued) ?: DeviceFileControl.fail("file_control_configuration_not_ready") }
+            catch (error: Exception) {
+                receiveTicket.compareAndSet(issued, null); controls.session.finishConfiguration(issued); throw error
+            }
+        }
+    }
+
+    internal fun finishReceiveConfiguration(configurer: NativeFileReceiveConfigurer) {
+        val issued = receiveTicket.get() ?: return
+        if (issued !== configurer.owner) DeviceFileControl.fail("gallery_receive_configurer_changed")
+        if (receiveTicket.compareAndSet(issued, null)) controls.session.finishConfiguration(issued)
+    }
+
+    internal fun grantReceiving(expected: GalleryPhotoPolicySnapshot, selection: NativeGalleryReceiveConsent): GalleryPhotoPolicySnapshot {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_receive_policy_io_thread_required")
+        try {
+            return withOperation {
+                withReceiveIdleLane {
+                    val issued = receiveTicket.get() ?: DeviceFileControl.fail("file_control_configuration_not_ready")
+                    val configured = controls.session.receiveConfigurationAuthority(issued) ?: DeviceFileControl.fail("file_control_configuration_not_ready")
+                    selection.requireConfigurer(configured)
+                    val peer = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+                    receiveConfiguration.set(configured to peer)
+                    try {
+                        val saved = receivePolicy.grant(expected, selection)
+                        if (!incomingAvailable()) {
+                            receivePolicyHealthy.set(false); DeviceFileControl.fail("gallery_receive_policy_commit_readback_failed")
+                        }
+                        saved
+                    } finally {
+                        receiveConfiguration.set(null)
+                        if (!receivePolicy.available()) receivePolicyHealthy.set(false)
+                    }
+                }
+            }
+        } finally {
+            try { finishReceiveConfiguration(selection.configurer) } finally { selection.close() }
+        }
+    }
+
+    /** Explicit decrease works offline, without a receive backend or live PC.
+     * It cancels actual old IO but keeps its lane/index until real drain. */
+    internal fun revokeReceiving(expected: GalleryPhotoPolicySnapshot, kind: GalleryMediaType,
+        book: NativeGalleryReceiveBookPermit): GalleryPhotoPolicySnapshot = withOperation(allowIncoming = true) {
+        if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_receive_policy_io_thread_required")
+        book.requireCurrent()
+        if (index.galleryPolicy() != expected) DeviceFileControl.fail("gallery_policy_cas_conflict")
+        if (expected.policy?.receiving?.enabled(kind) == true) {
+            incomingWorker.current?.cancel()
+            sourceWorker.current?.let { sourceWorker.cancel(it) }
+        }
+        try { receivePolicy.revoke(expected, kind, book) }
+        finally { if (!receivePolicy.available()) receivePolicyHealthy.set(false) }
+    }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? { ready(); return workflow.currentRequest(mediaType) }
     fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal(),
@@ -1254,6 +1346,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             if (!closed.compareAndSet(false, true)) return true
             closeCompletion = null
             ticket.set(null)
+            receiveTicket.set(null); receiveConfiguration.set(null)
             wireCatalog.getAndSet(null)?.close()
             videoWireCatalog.getAndSet(null)?.close()
             NativeGalleryForeground.detach(this)
