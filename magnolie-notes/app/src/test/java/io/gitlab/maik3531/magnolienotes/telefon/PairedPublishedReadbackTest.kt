@@ -26,6 +26,7 @@ class PairedPublishedReadbackTest {
     @Test fun actualKotlinProofForDifferentOfferCannotCompleteCurrentPythonRetry() = runPaired("wrong_offer")
     @Test fun actualKotlinReadbackVerifiesCompletedPythonRetryAfterFreshOriginalPreparation() = runPaired("verification_positive")
     @Test fun actualWrongOfferKotlinProofCannotCompleteReadbackOnlyVerification() = runPaired("verification_wrong_offer")
+    @Test fun normalPcImageUploadPublishesOriginalOnceAndCompletesBackupWithoutSyntheticAcceptanceOrSaved() = runPaired("normal_upload")
 
     private fun runPaired(mode: String) {
         GalleryIncomingRowsTest().mountedPrimaryVolume()
@@ -54,7 +55,7 @@ class PairedPublishedReadbackTest {
                         for ((field, key) in listOf("sendSequence" to "phone_send_seq", "receiveSequence" to "phone_receive_seq"))
                             TelefonSecureChannel::class.java.getDeclaredField(field).apply { isAccessible = true }.setLong(channel, config.long(key))
                         GalleryReceiveConsentTest.Fixture(channel, NativeFileControlIdentity(config.string("pc_id"), config.string("pc_hash")),
-                            NativeFileControlIdentity(config.string("phone_id"), config.string("phone_hash"))).use { f ->
+                            NativeFileControlIdentity(config.string("phone_id"), config.string("phone_hash"))).use fixture@ { f ->
                             val consent = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
                             val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
                             val enabled = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
@@ -66,6 +67,38 @@ class PairedPublishedReadbackTest {
                             val provider = GalleryIncomingRowsTest.Provider(app, payload = payload).apply { allowPublish = true }
                             ShadowContentResolver.registerProviderInternal("media", provider)
                             val rows = NativeGalleryIncomingRows(app, f.index)
+                            if (mode == "normal_upload") {
+                                repeat(3) {
+                                    val remote = channel.receive()
+                                    f.session.observeRemote(DeviceFileControlEnvelope.validate(remote), f.peer)
+                                    val packet = f.session.packet(); channel.send(DeviceFileControlEnvelope.create(packet)); f.session.markSent(packet)
+                                }
+                                val offer = channel.receive()
+                                val transfer = f.io {
+                                    val owner = NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES)
+                                    NativeGalleryIncomingTransfer.prepare(owner, channel, f.index, rows, offer, mapOf(manifest.files.single().id to "image/png"))
+                                }
+                                transfer.use {
+                                    f.io { it.sendAcceptance() }
+                                    val ended = java.util.concurrent.CountDownLatch(1)
+                                    val failure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+                                    val worker = Thread {
+                                        try { f.io { transfer.receiveAndSendSaved() } } catch (error: Throwable) { failure.set(error) }
+                                        finally { ended.countDown() }
+                                    }.also { it.start() }
+                                    try {
+                                        val chunkCount = ((manifest.files.single().size + DeviceFileManifest.CHUNK_BYTES - 1) / DeviceFileManifest.CHUNK_BYTES).toInt()
+                                        repeat(chunkCount) { assertTrue(transfer.observeChunk(channel, channel.receive())) }
+                                        assertTrue(ended.await(10, TimeUnit.SECONDS)); assertNull(failure.get())
+                                        val result = TelefonRahmen.lesen(socket.getInputStream(), 65536)
+                                        assertEquals("uploaded", result.string("result"))
+                                        assertEquals(manifest.files.single().sha256, result.string("sha256"))
+                                        assertArrayEquals(raw, payload.readBytes())
+                                        assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+                                    } finally { transfer.close(); worker.join(5000); assertFalse(worker.isAlive) }
+                                }
+                                return@fixture
+                            }
                             val published = f.io {
                                 NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
                                     rows.publish(owner, rows.copyAndVerify(owner, rows.prepare(owner, manifest.files.single().id, "image/png"), { raw.copyOf() }))

@@ -637,6 +637,16 @@ an actually completed original. Thirteen new and nine affected cases pass,
 including ordinary recovery and archive compatibility. These PC tests use
 synthetic peer inputs, not physical phone acceptance.
 
+The paired probe now includes a normal first PC-to-phone image upload (#420),
+not a pre-published fixture row. The actual PC sender and Kotlin incoming
+transfer exchange offer, acceptance, chunk requests/data and Saved; native
+provider copy/readback/MIME/publication completes before PC backup and no-loss
+archival. The original PNG bytes stay unchanged and the provider publishes once.
+One new normal-upload scenario and one affected paired recovery scenario pass;
+nested Python runs are the same scenarios. This is practical component evidence
+with Robolectric and fixture intent/test keys, not physical device, production
+UI/dispatcher or package acceptance. No new product protection layer was added.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

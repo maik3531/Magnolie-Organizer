@@ -16,6 +16,7 @@ from test_photo_mappings import mappings
 from test_file_desktop_receive import receiving
 from test_file_authenticated_desktop import native
 from test_media_source_sender import offered
+from test_media_source_cache import freeze
 from test_media_source_backup import open_backup
 from magnolie_media_source_sender import _NativeMediaSourceSender
 from magnolie_media_source import NativeMappedMediaSource
@@ -41,8 +42,12 @@ def _run(source):
         bootstrap=phone.receive_frame(tcp,65536)
         print('paired416 mode',bootstrap['mode'],flush=True)
         raw=base64.b64decode(bootstrap['png'],validate=True);assert raw.startswith(b'\x89PNG\r\n\x1a\n')
-        h.target.write_bytes(raw);old,cached,_=offered(h)
-        sender=_NativeMediaSourceSender.retry(h.source,cached.manifest.source_id,old.observation().version)
+        h.target.write_bytes(raw)
+        if bootstrap['mode']=='normal_upload':
+            cached=freeze(h);old=_NativeMediaSourceSender(h.source,cached.manifest.source_id);sender=old
+        else:
+            old,cached,_=offered(h)
+            sender=_NativeMediaSourceSender.retry(h.source,cached.manifest.source_id,old.observation().version)
         first_sender=sender;fresh=None;active_source=h.source
         try:
             local=h.authority.identity;peer=h.authority.current_peer()
@@ -55,6 +60,27 @@ def _run(source):
             def incoming():
                 phone.send_frame(h.wire.sock,phone.receive_frame(tcp,phone.SECURE_FRAME_MAX))
                 return h.channel.receive()
+            if bootstrap['mode']=='normal_upload':
+                for _ in range(3):
+                    sender.send_controls();outgoing();sender.observe_controls(h.channel,incoming())
+                sender.send_offer();outgoing()
+                before={p.name:(p.stat().st_ino,p.read_bytes()) for p in cached.directory.iterdir()}
+                kinds=[]
+                for _ in range(cached.manifest.files[0].chunks+2):
+                    packet=incoming();kinds.append(packet['kind']);sender.observe(h.channel,packet)
+                    if packet['kind']=='file_transfer.chunk.request':outgoing()
+                    elif packet['kind']=='file_transfer.saved':break
+                assert kinds[0]=='file_transfer.accept' and kinds[-1]=='file_transfer.saved'
+                assert kinds.count('file_transfer.chunk.request')==cached.manifest.files[0].chunks
+                assert sender.observation().body['phase']=='peer_saved'
+                with open_backup(h) as backups:
+                    version=backup_prepared_source(backups,h.source,cached.manifest.source_id)
+                    result=_NativeSourceRetirement(sender,backups,version).run()
+                archive=cached.directory.parent/result.body['archive']
+                assert {p.name:(p.stat().st_ino,p.read_bytes()) for p in archive.iterdir()}==before
+                assert h.target.read_bytes()==raw
+                phone.send_frame(tcp,dict(result='uploaded',sha256=cached.manifest.files[0].sha256,chunks=cached.manifest.files[0].chunks))
+                return
             def exchange(current):
                 for index in range(3):
                     print('paired control round',index,flush=True)
