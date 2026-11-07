@@ -50,6 +50,7 @@ class NativeGalleryIncomingRuntimeTest {
         val requested = CountDownLatch(1)
         var held: JsonObject? = null
         var run: NativeGalleryIncomingRun? = null
+        var inspection: NativeGalleryPublishedReadRun? = null
         init {
             if (joined && localConsent) helper.grant(f)
             ShadowContentResolver.registerProviderInternal("media", provider)
@@ -94,11 +95,119 @@ class NativeGalleryIncomingRuntimeTest {
         }
         fun start(): NativeGalleryIncomingRun = runtime.beginIncoming(DeviceFileOfferEnvelope.create(manifest), GalleryMediaType.IMAGES,
             mapOf("1".repeat(32) to "image/png"), f.book()).also { run = it }
+        fun published(): GalleryIncomingPublication {
+            val id = f.rows().keys.single { it.startsWith(GalleryIncomingPublication.PREFIX) }.removePrefix(GalleryIncomingPublication.PREFIX)
+            return f.index.incomingPublication(id)!!
+        }
+        fun inspect(selected: GalleryIncomingPublication = published()) = runtime.beginPublishedInspection(selected.id, selected.fingerprint,
+            f.book()).also { inspection = it }
         override fun close() {
             runtime.revokeControl()
             run?.let { check(it.awaitIoEnded(10000)) }
+            inspection?.let { check(it.awaitIoEnded(10000)) }
             runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    @Test fun actualRuntimeInspectsPublishedOriginalAfterFreshReceiveBindingWithoutSavedOrJournalMutation() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published()
+            h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }; h.handshake()
+            val consent = h.positive()
+            h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }; h.handshake()
+            val before = h.f.rows(); val frames = h.link.frames.toList()
+            val run = h.inspect(selected)
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure())
+            val result = run.observation()!!
+            assertEquals("image/png", result.mimeType); assertFalse(result.grantsWriteAuthority); assertFalse(result.isSavedReceipt)
+            assertEquals(before, h.f.rows()); assertEquals(frames, h.link.frames)
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts)
+            assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.cancelPublishedInspection(NativeGalleryPublishedReadRun(Any())) }
+        }
+    }
+
+    @Test fun publishedRuntimeRejectsStaleFingerprintMissingRightsAndSourceOnlyFactoryWithoutProviderIO() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published(); val reads = h.provider.readOpens
+            val bad = h.runtime.beginPublishedInspection(selected.id, "f".repeat(64), h.f.book()).also { h.inspection = it }
+            assertTrue(bad.awaitIoEnded(5000)); assertNull(bad.observation()); assertTrue(bad.nativeFailure() is PhotoFolderScopeError)
+            h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }; h.handshake()
+            val denied = h.inspect(selected); assertTrue(denied.awaitIoEnded(5000)); assertNull(denied.observation())
+            assertTrue(denied.nativeFailure() is PhotoFolderScopeError); assertEquals(reads, h.provider.readOpens)
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+        Harness(joined = false).use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginPublishedInspection("a".repeat(64), "b".repeat(64), h.f.book()) }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.readOpens)
+        }
+    }
+
+    @Test fun publishedRuntimeCancelOrControlWithdrawalRetainsBlockedReadLaneWhileControlsRemainIndependent() {
+        for (withdraw in listOf(false, true)) Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published(); val before = h.f.rows()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1)
+            h.provider.beforeQuery = { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            val run = h.inspect(selected)
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS)); assertNull(run.observationOrPending())
+                assertThrows(PhotoFolderScopeError::class.java) { h.start() }
+                assertThrows(PhotoFolderScopeError::class.java) { h.inspect(selected) }
+                assertThrows(PhotoFolderScopeError::class.java) { h.runtime.discoverSelectable() }
+                h.runtime.sendControls()
+                if (withdraw) h.withdrawPcSend() else h.runtime.cancelPublishedInspection(run)
+                assertFalse(run.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.observation()); assertTrue(run.cancelRequested)
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            assertEquals(1, h.link.frames.count { it.string("kind") == DeviceFileSavedEnvelope.KIND })
+        }
+    }
+
+    private fun NativeGalleryPublishedReadRun.observationOrPending(): NativeIncomingMediaObservation? {
+        if (!ioEnded) { assertThrows(PhotoFolderScopeError::class.java) { observation() }; return null }
+        return observation()
+    }
+
+    @Test fun localReceiveDecreaseAndBookWithdrawalCancelPublishedRuntimeReadWithoutLosingOriginal() {
+        for (change in listOf("receive", "book")) Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1)
+            h.provider.beforeQuery = { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            val run = h.inspect(selected)
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                if (change == "receive") h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }
+                else { h.f.unlocked = false; h.runtime.incomingContextWithdrawn() }
+                assertTrue(run.cancelRequested); assertFalse(run.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.observation())
+            assertEquals(selected.body, h.f.index.incomingPublication(selected.id)!!.body)
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts)
+            assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun nativeCloseDuringPublishedInspectionDefersIndexCleanupUntilRealReadDrains() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val closed = java.util.concurrent.atomic.AtomicInteger()
+            h.provider.beforeQuery = { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            val run = h.inspect(selected)
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                assertFalse(h.runtime.closeWhenQuiescent { closed.incrementAndGet(); h.runtime.close() })
+                assertEquals(0, closed.get()); assertFalse(run.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); Shadows.shadowOf(Looper.getMainLooper()).idle()
+            assertEquals(1, closed.get()); assertNull(run.observation()); assertTrue(run.cancelRequested)
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.savedPolicy() }
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.publishes)
         }
     }
 

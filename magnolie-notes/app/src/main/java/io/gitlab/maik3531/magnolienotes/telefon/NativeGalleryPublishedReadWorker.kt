@@ -1,0 +1,87 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.os.CancellationSignal
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+
+/** Native handle only; a completed inspection is never a transfer receipt. */
+internal class NativeGalleryPublishedReadRun internal constructor(private val workerOwner: Any) {
+    internal val cancellation = CancellationSignal()
+    private val canceled = AtomicBoolean(false)
+    private val ended = AtomicBoolean(false)
+    private val owner = AtomicReference<NativeGalleryPublishedInspection?>()
+    private val result = AtomicReference<NativeIncomingMediaObservation?>()
+    private val failure = AtomicReference<Throwable?>()
+    private val drained = CountDownLatch(1)
+    val ioEnded: Boolean get() = ended.get()
+    val cancelRequested: Boolean get() = canceled.get()
+    fun cancel() {
+        canceled.set(true)
+        try { owner.get()?.close() } finally { cancellation.cancel() }
+    }
+    internal fun install(value: NativeGalleryPublishedInspection) {
+        if (!owner.compareAndSet(null, value)) DeviceFileControl.fail("gallery_published_worker_foreign_owner")
+        if (canceled.get()) value.close()
+        cancellation.throwIfCanceled()
+    }
+    internal fun retireIfChanged() {
+        try { owner.get()?.requireCurrent() } catch (_: Exception) { cancel() }
+    }
+    internal fun belongsTo(value: Any) = value === workerOwner
+    internal fun finish(value: NativeIncomingMediaObservation?, error: Throwable?) { result.set(value); failure.set(error) }
+    internal fun markIoEnded() { ended.set(true) }
+    internal fun ioDrained() { drained.countDown() }
+    internal fun awaitIoEnded(timeoutMillis: Long) = drained.await(timeoutMillis, TimeUnit.MILLISECONDS)
+    internal fun observation(): NativeIncomingMediaObservation? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")
+        return result.get().takeIf { !canceled.get() && failure.get() == null }
+    }
+    internal fun nativeFailure(): Throwable? {
+        if (!ended.get()) DeviceFileControl.fail("gallery_published_worker_io_pending")
+        return failure.get()
+    }
+}
+
+/** One bounded native inspection thread. Provider lane acquisition and actual
+ * descriptor drain belong to rows.inspectPublished; cancellation cannot free it.
+ * The runtime retains index ownership until this worker becomes quiescent. */
+internal class NativeGalleryPublishedReadWorker(private val rows: NativeGalleryIncomingRows,
+    private val onEnded: () -> Unit) : AutoCloseable {
+    private val gate = Any()
+    private var active: NativeGalleryPublishedReadRun? = null
+    private var closed = false
+    val current: NativeGalleryPublishedReadRun? get() = synchronized(gate) { active }
+    val isQuiescent: Boolean get() = synchronized(gate) { active == null }
+    internal fun owns(run: NativeGalleryPublishedReadRun) = run.belongsTo(this)
+    internal fun start(prepare: () -> NativeGalleryPublishedInspection): NativeGalleryPublishedReadRun {
+        val run = synchronized(gate) {
+            if (closed) DeviceFileControl.fail("gallery_published_worker_closed")
+            if (active != null) DeviceFileControl.fail("gallery_published_worker_busy")
+            NativeGalleryPublishedReadRun(this).also { active = it }
+        }
+        fun finish(value: NativeIncomingMediaObservation?, error: Throwable?) {
+            run.finish(value, error)
+            synchronized(gate) { if (active === run) active = null }
+            run.markIoEnded()
+            try { onEnded() } finally { run.ioDrained() }
+        }
+        val thread = Thread({
+            var owner: NativeGalleryPublishedInspection? = null
+            var observation: NativeIncomingMediaObservation? = null
+            var failure: Throwable? = null
+            try {
+                run.cancellation.throwIfCanceled(); owner = prepare(); run.install(owner)
+                observation = rows.inspectPublished(owner, run.cancellation)
+            } catch (error: Throwable) { failure = error }
+            finally { owner?.close(); finish(observation, failure) }
+        }, "magnolie-media-published-read").apply { isDaemon = true }
+        try { thread.start() } catch (error: Throwable) { finish(null, error); throw error }
+        return run
+    }
+    override fun close() {
+        val running = synchronized(gate) { closed = true; active }
+        running?.cancel()
+    }
+}

@@ -397,6 +397,20 @@ read-only selection flow; those and physical/platform acceptance remain open.
 Six new and eleven affected native test methods pass, including grouped
 authority/evidence failures and real blocked-provider cancellation ownership.
 
+The private native runtime can now explicitly schedule that exact published-row
+inspection on its own bounded worker (#409). Selection pins the protected ID
+and fingerprint; current book, receive policy, intent and binding are checked
+inside native worker preparation. Its only successful result is local metadata,
+not a wire receipt. Source/incoming/configuration work cannot overlap this
+runtime operation, while controls and local decreases remain serviceable.
+Cancellation/withdrawal/close suppress results but retain the original provider
+IO lane and index until actual descriptor drain; quiescent close uses the
+existing native completion callback. No wire command, foreground read-selection
+UI, production dispatcher or generic transfer-resume behavior is enabled.
+Five new and eleven affected native test methods pass, including actual
+receive/regrant/read-only inspection and blocked-provider control/local/book
+withdrawal and deferred-close cases.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
