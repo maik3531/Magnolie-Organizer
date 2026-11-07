@@ -32,7 +32,7 @@ def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher)
                 or len(attempt['id'])!=32 or not _hex(attempt['id']*2) or attempt['id'] in ids
                 or (attempt['previous_head'] is not None if index==0 else not _hex(attempt['previous_head']))):
             raise TransferError('media_source_retry_invalid_head')
-        ids.add(attempt['id']);_validate_exchange_body(attempt['record'],key,jobs._scope,job,nonce,ready_version)
+        ids.add(attempt['id']);_validate_exchange_body(attempt['record'],key,jobs._scope,job,nonce,ready_version,allow_readback=True)
         if len(canonical(attempt['record']))>_NativeSourceExchange.MAX_BYTES:raise TransferError('media_source_retry_invalid_head')
     return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
 
@@ -57,6 +57,10 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
         self._active_version=previous_version;self._attempt=secrets.token_hex(16)
         self.require_owner()
 
+    def _validate(self,body,key):
+        _validate_exchange_body(body,key,self._jobs._scope,self._sender._job,self._sender._cache._job_nonce,
+            self._sender._cache._job_version,allow_readback=True)
+
     def _head(self,db,key):
         original=self._original._read(db,key)
         if original is None or original.version!=self._original_version:
@@ -72,7 +76,7 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
             db.execute('BEGIN');self._jobs._catalog.verify(db,key);head=self._head(db,key)
             if (None if head is None else head.version)!=self._active_version:
                 raise TransferError('media_source_retry_head_changed')
-            if head is not None and head.body['attempts'][-1]['id']!=self._attempt and head.body['attempts'][-1]['record']['phase']=='peer_saved':
+            if head is not None and head.body['attempts'][-1]['id']!=self._attempt and head.body['attempts'][-1]['record']['phase'] in ('peer_saved','peer_readback'):
                 raise TransferError('media_source_retry_completed_held')
             if db.execute('SELECT 1 FROM meta WHERE key=?',(self._jobs._catalog._retirement+self._sender._job,)).fetchone():
                 from magnolie_media_source_retirement import _NativeSourceRetirement,_NativeSourceRetirementJournal
@@ -127,9 +131,11 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
                 if head is None or head.version!=expected.version or attempts[-1]['id']!=self._attempt:
                     raise TransferError('media_source_retry_original_attempt_required')
                 before=attempts[-1]['record']
-                for name in ('format','database_key','scope','job_id','nonce','ready_version','offer','permission_epoch'):
+                for name in ('database_key','scope','job_id','nonce','ready_version','offer','permission_epoch'):
                     if body.get(name)!=before[name]:raise TransferError('media_source_retry_original_attempt_required')
-                allowed={'offer_planned':{'offer_sent'},'offer_sent':{'accepted'},'accepted':{'accepted','peer_saved'},'peer_saved':set()}
+                readback=(before['format']==1 and body.get('format')==2 and before['phase']=='offer_sent' and body.get('phase')=='peer_readback')
+                if body.get('format')!=before['format'] and not readback:raise TransferError('media_source_retry_original_attempt_required')
+                allowed={'offer_planned':{'offer_sent'},'offer_sent':{'accepted','peer_readback'},'accepted':{'accepted','peer_saved'},'peer_saved':set(),'peer_readback':set()}
                 if body.get('phase') not in allowed[before['phase']]:raise TransferError('media_source_exchange_invalid_transition')
                 if before['acceptance'] is not None and body.get('acceptance')!=before['acceptance']:
                     raise TransferError('media_source_retry_original_attempt_required')

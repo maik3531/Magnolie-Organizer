@@ -538,6 +538,30 @@ encrypted offer/readback, current receiving regrant, foreign/stale/expired
 selection refusal, blocked real output cancellation/control/decrease/close,
 book/document withdrawal, actual output failure and unchanged ordinary reads.
 
+The private PC retry sender now accepts `file_transfer.published.readback` only
+for its actual empty current `offer_sent` retry (#415), on the exact secure
+channel with live native source/book ownership and current control binding.
+The shared codec verifies the new offer, complete manifest/file, media kind and
+binding/digests before a distinct terminal `peer_readback` record is committed.
+Only retry-family inner format 2 permits this field/state; original exchanges
+remain strict format 1. This terminal has zero sent bits, no acceptance, no
+pending chunk and no peer Saved. It cannot reopen a completed retry or authorize
+new chunk output, create NativePCSaved, update mappings or establish deletion.
+
+Local archival and metadata-only existing-intent recovery validate this distinct
+proof against the exact pinned original exchange/retry head/attempt and complete
+local source backup, without inventing chunk transmission or Saved. Historical
+binding reconstruction is data validation, not current native authority; fresh
+current rights, exact original book and real IO ownership remain mandatory.
+Twenty-two new and twelve affected cases pass, including authenticated semantic
+history changes, terminal/schema fences, legacy Saved/replay guards and both
+format-1 and format-2 archive/recovery paths. These PC tests use synthetic peer
+envelopes over actual secure channels. They do NOT demonstrate paired native
+Kotlin-phone/Python-PC execution, physical acceptance or production readiness.
+Pending phone rows and completed heads without a planned archive intent remain
+held after lease/process loss. Production dispatch/SEND and packaging remain
+closed pending the remaining integration and platform acceptance.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

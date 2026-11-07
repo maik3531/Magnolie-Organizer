@@ -25,12 +25,17 @@ class NativeSourceExchangeObservation:
     def permits_retirement(self):return False
 
 
-def _validate_exchange_body(body,key,scope,job,nonce,ready_version):
+def _validate_exchange_body(body,key,scope,job,nonce,ready_version,*,allow_readback=False):
+    readback=allow_readback and type(body) is dict and body.get('format')==2
     if (type(body) is not dict or set(body)!={'format','database_key','scope','job_id','nonce','ready_version',
-            'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'}
-            or type(body['format']) is not int or body['format']!=1 or body['database_key']!=list(key)
+            'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'} | ({'peer_readback'} if readback else set())
+            or type(body['format']) is not int or body['format']!=(2 if readback else 1) or body['database_key']!=list(key)
             or body['scope']!=scope or body['job_id']!=job or body['nonce']!=nonce or body['ready_version']!=ready_version
-            or body['phase'] not in _NativeSourceExchange.PHASES):raise TransferError('media_source_exchange_invalid_record')
+            or (body['phase']!='peer_readback' if readback else body['phase'] not in _NativeSourceExchange.PHASES)):
+        raise TransferError('media_source_exchange_invalid_record')
+    if readback and (body['acceptance'] is not None or type(body['sent_bits']) is not int or body['sent_bits']!=0
+            or body['pending_chunk'] is not None or body['peer_saved'] is not None or type(body['peer_readback']) is not dict):
+        raise TransferError('media_source_exchange_invalid_record')
 
 
 def _read_source_exchange(jobs,db,key,job,ready):

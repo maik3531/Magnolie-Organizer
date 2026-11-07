@@ -135,6 +135,23 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
     if history is None or history.version!=body['retry_version'] or history.body['attempts'][-1]['id']!=body['retry_attempt_id']:
         raise TransferError('media_source_retirement_original_retry_required')
     record=history.body['attempts'][-1]['record'];manifest=FileManifest.parse(ready.body['manifest'])
+    if record['phase']=='peer_readback':
+        from magnolie_file_published_readback import parse_readback
+        from magnolie_file_transfer import NativeTransferBinding
+        if (record['format']!=2 or record['acceptance'] is not None or type(record['sent_bits']) is not int or record['sent_bits']!=0
+                or record['pending_chunk'] is not None or record['peer_saved'] is not None or type(record.get('peer_readback')) is not dict):
+            raise TransferError('media_source_retirement_completed_readback_required')
+        peer=jobs._authority.current_peer();local=jobs._authority.identity
+        if peer is None or manifest.sender_id!=local.receiver_id or manifest.receiver_id!=peer.peer_id:
+            raise TransferError('media_source_retirement_readback_pair_required')
+        message=record['peer_readback'];raw=message.get('body')
+        if type(raw) is not dict:raise TransferError('media_source_retirement_completed_readback_required')
+        # Historical binding DATA only; not a session, sender or current grant.
+        binding=NativeTransferBinding(manifest.sender_id,manifest.receiver_id,local.receiver_identity_sha256,peer.identity_sha256,
+            record['permission_epoch'],raw.get('destination_token'))
+        kind=ready.body['original_references'][manifest.files[0].id]['media_type']
+        parse_readback(message,record['offer'],binding,kind,now=message.get('created_ms'))
+        return
     if (record['phase']!='peer_saved' or record['pending_chunk'] is not None or type(record['sent_bits']) is not int
             or record['sent_bits']!=(1<<manifest.files[0].chunks)-1
             or any(type(record[field]) is not dict for field in ('offer','acceptance','peer_saved'))):
@@ -229,7 +246,8 @@ class _NativeSourceRetirement:
         if getattr(sender._source._cache_scope,'permit',None) is not self._permit:
             raise TransferError('media_source_retirement_live_lease_required')
         self._permit[2]()
-        if sender._record is None or sender._record.body['phase']!='peer_saved':
+        if sender._record is None or not (sender._record.body['phase']=='peer_saved' or
+                sender._retry_spec is not None and sender._record.body['phase']=='peer_readback'):
             raise TransferError('media_source_retirement_actual_completed_sender_required')
         sender._journal.require(sender._record)
         if sender._controls.binding(sender._binding.destination_token,sender_is_local=True)!=sender._binding:

@@ -17,6 +17,7 @@ from magnolie_file_offer import create_offer
 from magnolie_file_accept_message import KIND as ACCEPT,parse_acceptance
 from magnolie_file_chunk_message import REQUEST as CHUNK_REQUEST,RESULT as CHUNK,parse_request
 from magnolie_file_saved_message import KIND as SAVED,parse_saved
+from magnolie_file_published_readback import KIND as PUBLISHED_READBACK,parse_readback
 from magnolie_file_sources import _body
 from magnolie_file_transfer import TransferError
 from magnolie_media_source import NativeMappedMediaSource
@@ -189,6 +190,21 @@ class _NativeMediaSourceSender:
             raise TransferError('media_source_sender_saved_changed')
         body.update(phase='peer_saved',peer_saved=message);self._record=self._journal.write(self._record,body)
 
+    def _readback(self,message):
+        if (self._retry_spec is None or self._record is None or self._record.body['phase']!='offer_sent'
+                or self._record.body['acceptance'] is not None or self._record.body['sent_bits']!=0
+                or self._record.body['pending_chunk'] is not None or self._record.body['peer_saved'] is not None):
+            raise TransferError('media_source_sender_readback_offer_required')
+        body=self._record.body;raw=message.get('body')
+        if type(raw) is not dict or not _hex(raw.get('destination_token')):raise TransferError('media_source_sender_readback_invalid')
+        binding=self._controls.binding(raw['destination_token'],sender_is_local=True)
+        if binding is None or binding.permission_epoch!=body['permission_epoch']:raise TransferError('media_source_sender_binding_changed')
+        file=self._cache.manifest.files[0];kind=self._cache.original_references[file.id]['media_type']
+        parse_readback(message,body['offer'],binding,kind)
+        self._binding=binding
+        body.update(format=2,phase='peer_readback',peer_readback=message)
+        self._record=self._journal.write(self._record,body)
+
     def observe(self,channel,message):
         with self._operation(incoming=True) as reader:
             if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
@@ -196,6 +212,7 @@ class _NativeMediaSourceSender:
             if kind==ACCEPT:self._accept(message)
             elif kind==CHUNK_REQUEST:self._chunk(message,reader)
             elif kind==SAVED:self._saved(message)
+            elif kind==PUBLISHED_READBACK:self._readback(message)
             else:raise TransferError('media_source_sender_unexpected_message')
 
     def observation(self):
