@@ -4,10 +4,15 @@ Unter Linux implementiert `magnolie_media_sync.py` jetzt das getrennte
 Medienformat und die geschützte native Speicherung (Refs #338). Passive fehlende
 Werte erzeugen keine Vorgaben; fremde Register, beschädigte verschlüsselte Werte,
 fehlende Originaldatenbank, ungeeigneter Partner und widerrufener Besitzer halten.
-17 gezielte Format-/Speicherfälle sind geprüft. Dies ist noch kein angeschlossener
-Transport: sichere Ausgabe, korrelierte positive Bestätigung und aktuelles
-Partner-Echo müssen weiterhin separat verbunden werden. Daraus entstehen weder
-Dateirechte noch ein Lauf oder eine Freigabe der Erweiterung 23.
+17 gezielte Format-/Speicherfälle sind geprüft. Der getrennte native
+`NativeMediaSettingsTransport` prüft tatsächliche verschlüsselte Ausgabe,
+korrelierte positive ACK und selbst sicher bestätigtes Partner-Echo gegen den
+exakt gespeicherten Snapshot. Sieben Socket-Paar-Fälle decken diese Verbindung,
+Ausgabefehler, fremde/alte ACK, Änderungen während Ausgabe, Backend- und
+Besitzerentzug ab. Die sperrfreie Absichtssicht erteilt keine Dateirechte.
+Produktions-Dispatcher, Quell-/Empfangslauf und Oberfläche sind noch nicht
+angeschlossen; es gibt keine Freigabe der Erweiterung 23 oder physische
+Netzwerkabnahme aus diesen Prüfungen.
 
 Die native `device_status`-Erweiterung **23** kennzeichnet die vollständig
 angeschlossene gemeinsame Medienbedienung. Sie ersetzt weder die bestehenden
