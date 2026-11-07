@@ -5,13 +5,14 @@ const file = path.join(__dirname, "desktop-state-regressions.js"), harness = new
 harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
 const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value => JSON.parse(JSON.stringify(value));
-const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
+  const started = performance.now();
   let passed = 0;
   for (const web of harness.exports.roots) for (const recordFormat of [3, 14]) for (const scenario of ["success", "outgoing_pending", "outgoing_bad_dispatch", "producer_bad_hash", "producer_bad_count", "producer_bad_ids", "producer_duplicate_ids", "producer_bad_sequence", "producer_not_staged", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
     "malformed_intent_null", "malformed_decisions_null", "malformed_decisions_object", "malformed_decision_null",
     "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel",
-    "commit_decision_delete", "commit_decision_restore", "commit_decision_receipt_failed", "commit_decision_cancel", "commit_decision_late_draft", "commit_decision_save_failed", "commit_decision_stage_changed", "commit_decision_checkpoint_failed"]) {
+     "commit_decision_delete", "commit_decision_restore", "commit_decision_receipt_failed", "commit_decision_cancel", "commit_decision_late_draft", "commit_decision_save_failed", "commit_decision_stage_changed", "commit_decision_checkpoint_failed"]) {
+    const watchdog = setTimeout(() => { console.error("Notes actor review test timed out: " + web + " / " + recordFormat + " / " + scenario); process.exit(1); }, 30000);
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
       notizen: [{ id: "phone-note", titel: "Owned", text: "Original", ursprungApp: "notes" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
     try {
@@ -306,7 +307,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
            if (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions"].includes(scenario)) assert.equal(b.saves().length, saves + 1, "Review wrote beyond its explicit native baseline");
       if (scenario !== "source_changed" && (!scenario.startsWith("commit") || ["commit_stale", "commit_deletions", "commit_checkpoint_failed"].includes(scenario)))
         assert.equal(JSON.stringify(b.t.daten()), before, scenario + ": private review mutated actual data");
-    } finally { b.close(); passed++; }
+    } finally { b.close(); clearTimeout(watchdog); passed++; }
   }
-  console.log("NOTES ACTOR REVIEW PASSED: " + passed + " cases; native producer/dispatch receipts, scope/byte paging, private merge/reply, owner isolation, cancellation/drafts and terminal fences on both frontends");
-})().then(() => clearTimeout(watchdog), error => { clearTimeout(watchdog); console.error(error); process.exitCode = 1; });
+  console.log("NOTES ACTOR REVIEW PASSED: " + passed + " cases (" + Math.round(performance.now() - started) + " ms); native producer/dispatch receipts, scope/byte paging, private merge/reply, owner isolation, cancellation/drafts and terminal fences on both frontends");
+})().catch(error => { console.error(error); process.exitCode = 1; });
