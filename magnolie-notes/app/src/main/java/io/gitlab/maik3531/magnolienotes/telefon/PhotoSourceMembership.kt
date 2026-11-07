@@ -6,7 +6,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.security.MessageDigest
-import java.util.Locale
 
 /** Exact aggregate of actual protected rows, not a read grant or backup clock.
  * The native index owns its OS lock and the only writable SQL transaction.
@@ -145,8 +144,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
     }
     companion object {
         const val NAME = "membership-v1"
-        private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
-            .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        private fun digest(bytes: ByteArray) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(bytes))
         private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
     }
 }

@@ -3,7 +3,6 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.security.MessageDigest
-import java.util.Locale
 
 /** Authenticated historical identity fields, never a reconstructed native lease. */
 internal class NativePhotoSourceContext private constructor(val record: JsonObject) {
@@ -42,7 +41,6 @@ internal class NativePhotoSourceContext private constructor(val record: JsonObje
             if (!DeviceFileControl.hash(originalHash) || actual != originalHash) fail()
             return NativePhotoSourceContext(record)
         }
-        private fun digest(record: JsonObject) = MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(record))
-            .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        private fun digest(record: JsonObject) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(record)))
     }
 }

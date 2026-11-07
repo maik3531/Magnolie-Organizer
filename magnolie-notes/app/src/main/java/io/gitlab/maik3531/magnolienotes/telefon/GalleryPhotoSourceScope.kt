@@ -129,8 +129,7 @@ internal class GalleryPhotoSourceScope(private val current: () -> NativeGalleryR
             fail("gallery_source_invalid_access_observation")
     }
     companion object {
-        private fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
-            .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        private fun hash(bytes: ByteArray) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(bytes))
         private fun digest(fields: Map<String, String>) = hash(TelefonKanonisch.bytes(JsonObject(fields.mapValues { JsonPrimitive(it.value) })))
         private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
     }

@@ -21,7 +21,6 @@ import java.nio.file.StandardOpenOption.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
-import java.util.Locale
 import java.util.UUID
 
 internal data class PhotoSourceJob internal constructor(val id: String, val version: String,
@@ -1048,7 +1047,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         private val PRIVATE_FILE = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
         private val PRIVATE_DIRECTORY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
-        private fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        private fun hash(bytes: ByteArray) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(bytes))
         private fun context(lease: NativePhotoSourceLease) = hash(TelefonKanonisch.bytes(NativePhotoSourceContext.wire(lease)))
         private fun data(value: PhotoSourceJob) = JsonObject(mapOf("format" to JsonPrimitive(1), "source_context" to JsonPrimitive(value.sourceContext),
             "plain_bytes" to JsonPrimitive(value.plainBytes), "cipher_budget" to JsonPrimitive(value.cipherBudget),

@@ -23,9 +23,8 @@ internal object DeviceFileControl {
     fun monotonicMs() = (System.nanoTime() - clockOrigin) / 1_000_000L
     fun hash(value: String) = Regex("[0-9a-f]{64}").matches(value)
     fun id(value: String) = Regex("[A-Za-z0-9_-]{16,160}").matches(value)
-    fun digest(domain: String, value: JsonElement) = MessageDigest.getInstance("SHA-256")
-        .digest(domain.toByteArray(Charsets.UTF_8) + TelefonKanonisch.bytes(value))
-        .joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+    fun digest(domain: String, value: JsonElement) = NativeHex.lower(MessageDigest.getInstance("SHA-256")
+        .digest(domain.toByteArray(Charsets.UTF_8) + TelefonKanonisch.bytes(value)))
     fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
 }
 

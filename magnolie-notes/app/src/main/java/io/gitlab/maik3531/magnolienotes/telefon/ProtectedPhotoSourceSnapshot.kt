@@ -17,7 +17,6 @@ import java.nio.file.StandardOpenOption.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
-import java.util.Locale
 import java.util.UUID
 
 internal class PhotoSnapshotBuildFailure(val pending: ProtectedPhotoSourceSnapshot, cause: Exception) :
@@ -185,7 +184,7 @@ internal class ProtectedPhotoSourceSnapshot private constructor(
         private const val MAX_METADATA = 262144
         private fun attributes(file: File) = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
         private fun hash(bytes: ByteArray) = hex(MessageDigest.getInstance("SHA-256").digest(bytes))
-        private fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 255) }
+        private fun hex(bytes: ByteArray) = NativeHex.lower(bytes)
         private fun id() = UUID.randomUUID().toString().replace("-", "")
         private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
         private fun frame(value: JsonObject) = ByteArrayOutputStream().also { TelefonRahmen.schreiben(it, value, MAX_METADATA - 4) }.toByteArray()
