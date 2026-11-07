@@ -153,6 +153,13 @@ class _NativeSourceCacheReader:
 
     def close(self):self._closed.set() # No premature descriptor/OS-lane release.
 
+    def _handoff_retirement(self,retirement):
+        from magnolie_media_source_retirement import _NativeSourceRetirement
+        if type(retirement) is not _NativeSourceRetirement or retirement._reader is not self or retirement._sender._source is not self._owner:
+            raise TransferError('media_source_retirement_native_handoff_required')
+        retirement._current();self.verify();retirement._require_planned()
+        self._retirement_handoff=retirement;self._close_owned()
+
     def _close_owned(self):
         self._closed.set()
         for name in ('_root','_parent'):
@@ -162,5 +169,5 @@ class _NativeSourceCacheReader:
     def __enter__(self):return self
     def __exit__(self,kind,*_):
         try:
-            if kind is None:self.verify()
+            if kind is None and getattr(self,'_retirement_handoff',None) is None:self.verify()
         finally:self._close_owned()

@@ -32,29 +32,30 @@ class NativeSourceCatalogSnapshot:
 
 
 class _NativeSourceCatalog:
-    MAX_HEAD=65536
+    MAX_HEAD=98304
     def __init__(self,jobs):
         self._jobs=jobs;self._authority=jobs._authority
         self._key='native_media_source_catalog_v1/'+jobs._scope
         self._exchange='native_media_source_exchange_v1/'+jobs._scope+'/'
+        self._retirement='native_media_source_retirement_v1/'+jobs._scope+'/'
         self._anchor_name='.magnolie-source-catalog-'+jobs._scope+'.seal'
         self._domain='native-media-source-catalog-v1/'+jobs._scope+'/'
         self._observed=None;self._anchor_identity=None
 
     def _members(self,db):
-        rows=db.execute('SELECT key,value FROM meta WHERE key GLOB ? OR key GLOB ? ORDER BY key LIMIT ?',
-            (self._jobs._prefix+'*',self._exchange+'*',2*self._jobs.MAX_RECORDS+1)).fetchall()
-        if len(rows)>2*self._jobs.MAX_RECORDS:raise TransferError('media_source_catalog_capacity')
-        members=[];job_ids=set();exchange_ids=set()
+        rows=db.execute('SELECT key,value FROM meta WHERE key GLOB ? OR key GLOB ? OR key GLOB ? ORDER BY key LIMIT ?',
+            (self._jobs._prefix+'*',self._exchange+'*',self._retirement+'*',3*self._jobs.MAX_RECORDS+1)).fetchall()
+        if len(rows)>3*self._jobs.MAX_RECORDS:raise TransferError('media_source_catalog_capacity')
+        members=[];job_ids=set();exchange_ids=set();retirement_ids=set()
         for name,blob in rows:
-            prefix=self._jobs._prefix if name.startswith(self._jobs._prefix) else self._exchange
+            prefix=next(p for p in (self._jobs._prefix,self._exchange,self._retirement) if name.startswith(p))
             job=name[len(prefix):]
             if type(job) is not str or len(job)!=32 or not _hex(job*2):raise TransferError('media_source_catalog_invalid_member')
             bound=self._jobs.MAX_BYTES if prefix==self._jobs._prefix else 16384
             if type(blob) is not bytes or not 29<=len(blob)<=bound+28:raise TransferError('media_source_catalog_invalid_member')
-            (job_ids if prefix==self._jobs._prefix else exchange_ids).add(job)
+            (job_ids if prefix==self._jobs._prefix else exchange_ids if prefix==self._exchange else retirement_ids).add(job)
             members.append([name,sha256(blob).hexdigest()])
-        if len(job_ids)>self._jobs.MAX_RECORDS or not exchange_ids<=job_ids:
+        if len(job_ids)>self._jobs.MAX_RECORDS or not exchange_ids<=job_ids or not retirement_ids<=exchange_ids:
             raise TransferError('media_source_catalog_invalid_member')
         return members
 
@@ -170,3 +171,38 @@ class _NativeSourceCatalog:
         with self._jobs._database() as (db,key):
             db.execute('BEGIN');result=self.verify(db,key)
         self.observe(result);return result
+
+    def require_free_slot(self,parent,current):
+        # Deny-only metadata/layout admission, never archive READ or adoption.
+        from magnolie_media_source_retirement import _NativeSourceRetirementJournal,verify_archived_cache
+        current();value=os.fstat(parent)
+        if (value.st_dev,value.st_ino)!=self._authority.protection.native_directory_identity:
+            raise TransferError('media_source_slot_original_parent_required')
+        expected=set();journal=_NativeSourceRetirementJournal(self._jobs)
+        with self._jobs._database() as (db,key):
+            db.execute('BEGIN');catalog=self.verify(db,key)
+            members=[] if catalog is None else catalog.body['members']
+            versions=dict(members)
+            for name,_ in members:
+                if not name.startswith(self._jobs._prefix):continue
+                current();job=name[len(self._jobs._prefix):];ready=self._jobs._read(db,key,job)
+                retired=journal._read(db,key,job)
+                if ready is None or ready.state!='cache_ready' or retired is None or retired.body['state']!='archived':
+                    raise TransferError('media_source_slot_pending_job')
+                body=retired.body
+                original=ready.body
+                if (body['ready_version']!=ready.version or body['nonce']!=original['nonce'] or body['manifest']!=original['manifest']
+                        or body['root_key']!=original['root_key'] or body['parent_key']!=original['parent_key']
+                        or body['proof_witness']['sha256']!=original['proof_sha256']
+                        or versions.get(self._exchange+job)!=body['exchange_version']):
+                    raise TransferError('media_source_slot_original_job_required')
+                verify_archived_cache(self._jobs,parent,body,current);expected.add(body['archive'])
+        self.observe(catalog);current();prefix='.magnolie-source-'+self._jobs._scope[:32]
+        found=set();count=0
+        with os.scandir(parent) as entries:
+            for entry in entries:
+                count+=1
+                if count>4096:raise TransferError('media_source_slot_directory_capacity')
+                if entry.name.startswith(prefix):found.add(entry.name)
+        if found!=expected:raise TransferError('media_source_slot_unknown_stage')
+        current()

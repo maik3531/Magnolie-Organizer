@@ -137,7 +137,7 @@ class NativeMappedMediaSource:
         if type(job_id) is not str or job_id not in self._prepared:
             raise TransferError('media_source_prepared_owner_required')
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
-        prepared=self._prepared[job_id]
+        prepared=self._prepared[job_id];reader=None
         try:
             if prepared.failed.is_set():raise TransferError('media_source_prepared_retired')
             prepared.permission()
@@ -154,11 +154,15 @@ class NativeMappedMediaSource:
                         try:
                             from magnolie_media_source_reader import _NativeSourceCacheReader
                             with _NativeSourceCacheReader(self,job_id) as reader:yield reader
-                            current()
+                            if getattr(reader,'_retirement_handoff',None) is None:current()
+                            else:book.require_current()
                         finally:self._cache_scope.permit=None
         except BaseException:
             prepared.failed.set();raise
-        finally:self._gate.release()
+        finally:
+            if reader is not None and getattr(reader,'_retirement_handoff',None) is not None:
+                prepared.failed.set();self._prepared.pop(job_id,None)
+            self._gate.release()
 
     def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):

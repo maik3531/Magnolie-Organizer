@@ -68,6 +68,12 @@ class _NativeSourceCacheWriter:
             free=os.fstatvfs(self._parent)
             if free.f_bavail*free.f_frsize<budget+1024**3:raise TransferError('media_source_cache_insufficient_space')
             current()
+            try:os.stat(self._name,dir_fd=self._parent,follow_symlinks=False)
+            except FileNotFoundError:pass
+            else:raise TransferError('media_source_cache_existing_hold')
+            from magnolie_media_source_jobs import _NativeSourceJobs
+            self._jobs=_NativeSourceJobs(self._authority)
+            self._jobs._catalog.require_free_slot(self._parent,current)
             try:os.mkdir(self._name,mode=0o700,dir_fd=self._parent)
             except FileExistsError:raise TransferError('media_source_cache_existing_hold')
             self._root=os.open(self._name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=self._parent)
@@ -82,8 +88,6 @@ class _NativeSourceCacheWriter:
             self._intent_sha256=sha256(canonical(intent)).hexdigest()
             self._metadata['intent.enc']=self._write('intent.enc',canonical(intent))
             self._owner._boundary('source_cache_intent_durable');self._guard()
-            from magnolie_media_source_jobs import _NativeSourceJobs
-            self._jobs=_NativeSourceJobs(self._authority)
             self._planned_job=self._jobs.plan(self,intent)
             self._owner._boundary('source_cache_job_planned');self._guard()
             self._metadata['copying.enc']=self._write('copying.enc',canonical(dict(format=2,state='copying',intent_sha256=self._intent_sha256)))

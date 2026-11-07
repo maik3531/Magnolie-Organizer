@@ -339,6 +339,31 @@ adoption, a persistent whole-store rollback recovery scheme or cache retirement;
 the original occupied slot still holds until a separate native lifecycle is
 completed and verified.
 
+The private Linux native sender can now relinquish its occupied source slot
+without deleting any bytes (#406). This requires the actual still-live completed
+sender, exact acknowledged control binding and independently reverified local
+source backup. A recoverable pending backup intent is explicitly insufficient,
+even when it deduplicates against a complete older Saved object: the actual
+completed version row must exist and match. The source/book/OS lane remains
+owned while a protected retirement intent is written, the reader fully verifies
+and drains its descriptors, and the cache directory is moved with native
+no-replace semantics to a private archive. All cache inodes/ciphertexts and
+original job/reference records remain intact. Only verified archival plus a
+second local-backup verification permits the protected completed marker.
+
+Retirement records participate in complete catalog membership. Fresh explicit
+source preparation requires every older job's exact archived root/proof and
+original approved exchange version, with no unknown scoped stage. A disappeared
+stage, changed/missing archive proof/member, linked cipher, or resealed exchange
+does not make a slot free. Old in-process cache readers retire at the drained
+handoff and cannot read a new job under the reused directory name. Interrupted
+retirement remains held, including a completed physical move without its final
+journal marker; there is no automatic restart/adoption/repair. Archives remain
+recursively excluded, not sync inventory or deletion evidence. This private
+lifecycle has twenty new and thirty affected passing native cases. It still
+does not enable production SEND/dispatcher/UI, Windows parity,
+GC, or physical/package acceptance.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
