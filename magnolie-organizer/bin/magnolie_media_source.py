@@ -5,7 +5,7 @@ independent positive local sending consent, explicit native action, saved book
 and original owned descriptors must all remain current during bounded reading.
 An observation is metadata, never a reusable source READ/cache/Saved grant.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager,nullcontext
 from dataclasses import dataclass
 from hashlib import sha256
 import fcntl
@@ -100,6 +100,12 @@ class NativeMappedMediaSource:
             for fd in reversed(fds):os.close(fd)
 
     def inspect(self,action,expected,association,record_sha256,*,kind='images'):
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False)
+
+    def freeze(self,action,expected,association,record_sha256,*,kind='images'):
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
+
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
         action.consume(self._preferences)
@@ -127,20 +133,27 @@ class NativeMappedMediaSource:
                             if mapping.association.media_type!=kind:raise TransferError('media_source_media_kind_changed')
                             def current():book.require_current();mapping_current();return True
                             with self._file(mapping,current) as (fd,size,signature,unchanged):
-                                digest=sha256();offset=0
-                                while offset<size:
-                                    unchanged();wanted=min(CHUNK_BYTES,size-offset)
-                                    chunk=bytearray(os.pread(fd,wanted,offset))
-                                    try:
-                                        self._boundary('source_chunk_read');unchanged()
-                                        if len(chunk)!=wanted:raise TransferError('media_source_short_read')
-                                        digest.update(chunk);offset+=len(chunk)
-                                    finally:chunk[:]=b'\0'*len(chunk)
-                                unchanged()
-                                if os.pread(fd,1,size):raise TransferError('media_source_content_changed')
-                                unchanged()
-                                result=NativeMediaSourceObservation(size,digest.hexdigest(),mapping.file_key,signature,
-                                    tuple(sorted(mapping.phone_original_reference().items())))
+                                if freeze:
+                                    from magnolie_media_source_cache import _NativeSourceCacheWriter
+                                    target=_NativeSourceCacheWriter(self,mapping,size,signature,token,expected,kind,unchanged)
+                                else:target=nullcontext(None)
+                                with target as cache:
+                                    digest=sha256();offset=0;index=0
+                                    while offset<size:
+                                        unchanged();wanted=min(CHUNK_BYTES,size-offset)
+                                        chunk=bytearray(os.pread(fd,wanted,offset))
+                                        try:
+                                            self._boundary('source_chunk_read');unchanged()
+                                            if len(chunk)!=wanted:raise TransferError('media_source_short_read')
+                                            digest.update(chunk)
+                                            if cache is not None:cache.chunk(index,chunk)
+                                            offset+=len(chunk);index+=1
+                                        finally:chunk[:]=b'\0'*len(chunk)
+                                    unchanged()
+                                    if os.pread(fd,1,size):raise TransferError('media_source_content_changed')
+                                    unchanged()
+                                    result=cache.finish(digest.hexdigest()) if cache is not None else NativeMediaSourceObservation(
+                                        size,digest.hexdigest(),mapping.file_key,signature,tuple(sorted(mapping.phone_original_reference().items())))
                             current()
                         book.require_current()
             permission();return result

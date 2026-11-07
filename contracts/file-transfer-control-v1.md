@@ -201,6 +201,18 @@ hash while retaining the original historical reference. Seven targeted native
 source cases pass. The returned observation grants no future READ, source-cache,
 Saved, complete-inventory or deletion authority. No sender backend is enabled.
 
+The Linux source owner can now build one bounded private encrypted cache while
+the same actual source FD, book/action/consent/intent guards and OS lane remain
+held. Durable planned and copying records precede payload; original chunks are
+synced, authenticated and independently reread before the sealed manifest.
+Inode-bound AEAD, ordered cipher membership and original-byte hashes protect
+the snapshot without hardlinks or transcoding. Private source stages are
+recursively excluded. Existing stages always hold, including completed ones:
+there is no overwrite, restart adoption, automatic cleanup or retirement API.
+Nine targeted cache/ownership cases pass. The frozen metadata grants no future
+cache READ, sender, Saved or deletion authority; the native job/read lifecycle
+and original-book binding must be joined before any outbound offer.
+
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
