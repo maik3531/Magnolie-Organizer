@@ -176,6 +176,23 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         if (!publishedReadWorker.owns(run)) DeviceFileControl.fail("gallery_published_worker_foreign_run")
         run.cancel()
     }
+    internal fun beginPublishedReadback(channel: TelefonSecureChannel, offer: JsonObject, id: String, fingerprint: String,
+        book: NativeGalleryReceiveBookPermit): NativeGalleryPublishedReadRun = withOperation {
+        if (channel !== nativeChannel) DeviceFileControl.fail("gallery_published_foreign_channel")
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (!DeviceFileControl.hash(id) || !DeviceFileControl.hash(fingerprint)) DeviceFileControl.fail("gallery_incoming_publication_invalid")
+        if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        publishedReadWorker.startReadback {
+            val selected = index.incomingPublication(id)?.takeIf { it.fingerprint == fingerprint }
+                ?: DeviceFileControl.fail("gallery_incoming_original_changed")
+            val kind = GalleryMediaType.entries.single { it.uriSegment == selected.body.string("media_type") }
+            if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+            val owner = NativeGalleryPublishedInspection.capture(controls.session, index, book, nativePeer,
+                { currentIncomingIntent?.invoke(kind) }, selected)
+            NativeGalleryPublishedReadback.capture(owner, offer, channel)
+        }
+    }
 
     /** No transport/session/Werk monitor inside protected index guards. The
      * control authority is freshly checked under operationGate before freezing;

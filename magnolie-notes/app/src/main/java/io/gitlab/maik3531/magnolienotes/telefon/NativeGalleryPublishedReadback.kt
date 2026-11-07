@@ -39,6 +39,7 @@ internal class NativeGalleryPublishedReadback private constructor(internal val o
     }
     internal fun perform(rows: NativeGalleryIncomingRows, cancellation: CancellationSignal = CancellationSignal()): JsonObject =
         rows.recoverPublished(this, cancellation)
+    internal fun requireCurrent() { current() }
 
     internal fun sendVerified(rows: NativeGalleryIncomingRows, selectedOwner: NativeGalleryPublishedInspection,
         observation: NativeIncomingMediaObservation, cancellation: CancellationSignal, verifyRow: () -> Unit) {

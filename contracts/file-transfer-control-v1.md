@@ -521,6 +521,23 @@ inspection/runtime groups). Grouped negative variants are not additional test
 methods. Actual encrypted output cancellation retains ownership through drain
 and reports local uncertainty even if a wire frame has already arrived.
 
+The private native runtime now schedules that readback as a distinct mode of
+the existing bounded published-read worker (#414), not a second executor or a
+production listener. The caller selects the exact native channel, new offer,
+protected publication ID/fingerprint and fresh current book witness. Actual
+preparation/readback/output remain on the worker with current offer/binding
+checks. Successful output is exposed only as `actualReadbackOutput`, separate
+from ordinary observations and Saved. Ordinary read-only inspection still sends
+nothing. Cancel, control/local/book withdrawal and deferred close retain actual
+provider/socket/media-lane/index ownership until real drain and suppress local
+success, including uncertain already-emitted output. PC completion and archival
+handling of this distinct proof type remain unjoined; production dispatch/UI,
+physical/platform acceptance and end-to-end resume are not enabled here.
+Five new and six affected native runtime methods pass, including actual
+encrypted offer/readback, current receiving regrant, foreign/stale/expired
+selection refusal, blocked real output cancellation/control/decrease/close,
+book/document withdrawal, actual output failure and unchanged ordinary reads.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

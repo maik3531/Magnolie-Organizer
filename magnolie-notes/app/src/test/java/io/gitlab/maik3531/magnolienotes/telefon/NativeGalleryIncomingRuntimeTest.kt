@@ -101,6 +101,10 @@ class NativeGalleryIncomingRuntimeTest {
         }
         fun inspect(selected: GalleryIncomingPublication = published()) = runtime.beginPublishedInspection(selected.id, selected.fingerprint,
             f.book()).also { inspection = it }
+        fun readbackOffer() = link.receive(DeviceFileOfferEnvelope.create(manifest))
+        fun readback(selected: GalleryIncomingPublication = published(), offer: JsonObject = readbackOffer()) =
+            runtime.beginPublishedReadback(link.channel, offer, selected.id, selected.fingerprint, f.book()).also { inspection = it }
+        fun readbackBinding(token: String) = pc.binding(token, senderIsLocal = true)!!
         override fun close() {
             runtime.revokeControl()
             run?.let { check(it.awaitIoEnded(10000)) }
@@ -120,6 +124,7 @@ class NativeGalleryIncomingRuntimeTest {
             val run = h.inspect(selected)
             assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure())
             val result = run.observation()!!
+            assertNull(run.actualReadbackOutput())
             assertEquals("image/png", result.mimeType); assertFalse(result.grantsWriteAuthority); assertFalse(result.isSavedReceipt)
             assertEquals(before, h.f.rows()); assertEquals(frames, h.link.frames)
             assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts)
@@ -141,6 +146,123 @@ class NativeGalleryIncomingRuntimeTest {
         Harness(joined = false).use { h ->
             assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginPublishedInspection("a".repeat(64), "b".repeat(64), h.f.book()) }
             assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.readOpens)
+        }
+    }
+
+    @Test fun actualRuntimeReadbackModeOutputsOnlyFreshReadProofAfterPublishedRowAndRenewedControlAgreement() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published()
+            h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }; h.handshake()
+            val consent = h.positive(); h.f.io { h.runtime.grantReceiving(h.runtime.savedPolicy(), consent) }; h.handshake()
+            val offer = h.readbackOffer(); val before = h.f.rows(); val frames = h.link.frames.toList()
+            val run = h.readback(selected, offer)
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.nativeFailure()); assertNull(run.observation())
+            val output = run.actualReadbackOutput()!!; val body = output.getValue("body").jsonObject
+            assertEquals(listOf(output), h.link.frames.drop(frames.size))
+            assertEquals(DevicePublishedReadbackEnvelope.KIND, output.string("kind"))
+            val parsed = DevicePublishedReadbackEnvelope.parse(output, offer, h.readbackBinding(body.string("destination_token")), GalleryMediaType.IMAGES)
+            assertFalse(parsed.grantsWriteAuthority); assertFalse(parsed.isSavedReceipt); assertFalse(parsed.allowsChunkOutput)
+            assertEquals(selected.fingerprint, body.string("publication_sha256"))
+            assertNotEquals(selected.body.getValue("origin").jsonObject.getValue("binding").jsonObject.string("permission_epoch"), body.string("permission_epoch"))
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            assertEquals(1, h.link.frames.count { it.string("kind") == DeviceFileSavedEnvelope.KIND })
+        }
+    }
+
+    @Test fun runtimeReadbackRejectsForeignChannelStaleSelectionExpiredOfferAndCurrentReceiveWithdrawal() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published(); val reads = h.provider.readOpens
+            NativeGalleryIncomingTransferTest.Link().use { foreign ->
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    h.runtime.beginPublishedReadback(foreign.channel, h.readbackOffer(), selected.id, selected.fingerprint, h.f.book())
+                }
+            }
+            val stale = h.runtime.beginPublishedReadback(h.link.channel, h.readbackOffer(), selected.id, "f".repeat(64), h.f.book()).also { h.inspection = it }
+            assertTrue(stale.awaitIoEnded(5000)); assertNull(stale.actualReadbackOutput()); assertTrue(stale.nativeFailure() is PhotoFolderScopeError)
+            val expired = h.link.receive(DeviceFileOfferEnvelope.create(h.manifest, System.currentTimeMillis() - 70000))
+            val old = h.readback(selected, expired); assertTrue(old.awaitIoEnded(5000)); assertNull(old.actualReadbackOutput())
+            assertTrue(old.nativeFailure() is PhotoFolderScopeError)
+            h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }; h.handshake()
+            val denied = h.readback(selected); assertTrue(denied.awaitIoEnded(5000)); assertNull(denied.actualReadbackOutput())
+            assertTrue(denied.nativeFailure() is PhotoFolderScopeError)
+            assertEquals(reads, h.provider.readOpens); assertEquals(selected.body, h.f.index.incomingPublication(selected.id)!!.body)
+            assertTrue(h.link.frames.none { it.string("kind") == DevicePublishedReadbackEnvelope.KIND })
+        }
+        Harness(joined = false).use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.runtime.beginPublishedReadback(h.link.channel, h.readbackOffer(), "a".repeat(64), "b".repeat(64), h.f.book()) }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.readOpens)
+        }
+    }
+
+    @Test fun runtimeReadbackCancelControlDecreaseAndCloseNeverReleaseActualBlockedEncryptedOutputEarly() {
+        for (change in listOf("cancel", "control", "local", "close")) Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1); val closed = java.util.concurrent.atomic.AtomicInteger()
+            val observe = h.link.onMessage
+            h.link.onMessage = { message ->
+                observe(message)
+                if (message.string("kind") == DevicePublishedReadbackEnvelope.KIND) { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            }
+            val run = h.readback(selected)
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                assertThrows(PhotoFolderScopeError::class.java) { run.actualReadbackOutput() }
+                assertThrows(PhotoFolderScopeError::class.java) { h.inspect(selected) }
+                assertThrows(PhotoFolderScopeError::class.java) { h.start() }
+                when (change) {
+                    "cancel" -> h.runtime.cancelPublishedInspection(run)
+                    "control" -> h.withdrawPcSend() // Actual independent encrypted incoming control.
+                    "local" -> h.f.io { h.runtime.revokeReceiving(h.runtime.savedPolicy(), GalleryMediaType.IMAGES, h.f.book()) }
+                    else -> assertFalse(h.runtime.closeWhenQuiescent { closed.incrementAndGet(); h.runtime.close() })
+                }
+                assertTrue(run.cancelRequested); assertFalse(run.ioEnded); assertEquals(0, closed.get())
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); Shadows.shadowOf(Looper.getMainLooper()).idle(); h.link.onMessage = observe
+            assertNull(run.actualReadbackOutput()); assertNull(run.observation()); assertNotNull(run.nativeFailure())
+            if (change == "close") {
+                assertEquals(1, closed.get()); assertThrows(PhotoFolderScopeError::class.java) { h.runtime.savedPolicy() }
+            }
+            assertEquals(selected.body, h.f.index.incomingPublication(selected.id)!!.body); assertArrayEquals(h.raw, h.file.readBytes())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+            // The encrypted frame may already have arrived: no false 'unsent' claim.
+            assertEquals(1, h.link.frames.count { it.string("kind") == DevicePublishedReadbackEnvelope.KIND })
+            assertEquals(1, h.link.frames.count { it.string("kind") == DeviceFileSavedEnvelope.KIND })
+        }
+    }
+
+    @Test fun runtimeReadbackBookAndDocumentWithdrawalCancelBeforeOutputWhileHoldingActualProviderLane() {
+        for (change in listOf("book", "documents")) Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published(); val before = h.f.rows()
+            val entered = CountDownLatch(1); val release = CountDownLatch(1)
+            h.provider.beforeQuery = { entered.countDown(); check(release.await(8, TimeUnit.SECONDS)) }
+            val run = h.readback(selected)
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS))
+                if (change == "book") h.f.unlocked = false else h.f.currentDocuments = null
+                h.runtime.incomingContextWithdrawn()
+                assertTrue(run.cancelRequested); assertFalse(run.ioEnded)
+                val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+            } finally { release.countDown() }
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualReadbackOutput()); assertNull(run.observation()); assertNotNull(run.nativeFailure())
+            assertTrue(h.link.frames.none { it.string("kind") == DevicePublishedReadbackEnvelope.KIND })
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
+        }
+    }
+
+    @Test fun actualRuntimeReadbackEncryptedOutputFailureCannotReportSuccessOrMutatePublication() {
+        Harness().use { h ->
+            assertTrue(h.start().awaitIoEnded(10000)); val selected = h.published(); val before = h.f.rows()
+            h.link.failKind = DevicePublishedReadbackEnvelope.KIND
+            val run = h.readback(selected)
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualReadbackOutput()); assertNull(run.observation())
+            assertTrue(run.nativeFailure() is java.io.IOException)
+            assertTrue(h.link.frames.none { it.string("kind") == DevicePublishedReadbackEnvelope.KIND })
+            assertEquals(before, h.f.rows()); assertArrayEquals(h.raw, h.file.readBytes())
+            val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+            assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.writeOpens); assertEquals(1, h.provider.publishes)
         }
     }
 
