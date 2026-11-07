@@ -6,20 +6,28 @@ const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0]
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "baueSeiteRegional, mcpRegionaleEinstellungenWerkzeuge, icsExpansion, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
-async function until(predicate) { for (let n = 0; n < 100; n++) { if (predicate()) return; await new Promise(setImmediate); } throw new Error("Expected timezone transaction phase was not reached"); }
+// The existing program watchdog bounds elapsed time; event-loop turns do not.
+async function until(predicate) { while (!predicate()) await new Promise(setImmediate); }
 const watchdog = setTimeout(() => { console.error("Time-zone transaction timed out"); process.exit(1); }, 30000);
 (async () => {
-  for (const web of harness.exports.roots) for (const scenario of ["mcp", "failed-save", "source-changed", "gui", "gui-failed-read"]) {
+  for (const web of harness.exports.roots) for (const scenario of ["mcp", "failed-save", "source-changed", "gui", "gui-failed-read", "gui-delayed-read"]) {
     const failedSave = scenario === "failed-save";
     const b = await harness.exports.boot(web, { termine: [{ id: "anchor", datum: "2026-10-21", zeit: "23:30", endZeit: "23:45", titel: "Keep instant" }] });
     try {
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       b.t.speichereJetzt(); if (b.saves().length) b.ack();
-      let native = JSON.parse(JSON.stringify(b.t.daten().einstellungen.regional)), writes = 0, failRead = false;
+      let native = JSON.parse(JSON.stringify(b.t.daten().einstellungen.regional)), writes = 0, failRead = false, delayRead = false;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text); const message = JSON.parse(text);
-        if (message.cmd === "regional_einstellungen_status") queueMicrotask(() => b.w.App.regionalStand({ requestId: message.requestId, ok: !failRead, regional: native }));
+        if (message.cmd === "regional_einstellungen_status") {
+          let turns = delayRead ? 150 : 0;
+          const respond = () => {
+            if (turns-- > 0) setImmediate(respond);
+            else queueMicrotask(() => b.w.App.regionalStand({ requestId: message.requestId, ok: !failRead, regional: native }));
+          };
+          respond();
+        }
         if (message.cmd === "regional_einstellungen") {
           writes++; assert.equal(native.timeZone, "UTC");
           assert.equal(message.expectedRegional.timeZone, "UTC");
@@ -32,6 +40,7 @@ const watchdog = setTimeout(() => { console.error("Time-zone transaction timed o
       let result, button;
       if (scenario.startsWith("gui")) {
         failRead = scenario === "gui-failed-read";
+        delayRead = scenario === "gui-delayed-read";
         const root = b.w.document.createElement("div"); b.w.document.body.append(root); b.t.baueSeiteRegional(root);
         root.querySelector("#regional-zeitzone").value = "Europe/Berlin";
         button = root.querySelector("#regional-speichern"); button.click();
@@ -58,7 +67,7 @@ const watchdog = setTimeout(() => { console.error("Time-zone transaction timed o
       } else {
         await until(() => writes === 1 && b.saves().length > initialSaves + 1);
         b.ack();
-        if (scenario === "gui") await until(() => !button.disabled && b.w.document.querySelector("#zettel").textContent.includes("Regional settings saved"));
+        if (scenario.startsWith("gui")) await until(() => !button.disabled && b.w.document.querySelector("#zettel").textContent.includes("Regional settings saved"));
         else { const outcome = await result; assert.ok(!outcome.error, String(outcome.error)); assert.equal(outcome.value.persisted, true); }
         assert.equal(native.timeZone, "Europe/Berlin");
         const occurrences = b.t.icsExpansion(entry, Date.parse("2026-10-21T00:00Z"), Date.parse("2026-10-23T00:00Z"));
