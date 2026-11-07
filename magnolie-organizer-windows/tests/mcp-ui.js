@@ -4,10 +4,11 @@ const { createHash } = require("node:crypto");
 const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
-const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); process.exit(1); }, 15000);
 let declaredContracts;
 (async () => {
   for (const web of harness.exports.roots) {
+    const started = performance.now();
+    const watchdog = setTimeout(() => { console.error("MCP UI test timed out: " + web); process.exit(1); }, 15000);
     const b = await harness.exports.boot(web, {
       notizen: [{ id: "fixture-note", titel: "Fixture", text: "Owned fixture only" }],
       kontakte: [{ id: "fixture-contact", uid: "owned-contact-uid", vorname: "Owned", nachname: "Existing contact", sync: true,
@@ -1706,7 +1707,7 @@ let declaredContracts;
       assert.equal(status.result.structuredContent.locked, true);
       b.w.App.mcpClose(session);
       assert.equal((await call(request(8, "tools/list"))).error.code, -32002);
-      console.log("MCP note/task/appointment/contact CRUD, native snapshot gates, metadata/readonly/hierarchy, modal/draft guards and durable replies PASS " + web);
-    } finally { b.close(); }
+      console.log("MCP note/task/appointment/contact CRUD, native snapshot gates, metadata/readonly/hierarchy, modal/draft guards and durable replies PASS " + web + " (" + Math.round(performance.now() - started) + " ms)");
+    } finally { b.close(); clearTimeout(watchdog); }
   }
-})().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(watchdog));
+})().catch(error => { console.error(error); process.exitCode = 1; });
