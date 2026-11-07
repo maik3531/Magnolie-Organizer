@@ -170,6 +170,16 @@ creating another row. Forty-four targeted journal/row/transfer/runtime cases pas
 the original-reference state-transition fixture simulates row observations and
 does not constitute physical Android copy/publication acceptance.
 
+Linux PC original references can now be projected from an exact authenticated
+Saved mapping version or a completed protected local restoration journal.
+Prepared restorations, invented operations, wrong protected versions and revoked
+native local owners hold. This projection opens no media file and remains purely
+historical even when the current target is edited or missing. It is not a source
+READ grant, current-presence assertion or proof that the phone retained matching
+native history. Seven targeted native mapping/restore groups pass. Actual PC
+positive-send consent, owned-file validation, source cache and upload remain
+separate requirements; no source owner is manufactured from a restored mapping.
+
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a

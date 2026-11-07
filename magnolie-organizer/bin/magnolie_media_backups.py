@@ -638,6 +638,20 @@ class NativeMediaBackupRestoreOwner:
                 return tuple(NativeMediaBackupRestoration(event['operation'],event['state'],event['name'],
                     tuple(event['file_key']),journal.mapping(event)) for _,event in sorted(heads.items()))
 
+    def phone_original_reference(self,operation):
+        """Completed local restoration history only, not a file-read grant.
+
+        Prepared copies and arbitrary caller mappings cannot supply return
+        lineage. Actual source path/inode/content and current send consent must
+        still be checked independently before any inventory or upload.
+        """
+        if type(operation) is not str or len(operation)!=32 or not _hex(operation*2):
+            raise TransferError('media_backup_restore_original_operation_required')
+        result=next((item for item in self.history() if item.operation==operation),None)
+        if result is None or result.state!='restored':
+            raise TransferError('media_backup_restore_completed_history_required')
+        return result.original_mapping.phone_original_reference()
+
     def restore(self,action,locations,default,source_id,selected,destination):
         journal=self._journal
         if (type(action) is not NativePhotoDestinationAction or type(locations) is not NativeMediaBackupLocations

@@ -477,6 +477,40 @@ def local_restore(mappings,tmp_path):
     try:yield fixture,record,raw,directory,scope,locations,locations.source_id(parent),version,NativeAcceptedDestination.capture(target)
     finally:locations.close()
 
+def test_restored_phone_original_reference_comes_from_completed_native_journal_and_not_current_file_presence(local_restore):
+    fixture,record,raw,directory,scope,locations,source,version,target=local_restore
+    expected=record.phone_original_reference()
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as owner:
+        restored=owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        assert owner.phone_original_reference(restored.operation)==expected
+    fixture[3].close()
+    path=Path(target.path)/restored.name;held=path.with_name(path.name+'.fixture-held');path.rename(held)
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True) as reopened:
+        assert reopened.phone_original_reference(restored.operation)==expected
+        assert not path.exists() and held.read_bytes()==raw
+        assert not restored.grants_write_authority and not restored.is_saved_receipt
+
+
+def test_prepared_or_invented_restoration_cannot_export_original_reference(local_restore):
+    _,record,_,directory,scope,locations,source,version,target=local_restore
+    def boundary(phase):
+        if phase=='prepared':raise RuntimeError('explicit unfinished restoration fixture')
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:True,boundary=boundary) as owner:
+        with pytest.raises(RuntimeError):owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        prepared=owner.history()[0]
+        for operation in (prepared.operation,'0'*32,{'operation':prepared.operation}):
+            with pytest.raises(TransferError):owner.phone_original_reference(operation)
+
+
+def test_restored_reference_export_still_requires_current_native_local_owner(local_restore):
+    _,record,_,directory,scope,locations,source,version,target=local_restore
+    allowed=[True]
+    with NativeMediaBackupRestoreOwner(directory,scope,lambda:allowed[0]) as owner:
+        restored=owner.restore(owner.issue_action(),locations,record.destination,source,version,target)
+        allowed[0]=False
+        with pytest.raises(TransferError):owner.phone_original_reference(restored.operation)
+
+
 def test_local_backup_restore_publishes_new_file_offline_with_original_lineage_and_no_overwrite(local_restore):
     fixture,record,raw,directory,scope,locations,source,version,target=local_restore
     original=Path(target.path)/Path(record.relative_path).name;original.write_bytes(b'personal edited original')

@@ -57,6 +57,37 @@ def test_passive_mapping_lookup_is_absent_without_creating_store_or_file_consent
     with pytest.raises(TransferError):owner.local_grant(True)
 
 
+def test_phone_original_reference_exports_exact_authenticated_saved_version_without_opening_or_recreating_target(mappings):
+    fixture,owner=mappings
+    receiver,pages,association=save(fixture)
+    saved,records=owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
+    record=records[0];target=fixture[4]/record.relative_path
+    expected=dict(source_epoch=association.source_epoch,photo_id=association.photo_id,media_type=association.media_type,
+        manifest_sha256=record.manifest_sha256,file_id=record.source_file_id,original_size=record.saved_size,
+        original_sha256=record.saved_sha256,receipt_sha256=record.receipt_sha256)
+    target.write_bytes(b'new PC crop is not the original content')
+    assert owner.phone_original_reference(association,record.protected_record_sha256)==expected
+    target.unlink() # Explicit fixture deletion; exporting metadata must not recreate/read it.
+    result=owner.phone_original_reference(association,record.protected_record_sha256)
+    assert result==expected and not target.exists() and owner.read()==saved
+    result['original_sha256']='9'*64
+    assert owner.phone_original_reference(association,record.protected_record_sha256)==expected
+    assert not record.grants_write_authority and not record.is_saved_receipt
+
+
+def test_phone_original_reference_cannot_adopt_unverified_or_different_protected_version(mappings):
+    fixture,owner=mappings
+    receiver,pages,association=save(fixture)
+    _,records=owner.commit_received(owner.issue_action(),owner.read(),receiver,pages)
+    record=records[0]
+    for selected,version in ((association,'9'*64),(PhotoMappingAssociation('8'*64,association.photo_id,'images'),record.protected_record_sha256),
+            (association.wire(),record.protected_record_sha256)):
+        with pytest.raises(TransferError):owner.phone_original_reference(selected,version)
+    row=owner._db.execute('SELECT payload FROM mappings').fetchone()[0]
+    with owner._db:owner._db.execute('UPDATE mappings SET payload=?',(row[:-1]+bytes([row[-1]^1]),))
+    with pytest.raises((TransferError,InvalidTag)):owner.phone_original_reference(association,record.protected_record_sha256)
+
+
 def test_actual_saved_receiver_commits_encrypted_original_mapping_and_exact_retry_is_idempotent(mappings):
     fixture,owner=mappings
     receiver,pages,association=save(fixture)

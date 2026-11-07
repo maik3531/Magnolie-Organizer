@@ -85,6 +85,19 @@ class NativeSavedPhotoMapping:
             saved_sha256=self.saved_sha256,receipt_sha256=self.receipt_sha256,manifest_sha256=self.manifest_sha256,
             accepted_sha256=self.accepted_sha256,source_file_id=self.source_file_id,job_owner=self.job_owner)
 
+    def phone_original_reference(self):
+        """Untrusted return correlation, never source READ or current presence.
+
+        Native exporters must first authenticate this exact stored mapping or
+        restoration journal. The phone independently requires its own retained
+        original proof; legacy PC history cannot create that proof remotely.
+        """
+        if type(self.saved_size) is not int or not 1<=self.saved_size<=MAX_FILE_BYTES:
+            raise TransferError('photo_mapping_original_reference_empty')
+        return dict(source_epoch=self.association.source_epoch,photo_id=self.association.photo_id,media_type=self.association.media_type,
+            manifest_sha256=self.manifest_sha256,file_id=self.source_file_id,original_size=self.saved_size,
+            original_sha256=self.saved_sha256,receipt_sha256=self.receipt_sha256)
+
     @classmethod
     def parse(cls,value,association,record_hash):
         if (type(value) is not dict or set(value)!={'format','association','destination','relative_path','file_key','parent_keys',
@@ -337,6 +350,17 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
                 if self._snapshot()!=before or record not in tuple(value for _,value in self._mapping_records(association)):
                     raise TransferError('photo_mappings_lookup_changed')
                 self._sync()
+
+    def phone_original_reference(self,association,expected_record_sha256):
+        """Export authenticated historical metadata only; no file is opened.
+
+        The existing native record lease checks current ownership and the exact
+        protected version before and after projection. A future source worker
+        still needs independent positive consent and actual owned-file checks.
+        """
+        with self.saved_record_lease(association,expected_record_sha256) as (record,current):
+            current()
+            return record.phone_original_reference()
 
     def lookup(self,associations,*,contents=None,saved_receipts=None):
         if (type(associations) is not tuple or len(associations)>128 or any(type(item) is not PhotoMappingAssociation for item in associations)
