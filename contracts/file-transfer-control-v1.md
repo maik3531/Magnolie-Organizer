@@ -190,6 +190,17 @@ absent OFF is inert. Thirty-seven distinct policy/mapping/restore cases pass.
 These are protected local choices only: native SEND remains false until actual
 source ownership, shared intent, cache, upload and production consent UI join.
 
+Linux mapped-source inspection now requires an explicit native action, separate
+current-pair sending consent, exact protected policy and actual matched two-way
+media intent. The existing saved-book witness and exclusive OS media-I/O lane
+remain held until real reads end, including cancellation during a blocked read.
+Original root/parent/file identities, owner, regular type, single link and full
+content signatures are checked around bounded original-byte reads. Replacement
+files, symlinks and hardlinks hold; same-inode PC edits can yield a new content
+hash while retaining the original historical reference. Seven targeted native
+source cases pass. The returned observation grants no future READ, source-cache,
+Saved, complete-inventory or deletion authority. No sender backend is enabled.
+
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
