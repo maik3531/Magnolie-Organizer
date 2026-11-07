@@ -1058,6 +1058,131 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    private class KnownAssociationCase(paired: Boolean = true, mediaType: GalleryMediaType = GalleryMediaType.IMAGES) : AutoCloseable {
+        val f = Fixture(mediaType)
+        val directory = Files.createTempDirectory(f.root.toPath(), "known-original338-").toFile()
+        val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 45 }, "AES") }
+        var hook: (String) -> Unit = {}
+        val index = PhotoSourceJobIndex(directory, protection) { hook(it) }
+        val lease: GalleryPhotoSourceLease
+        val job: PhotoSourceJob
+        val source: IndexedPhotoSource
+        val message: JsonObject
+        init {
+            val receiver = f.receiver.copy(pairingEpoch = if (paired) "1".repeat(64) else null)
+            f.request = NativeGalleryRequest(receiver, f.request!!.policyEpoch, f.request!!.kinds, mediaType)
+            lease = f.lease(); val inventory = f.reader.enumerate(lease)
+            val reserved = index.reserve(inventory, f.scope)
+            val snapshot = ProtectedPhotoSourceSnapshot.freeze(index.rootFile(reserved), inventory, "sender_fixture_01", f.scope, f.reader, protection)
+            job = index.publishSnapshot(reserved, snapshot, f.scope, lease)
+            source = index.restore(job, "sender_fixture_01", f.scope, lease)
+            val manifest = source.manifest; val now = 1_800_000_000_000L
+            val accepted = DeviceFileRemoteAcceptance(java.util.UUID.randomUUID().toString(), manifest.fingerprint, manifest.transferId,
+                "c".repeat(64), receiver.permissionEpoch, "e".repeat(64), now + 60_000, "d".repeat(64))
+            source.commitRemoteAcceptance(NativeGalleryOfferOutput(accepted.offerId, accepted.transferId, accepted.manifestSha256, accepted.expires), accepted) { }
+            message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {
+                put("format", 1); put("transfer_id", manifest.transferId); put("manifest_sha256", manifest.fingerprint)
+                put("acceptance_sha256", accepted.acceptanceSha256); put("permission_epoch", accepted.permissionEpoch); put("destination_token", accepted.destinationToken)
+                put("receipts", JsonArray(manifest.files.map { file -> buildJsonObject {
+                    put("file_id", file.id); put("size", file.size); put("sha256", file.sha256); put("receipt_sha256", "0".repeat(64))
+                } }))
+            }, 60_000, now)
+        }
+        fun commit(): PhotoSourceRemoteSaved {
+            val accepted = index.remoteAcceptance(job)!!.historicalAcceptance()
+            return source.commitRemoteSaved(accepted, message) { }
+        }
+        fun metadata(): Map<String, List<Byte>> = android.database.sqlite.SQLiteDatabase.openDatabase(File(directory, "photo-source-jobs.db").path,
+            null, android.database.sqlite.SQLiteDatabase.OPEN_READONLY).use { db -> buildMap {
+            db.rawQuery("SELECT name,sealed FROM source_meta ORDER BY name", null).use { cursor ->
+                while (cursor.moveToNext()) put(cursor.getString(0), cursor.getBlob(1).toList())
+            }
+        } }
+        override fun close() { index.close(); f.close() }
+    }
+
+    @Test @Config(sdk = [35]) fun knownPhoneOriginalAssociationSurvivesActualCacheRetirementAndOfflineSourceLoss() {
+        KnownAssociationCase().use { h ->
+            assertTrue(h.index.knownPhoneMedia().isEmpty()); val manifest = h.source.manifest
+            val saved = h.commit(); val known = h.index.knownPhoneMedia().single()
+            assertEquals(manifest.fingerprint, known.reference.body.string("manifest_sha256"))
+            assertEquals(saved.confirmation.members.single().receiptSha256, known.reference.body.string("receipt_sha256"))
+            assertEquals(h.source.galleryOrigins!!.entries.single().photoId, known.reference.body.string("photo_id"))
+            assertFalse(known.grantsWriteAuthority); assertFalse(known.provesDeletion); assertFalse(known.isSavedReceipt)
+            h.index.retireCachedSnapshot(h.job)
+            assertTrue(h.index.jobs().isEmpty()); assertFalse(h.index.rootFile(h.job).exists())
+            File(h.f.root, "source.bin").let { check(it.renameTo(File(h.f.root, "held-original-source.bin"))) }
+            h.f.request = null
+            Shadows.shadowOf(h.f.context as Application).denyPermissions(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_EXTERNAL_STORAGE)
+            val opens = h.f.provider.opens.toList(); val before = h.metadata(); h.index.close()
+            PhotoSourceJobIndex.openExisting(h.directory, h.protection).use { reader ->
+                assertEquals(known.body, reader.knownPhoneMedia(known.id)!!.body)
+                assertEquals(known.body, reader.knownPhoneMedia().single().body)
+                assertNull(reader.galleryPolicy().policy)
+            }
+            assertEquals(before, h.metadata()); assertEquals(opens, h.f.provider.opens)
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun knownPhoneAssociationAndRemoteSavedCommitAtomicallyAndIdenticalRetryDoesNotRenewHistory() {
+        KnownAssociationCase().use { h ->
+            val before = h.metadata()
+            h.hook = { if (it == "gallery-known-phone-media-recorded") throw java.io.IOException("explicit association writer interruption") }
+            assertThrows(java.io.IOException::class.java) { h.commit() }
+            assertNull(h.index.remoteSaved(h.job)); assertTrue(h.index.knownPhoneMedia().isEmpty()); assertEquals(before, h.metadata())
+            assertEquals(h.job, h.index.jobs().single())
+            h.hook = {}; val first = h.commit(); val known = h.index.knownPhoneMedia().single(); val sealed = h.metadata()
+            assertEquals(first.record, h.commit().record); assertEquals(sealed, h.metadata())
+            assertEquals(known.body, h.index.knownPhoneMedia(known.id)!!.body)
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun missingKnownPhoneMetadataIsIntegrityFailureNotAnEmptyAssociationThatSavedCanRecreate() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single()
+            android.database.sqlite.SQLiteDatabase.openDatabase(File(h.directory, "photo-source-jobs.db").path, null,
+                android.database.sqlite.SQLiteDatabase.OPEN_READWRITE).use { db ->
+                assertEquals(1, db.delete("source_meta", "name=?", arrayOf(GalleryKnownPhoneMedia.PREFIX + known.id)))
+            }
+            assertThrows(PhotoFolderScopeError::class.java) { h.index.knownPhoneMedia(known.id) }
+            assertThrows(PhotoFolderScopeError::class.java) { h.commit() }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun phoneReturnReferencePinsOriginalPeerPairingContentAndManifestWithoutInventingCurrentAuthority() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single(); val ref = known.reference
+            val key = ref.key("sender_fixture_01", h.f.receiver.peerId, h.f.receiver.identitySha256, "1".repeat(64))
+            assertEquals(known.id, key)
+            assertNotEquals(key, ref.key("sender_fixture_01", h.f.receiver.peerId, h.f.receiver.identitySha256, "2".repeat(64)))
+            assertNotEquals(key, ref.key("sender_fixture_01", h.f.receiver.peerId, "3".repeat(64), "1".repeat(64)))
+            val changed = GalleryPhoneMediaReference.parse(JsonObject(ref.body + ("original_sha256" to JsonPrimitive("4".repeat(64)))))
+            assertNull(h.index.knownPhoneMedia(changed.key("sender_fixture_01", h.f.receiver.peerId, h.f.receiver.identitySha256, "1".repeat(64))))
+            assertThrows(PhotoFolderScopeError::class.java) { GalleryPhoneMediaReference.parse(JsonObject(ref.body + ("write" to JsonPrimitive(true)))) }
+            assertThrows(PhotoFolderScopeError::class.java) { GalleryKnownPhoneMedia.parse(JsonObject(known.body + ("native_member" to JsonPrimitive("1:90")))) }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun unpairedGallerySavedRemainsHistoricalWithoutInventingNativeReturnAssociation() {
+        KnownAssociationCase(paired = false).use { h ->
+            h.commit(); assertNotNull(h.index.remoteSaved(h.job)); assertTrue(h.index.knownPhoneMedia().isEmpty())
+        }
+    }
+
+    @Test @Config(sdk = [29]) fun legacyGalleryRowsWithoutNativeInsertionNamespaceDoNotAcquireReturnAssociationFromSaved() {
+        KnownAssociationCase().use { h ->
+            h.commit(); assertNotNull(h.index.remoteSaved(h.job)); assertTrue(h.index.knownPhoneMedia().isEmpty())
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun videoKnownOriginalUsesVideoAssociationWithoutPhotoFallback() {
+        KnownAssociationCase(mediaType = GalleryMediaType.VIDEO).use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single()
+            assertEquals(GalleryMediaType.VIDEO.uriSegment, known.reference.body.string("media_type"))
+            assertFalse(known.grantsWriteAuthority); assertFalse(known.provesDeletion)
+        }
+    }
+
     private class HistoricalCase : AutoCloseable {
         val f = Fixture()
         val directory = Files.createTempDirectory(f.root.toPath(), "historical350-").toFile()
@@ -1113,6 +1238,17 @@ class AndroidGalleryPhotoSourceTest {
             h.open().use { assertNotNull(it.remoteSaved(h.job)); assertEquals(listOf(h.job), it.jobs()) }
             assertEquals(opened, h.f.provider.opens); assertNull(h.f.request)
             assertFalse(File(h.directory, "photo-source-" + h.job.id).exists())
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun historicalSavedMetadataAloneCannotManufactureKnownPhoneReturnAssociation() {
+        HistoricalCase().use { h ->
+            h.open().use { index ->
+                val action = index.issueHistoricalSavedAction(h.job, { h.receiver })
+                index.commitHistoricalRemoteSaved(action, h.message, { h.now })
+                assertNotNull(index.remoteSaved(h.job)); assertTrue(index.knownPhoneMedia().isEmpty())
+            }
+            assertNull(h.f.request); assertFalse(File(h.directory, "photo-source-" + h.job.id).exists())
         }
     }
 

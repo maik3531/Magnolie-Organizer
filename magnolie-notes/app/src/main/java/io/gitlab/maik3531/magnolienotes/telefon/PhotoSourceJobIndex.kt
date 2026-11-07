@@ -471,7 +471,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
             val durableAcceptance = readRemoteAcceptance(expected) ?: fail("photo_jobs_remote_acceptance_required")
             if (durableAcceptance.originalAuthority == null) fail("photo_jobs_remote_acceptance_repair_required")
             if (durableAcceptance.acceptance != PhotoSourceRemoteAcceptance.acceptanceWire(accepted)) fail("photo_jobs_remote_acceptance_changed")
-            commitRemoteSavedRecord(expected, next, permitted)
+            commitRemoteSavedRecord(expected, next, permitted, GalleryKnownPhoneMedia.capture(expected, next, durableAcceptance, lease))
         }
 
     internal fun commitResumeRemoteSaved(source: NativeGalleryRenewedSource, projection: NativeResumeAcceptanceProjection,
@@ -489,14 +489,24 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         // witness. Preserve the old acceptance exactly after validating the child.
         val next = PhotoSourceRemoteSaved.capture(job, original.historicalAcceptance(), message)
         permitted()
-        commitRemoteSavedRecord(job, next, permitted)
+        commitRemoteSavedRecord(job, next, permitted, GalleryKnownPhoneMedia.capture(job, next, original, source.nativeGalleryLease()))
     }
 
-    private fun commitRemoteSavedRecord(expected: PhotoSourceJob, next: PhotoSourceRemoteSaved, permitted: () -> Unit): PhotoSourceRemoteSaved {
+    private fun commitRemoteSavedRecord(expected: PhotoSourceJob, next: PhotoSourceRemoteSaved, permitted: () -> Unit,
+        known: List<GalleryKnownPhoneMedia> = emptyList()): PhotoSourceRemoteSaved {
         val original = readRemoteSaved(expected)
+        val additions = known.filter { value ->
+            val before = knownPhoneMedia(value.id)
+            if (before != null && before.body != value.body) fail("gallery_known_phone_media_original_changed")
+            before == null
+        }
         if (original != null) {
             if (original.confirmation.fingerprint != next.confirmation.fingerprint ||
                 original.record["acceptance"] != next.record["acceptance"]) fail("photo_jobs_remote_saved_changed")
+            if (additions.isNotEmpty()) transaction {
+                if (readOne(expected.id) != expected || readRemoteSaved(expected)?.record != original.record) fail("photo_jobs_cas_conflict")
+                permitted(); appendKnownPhoneMedia(additions); permitted()
+            }
             permitted()
             return original
         } else {
@@ -507,6 +517,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
                 permitted()
                 db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", "remote-saved-v1/" + expected.id); put("sealed", cipher) })
                 membership!!.advance()
+                appendKnownPhoneMedia(additions)
                 permitted()
             }
             permitted()
@@ -514,6 +525,46 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
             if (result.record != next.record) fail("photo_jobs_remote_saved_readback_failed")
             return result
         }
+    }
+
+    internal fun knownPhoneMedia(id: String): GalleryKnownPhoneMedia? = gated {
+        if (!DeviceFileControl.hash(id)) fail("gallery_known_phone_media_invalid")
+        val name = GalleryKnownPhoneMedia.PREFIX + id
+        meta(name)?.let { cipher ->
+            GalleryKnownPhoneMedia.parse(parse(protection.open(cipher, "photo-source-jobs-v1/" + name))).also {
+                if (it.id != id) fail("gallery_known_phone_media_original_changed")
+            }
+        }
+    }
+
+    internal fun knownPhoneMedia(): List<GalleryKnownPhoneMedia> = gated {
+        val ids = mutableListOf<String>()
+        db.query("source_meta", arrayOf("name"), "name LIKE ?", arrayOf(GalleryKnownPhoneMedia.PREFIX + "%"), null, null, "name",
+            (GalleryKnownPhoneMedia.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getString(0).removePrefix(GalleryKnownPhoneMedia.PREFIX)
+        }
+        if (ids.size > GalleryKnownPhoneMedia.MAX_RECORDS) fail("gallery_known_phone_media_capacity")
+        ids.map { knownPhoneMedia(it) ?: fail("gallery_known_phone_media_missing") }
+    }
+
+    /** Only invoked inside the source Saved writer transaction. No provider IO,
+     * new READ owner or payload copying occurs. Aggregate advances once after
+     * the bounded metadata batch; no callbacks see an unsealed intermediate. */
+    private fun appendKnownPhoneMedia(values: List<GalleryKnownPhoneMedia>) {
+        if (values.isEmpty()) return
+        if (!db.inTransaction() || values.size > DeviceFileManifest.MAX_FILES || values.map { it.id }.distinct().size != values.size)
+            fail("gallery_known_phone_media_writer_required")
+        db.rawQuery("SELECT COUNT(*) FROM source_meta WHERE name LIKE ?", arrayOf(GalleryKnownPhoneMedia.PREFIX + "%")).use {
+            if (!it.moveToFirst() || it.getLong(0) + values.size > GalleryKnownPhoneMedia.MAX_RECORDS) fail("gallery_known_phone_media_capacity")
+        }
+        for (value in values) {
+            val name = GalleryKnownPhoneMedia.PREFIX + value.id
+            if (meta(name) != null) fail("gallery_known_phone_media_original_changed")
+            val cipher = protection.seal(frame(value.body), "photo-source-jobs-v1/" + name)
+            if (cipher.size !in 29..8192) fail("gallery_known_phone_media_invalid")
+            db.insertOrThrow("source_meta", null, ContentValues().apply { put("name", name); put("sealed", cipher) })
+        }
+        membership!!.advance(); boundary("gallery-known-phone-media-recorded")
     }
 
     /** Dedicated encrypted gallery policy rows in this private source DB, never

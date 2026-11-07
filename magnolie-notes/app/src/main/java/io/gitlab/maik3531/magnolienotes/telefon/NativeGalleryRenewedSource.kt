@@ -19,4 +19,5 @@ internal class NativeGalleryRenewedSource internal constructor(val job: PhotoSou
         NativeGalleryMediaProjection.page(snapshot, snapshot.lease, after, ::readChunk, ensureNative)
     val allowsOfferOutput: Boolean get() = false
     internal fun originalAcceptance(): PhotoSourceRemoteAcceptance { snapshot.manifest; return original }
+    internal fun nativeGalleryLease(): GalleryPhotoSourceLease? { snapshot.manifest; return snapshot.lease as? GalleryPhotoSourceLease }
 }
