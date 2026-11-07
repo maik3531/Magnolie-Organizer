@@ -226,6 +226,18 @@ not a network send grant, restart adoption or source-job retirement. A durable
 native source-job and live transfer-control lifecycle remain required before
 any outbound offer or payload.
 
+Native incoming journals also fence stable original-transfer identity across
+renewed permission/pairing bindings: the same static device keys and source/
+transfer/file IDs cannot obtain a second publication ID or mutate another row.
+Both pending and published historical collisions hold before reservation and
+provider insertion; changed content under reused IDs also holds. Existing exact
+same-binding retries and explicitly new source/transfer IDs remain distinct.
+History grants no old-row adoption or renewed write authority. The reproduced
+second-insert attempt after real revoke/regrant is covered by 47 passing native
+journal/row/transfer/runtime cases (#399). Read-only recovery of an older
+published row across renewed bindings remains separate; no physical Android or
+complete production acceptance is implied.
+
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a

@@ -13,6 +13,19 @@ internal class GalleryIncomingPublication private constructor(internal val body:
     internal val isSavedReceipt: Boolean get() = false
     internal val fingerprint: String get() = DeviceFileControl.digest("magnolie-gallery-incoming-publication-v1\u0000", body)
 
+    /** Historical collision identity only, never permission to adopt or mutate
+     * an older row. Grant/pairing epochs and manifest changes cannot fork the
+     * same sender-selected source/transfer/file identity into another insert. */
+    internal fun sameOriginalTransferFile(other: GalleryIncomingPublication): Boolean {
+        val first = body.getValue("origin").jsonObject
+        val second = other.body.getValue("origin").jsonObject
+        val firstBinding = first.getValue("binding").jsonObject
+        val secondBinding = second.getValue("binding").jsonObject
+        return listOf("source_id", "transfer_id", "file_id").all { first[it] == second[it] } &&
+            listOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256")
+                .all { firstBinding[it] == secondBinding[it] }
+    }
+
     internal fun withInsertedRow(witness: JsonObject): GalleryIncomingPublication {
         if (state != "inserting" || row != null) fail()
         return parse(JsonObject(body + mapOf("state" to JsonPrimitive("inserted"), "row" to witness)))

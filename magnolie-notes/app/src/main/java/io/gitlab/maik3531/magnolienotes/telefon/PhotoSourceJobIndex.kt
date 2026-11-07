@@ -710,6 +710,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
     internal fun reserveIncomingPublication(planned: GalleryIncomingPublication, current: () -> Unit): GalleryIncomingPublication = gated {
         writableMembership(); current()
         if (planned.state != "planned" || planned.row != null) fail("gallery_incoming_planned_required")
+        fenceIncomingOriginal(planned, current)
         incomingPublication(planned.id)?.let {
             if (it.body.filterKeys { key -> key !in setOf("row", "state") } != planned.body.filterKeys { key -> key !in setOf("row", "state") })
                 fail("gallery_incoming_original_changed")
@@ -756,6 +757,7 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
 
     private fun writeIncomingPublication(expected: GalleryIncomingPublication?, next: GalleryIncomingPublication,
         current: () -> Unit): GalleryIncomingPublication {
+        fenceIncomingOriginal(next, current)
         val name = GalleryIncomingPublication.PREFIX + next.id
         val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
         transaction {
@@ -776,6 +778,27 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         val saved = incomingPublication(next.id) ?: fail("gallery_incoming_publication_readback_failed")
         if (saved.body != next.body) fail("gallery_incoming_publication_readback_failed")
         return saved
+    }
+
+    /** Bounded native historical lookup under the existing exact-root OS lock
+     * and authenticated membership. No provider/transport IO, no historical
+     * READ/write grant and no passive repair/backfill of old journals. */
+    private fun fenceIncomingOriginal(selected: GalleryIncomingPublication, current: () -> Unit) {
+        current()
+        var count = 0
+        db.query("source_meta", arrayOf("name", "sealed"), "name LIKE ?", arrayOf(GalleryIncomingPublication.PREFIX + "%"),
+            null, null, "name", (GalleryIncomingPublication.MAX_RECORDS + 1).toString()).use { cursor ->
+            while (cursor.moveToNext()) {
+                current()
+                if (++count > GalleryIncomingPublication.MAX_RECORDS) fail("gallery_incoming_publication_capacity")
+                val name = cursor.getString(0)
+                val historical = GalleryIncomingPublication.parse(parse(protection.open(cursor.getBlob(1), "photo-source-jobs-v1/" + name)))
+                if (name != GalleryIncomingPublication.PREFIX + historical.id) fail("gallery_incoming_publication_changed")
+                if (historical.id != selected.id && historical.sameOriginalTransferFile(selected))
+                    fail("gallery_incoming_original_transfer_held")
+            }
+        }
+        current()
     }
 
     private fun readGalleryPolicy(): GalleryPhotoPolicySnapshot {

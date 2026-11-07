@@ -145,6 +145,12 @@ class GalleryIncomingRowsTest {
         val consent = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
     }
 
+    private fun renewReceiving(f: GalleryReceiveConsentTest.Fixture) {
+        f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake()
+        val consent = f.approve()
+        f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
+    }
+
     @Test fun defaultPhoneInventoryCannotCreatePendingRowsFromAnUnknownPcImage() {
         GalleryReceiveConsentTest.Fixture().use { f ->
             ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
@@ -176,6 +182,95 @@ class GalleryIncomingRowsTest {
                 }
             }
             assertEquals(0, provider.inserts); assertEquals(0, provider.writeOpens)
+        }
+    }
+
+    @Test fun renewedReceivingConsentCannotInsertAgainForAnAlreadyPublishedOriginalTransfer() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f)
+            val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888)
+            val raw = try { java.io.ByteArrayOutputStream().use { output ->
+                check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray()
+            } } finally { bitmap.recycle() }
+            val payload = File(f.root, "same-original-after-regrant.png")
+            val provider = Provider(f.app, payload = payload).apply { allowPublish = true }
+            ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val manifest = manifest(f.pc.deviceId, raw = raw)
+            val rows = NativeGalleryIncomingRows(f.app, f.index)
+            var firstEpoch = ""
+            val first = f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                    firstEpoch = owner.binding.permissionEpoch
+                    val inserted = rows.prepare(owner, fileId, "image/png")
+                    val verified = rows.copyAndVerify(owner, inserted, { index ->
+                        raw.copyOfRange(index * 65536, minOf(raw.size, (index + 1) * 65536))
+                    })
+                    rows.publish(owner, verified)
+                }
+            }
+            assertEquals("published", first.state); assertEquals(1, provider.inserts)
+            renewReceiving(f)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { renewed ->
+                    assertNotEquals(firstEpoch, renewed.binding.permissionEpoch)
+                    assertEquals("gallery_incoming_original_transfer_held", assertThrows(PhotoFolderScopeError::class.java) {
+                        rows.prepare(renewed, fileId, "image/png")
+                    }.code)
+                }
+            }
+            assertEquals("A renewed control epoch must not cause another provider insertion", 1, provider.inserts)
+            assertEquals(first.body, f.index.incomingPublication(first.id)!!.body)
+            assertArrayEquals(raw, payload.readBytes()); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+        }
+    }
+
+    @Test fun renewedReceivingConsentCannotForkAnUnpublishedOriginalIntoAnotherInsert() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val manifest = manifest(f.pc.deviceId); val rows = NativeGalleryIncomingRows(f.app, f.index)
+            var originalEpoch = ""
+            val original = f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                    originalEpoch = owner.binding.permissionEpoch
+                    rows.prepare(owner, fileId, "image/jpeg")
+                }
+            }
+            renewReceiving(f)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                    assertNotEquals(originalEpoch, owner.binding.permissionEpoch)
+                    assertEquals("gallery_incoming_original_transfer_held", assertThrows(PhotoFolderScopeError::class.java) {
+                        rows.prepare(owner, fileId, "image/jpeg")
+                    }.code)
+                }
+            }
+            assertEquals(original.body, f.index.incomingPublication(original.id)!!.body)
+            assertEquals(1, provider.inserts); assertEquals(0, provider.writeOpens); assertEquals(0, provider.publishes)
+        }
+    }
+
+    @Test fun changedContentCannotReuseOriginalTransferIdsButExplicitNewSourceJobRemainsAdmissible() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val token = intent(); val first = manifest(f.pc.deviceId)
+            val changedFiles = first.wire().getValue("files").jsonArray.map {
+                JsonObject(it.jsonObject + ("sha256" to JsonPrimitive("b".repeat(64))))
+            }
+            val changed = DeviceFileManifest.parse(JsonObject(first.wire() + ("files" to JsonArray(changedFiles))))
+            val fresh = DeviceFileManifest.parse(JsonObject(first.wire() + mapOf("source_id" to JsonPrimitive("4".repeat(32)),
+                "transfer_id" to JsonPrimitive("5".repeat(32)))))
+            f.io {
+                fun reserve(manifest: DeviceFileManifest): GalleryIncomingPublication =
+                    NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                        f.index.reserveIncomingPublication(GalleryIncomingPublication.plan(owner.binding, manifest, fileId,
+                            owner.pairingEpoch, owner.kind, "image/jpeg", owner.scope), owner::requireLocal)
+                    }
+                val original = reserve(first)
+                assertEquals("gallery_incoming_original_transfer_held", assertThrows(PhotoFolderScopeError::class.java) { reserve(changed) }.code)
+                val next = reserve(fresh)
+                assertNotEquals(original.id, next.id); assertEquals("planned", next.state)
+                assertEquals(original.body, f.index.incomingPublication(original.id)!!.body)
+                assertEquals(next.body, f.index.incomingPublication(next.id)!!.body)
+            }
         }
     }
 
