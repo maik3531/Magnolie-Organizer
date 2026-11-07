@@ -364,6 +364,21 @@ lifecycle has twenty new and thirty affected passing native cases. It still
 does not enable production SEND/dispatcher/UI, Windows parity,
 GC, or physical/package acceptance.
 
+An existing protected archival intent can now be resumed explicitly by a fresh
+native owner (#407), before or after the exact physical rename. Fresh action,
+current positive per-kind consent/shared two-way intent and the exact original
+saved-book OS lease remain required. Only authenticated metadata is decrypted;
+encrypted media members are checked by original inode/size/ordered cipher hash,
+without constructing a raw-cache reader, reviving a sender or sending network
+output. Exact ready/retirement/approved-exchange and completed local-backup
+proofs are mandatory before and after the no-replace move. Missing/ambiguous
+stages, modified cipher ownership, absent prior intent, stale/currently revoked
+rights or a renewed book witness hold without bootstrap or repair. Eighteen new
+and eighteen affected native cases pass, including real cipher/rename IO
+cancellation with retained OS ownership. This is recovery of an already
+authorized local archive operation, not general interrupted transfer resume,
+old-binding phone-row write/recovery authority, GC or production readiness.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

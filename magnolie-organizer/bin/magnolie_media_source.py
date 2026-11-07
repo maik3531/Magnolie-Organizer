@@ -164,24 +164,30 @@ class NativeMappedMediaSource:
                 prepared.failed.set();self._prepared.pop(job_id,None)
             self._gate.release()
 
+    def _source_permission(self,action,expected,kind):
+        if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
+            raise TransferError('media_source_native_selection_required')
+        token=self._transport.intent_for(kind,to_phone=True)
+        def permission():
+            action.validate(self._preferences)
+            if self._closed.is_set() or token is None or self._transport.intent_for(kind,to_phone=True) is not token:
+                raise TransferError('media_source_current_intent_required')
+            peer=self._authority.current_peer();saved=self._preferences.read()
+            consent=saved.policy.sending if saved.policy is not None else None
+            if (saved!=expected or peer is None or consent is None or consent.pairing_epoch!=peer.pairing_epoch
+                    or not (consent.photos if kind=='images' else consent.videos)
+                    or kind=='video' and not self._authority.video_available()):
+                raise TransferError('media_source_local_consent_required')
+            return True
+        return permission,token
+
     def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
         action.consume(self._preferences)
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         try:
-            token=self._transport.intent_for(kind,to_phone=True)
-            def permission():
-                action.validate(self._preferences)
-                if self._closed.is_set() or token is None or self._transport.intent_for(kind,to_phone=True) is not token:
-                    raise TransferError('media_source_current_intent_required')
-                peer=self._authority.current_peer();saved=self._preferences.read()
-                consent=saved.policy.sending if saved.policy is not None else None
-                if (saved!=expected or peer is None or consent is None or consent.pairing_epoch!=peer.pairing_epoch
-                        or not (consent.photos if kind=='images' else consent.videos)
-                        or kind=='video' and not self._authority.video_available()):
-                    raise TransferError('media_source_local_consent_required')
-                return True
+            permission,token=self._source_permission(action,expected,kind)
             permission()
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
                 with retention.activity(permission,exclusive=True) as activity:

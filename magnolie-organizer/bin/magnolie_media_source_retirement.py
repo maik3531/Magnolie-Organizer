@@ -83,9 +83,12 @@ class _NativeSourceRetirementJournal:
         self._jobs._catalog.observe(catalog);return result
 
     def write(self,owner,expected,body):
-        if type(owner) is not _NativeSourceRetirement or owner._journal is not self:
+        from magnolie_media_source_recovery import _NativeSourceRetirementRecovery
+        if type(owner) not in (_NativeSourceRetirement,_NativeSourceRetirementRecovery) or owner._journal is not self:
             raise TransferError('media_source_retirement_live_owner_required')
-        owner._current();job=owner._sender._job
+        if type(owner) is _NativeSourceRetirementRecovery and expected is None:
+            raise TransferError('media_source_retirement_original_intent_required')
+        owner._current();job=owner._job
         with self._jobs._database() as (db,key):
             db.execute('BEGIN IMMEDIATE');catalog=self._jobs._catalog.verify(db,key);before=self._read(db,key,job)
             if expected is None:
@@ -137,6 +140,27 @@ def verify_archived_cache(jobs,parent,body,current):
     finally:os.close(root)
 
 
+def verified_source_backup(backups,selected,expected,protection,current):
+    from magnolie_media_backups import NativeMediaBackups,NativeMediaBackupVersion
+    from magnolie_media_source_backup import source_provenance
+    if type(backups) is not NativeMediaBackups or type(selected) is not NativeMediaBackupVersion:
+        raise TransferError('media_source_retirement_exact_local_backup_required')
+    current();source=source_provenance(backups,selected)
+    if (any(source.get(key)!=value for key,value in expected.items())
+            or backups.protection.native_directory_identity!=protection.native_directory_identity):
+        raise TransferError('media_source_retirement_exact_local_backup_required')
+    with backups._operation():
+        value=backups._record('versions',selected.id)
+        if value is None or backups._version(value)!=selected:
+            raise TransferError('media_source_retirement_complete_local_backup_required')
+        obj=backups._record('objects',value['object_key'])
+        if obj is None or obj['prepared']:raise TransferError('media_source_retirement_complete_local_backup_required')
+        backups._verify_object(obj)
+    current()
+    return dict(scope=backups.scope,root_key=list(backups._root_key),storage_parent=backups.storage_parent.wire(),
+        version_id=selected.id,record_sha256=selected.record_sha256,object_key=selected.object_key)
+
+
 class _NativeSourceRetirement:
     def __init__(self,sender,backups,selected,*,boundary=lambda _:None):
         from magnolie_media_source_sender import _NativeMediaSourceSender
@@ -144,7 +168,7 @@ class _NativeSourceRetirement:
         if (type(sender) is not _NativeMediaSourceSender or type(backups) is not NativeMediaBackups
                 or type(selected) is not NativeMediaBackupVersion or not callable(boundary)):
             raise TransferError('media_source_retirement_native_completed_owner_required')
-        self._sender=sender;self._backups=backups;self._selected=selected;self._boundary=boundary
+        self._sender=sender;self._job=sender._job;self._backups=backups;self._selected=selected;self._boundary=boundary
         self._jobs=sender._jobs;self._journal=_NativeSourceRetirementJournal(self._jobs)
         self._reader=None;self._permit=None;self._record=None;self._closed=threading.Event();self._thread=None
 
@@ -165,25 +189,10 @@ class _NativeSourceRetirement:
             raise TransferError('media_source_sender_binding_changed')
 
     def _backup_proof(self):
-        from magnolie_media_source_backup import source_provenance
-        sender=self._sender;cache=sender._cache;self._current();source=source_provenance(self._backups,self._selected)
-        if (source['job_id']!=sender._job or source['job_nonce']!=cache._job_nonce or source['job_version']!=cache._job_version
-                or source['proof_sha256']!=cache.proof_sha256 or source['manifest']!=cache.manifest.wire()
-                or self._backups.protection.native_directory_identity!=sender._authority.protection.native_directory_identity):
-            raise TransferError('media_source_retirement_exact_local_backup_required')
-        with self._backups._operation():
-            # Offline recovery intentionally admits verified pending intents.
-            # Slot release is stricter: require the actual completed version,
-            # even when a pending intent shares a complete older Saved object.
-            value=self._backups._record('versions',self._selected.id)
-            if value is None or self._backups._version(value)!=self._selected:
-                raise TransferError('media_source_retirement_complete_local_backup_required')
-            obj=self._backups._record('objects',value['object_key'])
-            if obj is None or obj['prepared']:raise TransferError('media_source_retirement_complete_local_backup_required')
-            self._backups._verify_object(obj)
-        self._current()
-        return dict(scope=self._backups.scope,root_key=list(self._backups._root_key),storage_parent=self._backups.storage_parent.wire(),
-            version_id=self._selected.id,record_sha256=self._selected.record_sha256,object_key=self._selected.object_key)
+        cache=self._sender._cache
+        expected=dict(job_id=self._job,job_nonce=cache._job_nonce,job_version=cache._job_version,
+            proof_sha256=cache.proof_sha256,book_version=cache._book_version,manifest=cache.manifest.wire())
+        return verified_source_backup(self._backups,self._selected,expected,self._sender._authority.protection,self._current)
 
     def _require_planned(self):
         self._current();record=self._journal.lookup(self._sender._job)
