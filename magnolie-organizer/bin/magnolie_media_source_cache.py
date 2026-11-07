@@ -23,6 +23,7 @@ class FrozenNativeMediaSource:
     root_key: tuple
     proof_sha256: str
     _references: tuple
+    _book_version: str
 
     @property
     def original_references(self):return {file_id:dict(fields) for file_id,fields in self._references}
@@ -37,12 +38,15 @@ class FrozenNativeMediaSource:
 class _NativeSourceCacheWriter:
     MAX_METADATA=65536
 
-    def __init__(self,owner,mapping,size,signature,token,expected,kind,current):
+    def __init__(self,owner,mapping,size,signature,token,expected,kind,book_version,current):
         from magnolie_media_source import NativeMappedMediaSource
         if type(owner) is not NativeMappedMediaSource or not owner._gate.locked() or not callable(current):
             raise TransferError('media_source_cache_live_owner_required')
         self._owner=owner;self._authority=owner._authority;self._current=current;self._parent=self._root=None
         self._size=size;self._count=(size+CHUNK_BYTES-1)//CHUNK_BYTES;self._next=0;self._members=sha256();self._metadata={}
+        from magnolie_file_control import _hex
+        if not _hex(book_version):raise TransferError('media_source_cache_book_required')
+        self._book_version=book_version
         if not 1<=size<=min(MAX_FILE_BYTES,MAX_TOTAL_BYTES):raise TransferError('media_source_cache_size_limit')
         peer=self._authority.current_peer()
         if peer is None:raise TransferError('media_source_cache_native_owner_required')
@@ -65,7 +69,7 @@ class _NativeSourceCacheWriter:
             except FileExistsError:raise TransferError('media_source_cache_existing_hold')
             self._root=os.open(self._name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=self._parent)
             self._root_key=self._key(os.fstat(self._root));self._guard();os.fsync(self._parent)
-            intent=dict(format=1,state='planned',job_id=self._job,file_id=self._file,scope=self._scope,
+            intent=dict(format=2,state='planned',job_id=self._job,file_id=self._file,scope=self._scope,book_version=book_version,
                 parent_key=list(self._parent_key),root_key=list(self._root_key),size=size,chunks=self._count,media_type=kind,
                 source_signature=list(signature),original_mapping_sha256=mapping.protected_record_sha256,
                 original_reference=self._reference,source_policy_sha256=expected.version,pairing_epoch=peer.pairing_epoch,
@@ -73,7 +77,7 @@ class _NativeSourceCacheWriter:
             self._intent_sha256=sha256(canonical(intent)).hexdigest()
             self._metadata['intent.enc']=self._write('intent.enc',canonical(intent))
             self._owner._boundary('source_cache_intent_durable');self._guard()
-            self._metadata['copying.enc']=self._write('copying.enc',canonical(dict(format=1,state='copying',intent_sha256=self._intent_sha256)))
+            self._metadata['copying.enc']=self._write('copying.enc',canonical(dict(format=2,state='copying',intent_sha256=self._intent_sha256)))
             self._guard()
         except BaseException:
             self.close();raise
@@ -166,14 +170,14 @@ class _NativeSourceCacheWriter:
         if set(os.listdir(self._root))!=expected_names:raise TransferError('media_source_cache_unknown_entry')
         manifest=FileManifest(secrets.token_hex(16),self._job,self._authority.identity.receiver_id,self._authority.binding.peer_id,
             (ManifestFile(self._file,self._path,self._size,digest),),self._size)
-        proof=dict(format=1,state='sealed',intent_sha256=self._intent_sha256,manifest=manifest.wire(),
+        proof=dict(format=2,state='sealed',intent_sha256=self._intent_sha256,book_version=self._book_version,manifest=manifest.wire(),
             chunks_sha256=members.hexdigest(),chunk_count=self._count,metadata=self._metadata,
             original_references={self._file:self._reference})
         witness=self._write('manifest.enc',canonical(proof));self._guard()
         if set(os.listdir(self._root))!=expected_names|{'manifest.enc'}:raise TransferError('media_source_cache_unknown_entry')
         self._owner._boundary('source_cache_sealed_durable');self._guard()
         return FrozenNativeMediaSource(self._directory/self._name,manifest,self._root_key,witness['sha256'],
-            ((self._file,tuple(sorted(self._reference.items()))),))
+            ((self._file,tuple(sorted(self._reference.items()))),),self._book_version)
 
     def close(self):
         for name in ('_root','_parent'):

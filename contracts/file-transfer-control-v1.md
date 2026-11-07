@@ -210,8 +210,21 @@ the snapshot without hardlinks or transcoding. Private source stages are
 recursively excluded. Existing stages always hold, including completed ones:
 there is no overwrite, restart adoption, automatic cleanup or retirement API.
 Nine targeted cache/ownership cases pass. The frozen metadata grants no future
-cache READ, sender, Saved or deletion authority; the native job/read lifecycle
-and original-book binding must be joined before any outbound offer.
+cache READ, sender, Saved or deletion authority.
+
+Private source-cache format 2 additionally binds the original actual saved-book
+witness. Local cache READ now requires the actual in-process completed source
+preparation, its original live action/consent/policy/intent and a new exclusive
+OS lease for that exact book. A copied frozen object, another source owner or a
+sealed filename cannot recreate permission. Read-only descriptor, inode-bound
+AEAD, manifest/member/layout checks apply before and throughout bounded reads;
+the owner thread revalidates all members before successful lease completion.
+Book/rights withdrawal or read failure retires that preparation without deleting
+its bytes. Cancellation retains descriptors and OS admission until actual reads
+end. Seven reader and five affected cache cases pass. This local READ lease is
+not a network send grant, restart adoption or source-job retirement. A durable
+native source-job and live transfer-control lifecycle remain required before
+any outbound offer or payload.
 
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full

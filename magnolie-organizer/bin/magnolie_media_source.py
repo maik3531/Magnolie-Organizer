@@ -39,6 +39,14 @@ class NativeMediaSourceObservation:
     def is_saved_receipt(self):return False
 
 
+@dataclass(frozen=True)
+class _PreparedSource:
+    cache: object
+    permission: object
+    book_version: str
+    failed: object
+
+
 class NativeMappedMediaSource:
     def __init__(self,preferences,mappings,transport,*,boundary=lambda _:None):
         if (type(preferences) is not ProtectedPhotoPreferences or type(mappings) is not ProtectedPhotoMappings
@@ -47,6 +55,7 @@ class NativeMappedMediaSource:
             raise TransferError('media_source_native_owner_required')
         self._preferences=preferences;self._mappings=mappings;self._transport=transport
         self._authority=preferences._authority;self._boundary=boundary;self._closed=threading.Event();self._gate=threading.Lock()
+        self._prepared={};self._cache_scope=threading.local()
 
     def close(self):
         # A UI cancellation does not close descriptors or release the actual IO
@@ -105,6 +114,34 @@ class NativeMappedMediaSource:
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
+    @contextmanager
+    def prepared_cache(self,job_id):
+        if type(job_id) is not str or job_id not in self._prepared:
+            raise TransferError('media_source_prepared_owner_required')
+        if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
+        prepared=self._prepared[job_id]
+        try:
+            if prepared.failed.is_set():raise TransferError('media_source_prepared_retired')
+            prepared.permission()
+            with NativeMediaRetention(self._authority.binding.native_directory) as retention:
+                with retention.activity(prepared.permission,exclusive=True) as activity:
+                    if activity is None:raise TransferError('media_source_media_io_busy')
+                    with retention._active_copy_permit(activity) as book:
+                        if book is None or book.book_version!=prepared.book_version:
+                            raise TransferError('media_source_original_book_required')
+                        def current():
+                            if prepared.failed.is_set():raise TransferError('media_source_prepared_retired')
+                            book.require_current();return True
+                        self._cache_scope.permit=(job_id,prepared,current,threading.get_ident())
+                        try:
+                            from magnolie_media_source_reader import _NativeSourceCacheReader
+                            with _NativeSourceCacheReader(self,job_id) as reader:yield reader
+                            current()
+                        finally:self._cache_scope.permit=None
+        except BaseException:
+            prepared.failed.set();raise
+        finally:self._gate.release()
+
     def _read(self,action,expected,association,record_sha256,*,kind,freeze):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
@@ -135,7 +172,7 @@ class NativeMappedMediaSource:
                             with self._file(mapping,current) as (fd,size,signature,unchanged):
                                 if freeze:
                                     from magnolie_media_source_cache import _NativeSourceCacheWriter
-                                    target=_NativeSourceCacheWriter(self,mapping,size,signature,token,expected,kind,unchanged)
+                                    target=_NativeSourceCacheWriter(self,mapping,size,signature,token,expected,kind,book.book_version,unchanged)
                                 else:target=nullcontext(None)
                                 with target as cache:
                                     digest=sha256();offset=0;index=0
@@ -156,5 +193,9 @@ class NativeMappedMediaSource:
                                         size,digest.hexdigest(),mapping.file_key,signature,tuple(sorted(mapping.phone_original_reference().items())))
                             current()
                         book.require_current()
-            permission();return result
+            permission()
+            if freeze:
+                if self._prepared:raise TransferError('media_source_prepared_capacity')
+                self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event())
+            return result
         finally:self._gate.release()
