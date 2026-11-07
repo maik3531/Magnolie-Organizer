@@ -115,6 +115,16 @@ class NativeMappedMediaSource:
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
+    def inspect_restored(self,action,expected,restorations,operation,record_sha256,*,kind='images'):
+        from magnolie_media_backups import NativeMediaBackupRestoreOwner
+        from magnolie_telefon import canonical
+        scope=sha256(canonical(dict(subject=self._preferences._subject,media_type=kind))).hexdigest()
+        if (type(restorations) is not NativeMediaBackupRestoreOwner
+                or restorations._journal._subject!=dict(local_backup_scope=scope)
+                or restorations._journal.local_protection.native_directory_identity!=self._authority.protection.native_directory_identity):
+            raise TransferError('media_source_restore_original_peer_scope_required')
+        return self._read(action,expected,None,record_sha256,kind=kind,freeze=False,restoration=(restorations,operation))
+
     @contextmanager
     def prepared_cache(self,job_id):
         if type(job_id) is not str or job_id not in self._prepared:
@@ -143,7 +153,7 @@ class NativeMappedMediaSource:
             prepared.failed.set();raise
         finally:self._gate.release()
 
-    def _read(self,action,expected,association,record_sha256,*,kind,freeze):
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
         action.consume(self._preferences)
@@ -167,7 +177,9 @@ class NativeMappedMediaSource:
                     if activity is None:raise TransferError('media_source_media_io_busy')
                     with retention._active_copy_permit(activity) as book:
                         if book is None:raise TransferError('media_source_saved_book_required')
-                        with self._mappings.saved_record_lease(association,record_sha256) as (mapping,mapping_current):
+                        records=(self._mappings.saved_record_lease(association,record_sha256) if restoration is None else
+                            restoration[0].restored_source_lease(restoration[1],record_sha256))
+                        with records as (mapping,mapping_current):
                             if mapping.association.media_type!=kind:raise TransferError('media_source_media_kind_changed')
                             def current():book.require_current();mapping_current();return True
                             with self._file(mapping,current) as (fd,size,signature,unchanged):

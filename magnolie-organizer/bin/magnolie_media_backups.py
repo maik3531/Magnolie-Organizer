@@ -540,6 +540,25 @@ class NativeMediaBackupRestoration:
     def grants_write_authority(self):return False
 
 
+@dataclass(frozen=True)
+class NativeRestoredMediaCandidate:
+    """Historical new-file identity; never a reusable source READ grant."""
+    destination: NativeAcceptedDestination
+    relative_path: str
+    file_key: tuple
+    parent_keys: tuple
+    protected_record_sha256: str
+    original_mapping: NativeSavedPhotoMapping
+
+    @property
+    def association(self):return self.original_mapping.association
+    def phone_original_reference(self):return self.original_mapping.phone_original_reference()
+    @property
+    def grants_read_authority(self):return False
+    @property
+    def is_saved_receipt(self):return False
+
+
 class _ProtectedBackupRestorations(_ProtectedBackupLocations):
     """Independent append-only local restoration evidence, not phone receipts."""
     MAX_RECORD_BYTES=1024*1024
@@ -673,6 +692,40 @@ class NativeMediaBackupRestoreOwner:
         if result is None or result.state!='restored':
             raise TransferError('media_backup_restore_completed_history_required')
         return result.original_mapping.phone_original_reference()
+
+    @staticmethod
+    def _candidate(journal,event):
+        if event is None or event['state']!='restored':raise TransferError('media_backup_restore_completed_history_required')
+        destination=NativeAcceptedDestination.parse(event['destination'])
+        return NativeRestoredMediaCandidate(destination,event['name'],tuple(event['file_key']),
+            (destination.ancestor_keys[0],),sha256(canonical(event)).hexdigest(),journal.mapping(event))
+
+    def source_candidate(self,operation):
+        if type(operation) is not str or len(operation)!=32 or not _hex(operation*2):
+            raise TransferError('media_backup_restore_original_operation_required')
+        journal=self._journal
+        with journal._operation():
+            if not journal._open():raise TransferError('media_backup_restore_completed_history_required')
+            with journal._locked():
+                journal._schema();_,_,heads=journal._snapshot()
+                return self._candidate(journal,heads.get(operation))
+
+    @contextmanager
+    def restored_source_lease(self,operation,expected_record_sha256):
+        if (type(operation) is not str or len(operation)!=32 or not _hex(operation*2) or not _hex(expected_record_sha256)):
+            raise TransferError('media_backup_restore_original_operation_required')
+        journal=self._journal
+        with journal._operation():
+            if not journal._open():raise TransferError('media_backup_restore_completed_history_required')
+            with journal._locked():
+                journal._schema();_,_,heads=journal._snapshot();event=heads.get(operation)
+                candidate=self._candidate(journal,event)
+                if candidate.protected_record_sha256!=expected_record_sha256:raise TransferError('media_backup_restore_source_selection_changed')
+                def current():
+                    journal._fresh();_,_,actual=journal._snapshot()
+                    if actual.get(operation)!=event:raise TransferError('media_backup_restore_source_selection_changed')
+                    return True
+                current();yield candidate,current;current()
 
     def restore(self,action,locations,default,source_id,selected,destination):
         journal=self._journal

@@ -297,6 +297,18 @@ changed history. This is API/fixture evidence, not physical desktop-dialog
 acceptance. Native source admission for the newly restored inode and the
 remaining global catalog/retirement, platform and production joins are pending.
 
+Fresh inspection of a completed restored inode is now available through the
+actual native restore owner (#403), not by changing an old Saved mapping. Its
+record digest selects the exact completed protected event and its new file and
+parent identity. The restore journal must have the exact stable native
+PC/phone/media scope derived from the current authenticated preferences; merely
+sharing a local key/root is insufficient. Original positive source consent,
+actual shared two-way agreement, explicit action and live saved-book lease
+remain mandatory before/during descriptor reads. Candidate observations grant
+no READ or Saved rights. Ten restored-source and five affected original-source/
+cache/reader/sender cases pass. This admits inspection only, not restored-source
+cache freezing, new outbound backup provenance or a production send path.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
