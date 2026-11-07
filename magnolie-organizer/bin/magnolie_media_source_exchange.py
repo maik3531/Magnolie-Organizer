@@ -38,14 +38,18 @@ class _NativeSourceExchange:
         if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:
             raise TransferError('media_source_exchange_invalid_record')
         plain=self._sender._authority.protection.unseal(cipher,self._key);body=strict_json(plain)
+        self._validate(body,key)
+        if canonical(body)!=plain:raise TransferError('media_source_exchange_invalid_record')
+        return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
+
+    def _validate(self,body,key):
         if (type(body) is not dict or set(body)!={'format','database_key','scope','job_id','nonce','ready_version',
                 'phase','offer','permission_epoch','acceptance','sent_bits','pending_chunk','peer_saved'}
                 or type(body['format']) is not int or body['format']!=1 or body['database_key']!=list(key)
                 or body['scope']!=self._jobs._scope or body['job_id']!=self._sender._job
                 or body['nonce']!=self._sender._cache._job_nonce or body['ready_version']!=self._sender._cache._job_version
-                or body['phase'] not in self.PHASES or canonical(body)!=plain):
+                or body['phase'] not in self.PHASES):
             raise TransferError('media_source_exchange_invalid_record')
-        return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
 
     def _read(self,db,key):
         row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()

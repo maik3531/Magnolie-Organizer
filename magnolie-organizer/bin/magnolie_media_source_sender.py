@@ -12,7 +12,7 @@ import base64
 import threading
 import uuid
 
-from magnolie_file_control import KIND as CONTROL,MAX_TTL_MS,FileControlPacket,FileGrantState,NativeLocalFileGrant,NativeFileControlSession
+from magnolie_file_control import KIND as CONTROL,MAX_TTL_MS,FileControlPacket,FileGrantState,NativeLocalFileGrant,NativeFileControlSession,_hex
 from magnolie_file_offer import create_offer
 from magnolie_file_accept_message import KIND as ACCEPT,parse_acceptance
 from magnolie_file_chunk_message import REQUEST as CHUNK_REQUEST,RESULT as CHUNK,parse_request
@@ -26,7 +26,7 @@ from magnolie_telefon import SecureChannel,canonical,now_ms
 
 
 class _NativeMediaSourceSender:
-    def __init__(self,source,job_id,*,boundary=lambda _:None):
+    def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None):
         if (type(source) is not NativeMappedMediaSource or type(job_id) is not str
                 or job_id not in source._prepared or not callable(boundary)):
             raise TransferError('media_source_sender_actual_preparation_required')
@@ -35,9 +35,21 @@ class _NativeMediaSourceSender:
         if type(self._channel) is not SecureChannel:raise TransferError('media_source_sender_secure_channel_required')
         self._closed=threading.Event();self._gate=threading.Lock();self._active=threading.local();self._boundary=boundary
         self._jobs=_NativeSourceJobs(self._authority);self._record=None;self._binding=None;self._requests=set()
-        self._journal=_NativeSourceExchange(self)
-        if self._journal.lookup() is not None:raise TransferError('media_source_sender_existing_attempt_held')
+        self._retry_spec=_retry
+        original=_NativeSourceExchange(self)
+        if _retry is None:
+            self._journal=original
+            if original.lookup() is not None:raise TransferError('media_source_sender_existing_attempt_held')
+        else:
+            if (type(_retry) is not tuple or len(_retry)!=2 or not _hex(_retry[0]) or _retry[1] is not None and not _hex(_retry[1])):
+                raise TransferError('media_source_retry_exact_history_required')
+            from magnolie_media_source_retry import _NativeSourceRetryExchange
+            self._journal=_NativeSourceRetryExchange(self,original,*_retry)
         self._controls=NativeFileControlSession(self._authority.identity,self._peer,self._local)
+
+    @classmethod
+    def retry(cls,source,job_id,original_exchange_version,previous_retry_version=None,*,boundary=lambda _:None):
+        return cls(source,job_id,boundary=boundary,_retry=(original_exchange_version,previous_retry_version))
 
     def close(self):
         # Cancellation never releases the source/cache OS lease or socket from
@@ -49,6 +61,12 @@ class _NativeMediaSourceSender:
                 or self._prepared.failed.is_set()):raise TransferError('media_source_sender_retired')
         self._prepared.permission()
         self._jobs.require_version(self._job,self._cache._job_version)
+        if self._retry_spec is not None:self._journal.require_owner()
+        else:
+            with self._jobs._database() as (db,key):
+                db.execute('BEGIN');self._jobs._catalog.verify(db,key)
+                if db.execute('SELECT 1 FROM meta WHERE key=?',(self._jobs._catalog._retry+self._job,)).fetchone():
+                    raise TransferError('media_source_sender_newer_attempt_held')
 
     def _peer(self):
         self._permission();peer=self._authority.current_peer()
@@ -132,6 +150,7 @@ class _NativeMediaSourceSender:
             raise TransferError('media_source_sender_acceptance_changed')
         binding=self._controls.binding(accepted.destination_token,sender_is_local=True)
         if binding is None or binding.permission_epoch!=accepted.permission_epoch:raise TransferError('media_source_sender_binding_changed')
+        if self._retry_spec is not None:self._journal.require_new_acceptance(accepted)
         self._binding=binding;body.update(phase='accepted',acceptance=message)
         self._record=self._journal.write(self._record,body)
 

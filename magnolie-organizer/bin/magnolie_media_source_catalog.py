@@ -32,30 +32,31 @@ class NativeSourceCatalogSnapshot:
 
 
 class _NativeSourceCatalog:
-    MAX_HEAD=98304
+    MAX_HEAD=131072
     def __init__(self,jobs):
         self._jobs=jobs;self._authority=jobs._authority
         self._key='native_media_source_catalog_v1/'+jobs._scope
         self._exchange='native_media_source_exchange_v1/'+jobs._scope+'/'
         self._retirement='native_media_source_retirement_v1/'+jobs._scope+'/'
+        self._retry='native_media_source_retry_v1/'+jobs._scope+'/'
         self._anchor_name='.magnolie-source-catalog-'+jobs._scope+'.seal'
         self._domain='native-media-source-catalog-v1/'+jobs._scope+'/'
         self._observed=None;self._anchor_identity=None
 
     def _members(self,db):
-        rows=db.execute('SELECT key,value FROM meta WHERE key GLOB ? OR key GLOB ? OR key GLOB ? ORDER BY key LIMIT ?',
-            (self._jobs._prefix+'*',self._exchange+'*',self._retirement+'*',3*self._jobs.MAX_RECORDS+1)).fetchall()
-        if len(rows)>3*self._jobs.MAX_RECORDS:raise TransferError('media_source_catalog_capacity')
-        members=[];job_ids=set();exchange_ids=set();retirement_ids=set()
+        rows=db.execute('SELECT key,value FROM meta WHERE key GLOB ? OR key GLOB ? OR key GLOB ? OR key GLOB ? ORDER BY key LIMIT ?',
+            (self._jobs._prefix+'*',self._exchange+'*',self._retirement+'*',self._retry+'*',4*self._jobs.MAX_RECORDS+1)).fetchall()
+        if len(rows)>4*self._jobs.MAX_RECORDS:raise TransferError('media_source_catalog_capacity')
+        members=[];job_ids=set();exchange_ids=set();retirement_ids=set();retry_ids=set()
         for name,blob in rows:
-            prefix=next(p for p in (self._jobs._prefix,self._exchange,self._retirement) if name.startswith(p))
+            prefix=next(p for p in (self._jobs._prefix,self._exchange,self._retirement,self._retry) if name.startswith(p))
             job=name[len(prefix):]
             if type(job) is not str or len(job)!=32 or not _hex(job*2):raise TransferError('media_source_catalog_invalid_member')
-            bound=self._jobs.MAX_BYTES if prefix==self._jobs._prefix else 16384
+            bound=self._jobs.MAX_BYTES if prefix==self._jobs._prefix else 262144 if prefix==self._retry else 16384
             if type(blob) is not bytes or not 29<=len(blob)<=bound+28:raise TransferError('media_source_catalog_invalid_member')
-            (job_ids if prefix==self._jobs._prefix else exchange_ids if prefix==self._exchange else retirement_ids).add(job)
+            (job_ids if prefix==self._jobs._prefix else exchange_ids if prefix==self._exchange else retirement_ids if prefix==self._retirement else retry_ids).add(job)
             members.append([name,sha256(blob).hexdigest()])
-        if len(job_ids)>self._jobs.MAX_RECORDS or not exchange_ids<=job_ids or not retirement_ids<=exchange_ids:
+        if len(job_ids)>self._jobs.MAX_RECORDS or not exchange_ids<=job_ids or not retirement_ids<=exchange_ids or not retry_ids<=exchange_ids:
             raise TransferError('media_source_catalog_invalid_member')
         return members
 

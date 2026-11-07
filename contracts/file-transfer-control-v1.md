@@ -433,6 +433,35 @@ Twenty new and seventeen affected native cases pass, including actual full
 original-file and multichunk re-preparation, history-only denial, changed
 evidence, retirement exclusion and cancellation during real original-file IO.
 
+Private PC source retries now use a separate bounded protected journal (#411),
+with up to eight retry attempts per immutable original exchange. The original
+exchange ciphertext is unchanged; appending a new attempt freezes all earlier
+retry snapshots and pins the selected previous head. The retry head is included
+in complete source catalog membership. New attempts require actual live native
+preparation and fresh control agreement, start with zero sent bits/no acceptance
+or Saved, and send a new bounded offer before accepting correlated input.
+
+A fresh offer ID alone is insufficient because chunk requests bind acceptance
+hash and destination token, not offer ID. Both identities must be distinct from
+the original and every earlier retry acceptance. Reusing either is rejected
+before new acceptance is committed. No old message lifetime is renewed.
+Head changes fence older live senders, but actual outstanding socket/cache/book
+IO must drain before a newer head can be committed. Missing/resealed/orphaned
+members, stale selections, completed attempts and exhausted capacity hold
+without repair, history eviction or byte deletion.
+
+This is a private SOURCE-side lifecycle, not an end-to-end phone recovery
+protocol. The phone's duplicate-original insertion fence remains unchanged;
+read-only published-row observations are not automatically acceptance or Saved.
+Retry completion cannot use the original live-retirement approval: exact
+retry-bound archival/recovery remains held until separately implemented.
+Production SEND/dispatcher/UI, platform parity and physical acceptance remain
+unenabled. Private sender tests use synthetic peer envelopes over actual secure
+channels; they do not establish an actual phone recovery-response producer.
+Twenty-two new and twenty-four affected native cases pass, including the
+confirmed old-request replay regression, all-eight-attempt capacity retention,
+actual blocked socket IO and unchanged original archival/recovery behavior.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

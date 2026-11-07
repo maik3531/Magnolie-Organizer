@@ -168,6 +168,7 @@ class _NativeSourceRetirement:
         if (type(sender) is not _NativeMediaSourceSender or type(backups) is not NativeMediaBackups
                 or type(selected) is not NativeMediaBackupVersion or not callable(boundary)):
             raise TransferError('media_source_retirement_native_completed_owner_required')
+        if sender._retry_spec is not None:raise TransferError('media_source_retirement_retry_completion_held')
         self._sender=sender;self._job=sender._job;self._backups=backups;self._selected=selected;self._boundary=boundary
         self._jobs=sender._jobs;self._journal=_NativeSourceRetirementJournal(self._jobs)
         self._reader=None;self._permit=None;self._record=None;self._closed=threading.Event();self._thread=None
