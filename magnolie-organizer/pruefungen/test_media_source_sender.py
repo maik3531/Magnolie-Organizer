@@ -167,8 +167,9 @@ def test_missing_exchange_cannot_be_recreated_by_a_live_chunk_request(source):
         accepted=acceptance(sender,cached,offer);deliver(h,sender,accepted)
         with sqlite3.connect(h.authority.binding.store_owner.database_path) as db:
             db.execute('DELETE FROM meta WHERE key=?',(sender._journal._key,))
-        with pytest.raises(TransferError,match='exchange_changed'):deliver(h,sender,request(accepted,cached))
-        assert sender.observation() is None and cached.directory.exists()
+        with pytest.raises(TransferError,match='catalog_membership_changed'):deliver(h,sender,request(accepted,cached))
+        with pytest.raises(TransferError,match='catalog_membership_changed'):sender.observation()
+        assert cached.directory.exists()
     finally:sender.close()
 
 

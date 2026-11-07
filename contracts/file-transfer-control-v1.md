@@ -324,6 +324,21 @@ stages still cannot be overwritten, adopted, deleted or reused. Durable global
 source membership/retirement/restart and remaining production/platform/physical
 acceptance are still required; no general sender readiness is enabled.
 
+Native source membership now has a separate original inode-bound catalog
+anchor per static PC/phone scope (#405). A complete bounded authenticated head
+enumerates all job and source-exchange ciphertexts; reads use one SQLite
+snapshot, and member/head mutations share the existing IMMEDIATE transaction.
+Only an actual live cache writer can initialize a completely unused scope.
+Passive observers never create anchors, migrate legacy single journals, rebuild
+missing heads or repair membership. Missing, extra, removed/resealed members,
+orphan exchanges, replaced anchors and interrupted initialization all hold
+before further cache READ/output. The anchor is recursively excluded as a
+private path. Fourteen new and seventeen affected native cases pass. Catalog
+observations grant no READ, Saved or slot-reuse rights. This is not restart
+adoption, a persistent whole-store rollback recovery scheme or cache retirement;
+the original occupied slot still holds until a separate native lifecycle is
+completed and verified.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

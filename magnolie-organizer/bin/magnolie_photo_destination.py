@@ -38,7 +38,7 @@ def media_path_is_excluded(path):
     opening a leaf. Excluded stages never attest deletion or a content baseline.
     """
     if media_directory_is_backup(path):return True
-    return any(re.fullmatch(r'\.magnolie-(?:restore-[0-9a-f]{32}\.part|source-[0-9a-f]{32}\.part|publication-[0-9a-f]{32})',part)
+    return any(re.fullmatch(r'\.magnolie-(?:restore-[0-9a-f]{32}\.part|source-(?:[0-9a-f]{32}\.part|catalog-[0-9a-f]{64}\.seal)|publication-[0-9a-f]{32})',part)
         is not None for part in str(path).split('/'))
 
 def native_pictures_directory():

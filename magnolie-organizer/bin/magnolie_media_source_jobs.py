@@ -45,6 +45,8 @@ class _NativeSourceJobs:
             peer_id=peer.peer_id,peer_key=peer.identity_sha256))).hexdigest()
         self._prefix='native_media_source_jobs_v1/'+self._scope+'/'
         self._database_key=self._fresh()
+        from magnolie_media_source_catalog import _NativeSourceCatalog
+        self._catalog=_NativeSourceCatalog(self)
 
     def _key(self,job):
         if type(job) is not str or len(job)!=32 or not _hex(job*2):raise TransferError('media_source_jobs_invalid_job')
@@ -97,7 +99,9 @@ class _NativeSourceJobs:
         return self._decode(job,row[0],db_key) if row else None
 
     def lookup(self,job):
-        with self._database() as (db,key):return self._read(db,key,job)
+        with self._database() as (db,key):
+            db.execute('BEGIN');catalog=self._catalog.verify(db,key);result=self._read(db,key,job)
+        self._catalog.observe(catalog);return result
 
     def _writer(self,writer):
         from magnolie_media_source_cache import _NativeSourceCacheWriter
@@ -111,6 +115,8 @@ class _NativeSourceJobs:
                 or intent['scope']!=self._scope):raise TransferError('media_source_jobs_original_plan_required')
         with self._database() as (db,key):
             db.execute('BEGIN IMMEDIATE')
+            catalog=self._catalog.verify(db,key)
+            if catalog is None:catalog=self._catalog.initialize(writer,db,key)
             if self._read(db,key,job) is not None:raise TransferError('media_source_jobs_original_plan_required')
             count=db.execute('SELECT COUNT(*) FROM meta WHERE key LIKE ?',(self._prefix+'%',)).fetchone()[0]
             if count>=self.MAX_RECORDS:raise TransferError('media_source_jobs_capacity')
@@ -122,6 +128,7 @@ class _NativeSourceJobs:
             if len(plain)>self.MAX_BYTES:raise TransferError('media_source_jobs_record_size')
             cipher=self._authority.protection.seal(plain,self._key(job));self._decode(job,cipher,key);self._writer(writer)
             db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._key(job),cipher));self._writer(writer)
+            self._catalog.advance(db,key,catalog);self._writer(writer)
         self._writer(writer)
         result=self.lookup(job)
         if result is None or result.version!=sha256(cipher).hexdigest():raise TransferError('media_source_jobs_plan_readback_failed')
@@ -135,10 +142,11 @@ class _NativeSourceJobs:
         plain=canonical(body)
         if len(plain)>self.MAX_BYTES:raise TransferError('media_source_jobs_record_size')
         with self._database() as (db,key):
-            db.execute('BEGIN IMMEDIATE');before=self._read(db,key,job)
+            db.execute('BEGIN IMMEDIATE');catalog=self._catalog.verify(db,key);before=self._read(db,key,job)
             if before is None or before.version!=planned.version or before.state!='cache_planned':raise TransferError('media_source_jobs_plan_changed')
             cipher=self._authority.protection.seal(plain,self._key(job));self._decode(job,cipher,key);self._writer(writer)
             db.execute('UPDATE meta SET value=? WHERE key=?',(cipher,self._key(job)));self._writer(writer)
+            self._catalog.advance(db,key,catalog);self._writer(writer)
         self._writer(writer);result=self.lookup(job)
         if result is None or result.body!=body or result.version!=sha256(cipher).hexdigest():raise TransferError('media_source_jobs_ready_readback_failed')
         return result

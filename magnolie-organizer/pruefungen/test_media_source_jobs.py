@@ -83,7 +83,8 @@ def test_ready_record_missing_tampered_or_resealed_never_recreates_read_authorit
     with pytest.raises(TransferError,match='prepared_retired'):
         with h.source.prepared_cache(job):pytest.fail('Damaged job was revived')
     assert {p.name:p.read_bytes() for p in cached.directory.iterdir()}==before
-    if change=='missing':assert jobs.lookup(job) is None
+    if change=='missing':
+        with pytest.raises(TransferError,match='catalog_membership_changed'):jobs.lookup(job)
     assert h.target.read_bytes()==b'hello'
 
 
@@ -94,7 +95,7 @@ def test_changed_plan_cannot_advance_to_ready_or_copy_payload(source):
             intent=strict_json(decode(h,stage(h)/'intent.enc'));alter(h,jobs,intent['job_id'],'missing')
     owner=NativeMappedMediaSource(h.preferences,h.mappings,h.controller,boundary=remove)
     try:
-        with pytest.raises(TransferError,match='source_jobs_plan_changed'):freeze(h,owner)
+        with pytest.raises(TransferError,match='catalog_membership_changed'):freeze(h,owner)
     finally:owner.close()
     assert not list(stage(h).glob('chunk-*')) and not (stage(h)/'manifest.enc').exists()
     assert h.target.read_bytes()==b'hello'
@@ -109,10 +110,9 @@ def test_ready_compare_and_swap_requires_the_exact_original_durable_plan(source,
             selected.append(job);alter(h,jobs,job,change)
     owner=NativeMappedMediaSource(h.preferences,h.mappings,h.controller,boundary=change_plan)
     try:
-        with pytest.raises(TransferError,match='source_jobs_plan_changed'):freeze(h,owner)
+        with pytest.raises(TransferError,match='catalog_membership_changed'):freeze(h,owner)
         with pytest.raises(TransferError,match='prepared_owner_required'):
             with owner.prepared_cache(selected[0]):pytest.fail('Failed CAS created a live preparation')
     finally:owner.close()
     assert (stage(h)/'manifest.enc').exists() and h.target.read_bytes()==b'hello'
-    record=jobs.lookup(selected[0])
-    assert record is None if change=='missing' else record.state=='cache_planned'
+    with pytest.raises(TransferError,match='catalog_membership_changed'):jobs.lookup(selected[0])

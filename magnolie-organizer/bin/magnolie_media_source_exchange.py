@@ -52,7 +52,9 @@ class _NativeSourceExchange:
         return self._decode(row[0],key) if row else None
 
     def lookup(self):
-        with self._jobs._database() as (db,key):return self._read(db,key)
+        with self._jobs._database() as (db,key):
+            db.execute('BEGIN');catalog=self._jobs._catalog.verify(db,key);result=self._read(db,key)
+        self._jobs._catalog.observe(catalog);return result
 
     def require(self,expected):
         actual=self.lookup()
@@ -62,7 +64,7 @@ class _NativeSourceExchange:
     def write(self,expected,body):
         self._sender._lease_current()
         with self._jobs._database() as (db,key):
-            db.execute('BEGIN IMMEDIATE');before=self._read(db,key)
+            db.execute('BEGIN IMMEDIATE');catalog=self._jobs._catalog.verify(db,key);before=self._read(db,key)
             if (before is not None if expected is None else before is None or before.version!=expected.version):
                 raise TransferError('media_source_exchange_original_attempt_required')
             body=copy.deepcopy(body)
@@ -82,6 +84,7 @@ class _NativeSourceExchange:
             self._sender._lease_current()
             if expected is None:db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(self._key,cipher))
             else:db.execute('UPDATE meta SET value=? WHERE key=?',(cipher,self._key))
+            self._jobs._catalog.advance(db,key,catalog)
             self._sender._lease_current()
         self._sender._lease_current();result=self.lookup()
         if result is None or result.version!=sha256(cipher).hexdigest():raise TransferError('media_source_exchange_readback_failed')
