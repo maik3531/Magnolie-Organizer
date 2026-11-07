@@ -226,6 +226,20 @@ not a network send grant, restart adoption or source-job retirement. A durable
 native source-job and live transfer-control lifecycle remain required before
 any outbound offer or payload.
 
+The Linux cache writer now persists a separate protected native source-job
+record in the existing phone database: a random nonce binds durable intent to
+`cache_planned` before payload, and an exact-version transactional compare and
+swap advances to `cache_ready` only after sealed-cache readback. The ready
+record binds database/root/parent ownership, original book, policy/pairing,
+manifest, proof and original references. Creation/advance requires the actual
+live writer; lookup is historical and grants neither READ nor Saved status.
+Local prepared-cache reads additionally require the exact protected ready
+cipher version and native nonce before and throughout access. Missing, changed
+or corrupt records hold without reconstruction or repair. Eight new journal
+cases, seven affected reader cases and five affected cache cases pass. There
+is still no restart adoption, offer/accept/chunk/Saved source-control lifecycle,
+retirement or sender readiness. Existing complete/partial stages remain held.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

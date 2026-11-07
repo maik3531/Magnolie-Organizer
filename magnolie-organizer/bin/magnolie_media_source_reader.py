@@ -22,6 +22,8 @@ class _NativeSourceCacheReader:
         if self._permit is None or self._permit[0]!=job_id or owner._prepared.get(job_id) is not self._permit[1]:
             raise TransferError('media_source_cache_live_lease_required')
         self._prepared=self._permit[1];self._cache=self._prepared.cache;self._authority=owner._authority
+        from magnolie_media_source_jobs import _NativeSourceJobs
+        self._jobs=_NativeSourceJobs(self._authority)
         self._parent=self._root=None;self._closed=threading.Event();self._chunks=[]
         try:
             self._permission();peer=self._authority.current_peer()
@@ -36,9 +38,10 @@ class _NativeSourceCacheReader:
             self._guard()
             proof,proof_witness=self._metadata('manifest.enc')
             if proof_witness['sha256']!=self._cache.proof_sha256:raise TransferError('media_source_cache_original_proof_required')
-            if (set(proof)!={'format','state','intent_sha256','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'}
+            if (set(proof)!={'format','state','intent_sha256','job_nonce','book_version','manifest','chunks_sha256','chunk_count','metadata','original_references'}
                     or type(proof['format']) is not int or proof['format']!=2 or proof['state']!='sealed'
                     or proof['book_version']!=self._prepared.book_version or proof['book_version']!=self._cache._book_version
+                    or proof['job_nonce']!=self._cache._job_nonce
                     or FileManifest.parse(proof['manifest'])!=self._cache.manifest
                     or proof['original_references']!=self._cache.original_references):
                 raise TransferError('media_source_cache_original_proof_required')
@@ -53,12 +56,16 @@ class _NativeSourceCacheReader:
             intent,_=self._metadata('intent.enc',metadata['intent.enc']);copying,_=self._metadata('copying.enc',metadata['copying.enc'])
             if (intent.get('format')!=2 or intent.get('state')!='planned' or intent.get('scope')!=self._scope
                     or intent.get('job_id')!=job_id or intent.get('file_id')!=self._manifest.files[0].id
+                    or intent.get('job_nonce')!=self._cache._job_nonce
                     or intent.get('size')!=self._manifest.total_bytes or intent.get('chunks')!=self._count
                     or intent.get('book_version')!=self._prepared.book_version
                     or intent.get('parent_key')!=list(self._parent_key) or intent.get('root_key')!=list(self._cache.root_key)
                     or sha256(canonical(intent)).hexdigest()!=proof['intent_sha256']
                     or copying!=dict(format=2,state='copying',intent_sha256=proof['intent_sha256'])):
                 raise TransferError('media_source_cache_original_intent_required')
+            record=self._jobs.require_version(job_id,self._cache._job_version).body
+            if (record['intent_sha256']!=proof['intent_sha256'] or record['parent_key']!=list(self._parent_key)):
+                raise TransferError('media_source_jobs_ready_record_required')
             self._proof_witness=proof_witness;self._metadata_witnesses=metadata;self._members_sha256=proof['chunks_sha256']
             self._names={'intent.enc','copying.enc','manifest.enc'}|{'chunk-%08x.enc'%index for index in range(self._count)}
             self._layout();members=sha256()
@@ -84,6 +91,12 @@ class _NativeSourceCacheReader:
     def _permission(self):
         if (self._closed.is_set() or getattr(self._owner._cache_scope,'permit',None) is not self._permit
                 or self._permit[3]!=threading.get_ident()):raise TransferError('media_source_cache_live_lease_required')
+        self._permit[2]()
+        record=self._jobs.require_version(self._cache.manifest.source_id,self._cache._job_version).body
+        if (record['nonce']!=self._cache._job_nonce or record['book_version']!=self._prepared.book_version
+                or record['root_key']!=list(self._cache.root_key) or record['manifest']!=self._cache.manifest.wire()
+                or record['proof_sha256']!=self._cache.proof_sha256 or record['original_references']!=self._cache.original_references):
+            raise TransferError('media_source_jobs_ready_record_required')
         self._permit[2]()
 
     def _guard(self):
