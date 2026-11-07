@@ -33,7 +33,9 @@ import javax.crypto.spec.SecretKeySpec
 @Config(sdk = [35], application = Application::class)
 class GalleryReceiveConsentTest {
     internal class Prompt(val dialog: AlertDialog, val result: AtomicReference<Result<NativeGalleryReceiveConsent>?>)
-    internal class Fixture(peerOwner: Any = Any()) : AutoCloseable {
+    internal class Fixture(peerOwner: Any = Any(),
+        val pc: NativeFileControlIdentity = NativeFileControlIdentity("receiver_fixture_01", "e".repeat(64)),
+        private val phone: NativeFileControlIdentity = NativeFileControlIdentity("phone_fixture_0001", "a".repeat(64))) : AutoCloseable {
         val root = Files.createTempDirectory(File("/tmp/opencode").toPath(), "gallery-receive338-").toFile()
         val app = RuntimeEnvironment.getApplication()
         private val bookRoot = Files.createTempDirectory(root.toPath(), "book-").toFile()
@@ -47,8 +49,6 @@ class GalleryReceiveConsentTest {
         val indexRoot = Files.createTempDirectory(root.toPath(), "policy-").toFile()
         var hook: (String) -> Unit = {}
         val index = PhotoSourceJobIndex(indexRoot, protection) { hook(it) }
-        val pc = NativeFileControlIdentity("receiver_fixture_01", "e".repeat(64))
-        private val phone = NativeFileControlIdentity("phone_fixture_0001", "a".repeat(64))
         var peer = NativeFileControlPeer(pc.deviceId, pc.identitySha256, peerOwner, true, true, true, true, true, "f".repeat(64))
         private var pcPeer = NativeFileControlPeer(phone.deviceId, phone.identitySha256, Any(), true, true, true, true, true, "f".repeat(64))
         private var pcLocal = NativeLocalFileGrant(DeviceFileGrantState(3, "d".repeat(64), true, true), Any(), true)

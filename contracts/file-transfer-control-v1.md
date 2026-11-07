@@ -562,6 +562,26 @@ Pending phone rows and completed heads without a planned archive intent remain
 held after lease/process loss. Production dispatch/SEND and packaging remain
 closed pending the remaining integration and platform acceptance.
 
+Paired Kotlin/Python readback integration is exercised by the opt-in test host
+and Robolectric native-provider test (#416). The test relays actual encrypted
+frames unchanged across a loopback socket between separate processes: real
+current control exchange, PC retry offer, Kotlin provider byte/MIME/row checks
+and actual producer output, Python distinct completion/local backup/archive.
+It does not synthesize the peer's readback proof. The counterpart case uses an
+actual Kotlin proof for a different offer and must not complete the PC retry.
+
+This is deliberately narrower than physical or full production end-to-end sync.
+Synthetic keys, preparatory original offer/mapping history, directly prepared
+phone publication and explicit fixture intent are test setup. Transport sequence
+counters continue exactly from that preparatory traffic. The phone uses the
+explicit native producer rather than a production UI/runtime dispatcher, and
+Robolectric provider admission is not device/MediaStore package acceptance.
+The opt-in host does not open a production listener or persist pairing keys.
+Both paired scenarios pass, along with two affected default-fixture consent and
+ordinary-read methods. Nested Python runs are part of those paired scenarios,
+not additional independently counted end-to-end tests. No product guard or
+existing deadline was changed to obtain this evidence.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
