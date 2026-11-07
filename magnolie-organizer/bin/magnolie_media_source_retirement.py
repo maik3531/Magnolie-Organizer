@@ -138,7 +138,7 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
     if record['phase']=='peer_readback':
         from magnolie_file_published_readback import parse_readback
         from magnolie_file_transfer import NativeTransferBinding
-        if (record['format']!=2 or record['acceptance'] is not None or type(record['sent_bits']) is not int or record['sent_bits']!=0
+        if (record['format'] not in (2,3) or record['acceptance'] is not None or type(record['sent_bits']) is not int or record['sent_bits']!=0
                 or record['pending_chunk'] is not None or record['peer_saved'] is not None or type(record.get('peer_readback')) is not dict):
             raise TransferError('media_source_retirement_completed_readback_required')
         peer=jobs._authority.current_peer();local=jobs._authority.identity

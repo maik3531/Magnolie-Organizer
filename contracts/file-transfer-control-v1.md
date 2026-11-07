@@ -559,7 +559,8 @@ format-1 and format-2 archive/recovery paths. These PC tests use synthetic peer
 envelopes over actual secure channels. They do NOT demonstrate paired native
 Kotlin-phone/Python-PC execution, physical acceptance or production readiness.
 Pending phone rows and completed heads without a planned archive intent remain
-held after lease/process loss. Production dispatch/SEND and packaging remain
+held after lease/process loss except for the explicit readback-only completed
+retry verification described below. Production dispatch/SEND and packaging remain
 closed pending the remaining integration and platform acceptance.
 
 Paired Kotlin/Python readback integration is exercised by the opt-in test host
@@ -581,6 +582,37 @@ Both paired scenarios pass, along with two affected default-fixture consent and
 ordinary-read methods. Nested Python runs are part of those paired scenarios,
 not additional independently counted end-to-end tests. No product guard or
 existing deadline was changed to obtain this evidence.
+
+An explicit private readback-only verification can now follow an exactly selected
+completed retry after lease loss when no archive intent exists (#417). A genuine
+fresh full original-file re-preparation must bind its exact returned cache object
+to the same source/job/native prepared owner. Copied cache metadata, a generic
+freeze, historical completion or a caller flag cannot supply this prerequisite.
+Current consent/shared intent/exact original book and live IO leases still apply.
+
+The new retry-only inner format 3 permanently pins purpose
+`published_verification`, zero sent bits, no acceptance/pending chunk/Saved, and
+only offer-planned/offer-sent/peer-readback states. A completed predecessor is
+required and preserved. The ordinary retry API still rejects completed heads;
+an unfinished verification cannot be converted to ordinary transfer. This mode
+rejects acceptance, chunk requests and Saved before those handlers can advance
+state or produce payload output. A rejected message permanently retires that
+prepared lease, as before; a later valid message does not revive it.
+
+Only fresh current controls, a new actually emitted offer and a newly correlated
+published readback can establish its new completion for independently reverified
+complete local backup and exact pinned archival/recovery. Historical completion
+only selects a candidate; it is not current archive approval or native Saved.
+Metadata-only recovery retains the purpose/head/attempt validation and never
+reconstructs raw readers or sends network output. Completed original exchanges
+without a retry, interrupted unfinished verifications, pending phone rows and
+production UI/dispatcher/platform/physical package acceptance remain held.
+Eighteen new and thirteen affected cases pass, covering genuine fresh native
+preparation, forbidden/replayed input and sticky retirement, changed purpose or
+predecessor evidence, current rights/book withdrawal, actual blocked output,
+metadata-only recovery and unchanged legacy replay/archive/capacity guards.
+The new mode's PC tests use synthetic peer envelopes; paired producer evidence
+under #416 is separate and does not claim paired execution of this new mode.
 
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/

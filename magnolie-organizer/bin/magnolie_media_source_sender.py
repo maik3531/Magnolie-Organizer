@@ -27,7 +27,7 @@ from magnolie_telefon import SecureChannel,canonical,now_ms
 
 
 class _NativeMediaSourceSender:
-    def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None):
+    def __init__(self,source,job_id,*,boundary=lambda _:None,_retry=None,_verification=False):
         if (type(source) is not NativeMappedMediaSource or type(job_id) is not str
                 or job_id not in source._prepared or not callable(boundary)):
             raise TransferError('media_source_sender_actual_preparation_required')
@@ -37,6 +37,14 @@ class _NativeMediaSourceSender:
         self._closed=threading.Event();self._gate=threading.Lock();self._active=threading.local();self._boundary=boundary
         self._jobs=_NativeSourceJobs(self._authority);self._record=None;self._binding=None;self._requests=set()
         self._retry_spec=_retry
+        self._verification=_verification
+        if _verification:
+            from magnolie_media_source_reprepare import _NativeSourceRepreparation
+            proof=self._prepared.repreparation
+            if (type(proof) is not _NativeSourceRepreparation or proof._source is not source or proof._job!=job_id
+                    or not proof._used or getattr(proof,'_completed_cache',None) is not self._cache
+                    or _retry is None or _retry[1] is None):
+                raise TransferError('media_source_verification_fresh_repreparation_required')
         original=_NativeSourceExchange(self)
         if _retry is None:
             self._journal=original
@@ -51,6 +59,10 @@ class _NativeMediaSourceSender:
     @classmethod
     def retry(cls,source,job_id,original_exchange_version,previous_retry_version=None,*,boundary=lambda _:None):
         return cls(source,job_id,boundary=boundary,_retry=(original_exchange_version,previous_retry_version))
+
+    @classmethod
+    def verify_published(cls,source,job_id,original_exchange_version,completed_retry_version,*,boundary=lambda _:None):
+        return cls(source,job_id,boundary=boundary,_retry=(original_exchange_version,completed_retry_version),_verification=True)
 
     def close(self):
         # Cancellation never releases the source/cache OS lease or socket from
@@ -202,13 +214,15 @@ class _NativeMediaSourceSender:
         file=self._cache.manifest.files[0];kind=self._cache.original_references[file.id]['media_type']
         parse_readback(message,body['offer'],binding,kind)
         self._binding=binding
-        body.update(format=2,phase='peer_readback',peer_readback=message)
+        body.update(format=3 if self._verification else 2,phase='peer_readback',peer_readback=message)
         self._record=self._journal.write(self._record,body)
 
     def observe(self,channel,message):
         with self._operation(incoming=True) as reader:
             if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
             kind=message.get('kind') if type(message) is dict else None
+            if self._verification and kind!=PUBLISHED_READBACK:
+                raise TransferError('media_source_verification_readback_only')
             if kind==ACCEPT:self._accept(message)
             elif kind==CHUNK_REQUEST:self._chunk(message,reader)
             elif kind==SAVED:self._saved(message)

@@ -90,7 +90,9 @@ class _NativeSourceRepreparation:
                     or intent.get('original_reference')!=mapping.phone_original_reference() or intent.get('source_path')!=mapping.relative_path):
                 raise TransferError('media_source_reprepare_original_mapping_required')
             current();self._slot(parent,record,current)
-            return FrozenNativeMediaSource(directory/stage,manifest,tuple(body['root_key']),body['proof_sha256'],
+            result=FrozenNativeMediaSource(directory/stage,manifest,tuple(body['root_key']),body['proof_sha256'],
                 tuple((key,tuple(sorted(value.items()))) for key,value in sorted(body['original_references'].items())),
                 book_version,body['nonce'],record.version)
+            self._completed_cache=result
+            return result
         finally:os.close(parent)

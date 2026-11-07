@@ -47,6 +47,7 @@ class _PreparedSource:
     failed: object
     original_mapping: object
     restored_source: object = None
+    repreparation: object = None
 
 
 class NativeMappedMediaSource:
@@ -242,6 +243,6 @@ class NativeMappedMediaSource:
                 if self._prepared:raise TransferError('media_source_prepared_capacity')
                 original=mapping if restoration is None else mapping.original_mapping
                 self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event(),original,
-                    None if restoration is None else mapping)
+                    None if restoration is None else mapping,reprepare)
             return result
         finally:self._gate.release()

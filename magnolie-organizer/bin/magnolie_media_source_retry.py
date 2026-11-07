@@ -33,6 +33,13 @@ def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher)
                 or (attempt['previous_head'] is not None if index==0 else not _hex(attempt['previous_head']))):
             raise TransferError('media_source_retry_invalid_head')
         ids.add(attempt['id']);_validate_exchange_body(attempt['record'],key,jobs._scope,job,nonce,ready_version,allow_readback=True)
+        if attempt['record']['format']==3 and (index==0 or body['attempts'][index-1]['record']['phase'] not in ('peer_saved','peer_readback')):
+            raise TransferError('media_source_verification_completed_retry_required')
+        if index:
+            previous=body['attempts'][index-1]['record']
+            if (previous['phase'] in ('peer_saved','peer_readback') and attempt['record']['format']!=3
+                    or previous.get('purpose')=='published_verification' and previous['phase']!='peer_readback'):
+                raise TransferError('media_source_retry_completed_held')
         if len(canonical(attempt['record']))>_NativeSourceExchange.MAX_BYTES:raise TransferError('media_source_retry_invalid_head')
     return NativeSourceExchangeObservation(sha256(cipher).hexdigest(),body)
 
@@ -76,8 +83,16 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
             db.execute('BEGIN');self._jobs._catalog.verify(db,key);head=self._head(db,key)
             if (None if head is None else head.version)!=self._active_version:
                 raise TransferError('media_source_retry_head_changed')
-            if head is not None and head.body['attempts'][-1]['id']!=self._attempt and head.body['attempts'][-1]['record']['phase'] in ('peer_saved','peer_readback'):
-                raise TransferError('media_source_retry_completed_held')
+            if head is None or head.body['attempts'][-1]['id']!=self._attempt:
+                completed=head is not None and head.body['attempts'][-1]['record']['phase'] in ('peer_saved','peer_readback')
+                if self._sender._verification:
+                    if not completed:raise TransferError('media_source_verification_completed_retry_required')
+                    from magnolie_media_source_retirement import verify_retirement_exchange
+                    ready=self._jobs._read(db,key,self._sender._job)
+                    verify_retirement_exchange(self._jobs,db,key,ready,dict(format=2,job_id=self._sender._job,
+                        exchange_version=self._original_version,retry_version=head.version,retry_attempt_id=head.body['attempts'][-1]['id']))
+                elif completed or head is not None and head.body['attempts'][-1]['record'].get('purpose')=='published_verification':
+                    raise TransferError('media_source_retry_completed_held')
             if db.execute('SELECT 1 FROM meta WHERE key=?',(self._jobs._catalog._retirement+self._sender._job,)).fetchone():
                 from magnolie_media_source_retirement import _NativeSourceRetirement,_NativeSourceRetirementJournal
                 owner=getattr(self._sender._active,'retirement',None)
@@ -123,6 +138,7 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
                 if any(value['id']==self._attempt for value in attempts):raise TransferError('media_source_retry_original_attempt_required')
                 body.update(format=1,database_key=list(key),scope=self._jobs._scope,job_id=self._sender._job,
                     nonce=self._sender._cache._job_nonce,ready_version=self._sender._cache._job_version)
+                if self._sender._verification:body.update(format=3,purpose='published_verification',peer_readback=None)
                 if (body['phase']!='offer_planned' or body['acceptance'] is not None or body['sent_bits']!=0
                         or body['pending_chunk'] is not None or body['peer_saved'] is not None):
                     raise TransferError('media_source_retry_empty_attempt_required')
@@ -131,6 +147,8 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
                 if head is None or head.version!=expected.version or attempts[-1]['id']!=self._attempt:
                     raise TransferError('media_source_retry_original_attempt_required')
                 before=attempts[-1]['record']
+                if self._sender._verification and (before.get('purpose')!='published_verification' or body.get('purpose')!=before['purpose']):
+                    raise TransferError('media_source_verification_readback_only')
                 for name in ('database_key','scope','job_id','nonce','ready_version','offer','permission_epoch'):
                     if body.get(name)!=before[name]:raise TransferError('media_source_retry_original_attempt_required')
                 readback=(before['format']==1 and body.get('format')==2 and before['phase']=='offer_sent' and body.get('phase')=='peer_readback')
