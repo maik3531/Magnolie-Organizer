@@ -51,9 +51,11 @@ class GalleryIncomingRowsTest {
         put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32)); put("sender_id", pc); put("receiver_id", "phone_fixture_0001")
         put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", if (kind == GalleryMediaType.IMAGES) "album/original.jpg" else "album/original.mp4"); put("size", size); put("sha256", hash) })))
     })
-    private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true): MediaSyncTransport.IntentToken {
+    private fun intent(kind: GalleryMediaType = GalleryMediaType.IMAGES, twoWay: Boolean = true,
+        collectionMode: String = "entire_collection"): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
         var body = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
+        body = MediaSyncSettings.change(body, a, b, "collection_mode", JsonPrimitive(collectionMode))
         if (twoWay) body = MediaSyncSettings.change(body, a, b, "direction", JsonPrimitive("two_way"))
         if (kind == GalleryMediaType.VIDEO) {
             body = MediaSyncSettings.change(body, a, b, "videos_enabled", JsonPrimitive(true))
@@ -141,6 +143,22 @@ class GalleryIncomingRowsTest {
 
     private fun ready(f: GalleryReceiveConsentTest.Fixture) {
         val consent = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
+    }
+
+    @Test fun defaultPhoneInventoryCannotCreatePendingRowsFromAnUnknownPcImage() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(collectionMode = "phone_inventory")
+            val before = f.index.galleryPolicy()
+            f.io {
+                assertEquals("gallery_incoming_inventory_reference_required", assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token },
+                        manifest(f.pc.deviceId), GalleryMediaType.IMAGES)
+                }.code)
+            }
+            assertEquals(before, f.index.galleryPolicy()); assertEquals(0, provider.inserts)
+            assertEquals(0, provider.writeOpens); assertEquals(0, provider.publishes)
+        }
     }
 
     @Test fun actualPendingRowHasProtectedOriginalLineageAndRetryNeverReinsertsOrClaimsSaved() {

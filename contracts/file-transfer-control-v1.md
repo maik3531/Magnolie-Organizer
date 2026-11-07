@@ -144,8 +144,21 @@ Actual data still requires a new control ACK/echo after consent changes. Explici
 saved-book decrease works without an online PC and preserves source choices and
 epoch; uncertain/exhausted updates hold readiness without inventing stored OFF.
 
-Production foreground/Werk/UI wiring, incoming inventory/baseline scope admission,
-PC source ownership/upload and full
+Native incoming owners now enforce the exact matched collection mode before any
+acceptance, chunk request or row reservation. `phone_inventory` requires an
+original reference for every incoming manifest member, matched against protected
+native known-phone history for the same phone, PC identity/key and media kind.
+Missing, forged, foreign and duplicate original references hold. Explicit
+`entire_collection` admits unknown files without inventing history; supplied
+references still must be valid. Historical pairing proof is not current consent:
+fresh same-key re-pair consent may correlate retained original history, but does
+not inherit old rights. Changed PC bytes remain independently verified new-file
+input, not overwrite/deletion authority. Arbitrary-image fixtures explicitly
+choose the entire collection. Forty-three targeted native history/row/transfer/
+runtime cases pass; no physical acceptance is implied.
+
+Production foreground/Werk/UI wiring, durable incoming original-to-new-phone
+mapping and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.
 They encrypt and decrypt actual transfer frames; they are not physical network

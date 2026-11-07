@@ -126,7 +126,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         controls.observe(message, now).also { incomingWorker.current?.retireIfChanged() }
     }
     internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
-        book: NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun = withOperation {
+        book: NativeGalleryReceiveBookPermit, references: Map<String, GalleryPhoneMediaReference> = emptyMap()): NativeGalleryIncomingRun = withOperation {
         if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
         if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
         if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
@@ -134,9 +134,10 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         val current = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
         val manifest = DeviceFileOfferEnvelope.validate(offer, current.peerId, localIdentity.deviceId)
         val types = mimeTypes.toMap()
+        val originalReferences = references.toMap()
         incomingWorker.start {
             val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
-                { currentIncomingIntent?.invoke(kind) }, manifest, kind)
+                { currentIncomingIntent?.invoke(kind) }, manifest, kind, originalReferences)
             try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
             catch (error: Throwable) { owner.close(); throw error }
         }

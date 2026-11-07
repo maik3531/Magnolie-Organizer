@@ -21,13 +21,24 @@ import java.util.concurrent.TimeUnit
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NativeGalleryIncomingRuntimeTest {
     @Before fun mountedVolume() { GalleryIncomingRowsTest().mountedPrimaryVolume() }
-    private class Harness(joined: Boolean = true, localConsent: Boolean = joined) : AutoCloseable {
+
+    @Test fun actualRuntimeRejectsUnknownDefaultInventoryBeforeAcceptanceChunksOrProviderMutation() {
+        Harness(collectionMode = "phone_inventory").use { h ->
+            val run = h.start()
+            assertTrue(run.awaitIoEnded(5000)); assertNull(run.actualSavedOutput())
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens); assertEquals(0, h.provider.publishes)
+            assertTrue(h.link.frames.none { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) ||
+                it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
+        }
+    }
+    private class Harness(joined: Boolean = true, localConsent: Boolean = joined,
+        collectionMode: String = "entire_collection") : AutoCloseable {
         val helper = NativeGalleryIncomingTransferTest()
         val link = NativeGalleryIncomingTransferTest.Link()
         val f = GalleryReceiveConsentTest.Fixture(link.channel)
         val raw = helper.png()
         val manifest = helper.manifest(f.pc.deviceId, raw)
-        val token = helper.intent()
+        val token = helper.intent(collectionMode)
         val file = File(f.root, "runtime-native.png")
         val provider = GalleryIncomingRowsTest.Provider(f.app, payload = file).apply { allowPublish = true }
         val identity = NativeFileControlIdentity("phone_fixture_0001", "a".repeat(64))

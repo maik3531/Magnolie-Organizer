@@ -1183,6 +1183,60 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test @Config(sdk = [35]) fun incomingPhoneInventoryCorrelatesOnlyProtectedSamePhonePcKeyOriginalAfterCacheRetirement() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single()
+            val source = h.source.manifest
+            val incoming = DeviceFileManifest.parse(JsonObject(source.wire() + mapOf(
+                "sender_id" to JsonPrimitive(source.receiverId), "receiver_id" to JsonPrimitive(source.senderId))))
+            val references = mapOf(incoming.files.single().id to known.reference)
+            h.index.retireCachedSnapshot(h.job); h.f.request = null
+            val scope = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory",
+                h.f.receiver.identitySha256, references, h.index::knownPhoneMedia)
+            assertEquals(known.body, scope.associations.values.single().body)
+            assertFalse(scope.associations.values.single().grantsWriteAuthority)
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", "9".repeat(64), references, h.index::knownPhoneMedia)
+            }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(incoming, GalleryMediaType.VIDEO, "phone_inventory", h.f.receiver.identitySha256, references, h.index::knownPhoneMedia)
+            }
+            val foreignPhone = DeviceFileManifest.parse(JsonObject(incoming.wire() + ("receiver_id" to JsonPrimitive("foreign_phone_fixture_01"))))
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(foreignPhone, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256, references, h.index::knownPhoneMedia)
+            }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun incomingOriginalReferenceCannotBeInventedOrOmittedAndChangedPcVersionRemainsOnlyCorrelation() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single(); val source = h.source.manifest
+            val files = source.wire()["files"]!!.jsonArray.map { JsonObject(it.jsonObject + ("sha256" to JsonPrimitive("9".repeat(64)))) }
+            val incoming = DeviceFileManifest.parse(JsonObject(source.wire() + mapOf("sender_id" to JsonPrimitive(source.receiverId),
+                "receiver_id" to JsonPrimitive(source.senderId), "files" to JsonArray(files))))
+            val id = incoming.files.single().id
+            val changed = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256,
+                mapOf(id to known.reference), h.index::knownPhoneMedia)
+            assertEquals(known.id, changed.associations.getValue(id).id) // New bytes are independently verified by incoming copy.
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256,
+                    emptyMap(), h.index::knownPhoneMedia)
+            }
+            val invented = GalleryPhoneMediaReference.parse(JsonObject(known.reference.body + ("receipt_sha256" to JsonPrimitive("8".repeat(64)))))
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256,
+                    mapOf(id to invented), h.index::knownPhoneMedia)
+            }
+            val entire = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "entire_collection", h.f.receiver.identitySha256,
+                emptyMap()) { error("Unknown entire-collection file must not manufacture native history") }
+            assertTrue(entire.associations.isEmpty())
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "entire_collection", h.f.receiver.identitySha256,
+                    mapOf(id to invented), h.index::knownPhoneMedia)
+            }
+        }
+    }
+
     private class HistoricalCase : AutoCloseable {
         val f = Fixture()
         val directory = Files.createTempDirectory(f.root.toPath(), "historical350-").toFile()

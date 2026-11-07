@@ -14,6 +14,7 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
     private var previewPublished = false
     internal class IntentToken internal constructor(internal val body: JsonObject) {
         private val values = MediaSyncSettings.effective(body)
+        internal val collectionMode: String get() = values.string("collection_mode")
         internal fun requested(mediaType: GalleryMediaType): Boolean = values["enabled"] == JsonPrimitive(true) &&
             values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
         internal fun requestedIncoming(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&

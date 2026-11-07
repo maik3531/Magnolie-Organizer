@@ -69,9 +69,10 @@ class NativeGalleryIncomingTransferTest {
         put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", "original.png"); put("size", bytes.size)
             put("sha256", MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }) })))
     })
-    internal fun intent(): MediaSyncTransport.IntentToken {
+    internal fun intent(collectionMode: String = "entire_collection"): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
-        val enabled = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
+        val enabled = MediaSyncSettings.change(MediaSyncSettings.change(MediaSyncSettings.create(a), a, b,
+            "collection_mode", JsonPrimitive(collectionMode)), a, b, "enabled", JsonPrimitive(true))
         return MediaSyncTransport.IntentToken(MediaSyncSettings.change(enabled, a, b, "direction", JsonPrimitive("two_way")))
     }
     internal fun grant(f: GalleryReceiveConsentTest.Fixture) {
