@@ -22372,6 +22372,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function sortiereNotizseiten(seiten, wahl) {
+    if (wahl.sort === "manual") return seiten.slice();
     const index = new Map(seiten.map((note, n) => [note.id, n]));
     return seiten.slice().sort((a, b) => {
       let order = wahl.sort === "title" ? String(a.titel || "").localeCompare(String(b.titel || "")) :

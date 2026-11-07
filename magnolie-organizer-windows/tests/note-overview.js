@@ -1,12 +1,39 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), Module = require("node:module");
 const assert = require("node:assert/strict");
+const vm = require("node:vm");
 const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
 
 (async () => {
   for (const web of harness.exports.roots) {
+    const source = fs.readFileSync(path.join(web, "anwendung.js"), "utf8");
+    const sortBody = source.match(/^  function sortiereNotizseiten\(.*?^  }/ms)[0];
+    const dateBody = source.match(/^  function notizZeitpunkt\(.*?^  }/ms)[0];
+    let maps = 0;
+    const scope = vm.createContext({ Map: class extends Map { constructor(...args) { super(...args); maps++; } } });
+    vm.runInContext(dateBody + "\n" + sortBody, scope);
+    for (const pages of [[], [{ id: "only" }], [{ id: "z" }, { id: "a" }, { id: "z" }]]) {
+      Object.defineProperty(pages, "sort", { value: () => assert.fail("Manual order must not sort the input") });
+      Object.defineProperty(pages, "map", { value: () => assert.fail("Manual order must not build an index") });
+      const sorted = scope.sortiereNotizseiten(pages, { sort: "manual" });
+      assert.notEqual(sorted, pages, "The caller still receives its own array");
+      assert.deepEqual(sorted, pages);
+      sorted.forEach((page, index) => assert.equal(page, pages[index], "Keep original note objects"));
+    }
+    assert.equal(maps, 0, "Manual order must not allocate an ID index");
+    const records = Object.freeze([
+      Object.freeze({ id: "c", titel: "Gamma", angelegt: 300, geaendert: 100 }),
+      Object.freeze({ id: "a", titel: "Alpha", angelegt: 100, geaendert: 400 }),
+      Object.freeze({ id: "b", titel: "Beta", angelegt: 100, geaendert: 200 })
+    ]);
+    for (const [sort, expected] of [["created_asc", ["a", "b", "c"]], ["created_desc", ["c", "a", "b"]],
+      ["modified_desc", ["a", "b", "c"]], ["title", ["a", "b", "c"]]]) {
+      const sorted = scope.sortiereNotizseiten(records, { sort });
+      assert.deepEqual(sorted.map(page => page.id), expected, "Keep " + sort + " and stable ties");
+      assert.equal(records[0].id, "c", "Sorting must not mutate the input");
+    }
     const b = await harness.exports.boot(web, { notizen: [
       { id: "older", titel: "Older note", text: "Keep this text", angelegt: Date.UTC(2026, 0, 2), geaendert: "2026-01-03",
         zusammenfuehrungen: [{ id: "original", angelegt: Date.UTC(2025, 11, 1), geaendert: "2025-12-02", zeitpunkt: Date.UTC(2026, 0, 2), art: "sync" }] },
@@ -14,6 +41,7 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
     ] });
     try {
       await b.t.wechsel("notizen");
+      assert.deepEqual([...b.w.document.querySelectorAll("[data-notiz-id]")].map(row => row.dataset.notizId), ["older", "newer"]);
       const findButton = (root, label) => [...root.querySelectorAll("button")].find(button => button.textContent.replace(/^✓ /, "") === label);
       const menu = id => {
         const row = b.w.document.querySelector(`[data-notiz-id="${id}"]`);
@@ -28,6 +56,8 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.equal(findButton(b.w.document.querySelector("#vorschlags-menue"), "Expand day groups by default"), undefined);
       findButton(b.w.document.querySelector("#vorschlags-menue"), "Newest first").click();
       assert.deepEqual([...b.w.document.querySelectorAll("[data-notiz-id]")].map(row => row.dataset.notizId), ["newer", "older"]);
+      findButton(menu("older"), "Page order").click();
+      assert.deepEqual([...b.w.document.querySelectorAll("[data-notiz-id]")].map(row => row.dataset.notizId), ["older", "newer"]);
       findButton(menu("older"), "Group by day").click();
       assert.equal(b.t.daten().einstellungen.notizUebersicht.view, "days");
       assert.equal(b.w.document.querySelector("button.notiz-tag-kopf"), null);
