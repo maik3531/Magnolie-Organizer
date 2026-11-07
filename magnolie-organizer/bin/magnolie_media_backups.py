@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import PurePosixPath
+import copy
 import fcntl
 import os
 import secrets
@@ -488,7 +489,9 @@ class NativeMediaBackupRecoveryUi:
             with locations._history(default,source_id) as backups:
                 selected=next((row for row in backups.recovery_versions() if row.id==reference and row.record_sha256==reference_sha256),None)
                 if selected is None:raise TransferError('media_backup_stale_selection')
-                return selected,backups.selected_mapping(selected)
+                # This is original historical association, not the selected
+                # source version's current bytes or a Saved receipt.
+                return selected,backups._restore_lineage(selected)[0]
 
     def restore(self,scope,source_id,reference,reference_sha256,native_destination):
         if not _hex(reference) or not _hex(reference_sha256):raise TransferError('media_backup_native_selection_required')
@@ -526,6 +529,10 @@ class NativeMediaBackupRestoration:
     name: str
     file_key: tuple
     original_mapping: NativeSavedPhotoMapping
+    _source_version: dict | None = None
+
+    @property
+    def source_version(self):return copy.deepcopy(self._source_version)
 
     @property
     def is_saved_receipt(self):return False
@@ -553,7 +560,9 @@ class _ProtectedBackupRestorations(_ProtectedBackupLocations):
         value=event['original_mapping'];association=value.get('association') if type(value) is dict else None
         if type(association) is not dict or set(association)!={'source_epoch','photo_id','media_type'}:
             raise TransferError('media_backup_restore_invalid_lineage')
-        return NativeSavedPhotoMapping.parse(value,PhotoMappingAssociation(**association),event['reference'])
+        source=event.get('source_version')
+        record_hash=event['reference'] if source is None else source['source']['original_mapping_sha256']
+        return NativeSavedPhotoMapping.parse(value,PhotoMappingAssociation(**association),record_hash)
 
     def _snapshot(self):
         owners=self._db.execute('SELECT id,payload FROM owner').fetchall();rows=self._db.execute('SELECT id,payload FROM policy').fetchall()
@@ -571,8 +580,9 @@ class _ProtectedBackupRestorations(_ProtectedBackupLocations):
                 raise TransferError('media_backup_restore_invalid_history')
         heads={}
         for event in events:
-            if (type(event) is not dict or set(event)!={'operation','state','source_id','reference','reference_sha256',
+            fields={'operation','state','source_id','reference','reference_sha256',
                     'destination','stage','name','file_key','size','sha256','original_mapping'}
+            if (type(event) is not dict or set(event) not in (fields,fields|{'source_version'})
                     or type(event['operation']) is not str or len(event['operation'])!=32 or not _hex(event['operation']*2)
                     or event['state'] not in ('prepared','restored')
                     or any(not _hex(event[key]) for key in ('source_id','reference','reference_sha256','sha256'))
@@ -583,8 +593,20 @@ class _ProtectedBackupRestorations(_ProtectedBackupLocations):
                     or any(type(v) is not int or not 0<=v<2**64 for v in event['file_key']) or event['file_key'][1]==0):
                 raise TransferError('media_backup_restore_invalid_event')
             destination=NativeAcceptedDestination.parse(event['destination']);require_media_directory(destination.path)
+            source=event.get('source_version')
+            if 'source_version' in event:
+                from magnolie_media_source_backup import _validate_source_version
+                if type(source) is not dict:raise TransferError('media_backup_restore_invalid_lineage')
+                _validate_source_version(source,event['reference'])
+                if (sha256(canonical(source)).hexdigest()!=event['reference_sha256']
+                        or source['source']['original_mapping']!=event['original_mapping']):
+                    raise TransferError('media_backup_restore_invalid_lineage')
             mapping=self.mapping(event)
-            if (type(event['size']) is not int or event['size']!=mapping.saved_size or event['sha256']!=mapping.saved_sha256
+            if source is None:size,digest=mapping.saved_size,mapping.saved_sha256
+            else:
+                from magnolie_file_transfer import FileManifest
+                file=FileManifest.parse(source['source']['manifest']).files[0];size,digest=file.size,file.sha256
+            if (type(event['size']) is not int or event['size']!=size or event['sha256']!=digest
                     or event['file_key'][0]!=destination.ancestor_keys[0][0]):
                 raise TransferError('media_backup_restore_invalid_content')
             previous=heads.get(event['operation'])
@@ -636,7 +658,7 @@ class NativeMediaBackupRestoreOwner:
             with journal._locked():
                 journal._schema();_,_,heads=journal._snapshot()
                 return tuple(NativeMediaBackupRestoration(event['operation'],event['state'],event['name'],
-                    tuple(event['file_key']),journal.mapping(event)) for _,event in sorted(heads.items()))
+                    tuple(event['file_key']),journal.mapping(event),copy.deepcopy(event.get('source_version'))) for _,event in sorted(heads.items()))
 
     def phone_original_reference(self,operation):
         """Completed local restoration history only, not a file-read grant.
@@ -670,7 +692,7 @@ class NativeMediaBackupRestoreOwner:
             if (source_id,backups.storage_parent) not in locations.sources(default):raise TransferError('media_backup_source_not_retained')
             require_media_directory(destination.path);destination.verify();return True
         with journal._operation(),locations._history(default,source_id) as backups:
-            current();mapping=backups.selected_mapping(selected)
+            current();mapping,size,digest,source_version=backups._restore_lineage(selected)
             journal._open(create=True,validate=current)
             with journal._locked():
                 _,_,heads=journal._snapshot()
@@ -688,7 +710,7 @@ class NativeMediaBackupRestoreOwner:
                     else:
                         if len(heads)>=journal.MAX_OPERATIONS:raise TransferError('media_backup_restore_history_capacity')
                         free=os.fstatvfs(parent)
-                        if free.f_bavail*free.f_frsize<mapping.saved_size+1024**3:raise TransferError('media_backup_insufficient_space')
+                        if free.f_bavail*free.f_frsize<size+1024**3:raise TransferError('media_backup_insufficient_space')
                         operation=secrets.token_hex(16);stage='.magnolie-restore-'+operation+'.part'
                         leaf=PurePosixPath(selected.name).name;extension=PurePosixPath(leaf).suffix
                         if len(extension)>16:extension=''
@@ -697,10 +719,12 @@ class NativeMediaBackupRestoreOwner:
                         fd=os.open(stage,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK,0o600,dir_fd=parent)
                         event=dict(operation=operation,state='prepared',source_id=source_id,reference=selected.id,
                             reference_sha256=selected.record_sha256,destination=destination.wire(),stage=stage,name=name,
-                            file_key=list(journal._key(os.fstat(fd))),size=mapping.saved_size,sha256=mapping.saved_sha256,original_mapping=mapping.wire())
+                            file_key=list(journal._key(os.fstat(fd))),size=size,sha256=digest,original_mapping=mapping.wire())
+                        if source_version is not None:event['source_version']=source_version
                         directories();os.fsync(fd);os.fsync(parent)
                         journal.append(event,current);self._boundary('prepared')
-                    if event['reference_sha256']!=selected.record_sha256 or event['original_mapping']!=mapping.wire():
+                    if (event['reference_sha256']!=selected.record_sha256 or event['original_mapping']!=mapping.wire()
+                            or event.get('source_version')!=source_version or event['size']!=size or event['sha256']!=digest):
                         raise TransferError('media_backup_restore_original_selection_required')
                     def observe(name):
                         directories()
@@ -742,7 +766,8 @@ class NativeMediaBackupRestoreOwner:
                         name=event['name'];candidate_current();self._boundary('published')
                     verify_raw(fd,event['size'],event['sha256'],candidate_current,candidate=True)
                     completed=journal.append(dict(event,state='restored'),current);self._boundary('restored')
-                    return NativeMediaBackupRestoration(completed['operation'],'restored',completed['name'],tuple(completed['file_key']),mapping)
+                    return NativeMediaBackupRestoration(completed['operation'],'restored',completed['name'],tuple(completed['file_key']),mapping,
+                        copy.deepcopy(source_version))
                 finally:
                     if fd is not None:os.close(fd)
                     os.close(parent)
@@ -1285,6 +1310,20 @@ class NativeMediaBackups:
             if 'source' in value:raise TransferError('media_backup_source_version_has_no_saved_mapping')
             association=value['mapping']['association']
             return NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**association),selected.id)
+
+    def _restore_lineage(self,selected):
+        if type(selected) is not NativeMediaBackupVersion:raise TransferError('media_backup_native_selection_required')
+        with self._operation():
+            value=self._selected_version(selected)
+            if 'source' not in value:
+                mapping=NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**value['mapping']['association']),selected.id)
+                return mapping,mapping.saved_size,mapping.saved_sha256,None
+            source=value['source']
+            mapping=NativeSavedPhotoMapping.parse(source['original_mapping'],PhotoMappingAssociation(**source['original_mapping']['association']),
+                source['original_mapping_sha256'])
+            from magnolie_file_transfer import FileManifest
+            file=FileManifest.parse(source['manifest']).files[0]
+            return mapping,file.size,file.sha256,copy.deepcopy(value)
 
     def restore(self, selected, candidate_fd):
         if type(selected) is not NativeMediaBackupVersion: raise TransferError('media_backup_native_selection_required')

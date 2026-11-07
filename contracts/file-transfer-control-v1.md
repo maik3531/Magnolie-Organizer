@@ -283,6 +283,20 @@ Saved mapping. Source-version recovery UI/publication lineage, source-slot
 retirement/restart/global catalog and platform/production joins are still open;
 no production source or package readiness is implied.
 
+The existing Linux native recovery API and no-replace restore owner now also
+publish selected source versions (#402). Their optional protected source-version
+snapshot remains separate from old Saved-only events; the original mapping hash
+and bytes stay historical, while restored size/hash come from the exact current
+source manifest. Journal validation binds the full source snapshot to the
+selected protected version hash, prepared inode and final no-replace name.
+Reopening/resuming preserves that exact lineage and inode. Only a completed
+restore exports the original phone reference; history remains no READ/Saved
+grant. Six new and nine affected restore/recovery/source-backup cases pass,
+including offline recovery, collisions and correctly resealed but semantically
+changed history. This is API/fixture evidence, not physical desktop-dialog
+acceptance. Native source admission for the newly restored inode and the
+remaining global catalog/retirement, platform and production joins are pending.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
