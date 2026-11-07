@@ -1032,15 +1032,10 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         }
     }
     private fun checkDirectory() {
-        if (closed || !attributes(directory).isDirectory || attributes(directory).fileKey() != rootKey || directory.canonicalFile != directory)
-            fail("photo_jobs_directory_changed")
-        if (Files.getPosixFilePermissions(root, NOFOLLOW_LINKS).any { it.name.startsWith("GROUP_") || it.name.startsWith("OTHERS_") })
-            fail("photo_jobs_private_directory_required")
+        NativeSourceFiles.directory(directory, rootKey, closed)
     }
     private fun regular(file: File) {
-        if (!attributes(file).isRegularFile || Files.getOwner(file.toPath(), NOFOLLOW_LINKS) != Files.getOwner(root, NOFOLLOW_LINKS) ||
-            Files.getPosixFilePermissions(file.toPath(), NOFOLLOW_LINKS).any { it.name.startsWith("GROUP_") || it.name.startsWith("OTHERS_") } ||
-            (Files.getAttribute(file.toPath(), "unix:nlink", NOFOLLOW_LINKS) as Number).toInt() != 1) fail("photo_jobs_unsafe_entry")
+        NativeSourceFiles.regular(file, root)
     }
     private fun validateLayout(jobs: List<PhotoSourceJob>) {
         val roots = jobs.associateBy { rootFile(it).name }

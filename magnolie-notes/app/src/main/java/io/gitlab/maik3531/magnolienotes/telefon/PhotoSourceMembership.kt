@@ -26,7 +26,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
         val bytes = blob() ?: fail("photo_jobs_membership_missing")
         val record = open(bytes)
         val revision = (record["revision"] as? JsonPrimitive)?.takeIf {
-            !it.isString && Regex("[1-9][0-9]*").matches(it.content)
+            !it.isString && POSITIVE_REVISION.matches(it.content)
         }?.content?.toLongOrNull()?.takeIf { it < Long.MAX_VALUE } ?: fail("photo_jobs_membership_invalid")
         if (!TelefonKanonisch.bytes(record).contentEquals(TelefonKanonisch.bytes(value(revision))))
             fail("photo_jobs_membership_changed")
@@ -65,7 +65,7 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
         db.rawQuery("SELECT type,name,tbl_name,sql FROM sqlite_master", null).use {
             while (it.moveToNext()) {
                 val type = it.getString(0); val name = it.getString(1); val table = it.getString(2)
-                val sql = if (it.isNull(3)) null else it.getString(3).replace(Regex("\\s+"), "")
+                val sql = if (it.isNull(3)) null else it.getString(3).replace(SCHEMA_WHITESPACE, "")
                 when {
                     name in auto -> {
                         if (type != "index" || table != auto[name] || sql != null) fail("photo_jobs_membership_schema_changed")
@@ -147,6 +147,8 @@ internal class PhotoSourceMembership(private val db: SQLiteDatabase, private val
     }
     companion object {
         const val NAME = "membership-v1"
+        private val POSITIVE_REVISION = Regex("[1-9][0-9]*")
+        private val SCHEMA_WHITESPACE = Regex("\\s+")
         private fun digest(bytes: ByteArray) = NativeHex.lower(MessageDigest.getInstance("SHA-256").digest(bytes))
         private fun fail(code: String): Nothing = throw PhotoFolderScopeError(code)
     }
