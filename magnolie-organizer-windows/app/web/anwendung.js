@@ -31521,7 +31521,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           first_day_of_week: wochenanfang.value, temperature_unit: temperatur.value,
           time_zone: zone.value.trim(), home_country: isoLand(heimatland.value, "DE") }, signal));
         zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
-      } catch (_) { zettel(_("The regional settings could not be saved.")); }
+      } catch { zettel(_("The regional settings could not be saved.")); }
       finally { speichern.disabled = false; }
     });
     speichern.id = "regional-speichern";
