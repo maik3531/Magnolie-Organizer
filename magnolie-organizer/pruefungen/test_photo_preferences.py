@@ -40,6 +40,79 @@ def configure(fixture, **settings):
                            destination_choice=choice, **settings)
 
 
+def test_separate_sending_choice_bootstraps_only_explicit_consent_and_never_source_handlers(preferences):
+    service,authority,prefs,_,target,_=preferences
+    before=prefs.read()
+    assert prefs.configure_sending(prefs.issue_action(),before,photos=False,videos=False)==before
+    assert not (Path(service.store.root)/prefs._name).exists()
+    saved=prefs.configure_sending(prefs.issue_action(),before,photos=True,videos=False)
+    assert saved.policy.sending.photos and not saved.policy.sending.videos
+    assert saved.policy.sending.pairing_epoch==authority.current_peer().pairing_epoch
+    assert not saved.policy.enabled and saved.policy.destination is None and saved.policy.videos is None
+    assert not prefs.local_grant(True).grants.send_files and not prefs.local_grant(True).grants.receive_files
+    assert not list(target.iterdir())
+    assert prefs.configure_sending(prefs.issue_action(),saved,photos=True,videos=False)==saved
+    prefs.close()
+    reopened=ProtectedPhotoPreferences(authority)
+    try:assert reopened.read()==saved
+    finally:reopened.close()
+
+
+def test_sending_and_receiving_updates_preserve_independent_choices_but_require_new_control_revision(preferences):
+    _,_,prefs,_,_,_=preferences
+    received=configure(preferences)
+    source=prefs.configure_sending(prefs.issue_action(),received,photos=True,videos=True)
+    assert source.policy.destination==received.policy.destination and source.policy.destination_token==received.policy.destination_token
+    assert source.policy.enabled==received.policy.enabled and source.policy.pairing_epoch==received.policy.pairing_epoch
+    assert source.policy.permission_revision==source.policy.revision and source.policy.permission_epoch!=received.policy.permission_epoch
+    changed=prefs.configure(prefs.issue_action(),source,enabled=True,mode='manual')
+    assert changed.policy.sending==source.policy.sending
+    behavior=prefs.set_mode(prefs.issue_action(),changed,'automatic')
+    assert behavior.policy.sending==source.policy.sending
+    off=prefs.configure_sending(prefs.issue_action(),behavior,photos=False,videos=True)
+    assert not off.policy.sending.photos and off.policy.sending.videos
+    assert off.policy.destination==received.policy.destination and off.policy.enabled
+    assert not prefs.local_grant(True).grants.send_files
+
+
+def test_sending_choices_reject_wire_stale_replayed_and_expired_native_actions(preferences):
+    _,_,prefs,_,_,clock=preferences
+    before=prefs.read();action=prefs.issue_action()
+    saved=prefs.configure_sending(action,before,photos=True,videos=False)
+    for candidate,expected in ((action,saved),(prefs.issue_action(),before),({'approve':True},saved)):
+        with pytest.raises(TransferError):prefs.configure_sending(candidate,expected,photos=False,videos=True)
+    expired=prefs.issue_action();clock[0]+=60001
+    with pytest.raises(TransferError):prefs.configure_sending(expired,saved,photos=False,videos=True)
+    assert prefs.read()==saved
+
+
+def test_explicit_sending_repair_consent_does_not_rebind_old_receiving_rights(preferences):
+    service,_,prefs,_,_,_=preferences
+    received=configure(preferences)
+    saved=prefs.configure_sending(prefs.issue_action(),received,photos=True,videos=False)
+    peer=service.store.peers[0];peer['file_pairing_epoch']=phone.native_file_pairing_epoch(bytes([8])*32)
+    service.store.save_peers();channel,binding=bind(service,peer)
+    replacement=service.open_native_file_authority(peer['device_id'],peer['static_public'],channel,binding.generation)
+    new=ProtectedPhotoPreferences(replacement)
+    try:
+        observed=new.read()
+        assert observed.policy.sending==saved.policy.sending and not observed.associated
+        changed=new.configure_sending(new.issue_action(),observed,photos=True,videos=False)
+        assert changed.policy.sending.pairing_epoch==replacement.current_peer().pairing_epoch
+        assert changed.policy.pairing_epoch==received.policy.pairing_epoch and not changed.associated
+        assert changed.policy.destination==received.policy.destination and changed.policy.enabled
+        assert not new.local_grant(True).grants.send_files and not new.local_grant(True).grants.receive_files
+    finally:new.close();replacement.close()
+
+
+@pytest.mark.parametrize('sending',[None,{},dict(photos=1,videos=False,pairing_epoch='a'*64),
+    dict(photos=True,videos=False,pairing_epoch='bad'),dict(photos=True,videos=False,pairing_epoch='a'*64,read=True)])
+def test_sending_codec_rejects_ambiguous_or_authority_like_fields(preferences,sending):
+    from magnolie_photo_preferences import PhotoPreferences
+    saved=configure(preferences)
+    with pytest.raises(TransferError):PhotoPreferences.parse(dict(saved.policy.wire(),sending=sending))
+
+
 def test_absent_read_and_grants_are_inert_manual_off_without_creating_metadata(preferences):
     service, _, prefs, _, _, _ = preferences
     root = Path(service.store.root)

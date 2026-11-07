@@ -180,6 +180,16 @@ native history. Seven targeted native mapping/restore groups pass. Actual PC
 positive-send consent, owned-file validation, source cache and upload remain
 separate requirements; no source owner is manufactured from a restored mapping.
 
+The Linux protected policy now separately stores explicit native photo/video
+sending choices with their own pairing witness. Native action/CAS, expiry,
+replay and strict codec checks apply. Source choice updates preserve receiving
+destinations, choices and their old pairing binding; a fresh sending choice after
+re-pair cannot revive receiving rights. Receiving/behavior updates preserve the
+stored source choices. Permission changes require a new control revision/echo;
+absent OFF is inert. Thirty-seven distinct policy/mapping/restore cases pass.
+These are protected local choices only: native SEND remains false until actual
+source ownership, shared intent, cache, upload and production consent UI join.
+
 Production foreground/Werk/UI wiring, returned-media Gallery classification/new
 phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a

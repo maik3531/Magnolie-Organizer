@@ -48,6 +48,22 @@ class VideoPreferences:
         return cls(value['enabled'],destination,value['destination_token'])
 
 @dataclass(frozen=True)
+class MediaSendingConsent:
+    photos: bool
+    videos: bool
+    pairing_epoch: str
+
+    def wire(self):return dict(photos=self.photos,videos=self.videos,pairing_epoch=self.pairing_epoch)
+
+    @classmethod
+    def parse(cls,value):
+        if (type(value) is not dict or set(value)!={'photos','videos','pairing_epoch'}
+                or type(value['photos']) is not bool or type(value['videos']) is not bool or not _hex(value['pairing_epoch'])):
+            raise TransferError('media_sending_consent_invalid')
+        return cls(value['photos'],value['videos'],value['pairing_epoch'])
+
+
+@dataclass(frozen=True)
 class PhotoPreferences:
     revision: int
     permission_epoch: str
@@ -65,6 +81,7 @@ class PhotoPreferences:
     mapping_store: PhotoMappingStoreWitness | None = None
     job_catalog: JobCatalogWitness | None = None
     permission_revision: int | None = None
+    sending: MediaSendingConsent | None = None
 
     def wire(self):
         value=dict(format=1,revision=self.revision,permission_epoch=self.permission_epoch,pairing_epoch=self.pairing_epoch,
@@ -77,13 +94,14 @@ class PhotoPreferences:
         if self.mapping_store is not None:value['mapping_store']=self.mapping_store.wire()
         if self.job_catalog is not None:value['job_catalog']=self.job_catalog.wire()
         if self.permission_revision is not None:value['permission_revision']=self.permission_revision
+        if self.sending is not None:value['sending']=self.sending.wire()
         return value # Unchanged legacy policies keep exactly their original shape.
 
     @classmethod
     def parse(cls,value):
         required={'format','revision','permission_epoch','pairing_epoch','enabled','mode',
                 'phone_to_pc_delete','pc_to_phone_delete','destination','destination_token'}
-        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision'}
+        if (type(value) is not dict or not required<=set(value) or not set(value)<=required|{'videos','separate_animations','separate_own_recordings','direction','mapping_store','job_catalog','permission_revision','sending'}
                 or 'separate_animations' in value and type(value['separate_animations']) is not bool
                 or 'separate_own_recordings' in value and type(value['separate_own_recordings']) is not bool
                 or 'direction' in value and (type(value['direction']) is not str or value['direction'] not in ('phone_to_desktop','bidirectional'))
@@ -108,7 +126,8 @@ class PhotoPreferences:
             value['phone_to_pc_delete'],value['pc_to_phone_delete'],destination,value['destination_token'],videos,
             value.get('separate_animations'),value.get('separate_own_recordings'),value.get('direction'),
             PhotoMappingStoreWitness.parse(value['mapping_store']) if 'mapping_store' in value else None,
-            JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'))
+            JobCatalogWitness.parse(value['job_catalog']) if 'job_catalog' in value else None,value.get('permission_revision'),
+            MediaSendingConsent.parse(value['sending']) if 'sending' in value else None)
 
 @dataclass(frozen=True)
 class PhotoPreferencesSnapshot:
@@ -417,7 +436,8 @@ class ProtectedPhotoPreferences:
                 revision=(current.policy.revision if current.policy is not None else 1)+1
                 if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
                 policy=PhotoPreferences(revision,secrets.token_hex(32),self._peer().pairing_epoch,enabled,mode,phone_to_pc_delete,False,
-                    destination,token,videos,animations,recordings,selected_direction,mapping_store,job_catalog)
+                    destination,token,videos,animations,recordings,selected_direction,mapping_store,job_catalog,
+                    sending=current.policy.sending if current.policy is not None else None)
                 blob=self._protect(policy.wire(),'policy');head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner')
                 action.validate(self);self._peer();mutated=False
                 try:
@@ -435,6 +455,55 @@ class ProtectedPhotoPreferences:
                     if job_catalog_choice is not None:
                         job_catalog_choice.owner.verify_choice(job_catalog_choice);action.validate(self)
                     return result
+                except BaseException:
+                    if self._db.in_transaction:self._db.rollback()
+                    if mutated:self._uncertain=True
+                    raise
+
+    def configure_sending(self,action,expected,*,photos,videos):
+        """Separate explicit native local choices, not source READ readiness.
+
+        Receiving choices/destinations and their pairing binding stay exact.
+        Shared two-way settings, stored histories or a receive action never set
+        these bits. Actual source handlers/ownership/intent are still absent;
+        native_local_state deliberately continues to advertise SEND false.
+        """
+        if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
+        action.consume(self)
+        if type(expected) is not PhotoPreferencesSnapshot or type(photos) is not bool or type(videos) is not bool:
+            raise TransferError('media_sending_consent_invalid')
+        with self._operation():
+            # An explicit OFF on an absent store is inert, not a new default.
+            if not self._open(create=False):
+                current=PhotoPreferencesSnapshot(self._absent,None,False,False)
+                if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
+                action.validate(self)
+                if not photos and not videos:return current
+                self._open(create=True,validate=lambda:action.validate(self))
+            with self._locked():
+                self._schema();current=self._snapshot()
+                if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
+                consent=MediaSendingConsent(photos,videos,self._peer().pairing_epoch)
+                old=current.policy
+                if old is None and not photos and not videos or old is not None and old.sending==consent:
+                    action.validate(self);return current
+                revision=(old.revision if old is not None else 1)+1
+                if revision>MAX_REVISION:raise TransferError('photo_preferences_revision_limit')
+                if old is None:
+                    policy=PhotoPreferences(revision,secrets.token_hex(32),consent.pairing_epoch,False,'manual',False,False,None,None,
+                        permission_revision=revision,sending=consent)
+                else:
+                    policy=replace(old,revision=revision,permission_revision=revision,permission_epoch=secrets.token_hex(32),sending=consent)
+                blob=self._protect(policy.wire(),'policy')
+                head=self._protect(dict(revision=revision,policy_sha256=sha256(blob).hexdigest()),'owner');mutated=False
+                try:
+                    action.validate(self);self._peer();self._db.execute('BEGIN IMMEDIATE')
+                    self._db.execute('INSERT OR REPLACE INTO policy VALUES(1,?)',(blob,));mutated=True
+                    self._db.execute('UPDATE owner SET payload=? WHERE id=1',(head,))
+                    self._fresh();action.validate(self);self._db.commit();self._sync()
+                    saved=self._snapshot();action.validate(self)
+                    if saved.policy!=policy or saved.version!=sha256(blob).hexdigest():raise TransferError('photo_preferences_readback_failed')
+                    return saved
                 except BaseException:
                     if self._db.in_transaction:self._db.rollback()
                     if mutated:self._uncertain=True
