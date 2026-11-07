@@ -237,8 +237,31 @@ Local prepared-cache reads additionally require the exact protected ready
 cipher version and native nonce before and throughout access. Missing, changed
 or corrupt records hold without reconstruction or repair. Eight new journal
 cases, seven affected reader cases and five affected cache cases pass. There
-is still no restart adoption, offer/accept/chunk/Saved source-control lifecycle,
-retirement or sender readiness. Existing complete/partial stages remain held.
+is still no restart adoption, production source-control composition, retirement
+or general sender readiness. Existing complete/partial stages remain held.
+
+A separate private Linux source-only composition now implements the first
+native wire lifecycle (#400); it is not installed in the normal desktop
+connection or production dispatcher. Only the exact in-process prepared owner,
+original positive sending consent/shared intent and original-book/cache lease
+can derive its local source grant. Its actual encrypted control output and peer
+echo precede an offer. A separate protected exchange journal persists offer
+intent before secure output and records successful output only afterwards.
+The matching authenticated acceptance binds offer/transfer/manifest, current
+permission epoch and receiver destination token before chunk requests can read.
+Each requested response is journaled before output and completed only after
+the actual encrypted write drains and all current native guards pass. Incoming
+replies serialize behind actual output; they cannot turn an unfinished write
+into success. Partner Saved requires all chunks' actual output and exact
+acceptance correlation, and remains only a remote assertion: never a native PC
+Saved receipt, backup proof or retirement permit. Interrupted/missing attempts
+hold without adoption or repair. Seventeen encrypted socket-pair cases cover
+positive and multichunk output, immediate replies, foreign/mismatched input,
+withdrawal, missing history, failed output and cancellation with retained OS
+ownership. Existing production SEND, capability 23 and runtime-ready gates stay
+closed. Outbound-version backup/pinning, retirement/restart, original-reference
+and MIME dispatcher joins, platform parity and physical acceptance remain
+required before production composition.
 
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/

@@ -1,0 +1,184 @@
+"""Private native prepared-source wire lifecycle (#400).
+
+Explicit native composition only: not installed in the production dispatcher,
+not a regular desktop SEND grant, discovery flag, backup or retirement API.
+Controls are derived from an actual prepared owner plus original consent, not
+frozen metadata or caller-supplied readiness booleans. Every wire operation owns
+the actual original-book/cache IO lease until the secure write has drained.
+"""
+from contextlib import contextmanager
+from hashlib import sha256
+import base64
+import threading
+import uuid
+
+from magnolie_file_control import KIND as CONTROL,MAX_TTL_MS,FileControlPacket,FileGrantState,NativeLocalFileGrant,NativeFileControlSession
+from magnolie_file_offer import create_offer
+from magnolie_file_accept_message import KIND as ACCEPT,parse_acceptance
+from magnolie_file_chunk_message import REQUEST as CHUNK_REQUEST,RESULT as CHUNK,parse_request
+from magnolie_file_saved_message import KIND as SAVED,parse_saved
+from magnolie_file_sources import _body
+from magnolie_file_transfer import TransferError
+from magnolie_media_source import NativeMappedMediaSource
+from magnolie_media_source_jobs import _NativeSourceJobs
+from magnolie_media_source_exchange import _NativeSourceExchange
+from magnolie_telefon import SecureChannel,canonical,now_ms
+
+
+class _NativeMediaSourceSender:
+    def __init__(self,source,job_id,*,boundary=lambda _:None):
+        if (type(source) is not NativeMappedMediaSource or type(job_id) is not str
+                or job_id not in source._prepared or not callable(boundary)):
+            raise TransferError('media_source_sender_actual_preparation_required')
+        self._source=source;self._job=job_id;self._prepared=source._prepared[job_id];self._cache=self._prepared.cache
+        self._authority=source._authority;self._channel=self._authority.native_channel
+        if type(self._channel) is not SecureChannel:raise TransferError('media_source_sender_secure_channel_required')
+        self._closed=threading.Event();self._gate=threading.Lock();self._active=threading.local();self._boundary=boundary
+        self._jobs=_NativeSourceJobs(self._authority);self._record=None;self._binding=None;self._requests=set()
+        self._journal=_NativeSourceExchange(self)
+        if self._journal.lookup() is not None:raise TransferError('media_source_sender_existing_attempt_held')
+        self._controls=NativeFileControlSession(self._authority.identity,self._peer,self._local)
+
+    def close(self):
+        # Cancellation never releases the source/cache OS lease or socket from
+        # an actual outstanding operation. The connection owns the socket.
+        self._closed.set()
+
+    def _permission(self):
+        if (self._closed.is_set() or self._source._prepared.get(self._job) is not self._prepared
+                or self._prepared.failed.is_set()):raise TransferError('media_source_sender_retired')
+        self._prepared.permission()
+        self._jobs.require_version(self._job,self._cache._job_version)
+
+    def _peer(self):
+        self._permission();peer=self._authority.current_peer()
+        return peer.control_peer(self,ready=True,handlers_ready=True) if peer is not None else None
+
+    def _local(self):
+        self._permission();snapshot=self._source._preferences.read();policy=snapshot.policy
+        if policy is None:raise TransferError('media_source_sender_consent_required')
+        revision=policy.permission_revision if policy.permission_revision is not None else policy.revision
+        # This private source-only composition cannot expose RECEIVE or alter
+        # ProtectedPhotoPreferences.native_local_state's production SEND=false.
+        return NativeLocalFileGrant(FileGrantState(revision,policy.permission_epoch,True,False),self,True)
+
+    def _lease_current(self):
+        self._permission();reader=getattr(self._active,'reader',None)
+        if reader is None:raise TransferError('media_source_sender_io_lease_required')
+        reader._permission()
+
+    def _current(self):
+        self._lease_current()
+        if self._record is not None:
+            self._journal.require(self._record)
+            offer=self._record.body['offer'];at=now_ms()
+            if at<offer['created_ms'] or at>=offer['expires_ms']:raise TransferError('media_source_sender_offer_expired')
+        if self._binding is not None and self._controls.binding(self._binding.destination_token,sender_is_local=True)!=self._binding:
+            raise TransferError('media_source_sender_binding_changed')
+
+    @contextmanager
+    def _operation(self,*,incoming=False):
+        # A response may arrive before the actual send has returned. Serialize
+        # it behind that bounded output, rather than discarding a positive ACK.
+        acquired=self._gate.acquire(timeout=MAX_TTL_MS/1000) if incoming else self._gate.acquire(blocking=False)
+        if not acquired:raise TransferError('media_source_sender_busy')
+        try:
+            self._permission()
+            with self._source.prepared_cache(self._job) as reader:
+                self._active.reader=reader
+                try:self._current();yield reader;self._current()
+                finally:self._active.reader=None
+        except BaseException:
+            self.close();raise
+        finally:self._gate.release()
+
+    @staticmethod
+    def _message(kind,body,expires=None):
+        at=now_ms()
+        return dict(type='message',v=1,message_id=str(uuid.uuid4()),kind=kind,created_ms=at,
+            expires_ms=min(at+MAX_TTL_MS,expires) if expires is not None else at+MAX_TTL_MS,body=body)
+
+    def send_controls(self):
+        with self._operation():
+            packet=self._controls.packet();message=self._message(CONTROL,packet.wire())
+            self._current();self._channel.send(message);self._current();self._controls.mark_sent(packet)
+            return message
+
+    def observe_controls(self,channel,message):
+        with self._operation(incoming=True):
+            if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
+            packet=FileControlPacket.parse(_body(message,CONTROL,now_ms()))
+            self._controls.observe_remote(packet,self._peer())
+
+    def send_offer(self):
+        with self._operation():
+            if self._record is not None:raise TransferError('media_source_sender_offer_already_attempted')
+            binding=self._controls.binding('0'*64,sender_is_local=True)
+            if binding is None:raise TransferError('media_source_sender_control_agreement_required')
+            self._binding=binding;offer=create_offer(self._cache.manifest)
+            self._record=self._journal.write(None,dict(phase='offer_planned',offer=offer,permission_epoch=binding.permission_epoch,
+                acceptance=None,sent_bits=0,pending_chunk=None,peer_saved=None))
+            self._boundary('source_offer_planned');self._current()
+            self._channel.send(offer);self._boundary('source_offer_output');self._current()
+            body=self._record.body;body['phase']='offer_sent';self._record=self._journal.write(self._record,body)
+            return offer
+
+    def _accept(self,message):
+        if self._record is None or self._record.body['phase']!='offer_sent':raise TransferError('media_source_sender_actual_offer_required')
+        accepted=parse_acceptance(message);body=self._record.body;manifest=self._cache.manifest
+        if (accepted.offer_id!=body['offer']['message_id'] or accepted.manifest_sha256!=manifest.fingerprint
+                or accepted.transfer_id!=manifest.transfer_id or accepted.permission_epoch!=self._binding.permission_epoch
+                or message['created_ms']<body['offer']['created_ms'] or message['expires_ms']>body['offer']['expires_ms']):
+            raise TransferError('media_source_sender_acceptance_changed')
+        binding=self._controls.binding(accepted.destination_token,sender_is_local=True)
+        if binding is None or binding.permission_epoch!=accepted.permission_epoch:raise TransferError('media_source_sender_binding_changed')
+        self._binding=binding;body.update(phase='accepted',acceptance=message)
+        self._record=self._journal.write(self._record,body)
+
+    def _accepted_request(self,message):
+        if self._record is None or self._record.body['phase']!='accepted':raise TransferError('media_source_sender_acceptance_required')
+        body=self._record.body;accepted=parse_acceptance(body['acceptance']);request=parse_request(message)
+        expected=dict(transfer_id=accepted.transfer_id,manifest_sha256=accepted.manifest_sha256,
+            acceptance_sha256=accepted.acceptance_sha256,permission_epoch=accepted.permission_epoch,destination_token=accepted.destination_token)
+        file=self._cache.manifest.files[0]
+        if (any(request[key]!=value for key,value in expected.items()) or request['file_id']!=file.id or request['chunk_index']>=file.chunks
+                or message['expires_ms']>body['acceptance']['expires_ms'] or body['pending_chunk'] is not None
+                or message['message_id'] in self._requests or len(self._requests)>=2048):
+            raise TransferError('media_source_sender_request_changed')
+        return request
+
+    def _chunk(self,message,reader):
+        request=self._accepted_request(message);body=self._record.body
+        data=bytearray(reader.read_chunk(request['chunk_index']))
+        try:
+            response=self._message(CHUNK,dict(request,request_id=message['message_id'],data_base64=base64.b64encode(data).decode('ascii'),
+                data_sha256=sha256(data).hexdigest()),min(message['expires_ms'],body['acceptance']['expires_ms']))
+        finally:data[:]=b'\0'*len(data)
+        body['pending_chunk']=dict(request_id=message['message_id'],request_sha256=sha256(canonical(message)).hexdigest(),
+            chunk_index=request['chunk_index'],response_sha256=sha256(canonical(response)).hexdigest())
+        self._record=self._journal.write(self._record,body);self._requests.add(message['message_id'])
+        self._boundary('source_chunk_planned');self._current()
+        self._channel.send(response);self._boundary('source_chunk_output');self._current()
+        body=self._record.body;body['sent_bits']|=1<<request['chunk_index'];body['pending_chunk']=None
+        self._record=self._journal.write(self._record,body)
+
+    def _saved(self,message):
+        if self._record is None or self._record.body['phase']!='accepted':raise TransferError('media_source_sender_acceptance_required')
+        body=self._record.body;accepted=parse_acceptance(body['acceptance']);saved=parse_saved(message,self._cache.manifest)
+        if (any(getattr(saved,key)!=getattr(accepted,key) for key in ('transfer_id','manifest_sha256','acceptance_sha256','permission_epoch','destination_token'))
+                or body['pending_chunk'] is not None or body['sent_bits']!=(1<<self._cache.manifest.files[0].chunks)-1):
+            raise TransferError('media_source_sender_saved_changed')
+        body.update(phase='peer_saved',peer_saved=message);self._record=self._journal.write(self._record,body)
+
+    def observe(self,channel,message):
+        with self._operation(incoming=True) as reader:
+            if channel is not self._channel:raise TransferError('media_source_sender_foreign_channel')
+            kind=message.get('kind') if type(message) is dict else None
+            if kind==ACCEPT:self._accept(message)
+            elif kind==CHUNK_REQUEST:self._chunk(message,reader)
+            elif kind==SAVED:self._saved(message)
+            else:raise TransferError('media_source_sender_unexpected_message')
+
+    def observation(self):
+        # Historical only. A queried result cannot be adopted by a new sender.
+        return self._journal.lookup()
