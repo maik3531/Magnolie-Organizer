@@ -553,7 +553,9 @@ class ScopedDataRuntimeTest {
                             }
                             if (mixed) assertEquals(if (mode.endsWith("ledger-failure") || denyIncomingAck) "metadata_pending" else "completion",
                                 work.commitPersonalActorDeletionReview(handle, mapOf(localProposalId to choice)))
+                            val firstPumpStarted = android.os.SystemClock.elapsedRealtime()
                             val first = runCatching { pump.invoke(work, peer, channel, 0L, false) }
+                            val firstPumpEnded = android.os.SystemClock.elapsedRealtime()
                             val firstWire = sent().toMutableList()
                             if (mode.endsWith("writer-failure")) {
                                 failBookWrites.set(false)
@@ -701,15 +703,35 @@ class ScopedDataRuntimeTest {
                                 val completion = (field(TelefonWerk::class.java, "personalActorCompletions").get(work) as Map<String, Any>).getValue(run)
                                 val guard = field(completion.javaClass, "guard").get(completion) as PersonalActorDecisionCompletion
                                 assertEquals(JsonPrimitive(0), guard.summary()["saved"])
-                                if (mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) assertTrue(first.isFailure)
+                                if (mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
+                                    assertTrue(first.isFailure)
+                                    assertEquals(1, field(completion.javaClass, "ownAckAttempts").getInt(completion))
+                                    val retryAt = field(completion.javaClass, "nextOwnAckAttempt").getLong(completion)
+                                    assertTrue("Native first retry must retain its 1000-ms backoff", retryAt in (firstPumpStarted + 1000)..(firstPumpEnded + 1000))
+                                }
                                 val peerAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND, PersonalSyncActor.ack(run, incomingDecision.string("message_id")), 60000)
                                 work.receiveMessage(peer, peerAck, channel, 0L)
                                 assertEquals(JsonPrimitive(0), guard.summary()["saved"])
                                 if (mode.endsWith("ledger-failure")) database.execSQL("DROP TRIGGER incoming_ledger_failure")
                                 if (mode.endsWith("metadata-failure")) database.execSQL("DROP TRIGGER incoming_metadata_failure")
-                                // No immediate resend may bypass the native retry delay.
+                                // Book/journal I/O above may outlast the real first retry.
+                                // Exercise the before-deadline branch explicitly, then the
+                                // existing overdue branch below, without a wall-time race.
                                 if (mode.endsWith("send-failure") || mode.endsWith("metadata-failure")) {
-                                    pump.invoke(work, peer, channel, 0L, false); assertTrue(sent().isEmpty())
+                                    val heldUntil = android.os.SystemClock.elapsedRealtime() + 30000
+                                    field(completion.javaClass, "nextOwnAckAttempt").setLong(completion, heldUntil)
+                                    pump.invoke(work, peer, channel, 0L, false)
+                                    val beforeRetryWire = sent()
+                                    assertEquals(heldUntil, field(completion.javaClass, "nextOwnAckAttempt").getLong(completion))
+                                    assertEquals(1, field(completion.javaClass, "ownAckAttempts").getInt(completion))
+                                    // The fixture peer must acknowledge unrelated startup
+                                    // controls, which may legitimately become due during I/O.
+                                    val startupControls = setOf("capabilities.update", "grants.update", "personal_sync.settings",
+                                        "personal_sync.time_settings", "personal_sync.custom_settings", "personal_sync.shared_settings")
+                                    for (wire in beforeRetryWire) {
+                                        assertTrue("Unexpected data/ACK frame before native retry deadline: ${wire["kind"]}", wire.string("kind") in startupControls)
+                                        ack(wire.string("message_id"))
+                                    }
                                 }
                                 field(completion.javaClass, "nextOwnAckAttempt").setLong(completion, 0)
                                 pump.invoke(work, peer, channel, 0L, false)
