@@ -91,7 +91,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
             fail("gallery_incoming_io_android30_required")
         owner.requireCurrent()
-        val planned = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, mimeType)
+        val planned = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, mimeType, owner.scope)
         val saved = index.reserveIncomingPublication(planned, owner::requireLocal)
         owner.requireCurrent()
         if (saved.state == "inserted") {
@@ -136,7 +136,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         val body = selected.body
         val origin = body["origin"] as? JsonObject ?: fail("gallery_incoming_original_changed")
         val planned = GalleryIncomingPublication.plan(owner.binding, owner.manifest, origin.string("file_id"), owner.pairingEpoch,
-            owner.kind, body.string("mime_type"))
+            owner.kind, body.string("mime_type"), owner.scope)
         if (planned.body.filterKeys { it !in setOf("state", "row") } != body.filterKeys { it !in setOf("state", "row") } ||
             index.incomingPublication(selected.id)?.body != body || selected.state !in setOf("inserted", "copying", "copy_verified"))
             fail("gallery_incoming_original_changed")
@@ -218,7 +218,7 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
         current()
         val body = selected.body; val savedRow = selected.row ?: fail("gallery_incoming_verified_copy_required")
         val fileId = (body["origin"] as? JsonObject)?.string("file_id") ?: fail("gallery_incoming_original_changed")
-        val expected = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, body.string("mime_type"))
+        val expected = GalleryIncomingPublication.plan(owner.binding, owner.manifest, fileId, owner.pairingEpoch, owner.kind, body.string("mime_type"), owner.scope)
         if (selected.state !in setOf("copy_verified", "publishing", "published") || index.incomingPublication(selected.id)?.body != body ||
             expected.body.filterKeys { it !in setOf("state", "row") } != body.filterKeys { it !in setOf("state", "row") })
             fail("gallery_incoming_verified_copy_required")

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -759,6 +760,15 @@ internal class PhotoSourceJobIndex private constructor(private val directory: Fi
         val cipher = protection.seal(frame(next.body), "photo-source-jobs-v1/" + name)
         transaction {
             if (incomingPublication(next.id)?.body != expected?.body) fail("gallery_incoming_publication_cas_conflict")
+            next.knownOriginalId?.let { id ->
+                val known = knownPhoneMedia(id) ?: fail("gallery_incoming_original_reference_missing")
+                val binding = next.body.getValue("origin").jsonObject.getValue("binding").jsonObject
+                if (known.body.string("phone_id") != binding.string("receiver_id") ||
+                    known.body.string("peer_id") != binding.string("sender_id") ||
+                    known.body.string("peer_identity_sha256") != binding.string("sender_identity_sha256") ||
+                    known.reference.body.string("media_type") != next.body.string("media_type"))
+                    fail("gallery_incoming_original_reference_changed")
+            }
             current(); putMeta(name, cipher); current()
         }
         boundary("gallery-incoming-" + next.state)

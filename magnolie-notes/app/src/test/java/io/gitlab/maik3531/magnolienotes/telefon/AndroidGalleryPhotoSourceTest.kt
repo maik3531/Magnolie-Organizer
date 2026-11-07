@@ -1237,6 +1237,71 @@ class AndroidGalleryPhotoSourceTest {
         }
     }
 
+    @Test @Config(sdk = [35]) fun protectedIncomingJournalRetainsOriginalAssociationAcrossAllStatesAndOfflineReopen() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single(); val source = h.source.manifest
+            val incoming = DeviceFileManifest.parse(JsonObject(source.wire() + mapOf(
+                "sender_id" to JsonPrimitive(source.receiverId), "receiver_id" to JsonPrimitive(source.senderId))))
+            val file = incoming.files.single()
+            val scope = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256,
+                mapOf(file.id to known.reference), h.index::knownPhoneMedia)
+            val binding = DeviceTransferBinding(incoming.senderId, incoming.receiverId, h.f.receiver.identitySha256,
+                "d".repeat(64), "b".repeat(64), "c".repeat(64))
+            var saved = h.index.reserveIncomingPublication(GalleryIncomingPublication.plan(binding, incoming, file.id,
+                "2".repeat(64), GalleryMediaType.IMAGES, "image/jpeg", scope)) { }
+            val row = buildJsonObject {
+                put("uri", "content://media/external_primary/images/media/99"); put("namespace", "new-native-namespace")
+                put("volume", "external_primary"); put("member", "99:90:10"); put("revision", "10")
+                put("path", "Pictures/Magnolie/"); put("name", "restored.jpg"); put("mime_type", "image/jpeg"); put("owner", "native-fixture")
+            }
+            // Journal-state fixture only: no claim that these simulated rows were copied or published by Android.
+            saved = h.index.beginIncomingInsertion(saved) { }; saved = h.index.recordIncomingRow(saved, row) { }
+            saved = h.index.beginIncomingCopy(saved) { }; saved = h.index.recordIncomingVerifiedCopy(saved, row) { }
+            saved = h.index.beginIncomingPublishing(saved) { }
+            saved = h.index.recordIncomingPublished(saved, JsonObject(row + ("revision" to JsonPrimitive("11")))) { }
+            assertEquals(known.id, saved.knownOriginalId); assertEquals(JsonPrimitive(2), saved.body["format"])
+            assertEquals(scope.fingerprint(incoming), saved.body.string("scope_sha256")); assertFalse(saved.grantsWriteAuthority)
+            h.index.retireCachedSnapshot(h.job); h.f.request = null; h.index.close()
+            PhotoSourceJobIndex.openExisting(h.directory, h.protection).use { reopened ->
+                val restored = reopened.incomingPublication(saved.id)!!
+                assertEquals(saved.body, restored.body); assertEquals(known.body, reopened.knownPhoneMedia(restored.knownOriginalId!!)!!.body)
+                assertNull(reopened.galleryPolicy().policy)
+            }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun incomingJournalRejectsUnknownOriginalAndCannotChangeScopeUnderAnExistingRowIdentity() {
+        KnownAssociationCase().use { h ->
+            h.commit(); val known = h.index.knownPhoneMedia().single(); val source = h.source.manifest
+            val incoming = DeviceFileManifest.parse(JsonObject(source.wire() + mapOf(
+                "sender_id" to JsonPrimitive(source.receiverId), "receiver_id" to JsonPrimitive(source.senderId))))
+            val file = incoming.files.single()
+            val scope = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "phone_inventory", h.f.receiver.identitySha256,
+                mapOf(file.id to known.reference), h.index::knownPhoneMedia)
+            val binding = DeviceTransferBinding(incoming.senderId, incoming.receiverId, h.f.receiver.identitySha256,
+                "d".repeat(64), "b".repeat(64), "c".repeat(64))
+            val plan = GalleryIncomingPublication.plan(binding, incoming, file.id, "2".repeat(64), GalleryMediaType.IMAGES, "image/jpeg", scope)
+            val forged = GalleryIncomingPublication.parse(JsonObject(plan.body + ("known_original_id" to JsonPrimitive("9".repeat(64)))))
+            val before = h.metadata()
+            assertThrows(PhotoFolderScopeError::class.java) { h.index.reserveIncomingPublication(forged) { } }
+            assertNull(h.index.incomingPublication(plan.id)); assertEquals(before, h.metadata())
+            h.index.reserveIncomingPublication(plan) { }
+            val entire = GalleryIncomingScope.capture(incoming, GalleryMediaType.IMAGES, "entire_collection", h.f.receiver.identitySha256,
+                emptyMap(), h.index::knownPhoneMedia)
+            val changed = GalleryIncomingPublication.plan(binding, incoming, file.id, "2".repeat(64), GalleryMediaType.IMAGES, "image/jpeg", entire)
+            assertEquals(plan.id, changed.id)
+            assertThrows(PhotoFolderScopeError::class.java) { h.index.reserveIncomingPublication(changed) { } }
+            assertEquals(plan.body, h.index.incomingPublication(plan.id)!!.body)
+            val legacy = GalleryIncomingPublication.plan(binding, incoming, file.id, "2".repeat(64), GalleryMediaType.IMAGES, "image/jpeg")
+            assertNull(legacy.knownOriginalId); assertEquals(plan.id, legacy.id)
+            assertEquals(legacy.body, GalleryIncomingPublication.parse(legacy.body).body)
+            assertThrows(PhotoFolderScopeError::class.java) { h.index.reserveIncomingPublication(legacy) { } }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                GalleryIncomingPublication.parse(JsonObject(plan.body + ("known_original_id" to JsonNull)))
+            }
+        }
+    }
+
     private class HistoricalCase : AutoCloseable {
         val f = Fixture()
         val directory = Files.createTempDirectory(f.root.toPath(), "historical350-").toFile()

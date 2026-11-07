@@ -1,10 +1,18 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import kotlinx.serialization.json.*
+
 /** Native historical correlation only. Current control, book, local consent
  * and fresh paired ownership must independently authorize each incoming run. */
 internal class GalleryIncomingScope private constructor(internal val collectionMode: String,
     associations: Map<String, GalleryKnownPhoneMedia>) {
     internal val associations: Map<String, GalleryKnownPhoneMedia> = java.util.Collections.unmodifiableMap(associations.toMap())
+    internal fun fingerprint(manifest: DeviceFileManifest): String = DeviceFileControl.digest("magnolie-gallery-incoming-scope-v1\u0000",
+        buildJsonObject {
+            put("collection_mode", collectionMode); put("manifest_sha256", manifest.fingerprint)
+            put("originals", JsonArray(manifest.files.map { file -> JsonArray(listOf(JsonPrimitive(file.id),
+                associations[file.id]?.let { JsonPrimitive(it.id) } ?: JsonNull)) }))
+        })
     companion object {
         internal fun capture(manifest: DeviceFileManifest, kind: GalleryMediaType, collectionMode: String,
             peerIdentity: String, references: Map<String, GalleryPhoneMediaReference>,

@@ -98,6 +98,11 @@ class NativeGalleryIncomingTransferTest {
                 NativeGalleryIncomingTransfer.prepare(owner, link.channel, f.index, NativeGalleryIncomingRows(f.app, f.index),
                     DeviceFileOfferEnvelope.create(manifest), mapOf(fileId to "image/png")).use { transfer ->
                     assertEquals(transfer.acceptance.body, f.index.incomingAcceptance(transfer.acceptance.id)!!.body)
+                    assertEquals(JsonPrimitive(2), transfer.acceptance.body["format"])
+                    assertEquals(owner.scope.fingerprint(manifest), transfer.acceptance.body.string("scope_sha256"))
+                    val legacy = GalleryIncomingAcceptance.parse(JsonObject(transfer.acceptance.body.filterKeys { it != "scope_sha256" } +
+                        ("format" to JsonPrimitive(1))))
+                    assertNotEquals(transfer.acceptance.id, legacy.id)
                     assertEquals(0, provider.inserts)
                     link.onMessage = { message ->
                         if (message.string("kind") == DeviceFileSavedEnvelope.KIND) assertFalse(transfer.actualSavedOutput)
@@ -110,6 +115,8 @@ class NativeGalleryIncomingTransferTest {
                     val plan = GalleryIncomingPublication.plan(owner.binding, manifest, fileId, owner.pairingEpoch, owner.kind, "image/png")
                     val published = f.index.incomingPublication(plan.id)!!
                     assertEquals("published", published.state); assertEquals(published.fingerprint, saved.members.single().receiptSha256)
+                    assertEquals("entire_collection", published.body.string("collection_mode")); assertNull(published.knownOriginalId)
+                    assertEquals(transfer.acceptance.body["scope_sha256"], published.body["scope_sha256"])
                     assertEquals(DeviceFileAcceptanceEnvelope.KIND, link.frames.first().string("kind"))
                     assertEquals(DeviceFileSavedEnvelope.KIND, link.frames.last().string("kind"))
                     assertTrue(link.frames.count { it.string("kind") == DeviceFileChunkEnvelope.REQUEST } > 1)

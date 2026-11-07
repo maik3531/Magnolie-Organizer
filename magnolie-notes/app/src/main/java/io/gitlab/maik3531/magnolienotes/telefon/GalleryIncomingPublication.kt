@@ -8,6 +8,7 @@ internal class GalleryIncomingPublication private constructor(internal val body:
     internal val id: String get() = body.string("id")
     internal val state: String get() = body.string("state")
     internal val row: JsonObject? get() = body["row"] as? JsonObject
+    internal val knownOriginalId: String? get() = (body["known_original_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content
     internal val grantsWriteAuthority: Boolean get() = false
     internal val isSavedReceipt: Boolean get() = false
     internal val fingerprint: String get() = DeviceFileControl.digest("magnolie-gallery-incoming-publication-v1\u0000", body)
@@ -50,7 +51,8 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         internal const val MAX_RECORDS = 4096
         internal const val PREFIX = "gallery-incoming-v1/"
         internal fun plan(binding: DeviceTransferBinding, manifest: DeviceFileManifest, fileId: String,
-            pairingEpoch: String, kind: GalleryMediaType, mimeType: String): GalleryIncomingPublication {
+            pairingEpoch: String, kind: GalleryMediaType, mimeType: String,
+            scope: GalleryIncomingScope? = null): GalleryIncomingPublication {
             val file = manifest.files.singleOrNull { it.id == fileId } ?: fail()
             if (binding.senderId != manifest.senderId || binding.receiverId != manifest.receiverId) fail()
             val identity = buildJsonObject {
@@ -59,7 +61,12 @@ internal class GalleryIncomingPublication private constructor(internal val body:
                 put("pairing_epoch", pairingEpoch)
             }
             return parse(buildJsonObject {
-                put("format", 1); put("id", DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", identity))
+                put("format", if (scope == null) 1 else 2); put("id", DeviceFileControl.digest("magnolie-gallery-incoming-id-v1\u0000", identity))
+                if (scope != null) {
+                    put("collection_mode", scope.collectionMode)
+                    put("known_original_id", scope.associations[fileId]?.let { JsonPrimitive(it.id) } ?: JsonNull)
+                    put("scope_sha256", scope.fingerprint(manifest))
+                }
                 put("origin", identity); put("state", "planned"); put("row", JsonNull)
                 put("size", file.size); put("sha256", file.sha256); put("name", file.path.substringAfterLast('/'))
                 put("media_type", kind.uriSegment); put("mime_type", mimeType)
@@ -67,8 +74,17 @@ internal class GalleryIncomingPublication private constructor(internal val body:
         }
 
         internal fun parse(value: JsonObject): GalleryIncomingPublication {
-            if (value.keys != setOf("format", "id", "origin", "state", "row", "size", "sha256", "name", "media_type", "mime_type") ||
-                value["format"] != JsonPrimitive(1)) fail()
+            val scoped = value["format"] == JsonPrimitive(2)
+            if (value.keys != setOf("format", "id", "origin", "state", "row", "size", "sha256", "name", "media_type", "mime_type") +
+                (if (scoped) setOf("collection_mode", "known_original_id", "scope_sha256") else emptySet()) ||
+                !scoped && value["format"] != JsonPrimitive(1)) fail()
+            if (scoped) {
+                val mode = text(value, "collection_mode")
+                if (mode !in setOf("phone_inventory", "entire_collection") || !DeviceFileControl.hash(text(value, "scope_sha256"))) fail()
+                val original = value["known_original_id"]
+                if (original == JsonNull) { if (mode == "phone_inventory") fail() }
+                else if (!DeviceFileControl.hash(text(value, "known_original_id"))) fail()
+            }
             val origin = value["origin"] as? JsonObject ?: fail()
             if (origin.keys != setOf("binding", "manifest_sha256", "transfer_id", "source_id", "file_id", "pairing_epoch")) fail()
             val binding = origin["binding"] as? JsonObject ?: fail()

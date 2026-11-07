@@ -133,7 +133,7 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
             cancellation.throwIfCanceled(); current(); val published = mutableListOf<GalleryIncomingPublication>()
             for (file in owner.manifest.files) {
                 current(); val mime = mimeTypes.getValue(file.id)
-                val plan = GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id, owner.pairingEpoch, owner.kind, mime)
+                val plan = GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id, owner.pairingEpoch, owner.kind, mime, owner.scope)
                 var selected = index.incomingPublication(plan.id) ?: fail("gallery_incoming_original_changed")
                 if (selected.state == "planned") selected = rows.prepare(owner, file.id, mime)
                 if (selected.state in setOf("inserted", "copying", "copy_verified"))
@@ -173,7 +173,7 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
             for (file in owner.manifest.files) {
                 owner.requireChannel(channel)
                 index.reserveIncomingPublication(GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id,
-                    owner.pairingEpoch, owner.kind, mimeTypes.getValue(file.id)), owner::requireLocal)
+                    owner.pairingEpoch, owner.kind, mimeTypes.getValue(file.id), owner.scope), owner::requireLocal)
             }
             owner.requireChannel(channel)
             val saved = index.reserveIncomingAcceptance(value, owner::requireLocal)

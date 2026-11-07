@@ -161,6 +161,24 @@ class GalleryIncomingRowsTest {
         }
     }
 
+    @Test fun legacyUnscopedJournalCannotBeAdoptedOrDuplicatedByANewScopedNativeOwner() {
+        GalleryReceiveConsentTest.Fixture().use { f ->
+            ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)
+            val token = intent(); val manifest = manifest(f.pc.deviceId)
+            f.io {
+                NativeGalleryIncomingOwner.capture(f.session, f.index, f.book(), { f.peer }, { token }, manifest, GalleryMediaType.IMAGES).use { owner ->
+                    val legacy = GalleryIncomingPublication.plan(owner.binding, manifest, fileId, owner.pairingEpoch, owner.kind, "image/jpeg")
+                    f.index.reserveIncomingPublication(legacy, owner::requireLocal)
+                    assertEquals("gallery_incoming_original_changed", assertThrows(PhotoFolderScopeError::class.java) {
+                        NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "image/jpeg")
+                    }.code)
+                    assertEquals(legacy.body, f.index.incomingPublication(legacy.id)!!.body)
+                }
+            }
+            assertEquals(0, provider.inserts); assertEquals(0, provider.writeOpens)
+        }
+    }
+
     @Test fun actualPendingRowHasProtectedOriginalLineageAndRetryNeverReinsertsOrClaimsSaved() {
         GalleryReceiveConsentTest.Fixture().use { f ->
             ready(f); val provider = Provider(f.app); ShadowContentResolver.registerProviderInternal("media", provider)

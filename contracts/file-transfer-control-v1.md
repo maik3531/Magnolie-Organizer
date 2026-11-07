@@ -157,8 +157,21 @@ input, not overwrite/deletion authority. Arbitrary-image fixtures explicitly
 choose the entire collection. Forty-three targeted native history/row/transfer/
 runtime cases pass; no physical acceptance is implied.
 
-Production foreground/Werk/UI wiring, durable incoming original-to-new-phone
-mapping and PC reference transport/source ownership/upload, plus full
+New native incoming acceptances use protected format 2 with an exact ordered
+scope fingerprint. New publication journals retain that fingerprint, collection
+mode and original known-phone ID (or explicit null for unknown entire-collection
+input) through all publication states. The protected writer verifies referenced
+native history against the actual phone, PC key and media kind. The Saved receipt
+hash includes this lineage and the new row witness. No old Gallery URI is reused.
+Legacy format-1 journals remain readable as history, without invented scope or
+references. Publication identity stays stable across formats: attempting to adopt
+a legacy row or change its scope holds on immutable-field comparison, rather than
+creating another row. Forty-four targeted journal/row/transfer/runtime cases pass;
+the original-reference state-transition fixture simulates row observations and
+does not constitute physical Android copy/publication acceptance.
+
+Production foreground/Werk/UI wiring, returned-media Gallery classification/new
+phone source identity and PC reference transport/source ownership/upload, plus full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.
 They encrypt and decrypt actual transfer frames; they are not physical network

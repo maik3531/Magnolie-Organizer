@@ -16,7 +16,8 @@ internal class GalleryIncomingAcceptance private constructor(internal val body: 
             val manifest = DeviceFileOfferEnvelope.validate(offer, owner.binding.senderId, owner.binding.receiverId, now)
             if (manifest.wire() != owner.manifest.wire() || now >= offer.long("expires_ms")) fail()
             return parse(buildJsonObject {
-                put("format", 1); put("binding", owner.binding.snapshot()); put("pairing_epoch", owner.pairingEpoch)
+                put("format", 2); put("binding", owner.binding.snapshot()); put("pairing_epoch", owner.pairingEpoch)
+                put("scope_sha256", owner.scope.fingerprint(manifest))
                 put("manifest_sha256", manifest.fingerprint); put("transfer_id", manifest.transferId)
                 put("offer_id", offer.string("message_id")); put("offer_sha256", DeviceFileControl.digest("magnolie-incoming-offer-v1\u0000", offer))
                 put("media_type", owner.kind.uriSegment); put("file_count", manifest.files.size); put("total_bytes", manifest.totalBytes)
@@ -25,8 +26,11 @@ internal class GalleryIncomingAcceptance private constructor(internal val body: 
             })
         }
         internal fun parse(value: JsonObject): GalleryIncomingAcceptance {
+            val scoped = value["format"] == JsonPrimitive(2)
             if (value.keys != setOf("format", "binding", "pairing_epoch", "manifest_sha256", "transfer_id", "offer_id", "offer_sha256",
-                    "media_type", "file_count", "total_bytes", "created_ms", "expires_ms", "nonce") || value["format"] != JsonPrimitive(1)) fail()
+                    "media_type", "file_count", "total_bytes", "created_ms", "expires_ms", "nonce") +
+                (if (scoped) setOf("scope_sha256") else emptySet()) || !scoped && value["format"] != JsonPrimitive(1)) fail()
+            if (scoped && !DeviceFileControl.hash(text(value, "scope_sha256"))) fail()
             val binding = value["binding"] as? JsonObject ?: fail()
             if (binding.keys != setOf("sender_id", "receiver_id", "sender_identity_sha256", "receiver_identity_sha256", "permission_epoch", "destination_token")) fail()
             DeviceTransferBinding(text(binding, "sender_id"), text(binding, "receiver_id"), text(binding, "sender_identity_sha256"), text(binding, "receiver_identity_sha256"),
