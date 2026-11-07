@@ -43,7 +43,7 @@ class _NativeMediaSourceSender:
             proof=self._prepared.repreparation
             if (type(proof) is not _NativeSourceRepreparation or proof._source is not source or proof._job!=job_id
                     or not proof._used or getattr(proof,'_completed_cache',None) is not self._cache
-                    or _retry is None or _retry[1] is None):
+                    or _retry is None):
                 raise TransferError('media_source_verification_fresh_repreparation_required')
         original=_NativeSourceExchange(self)
         if _retry is None:
@@ -61,7 +61,7 @@ class _NativeMediaSourceSender:
         return cls(source,job_id,boundary=boundary,_retry=(original_exchange_version,previous_retry_version))
 
     @classmethod
-    def verify_published(cls,source,job_id,original_exchange_version,completed_retry_version,*,boundary=lambda _:None):
+    def verify_published(cls,source,job_id,original_exchange_version,completed_retry_version=None,*,boundary=lambda _:None):
         return cls(source,job_id,boundary=boundary,_retry=(original_exchange_version,completed_retry_version),_verification=True)
 
     def close(self):

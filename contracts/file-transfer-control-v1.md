@@ -604,8 +604,8 @@ published readback can establish its new completion for independently reverified
 complete local backup and exact pinned archival/recovery. Historical completion
 only selects a candidate; it is not current archive approval or native Saved.
 Metadata-only recovery retains the purpose/head/attempt validation and never
-reconstructs raw readers or sends network output. Completed original exchanges
-without a retry, interrupted unfinished verifications, pending phone rows and
+reconstructs raw readers or sends network output. Interrupted unfinished
+verifications, pending phone rows and
 production UI/dispatcher/platform/physical package acceptance remain held.
 Eighteen new and thirteen affected cases pass, covering genuine fresh native
 preparation, forbidden/replayed input and sticky retirement, changed purpose or
@@ -625,6 +625,17 @@ scenarios pass. Nested Python processes are the same scenarios, not additional
 independent tests. Synthetic preparatory state/intent/keys, explicit native
 producer and Robolectric scope remain as documented above; this is not physical
 Android, original-upload, production-settings/UI/runtime-dispatch acceptance.
+
+Completed original exchanges without a retry can now use the same explicit
+readback-only recovery after lease loss (#419). Fresh full original preparation
+and current permissions/book are still required. The original completed
+offer/acceptance/chunk/Saved correlation is checked as historical candidate
+data; it does not replace the newly correlated readback needed for archival.
+The original record and files stay unchanged; ordinary retries remain disabled
+for completed originals. The first purpose-bound record is permitted only for
+an actually completed original. Thirteen new and nine affected cases pass,
+including ordinary recovery and archive compatibility. These PC tests use
+synthetic peer inputs, not physical phone acceptance.
 
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/

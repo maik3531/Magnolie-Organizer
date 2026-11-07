@@ -128,9 +128,6 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
             raise TransferError('media_source_retirement_original_exchange_required')
         return
     from magnolie_media_source_retry import _read_retry_history
-    from magnolie_file_accept_message import parse_acceptance
-    from magnolie_file_saved_message import parse_saved
-    from magnolie_file_offer import validate_offer
     history=_read_retry_history(jobs,db,key,job,ready,body['exchange_version'])
     if history is None or history.version!=body['retry_version'] or history.body['attempts'][-1]['id']!=body['retry_attempt_id']:
         raise TransferError('media_source_retirement_original_retry_required')
@@ -152,6 +149,14 @@ def verify_retirement_exchange(jobs,db,key,ready,body):
         kind=ready.body['original_references'][manifest.files[0].id]['media_type']
         parse_readback(message,record['offer'],binding,kind,now=message.get('created_ms'))
         return
+    verify_completed_saved_exchange(record,manifest)
+
+
+def verify_completed_saved_exchange(record,manifest):
+    """Validate historical completion as candidate DATA, not a fresh grant."""
+    from magnolie_file_accept_message import parse_acceptance
+    from magnolie_file_saved_message import parse_saved
+    from magnolie_file_offer import validate_offer
     if (record['phase']!='peer_saved' or record['pending_chunk'] is not None or type(record['sent_bits']) is not int
             or record['sent_bits']!=(1<<manifest.files[0].chunks)-1
             or any(type(record[field]) is not dict for field in ('offer','acceptance','peer_saved'))):

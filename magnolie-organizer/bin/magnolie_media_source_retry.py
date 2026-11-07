@@ -16,7 +16,7 @@ from magnolie_media_source_exchange import _NativeSourceExchange,NativeSourceExc
 from magnolie_telefon import canonical,strict_json
 
 
-def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher):
+def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher,*,original_completed=False):
     name=jobs._catalog._retry+job
     if type(cipher) is not bytes or not 29<=len(cipher)<=_NativeSourceRetryExchange.MAX_BYTES+28:
         raise TransferError('media_source_retry_invalid_head')
@@ -33,8 +33,10 @@ def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher)
                 or (attempt['previous_head'] is not None if index==0 else not _hex(attempt['previous_head']))):
             raise TransferError('media_source_retry_invalid_head')
         ids.add(attempt['id']);_validate_exchange_body(attempt['record'],key,jobs._scope,job,nonce,ready_version,allow_readback=True)
-        if attempt['record']['format']==3 and (index==0 or body['attempts'][index-1]['record']['phase'] not in ('peer_saved','peer_readback')):
+        if attempt['record']['format']==3 and (not original_completed if index==0 else
+                body['attempts'][index-1]['record']['phase'] not in ('peer_saved','peer_readback')):
             raise TransferError('media_source_verification_completed_retry_required')
+        if original_completed and attempt['record']['format']!=3:raise TransferError('media_source_retry_completed_held')
         if index:
             previous=body['attempts'][index-1]['record']
             if (previous['phase'] in ('peer_saved','peer_readback') and attempt['record']['format']!=3
@@ -47,11 +49,16 @@ def _decode_retry_head(jobs,key,job,nonce,ready_version,original_version,cipher)
 def _read_retry_history(jobs,db,key,job,ready,original_version):
     """Authenticated metadata witness only, never current wire/READ authority."""
     original=_read_source_exchange(jobs,db,key,job,ready)
-    if original is None or original.version!=original_version or original.body['phase']=='peer_saved':
+    if original is None or original.version!=original_version:
         raise TransferError('media_source_retry_original_exchange_required')
+    completed=original.body['phase']=='peer_saved'
+    if completed:
+        from magnolie_media_source_retirement import verify_completed_saved_exchange
+        from magnolie_file_transfer import FileManifest
+        verify_completed_saved_exchange(original.body,FileManifest.parse(ready.body['manifest']))
     row=db.execute('SELECT value FROM meta WHERE key=?',(jobs._catalog._retry+job,)).fetchone()
     if row is None:return None
-    return _decode_retry_head(jobs,key,job,ready.body['nonce'],ready.version,original_version,row[0])
+    return _decode_retry_head(jobs,key,job,ready.body['nonce'],ready.version,original_version,row[0],original_completed=completed)
 
 
 class _NativeSourceRetryExchange(_NativeSourceExchange):
@@ -72,11 +79,15 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
         original=self._original._read(db,key)
         if original is None or original.version!=self._original_version:
             raise TransferError('media_source_retry_original_exchange_required')
-        if original.body['phase']=='peer_saved':raise TransferError('media_source_retry_completed_held')
+        completed=original.body['phase']=='peer_saved'
+        if completed:
+            if not self._sender._verification:raise TransferError('media_source_retry_completed_held')
+            from magnolie_media_source_retirement import verify_completed_saved_exchange
+            verify_completed_saved_exchange(original.body,self._sender._cache.manifest)
         row=db.execute('SELECT value FROM meta WHERE key=?',(self._key,)).fetchone()
         if row is None:return None
         return _decode_retry_head(self._jobs,key,self._sender._job,self._sender._cache._job_nonce,
-            self._sender._cache._job_version,self._original_version,row[0])
+            self._sender._cache._job_version,self._original_version,row[0],original_completed=completed)
 
     def require_owner(self):
         with self._jobs._database() as (db,key):
@@ -86,11 +97,16 @@ class _NativeSourceRetryExchange(_NativeSourceExchange):
             if head is None or head.body['attempts'][-1]['id']!=self._attempt:
                 completed=head is not None and head.body['attempts'][-1]['record']['phase'] in ('peer_saved','peer_readback')
                 if self._sender._verification:
-                    if not completed:raise TransferError('media_source_verification_completed_retry_required')
+                    if head is None:
+                        # _head already verified full original completion semantics.
+                        if self._original._read(db,key).body['phase']!='peer_saved':
+                            raise TransferError('media_source_verification_completed_retry_required')
+                    elif not completed:raise TransferError('media_source_verification_completed_retry_required')
                     from magnolie_media_source_retirement import verify_retirement_exchange
                     ready=self._jobs._read(db,key,self._sender._job)
-                    verify_retirement_exchange(self._jobs,db,key,ready,dict(format=2,job_id=self._sender._job,
-                        exchange_version=self._original_version,retry_version=head.version,retry_attempt_id=head.body['attempts'][-1]['id']))
+                    if head is not None:
+                        verify_retirement_exchange(self._jobs,db,key,ready,dict(format=2,job_id=self._sender._job,
+                            exchange_version=self._original_version,retry_version=head.version,retry_attempt_id=head.body['attempts'][-1]['id']))
                 elif completed or head is not None and head.body['attempts'][-1]['record'].get('purpose')=='published_verification':
                     raise TransferError('media_source_retry_completed_held')
             if db.execute('SELECT 1 FROM meta WHERE key=?',(self._jobs._catalog._retirement+self._sender._job,)).fetchone():
