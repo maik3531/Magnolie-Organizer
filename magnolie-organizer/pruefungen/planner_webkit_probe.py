@@ -37,6 +37,8 @@ parser.add_argument("--grid-control", action="store_true", help="Diagnostic expl
 parser.add_argument("--css-benchmark", action="store_true", help="Static book CSS benchmark without application JavaScript")
 parser.add_argument("--paint-containment", choices=("animation", "always"), help="Diagnostic page paint containment")
 parser.add_argument("--page-layers", action="store_true", help="Diagnostic preallocated page animation layers")
+parser.add_argument("--no-page-animation", action="store_true", help="Diagnostic control: disable section-turn animations only")
+parser.add_argument("--raster-textures", action="store_true", help="Diagnostic control: rasterize identical SVG noise textures once")
 parser.add_argument("--quiet", action="store_true", help="Keep per-step evidence in JSON without live console logging")
 parser.add_argument("--legacy", action="store_true", help="Replay the archived pre-clarification fixture unchanged")
 parser.add_argument("--baseline", action="store_true", help="Record installed behavior without asserting the new Planner contract")
@@ -127,7 +129,9 @@ manifest = {"source": str(original), "assets": before, "profile": args.profile,
             "grid_control": args.grid_control,
             "css_benchmark": args.css_benchmark,
             "paint_containment": args.paint_containment,
-            "page_layers": args.page_layers,
+             "page_layers": args.page_layers,
+             "no_page_animation": args.no_page_animation,
+             "raster_textures": args.raster_textures,
             "quiet": args.quiet,
              "legacy": args.legacy, "baseline": args.baseline,
              "tier": args.tier, "prints": args.prints,
@@ -169,6 +173,18 @@ def serve(request):
     if args.profile and relative == "anwendung.js":
         instrumentation = "window.plannerProfile = {};\n"
         instrumentation += """{
+          const raf = window.requestAnimationFrame;
+          window.requestAnimationFrame = function(callback) {
+            const name = Function.prototype.toString.call(callback).includes('beschriftung._schriftRaf')
+              ? 'registerFontFitFrame' : 'otherAnimationFrame';
+            return raf.call(window, function(...args) {
+              const p = window.plannerProfile[name] ||= {calls:0,ms:0,max:0};
+              const start = performance.now();
+              try { return callback.apply(this,args); } finally {
+                const ms=performance.now()-start; p.calls++; p.ms+=ms; p.max=Math.max(p.max,ms);
+              }
+            });
+          };
           const focus = HTMLElement.prototype.focus;
           HTMLElement.prototype.focus = function(...args) {
             if (!this.classList.contains('registerknopf')) return focus.apply(this,args);
@@ -188,7 +204,8 @@ def serve(request):
             }
           }});
         }\n"""
-        for name in ("zeichneAlles", "zeichneRegister", "leereSeiten", "zeichnePlaner", "termineAm", "terminVerzeichnis", "icsRuntime",
+        for name in ("zeichneAlles", "zeichneRegister", "leereSeiten", "zeichnePlaner", "zeichneAdressen", "zeichneAufgaben",
+                     "zeichneNotizen", "zeichneJahrestage", "stabilisiereAktiveOrtszeiten", "aktualisiereTrayZaehler", "termineAm", "terminVerzeichnis", "icsRuntime",
                      "icsSerienAbstimmen", "feiertageAm", "tagmarkenAm", "urlaubeAm"):
             instrumentation += f"""{name} = new Proxy({name}, {{apply(fn, self, args) {{
               const p = window.plannerProfile['{name}'] ||= {{calls:0, ms:0, max:0}};
@@ -232,6 +249,17 @@ def web_cpu_ms():
             pass
     return total * 1000 / os.sysconf("SC_CLK_TCK")
 
+def web_rss_bytes():
+    total = 0
+    for path in Path("/proc").glob("[0-9]*/stat"):
+        try:
+            raw = path.read_text()
+            if "(WebKitWebProces)" in raw:
+                total += int(raw.rsplit(")", 1)[1].split()[21]) * os.sysconf("SC_PAGE_SIZE")
+        except (FileNotFoundError, ProcessLookupError):
+            pass
+    return total
+
 def painted(_view, _cr):
     if paint_sample is not None:
         paint_sample["draws"].append((time.monotonic() - paint_sample["started"]) * 1000)
@@ -261,6 +289,7 @@ def message(_manager, value):
             paint_samples.append({"name": paint_sample["name"], "gtk_draw_ms": paint_sample["draws"]})
             event["gtk_first_draw_ms"] = next(iter(paint_sample["draws"]), None)
             event["web_process_cpu_ms"] = web_cpu_ms() - paint_sample["web_cpu"]
+            event["web_process_rss_bytes"] = web_rss_bytes()
             paint_sample = None
         elif event["probe"] == "snapshot":
             def snapshot_ready(obj, result):
@@ -292,7 +321,9 @@ def message(_manager, value):
             loop.quit()
     elif event.get("cmd") == "speichern":
         view.evaluate_javascript("App.gespeichert(%s)" % json.dumps({"id": event["id"], "ok": True}),
-                                 -1, None, None, None, None, None)
+                                  -1, None, None, None, None, None)
+    elif event.get("cmd") == "debug_startphase":
+        events.append({"probe": "startup-phases", "phases": event.get("phasen"), "web_process_rss_bytes": web_rss_bytes()})
     elif event.get("cmd") in ("drucken", "planer_ods"):
         view.evaluate_javascript("window.plannerBridgeReply(%s)" % json.dumps(event),
                                  -1, None, None, None, None, None)

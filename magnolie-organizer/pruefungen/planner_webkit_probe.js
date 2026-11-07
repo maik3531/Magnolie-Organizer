@@ -3,6 +3,11 @@
 "use strict";
 (async () => {
   const options=window.plannerProbeOptions;
+  if(options.no_page_animation){
+    const style=document.createElement("style");
+    style.textContent="#seiten.blaettern-vor .seite,#seiten.blaettern-zurueck .seite{animation:none !important;}";
+    document.head.append(style);
+  }
   const send=value=>window.webkit.messageHandlers.planner_probe.postMessage(JSON.stringify(value));
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const assert=(value,message)=>{if(!value)throw new Error(message);};
@@ -25,7 +30,8 @@
     recurrenceJobs:requests.filter(job=>job.recurrence).length,
     duplicateJobs:requests.length-new Set(requests.map(job=>job.key)).size,
     pending:[...(T.icsRuntime?.state?.jobs.values()||[])].filter(job=>job.status==="pending").length,
-    recurrenceError:T.icsRuntime?.lastError,workers,maxPending,cachedJobs:T.icsRuntime?.state?.jobs.size||0});
+    recurrenceError:T.icsRuntime?.lastError,workers,maxPending,cachedJobs:T.icsRuntime?.state?.jobs.size||0,
+    ...(options.profile?{profile:JSON.parse(JSON.stringify(window.plannerProfile||{}))}:{})});
   const stats=values=>{const sorted=values.slice().sort((a,b)=>a-b);return{n:sorted.length,max:sorted.at(-1)||0,p95:sorted[Math.floor(sorted.length*.95)]||0};};
   const click=selector=>new Promise((resolve,reject)=>{
     const button=document.querySelector(selector);assert(button,"Missing "+selector);
@@ -105,6 +111,30 @@
     assert(document.querySelector("#deckel").classList.contains("weg"),"Cover did not open");
     const content=()=>JSON.stringify(T.daten());
     const original=content();
+    if(options.raster_textures){
+      const cached=new Map();let changed=0,pageTexture=false;
+      const rules=sheet=>[...sheet.cssRules].flatMap(rule=>[rule,...(rule.cssRules?rules(rule):[])]);
+      for(const rule of [...document.styleSheets].flatMap(rules)){
+        // A shorthand containing var() can have an empty backgroundImage
+        // longhand in WebKit. Preserve that shorthand and its live colours.
+        const property=rule.style?.backgroundImage?"backgroundImage":"background";
+        const background=rule.style?.[property]||"";
+        const urls=[...background.matchAll(/url\("([^"]*)"\)/g)].filter(match=>match[1].includes("feTurbulence"));
+        let updated=background;
+        for(const match of urls){
+          if(!cached.has(match[1])){
+            const image=new Image();image.src=match[1];await image.decode();
+            const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+            canvas.getContext("2d").drawImage(image,0,0);cached.set(match[1],canvas.toDataURL("image/png"));
+          }
+          updated=updated.replace(match[0],'url("'+cached.get(match[1])+'")');
+        }
+        if(updated!==background){rule.style[property]=updated;changed++;if(rule.selectorText===".seite")pageTexture=true;}
+      }
+      send({probe:"raster-texture-control",textures:cached.size,rules:changed,pageTexture});
+      assert(cached.size>=3&&pageTexture,"Raster control did not replace the book-page texture");
+      await wait(600);
+    }
     if(options.prints){await window.plannerPrintRegressions(data,{status,ready,send,wait,assert});return;}
     send({probe:"fixture",histories:count,fortnightly:count?17:0,dense:count?1:0,...status()});
     for(let cycle=0;cycle<Math.max(1,options.cycles);cycle++){

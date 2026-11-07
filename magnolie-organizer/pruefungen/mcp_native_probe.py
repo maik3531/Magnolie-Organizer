@@ -26,6 +26,9 @@ import zipfile
 import xml.etree.ElementTree as ET
 
 BACKGROUND_PROBE = os.environ.get("MAGNOLIE_MCP_PROBE_BACKGROUND") == "1"
+TRAY_SOAK_SECONDS = int(os.environ.get("MAGNOLIE_MCP_PROBE_TRAY_SOAK_SECONDS", "0"))
+assert TRAY_SOAK_SECONDS == 0 or 30 <= TRAY_SOAK_SECONDS <= 1800
+PROBE_TIMEOUT = TRAY_SOAK_SECONDS + 90 if TRAY_SOAK_SECONDS else 90
 if BACKGROUND_PROBE:
     current_network = os.readlink("/proc/self/ns/net")
     outer_network = os.environ.get("MAGNOLIE_MCP_PROBE_OUTER_NETNS")
@@ -217,7 +220,10 @@ data_file.write_text(json.dumps({"version": 6,
         "conflicts": {"23232323-2323-4323-8323-232323232323": [{"id": "23232323-2323-4323-8323-232323232323", "startMinute": 30590000, "endMinute": 30590060,
             "pauseMinute": None, "pauseMinutes": 0, "zone": "UTC", "type": "Owned remote conflict", "note": "Owned competing version",
             "modifiedMs": 1, "deleted": False, "clock": {"33333333-3333-4333-8333-333333333333": 1}, "pausePlan": None}]}}, "einstellungen": {
-    "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
+    "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False},
+        **({"handbuchHinweisGezeigt": True} if TRAY_SOAK_SECONDS else {})},
+    **({"notizUebersicht": {"view": "default", "sort": "manual", "collapsed": False, "groups": {}}}
+       if TRAY_SOAK_SECONDS else {}),
     "update": {"automatisch": False}, "sync": {"beimStart": False,
         **({"kalenderUid": "owned-offline-sync", "kalenderUids": ["owned-offline-sync"]} if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1" else {})},
     "ort": {"land": "DE", "region": "DE-BE", "ferien": False, "alleRegionen": False},
@@ -410,10 +416,169 @@ window.show_all()
 owned = []
 
 
+def private_tray_host():
+    """Same private StatusNotifierWatcher used by the native tray settings check."""
+    ready, registered = threading.Event(), threading.Event()
+    fixture = {"previous_desktop": os.environ.get("XDG_CURRENT_DESKTOP"),
+               "original": dict(window._tray_einstellungen), "registered": registered}
+    def setup():
+        try:
+            os.environ["XDG_CURRENT_DESKTOP"] = "KDE"
+            xml = """<node><interface name="org.kde.StatusNotifierWatcher">
+              <method name="RegisterStatusNotifierItem"><arg type="s" direction="in"/></method>
+              <method name="RegisterStatusNotifierHost"><arg type="s" direction="in"/></method>
+              <property name="RegisteredStatusNotifierItems" type="as" access="read"/>
+              <property name="IsStatusNotifierHostRegistered" type="b" access="read"/>
+              <property name="ProtocolVersion" type="i" access="read"/>
+              <signal name="StatusNotifierItemRegistered"><arg type="s"/></signal>
+            </interface></node>"""
+            def method(connection, sender, object_path, interface, name, parameters, invocation):
+                if name == "RegisterStatusNotifierItem":
+                    item = parameters.unpack()[0]
+                    fixture["item"] = (sender, item) if item.startswith("/") else (item, "/StatusNotifierItem")
+                    registered.set()
+                invocation.return_value(GLib.Variant("()", ()))
+            def prop(_connection, _sender, _path, _interface, name):
+                if name == "IsStatusNotifierHostRegistered": return GLib.Variant("b", True)
+                if name == "ProtocolVersion": return GLib.Variant("i", 0)
+                return GLib.Variant("as", [])
+            fixture["registration"] = native_bus.register_object("/StatusNotifierWatcher",
+                Gio.DBusNodeInfo.new_for_xml(xml).interfaces[0], method, prop, None)
+            result = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+                GLib.Variant("(su)", ("org.kde.StatusNotifierWatcher", 0)), GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 5000, None)
+            assert result.unpack()[0] == 1
+            fixture["owned"] = True
+        except BaseException:
+            fixture["error"] = traceback.format_exc(limit=3)
+        ready.set()
+        return False
+    GLib.idle_add(setup)
+    assert ready.wait(5) and "error" not in fixture, fixture
+    return fixture
+
+
+def tray_soak():
+    # Worker-side waits leave GTK/WebKit and native tray callbacks running normally.
+    def gui(action):
+        done, result = threading.Event(), {}
+        def run():
+            try: result["value"] = action()
+            except BaseException: result["error"] = traceback.format_exc(limit=4)
+            finally: done.set()
+            return False
+        GLib.idle_add(run)
+        assert done.wait(10) and "error" not in result, result
+        return result.get("value")
+    def javascript(script):
+        done, result = threading.Event(), {}
+        def finished(view, task, *_args):
+            try: result["value"] = json.loads(view.evaluate_javascript_finish(task).to_string())
+            except BaseException: result["error"] = traceback.format_exc(limit=4)
+            finally: done.set()
+        gui(lambda: window.ansicht.evaluate_javascript(script, -1, None, None, None, finished, None))
+        assert done.wait(10) and "error" not in result, result
+        return result["value"]
+    fixture = private_tray_host()
+    samples = []
+    started = time.monotonic()
+    ticks = os.sysconf("SC_CLK_TCK")
+    def resources(phase, response=None):
+        # Walk this process's children only, never unrelated user applications.
+        pending, processes, seen = [os.getpid()], [], set()
+        while pending:
+            pid = pending.pop()
+            if pid in seen: continue
+            seen.add(pid)
+            try:
+                base = Path("/proc") / str(pid)
+                status = dict(line.split(":", 1) for line in (base / "status").read_text().splitlines() if ":" in line)
+                stat = (base / "stat").read_text().rsplit(")", 1)[1].split()
+                try: fds = len(list((base / "fd").iterdir()))
+                except PermissionError: fds = None
+                try:
+                    rollup = dict(line.split(":", 1) for line in (base / "smaps_rollup").read_text().splitlines() if ":" in line)
+                    pss = int(rollup["Pss"].split()[0]) * 1024
+                except PermissionError: pss = None
+                processes.append({"pid": pid, "name": status["Name"].strip(),
+                    "rss_bytes": int(status.get("VmRSS", "0 kB").split()[0]) * 1024,
+                    "pss_bytes": pss,
+                    "cpu_ms": (int(stat[11]) + int(stat[12])) * 1000 / ticks,
+                    "threads": int(status["Threads"]), "fds": fds})
+                for task in (base / "task").iterdir():
+                    pending.extend(int(child) for child in (task / "children").read_text().split())
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+        sample = {"elapsed_s": round(time.monotonic() - started, 3), "phase": phase,
+            "response_ms": response, "processes": processes,
+            "rss_bytes": sum(p["rss_bytes"] for p in processes),
+            "cpu_ms": sum(p["cpu_ms"] for p in processes)}
+        samples.append(sample)
+        print("TRAY_SOAK_SAMPLE " + json.dumps(sample), flush=True)
+    try:
+        gui(lambda: window._tray_einstellungen_setzen(dict(fixture["original"], aktiv=True, autostart=False)))
+        assert fixture["registered"].wait(5), "Real tray indicator did not register"
+        original = javascript("JSON.stringify(OrganizerTest.daten())")
+        javascript("(() => { document.querySelector('#deckel').click(); return JSON.stringify(true); })()")
+        time.sleep(2)
+        cycle = 0
+        deadline = started + TRAY_SOAK_SECONDS
+        while time.monotonic() < deadline:
+            for section in ("notizen", "adressen", "aufgaben", "planer"):
+                before = time.monotonic()
+                actual = javascript("(() => { document.querySelector('[data-fokus=\"register:" + section + "\"]').click(); return JSON.stringify(OrganizerTest.zustand().sektion); })()")
+                assert actual == section, (section, actual)
+                resources("navigate-" + section, (time.monotonic() - before) * 1000)
+            width, height = ((1000, 720), (1440, 900), (1200, 800))[cycle % 3]
+            gui(lambda: window.resize(width, height))
+            time.sleep(0.5)
+            before = time.monotonic()
+            gui(lambda: window._tray_menu.get_children()[1].activate())
+            assert not gui(window.get_visible), "Product tray hide did not hide the window"
+            resources("tray-hidden", (time.monotonic() - before) * 1000)
+            time.sleep(max(0, min(15, deadline - time.monotonic())))
+            resources("tray-idle")
+            before = time.monotonic()
+            # AppIndicator exports its Gtk menu; it does not implement SNI Activate.
+            gui(lambda: window._tray_menu.get_children()[0].activate())
+            time.sleep(0.5)
+            assert gui(window.get_visible), "Actual tray menu did not restore the window"
+            assert javascript("JSON.stringify(OrganizerTest.zustand().sektion)") == "planer"
+            resources("tray-restored", (time.monotonic() - before) * 1000)
+            cycle += 1
+        final = javascript("JSON.stringify(OrganizerTest.daten())")
+        if final != original:
+            def differences(before, after, path=""):
+                if before == after: return []
+                if isinstance(before, dict) and isinstance(after, dict):
+                    return [change for key in sorted(before.keys() | after.keys())
+                        for change in differences(before.get(key), after.get(key), path + "/" + key)]
+                return [{"path": path, "before": before, "after": after}]
+            print("TRAY_SOAK_DATA_DIFF " + json.dumps(differences(original, final)), flush=True)
+        assert final == original, "Tray/navigation changed book data"
+        state["tray_soak"] = {"duration_s": time.monotonic() - started, "cycles": cycle,
+            "samples": len(samples), "data_unchanged": True,
+            "window_resize_only": True, "synthetic_clicks": True,
+            "physical_display_scaling_tested": False}
+    finally:
+        def cleanup():
+            window._tray_einstellungen_setzen(fixture["original"])
+            native_bus.unregister_object(fixture["registration"])
+            if fixture.get("owned"):
+                native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReleaseName",
+                    GLib.Variant("(s)", ("org.kde.StatusNotifierWatcher",)), None, Gio.DBusCallFlags.NONE, 5000, None)
+            if fixture["previous_desktop"] is None: os.environ.pop("XDG_CURRENT_DESKTOP", None)
+            else: os.environ["XDG_CURRENT_DESKTOP"] = fixture["previous_desktop"]
+        gui(cleanup)
+
+
 def client():
     process = None
     try:
         capture_private_accessibility()
+        if TRAY_SOAK_SECONDS:
+            tray_soak()
+            state["passed"] = True
+            return
         process = subprocess.Popen([sys.executable, "-B", str(ROOT / "bin/magnolie-organizer"), "--mcp-stdio"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         owned.append(process)
@@ -2424,42 +2589,8 @@ def client():
         assert regional_stale["isError"] and regional_stale["structuredContent"]["code"] == "conflict", regional_stale
         regional_readback = call("tools/call", {"name": "organizer_regional_settings_read"})
         assert regional_readback["structuredContent"]["settings"]["hour_cycle"] == "h12" and regional_readback["structuredContent"]["book_settings"]["time_zone"] == "Etc/UTC"
-        tray_setup = threading.Event()
-        tray_registered = threading.Event()
-        tray_fixture = {"previous_desktop": os.environ.get("XDG_CURRENT_DESKTOP"), "original": dict(window._tray_einstellungen)}
-        tray_xml = """<node><interface name="org.kde.StatusNotifierWatcher">
-          <method name="RegisterStatusNotifierItem"><arg type="s" direction="in"/></method>
-          <method name="RegisterStatusNotifierHost"><arg type="s" direction="in"/></method>
-          <property name="RegisteredStatusNotifierItems" type="as" access="read"/>
-          <property name="IsStatusNotifierHostRegistered" type="b" access="read"/>
-          <property name="ProtocolVersion" type="i" access="read"/>
-          <signal name="StatusNotifierItemRegistered"><arg type="s"/></signal>
-        </interface></node>"""
-        def configure_private_tray_host():
-            try:
-                os.environ["XDG_CURRENT_DESKTOP"] = "KDE"
-                info = Gio.DBusNodeInfo.new_for_xml(tray_xml).interfaces[0]
-                def method(connection, sender, object_path, interface, name, parameters, invocation):
-                    if name == "RegisterStatusNotifierItem":
-                        item = parameters.unpack()[0]
-                        tray_fixture["item"] = (sender, item) if item.startswith("/") else (item, "/StatusNotifierItem")
-                        tray_registered.set()
-                    invocation.return_value(GLib.Variant("()", ()))
-                def prop(_connection, _sender, _path, _interface, name):
-                    if name == "IsStatusNotifierHostRegistered": return GLib.Variant("b", True)
-                    if name == "ProtocolVersion": return GLib.Variant("i", 0)
-                    return GLib.Variant("as", [])
-                tray_fixture["registration"] = native_bus.register_object("/StatusNotifierWatcher", info, method, prop, None)
-                result = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
-                    GLib.Variant("(su)", ("org.kde.StatusNotifierWatcher", 0)), GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 5000, None)
-                assert result.unpack()[0] == 1
-                tray_fixture["owned"] = True
-            except BaseException:
-                tray_fixture["error"] = traceback.format_exc(limit=3)
-            tray_setup.set()
-            return False
-        product.GLib.idle_add(configure_private_tray_host)
-        assert tray_setup.wait(5) and "error" not in tray_fixture, tray_fixture
+        tray_fixture = private_tray_host()
+        tray_registered = tray_fixture["registered"]
         try:
             tray_before = call("tools/call", {"name": "organizer_tray_settings_read"})
             assert not tray_before["isError"] and tray_before["structuredContent"]["available"], tray_before
@@ -2938,7 +3069,7 @@ def start_client():
 
 
 def deadline():
-    state["error"] = "Native MCP probe exceeded 90 seconds"
+    state["error"] = "Native MCP probe exceeded %d seconds" % PROBE_TIMEOUT
     for dialog in product.Gtk.Window.list_toplevels():
         if isinstance(dialog, product.Gtk.Dialog):
             dialog.response(product.Gtk.ResponseType.CANCEL)
@@ -2951,7 +3082,7 @@ def deadline():
 
 
 product.GLib.timeout_add(50, start_client)
-product.GLib.timeout_add_seconds(90, deadline)
+product.GLib.timeout_add_seconds(PROBE_TIMEOUT, deadline)
 try:
     product.Gtk.main()
 finally:
@@ -2975,7 +3106,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
+if TRAY_SOAK_SECONDS:
+    print("Native TRAY SOAK PASS: registered product indicator and real Gtk tray menu hide/restore, synthetic navigation, window resizing and bounded resource samples; not a physical tray click/display/DPI or all-day endurance acceptance")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
     print("Native MCP CALL ACTORS PASS: actual GTK/stdio owner jobs and three native handlers, exact decimal revision, actual command-store receipts and captured synthetic phone reports, unchanged book, no listener; no physical phone/conversation claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
     print("Native MCP NOTES LEGACY MODE PASS: actual GTK/stdio legacy mode/direction/custom/time store readback, time-direction SaveACK and actual epoch reset, selected book preference only and no listener; no handset delivery claim")
