@@ -119,9 +119,21 @@ only after the synchronous encrypted write returns and ownership remains current
 Failed output preserves published originals but returns no completion. This is
 not peer acknowledgement, quota/END retirement or bilateral sync completion.
 
-The transfer itself starts no thread, dispatcher or production factory. Native
-runtime/lifecycle/foreground consent host, source-versus-receiver IO exclusion,
-incoming inventory/baseline scope admission, PC source ownership/upload and full
+The transfer itself starts no thread. The explicit native incoming runtime
+factory now joins a single caller-started receiver worker, actual control and
+chunk dispatch, cancellation and cleanup. Existing source-only factories retain
+receive-handler readiness false. Source, local recovery and incoming IO share
+one exact process owner; requesting cancellation does not release that owner.
+New positive source work holds while receiving, while control observations and
+chunk responses remain independent of the whole worker operation lock. Actual
+control withdrawal cancels pending receiving; native cleanup retains the index
+until both source and receiver IO have really ended, including a blocked provider.
+Video additionally requires actual joined video handlers and native peer video
+capability, never image fallback. The runtime seam is not a production Werk/UI
+dispatcher rollout or a substitute for local foreground consent.
+
+Native foreground consent host, incoming inventory/baseline scope admission,
+PC source ownership/upload and full
 native acceptance remain required. Tests use real protected index/control/consent paths with a
 Robolectric MediaStore provider, not physical Android provider/package proof.
 They encrypt and decrypt actual transfer frames; they are not physical network

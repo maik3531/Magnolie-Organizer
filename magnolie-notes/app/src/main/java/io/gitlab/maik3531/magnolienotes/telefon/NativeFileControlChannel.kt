@@ -28,14 +28,14 @@ internal object DeviceFileControlEnvelope {
  */
 internal class NativeFileControlChannel(identity: NativeFileControlIdentity,
     private val channel: TelefonSecureChannel, private val currentPeer: () -> NativeFileControlPeer?,
-    currentLocal: () -> NativeLocalFileGrant?) : AutoCloseable {
+    currentLocal: () -> NativeLocalFileGrant?, receiveHandlersReady: () -> Boolean = { false }) : AutoCloseable {
     private val closed = AtomicBoolean(false)
     private fun peer(): NativeFileControlPeer {
         if (closed.get()) DeviceFileControl.fail("file_control_native_channel_closed")
         return currentPeer()?.takeIf { it.allowed && it.owner === channel }
             ?: run { close(); DeviceFileControl.fail("file_control_native_channel_changed") }
     }
-    val session = NativeFileControlSession(identity, currentPeer, currentLocal)
+    val session = NativeFileControlSession(identity, currentPeer, currentLocal, receiveHandlersReady = receiveHandlersReady)
     init { peer() }
 
     @Synchronized fun sendIfNeeded(now: Long = System.currentTimeMillis()): Boolean {

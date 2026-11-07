@@ -76,6 +76,7 @@ class GalleryIncomingRowsTest {
         var allowPublish = false
         var publishes = 0
         var afterPublish: () -> Unit = {}
+        var beforeQuery: () -> Unit = {}
         private var lastSize = 0L
         private var values: ContentValues? = null
         init { attachInfo(app, ProviderInfo().apply { authority = "media"; exported = true }) }
@@ -89,6 +90,7 @@ class GalleryIncomingRowsTest {
             return Uri.withAppendedPath(uri, "99")
         }
         override fun query(uri: Uri, projection: Array<out String>?, queryArgs: Bundle?, cancellationSignal: CancellationSignal?): Cursor {
+            beforeQuery()
             check(uri.toString() == "content://media/external_primary/${kind.uriSegment}/media/99")
             val v = values!!
             val size = payload?.length() ?: 0L
@@ -274,6 +276,7 @@ class GalleryIncomingRowsTest {
 
     @Test fun videoOnlyLocalConsentAndIntentInsertOnlyIntoNativeMoviesWithoutPhotoAdmission() {
         GalleryReceiveConsentTest.Fixture().use { f ->
+            f.peer = f.peer.copy(videoSupported = true)
             val consent = f.approve(GalleryMediaType.VIDEO)
             f.io { f.controller.grant(f.index.galleryPolicy(), consent) }; f.handshake()
             val token = intent(GalleryMediaType.VIDEO)
@@ -286,6 +289,8 @@ class GalleryIncomingRowsTest {
                     val result = NativeGalleryIncomingRows(f.app, f.index).prepare(owner, fileId, "video/mp4")
                     assertEquals("Movies/Magnolie/", result.row!!.string("path"))
                     assertFalse(result.isSavedReceipt)
+                    f.peer = f.peer.copy(videoSupported = false)
+                    assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() }
                 }
             }
             assertEquals(1, provider.inserts)

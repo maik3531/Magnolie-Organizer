@@ -24,7 +24,7 @@ class NativeGalleryIncomingTransferTest {
     private val fileId = "1".repeat(32)
     @Before fun mountedVolume() { GalleryIncomingRowsTest().mountedPrimaryVolume() }
 
-    private class Link : AutoCloseable {
+    internal class Link : AutoCloseable {
         val key = ByteArray(32) { 7 }; val prefix = ByteArray(4) { 8 }; val sid = ByteArray(16) { 9 }
         val frames = mutableListOf<JsonObject>()
         var onMessage: (JsonObject) -> Unit = {}
@@ -56,25 +56,25 @@ class NativeGalleryIncomingTransferTest {
         override fun close() { channel.close(); key.fill(0); prefix.fill(0) }
     }
 
-    private fun png(): ByteArray {
+    internal fun png(): ByteArray {
         val bitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         val pixels = IntArray(256 * 256); val random = java.util.Random(338)
         pixels.indices.forEach { pixels[it] = random.nextInt() or (0xff shl 24) }; bitmap.setPixels(pixels, 0, 256, 0, 0, 256, 256)
         return try { ByteArrayOutputStream().use { output -> check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)); output.toByteArray() } }
             finally { bitmap.recycle() }
     }
-    private fun manifest(peer: String, bytes: ByteArray) = DeviceFileManifest.parse(buildJsonObject {
+    internal fun manifest(peer: String, bytes: ByteArray) = DeviceFileManifest.parse(buildJsonObject {
         put("format", 1); put("chunk_bytes", 65536); put("total_bytes", bytes.size); put("transfer_id", "2".repeat(32)); put("source_id", "3".repeat(32))
         put("sender_id", peer); put("receiver_id", "phone_fixture_0001")
         put("files", JsonArray(listOf(buildJsonObject { put("id", fileId); put("path", "original.png"); put("size", bytes.size)
             put("sha256", MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }) })))
     })
-    private fun intent(): MediaSyncTransport.IntentToken {
+    internal fun intent(): MediaSyncTransport.IntentToken {
         val a = "11111111-1111-4111-8111-111111111111"; val b = "22222222-2222-4222-8222-222222222222"
         val enabled = MediaSyncSettings.change(MediaSyncSettings.create(a), a, b, "enabled", JsonPrimitive(true))
         return MediaSyncTransport.IntentToken(MediaSyncSettings.change(enabled, a, b, "direction", JsonPrimitive("two_way")))
     }
-    private fun grant(f: GalleryReceiveConsentTest.Fixture) {
+    internal fun grant(f: GalleryReceiveConsentTest.Fixture) {
         val selected = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), selected) }; f.handshake()
     }
     private fun respond(link: Link, transfer: NativeGalleryIncomingTransfer, message: JsonObject, raw: ByteArray,

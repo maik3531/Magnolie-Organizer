@@ -146,7 +146,7 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
             if (closed) DeviceFileControl.fail("gallery_source_worker_closed")
             if (active != null) DeviceFileControl.fail("gallery_source_worker_busy")
             NativeGallerySourceRun().also {
-                if (!processOwner.compareAndSet(null, it)) DeviceFileControl.fail("gallery_source_worker_busy")
+                if (!NativeGalleryMediaIoLane.acquire(it)) DeviceFileControl.fail("gallery_source_worker_busy")
                 active = it
             }
         }
@@ -171,7 +171,7 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         // end, never cancel/close/progress totals, can release this slot.
         run.finish(job, error, renewed, recovery, write, target, trash)
         synchronized(gate) { if (active === run) active = null }
-        processOwner.compareAndSet(run, null)
+        NativeGalleryMediaIoLane.release(run)
         onEnded(run) // Outside the owner monitor; callbacks are not source I/O.
     }
 
@@ -187,10 +187,4 @@ internal class NativeGallerySourceWorker(private val prepare: (NativeGalleryAlbu
         running?.cancel()
     }
 
-    companion object {
-        // Local recovery must remain available after unpairing without racing a
-        // live channel's media I/O. Only actual descriptor-owning completion
-        // releases this process-wide lane, never cancel/close/UI disposal.
-        private val processOwner = AtomicReference<NativeGallerySourceRun?>()
-    }
 }

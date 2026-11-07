@@ -1,6 +1,7 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.os.Looper
+import android.os.CancellationSignal
 import kotlinx.serialization.json.*
 import java.security.MessageDigest
 import java.util.Base64
@@ -123,19 +124,21 @@ internal class NativeGalleryIncomingTransfer private constructor(private val own
         } catch (error: Exception) { close(); throw error }
     }
 
-    internal fun receiveAndSendSaved(): JsonObject {
+    internal fun requireCurrent() { current() }
+
+    internal fun receiveAndSendSaved(cancellation: CancellationSignal = CancellationSignal()): JsonObject {
         ioRequired()
         if (!acceptanceSent.get() || !runStarted.compareAndSet(false, true)) fail("gallery_incoming_actual_acceptance_output_required")
         try {
-            current(); val published = mutableListOf<GalleryIncomingPublication>()
+            cancellation.throwIfCanceled(); current(); val published = mutableListOf<GalleryIncomingPublication>()
             for (file in owner.manifest.files) {
                 current(); val mime = mimeTypes.getValue(file.id)
                 val plan = GalleryIncomingPublication.plan(owner.binding, owner.manifest, file.id, owner.pairingEpoch, owner.kind, mime)
                 var selected = index.incomingPublication(plan.id) ?: fail("gallery_incoming_original_changed")
                 if (selected.state == "planned") selected = rows.prepare(owner, file.id, mime)
                 if (selected.state in setOf("inserted", "copying", "copy_verified"))
-                    selected = rows.copyAndVerify(owner, selected, { readChunk(file.id, it) })
-                published += rows.publish(owner, selected)
+                    selected = rows.copyAndVerify(owner, selected, { readChunk(file.id, it) }, cancellation)
+                published += rows.publish(owner, selected, cancellation)
             }
             current(); val now = wall()
             val message = TelefonNachrichten.message(DeviceFileSavedEnvelope.KIND, buildJsonObject {

@@ -47,7 +47,8 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
         try {
             requireLocal()
             val current = peer() ?: fail()
-            if (!current.allowed || current.owner !== originalPeer.owner || current.peerId != originalPeer.peerId ||
+            if (!current.allowed || kind == GalleryMediaType.VIDEO && !current.videoSupported ||
+                current.owner !== originalPeer.owner || current.peerId != originalPeer.peerId ||
                 current.identitySha256 != originalPeer.identitySha256 || current.pairingEpoch != pairingEpoch ||
                 session.binding(manifest.fingerprint) != binding || index.galleryPolicy() != policy || policy.repairPending ||
                 policy.policy?.let { it.receiverId == current.peerId && it.receiverIdentitySha256 == current.identitySha256 &&

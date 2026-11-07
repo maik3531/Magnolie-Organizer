@@ -17,7 +17,9 @@ import java.util.concurrent.atomic.AtomicReference
 internal class NativeGalleryFileRuntime private constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
     protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
     handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean,
-    currentMediaIntent: ((GalleryMediaType) -> Any?)?) : AutoCloseable {
+    currentMediaIntent: ((GalleryMediaType) -> Any?)?,
+    private val currentIncomingIntent: ((GalleryMediaType) -> Any?)? = null,
+    receiveHandlersReady: () -> Boolean = { false }) : AutoCloseable {
     constructor(context: Context, directory: File, identity: NativeFileControlIdentity,
         protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
         handlersReady: () -> Boolean) : this(context, directory, identity, protection, channel, currentPeer, handlersReady, { false }, null)
@@ -30,6 +32,14 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
             protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
             handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean, currentMediaIntent: ((GalleryMediaType) -> Any?)?) =
             NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady, currentMediaIntent)
+        /** Explicit native integration seam only. Existing source factories
+         * remain receive-closed; this does not advertise discovery/UI readiness. */
+        internal fun withIncomingMedia(context: Context, directory: File, identity: NativeFileControlIdentity,
+            protection: DeviceTransferProtection, channel: TelefonSecureChannel, currentPeer: () -> NativeFileControlPeer?,
+            handlersReady: () -> Boolean, videoHandlersReady: () -> Boolean, currentMediaIntent: ((GalleryMediaType) -> Any?)?,
+            currentIncomingIntent: (GalleryMediaType) -> Any?, receiveHandlersReady: () -> Boolean) =
+            NativeGalleryFileRuntime(context, directory, identity, protection, channel, currentPeer, handlersReady, videoHandlersReady,
+                currentMediaIntent, currentIncomingIntent, receiveHandlersReady)
     }
     private val closed = AtomicBoolean(false)
     private val revoked = AtomicBoolean(false)
@@ -74,9 +84,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     private val videoWireCatalog = AtomicReference<NativeGalleryAlbumCatalog?>()
     private fun wireCatalog(mediaType: GalleryMediaType) = if (mediaType == GalleryMediaType.IMAGES) wireCatalog else videoWireCatalog
     private val nativePeer = { if (closed.get() || revoked.get()) null else currentPeer() }
+    private val incomingAvailable = { handlersReady() && receiveHandlersReady() && currentIncomingIntent != null && nativePeer()?.allowed == true }
     private val videoAvailable = { handlersReady() && videoHandlersReady() && nativePeer()?.let { it.allowed && it.videoSupported } == true }
     private val index = PhotoSourceJobIndex(directory, protection)
-    private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady)
+    private val grants = NativeGalleryFileGrantPolicy(nativePeer, { index.galleryPolicy() }, handlersReady, incomingAvailable)
+    private val incomingWorker = NativeGalleryIncomingWorker { sourceIoEnded() }
+    private val incomingRows = NativeGalleryIncomingRows(context, index)
+    private val nativeChannel = channel
     private val controls: NativeFileControlChannel
     private val workflow: NativeGalleryPhotoWorkflow
     private val sourceWorker: NativeGallerySourceWorker
@@ -85,7 +99,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     init {
         var prepared: NativeFileControlChannel? = null
         try {
-            prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() })
+            prepared = NativeFileControlChannel(identity, channel, nativePeer, { grants.current() }, incomingAvailable)
             controls = prepared
             workflow = NativeGalleryPhotoWorkflow.forSharedMediaIntent(context, directory, identity.deviceId, protection,
                 { if (closed.get() || revoked.get()) null else controls.session.photoReceiver() },
@@ -98,8 +112,39 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         }
     }
 
-    fun sendControls(now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.sendIfNeeded(now) }
-    fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation { controls.observe(message, now) }
+    fun sendControls(now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
+        controls.sendIfNeeded(now).also { incomingWorker.current?.retireIfChanged() }
+    }
+    fun observeControls(message: JsonObject, now: Long = System.currentTimeMillis()): Boolean = withOperation(allowIncoming = true) {
+        controls.observe(message, now).also { incomingWorker.current?.retireIfChanged() }
+    }
+    internal fun beginIncoming(offer: JsonObject, kind: GalleryMediaType, mimeTypes: Map<String, String>,
+        book: NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun = withOperation {
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        if (!sourceWorker.isQuiescent || syncRun != null || resumeRun != null || albumBatchOwner != null)
+            DeviceFileControl.fail("gallery_sync_run_busy")
+        val current = nativePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+        val manifest = DeviceFileOfferEnvelope.validate(offer, current.peerId, localIdentity.deviceId)
+        val types = mimeTypes.toMap()
+        incomingWorker.start {
+            val owner = NativeGalleryIncomingOwner.capture(controls.session, index, book, nativePeer,
+                { currentIncomingIntent?.invoke(kind) }, manifest, kind)
+            try { NativeGalleryIncomingTransfer.prepare(owner, nativeChannel, index, incomingRows, offer, types) }
+            catch (error: Throwable) { owner.close(); throw error }
+        }
+    }
+    /** Exact native authenticated dispatcher input; never take the operation
+     * gate behind a worker waiting for this very chunk. */
+    internal fun observeIncomingChunk(channel: TelefonSecureChannel, message: JsonObject): Boolean {
+        if (closed.get() || revoked.get() || channel !== nativeChannel) return false
+        return incomingWorker.current?.observe(channel, message) ?: false
+    }
+    internal fun cancelIncoming(run: NativeGalleryIncomingRun) {
+        if (!incomingWorker.owns(run)) DeviceFileControl.fail("gallery_incoming_worker_foreign_run")
+        run.cancel()
+    }
+    internal fun incomingContextWithdrawn() { incomingWorker.current?.cancel() }
     fun savedPolicy(): GalleryPhotoPolicySnapshot { ready(); return workflow.savedPolicy() }
     fun currentRequest(mediaType: GalleryMediaType = GalleryMediaType.IMAGES): NativeGalleryRequest? { ready(); return workflow.currentRequest(mediaType) }
     fun discoverSelectable(cancellation: android.os.CancellationSignal = android.os.CancellationSignal(),
@@ -1164,7 +1209,8 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         finally { ticket.compareAndSet(issued, null); controls.session.finishConfiguration(issued) }
     }
 
-    fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = withOperation {
+    fun disableLocally(expected: GalleryPhotoPolicySnapshot): GalleryPhotoPolicySnapshot = withOperation(allowIncoming = true) {
+        incomingWorker.current?.cancel()
         workflow.disableLocally(expected)
     }
 
@@ -1187,6 +1233,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
     fun revokeControl() {
         revoked.set(true)
         controls.close()
+        incomingWorker.close()
         sourceWorker.close() // Native cancellation must run outside our ownership monitor.
     }
 
@@ -1200,7 +1247,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         if (Looper.myLooper() != Looper.getMainLooper()) DeviceFileControl.fail("gallery_permission_ui_thread_required")
         synchronized(this) {
             if (closed.get()) return true
-            if (operationActive || !sourceWorker.isQuiescent) {
+            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent) {
                 closeCompletion = completed
                 return false // Source index and native owner remain held until actual I/O end.
             }
@@ -1223,13 +1270,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
         // Serialize with the quiescence check/registration to avoid losing a
         // completion between that check and installing the native close callback.
         val completion = synchronized(this) {
-            if (operationActive || !sourceWorker.isQuiescent) null
+            if (operationActive || !sourceWorker.isQuiescent || !incomingWorker.isQuiescent) null
             else closeCompletion.also { closeCompletion = null }
         }
         completion?.let { android.os.Handler(Looper.getMainLooper()).post { it() } }
     }
 
-    private inline fun <T> withOperation(operation: () -> T): T {
+    private inline fun <T> withOperation(allowIncoming: Boolean = false, operation: () -> T): T {
         if (!operationGate.tryLock()) DeviceFileControl.fail("file_control_configuration_busy")
         var owned = false
         try {
@@ -1237,6 +1284,7 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
                 ready()
                 if (revoked.get()) DeviceFileControl.fail("gallery_file_runtime_revoked")
                 if (operationActive) DeviceFileControl.fail("file_control_configuration_busy")
+                if (!allowIncoming && !incomingWorker.isQuiescent) DeviceFileControl.fail("gallery_incoming_worker_busy")
                 operationActive = true; owned = true
             }
             // No provider, transport write, native cancellation or policy CAS
