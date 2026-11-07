@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 import struct
 import sys
@@ -15,6 +16,7 @@ import notes_candidate
 import package_preflight
 import release_sources
 from runtime_pruefen import package_modules, composition_policy
+from phone_features import stage
 
 
 @pytest.mark.parametrize('enabled', [False, True])
@@ -27,6 +29,27 @@ def test_all_four_explicit_runtime_lists_match_current_source(enabled):
     for kind, installed in package_modules(ROOT, selected).items():
         assert installed == expected, kind
     assert (expected == actual) is enabled
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+def test_new_media_source_modules_are_staged_with_photo_sync_only(enabled, tmp_path):
+    media = {path.name for path in (ROOT / 'bin').glob('magnolie_media_source*.py')} | {
+        'magnolie_media_sync.py', 'magnolie_media_transport.py'}
+    assert len(media) >= 14
+    selected = {'photo_sync': enabled, 'phone_camera': False}
+    for kind, modules in package_modules(ROOT, {'photo_sync': False, 'phone_camera': False}).items():
+        bindir = tmp_path / kind / 'bin'; bindir.mkdir(parents=True)
+        data = tmp_path / kind / 'share/magnolie-organizer'; data.mkdir(parents=True)
+        for name in modules | {'magnolie-organizer'}:
+            shutil.copyfile(ROOT / 'bin' / name, bindir / name)
+        stage(bindir, data, selection=selected)
+        assert json.loads((data / 'build-config.json').read_text())['phoneFeatures'] == selected
+        for name in media:
+            target = data / 'python' / name
+            assert target.is_file() is enabled, (kind, name)
+            assert not (bindir / name).exists(), (kind, name)
+            if enabled:
+                assert target.read_bytes() == (ROOT / 'bin' / name).read_bytes(), (kind, name)
 
 
 def test_json_and_markdown_contracts_are_copied_without_changing_goldens(tmp_path):

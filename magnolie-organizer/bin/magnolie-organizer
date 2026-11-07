@@ -24942,8 +24942,8 @@ class Fenster(_FENSTER_BASIS):
                 self._medien_backup_worker=worker;worker.start();return worker
             def commit(path,book_version):
                 try:
-                    from magnolie_media_retention import NativeMediaRetention
-                    from magnolie_file_acceptance import NativeAcceptedDestination
+                    NativeMediaRetention=importlib.import_module("magnolie_media_retention").NativeMediaRetention
+                    NativeAcceptedDestination=importlib.import_module("magnolie_file_acceptance").NativeAcceptedDestination
                     if not current():raise ValueError("media_backup_local_owner_changed")
                     with NativeMediaRetention(native_root) as policy:
                         with policy.active_copy_permit(current) as permit:
@@ -24964,7 +24964,7 @@ class Fenster(_FENSTER_BASIS):
                     recovery=module.NativeMediaBackupRecoveryUi(native_root,current)
                     if action!="restore":answer(recovery.read_request(nachricht),current);return
                     selected,mapping=recovery.selection(nachricht["scope"],nachricht["source_id"],nachricht["reference"],nachricht["reference_sha256"])
-                    from magnolie_media_retention import NativeMediaRetention
+                    NativeMediaRetention=importlib.import_module("magnolie_media_retention").NativeMediaRetention
                     with NativeMediaRetention(native_root) as policy:
                         with policy.active_copy_permit(current) as permit:
                             if permit is None:raise ValueError("media_backup_current_saved_book_required")
