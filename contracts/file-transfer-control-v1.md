@@ -614,6 +614,18 @@ metadata-only recovery and unchanged legacy replay/archive/capacity guards.
 The new mode's PC tests use synthetic peer envelopes; paired producer evidence
 under #416 is separate and does not claim paired execution of this new mode.
 
+The paired probe now also covers that exact completed-retry verification mode
+(#418): an actual Kotlin producer first completes a PC retry without archiving,
+then the PC closes its source lease, fully re-prepares the real original, creates
+the purpose-bound verifier and exchanges fresh control/offer/readback frames with
+the same unchanged phone row. A new actual Kotlin proof completes local backup
+and no-loss archival; an actual proof for another offer cannot change the current
+verification head or files. Both new paired scenarios and both existing paired
+scenarios pass. Nested Python processes are the same scenarios, not additional
+independent tests. Synthetic preparatory state/intent/keys, explicit native
+producer and Robolectric scope remain as documented above; this is not physical
+Android, original-upload, production-settings/UI/runtime-dispatch acceptance.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit
 class PairedPublishedReadbackTest {
     @Test fun actualKotlinPublishedReadbackCompletesPythonRetryWithoutSyntheticPeerProof() = runPaired("positive")
     @Test fun actualKotlinProofForDifferentOfferCannotCompleteCurrentPythonRetry() = runPaired("wrong_offer")
+    @Test fun actualKotlinReadbackVerifiesCompletedPythonRetryAfterFreshOriginalPreparation() = runPaired("verification_positive")
+    @Test fun actualWrongOfferKotlinProofCannotCompleteReadbackOnlyVerification() = runPaired("verification_wrong_offer")
 
     private fun runPaired(mode: String) {
         GalleryIncomingRowsTest().mountedPrimaryVolume()
@@ -71,25 +73,31 @@ class PairedPublishedReadbackTest {
                             }
                             f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake()
                             val renewed = f.approve(); f.io { f.controller.grant(f.index.galleryPolicy(), renewed) }; f.handshake()
-                            repeat(3) {
-                                val remote = channel.receive()
-                                assertEquals(DeviceFileControl.KIND, remote.string("kind"))
-                                f.session.observeRemote(DeviceFileControlEnvelope.validate(remote), f.peer)
-                                val packet = f.session.packet(); channel.send(DeviceFileControlEnvelope.create(packet)); f.session.markSent(packet)
+                            val rounds = if (mode.startsWith("verification_")) 2 else 1
+                            val before = f.rows()
+                            repeat(rounds) { round ->
+                                repeat(3) {
+                                    val remote = channel.receive()
+                                    assertEquals(DeviceFileControl.KIND, remote.string("kind"))
+                                    f.session.observeRemote(DeviceFileControlEnvelope.validate(remote), f.peer)
+                                    val packet = f.session.packet(); channel.send(DeviceFileControlEnvelope.create(packet)); f.session.markSent(packet)
+                                }
+                                val offer = channel.receive()
+                                val wrong = mode.endsWith("wrong_offer") && round == rounds - 1
+                                val selectedOffer = if (wrong) DeviceFileOfferEnvelope.create(manifest) else offer
+                                val output = f.io {
+                                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                                    NativeGalleryPublishedReadback.capture(owner, selectedOffer, channel).use { it.perform(rows) }
+                                }
+                                assertEquals(DevicePublishedReadbackEnvelope.KIND, output.string("kind"))
+                                val result = TelefonRahmen.lesen(socket.getInputStream(), 65536)
+                                assertEquals(if (round < rounds - 1) "verify_next" else if (wrong) "rejected" else "archived", result.string("result"))
+                                assertEquals(0L, result.long("sent_bits"))
+                                assertEquals(output.getValue("body").jsonObject["readback_sha256"], result["proof_sha256"])
+                                assertEquals(offer["message_id"], result["offer_id"])
+                                assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
                             }
-                            val offer = channel.receive(); val before = f.rows()
-                            val selectedOffer = if (mode == "wrong_offer") DeviceFileOfferEnvelope.create(manifest) else offer
-                            val output = f.io {
-                                val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
-                                NativeGalleryPublishedReadback.capture(owner, selectedOffer, channel).use { it.perform(rows) }
-                            }
-                            assertEquals(DevicePublishedReadbackEnvelope.KIND, output.string("kind"))
-                            val result = TelefonRahmen.lesen(socket.getInputStream(), 65536)
-                            assertEquals(if (mode == "positive") "archived" else "rejected", result.string("result")); assertEquals(0L, result.long("sent_bits"))
-                            assertEquals(output.getValue("body").jsonObject["readback_sha256"], result["proof_sha256"])
-                            assertEquals(offer["message_id"], result["offer_id"])
-                            assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
-                            assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
                         }
                     }
                 }
