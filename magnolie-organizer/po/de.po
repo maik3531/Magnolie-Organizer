@@ -10129,11 +10129,11 @@ msgstr "＋ Termin hinzufügen"
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
 
-#~ msgid "Photos"
-#~ msgstr "Fotos"
+msgid "Photos"
+msgstr "Fotos"
 
-#~ msgid "Videos"
-#~ msgstr "Videos"
+msgid "Videos"
+msgstr "Videos"
 
 #~ msgid "Album selection changed. Read the albums again."
 #~ msgstr "Die Albumauswahl hat sich geändert. Lesen Sie die Alben erneut ein."

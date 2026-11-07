@@ -10042,8 +10042,8 @@ msgstr "＋ Randevu ekle"
 #~ "Yalnızca telefon içeriğini eşitle. Yerel düzenlemeler korunur. Silmeler "
 #~ "henüz eşitlenmiyor."
 
-#~ msgid "Photos"
-#~ msgstr "Fotoğraflar"
+msgid "Photos"
+msgstr "Fotoğraflar"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Medya çöp kutusunu oku"
@@ -10087,8 +10087,8 @@ msgstr "＋ Randevu ekle"
 #~ msgid "Unchanged"
 #~ msgstr "Değişmedi"
 
-#~ msgid "Videos"
-#~ msgstr "Videolar"
+msgid "Videos"
+msgstr "Videolar"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Uygulamanın medya durumu bekleniyor"

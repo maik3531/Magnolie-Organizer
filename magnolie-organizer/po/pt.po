@@ -10213,8 +10213,8 @@ msgstr "＋ Adicionar compromisso"
 #~ "Sincronizar apenas o conteúdo do telefone. As alterações locais são "
 #~ "preservadas. As eliminações ainda não são sincronizadas."
 
-#~ msgid "Photos"
-#~ msgstr "Fotografias"
+msgid "Photos"
+msgstr "Fotografias"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Ler reciclagem multimédia"
@@ -10263,8 +10263,8 @@ msgstr "＋ Adicionar compromisso"
 #~ msgid "Unchanged"
 #~ msgstr "Sem alterações"
 
-#~ msgid "Videos"
-#~ msgstr "Vídeos"
+msgid "Videos"
+msgstr "Vídeos"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "A aguardar o estado multimédia nativo"

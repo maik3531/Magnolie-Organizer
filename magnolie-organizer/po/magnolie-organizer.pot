@@ -5057,6 +5057,9 @@ msgid ""
 "Photo synchronization stopped safely. Check the connection before retrying."
 msgstr ""
 
+msgid "Photos"
+msgstr ""
+
 msgid "Photos and videos"
 msgstr ""
 
@@ -8221,6 +8224,9 @@ msgid "Via internet"
 msgstr ""
 
 msgid "Video player"
+msgstr ""
+
+msgid "Videos"
 msgstr ""
 
 msgid "Vienna"

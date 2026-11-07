@@ -10162,8 +10162,8 @@ msgstr "＋ Добавить встречу"
 #~ "Синхронизировать только содержимое телефона. Локальные изменения "
 #~ "сохраняются. Удаления пока не синхронизируются."
 
-#~ msgid "Photos"
-#~ msgstr "Фотографии"
+msgid "Photos"
+msgstr "Фотографии"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Прочитать корзину медиафайлов"
@@ -10210,8 +10210,8 @@ msgstr "＋ Добавить встречу"
 #~ msgid "Unchanged"
 #~ msgstr "Без изменений"
 
-#~ msgid "Videos"
-#~ msgstr "Видео"
+msgid "Videos"
+msgstr "Видео"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Ожидание состояния медиафайлов от приложения"

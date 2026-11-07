@@ -10185,8 +10185,8 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Alleen de inhoud van de telefoon synchroniseren. Lokale wijzigingen "
 #~ "blijven behouden. Verwijderingen worden nog niet gesynchroniseerd."
 
-#~ msgid "Photos"
-#~ msgstr "Foto’s"
+msgid "Photos"
+msgstr "Foto’s"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Mediaprullenbak lezen"
@@ -10234,8 +10234,8 @@ msgstr "＋ Afspraak toevoegen"
 #~ msgid "Unchanged"
 #~ msgstr "Ongewijzigd"
 
-#~ msgid "Videos"
-#~ msgstr "Video’s"
+msgid "Videos"
+msgstr "Video’s"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Wachten op native mediastatus"

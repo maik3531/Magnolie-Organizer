@@ -10337,8 +10337,8 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ "locales sont préservées. Les suppressions ne sont pas encore "
 #~ "synchronisées."
 
-#~ msgid "Photos"
-#~ msgstr "Photographies"
+msgid "Photos"
+msgstr "Photographies"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Lire la corbeille multimédia"
@@ -10388,8 +10388,8 @@ msgstr "＋ Ajouter un rendez-vous"
 #~ msgid "Unchanged"
 #~ msgstr "Inchangés"
 
-#~ msgid "Videos"
-#~ msgstr "Vidéos"
+msgid "Videos"
+msgstr "Vidéos"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Attente de l’état multimédia natif"

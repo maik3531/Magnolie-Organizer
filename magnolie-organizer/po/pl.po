@@ -10162,8 +10162,8 @@ msgstr "＋ Dodaj spotkanie"
 #~ "Synchronizuj tylko zawartość telefonu. Lokalne zmiany są zachowywane. "
 #~ "Usunięcia nie są jeszcze synchronizowane."
 
-#~ msgid "Photos"
-#~ msgstr "Zdjęcia"
+msgid "Photos"
+msgstr "Zdjęcia"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Odczytaj kosz multimediów"
@@ -10211,8 +10211,8 @@ msgstr "＋ Dodaj spotkanie"
 #~ msgid "Unchanged"
 #~ msgstr "Bez zmian"
 
-#~ msgid "Videos"
-#~ msgstr "Filmy"
+msgid "Videos"
+msgstr "Filmy"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Oczekiwanie na natywny stan multimediów"

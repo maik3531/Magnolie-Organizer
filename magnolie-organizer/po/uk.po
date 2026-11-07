@@ -10116,8 +10116,8 @@ msgstr "＋ Додати зустріч"
 #~ "Синхронізувати лише вміст телефону. Локальні зміни зберігаються. "
 #~ "Видалення ще не синхронізуються."
 
-#~ msgid "Photos"
-#~ msgstr "Фотографії"
+msgid "Photos"
+msgstr "Фотографії"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Прочитати кошик медіафайлів"
@@ -10163,8 +10163,8 @@ msgstr "＋ Додати зустріч"
 #~ msgid "Unchanged"
 #~ msgstr "Без змін"
 
-#~ msgid "Videos"
-#~ msgstr "Відео"
+msgid "Videos"
+msgstr "Відео"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Очікування стану медіафайлів від програми"

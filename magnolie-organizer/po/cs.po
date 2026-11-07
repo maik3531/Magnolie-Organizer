@@ -10063,8 +10063,8 @@ msgstr "＋ Přidat schůzku"
 #~ "Synchronizovat pouze obsah telefonu. Místní úpravy jsou zachovány. "
 #~ "Odstranění se zatím nesynchronizují."
 
-#~ msgid "Photos"
-#~ msgstr "Fotografie"
+msgid "Photos"
+msgstr "Fotografie"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Načíst koš médií"
@@ -10110,8 +10110,8 @@ msgstr "＋ Přidat schůzku"
 #~ msgid "Unchanged"
 #~ msgstr "Beze změny"
 
-#~ msgid "Videos"
-#~ msgstr "Videa"
+msgid "Videos"
+msgstr "Videa"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čekání na nativní stav médií"

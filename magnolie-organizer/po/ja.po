@@ -9958,8 +9958,8 @@ msgstr "＋ 予定を追加"
 #~ "スマートフォンの内容のみを同期します。ローカルの編集は保持されます。削除は"
 #~ "まだ同期されません。"
 
-#~ msgid "Photos"
-#~ msgstr "写真"
+msgid "Photos"
+msgstr "写真"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "メディアのゴミ箱を読み込み"
@@ -10004,8 +10004,8 @@ msgstr "＋ 予定を追加"
 #~ msgid "Unchanged"
 #~ msgstr "変更なし"
 
-#~ msgid "Videos"
-#~ msgstr "動画"
+msgid "Videos"
+msgstr "動画"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "ネイティブのメディア状態を待っています"

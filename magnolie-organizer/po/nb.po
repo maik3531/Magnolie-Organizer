@@ -10055,8 +10055,8 @@ msgstr "＋ Legg til avtale"
 #~ "Synkroniser bare telefonens innhold. Lokale endringer bevares. Slettinger "
 #~ "synkroniseres ennå ikke."
 
-#~ msgid "Photos"
-#~ msgstr "Bilder"
+msgid "Photos"
+msgstr "Bilder"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Les mediepapirkurven"
@@ -10102,8 +10102,8 @@ msgstr "＋ Legg til avtale"
 #~ msgid "Unchanged"
 #~ msgstr "Uendret"
 
-#~ msgid "Videos"
-#~ msgstr "Videoer"
+msgid "Videos"
+msgstr "Videoer"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Venter på programmets mediestatus"

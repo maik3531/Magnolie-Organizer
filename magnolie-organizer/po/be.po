@@ -10106,8 +10106,8 @@ msgstr "＋ Дадаць сустрэчу"
 #~ "Сінхранізаваць толькі змесціва тэлефона. Лакальныя змены захоўваюцца. "
 #~ "Выдаленні яшчэ не сінхранізуюцца."
 
-#~ msgid "Photos"
-#~ msgstr "Фота"
+msgid "Photos"
+msgstr "Фота"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Прачытаць кошык медыяфайлаў"
@@ -10154,8 +10154,8 @@ msgstr "＋ Дадаць сустрэчу"
 #~ msgid "Unchanged"
 #~ msgstr "Без змен"
 
-#~ msgid "Videos"
-#~ msgstr "Відэа"
+msgid "Videos"
+msgstr "Відэа"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Чаканне стану медыяфайлаў ад праграмы"

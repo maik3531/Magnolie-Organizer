@@ -10234,8 +10234,8 @@ msgstr "＋ Aggiungi appuntamento"
 #~ "Sincronizza solo il contenuto del telefono. Le modifiche locali vengono "
 #~ "conservate. Le eliminazioni non vengono ancora sincronizzate."
 
-#~ msgid "Photos"
-#~ msgstr "Fotografie"
+msgid "Photos"
+msgstr "Fotografie"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Leggi cestino multimediale"
@@ -10284,8 +10284,8 @@ msgstr "＋ Aggiungi appuntamento"
 #~ msgid "Unchanged"
 #~ msgstr "Invariati"
 
-#~ msgid "Videos"
-#~ msgstr "Video"
+msgid "Videos"
+msgstr "Video"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "In attesa dello stato multimediale nativo"

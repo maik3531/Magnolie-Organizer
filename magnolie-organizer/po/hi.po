@@ -9845,8 +9845,8 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "केवल फ़ोन की सामग्री का समन्वयन करें। स्थानीय बदलाव सुरक्षित रहते हैं। विलोपन का "
 #~ "समन्वयन अभी नहीं होता।"
 
-#~ msgid "Photos"
-#~ msgstr "फ़ोटो"
+msgid "Photos"
+msgstr "फ़ोटो"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "मीडिया कूड़ेदान पढ़ें"
@@ -9889,8 +9889,8 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ msgid "Unchanged"
 #~ msgstr "अपरिवर्तित"
 
-#~ msgid "Videos"
-#~ msgstr "वीडियो"
+msgid "Videos"
+msgstr "वीडियो"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "ऐप की मीडिया स्थिति की प्रतीक्षा"

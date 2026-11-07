@@ -10217,8 +10217,8 @@ msgstr "＋ Termin přidać"
 #~ "Jenož wobsah telefona synchronizować. Lokalne změny so wobchowaja. "
 #~ "Zhašenja so hišće njesynchronizuja."
 
-#~ msgid "Photos"
-#~ msgstr "Fota"
+msgid "Photos"
+msgstr "Fota"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Medijowy papjernik wučitać"
@@ -10264,8 +10264,8 @@ msgstr "＋ Termin přidać"
 #~ msgid "Unchanged"
 #~ msgstr "Njezměnjene"
 
-#~ msgid "Videos"
-#~ msgstr "Wideja"
+msgid "Videos"
+msgstr "Wideja"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Čaka so na natiwny medijowy status"

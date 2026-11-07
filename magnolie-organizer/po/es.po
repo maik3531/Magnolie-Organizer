@@ -10237,8 +10237,8 @@ msgstr "＋ Añadir cita"
 #~ "Sincronizar solo el contenido del teléfono. Se conservan los cambios "
 #~ "locales. Las eliminaciones aún no se sincronizan."
 
-#~ msgid "Photos"
-#~ msgstr "Fotos"
+msgid "Photos"
+msgstr "Fotos"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "Leer papelera multimedia"
@@ -10288,8 +10288,8 @@ msgstr "＋ Añadir cita"
 #~ msgid "Unchanged"
 #~ msgstr "Sin cambios"
 
-#~ msgid "Videos"
-#~ msgstr "Vídeos"
+msgid "Videos"
+msgstr "Vídeos"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "Esperando el estado multimedia nativo"

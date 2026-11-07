@@ -9570,8 +9570,8 @@ msgstr "＋ 添加约会"
 #~ "Deletions are not synchronized yet."
 #~ msgstr "仅同步手机上的内容。本地修改会保留。目前尚不同步删除操作。"
 
-#~ msgid "Photos"
-#~ msgstr "照片"
+msgid "Photos"
+msgstr "照片"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "读取媒体回收站"
@@ -9614,8 +9614,8 @@ msgstr "＋ 添加约会"
 #~ msgid "Unchanged"
 #~ msgstr "未更改"
 
-#~ msgid "Videos"
-#~ msgstr "视频"
+msgid "Videos"
+msgstr "视频"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "等待原生媒体状态"

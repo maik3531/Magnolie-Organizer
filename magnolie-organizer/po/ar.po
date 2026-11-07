@@ -10141,8 +10141,8 @@ msgstr "＋ إضافة موعد"
 #~ msgstr ""
 #~ "مزامنة محتويات الهاتف فقط. تُحفظ التعديلات المحلية. الحذف لا يُزامن بعد."
 
-#~ msgid "Photos"
-#~ msgstr "صور"
+msgid "Photos"
+msgstr "صور"
 
 #~ msgid "Read media recycle bin"
 #~ msgstr "قراءة سلة مهملات الوسائط"
@@ -10185,8 +10185,8 @@ msgstr "＋ إضافة موعد"
 #~ msgid "Unchanged"
 #~ msgstr "دون تغيير"
 
-#~ msgid "Videos"
-#~ msgstr "فيديوهات"
+msgid "Videos"
+msgstr "فيديوهات"
 
 #~ msgid "Waiting for native media status"
 #~ msgstr "بانتظار حالة الوسائط من التطبيق"
