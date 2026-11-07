@@ -10,6 +10,7 @@ import os
 
 from magnolie_file_control import _hex
 from magnolie_file_transfer import FileManifest,TransferError
+from magnolie_file_acceptance import NativeAcceptedDestination
 from magnolie_media_backup_codec import content_key,verify_raw
 from magnolie_photo_mappings import NativeSavedPhotoMapping,PhotoMappingAssociation
 from magnolie_telefon import canonical
@@ -25,8 +26,8 @@ def _validate_source_version(value,key):
             or not 0<value['saved_ms']<=253402300799999 or type(value['source']) is not dict):
         raise TransferError('media_backup_source_version_invalid')
     source=value['source']
-    if (set(source)!={'format','job_id','job_nonce','job_version','proof_sha256','book_version','manifest',
-            'original_mapping_sha256','original_mapping'} or type(source['format']) is not int or source['format']!=1
+    fields={'format','job_id','job_nonce','job_version','proof_sha256','book_version','manifest','original_mapping_sha256','original_mapping'}
+    if (set(source) not in (fields,fields|{'restored_source'}) or type(source['format']) is not int or source['format']!=1
             or any(not _hex(source[name]) for name in ('job_nonce','job_version','proof_sha256','book_version','original_mapping_sha256'))
             or type(source['original_mapping']) is not dict or type(source['original_mapping'].get('association')) is not dict):
         raise TransferError('media_backup_source_version_invalid')
@@ -34,9 +35,24 @@ def _validate_source_version(value,key):
     if set(association)!={'source_epoch','photo_id','media_type'}:raise TransferError('media_backup_source_version_invalid')
     mapping=NativeSavedPhotoMapping.parse(source['original_mapping'],PhotoMappingAssociation(**association),source['original_mapping_sha256'])
     manifest=FileManifest.parse(source['manifest'])
+    name=mapping.relative_path
+    if 'restored_source' in source:
+        restored=source['restored_source']
+        if (type(restored) is not dict or set(restored)!={'destination','relative_path','file_key','parent_keys',
+                'restore_record_sha256','original_mapping_sha256'} or not _hex(restored['restore_record_sha256'])
+                or restored['original_mapping_sha256']!=source['original_mapping_sha256']):
+            raise TransferError('media_backup_source_version_invalid')
+        destination=NativeAcceptedDestination.parse(restored['destination']);name=restored['relative_path']
+        if (type(name) is not str or not name or '/' in name or '\\' in name or name in ('.','..')
+                or restored['parent_keys']!=[list(destination.ancestor_keys[0])]):
+            raise TransferError('media_backup_source_version_invalid')
+        key_value=restored['file_key']
+        if (type(key_value) is not list or len(key_value)!=2 or any(type(n) is not int or not 0<=n<2**64 for n in key_value)
+                or key_value[0]!=destination.ancestor_keys[0][0] or key_value[1]==0):
+            raise TransferError('media_backup_source_version_invalid')
     if (len(manifest.files)!=1 or manifest.source_id!=source['job_id'] or _source_version_id(source)!=key
             or value['object_key']!=content_key(manifest.files[0].size,manifest.files[0].sha256)
-            or value['name']!=mapping.relative_path or manifest.files[0].path!=mapping.relative_path.rsplit('/',1)[-1]):
+            or value['name']!=name or manifest.files[0].path!=name.rsplit('/',1)[-1]):
         raise TransferError('media_backup_source_version_invalid')
     return value
 
@@ -58,7 +74,9 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
             or type(job_id) is not str or job_id not in source._prepared):
         raise TransferError('media_backup_actual_source_preparation_required')
     prepared=source._prepared[job_id];cached=prepared.cache;mapping=prepared.original_mapping
-    if (type(mapping) is not NativeSavedPhotoMapping or mapping.destination!=backups.destination
+    restored=prepared.restored_source
+    destination=mapping.destination if restored is None else restored.destination
+    if (type(mapping) is not NativeSavedPhotoMapping or destination!=backups.destination
             or backups.protection.native_directory_identity!=source._authority.protection.native_directory_identity
             or cached.original_references!={cached.manifest.files[0].id:mapping.phone_original_reference()}):
         raise TransferError('media_backup_original_source_owner_required')
@@ -68,6 +86,7 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         provenance=dict(format=1,job_id=job_id,job_nonce=cached._job_nonce,job_version=cached._job_version,
             proof_sha256=cached.proof_sha256,book_version=prepared.book_version,manifest=cached.manifest.wire(),
             original_mapping_sha256=mapping.protected_record_sha256,original_mapping=mapping.wire())
+        if restored is not None:provenance['restored_source']=restored.wire()
         version_id=_source_version_id(provenance);key=content_key(file.size,file.sha256)
         before=backups._record('versions',version_id);obj=backups._record('objects',key)
         if before is not None:
@@ -77,7 +96,8 @@ def backup_prepared_source(backups,source,job_id,*,boundary=lambda _:None):
         if version is None:
             if len(backups._members('versions'))+len(backups._pending_members())>=backups.MAX_VERSIONS:
                 raise TransferError('media_backup_catalog_capacity')
-            version=dict(id=version_id,object_key=key,saved_ms=backups._clock(),name=mapping.relative_path,source=provenance)
+            name=mapping.relative_path if restored is None else restored.relative_path
+            version=dict(id=version_id,object_key=key,saved_ms=backups._clock(),name=name,source=provenance)
             _validate_source_version(version,version_id);current();backups._commit(pending=version)
         elif version['source']!=provenance:raise TransferError('media_backup_original_source_owner_required')
         boundary('source_backup_intent_durable');current()

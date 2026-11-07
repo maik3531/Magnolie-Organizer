@@ -46,6 +46,7 @@ class _PreparedSource:
     book_version: str
     failed: object
     original_mapping: object
+    restored_source: object = None
 
 
 class NativeMappedMediaSource:
@@ -116,6 +117,12 @@ class NativeMappedMediaSource:
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
     def inspect_restored(self,action,expected,restorations,operation,record_sha256,*,kind='images'):
+        return self._restored(action,expected,restorations,operation,record_sha256,kind=kind,freeze=False)
+
+    def freeze_restored(self,action,expected,restorations,operation,record_sha256,*,kind='images'):
+        return self._restored(action,expected,restorations,operation,record_sha256,kind=kind,freeze=True)
+
+    def _restored(self,action,expected,restorations,operation,record_sha256,*,kind,freeze):
         from magnolie_media_backups import NativeMediaBackupRestoreOwner
         from magnolie_telefon import canonical
         scope=sha256(canonical(dict(subject=self._preferences._subject,media_type=kind))).hexdigest()
@@ -123,7 +130,7 @@ class NativeMappedMediaSource:
                 or restorations._journal._subject!=dict(local_backup_scope=scope)
                 or restorations._journal.local_protection.native_directory_identity!=self._authority.protection.native_directory_identity):
             raise TransferError('media_source_restore_original_peer_scope_required')
-        return self._read(action,expected,None,record_sha256,kind=kind,freeze=False,restoration=(restorations,operation))
+        return self._read(action,expected,None,record_sha256,kind=kind,freeze=freeze,restoration=(restorations,operation))
 
     @contextmanager
     def prepared_cache(self,job_id):
@@ -209,6 +216,8 @@ class NativeMappedMediaSource:
             permission()
             if freeze:
                 if self._prepared:raise TransferError('media_source_prepared_capacity')
-                self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event(),mapping)
+                original=mapping if restoration is None else mapping.original_mapping
+                self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event(),original,
+                    None if restoration is None else mapping)
             return result
         finally:self._gate.release()

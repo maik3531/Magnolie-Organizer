@@ -309,6 +309,21 @@ no READ or Saved rights. Ten restored-source and five affected original-source/
 cache/reader/sender cases pass. This admits inspection only, not restored-source
 cache freezing, new outbound backup provenance or a production send path.
 
+The same completed-restore lease can now explicitly freeze restored source
+bytes (#404). Intent and actual in-process preparation preserve the distinct
+new destination/path/inode/parent/event identity, while retaining the original
+Saved mapping unchanged as phone-reference history. Source backup provenance
+optionally binds that bounded restored-source identity instead of embedding
+recursive full restore chains; its selected data owner is the actual restored
+destination, never the original Saved destination. Existing owned objects,
+separate retained catalogs, independent readback and source pins still apply.
+Five new and seven affected native cases cover restore/freeze/read/backup/
+offline-recovery, actual private encrypted output, wrong target ownership,
+stale selection and interrupted cache HOLD. Existing complete/partial source
+stages still cannot be overwritten, adopted, deleted or reused. Durable global
+source membership/retirement/restart and remaining production/platform/physical
+acceptance are still required; no general sender readiness is enabled.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

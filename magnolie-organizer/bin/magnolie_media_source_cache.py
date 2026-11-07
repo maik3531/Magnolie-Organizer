@@ -77,6 +77,8 @@ class _NativeSourceCacheWriter:
                 source_signature=list(signature),original_mapping_sha256=mapping.protected_record_sha256,
                 original_reference=self._reference,source_policy_sha256=expected.version,pairing_epoch=peer.pairing_epoch,
                 media_intent_sha256=sha256(canonical(token.body)).hexdigest(),source_path=mapping.relative_path)
+            from magnolie_media_backups import NativeRestoredMediaCandidate
+            if type(mapping) is NativeRestoredMediaCandidate:intent['restored_source']=mapping.wire()
             self._intent_sha256=sha256(canonical(intent)).hexdigest()
             self._metadata['intent.enc']=self._write('intent.enc',canonical(intent))
             self._owner._boundary('source_cache_intent_durable');self._guard()

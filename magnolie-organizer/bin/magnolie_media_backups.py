@@ -558,6 +558,11 @@ class NativeRestoredMediaCandidate:
     @property
     def is_saved_receipt(self):return False
 
+    def wire(self):
+        return dict(destination=self.destination.wire(),relative_path=self.relative_path,file_key=list(self.file_key),
+            parent_keys=[list(key) for key in self.parent_keys],restore_record_sha256=self.protected_record_sha256,
+            original_mapping_sha256=self.original_mapping.protected_record_sha256)
+
 
 class _ProtectedBackupRestorations(_ProtectedBackupLocations):
     """Independent append-only local restoration evidence, not phone receipts."""
