@@ -84,6 +84,7 @@ def verify_encrypted_source(jobs,parent,name,retired,ready,kind,current,boundary
         if members.hexdigest()!=proof['chunks_sha256']:raise TransferError('media_source_recovery_cipher_membership_changed')
         guarded()
         if set(os.listdir(root))!=expected:raise TransferError('media_source_recovery_archive_layout_changed')
+        return intent # Authenticated metadata only, never a source READ grant.
     finally:os.close(root)
 
 

@@ -116,6 +116,11 @@ class NativeMappedMediaSource:
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
+    def reprepare(self,action,expected,association,record_sha256,job_id,job_version,*,kind='images'):
+        from magnolie_media_source_reprepare import _NativeSourceRepreparation
+        preparation=_NativeSourceRepreparation(self,job_id,job_version,kind)
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False,reprepare=preparation)
+
     def inspect_restored(self,action,expected,restorations,operation,record_sha256,*,kind='images'):
         return self._restored(action,expected,restorations,operation,record_sha256,kind=kind,freeze=False)
 
@@ -181,12 +186,17 @@ class NativeMappedMediaSource:
             return True
         return permission,token
 
-    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None):
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
         action.consume(self._preferences)
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         try:
+            if reprepare is not None:
+                from magnolie_media_source_reprepare import _NativeSourceRepreparation
+                if (type(reprepare) is not _NativeSourceRepreparation or reprepare._source is not self
+                        or freeze or restoration is not None or self._prepared):
+                    raise TransferError('media_source_reprepare_fresh_owner_required')
             permission,token=self._source_permission(action,expected,kind)
             permission()
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
@@ -221,10 +231,14 @@ class NativeMappedMediaSource:
                                     unchanged()
                                     result=cache.finish(digest.hexdigest()) if cache is not None else NativeMediaSourceObservation(
                                         size,digest.hexdigest(),mapping.file_key,signature,tuple(sorted(mapping.phone_original_reference().items())))
+                                    if reprepare is not None:
+                                        self._cache_scope.repreparing=(reprepare,result,threading.get_ident())
+                                        try:result=reprepare.complete(mapping,result,book.book_version,unchanged)
+                                        finally:self._cache_scope.repreparing=None
                             current()
                         book.require_current()
             permission()
-            if freeze:
+            if freeze or reprepare is not None:
                 if self._prepared:raise TransferError('media_source_prepared_capacity')
                 original=mapping if restoration is None else mapping.original_mapping
                 self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event(),original,

@@ -411,6 +411,28 @@ Five new and eleven affected native test methods pass, including actual
 receive/regrant/read-only inspection and blocked-provider control/local/book
 withdrawal and deferred-close cases.
 
+An explicit fresh native original-file re-preparation can qualify an existing
+PC `cache_ready` job for a new in-process cache lease (#410). This is not an
+adoption API for historical metadata: a new action, current local source consent,
+actual shared two-way intent, exact original book and protected mapping must
+first own and fully read the real no-follow/single-link original descriptor.
+Original bytes, size, inode/signature, mapping/reference/path must match the
+immutable original intent; the complete authenticated cache metadata and ordered
+cipher membership are then reverified under that still-live descriptor lease.
+Only this exact thread's actual-read permit can install the new preparation.
+
+Old readers remain closed; jobs, IDs, cache bytes and journals are not changed.
+Changed/missing originals, new book witnesses, copied observations, absent or
+changed members, unknown scoped stages and any retirement intent hold without
+repair. Earlier archived jobs require their exact protected archive proofs.
+Restored-source history without its own explicit restoration lease is not
+adopted by this original-file path. This only re-prepares local cache ownership;
+existing wire attempts still hold and no interrupted transfer, new acceptance,
+Saved output or production SEND is enabled by it.
+Twenty new and seventeen affected native cases pass, including actual full
+original-file and multichunk re-preparation, history-only denial, changed
+evidence, retirement exclusion and cancellation during real original-file IO.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.
