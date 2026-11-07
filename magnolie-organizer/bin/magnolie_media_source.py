@@ -45,6 +45,7 @@ class _PreparedSource:
     permission: object
     book_version: str
     failed: object
+    original_mapping: object
 
 
 class NativeMappedMediaSource:
@@ -196,6 +197,6 @@ class NativeMappedMediaSource:
             permission()
             if freeze:
                 if self._prepared:raise TransferError('media_source_prepared_capacity')
-                self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event())
+                self._prepared[result.manifest.source_id]=_PreparedSource(result,permission,book.book_version,threading.Event(),mapping)
             return result
         finally:self._gate.release()

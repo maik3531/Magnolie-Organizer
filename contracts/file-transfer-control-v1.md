@@ -263,6 +263,26 @@ closed. Outbound-version backup/pinning, retirement/restart, original-reference
 and MIME dispatcher joins, platform parity and physical acceptance remain
 required before production composition.
 
+Prepared Linux PC versions now also have a native local backup path (#401),
+separate from phone Saved mappings and partner Saved assertions. The exact
+in-process preparation retains its authenticated original mapping only as
+history; the backup records its own source manifest/job/nonce/ready/proof/book
+provenance without rewriting that mapping's old size/hash/receipt. The existing
+owned catalog, hash/size-addressed objects, native default/alternative storage
+and immutable version references are reused without schema migration. Durable
+source-version intent precedes a registered new inode and payload; full readonly
+reopen/hash verification precedes completed-version publication. Identical bytes
+share an existing verified object, including genuine phone-origin backups.
+Completed and independently verified interrupted source copies can restore
+offline into new empty files, without a live peer, source file or source cache.
+Partial copies cannot become recovery selections. Source-version references
+pin shared objects against compression/retirement pending a separate lifecycle.
+Seven new source-backup and seven affected catalog/preparation/reader/sender
+cases pass. The catalog explicitly refuses to project a source version as a
+Saved mapping. Source-version recovery UI/publication lineage, source-slot
+retirement/restart/global catalog and platform/production joins are still open;
+no production source or package readiness is implied.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

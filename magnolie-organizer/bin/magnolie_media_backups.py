@@ -1076,6 +1076,9 @@ class NativeMediaBackups:
 
     @staticmethod
     def _validate_version(value,key):
+        if type(value) is dict and 'source' in value:
+            from magnolie_media_source_backup import _validate_source_version
+            return _validate_source_version(value,key)
         if (type(value) is not dict or set(value) != {'id', 'object_key', 'saved_ms', 'name', 'mapping'}
                 or value['id']!=key or not _hex(key) or type(value['saved_ms']) is not int
                 or not 0 < value['saved_ms'] <= 253402300799999 or type(value['mapping']) is not dict
@@ -1279,6 +1282,7 @@ class NativeMediaBackups:
         if type(selected) is not NativeMediaBackupVersion:raise TransferError('media_backup_native_selection_required')
         with self._operation():
             value=self._selected_version(selected)
+            if 'source' in value:raise TransferError('media_backup_source_version_has_no_saved_mapping')
             association=value['mapping']['association']
             return NativeSavedPhotoMapping.parse(value['mapping'],PhotoMappingAssociation(**association),selected.id)
 
@@ -1307,6 +1311,7 @@ class NativeMediaBackups:
             refs = [self._record('versions', key) for key, _ in self._members('versions')]
             refs = [ref for ref in refs if ref['object_key'] == object_key]
             if not refs: raise TransferError('media_backup_original_version_required')
+            if any('source' in ref for ref in refs):return False # Source lifecycle has no retirement authority yet.
             now = self._clock(); newest = max(ref['saved_ms'] for ref in refs)
             if obj['codec'] == 'raw':
                 if obj['prepared']: raise TransferError('media_backup_object_not_complete')
@@ -1355,6 +1360,7 @@ class NativeMediaBackups:
             newest={}
             for key,_ in self._members('versions'):
                 version=self._record('versions',key)
+                if 'source' in version:pinned.add(version['object_key'])
                 newest[version['object_key']]=max(newest.get(version['object_key'],0),version['saved_ms'])
             result=[];now=self._clock()
             for key,saved in newest.items():
