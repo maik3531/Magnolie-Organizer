@@ -3674,9 +3674,13 @@ class AndroidGalleryPhotoSourceTest {
                         assertEquals("video", started.string("media_type"))
                         var run = NativeGalleryFileRuntime::class.java.getDeclaredField("syncRun").also { it.isAccessible = true }.get(runtime) as NativeGallerySyncRun
                         assertEquals(run.id, started.string("run_id"))
-                        // Reuse the existing batchCommandCase multi-photo bound;
-                        // the one-photo/ordinary-resume guard remains five seconds.
-                         assertTrue(ended.await(if (nextBatch) 60 else 5, java.util.concurrent.TimeUnit.SECONDS))
+                         // This first encrypted-original freeze prepares the fixture;
+                         // separate resume/cancel waits below retain their five-second bound.
+                         if (!ended.await(if (nextBatch) 60 else 30, java.util.concurrent.TimeUnit.SECONDS)) {
+                             val stacks = Thread.getAllStackTraces().filter { it.key.name == "magnolie-photo-source" }
+                                 .entries.joinToString("\n") { (thread, stack) -> thread.state.toString() + ": " + stack.take(10).joinToString("\n") }
+                             fail("Initial video fixture completion deadline; quiescent=${worker.isQuiescent}\n$stacks")
+                         }
                          run.preparation.nativeFailure()?.let { throw it }
                          var job = run.preparation.snapshotJob()!!
                         assertTrue(f.provider.opens.isNotEmpty() && f.provider.opens.all { "/video/media/" in it })
