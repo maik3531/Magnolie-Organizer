@@ -2200,7 +2200,9 @@ class AndroidGalleryPhotoSourceTest {
                 val page = catalog.page()
                 selected = catalog.select(page.string("catalog_id"), page["albums"]!!.jsonArray.single().jsonObject.string("album_id"), true)
                 watchEnd()
-                val normal = runtime.beginSyncRun(selected); awaitEnd()
+                // Preparing encrypted originals is fixture setup, not a UI or
+                // cancellation latency assertion (Robolectric/JCE can start cold).
+                val normal = runtime.beginSyncRun(selected); awaitEnd(30)
                 normal.preparation.nativeFailure()?.let { throw it }
                 job = normal.preparation.snapshotJob()!!
                 runtime.receiveSourceCommand(TelefonNachrichten.message(DeviceFileSourceCommand.REQUEST, buildJsonObject {
@@ -2226,8 +2228,8 @@ class AndroidGalleryPhotoSourceTest {
             val signal = ended
             endedField.set(worker, { run: NativeGallerySourceRun -> try { originalEnd(run) } finally { signal.countDown() } })
         }
-        fun awaitEnd() {
-            val finished = ended.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        fun awaitEnd(timeoutSeconds: Long = 5) {
+            val finished = ended.await(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
             if (!finished) {
                 val sourceStacks = Thread.getAllStackTraces().filter { it.key.name == "magnolie-photo-source" }
                     .entries.joinToString("\n") { (thread, stack) -> thread.state.toString() + ": " + stack.take(10).joinToString("\n") }
@@ -3037,7 +3039,7 @@ class AndroidGalleryPhotoSourceTest {
 
     @Test fun resumeMediaPagesStayBoundedAndLostOutputRetriesExactOriginalPage() {
         ResumeRuntimeCase(9).use { h ->
-            val run = h.start(); h.awaitEnd(); val at = h.now + 120_000; val command = h.media(run)
+            val run = h.start(); h.awaitEnd(30); val at = h.now + 120_000; val command = h.media(run)
             assertThrows(java.io.IOException::class.java) { h.runtime.receiveSourceCommand(command, { throw java.io.IOException("fixture resume media reply lost") }, { at }) }
             h.runtime.receiveSourceCommand(command, h.channel::send, { at })
             val first = h.drain().single()["body"]!!.jsonObject["page"]!!.jsonObject
