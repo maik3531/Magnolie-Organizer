@@ -489,6 +489,38 @@ no-loss archival, metadata-only recovery before/after rename, missing/changed
 pins, pending-only backup denial, foreign collisions, real blocked rename
 cancellation and unchanged format-1 archive/recovery and retry replay guards.
 
+The private Android published-row readback producer (#413) uses the distinct
+`file_transfer.published.readback` envelope, NOT `accept` or `Saved`. It pins a new
+bounded offer, exact original published manifest/file, publication and row digests,
+fresh 32-byte nonce, current permission epoch and actual current static binding.
+The destination token is derived from that exact context; a binding digest and
+complete readback digest prevent fields being reused as a different context.
+Kotlin/Python share synthetic canonical codec vectors; pure encoding/parsing
+returns metadata only and never establishes native provider work or authority.
+
+Only an explicit fresh native read-only owner for the original published row can
+send this, on its exact actual secure channel with current book/unlocked witness,
+positive per-kind receive policy and actual incoming two-way intent. After full
+original-byte readback, native MIME inspection, second full hash and exact row
+recheck, the provider owner installs an unexported owning-thread permit for the
+exact owner/observation/recovery instance. Ordinary inspection results and copied
+metadata cannot invoke this send path. The process media IO lane remains held
+through real encrypted output/drain and final current-row/cancellation checks.
+Wire output may already have arrived when cancellation or post-output validation
+fails; such uncertainty is not a successful local output and never causes repair,
+another insert, journal mutation, deletion or a manufactured Saved receipt.
+
+This private producer is not a registered production handler and is not yet joined
+to the native runtime worker or PC completion/retirement path. It therefore does
+not yet establish end-to-end transfer resume or physical/platform/package
+acceptance. Normal duplicate-original offers remain held; ordinary read-only
+inspection remains without wire output.
+Thirty-seven new and three affected native/codec cases pass (27 Python cases,
+five Kotlin codec groups, five native producer groups and three affected native
+inspection/runtime groups). Grouped negative variants are not additional test
+methods. Actual encrypted output cancellation retains ownership through drain
+and reports local uncertainty even if a wire frame has already arrived.
+
 Native incoming journals also fence stable original-transfer identity across
 renewed permission/pairing bindings: the same static device keys and source/
 transfer/file IDs cannot obtain a second publication ID or mutate another row.

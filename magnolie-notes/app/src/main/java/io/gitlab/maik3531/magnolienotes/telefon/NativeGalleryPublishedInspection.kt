@@ -56,6 +56,16 @@ internal class NativeGalleryPublishedInspection private constructor(private val 
         if (actual !== index) { close(); fail() }
         requireCurrent()
     }
+    internal fun requireChannel(channel: TelefonSecureChannel) {
+        requireCurrent()
+        if (originalPeer.owner !== channel) { close(); fail() }
+    }
+    internal fun bindingForReadback(destinationToken: String): DeviceTransferBinding {
+        requireCurrent()
+        val current = session.binding(destinationToken) ?: fail()
+        if (current.permissionEpoch != binding.permissionEpoch) { close(); fail() }
+        requireCurrent(); return current
+    }
     override fun close() { closed.set(true) }
     companion object {
         internal fun capture(session: NativeFileControlSession, index: PhotoSourceJobIndex, book: NativeGalleryReceiveBookPermit,

@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "description": "Synthetic public codec vector only; no native provider, receipt or authority.",
+  "now_ms": 1700000001000,
+  "offer": {
+    "type": "message", "v": 1, "message_id": "11111111-1111-4111-8111-111111111111",
+    "kind": "file_transfer.offer", "created_ms": 1700000000000, "expires_ms": 1700000060000,
+    "body": { "version": 1, "manifest": {
+      "format": 1, "transfer_id": "55555555555555555555555555555555", "source_id": "44444444444444444444444444444444",
+      "sender_id": "receiver_fixture_01", "receiver_id": "phone_fixture_0001", "chunk_bytes": 65536, "total_bytes": 123,
+      "files": [{ "id": "33333333333333333333333333333333", "path": "Camera/original.png", "size": 123,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }]
+    }, "manifest_sha256": "32331cd1d6b6454472daa0fc005effd32d57506759f3c0c3aebf6363a597614f" }
+  },
+  "binding": {
+    "sender_id": "receiver_fixture_01", "receiver_id": "phone_fixture_0001",
+    "sender_identity_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "receiver_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "permission_epoch": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "destination_token": "335ff9b64310afc54ebb69e30471981a420f95f4ba0f6a4c5b23fd88ba8507eb"
+  },
+  "message": {
+    "type": "message", "v": 1, "message_id": "22222222-2222-4222-8222-222222222222",
+    "kind": "file_transfer.published.readback", "created_ms": 1700000001000, "expires_ms": 1700000060000,
+    "body": {
+      "format": 1, "offer_id": "11111111-1111-4111-8111-111111111111",
+      "manifest_sha256": "32331cd1d6b6454472daa0fc005effd32d57506759f3c0c3aebf6363a597614f",
+      "transfer_id": "55555555555555555555555555555555", "source_id": "44444444444444444444444444444444",
+      "file_id": "33333333333333333333333333333333", "size": 123,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "media_type": "images", "mime_type": "image/png",
+      "publication_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "row_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "permission_epoch": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "readback_nonce": "1111111111111111111111111111111111111111111111111111111111111111",
+      "destination_token": "335ff9b64310afc54ebb69e30471981a420f95f4ba0f6a4c5b23fd88ba8507eb",
+      "binding_sha256": "e7b437a74cba222fe65215efa5227b803a50849e247639bdb73a64c0ab44d320",
+      "readback_sha256": "12d1ef5f6877071b54ddd2fd5df7bd9703b41f432b43081a4e08547ee47b3ea4"
+    }
+  }
+}

@@ -86,6 +86,9 @@ internal class NativeGalleryIncomingOwner private constructor(private val sessio
 internal class NativeGalleryIncomingRows(context: Context, private val index: PhotoSourceJobIndex) {
     private val app = context.applicationContext
     private val resolver = app.contentResolver
+    private class VerifiedRead(val owner: NativeGalleryPublishedInspection, val observation: NativeIncomingMediaObservation,
+        val recovery: NativeGalleryPublishedReadback)
+    private val verifiedRead = ThreadLocal<VerifiedRead?>()
 
     internal fun prepare(owner: NativeGalleryIncomingOwner, fileId: String, mimeType: String): GalleryIncomingPublication {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
@@ -282,7 +285,22 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
      * current rights. No journal mutation or receipt is generated. Lane ownership
      * drains real provider I/O even when the caller cancels/closes its owner. */
     internal fun inspectPublished(owner: NativeGalleryPublishedInspection,
-        cancellation: CancellationSignal = CancellationSignal()): NativeIncomingMediaObservation {
+        cancellation: CancellationSignal = CancellationSignal()): NativeIncomingMediaObservation = inspectPublishedOwned(owner, cancellation, null)
+
+    internal fun recoverPublished(recovery: NativeGalleryPublishedReadback, cancellation: CancellationSignal): JsonObject {
+        inspectPublishedOwned(recovery.owner, cancellation, recovery)
+        return recovery.actualOutput() ?: fail("gallery_published_native_readback_required")
+    }
+    internal fun requireVerifiedRead(recovery: NativeGalleryPublishedReadback, owner: NativeGalleryPublishedInspection,
+        observation: NativeIncomingMediaObservation) {
+        val actual = verifiedRead.get()
+        if (actual == null || actual.owner !== owner || actual.observation !== observation || actual.recovery !== recovery)
+            fail("gallery_published_native_readback_required")
+        owner.requireIndex(index)
+    }
+
+    private fun inspectPublishedOwned(owner: NativeGalleryPublishedInspection, cancellation: CancellationSignal,
+        recovery: NativeGalleryPublishedReadback?): NativeIncomingMediaObservation {
         if (Looper.myLooper() == Looper.getMainLooper() || Build.VERSION.SDK_INT < 30)
             fail("gallery_incoming_io_android30_required")
         owner.requireIndex(index); owner.consume()
@@ -314,6 +332,11 @@ internal class NativeGalleryIncomingRows(context: Context, private val index: Ph
                 descriptor.use(::probe)
             }
             current(); verifyOriginalBytes(uri, size, body.string("sha256"), cancellation, ::current); checkRow(); current()
+            if (recovery != null) {
+                verifiedRead.set(VerifiedRead(owner, observation, recovery))
+                try { recovery.sendVerified(this, owner, observation, cancellation, ::checkRow) }
+                finally { verifiedRead.remove() }
+            }
             return observation
         } finally { owner.close(); NativeGalleryMediaIoLane.release(lane) }
     }

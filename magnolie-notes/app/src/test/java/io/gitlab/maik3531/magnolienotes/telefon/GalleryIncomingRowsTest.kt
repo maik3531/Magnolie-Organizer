@@ -224,9 +224,9 @@ class GalleryIncomingRowsTest {
         }
     }
 
-    private fun withPublishedInspection(action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
+    private fun withPublishedInspection(peerOwner: Any = Any(), action: (GalleryReceiveConsentTest.Fixture, NativeGalleryIncomingRows,
         Provider, GalleryIncomingPublication, ByteArray, File, MediaSyncTransport.IntentToken) -> Unit) {
-        GalleryReceiveConsentTest.Fixture().use { f ->
+        GalleryReceiveConsentTest.Fixture(peerOwner).use { f ->
             ready(f)
             val bitmap = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888)
             val raw = try { java.io.ByteArrayOutputStream().use { output ->
@@ -263,6 +263,139 @@ class GalleryIncomingRowsTest {
             assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
             assertTrue(provider.readOpens > reads); assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
         }
+
+    @Test fun nativePublishedReadbackProducesOnlyFreshOfferBoundEncryptedReadProofAfterActualOriginalInspection() {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                val offer = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw)); val before = f.rows(); val reads = provider.readOpens
+                val message = f.io {
+                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    NativeGalleryPublishedReadback.capture(owner, offer, link.channel).use { proof ->
+                        assertFalse(proof.grantsWriteAuthority); assertFalse(proof.isSavedReceipt)
+                        proof.perform(rows).also { assertEquals(it, proof.actualOutput()) }
+                    }
+                }
+                assertEquals(message, link.frames.single()); assertEquals(DevicePublishedReadbackEnvelope.KIND, message.string("kind"))
+                val body = message.getValue("body").jsonObject
+                val binding = f.session.binding(body.string("destination_token"))!!
+                val parsed = DevicePublishedReadbackEnvelope.parse(message, offer, binding, GalleryMediaType.IMAGES)
+                assertFalse(parsed.grantsWriteAuthority); assertFalse(parsed.isSavedReceipt); assertFalse(parsed.allowsChunkOutput)
+                assertEquals(published.fingerprint, body.string("publication_sha256"))
+                assertNotEquals(manifest(f.pc.deviceId, raw = raw).fingerprint, binding.destinationToken)
+                assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes()); assertTrue(provider.readOpens > reads)
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+    }
+
+    @Test fun copiedPublishedObservationCannotMintOrSendReadbackWithoutExactActualProviderCompletionPermit() {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                val before = f.rows()
+                f.io {
+                    val observation = rows.inspectPublished(NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published))
+                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    val offer = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw))
+                    NativeGalleryPublishedReadback.capture(owner, offer, link.channel).use { proof ->
+                        assertThrows(PhotoFolderScopeError::class.java) { proof.sendVerified(rows, owner, observation, CancellationSignal(), {}) }
+                        assertNull(proof.actualOutput())
+                    }
+                }
+                assertTrue(link.frames.isEmpty()); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+    }
+
+    @Test fun nativePublishedReadbackRejectsForeignChangedExpiredOrCurrentlyWithdrawnReadOwnership() {
+        for (change in listOf("foreign_channel", "changed_offer", "expired", "consent", "intent", "book", "bytes"))
+            NativeGalleryIncomingTransferTest.Link().use { link ->
+                withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                    var currentToken = token
+                    val owner = f.io { NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { currentToken }, published) }
+                    val now = System.currentTimeMillis()
+                    val offer = DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId,
+                        raw = if (change == "changed_offer") raw.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() } else raw),
+                        if (change == "expired") now - 70000 else now)
+                    try {
+                        if (change in setOf("foreign_channel", "changed_offer", "expired")) {
+                            NativeGalleryIncomingTransferTest.Link().use { other ->
+                                f.io { assertThrows(PhotoFolderScopeError::class.java) {
+                                    NativeGalleryPublishedReadback.capture(owner, offer, if (change == "foreign_channel") other.channel else link.channel).perform(rows)
+                                } }
+                                assertTrue(other.frames.isEmpty())
+                            }
+                        } else {
+                            val proof = f.io { NativeGalleryPublishedReadback.capture(owner, offer, link.channel) }
+                            when (change) {
+                                "consent" -> { f.io { f.controller.revoke(f.index.galleryPolicy(), GalleryMediaType.IMAGES, f.book()) }; f.handshake() }
+                                "intent" -> currentToken = intent(twoWay = false)
+                                "book" -> f.unlocked = false
+                                else -> payload.writeBytes(raw.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() })
+                            }
+                            val before = f.rows(); val bytes = payload.readBytes()
+                            proof.use {
+                                f.io { assertThrows(PhotoFolderScopeError::class.java) { it.perform(rows) } }
+                                assertNull(it.actualOutput())
+                            }
+                            assertEquals(change, before, f.rows()); assertArrayEquals(bytes, payload.readBytes())
+                        }
+                        f.io { assertThrows(PhotoFolderScopeError::class.java) { owner.requireCurrent() } }
+                        assertTrue(link.frames.isEmpty()); assertEquals(published.body, f.index.incomingPublication(published.id)!!.body)
+                        assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+                    } finally { owner.close() }
+                }
+            }
+    }
+
+    @Test fun canceledPublishedReadbackKeepsMediaLaneUntilActualEncryptedOutputReturnsAndClaimsNoLocalSuccess() {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                val before = f.rows(); val entered = java.util.concurrent.CountDownLatch(1); val release = java.util.concurrent.CountDownLatch(1)
+                val ended = java.util.concurrent.CountDownLatch(1); val error = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+                val proof = f.io {
+                    NativeGalleryPublishedReadback.capture(NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published),
+                        DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw)), link.channel)
+                }
+                link.onMessage = { message ->
+                    if (message.string("kind") == DevicePublishedReadbackEnvelope.KIND) {
+                        entered.countDown(); check(release.await(8, java.util.concurrent.TimeUnit.SECONDS))
+                    }
+                }
+                val worker = Thread {
+                    try { f.io { proof.perform(rows) } } catch (failure: Throwable) { error.set(failure) } finally { ended.countDown() }
+                }.also { it.start() }
+                try {
+                    assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); proof.close()
+                    assertEquals(1L, ended.count); assertNull(proof.actualOutput())
+                    val probe = Any(); assertFalse(NativeGalleryMediaIoLane.acquire(probe))
+                } finally { release.countDown(); worker.join(5000); link.onMessage = {} }
+                assertFalse(worker.isAlive); assertTrue(error.get() is PhotoFolderScopeError); assertNull(proof.actualOutput())
+                // Actual wire output may already have arrived. Cancellation is
+                // uncertainty, not evidence that no frame was transmitted.
+                assertEquals(DevicePublishedReadbackEnvelope.KIND, link.frames.single().string("kind"))
+                val probe = Any(); assertTrue(NativeGalleryMediaIoLane.acquire(probe)); NativeGalleryMediaIoLane.release(probe)
+                assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+    }
+
+    @Test fun failedPublishedReadbackEncryptedOutputNeverClaimsNativeSuccessOrMutatesPublishedOriginal() {
+        NativeGalleryIncomingTransferTest.Link().use { link ->
+            withPublishedInspection(link.channel) { f, rows, provider, published, raw, payload, token ->
+                val before = f.rows(); link.failKind = DevicePublishedReadbackEnvelope.KIND
+                f.io {
+                    val owner = NativeGalleryPublishedInspection.capture(f.session, f.index, f.book(), { f.peer }, { token }, published)
+                    NativeGalleryPublishedReadback.capture(owner, DeviceFileOfferEnvelope.create(manifest(f.pc.deviceId, raw = raw)), link.channel).use {
+                        assertThrows(java.io.IOException::class.java) { it.perform(rows) }; assertNull(it.actualOutput())
+                    }
+                }
+                assertTrue(link.frames.isEmpty()); assertEquals(before, f.rows()); assertArrayEquals(raw, payload.readBytes())
+                assertEquals(1, provider.inserts); assertEquals(1, provider.writeOpens); assertEquals(1, provider.publishes)
+            }
+        }
+    }
 
     @Test fun publishedReadOnlyInspectionRejectsMissingCurrentRightsAndChangedOriginalEvidence() {
         for (change in listOf("consent", "intent", "book", "peer", "namespace", "member", "owner", "pending", "bytes"))
