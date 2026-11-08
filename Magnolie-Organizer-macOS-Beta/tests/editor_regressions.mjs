@@ -56,9 +56,14 @@ try {
     t.oeffneTerminBlatt(t.daten().termine.at(-1), "2026-03-29");
     field("#tb-zeit", "12:00"); field("#tb-endzeit", "13:00");
     w.document.querySelector("#tb-fertig").click();
-    const qualifier = zone === "system" ? "" : ";TZID=" + zone;
-    cases.push({ name: zone, record: clone(t.daten().termine.at(-1)), location: "Office",
-      start: "DTSTART" + qualifier + ":20260329T120000", end: "DTEND" + qualifier + ":20260329T130000" });
+    // A newly edited system-zone record has a resolved named timezone. Obtain
+    // only that identifier from OS metadata, never numeric rules for the oracle.
+    const identifier = zone === "system" ? w.Intl.DateTimeFormat().resolvedOptions().timeZone : zone;
+    const qualifier = ";TZID=" + identifier, edited = t.daten().termine.at(-1);
+    const start = "DTSTART" + qualifier + ":20260329T120000", end = "DTEND" + qualifier + ":20260329T130000";
+    equal(edited.icsRoundtrip.filter(line => /^DTSTART[;:]/.test(line)), [start], "actual edited start retains resolved " + zone);
+    equal(edited.icsRoundtrip.filter(line => /^DTEND[;:]/.test(line)), [end], "actual edited end retains resolved " + zone);
+    cases.push({ name: zone, record: clone(edited), location: "Office", start, end });
   }
   t.daten().einstellungen.regional.timeZone = "UTC";
   t.oeffneTerminBlatt(null, "2026-05-10");
