@@ -44,6 +44,11 @@ class NativeTabletInstrumentation : Instrumentation() {
     @Volatile private var inputDocument=""
     @Volatile private var ackLatch=CountDownLatch(1)
     @Volatile private var incomingAck:JSONObject?=null
+    @Volatile private var incomingPreparation:JSONObject?=null
+    @Volatile private var preparationReplyAt=0L
+    @Volatile private var preparationReplyUptime=0L
+    private var preparationLatch=CountDownLatch(1)
+    private var inputSource=""
     @Volatile private var expectedStep=0
     private var touchNumber=0
     private val provider="io.gitlab.maik3531.magnolieorganizer.tablet.beta.test.documents"
@@ -420,7 +425,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             val pairMs=if(lastIssuedTouch.size==2) lastIssuedTouch.last().event.eventTime-lastIssuedTouch.first().event.eventTime else -1L
             phase("trusted-tab-switch-${i+1} prepareMs=${preparedAt-started} injectionMs=${returnedAt-preparedAt} " +
                 "ackWaitMs=${acknowledgedAt-returnedAt} totalMs=$total downCallMs=$downCallMs upCallMs=$upCallMs pairMs=$pairMs " +
-                "prepareEvaluations=${prepared.getInt("evaluations")} uiQueueMs=${prepared.getLong("uiQueueMs")} callbackMs=${prepared.getLong("evaluationCallbackMs")}")
+                "prepareEvaluations=${prepared.getInt("evaluations")} uiQueueMs=${prepared.getLong("uiQueueMs")} callbackMs=${prepared.getLong("evaluationCallbackMs")} browserPrepareMs=${prepared.optDouble("asyncPrepareMs",-1.0)}")
         }
         pass("40 real touchscreen tab switches with 17 old series",durations)
         saved()
@@ -428,6 +433,7 @@ class NativeTabletInstrumentation : Instrumentation() {
 
     private fun connectInputProbe() {
         val source=JSONObject(targetContext.assets.open("projection.json").bufferedReader().readText()).getString("sourceHash")
+        inputSource=source
         raw("NativeTouchProbe.connect(${JSONObject.quote(inputToken)},${JSONObject.quote(source)})")
         val ready=CountDownLatch(1)
         activity.runOnUiThread {
@@ -438,8 +444,11 @@ class NativeTabletInstrumentation : Instrumentation() {
                     if(row.optString("token")!=inputToken) return
                     if(row.optString("kind")=="ready" && row.optString("sourceHash")==source) {
                         inputDocument=row.getString("documentId"); ready.countDown()
-                    } else if(row.optString("documentId")==inputDocument && row.optInt("step")==expectedStep) {
-                        incomingAck=row; ackLatch.countDown()
+                    } else if(row.optString("documentId")==inputDocument && row.optInt("step")==expectedStep && row.optString("sourceHash")==inputSource) {
+                        when(row.optString("kind")) {
+                            "prepared", "prepareError" -> {incomingPreparation=row; preparationReplyAt=SystemClock.elapsedRealtime(); preparationReplyUptime=SystemClock.uptimeMillis(); preparationLatch.countDown()}
+                            "ack", "error" -> {incomingAck=row; ackLatch.countDown()}
+                        }
                     }
                 }
             })
@@ -463,40 +472,44 @@ class NativeTabletInstrumentation : Instrumentation() {
         return snapshot.toString().take(5000)
     }
     private fun prepareTouch(step:Int,label:String,section:String):JSONObject {
-        lateinit var prepared:JSONObject
-        val before=webEvaluations
-        waitFor("stable unobscured touch target",5) {
-            val latch=CountDownLatch(1); var result="null"; val location=IntArray(2); var density=1f
-            var uiAt=0L
-            var nativeEvaluationStart=0L; var nativeArmedUptime=0L
-            val started=SystemClock.elapsedRealtime(); webEvaluations++
-            activity.runOnUiThread {
-                uiAt=SystemClock.elapsedRealtime()
-                web.getLocationOnScreen(location); density=web.resources.displayMetrics.density
-                nativeEvaluationStart=SystemClock.uptimeMillis()
-                web.evaluateJavascript("NativeTouchProbe.prepare($step,${JSONObject.quote(label)},${JSONObject.quote(section)})") {
-                    nativeArmedUptime=SystemClock.uptimeMillis(); result=it; latch.countDown()
+        val location=IntArray(2); var density=1f; var uiAt=0L
+        var nativeEvaluationStart=0L; var nativeArmedUptime=0L
+        val started=SystemClock.elapsedRealtime()
+        preparationLatch=CountDownLatch(1); incomingPreparation=null; preparationReplyAt=0; preparationReplyUptime=0
+        activity.runOnUiThread {
+            uiAt=SystemClock.elapsedRealtime()
+            web.getLocationOnScreen(location); density=web.resources.displayMetrics.density
+            nativeEvaluationStart=SystemClock.uptimeMillis()
+            val budget=5000-(uiAt-started)
+            if(budget<=0) {
+                incomingPreparation=JSONObject().put("error","Native UI readiness queue exceeded five seconds")
+                preparationReplyAt=SystemClock.elapsedRealtime(); preparationLatch.countDown()
+            } else {
+                val request=JSONObject().put("kind","prepare").put("step",step).put("label",label).put("section",section)
+                    .put("token",inputToken).put("documentId",inputDocument).put("sourceHash",inputSource).put("budgetMs",budget)
+                try {requireNotNull(inputPort).postMessage(android.webkit.WebMessage(request.toString()))}
+                catch (failure:Exception) {
+                    incomingPreparation=JSONObject().put("error","Preparation port unavailable: "+failure.javaClass.simpleName)
+                    preparationReplyAt=SystemClock.elapsedRealtime(); preparationLatch.countDown()
                 }
             }
-            // Preserve raw()'s existing per-evaluation deadline; the five-second
-            // target retry guard is not a replacement for the RPC deadline.
-            check(latch.await(20,TimeUnit.SECONDS)) {"Touch preparation evaluation timed out"}
-            webEvaluationMs+=SystemClock.elapsedRealtime()-started
-            prepared=JSONObject(result)
-            check(!prepared.has("error")) {prepared.optString("error")}
-            if(prepared.optBoolean("ready")) {
-                check(prepared.getString("documentId")==inputDocument) {"Wrong renderer document"}
-                check(prepared.getInt("stableFrames")==2) {"Touch target has not crossed two stable rendering frames"}
-                check(prepared.getDouble("pageScale")==1.0 && prepared.getDouble("viewportX")==0.0 && prepared.getDouble("viewportY")==0.0) {"Unverified zoom conversion"}
-                prepared.put("originX",location[0]).put("originY",location[1]).put("density",density)
-                    .put("nativeEvaluationStart",nativeEvaluationStart).put("nativeArmedUptime",nativeArmedUptime)
-                    .put("evaluations",webEvaluations-before).put("uiQueueMs",uiAt-started)
-                    .put("evaluationCallbackMs",SystemClock.elapsedRealtime()-uiAt)
-                    .put("screenX",location[0]+prepared.getDouble("x")*density)
-                    .put("screenY",location[1]+prepared.getDouble("y")*density)
-                true
-            } else false
         }
+        check(preparationLatch.await(5,TimeUnit.SECONDS)) {"Stable unobscured touch target readiness timed out"}
+        nativeArmedUptime=preparationReplyUptime
+        val prepared=requireNotNull(incomingPreparation)
+        check(!prepared.has("error")) {prepared.optString("error")}
+        check(prepared.optBoolean("ready") && prepared.getString("kind")=="prepared") {"Missing prepared target"}
+        check(prepared.getString("documentId")==inputDocument && prepared.getString("sourceHash")==inputSource &&
+            prepared.getInt("step")==step && prepared.getString("label")==label && prepared.getString("section")==section) {"Wrong prepared target identity"}
+        check(prepared.getInt("stableFrames")==2) {"Touch target has not crossed two stable rendering frames"}
+        check(prepared.getDouble("pageScale")==1.0 && prepared.getDouble("viewportX")==0.0 && prepared.getDouble("viewportY")==0.0) {"Unverified zoom conversion"}
+        check(preparationReplyAt-started<=5000) {"Stable target readiness exceeded five seconds"}
+        prepared.put("originX",location[0]).put("originY",location[1]).put("density",density)
+            .put("nativeEvaluationStart",nativeEvaluationStart).put("nativeArmedUptime",nativeArmedUptime)
+            .put("evaluations",0).put("uiQueueMs",uiAt-started)
+            .put("evaluationCallbackMs",preparationReplyAt-uiAt).put("transport","bound-message-port")
+            .put("screenX",location[0]+prepared.getDouble("x")*density)
+            .put("screenY",location[1]+prepared.getDouble("y")*density)
         return prepared
     }
     private fun assertPersisted() {
