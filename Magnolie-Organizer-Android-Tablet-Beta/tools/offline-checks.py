@@ -54,6 +54,7 @@ def main():
                          dependencyDownloads=opts.online)
             for command, timeout in [([sys.executable, '-B', 'tests/test_emulator_session.py'], 30),
                                      ([sys.executable, '-B', 'tests/test_host_capacity.py'], 30),
+                                     ([runtime, 'tests/apk-permissions.test.cjs'], 30),
                                      ([runtime, 'tests/touch-proof.test.cjs'], 30),
                                      ([runtime, 'tests/touch-channel.test.cjs'], 30),
                                      ([runtime, 'tools/project-web.cjs'], 60),

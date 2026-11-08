@@ -1,5 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const {execFileSync}=require('node:child_process');
+const {verifyAppPermissions}=require('./apk-permissions.cjs');
 const root=path.resolve(__dirname,'..');
 const apkPath=path.join(root,'app/build/outputs/apk/debug/app-debug.apk');
 const apk=fs.readFileSync(apkPath);
@@ -18,11 +19,8 @@ if(!badging.includes("package: name='io.gitlab.maik3531.magnolieorganizer.tablet
    !badging.includes("application-label:'Magnolie Organizer Android Tablet Beta 2.0.30Beta'")) throw Error('APK beta identity mismatch');
 const signature=execFileSync(path.join(tools,'apksigner'),['verify','--print-certs',apkPath],{encoding:'utf8'});
 if(!signature.includes('CN=Android Debug')) throw Error('Only the explicitly generated debug certificate is authorized');
-if(/uses-permission: name='android.permission.(?:SEND_SMS|CALL_PHONE|READ_CONTACTS|READ_CALENDAR)'/.test(badging))
-  throw Error('Unsupported native integration permission in beta');
-if(!badging.includes("uses-permission: name='android.permission.INTERNET'"))
-  throw Error('Native HTTPS holiday retrieval requires INTERNET permission');
 const appManifest=execFileSync(path.join(tools,'aapt'),['dump','xmltree',apkPath,'AndroidManifest.xml'],{encoding:'utf8'});
+const apkPermissions=verifyAppPermissions(badging,appManifest);
 if(/SyntheticDocument|NativeTabletInstrumentation/.test(appManifest)) throw Error('Test component leaked into app APK');
 const packagedManifest=JSON.parse(execFileSync('unzip',['-p',apkPath,'assets/projection.json'],{encoding:'utf8'}));
 if(JSON.stringify(packagedManifest)!==JSON.stringify(manifest)) throw Error('APK packaged a different projection');
@@ -68,6 +66,10 @@ fs.writeFileSync(path.join(out,'candidate.json'),JSON.stringify({name,sha256:has
   status:'unaccepted beta candidate; not a production release',stale:false,emulatorTested:false,
   webChecks:web.passed,editorReminderCases:reminders.cases.length,unitTests,unitReport:'app/build/reports/tests/testDebugUnitTest/index.html',
   runnerTests:build.runnerTests,setupHolidayCases:build.setupHolidayCases,setupLocales:build.setupLocales,
-  apkAssetsVerified:true},null,2)+'\n');
+  apkAssetsVerified:true,apkPermissions,
+  systemSourceIntegration:{scope:'explicit read-only discovery',
+    readPermissions:['android.permission.READ_CALENDAR','android.permission.READ_CONTACTS'],
+    permissionRequestRequiresUserAction:true,providerWrites:false,accountManagerEnumeration:false,
+    fullSynchronization:false,nativeRuntimeAccepted:false}},null,2)+'\n');
 console.log('Debug-only, emulator-UNTESTED beta candidate: '+path.join(out,name));
 execFileSync(process.execPath,[path.join(root,'tools/project-web.cjs'),'--check'],{stdio:'inherit'});
