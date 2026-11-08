@@ -65,6 +65,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     signingConfigs.getByName("debug").storeFile = betaDebugKey
+    sourceSets["androidTest"].assets.srcDir(rootProject.file("../port-adapters/tests"))
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/projection/assets"))
     sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/projection/res"))
     testOptions { unitTests.isReturnDefaultValues = false }
@@ -85,7 +86,7 @@ tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime) }
 tasks.matching { it.name == "validateSigningDebug" }.configureEach { dependsOn(createBetaDebugKey) }
 tasks.configureEach {
     if (name.startsWith("compile") || name.startsWith("test")) dependsOn(verifyThreeTenRuntime)
-    if (name.contains("Release")) doFirst { error("Tablet Beta is debug-only; production builds are not authorized.") }
+    if (name.contains("Release")) doFirst { error("Development gate supports debug only; production workflow required.") }
 }
 tasks.withType<Test>().configureEach {
     systemProperty("tablet.root", rootDir.absolutePath)

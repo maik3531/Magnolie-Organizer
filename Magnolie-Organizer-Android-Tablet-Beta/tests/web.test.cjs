@@ -525,6 +525,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(true,'standard web gate verifies actual imported/saved alarm golden and byte-identical release normalizers');
   passed+=await require('../../port-adapters/tests/display-alarm-roundtrip.cjs')({web,platform:'tablet'});
   passed+=require('../../port-adapters/tests/legacy-display.cjs')({web,platform:'tablet'});
+  passed+=await require('../../port-adapters/tests/domains-host.cjs')({web});
   const manifest=JSON.parse(fs.readFileSync(path.join(web,'../projection.json')));
   fs.mkdirSync(path.join(root,'artifacts'),{recursive:true});
   fs.writeFileSync(path.join(root,'artifacts/web-test-proof.json'),JSON.stringify({passed,

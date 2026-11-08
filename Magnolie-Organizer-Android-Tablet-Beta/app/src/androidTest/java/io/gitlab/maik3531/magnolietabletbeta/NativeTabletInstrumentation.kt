@@ -70,6 +70,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                     pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
                     pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context))
                 }
+                "domains" -> domains()
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
                 "layout" -> {launch(); checkLayout(); navigation()}
@@ -384,6 +385,39 @@ class NativeTabletInstrumentation : Instrumentation() {
         pass("native font/display settings", fontSettings)
         pass("real WebView responsive binder geometry",geometry)
     }
+    private fun domains() {
+        launch()
+        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText())
+        pass("optional tabs and metric units configured through actual settings",scenario("NativeDomains.prepare()"))
+        saved()
+        pass("actual health tables validate and persist vital glucose medication entries",scenario("NativeDomains.health()"))
+        saved()
+        pass("actual custom designer and appointment task text editors persist",scenario("NativeDomains.custom()"))
+        saved()
+        val target=scenario("NativeDomains.drawing()")
+        val gesture=NativeDomainAcceptance.stroke(this,web,target)
+        waitFor("trusted native drawing stroke") {
+            value("OrganizerTest.daten().customOrganizer.modules.find(module=>module.type==='drawing')?.drawing.strokes.length") == "1"
+        }
+        val drawing=scenario("NativeDomains.drawingProof()")
+        drawing.put("gesture",gesture)
+        pass("native canvas stroke pixels and vectors survive actual Undo Redo controls",drawing)
+        val beforeSave=data()
+        saved()
+        val persisted=JSONObject(vault().read()!!.getJSONObject("data").toString())
+        val expected=JSONObject(value("NativeDomains.expectedAfterReopen(NativeDomains.snapshot())"))
+        val reopenedBookExpected=JSONObject(value("NativeDomains.expectedAfterReopen(OrganizerTest.daten())"))
+        NativeDomainAcceptance.requireEqual(beforeSave,persisted,"Native save changed or dropped original book values or fields")
+        NativeDomainAcceptance.requireEqual(persisted,data(),"Native saved book differs from the actual UI domain data")
+        reloadVerified()
+        raw(context.assets.open("domain-scenarios.js").bufferedReader().readText())
+        NativeDomainAcceptance.requireEqual(persisted,vault().read()!!.getJSONObject("data"),"Native domain book changed after reopen")
+        NativeDomainAcceptance.requireEqual(reopenedBookExpected,data(),"Reopened renderer changed or dropped persisted book fields beyond the declared optional-zero default")
+        NativeDomainAcceptance.requireEqual(expected,JSONObject(value("NativeDomains.snapshot()")),"Reopened health custom or drawing graph differs")
+        pass("complete native book and feature graph preserve all fields through save and reopen",JSONObject()
+            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(expected))
+    }
+
     private fun basics() {
         launch(); pass("real AssetLoader/WebMessage initialization")
         scenario("NativeScenario.calendar()"); saved(); pass("calendar editor to encrypted native store")

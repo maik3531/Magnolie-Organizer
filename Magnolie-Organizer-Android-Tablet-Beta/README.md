@@ -380,3 +380,18 @@ phase. The prepared suite command above has not been executed in this invocation
 Desktop artwork/fonts and code retain their existing licenses; see the parent
 `LICENSE.md`, `PROTECTED-ASSETS-LICENSE.txt` and canonical font license. This beta
 does not decrypt or bypass protected desktop assets/contributor controls.
+
+The separate `domains` component stage uses shared real settings and form bindings
+to create and edit vital signs, glucose and medication-plan rows, custom appointment,
+task and text blocks, and a drawing sheet. It checks invalid-value rejection,
+discard, native trusted touchscreen strokes, actual Undo/Redo pixels and vector
+data, encrypted save and complete-book reopen integrity. It does not replace the
+original UI acceptance suite and retains the existing 120-second stage limit.
+Before save, every book field must match native disk structurally. On renderer
+reopen only the canonical health normalizer's absent optional `vital.sauerstoff`
+field may acquire its zero default; changed or missing existing values still fail.
+The standard host gate runs the health/custom forms and negative integrity cases;
+canvas, Android Keystore and native persistence require the actual device stage.
+Medication online lookup, drawing file import/PDF, physical stylus behavior,
+TalkBack and IME are outside this component proof. Native success must be recorded
+for the exact APK; host checks alone do not establish that acceptance.
