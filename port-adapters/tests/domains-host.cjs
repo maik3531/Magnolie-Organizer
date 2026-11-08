@@ -46,7 +46,7 @@ module.exports=async function run({web}) {
   w.eval(fs.readFileSync(path.join(__dirname,'domain-scenarios.js'),'utf8'));
   w.eval(fs.readFileSync(path.join(__dirname,'domain-batch.js'),'utf8'));return dom;
  }
- let dom=await open(),count=0;
+ let dom=await open(),count=require('./drawing-replay-matrix.cjs')();
  try {
   await nativeStep(dom.window,'NativeDomains.prepare()');count++;
   await nativeStep(dom.window,'NativeDomains.health()');count++;

@@ -189,6 +189,54 @@ window.NativeDomains = (() => {
     }
     return {sameLength:true,changedChannels:channels,maxDelta,bounds:channels?[left,top,right,bottom]:null,samples};
   }
+  // Test-only #458 matrix. Synthetic editor-API replays are not native input.
+  function drawingReplayMatrix(actualBefore,actualRedo,source) {
+    const bookBefore=JSON.stringify(T.daten()),immutable=JSON.stringify(source),owned=[],controllers=[];
+    const started=performance.now(),result={input:'synthetic immutable editor-API replay; not native gesture',comparisons:{}};
+    const width=source.width,height=source.height,stroke=source.strokes[0];
+    const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
+    const canvas=()=>{const value=document.createElement('canvas');owned.push(value);return value;};
+    const read=value=>{
+      assert(value.width===width&&value.height===height,'Synthetic replay changed bitmap size');
+      return new Uint8ClampedArray(value.getContext('2d').getImageData(0,0,width,height).data);
+    };
+    const compare=(name,a,b)=>{result.comparisons[name]={...drawingReplayDiff(a,b,width),beforeFNV1a32:hash(a),afterFNV1a32:hash(b)};};
+    try {
+      assert(width<=540&&height<=236&&width>0&&height>0&&source.strokes.length===1&&stroke.tool==='pen'&&stroke.points.length<=25,
+        'Synthetic replay matrix input exceeds approved pen fixture bounds');
+      const direct=canvas(),second=canvas(),copy=canvas();
+      MagnolieZeichnen.render(direct,clone(source));const directPixels=read(direct);
+      MagnolieZeichnen.render(second,clone(source));compare('directTwice',directPixels,read(second));
+      copy.width=width;copy.height=height;copy.getContext('2d').drawImage(direct,0,0);
+      compare('directVsCopy',directPixels,read(copy));
+      compare('nativeLiveVsDirect',actualBefore,directPixels);compare('nativeRedoVsDirect',actualRedo,directPixels);
+      for(const attached of [false,true]) {
+        const target=canvas(),sheet={...clone(source),strokes:[]};
+        if(attached) {
+          const original=$('.custom-zeichenblatt'),rect=original.getBoundingClientRect();
+          Object.assign(target.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',pointerEvents:'none'});
+          target.setAttribute('aria-hidden','true');document.body.append(target);
+        }
+        const controller=MagnolieZeichnen.attach(target,sheet,()=>{},error=>{throw Error(String(error));});controllers.push(controller);
+        controller.setTool(stroke.tool);controller.setWidth(stroke.width);controller.setColor(stroke.color);
+        controller.begin(...stroke.points[0]);for(const point of stroke.points.slice(1))controller.move(...point);controller.finish();
+        assert(JSON.stringify(sheet)===immutable,'Synthetic editor replay changed immutable fixture semantics');
+        const live=read(target),prefix=attached?'attachedEditor':'detachedEditor';
+        controller.undo();controller.redo();const redo=read(target);
+        assert(JSON.stringify(sheet)===immutable,'Synthetic Undo/Redo changed immutable fixture semantics');
+        compare(prefix+'LiveVsRedo',live,redo);compare(prefix+'LiveVsDirect',live,directPixels);
+        compare(prefix+'RedoVsDirect',redo,directPixels);
+      }
+    } catch(error) {result.error=String(error.message||error).slice(0,240);}
+    finally {
+      for(const controller of controllers)try{controller.destroy();}catch(_){result.cleanupError=true;}
+      for(const node of owned)node.remove();
+      result.bookUnchanged=JSON.stringify(T.daten())===bookBefore;
+      result.fixtureUnchanged=JSON.stringify(source)===immutable;
+      result.elapsedMilliseconds=Math.round(performance.now()-started);
+    }
+    return result;
+  }
   async function drawingProof() {
     const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
     assert(module&&window.MagnolieZeichnen.valid(module.drawing)&&module.drawing.strokes.length===1,'Native input did not create one valid stroke');
@@ -216,6 +264,10 @@ window.NativeDomains = (() => {
       window.__domainReplayDiagnostics.freshDiff=drawingReplayDiff(beforeUndo.pixels,freshRedo.pixels,redoCanvas.width);
     }else window.__domainReplayDiagnostics.freshAfterRedo={missing:true};
     window.__domainReplayDiagnostics.diff=drawingReplayDiff(beforeUndo.pixels,afterRedo.pixels,canvas.width);
+    if(afterRedo.png!==after) {
+      try {window.__domainReplayDiagnostics.matrix=drawingReplayMatrix(beforeUndo.pixels,afterRedo.pixels,clone(beforeUndo.summary.drawing));}
+      catch(error) {window.__domainReplayDiagnostics.matrix={error:String(error.message||error).slice(0,240)};}
+    }
     assert(afterRedo.png===after,'Drawing Redo did not restore rendered pixels');await save();
     return {strokeCount:1,pointCount:points.length,distinctPoints:distinct,strokeExtent:extent,intendedExtent:intended,pixelChange:true,undoRedo:true,pointer};
   }
