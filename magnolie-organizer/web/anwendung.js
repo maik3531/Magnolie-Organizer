@@ -29120,11 +29120,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gruppe.append(rights);
       }
       let fotoAlbumWahl = null, videoAlbumWahl = null;
-      if (stand.enabled) {
-        const richtung = document.createElement("select");
-        const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
-        nurHandy.textContent = _("Synchronize only the phone's collection"); richtung.append(nurHandy);
-        gruppe.append(formZeile(_("Direction"), richtung));
+      if (stand.enabled || stand.mapped_outgoing === true) {
+        if (stand.mapped_outgoing === true) {
+          gruppe.append(formZeile(_("Direction"), el("span", null, stand.mapped_direction === "two_way"
+            ? _("Two-way synchronization") : "Organizer → Notes")));
+        } else {
+          const richtung = document.createElement("select");
+          const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";
+          nurHandy.textContent = _("Synchronize only the phone's collection"); richtung.append(nurHandy);
+          gruppe.append(formZeile(_("Direction"), richtung));
+        }
         // Unsupported controls are absent instead of silently doing other work.
         if (stand.automatic_supported === true) {
           const modus = document.createElement("select"); modus.dataset.photoMode = "true";
@@ -29135,6 +29140,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           modus.addEventListener("change", () => sende("mode_" + modus.value));
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
+        if (!stand.enabled && stand.mapped_outgoing === true) {
+          const ausgangStatus = { syncing: _("Photo synchronization active"), stopping: _("Stopping photo synchronization…"),
+            complete: _("Done"), canceled: _("Canceled"),
+            held: _("Changes need review. No conflicting version was overwritten.") };
+          if (ausgangStatus[stand.state]) {
+            const statusFeld = el("p", stand.state === "held" ? "einst-warnung" : "einst-hinweis", ausgangStatus[stand.state]);
+            statusFeld.dataset.mappedOutgoingStatus = "true"; gruppe.append(statusFeld);
+          }
+        }
+      }
+      if (stand.enabled) {
         if (stand.animation_grouping_supported === true) {
           const animationen = document.createElement("input"); animationen.type = "checkbox";
           animationen.dataset.photoAnimations = "true";
@@ -29261,15 +29277,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
-      if (stand.enabled) {
+      if (stand.enabled || stand.mapped_outgoing === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
           Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
-            request: { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
+            request: stand.mapped_outgoing === true && !(fotoAlbumWahl?.value || videoAlbumWahl?.value) ? { action: "sync_shared" } :
+              { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
         });
         jetzt.dataset.photoManualSync = "true";
-        jetzt.disabled = stand.busy === true || !(fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length);
+        jetzt.disabled = stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length);
         manuell.append(jetzt);
         if (stand.busy) manuell.append(knopf(_("Stop"), "", () => sende("stop")));
         gruppe.append(manuell);

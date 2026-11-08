@@ -478,6 +478,15 @@ class NativeDesktopFileConnection:
         value=session.snapshot() if session is not None else dict(available=True,state='off',enabled=False,mode='manual',albums=[])
         if self._media_source is not None and self._media_sending_state is not None:
             value['sending_consent']=dict(self._media_sending_state) # Memory only: report may own the service monitor.
+            transport=self._media_transport
+            token=next((intent for kind,field in (('images','photos'),('video','videos'))
+                if self._media_sending_state.get(field) is True
+                and (kind!='video' or self._video_data_handlers_ready)
+                and (intent:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None else None
+            value['mapped_outgoing']=token is not None
+            if token is not None:
+                from magnolie_media_sync import effective
+                value['mapped_direction']=effective(token.body)['direction']
         return value
 
     def native_sending_consent(self,operation,*,photos=None,videos=None,selection=None,version=None):

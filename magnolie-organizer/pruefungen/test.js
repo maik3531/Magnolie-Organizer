@@ -7664,6 +7664,27 @@ function knopfMit(text, wurzel) {
   fotoStand({ ...videoStand, video_supported: false, albums: [{ album_id: "photo-only", display_name: "Camera", visible_images: 1 }] });
   assert.ok(!bd.querySelector(".notes-video-sync")); bd.querySelector("[data-photo-manual-sync]").click();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_selected", album_id: "photo-only", video_album_id: null });
+  const pcNurVorher = baumNachrichten.length;
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, mapped_direction: "pc_to_phone",
+    state: "off", mode: "manual", automatic_supported: true, albums: [] });
+  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
+  assert.strictEqual(baumNachrichten.length, pcNurVorher, "PC-only-Status öffnet weder Medien noch Telefon-READ");
+  assert.ok(fotoGruppe.textContent.includes("Organizer → Notes") && !fotoGruppe.textContent.includes("Alben aktualisieren"));
+  assert.ok(!Array.from(fotoGruppe.querySelectorAll("button")).some(button => button.textContent === "Fotozugriff auf dem Handy erlauben"));
+  assert.ok(!fotoGruppe.querySelector("[data-photo-manual-sync]").disabled && fotoGruppe.querySelector("[data-photo-mode]"));
+  fotoGruppe.querySelector("[data-photo-manual-sync]").click();
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "sync_shared" },
+    "PC-only-Handlauf erfindet keine Telefonalbum-IDs oder Empfangsfreigabe");
+  const pcModus = fotoGruppe.querySelector("[data-photo-mode]"); pcModus.value = "automatic";
+  pcModus.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "mode_automatic" });
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, state: "syncing", busy: true, albums: [] });
+  assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled);
+  assert.ok(bd.querySelector("[data-mapped-outgoing-status]").textContent);
+  fotoStand({ available: true, enabled: false, mapped_outgoing: true, state: "complete", albums: [] });
+  assert.ok(bd.querySelector("[data-mapped-outgoing-status]").textContent && !bd.querySelector("[data-photo-manual-sync]").disabled);
+  fotoStand({ available: true, enabled: false, mapped_outgoing: false, state: "off", albums: [] });
+  assert.ok(!bd.querySelector("[data-photo-manual-sync]") && !bd.querySelector("[data-photo-mode]"));
   fotoStand({ ...videoStand, state: "syncing", busy: true, active_media: "video" });
   videoGruppe = bd.querySelector(".notes-video-sync");
   assert.ok(bd.querySelector("[data-photo-manual-sync]").disabled &&

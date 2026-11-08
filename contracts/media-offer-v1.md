@@ -524,6 +524,16 @@ ACK-/Peer-Echo-Abgleich. Sie erfordert keine Aktivierung des Empfangs. Stop
 pausiert auch einen gerade untätigen Automatiklauf; doppelte unveränderte
 Einstellungs-Echos dürfen weder diese Pause noch eine manuelle Moduswahl aufheben.
 
+Die Linux-Oberfläche kann für einen tatsächlich angebundenen, abgeglichenen
+Ausgangsbereich Modus und Handlauf auch bei ausgeschaltetem Empfang anzeigen.
+Ohne Telefonalbumauswahl sendet sie ausschließlich `sync_shared`, keine
+erfundenen Album-IDs oder Empfangsfreigaben. Telefon-READ-/Entdeckungsaktionen
+bleiben bei ausgeschaltetem Empfang verborgen. Die passive Anzeige verwendet
+nur Metadaten aus dem lebenden nativen Besitzer und öffnet keine Mediendateien
+oder geschützten Einstellungsstores. Dieser Anzeigehinweis verleiht keine Rechte:
+Der echte Dienst prüft weiterhin Kanal, aktuelle native Metadaten-ACKs,
+Fingerabdruck und sämtliche individuellen Quellbedingungen beim Start.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

@@ -88,10 +88,30 @@ def test_worker_without_actual_send_control_holds_before_creating_cache(source,n
 
 def test_normal_session_pc_only_manual_pass_never_discovers_or_requests_phone_read(source,native,monkeypatch):
     with composition(source,native[0]) as h:
+        from copy import deepcopy
+        import magnolie_telefon as phone
+        # The high-level Organizer action additionally requires real current-
+        # channel metadata ACKs, not the source fixture's persisted capabilities.
+        for kind,body in (('capabilities.update',deepcopy(h.peer['capabilities'])),
+                ('grants.update',deepcopy(h.peer['grants'])),('personal_sync.settings',dict(format=1,own_device=True))):
+            if kind!='personal_sync.settings':body['revision']+=1
+            packet=message(kind,body);dispatch(h,native[0],packet)
+            for _ in range(16):
+                reply=h.wire.receive()
+                if reply['type']=='ack' and reply['message_id']==packet['message_id']:
+                    assert reply['status']=='accepted',reply
+                    break
+                assert reply['type']=='message',reply # Actual native capability/settings output before the ACK.
+            else:pytest.fail('Current-channel native metadata ACK missing')
         h.controller.change('direction','pc_to_phone');agree(h,native[0])
+        with monkeypatch.context() as patch:
+            patch.setattr(h.preferences,'read',lambda:pytest.fail('Passive UI snapshot performed protected preference I/O'))
+            state=h.connection.desktop_snapshot()
+            assert state['mapped_outgoing'] is True and state['mapped_direction']=='pc_to_phone'
         session=h.connection.desktop_session()
         monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('PC-only session requested phone source/READ'))
-        session.start('sync_shared');assert session.join(30),session.snapshot()
+        native[0].photo_sync_action(h.peer['device_id'],phone.fingerprint(phone.unb64(h.peer['static_public'],32)),{'action':'sync_shared'})
+        assert session.join(30),session.snapshot()
         assert session.snapshot()['state']=='complete',session.snapshot()
         assert session.snapshot()['known_files']==1 and session.snapshot()['enabled'] is False
         assert h.connection._mapped_worker is None and not h.source._prepared
@@ -104,6 +124,7 @@ def test_import_only_scope_cannot_export_even_with_pc_to_phone_direction_and_nat
         dispatch(h,native[0],dict(type='ack',message_id=attempted['message_id'],status='accepted',error='none'))
         dispatch(h,native[0],message('file_transfer.shared_settings',attempted['body']));assert h.wire.receive()['type']=='ack'
         assert h.controller.intent_for('images',to_phone=True) is None
+        assert h.connection.desktop_snapshot().get('mapped_outgoing') is False
         monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Import-only worker entered source planning'))
         worker=start(h);assert worker.join(30),worker.progress()
         assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_current_intent_required'
