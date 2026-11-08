@@ -73,6 +73,21 @@ final class SystemAccounts {
                 expectedRevision: expectedRevision, title: title, notes: notes, control: control)
         }
     }
+    func snapshotEvents(sourceUID: String, start: Date, end: Date) async throws -> SystemSourceSnapshot {
+        try await perform { try $0.snapshotEvents(sourceUID: sourceUID, start: start, end: end, control: $1) }
+    }
+    func snapshotContacts(sourceUID: String) async throws -> SystemSourceSnapshot {
+        try await perform { try $0.snapshotContacts(sourceUID: sourceUID, control: $1) }
+    }
+    func snapshotReminders(sourceUID: String) async throws -> SystemSourceSnapshot {
+        let control = SystemSourceReadControl()
+        return try await withTaskCancellationHandler(operation: {
+            try await withCheckedThrowingContinuation { continuation in
+                queue.async { self.worker().snapshotReminders(sourceUID: sourceUID, control: control) { continuation.resume(with: $0) } }
+            }
+        }, onCancel: { control.cancel() })
+    }
+
 }
 
 /// Private queue-confined native objects; DTO conversion happens before returning.
@@ -234,10 +249,10 @@ private final class SystemAccountStore {
         return value
     }
 
-    private final class ReminderRead {
-        var completion: ((Result<[[String: Any]], Error>) -> Void)?
-        init(_ completion: @escaping (Result<[[String: Any]], Error>) -> Void) { self.completion = completion }
-        func finish(_ result: Result<[[String: Any]], Error>) {
+    private final class ReminderRead<Value> {
+        var completion: ((Result<Value, Error>) -> Void)?
+        init(_ completion: @escaping (Result<Value, Error>) -> Void) { self.completion = completion }
+        func finish(_ result: Result<Value, Error>) {
             let pending = completion; completion = nil; pending?(result)
         }
     }
@@ -331,4 +346,78 @@ private final class SystemAccountStore {
             var snapshot = value; snapshot["revision"] = try SystemSourcePolicy.revision(value); return snapshot
         }
     }
+    private func typedSource(_ calendar: EKCalendar, kind: SystemSourcePolicy.Kind) throws -> SystemSourceSnapshot.Source {
+        let parent = "macos-account:" + Data(calendar.source.sourceIdentifier.utf8).base64EncodedString()
+        let type = calendar.type == .birthday ? "birthday" : "calendar:\(calendar.type.rawValue)"
+        return try .init(uid: SystemSourcePolicy.uid(kind, calendar.calendarIdentifier), kind: kind, title: calendar.title,
+                         parentUID: parent, parentTitle: calendar.source.title, parentType: "source:\(calendar.source.sourceType.rawValue)",
+                         nativeType: type, permission: authorization(kind), readOnly: !calendar.allowsContentModifications)
+    }
+    private func appendTyped(_ record: SystemSourceSnapshot.Record, to records: inout [SystemSourceSnapshot.Record], bytes: inout Int) throws {
+        bytes += try Document.encode(record.fields).utf8.count
+        guard records.count < maximumItems, bytes <= 16 * 1024 * 1024 else { throw BetaError("Native source exceeds snapshot limits.") }
+        records.append(record)
+    }
+    func snapshotEvents(sourceUID: String, start: Date, end: Date, control: SystemSourceReadControl) throws -> SystemSourceSnapshot {
+        try control.check(); try SystemSourcePolicy.requireWindow(start: start, end: end)
+        let calendar = try self.calendar(sourceUID, kind: .events)
+        let source = try typedSource(calendar, kind: .events)
+        let found = events.events(matching: events.predicateForEvents(withStart: start, end: end, calendars: [calendar]))
+        guard found.count <= maximumItems else { throw BetaError("Event window exceeds snapshot limit.") }
+        var records: [SystemSourceSnapshot.Record] = [], bytes = 0
+        for event in found { try control.check(); try appendTyped(NativeSystemRecordReader.event(event, source: source), to: &records, bytes: &bytes) }
+        try control.check(); try requireAccess(.events)
+        return try .init(source: source, scope: .boundedWindow(start: start, end: end), records: records)
+    }
+    func snapshotReminders(sourceUID: String, control: SystemSourceReadControl,
+                           completion: @escaping (Result<SystemSourceSnapshot, Error>) -> Void) {
+        do {
+            try control.check()
+            let calendar = try self.calendar(sourceUID, kind: .reminders)
+            let source = try typedSource(calendar, kind: .reminders)
+            let read = ReminderRead<SystemSourceSnapshot>(completion)
+            let token = events.fetchReminders(matching: events.predicateForReminders(in: [calendar])) { found in
+                self.queue.async {
+                    guard read.completion != nil else { return }
+                    do {
+                        try control.check(); try self.requireAccess(.reminders)
+                        guard let found, found.count <= self.maximumItems else { throw BetaError("Incomplete native reminders snapshot.") }
+                        var records: [SystemSourceSnapshot.Record] = [], bytes = 0
+                        for reminder in found { try control.check(); try self.appendTyped(NativeSystemRecordReader.reminder(reminder, source: source), to: &records, bytes: &bytes) }
+                        read.finish(.success(try .init(source: source, scope: .fullSource, records: records)))
+                    } catch { read.finish(.failure(error)) }
+                }
+            }
+            func poll() {
+                self.queue.asyncAfter(deadline: .now() + .milliseconds(100)) {
+                    guard read.completion != nil else { return }
+                    do { try control.check(); poll() }
+                    catch { self.events.cancelFetchRequest(token); read.finish(.failure(error)) }
+                }
+            }
+            poll()
+        } catch { completion(.failure(error)) }
+    }
+    func snapshotContacts(sourceUID: String, control: SystemSourceReadControl) throws -> SystemSourceSnapshot {
+        try control.check(); try requireAccess(.contacts)
+        let identifier = try SystemSourcePolicy.identifier(sourceUID, kind: .contacts)
+        guard let container = try contacts.containers(matching: nil).first(where: { $0.identifier == identifier }) else { throw BetaError("Selected contacts container is unavailable.") }
+        let source = try SystemSourceSnapshot.Source(uid: sourceUID, kind: .contacts, title: container.name,
+            nativeType: "container:\(container.type.rawValue)", permission: authorization(.contacts), readOnly: true)
+        let keys: [CNKeyDescriptor] = [CNContactVCardSerialization.descriptorForRequiredKeys(), CNContactBirthdayKey as CNKeyDescriptor,
+                                      CNContactNonGregorianBirthdayKey as CNKeyDescriptor, CNContactDatesKey as CNKeyDescriptor]
+        let request = CNContactFetchRequest(keysToFetch: keys)
+        request.predicate = CNContact.predicateForContactsInContainer(withIdentifier: identifier); request.unifyResults = false
+        var records: [SystemSourceSnapshot.Record] = [], bytes = 0, failure: Error?
+        try contacts.enumerateContacts(with: request) { contact, stop in
+            do {
+                try control.check()
+                try self.appendTyped(NativeSystemRecordReader.contact(contact, source: source, unification: .nonUnifiedContainer), to: &records, bytes: &bytes)
+            } catch { failure = error; stop.pointee = true }
+        }
+        if let failure { throw failure }
+        try control.check(); try requireAccess(.contacts)
+        return try .init(source: source, scope: .fullSource, records: records)
+    }
+
 }
