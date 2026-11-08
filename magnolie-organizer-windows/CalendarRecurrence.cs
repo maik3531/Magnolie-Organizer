@@ -157,7 +157,9 @@ internal static class CalendarRecurrence
                 }
                 aliases[id] = alias;
                 if (!defined.TryAdd(alias, signature)) continue;
-                foreach (var line in block) yield return ParseProperty(line) is { Name: "TZID" } ? "TZID:" + alias : line;
+                // Keep original property spelling unless collision handling
+                // actually requires a new opaque TZID value (Refs #459).
+                foreach (var line in block) yield return alias != id && ParseProperty(line) is { Name: "TZID" } ? "TZID:" + alias : line;
             }
             foreach (var line in record.Component)
             {

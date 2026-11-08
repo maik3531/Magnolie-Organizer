@@ -185,6 +185,7 @@ runner.Add("Document export / actual ODS / readback / target guards", VerifiedDo
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
 runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
 runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
+runner.Add("Calendar source case / Windows mixed component and property names roundtrip", CalendarSourceTimezoneCaseTests.RunAsync);
 runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
 runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
 runner.Add("Time sync / v7 consent and strict records", TimeSyncContractTests.RunAsync);
