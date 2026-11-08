@@ -497,6 +497,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   position: relative;
   width: 40px;
   height: 40px;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -595,6 +596,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   background: transparent;
   padding: 0;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   transition: transform 0.15s ease;
 }
@@ -639,6 +641,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   color: #3d3018;
   border: 1px solid rgba(58, 38, 16, 0.5);
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   z-index: 1;
   background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.12));
@@ -920,6 +923,7 @@ button, input, select, textarea { font-family: inherit; }
   padding: 7px 14px;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(60, 40, 10, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -1320,6 +1324,7 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -2246,6 +2251,7 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: inherit;
+  -webkit-user-select: text;
   user-select: text;
 }
 .eingabe-dialog h3 {
@@ -2705,6 +2711,7 @@ textarea::-webkit-scrollbar-track,
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--braun);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -4070,6 +4077,7 @@ body[data-pruefung="an"] #notiz-titel {
   height: 31px;
   border: 2px solid var(--markenfarbe);
   border-radius: 50%;
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
   color: var(--markenfarbe);
   font: 700 16px var(--sans);
@@ -4104,6 +4112,7 @@ body[data-pruefung="an"] #notiz-titel {
   gap: 4px;
   min-width: 0;
   border-left: 4px solid var(--markenfarbe);
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 22%, var(--papier));
   border-radius: 2px;
   padding: 2px 5px;
@@ -4140,6 +4149,7 @@ body[data-pruefung="an"] #notiz-titel {
   min-width: 0;
   border-left: 4px solid var(--markenfarbe);
   border-radius: 2px;
+  background: var(--papier);
   background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
   padding: 2px 5px;
   color: var(--markenfarbe);
@@ -4275,6 +4285,7 @@ body[data-pruefung="an"] #notiz-titel {
   padding: 1px 3px;
   border-left: 4px solid var(--eintragfarbe);
   border-radius: 2px;
+  background: white;
   background: color-mix(in srgb, var(--eintragfarbe) 20%, white);
   overflow: hidden;
   white-space: nowrap;
@@ -5676,6 +5687,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
   font: 600 15px var(--serif);
   letter-spacing: 0.02em;
   color: var(--braun);
+  -webkit-user-select: text;
   user-select: text;
 }
 
@@ -6091,7 +6103,7 @@ body[data-linien="aus"] #tb-notiz {
 .kde-medien p { overflow-wrap: anywhere; }
 .kde-medien > .formzeile { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .kde-medien > .formzeile > select { min-width: 160px; }
-.kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; user-select: none; }
+.kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; -webkit-user-select: none; user-select: none; }
 .kde-touchpad[aria-disabled="true"] { opacity: .5; }
 .telefon-kdeconnect > p { margin: 0; }
 .kde-empfang-option {
