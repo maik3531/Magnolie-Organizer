@@ -431,4 +431,5 @@
     <string name="medien_sync_modus">Eşitleme</string>
     <string name="medien_sync_scope_import">Yalnızca telefondan PC’ye aktar</string>
     <string name="medien_sync_direction_export">PC → telefon</string>
+    <string name="medien_empfang_erlauben">Galeriye alıma izin ver…</string>
 </resources>

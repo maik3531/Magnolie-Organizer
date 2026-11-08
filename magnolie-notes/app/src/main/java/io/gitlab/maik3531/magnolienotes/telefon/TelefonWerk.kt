@@ -686,6 +686,26 @@ class TelefonWerk private constructor(private val context: Context, private val 
         transport.startManual(channel::send)
     }
 
+    internal suspend fun allowMediaReceiving(activity: androidx.activity.ComponentActivity,
+        kind: GalleryMediaType): GalleryPhotoPolicySnapshot {
+        val (connection, label, media) = synchronized(this) {
+            val peer = safePeer() ?: DeviceFileControl.fail("gallery_incoming_current_owner_required")
+            val current = galleryFileConnection?.takeUnless { it.isEnded }
+                ?: DeviceFileControl.fail("file_control_native_handler_unavailable")
+            if (activeChannel !== current.channel) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+            Triple(current, peer.display_name, mediaSessions[current.channel]
+                ?: DeviceFileControl.fail("gallery_incoming_current_intent_required"))
+        }
+        val documents = Ablage.hole(context)
+        val book = NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+            Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+        }
+        return NativeGalleryReceiveAction.request(activity, connection, label, kind, book) {
+            if (!media.matched() || media.incomingIntentFor(kind) == null)
+                DeviceFileControl.fail("gallery_incoming_current_intent_required")
+        }
+    }
+
     private fun usesScopedContent(peer: TelefonPeer): Boolean =
         commonValues(peer)?.get("content_mode") == JsonPrimitive("phone_scope")
 

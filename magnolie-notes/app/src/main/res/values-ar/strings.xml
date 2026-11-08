@@ -480,4 +480,5 @@
     <string name="medien_sync_modus">المزامنة</string>
     <string name="medien_sync_scope_import">الاستيراد من الهاتف إلى الكمبيوتر فقط</string>
     <string name="medien_sync_direction_export">الكمبيوتر → الهاتف</string>
+    <string name="medien_empfang_erlauben">السماح بالاستقبال في المعرض…</string>
 </resources>

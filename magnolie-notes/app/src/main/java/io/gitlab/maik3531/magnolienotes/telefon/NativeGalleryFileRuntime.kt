@@ -229,6 +229,13 @@ internal class NativeGalleryFileRuntime private constructor(context: Context, di
 
     /** Native IO-lane preparation only. The UI must still present the real
      * foreground positive dialog with its current saved-book witness. */
+    internal fun receiveConsentIntent(kind: GalleryMediaType): MediaSyncTransport.IntentToken = withOperation {
+        if (!incomingAvailable()) DeviceFileControl.fail("gallery_incoming_handlers_unavailable")
+        if (kind == GalleryMediaType.VIDEO && !videoAvailable()) DeviceFileControl.fail("gallery_video_wire_handlers_unavailable")
+        currentIncomingIntent?.invoke(kind) as? MediaSyncTransport.IntentToken
+            ?: DeviceFileControl.fail("gallery_incoming_current_intent_required")
+    }
+
     internal fun beginReceiveConfiguration(): NativeFileReceiveConfigurer = withOperation {
         if (Looper.myLooper() == Looper.getMainLooper()) DeviceFileControl.fail("gallery_receive_policy_io_thread_required")
         withReceiveIdleLane {

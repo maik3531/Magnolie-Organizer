@@ -525,4 +525,5 @@
     <string name="medien_sync_modus">Synchronization</string>
     <string name="medien_sync_scope_import">Import phone → PC only</string>
     <string name="medien_sync_direction_export">PC → phone</string>
+    <string name="medien_empfang_erlauben">Allow gallery reception…</string>
 </resources>

@@ -38,6 +38,7 @@ class MedienSyncEinstellungenUiTest {
     private val changes = mutableListOf<Triple<String, JsonElement, String>>()
     private var permissions = 0
     private var runs = 0
+    private val receiving = mutableListOf<GalleryMediaType>()
     private val clock = BroadcastFrameClock()
     private val scope = CoroutineScope(Dispatchers.Main + clock + Job())
     private val recomposer = Recomposer(scope.coroutineContext)
@@ -52,7 +53,7 @@ class MedienSyncEinstellungenUiTest {
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema { MedienSyncEinstellungen(state.value, { field, value, version ->
             changes += Triple(field, value, version)
-        }, { permissions++ }, { runs++ }) } }
+        }, { permissions++ }, { runs++ }, { receiving += it }) } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
     }
     private fun frames() {
@@ -133,6 +134,27 @@ class MedienSyncEinstellungenUiTest {
         state.value = state.value.copy(mediaPreferencesSupported = true, mediaPreferencesValues = null); frames()
         assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })
         assertTrue(changes.isEmpty()); assertEquals(0, permissions)
+    }
+
+    @Test fun galleryReceptionIsExplicitTypedAndCannotBypassClosedReadyOrImportOnly() {
+        val active = JsonObject(values + mapOf("enabled" to JsonPrimitive(true), "photos_enabled" to JsonPrimitive(true),
+            "videos_enabled" to JsonPrimitive(true), "direction" to JsonPrimitive("two_way")))
+        state.value = state.value.copy(mediaPreferencesValues = active)
+        launch(); open()
+        fun button(kind: Int) = nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_empfang_erlauben) }
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertTrue(receiving.isEmpty())
+        state.value = state.value.copy(mediaPreferencesReady = true); frames()
+        click(button(R.string.medien_sync_fotos)); click(button(R.string.medien_sync_videos))
+        assertEquals(listOf(GalleryMediaType.IMAGES, GalleryMediaType.VIDEO), receiving)
+        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(active + ("collection_mode" to JsonPrimitive("import_only")))); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        assertNotNull(button(R.string.medien_sync_videos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(active + ("direction" to JsonPrimitive("phone_to_pc")))); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
+        state.value = state.value.copy(mediaPreferencesValues = active, mediaManualBusy = true); frames()
+        assertNotNull(button(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
     }
 
     @After fun close() { controller?.pause()?.stop()?.destroy(); recomposer.cancel(); scope.cancel() }

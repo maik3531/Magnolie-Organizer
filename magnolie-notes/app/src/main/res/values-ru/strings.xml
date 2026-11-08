@@ -452,4 +452,5 @@
     <string name="medien_sync_modus">Синхронизация</string>
     <string name="medien_sync_scope_import">Только импортировать с телефона на ПК</string>
     <string name="medien_sync_direction_export">ПК → телефон</string>
+    <string name="medien_empfang_erlauben">Разрешить приём в галерею…</string>
 </resources>

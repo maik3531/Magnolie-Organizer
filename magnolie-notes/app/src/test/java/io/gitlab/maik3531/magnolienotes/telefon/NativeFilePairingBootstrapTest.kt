@@ -15,6 +15,7 @@ import java.security.Security
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlinx.serialization.json.*
+import kotlinx.coroutines.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
@@ -477,13 +478,59 @@ class NativeFilePairingBootstrapTest {
                             val file = java.io.File(f.root, "werk-native.png")
                             val provider = GalleryIncomingRowsTest.Provider(f.app, payload = file).apply { allowPublish = true }
                             org.robolectric.shadows.ShadowContentResolver.registerProviderInternal("media", provider)
-                            val configurer = f.io { connection.runtime.beginReceiveConfiguration() }
-                            val consent = java.util.concurrent.atomic.AtomicReference<Result<NativeGalleryReceiveConsent>?>()
-                            NativeGalleryReceiveConsent.request(f.activity, peer.display_name, GalleryMediaType.IMAGES, configurer, f.book()) { consent.set(it) }
-                            assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
-                            org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
-                            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
-                            f.io { connection.runtime.grantReceiving(connection.runtime.savedPolicy(), consent.get()!!.getOrThrow()); connection.runtime.sendControls() }
+                            val uiScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+                            fun awaitUi(done: () -> Boolean) {
+                                val end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10)
+                                while (!done()) {
+                                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                                    check(System.nanoTime() < end) { "native receiving UI deadline" }
+                                    Thread.sleep(5)
+                                }
+                                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                            }
+                            fun requestReceiving(): Triple<Job, java.util.concurrent.atomic.AtomicReference<Result<GalleryPhotoPolicySnapshot>?>, android.app.AlertDialog> {
+                                val previousDialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+                                val outcome = java.util.concurrent.atomic.AtomicReference<Result<GalleryPhotoPolicySnapshot>?>()
+                                val job = uiScope.launch {
+                                    try { outcome.set(Result.success(work.allowMediaReceiving(f.activity, GalleryMediaType.IMAGES))) }
+                                    catch (error: Exception) { outcome.set(Result.failure(error)) }
+                                }
+                                awaitUi { outcome.get() != null || org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog() !== previousDialog }
+                                outcome.get()?.getOrThrow()
+                                assertNull(outcome.get())
+                                return Triple(job, outcome, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog())
+                            }
+                            try {
+                                // Both cancellation paths must finish the real native configuration
+                                // ticket. A new positive action afterwards is not a forged permission.
+                                for (cancelJob in listOf(false, true)) {
+                                    val (job, outcome, dialog) = requestReceiving()
+                                    assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
+                                    if (cancelJob) job.cancel() else dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+                                    awaitUi { job.isCompleted }
+                                    assertTrue(outcome.get()!!.isFailure); assertFalse(dialog.isShowing)
+                                    assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                    // A delayed callback from the closed old dialog must not
+                                    // approve this or any later action.
+                                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                                    assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                }
+                                val incomingCapabilities = work.sharedLocalCapabilities
+                                val (withdrawnJob, withdrawnOutcome, withdrawnDialog) = requestReceiving()
+                                work.sharedLocalCapabilities = normalCapabilities // Remove fixture-only capability23 while waiting for the user.
+                                withdrawnDialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                awaitUi { withdrawnJob.isCompleted }
+                                assertTrue(withdrawnOutcome.get()!!.isFailure)
+                                assertNull(connection.runtime.savedPolicy().policy); assertEquals(0, provider.inserts)
+                                work.sharedLocalCapabilities = incomingCapabilities
+                                repeat(3) { controls() }
+                                val (job, outcome, dialog) = requestReceiving()
+                                assertEquals(0, provider.inserts); assertNull(connection.runtime.savedPolicy().policy)
+                                dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick()
+                                awaitUi { job.isCompleted }
+                                assertTrue(outcome.get()!!.isSuccess)
+                            } finally { uiScope.cancel() }
                             frames().filter { it["kind"] == JsonPrimitive(DeviceFileControl.KIND) }.forEach { desktop.observeRemote(DeviceFileControlEnvelope.validate(it), desktopPeer) }
                             repeat(3) { controls() }
                             val policy = connection.runtime.savedPolicy().policy!!

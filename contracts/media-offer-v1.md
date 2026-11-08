@@ -71,9 +71,50 @@ gemeinsame Absichtsabstimmung, native Kontrollabstimmung, positiven nativen
 Zustimmungsdialog und den normalen Werk-Verteiler bis zur PNG-Veröffentlichung
 und verschlüsselten Saved-Ausgabe. Nur dieser Test stellt die ansonsten gesperrte
 gemeinsame Capability bereit. Dies ist kein physischer Telefon-/Desktop-
-Ende-zu-Ende-Nachweis und keine Produktfreigabe dieser Capability. Die lokale
-Bedienungsanbindung des Empfangsdialogs und die vollständigen folgenden
-Abschluss-/Wiederaufnahmewege bleiben offen.
+Ende-zu-Ende-Nachweis und keine Produktfreigabe dieser Capability.
+
+## Ausdrückliche lokale Empfangszustimmung in Notes
+
+Die Medien-Einstellungsseite besitzt inzwischen getrennte Foto-/Video-Aktionen
+„Galerie-Empfang erlauben…“. Sie verändern weder die gemeinsamen Einstellungen
+noch Android-Leserechte und starten keine Synchronisierung. Die Oberfläche
+berücksichtigt die gemeinsam bestätigte Bereitschaft, den gewählten Medientyp,
+Richtung/Umfang, Android ≥30 und belegte Medienläufe. Im reinen Importumfang und
+bei Telefon→PC sind diese Empfangsaktionen gesperrt.
+
+Der produktive Werk-Aufruf nimmt nur die bereits bestehende native Verbindung,
+deren aktuellen Peer-Namen und das tatsächlich gespeicherte, entsperrte Buch.
+Er erzeugt keine Verbindung und liest keinen Konfigurationsbesitzer aus
+Oberflächen- oder Nachrichtendaten. Eine eigene native Aktion bereitet außerhalb
+des UI-Threads den bestehenden Empfangs-Konfigurationsticketbesitzer und einen
+geschützten Richtliniensnapshot vor. Erst der echte positive lokale Dialog darf
+die einmalige Auswahl erzeugen. Anschließend werden die aktuelle gemeinsame
+Kontroll-/Einstellungsabstimmung und derselbe typspezifische Absichtsbesitzer
+erneut geprüft, bevor die vorhandene native CAS-/Rückleseprüfung speichern darf.
+Diese frische Einstellungsprüfung geschieht ebenfalls außerhalb des UI-Threads
+und außerhalb geschützter Indexsperren; deren Absichtsprojektionen bleiben
+absichtlich sperrfrei.
+
+Abbrechen beziehungsweise Coroutine-Abbruch schließen den Dialog, widerrufen die
+Auswahl und geben ausschließlich das eigene Konfigurationsticket frei. Die Aktion
+legt keine Galeriezeile an, stellt keine Datei wieder her und erzeugt weder
+Archiv- noch Papierkorbrechte. Die vorhandenen Buch-/Foreground-/Configurer-
+Prüfungen gelten weiter. Der gemeinsame Produktweg bleibt wegen der noch nicht
+abgeschlossenen Gesamtkomposition weiterhin geschlossen; dieser Bedienungsweg
+ist insbesondere keine Freischaltung der Capability 23.
+
+Der tatsächliche Werk-Factory-/Verteilertest verwendet nun diesen produktiven
+UI-Eintritt statt einer im Test manuell erzeugten Konfiguration. Er prüft
+Dialog-Abbruch, Coroutine-Abbruch, verspätete positive Rückrufe alter Dialoge,
+Entzug der gemeinsamen Bereitschaft während des Dialogs ohne Richtlinien- oder
+Provideränderung und anschließend eine neue echte positive Aktion bis zur PNG-
+Veröffentlichung/Saved. Die zusätzliche Entzugsprobe fand zunächst eine echte
+Lücke der neuen UI-Aufnahme: eine sperrfrei zwischengespeicherte Absicht alleine
+war kein frischer Bereitschaftsnachweis. Der produktive Werk-Eintritt prüft
+deshalb die tatsächliche Kontroll-/Einstellungsabstimmung zusätzlich vor der
+Speicherung; die erneute Probe besteht. Vorhandene native Zustimmungs-/Buch-/
+Lifecycle-Prüfungen und vier Compose-Einstellungsfälle bestehen ebenfalls.
+Das neue Aktionslabel ist in allen 20 Notes-Ressourcenkatalogen vorhanden.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
