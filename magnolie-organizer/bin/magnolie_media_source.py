@@ -114,18 +114,18 @@ class NativeMappedMediaSource:
     def inspect(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=False)
 
-    def plan(self,action,expected,association,record_sha256,*,kind='images'):
-        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False,planning=True)
+    def plan(self,action,expected,association,record_sha256,*,kind='images',native_current=None):
+        return self._read(action,expected,association,record_sha256,kind=kind,freeze=False,planning=True,native_current=native_current)
 
     def freeze(self,action,expected,association,record_sha256,*,kind='images'):
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True)
 
-    def freeze_observed(self,action,expected,association,record_sha256,observation,*,kind='images',catalog_version=None):
+    def freeze_observed(self,action,expected,association,record_sha256,observation,*,kind='images',catalog_version=None,native_current=None):
         from magnolie_file_control import _hex
         if type(observation) is not NativeMediaSourceObservation or catalog_version is not None and not _hex(catalog_version):
             raise TransferError('media_source_original_observation_required')
         return self._read(action,expected,association,record_sha256,kind=kind,freeze=True,
-            expected_observation=observation,expected_catalog=catalog_version)
+            expected_observation=observation,expected_catalog=catalog_version,native_current=native_current)
 
     def reprepare(self,action,expected,association,record_sha256,job_id,job_version,*,kind='images'):
         from magnolie_media_source_reprepare import _NativeSourceRepreparation
@@ -197,7 +197,7 @@ class NativeMappedMediaSource:
             return True
         return permission,token
 
-    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None,planning=False,expected_observation=None,expected_catalog=None):
+    def _read(self,action,expected,association,record_sha256,*,kind,freeze,restoration=None,reprepare=None,planning=False,expected_observation=None,expected_catalog=None,native_current=None):
         if type(action) is not NativePhotoDestinationAction or type(expected) is not PhotoPreferencesSnapshot or kind not in ('images','video'):
             raise TransferError('media_source_native_selection_required')
         if type(planning) is not bool or planning and (freeze or restoration is not None or reprepare is not None):
@@ -205,6 +205,8 @@ class NativeMappedMediaSource:
         if expected_observation is not None and (type(expected_observation) is not NativeMediaSourceObservation
                 or not freeze or planning or restoration is not None or reprepare is not None):
             raise TransferError('media_source_original_observation_required')
+        if native_current is not None and not callable(native_current):
+            raise TransferError('media_source_native_operation_required')
         action.consume(self._preferences)
         if not self._gate.acquire(blocking=False):raise TransferError('media_source_busy')
         try:
@@ -214,6 +216,16 @@ class NativeMappedMediaSource:
                         or freeze or restoration is not None or self._prepared):
                     raise TransferError('media_source_reprepare_fresh_owner_required')
             permission,token=self._source_permission(action,expected,kind)
+            if native_current is not None:
+                original_permission=permission;ended=threading.Event()
+                def permission():
+                    if ended.is_set():raise TransferError('media_source_native_operation_ended')
+                    try:current=native_current()
+                    except BaseException:
+                        ended.set();raise
+                    if current is not True:
+                        ended.set();raise TransferError('media_source_native_operation_ended')
+                    return original_permission()
             permission()
             with NativeMediaRetention(self._authority.binding.native_directory) as retention:
                 with retention.activity(permission,exclusive=True) as activity:

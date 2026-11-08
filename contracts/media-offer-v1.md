@@ -468,6 +468,17 @@ werden, ohne SEND oder den Steuereigentümer durch Arbeiteraktivität umzuschalt
 Das ist weiterhin eine einzelne native Auswahl, noch kein automatisch
 seitenweise laufender Sammlungsscheduler.
 
+Ein nativer Arbeiter kann die bedingte Vorbereitung zusätzlich an seine eigene
+aktuelle Operation binden. Diese Prüfung ist ausschließlich eine weitere Sperre:
+Sie ersetzt weder Sendezustimmung noch Buch-, Richtungs-, Zuordnungs- oder
+Dateirechte. Sie wird auch während des tatsächlichen Lesens und Kopierens sowie
+bei späterem Zugriff auf die lebende Vorbereitung geprüft. Ein beendeter oder
+fehlgeschlagener Operationsnachweis schließt genau diese Vorbereitung dauerhaft;
+ein später wieder positiver Rückgabewert darf sie nicht erneut freigeben.
+Abbruch schließt keine Deskriptoren aus einem fremden laufenden I/O heraus.
+Bereits geschriebene Teilstände bleiben erhalten, werden aber nicht als Ready
+oder wiederaufgenommene Leseautorität ausgegeben.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

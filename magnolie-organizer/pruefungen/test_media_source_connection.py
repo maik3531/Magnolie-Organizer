@@ -110,6 +110,11 @@ def test_conditional_normal_preparation_waits_for_actual_send_ack_and_skips_unch
         agree(h,native[0]);result=prepare()
         assert not result.plan.changed and result.cache is None and not result.grants_read_authority
         assert not h.source._prepared and h.connection._media_sender is None
+        with monkeypatch.context() as patch:
+            patch.setattr(h.source,'plan',lambda *args,**kwargs:pytest.fail('Ended native pass started source planning'))
+            with pytest.raises(TransferError,match='native_operation_ended'):
+                h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,
+                    h.record.protected_record_sha256,native_current=lambda:False)
 
 
 def test_conditional_prepare_rejects_plan_freeze_file_change_before_creating_cache(source,native,monkeypatch):
@@ -143,7 +148,7 @@ def test_actual_conditional_prepare_uses_shared_sender_then_skips_completed_sour
     with composition(source,native[0]) as h:
         controls=agree(h,native[0]);owner=h.connection._local().owner;h.target.write_bytes(png())
         def prepare():
-            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256,native_current=lambda:True)
         selected=prepare();cache=selected.cache
         assert selected.plan.changed and cache is not None and selected.plan.observation.sha256==cache.manifest.files[0].sha256
         sender=h.connection.open_prepared_media_sender(cache.manifest.source_id)
