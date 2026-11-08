@@ -45,9 +45,10 @@ and still requires separate current sending consent, intent and saved-book proof
 Windows receiving now passes its exact matched photo-filter choice into native
 publication. It checks all original staged prefixes before preserving/replacing
 or publishing any member, retaining a rejected batch's stage and journal. Its
-portable metadata parser uses the same JPEG/TIFF/PNG capture criterion. Parser
-tests and production compilation are not native Windows stage/publication
-acceptance; that added native test lane remains separately required. Windows
+portable metadata parser uses the same JPEG/TIFF/PNG capture criterion. Native
+Windows staged-file tests cover a renamed capture with byte-identical publication
+and a mixed batch rejected without any publication or staged-original loss.
+These component tests are not whole-package or physical-phone acceptance. Windows
 PC-source integration and the complete productive shared runtime remain
 unfinished. These components do not enable the reserved runtime or expose the
 unfinished cross-platform filter control.

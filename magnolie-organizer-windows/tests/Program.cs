@@ -274,6 +274,7 @@ runner.Add("Device file native media UI / strict requests reject browser paths a
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
+    runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);
     runner.Add("Media shared storage / Windows preserve legacy choices and ambiguous deletions", DeviceFileSharedPreferencesTests.LegacyAsync);
     runner.Add("Media shared storage / Windows corruption pairing identity and restore HOLD", DeviceFileSharedPreferencesTests.BindingAsync);
     runner.Add("Media shared transport / Windows actual bilateral ACK exact snapshot and no grants", DeviceFileSharedTransportTests.MatchedAsync);

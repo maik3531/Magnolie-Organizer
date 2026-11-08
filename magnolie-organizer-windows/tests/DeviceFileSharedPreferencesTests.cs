@@ -24,6 +24,39 @@ internal static class DeviceFileSharedPreferencesTests
         return query.ExecuteScalar() as byte[];
     }
 
+    internal static Task SevenFieldProjectionAsync()
+    {
+        using var f = new DeviceFileConnectionMetadataTests.Fixture(); Identity(f);
+        var version = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "skip_deletions");
+        _ = f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "skip_deletions", JsonValue.Create(true)!, version);
+        var enabledVersion = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "enabled");
+        var clear = f.Store.Open("native_media_shared_settings", f.Peer.Id, Blob(f.Store)!);
+        JsonObject record;
+        try { record = JsonNode.Parse(clear)!.AsObject(); }
+        finally { CryptographicOperations.ZeroMemory(clear); }
+        record["body"]!["settings"]!.AsObject().Remove("photos_only"); var old = record["body"]!.DeepClone();
+        var payload = TelefonCrypto.Canonical(record);
+        byte[] historical;
+        try { historical = f.Store.Seal("native_media_shared_settings", f.Peer.Id, payload); }
+        finally { CryptographicOperations.ZeroMemory(payload); }
+        using (var db = f.Store.OpenDatabase())
+        {
+            db.Open(); using var write = db.CreateCommand(); write.CommandText = "UPDATE native_media_shared_settings SET value=$value";
+            write.Parameters.AddWithValue("$value", historical); write.ExecuteNonQuery();
+        }
+        var projection = f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)!;
+        TestAssert.That(historical.SequenceEqual(Blob(f.Store)!) && !MediaSyncSettings.Effective(projection)["photos_only"]!.GetValue<bool>() &&
+            enabledVersion == f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "enabled"),
+            "Passive seven-field projection rewrote ciphertext, enabled the filter or invalidated an unrelated field.");
+        var filterVersion = f.Store.NativeMediaSharedFieldVersion(f.Peer.Id, f.Peer.PublicKey, "photos_only");
+        var changed = f.Store.ChangeNativeMediaSharedSetting(f.Peer.Id, f.Peer.PublicKey, "photos_only", JsonValue.Create(true)!, filterVersion);
+        var others = changed.DeepClone().AsObject(); others["settings"]!.AsObject().Remove("photos_only");
+        TestAssert.That(!historical.SequenceEqual(Blob(f.Store)!) && JsonNode.DeepEquals(old, others) &&
+            JsonNode.DeepEquals(changed, f.Store.ReadNativeMediaSharedSettings(f.Peer.Id, f.Peer.PublicKey)),
+            "The explicit filter edit did not persist or rewrote a historical register.");
+        return Task.CompletedTask;
+    }
+
     internal static Task PersistenceAsync()
     {
         using var f = new DeviceFileConnectionMetadataTests.Fixture(); Identity(f);
