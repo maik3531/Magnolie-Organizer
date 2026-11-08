@@ -6,7 +6,6 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 
 class TimeZoneExportTest {
@@ -17,18 +16,18 @@ class TimeZoneExportTest {
         val parsed = ICalendarImport.decode(lines.joinToString("\r\n", postfix = "\r\n").toByteArray(), "UTC").appointments.single()
         return (wall.toEpochSecond(ZoneOffset.UTC) - parsed.getLong("geaendert") / 1000).toInt()
     }
-    @Test fun historyAndInfiniteFutureMatchSystemZoneRulesAcrossTheGregorianCycle() {
+    @Test fun historyAndInfiniteFutureMatchNormativeRulesAcrossTheGregorianCycle() {
         val output = System.getenv("ANDROID_BETA_CALENDAR_OUTPUT")?.let(::File)
         val vectors = JSONArray()
         for (identifier in listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham", "Asia/Kathmandu", "Etc/UTC")) {
             val definition = TimeZoneExport.definition(identifier)
             assertEquals("BEGIN:VTIMEZONE", definition.first()); assertEquals("END:VTIMEZONE", definition.last())
-            val future = ZoneId.of(identifier).rules.transitionRules
-            assertEquals(future.size, definition.count { it.startsWith("RRULE:") })
+            val future = ProviderZoneDatabase.bundled.zone(identifier).model.tail.daylightOffset!=null
+            assertTrue(if(future) definition.count {it.startsWith("RRULE:")}>=2 else definition.none {it.startsWith("RRULE:")})
             assertFalse(definition.any { it.startsWith("RRULE:") && ("UNTIL=" in it || "COUNT=" in it) })
             for (year in listOf(2, 1800, 1900, 1945, 2026, 2038, 2100, 2400, 8000)) for (month in listOf(1, 3, 4, 7, 10, 11, 12)) {
-                val wall = at(year, month, 15); val valid = ZoneId.of(identifier).rules.getValidOffsets(wall)
-                assertTrue(valid.isNotEmpty()); assertEquals(identifier + " " + wall, valid.first().totalSeconds, offset(definition, wall))
+                val wall = at(year, month, 15); val valid = ProviderZoneDatabase.bundled.zone(identifier).validInstants(wall)
+                assertTrue(valid.isNotEmpty()); assertEquals(identifier + " " + wall, (ProviderZone.seconds(wall)-valid.first()).toInt(), offset(definition, wall))
             }
             vectors.put(JSONObject().put("identifier", identifier).put("definition", JSONArray(definition)))
         }
@@ -47,7 +46,7 @@ class TimeZoneExportTest {
             "Europe/Berlin" to listOf(at(2026, 3, 29, 1, 59), at(2026, 3, 29, 3), at(2026, 10, 25, 2, 30)),
             "America/New_York" to listOf(at(2026, 3, 8, 1, 59), at(2026, 3, 8, 3), at(2026, 11, 1, 1, 30)))) {
             val definition = TimeZoneExport.definition(identifier)
-            for (wall in walls) assertEquals(ZoneId.of(identifier).rules.getValidOffsets(wall).first().totalSeconds, offset(definition, wall))
+            for (wall in walls) assertEquals((ProviderZone.seconds(wall)-ProviderZoneDatabase.bundled.zone(identifier).validInstants(wall).first()).toInt(), offset(definition, wall))
             val gap = if (identifier == "Europe/Berlin") at(2026, 3, 29, 2, 30) else at(2026, 3, 8, 2, 30)
             try { offset(definition, gap); fail("A nonexistent wall time must be rejected") } catch (_: ICalendarImport.ImportException) { }
         }

@@ -9,11 +9,11 @@ import org.threeten.bp.ZoneId
 /** JVM references here are independent of the production ThreeTen namespace.
  * These checks do not claim Android SDK/runtime or old-device acceptance. */
 class TzdbBackportTest {
-    @Test fun bundledProviderHasPinnedPublicVersionAndRealHistoryAndFuture() {
+    @Test fun normativeProviderHasPinnedPublicVersionAndRealHistoryAndFuture() {
         assertEquals("2026egtz", TimeZoneExport.databaseVersion)
         for (name in listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham")) {
-            val rules = ZoneId.of(name).rules
-            assertTrue(name, rules.transitions.isNotEmpty()); assertTrue(name, rules.transitionRules.isNotEmpty())
+            val model = ProviderZoneDatabase.bundled.zone(name).model
+            assertTrue(name, model.history.isNotEmpty()); assertNotNull(model.tail.daylightOffset)
             assertTrue(TimeZoneExport.definition(name).any { it.startsWith("RRULE:") })
         }
     }
@@ -41,16 +41,16 @@ class TzdbBackportTest {
             val row = clocks.getJSONObject(index)
             val wall = LocalDateTime.of(row.getInt("year"), row.getInt("month"), row.getInt("day"), row.getInt("hour"), row.getInt("minute"))
             val expected = row.getInt("offsetSeconds")
-            val actual = ZoneId.of(row.getString("identifier")).rules.getOffset(Instant.ofEpochSecond(wall.toEpochSecond(org.threeten.bp.ZoneOffset.ofTotalSeconds(expected))))
-            assertEquals(expected, actual.totalSeconds)
+            val actual = ProviderZoneDatabase.bundled.zone(row.getString("identifier")).offsetAt(ProviderZone.seconds(wall)-expected)
+            assertEquals(expected, actual)
         }
     }
     @Test fun completeDatabaseMatchesIndependentJavaTimeHistoryAndWideFuture() {
         for (name in listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham", "Asia/Kathmandu", "Etc/UTC")) {
-            val bundled = ZoneId.of(name).rules; val native = java.time.ZoneId.of(name).rules
+            val bundled = ProviderZoneDatabase.bundled.zone(name); val native = java.time.ZoneId.of(name).rules
             for (year in listOf(2, 1800, 1900, 1945, 1970, 2000, 2026, 2038, 2100, 2400, 8000)) for (month in 1..12) {
                 val reference = java.time.LocalDateTime.of(year, month, 15, 12, 0).toInstant(java.time.ZoneOffset.UTC)
-                val actual = bundled.getOffset(Instant.ofEpochSecond(reference.epochSecond)).totalSeconds
+                val actual = bundled.offsetAt(reference.epochSecond)
                 assertEquals("$name year=$year month=$month", native.getOffset(reference).totalSeconds, actual)
             }
         }
@@ -62,11 +62,12 @@ class TzdbBackportTest {
             "America/New_York" to listOf("2026-03-08T02:30", "2026-11-01T01:30"),
             "Australia/Lord_Howe" to listOf("2026-04-05T01:45", "2026-10-04T02:15"))
         for ((name, clocks) in cases) for (text in clocks) {
-            val bundled = ZoneId.of(name).rules.getValidOffsets(LocalDateTime.parse(text)).map { it.totalSeconds }
+            val wall = LocalDateTime.parse(text)
+            val bundled = ProviderZoneDatabase.bundled.zone(name).validInstants(wall).map {(ProviderZone.seconds(wall)-it).toInt()}
             val reference = java.time.ZoneId.of(name).rules.getValidOffsets(java.time.LocalDateTime.parse(text)).map { it.totalSeconds }
             assertEquals("$name $text", reference, bundled)
         }
-        assertTrue(ZoneId.of("Africa/Casablanca").rules.getValidOffsets(LocalDateTime.parse("2026-03-22T02:30")).isEmpty())
+        assertTrue(ProviderZoneDatabase.bundled.zone("Africa/Casablanca").validInstants(LocalDateTime.parse("2026-03-22T02:30")).isEmpty())
         val source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:gap\r\nDTSTART;TZID=Africa/Casablanca:20260322T023000\r\nSUMMARY:Synthetic gap\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
         try { ICalendarImport.decode(source.toByteArray(), "UTC"); fail("A DST gap cannot become an imported appointment") }
         catch (_: ICalendarImport.ImportException) { }

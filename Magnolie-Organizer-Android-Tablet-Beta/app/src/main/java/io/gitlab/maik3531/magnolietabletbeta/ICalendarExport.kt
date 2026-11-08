@@ -6,7 +6,6 @@ import java.security.MessageDigest
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
@@ -81,40 +80,39 @@ object ICalendarExport {
             }
         }
     }
-    private val utc: ZoneId = ZoneOffset.UTC
+    private val utc: ProviderZone get() = ProviderZoneDatabase.bundled.zone("UTC")
     private val stamp = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss", Locale.ROOT)
     private val days = listOf("SU", "MO", "TU", "WE", "TH", "FR", "SA")
     private fun day(value: String): LocalDate {
         requireExport(matches(value, "[0-9]{4}-[0-9]{2}-[0-9]{2}"), "Invalid calendar date.")
         return try { LocalDate.parse(value).also { requireExport(it.year in 1..9999, "Invalid calendar year.") } } catch (_: org.threeten.bp.DateTimeException) { throw ExportException("Invalid calendar date.") }
     }
-    private fun zone(value: String): ZoneId {
+    private fun zone(value: String): ProviderZone {
         requireExport(value.isNotEmpty() && value.length <= 255 && matches(value, "[A-Za-z0-9_+./-]+") && !value.contains(".."), "Unavailable calendar time zone.")
-        return try { ZoneId.of(value) } catch (_: org.threeten.bp.DateTimeException) { throw ExportException("Unavailable calendar time zone.") }
+        return try { ProviderZoneDatabase.bundled.zone(value) } catch (_: IllegalArgumentException) { throw ExportException("Unavailable calendar time zone.") }
     }
-    private fun displayZone(record: JSONObject) = text(record, "icsAnzeigeZeitzone").let { if (it.isEmpty() || it == "system") ZoneId.systemDefault() else zone(it) }
+    private fun displayZone(record: JSONObject) = text(record, "icsAnzeigeZeitzone").let { if (it.isEmpty() || it == "system") zone(java.util.TimeZone.getDefault().id) else zone(it) }
     private fun wall(date: String, time: String): LocalDateTime {
         val day = day(date)
         requireExport(matches(time, "(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?"), "Invalid calendar clock.")
         return day.atTime(time.substring(0, 2).toInt(), time.substring(3, 5).toInt(), if (time.length == 8) time.substring(6, 8).toInt() else 0)
     }
-    private fun ordinaryWall(value: LocalDateTime, zone: ZoneId): Long {
-        val offsets = zone.rules.getValidOffsets(value)
-        requireExport(offsets.isNotEmpty(), "A calendar wall time falls in a daylight-saving gap; export was cancelled.")
-        return offsets.minOf { value.toEpochSecond(it) }
+    private fun ordinaryWall(value: LocalDateTime, zone: ProviderZone): Long {
+        return try { PointResolver.resolve(zone,value)!! }
+        catch (_: IllegalArgumentException) { throw ExportException("A calendar wall time falls in a daylight-saving gap; export was cancelled.") }
     }
     private fun timeLine(name: String, date: String, time: String, zoneName: String): String {
         day(date)
         if (time.isEmpty()) return "$name;VALUE=DATE:" + date.replace("-", "")
-        val resolved = if (zoneName.isEmpty() || zoneName == "system") ZoneId.systemDefault() else zone(zoneName)
+        val resolved = if (zoneName.isEmpty() || zoneName == "system") zone(java.util.TimeZone.getDefault().id) else zone(zoneName)
         val local = wall(date, time); ordinaryWall(local, resolved)
         return name + (if (zoneName.isEmpty() || zoneName == "system" || zoneName == "UTC") "" else ";TZID=$zoneName") + ":" + local.format(stamp) + (if (zoneName == "UTC") "Z" else "")
     }
-    private data class Clock(val instant: Long, val wall: LocalDateTime, val dateOnly: Boolean, val source: String, val floating: Boolean)
+    private data class Clock(val instant: Long, val wall: LocalDateTime, val dateOnly: Boolean, val source: String?, val floating: Boolean)
     private class Resolver(val definitions: Map<String, List<String>>, val check: () -> Unit) {
         private val resolved = linkedMapOf<String, Long>()
-        fun instant(wall: LocalDateTime, source: String, default: ZoneId): Long {
-            if (source == "@utc") return wall.toEpochSecond(ZoneOffset.UTC)
+        fun instant(wall: LocalDateTime, source: String?, default: ProviderZone): Long {
+            if (source == null) return wall.toEpochSecond(ZoneOffset.UTC)
             if (source.isEmpty()) return ordinaryWall(wall, default)
             if (!definitions.containsKey(source)) return ordinaryWall(wall, zone(source))
             val key = source + "\u0000" + wall.toString()
@@ -131,21 +129,21 @@ object ICalendarExport {
                 resolved[key] = result; result
             }
         }
-        fun clock(property: Property, default: ZoneId): Clock {
+        fun clock(property: Property, default: ProviderZone): Clock {
             val value = property.value
             val allDay = upper(property.parameters["VALUE"] ?: "") == "DATE" || matches(value, "[0-9]{8}")
             requireExport(property.parameters.keys.all { it in setOf("TZID", "VALUE", "RANGE") } && (property.parameters["RANGE"] == null || property.name == "RECURRENCE-ID" && upper(property.parameters.getValue("RANGE")) == "THISANDFUTURE"), "Unsupported calendar time parameters.")
             if (allDay) {
                 requireExport(matches(value, "[0-9]{8}") && property.parameters["TZID"] == null, "Invalid date-only calendar property.")
                 val date = day(value.substring(0, 4) + "-" + value.substring(4, 6) + "-" + value.substring(6, 8)).atStartOfDay()
-                return Clock(date.toEpochSecond(ZoneOffset.UTC), date, true, "@utc", true)
+                return Clock(date.toEpochSecond(ZoneOffset.UTC), date, true, null, true)
             }
             requireExport(matches(value, "[0-9]{8}T[0-9]{6}Z?") && property.parameters["VALUE"]?.let { upper(it) == "DATE-TIME" } != false && (!value.endsWith('Z') || property.parameters["TZID"] == null), "Invalid calendar date-time.")
-            val source = if (value.endsWith('Z')) "@utc" else property.parameters["TZID"] ?: ""
+            val source = if (value.endsWith('Z')) null else property.parameters["TZID"] ?: ""
             val local = wall(value.substring(0, 4) + "-" + value.substring(4, 6) + "-" + value.substring(6, 8), value.substring(9, 11) + ":" + value.substring(11, 13) + ":" + value.substring(13, 15))
             return Clock(instant(local, source, default), local, false, source, !value.endsWith('Z') && property.parameters["TZID"] == null)
         }
-        fun duration(value: String, start: Clock, default: ZoneId): Clock {
+        fun duration(value: String, start: Clock, default: ProviderZone): Clock {
             val match = Regex("\\+?P(?:(\\d+)W|(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?)?)").matchEntire(value) ?: throw ExportException("Invalid calendar duration.")
             val values = (1..5).map { index -> match.groups[index]?.value?.let {
                 it.toLongOrNull() ?: throw ExportException("Calendar duration exceeds the supported range.")
@@ -269,7 +267,7 @@ object ICalendarExport {
         var depth = 0
         return properties.filter { when (it.name) { "BEGIN" -> { depth++; false }; "END" -> { depth--; false }; else -> depth == 0 } }
     }
-    private fun ruleParts(value: String, start: Property, resolver: Resolver, default: ZoneId): Map<String, String> {
+    private fun ruleParts(value: String, start: Property, resolver: Resolver, default: ProviderZone): Map<String, String> {
         val parts = linkedMapOf<String, String>()
         val allowed = setOf("FREQ", "UNTIL", "COUNT", "INTERVAL", "BYSECOND", "BYMINUTE", "BYHOUR", "BYDAY", "BYMONTHDAY", "BYYEARDAY", "BYWEEKNO", "BYMONTH", "BYSETPOS", "WKST")
         for (field in upper(value).split(';')) {
@@ -286,7 +284,7 @@ object ICalendarExport {
         parts["WKST"]?.let { requireExport(it in days, "Invalid recurrence week start.") }
         parts["UNTIL"]?.let {
             val initial = resolver.clock(start, default)
-            val untilHeader = if (it.length == 8) ";VALUE=DATE" else if (!it.endsWith('Z') && !initial.floating && initial.source != "@utc") ";TZID=" + initial.source else ""
+            val untilHeader = if (it.length == 8) ";VALUE=DATE" else if (!it.endsWith('Z') && !initial.floating && initial.source != null) ";TZID=" + initial.source else ""
             val ending = resolver.clock(Property("DTSTART$untilHeader:$it"), default)
             requireExport(ending.dateOnly == initial.dateOnly && ending.instant >= initial.instant, "Recurrence end contradicts its start.")
         }
@@ -332,7 +330,7 @@ object ICalendarExport {
         val storedDate = text(record, dateField).ifEmpty { if (kind == Kind.appointments) text(record, "datum") else "" }
         val storedTime = text(record, timeField).ifEmpty { if (kind == Kind.appointments && name == "DTEND" && record.opt("icsNullDauer") == true) text(record, "zeit") else "" }
         val instant = source.instant - if (source.dateOnly && kind == Kind.appointments && name == "DTEND") 86400 else 0
-        val projected = Instant.ofEpochSecond(instant).atZone(if (source.dateOnly) utc else displayZone(record))
+        val projected = (if (source.dateOnly) utc else displayZone(record)).project(instant)
         val time = projected.format(DateTimeFormatter.ofPattern(if (storedTime.length == 8) "HH:mm:ss" else "HH:mm", Locale.ROOT))
         requireExport(storedDate.isNotEmpty() && projected.toLocalDate().toString() == storedDate && (if (source.dateOnly) storedTime.isEmpty() else time == storedTime), "Source calendar times contradict the visible record; export was cancelled.")
     }
@@ -360,7 +358,7 @@ object ICalendarExport {
                 } else if (endTime.isNotEmpty()) generated.add(timeLine("DTEND", endDate, endTime, zoneName))
                 else if (top.none { it.name == "DURATION" } && record.opt("icsEndeFehlt") != true) {
                     val instant = ordinaryWall(wall(start, startTime), display) + if (record.opt("icsNullDauer") == true) 0 else 1800
-                    val end = Instant.ofEpochSecond(instant).atZone(display)
+                    val end = display.project(instant)
                     generated.add(timeLine("DTEND", end.toLocalDate().toString(), end.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT)), zoneName))
                 }
             }
@@ -462,13 +460,13 @@ object ICalendarExport {
                 val exceptions = strings(record.get("icsAusnahmen")); val rawDates = top.filter { it.name == "EXDATE" }.flatMap { property ->
                     property.value.split(',').map {
                         val source = resolver.clock(Property(property.header + ":" + it), display)
-                        Instant.ofEpochSecond(source.instant).atZone(if (source.dateOnly) utc else display).toLocalDate().toString()
+                        (if (source.dateOnly) utc else display).project(source.instant).toLocalDate().toString()
                     }
                 }.toSet()
                 val missing = exceptions.distinct().sorted().filter { it !in rawDates }
                 if (missing.isNotEmpty()) {
                     val source = resolver.clock(start, display)
-                    val time = if (source.dateOnly) "" else Instant.ofEpochSecond(source.instant).atZone(display).format(DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT))
+                    val time = if (source.dateOnly) "" else display.project(source.instant).format(DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT))
                     val additions = missing.map { Property(timeLine("EXDATE", it, time, if (source.floating) "" else text(record, "icsAnzeigeZeitzone"))) }
                     byName["EXDATE"] = Property(additions.first().header + ":" + additions.joinToString(",") { it.value })
                 }
@@ -543,6 +541,7 @@ object ICalendarExport {
                checkCancelled: () -> Unit = { if (Thread.currentThread().isInterrupted) throw CancellationException("Calendar export cancelled.") }): String {
         checkCancelled(); requireExport(input.isNotEmpty() && input.size <= maximumRecords, "There are no calendar records to export or the record limit was exceeded.")
         var inputBytes = 0L
+        val systemIdentifier by lazy { zone(java.util.TimeZone.getDefault().id).identifier }
         // Own snapshots of the JSON records before constructing any output.
         // No output is returned or destination file opened by this pure codec.
         val records = input.map { record ->
@@ -554,7 +553,7 @@ object ICalendarExport {
                 // New local wall times need a portable named zone, just like
                 // the desktop writer. Resolving the display default does not
                 // rewrite authoritative raw floating DTSTART/RRULE properties.
-                val resolved = if (requested.isEmpty() || requested == "system") ZoneId.systemDefault().id else requested
+                val resolved = if (requested.isEmpty() || requested == "system") systemIdentifier else requested
                 it.put("icsAnzeigeZeitzone", resolved)
             }
         }

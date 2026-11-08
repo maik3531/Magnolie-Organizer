@@ -9,7 +9,7 @@ Notes product sources are unchanged.
 
 | Area | Existing dependency | API 23 assessment |
 | --- | --- | --- |
-| Calendar/holiday codecs | `java.time`, `ZoneRules`, future transition rules | Native API 26. Official desugaring can supply classes, but its legacy rules implementation needs separate history/future validation; it cannot justify fabricated VTIMEZONE rules. |
+| Calendar/holiday codecs | Initial audit: native `java.time`/`ZoneRules` required API26. Current codec migration uses verified shared TZif/POSIX rules plus BP Gregorian arithmetic. | No BP/OS named-rule fallback. Real Android resource packaging, provider and old-device acceptance remain required; see `third-party/README.md`. |
 | Vault and DAV files | `java.nio.file`, `File.toPath`, POSIX modes/owner/symlink checks, atomic rename | Native API 26. The examined NIO desugaring fallback does not preserve these contracts; see below. |
 | Directory durability | Shared `FileChannel.open(Path, READ).force(true)` | Examined desugared Linux provider explicitly rejects directory channels. Notes source must remain unchanged; an Android-native injected implementation is needed. |
 | Portable backup | `PBKDF2WithHmacSHA256` named factory | Android's named platform factory starts at API 26. The prepared fallback uses existing JCA `HmacSHA256`, identical UTF-8 password conversion, 210000 iterations and a 256-bit key. No SHA-1 fallback or provider installation. |

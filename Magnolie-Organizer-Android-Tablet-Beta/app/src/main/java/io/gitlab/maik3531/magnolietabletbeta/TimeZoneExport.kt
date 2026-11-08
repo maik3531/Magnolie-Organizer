@@ -1,22 +1,16 @@
 package io.gitlab.maik3531.magnolietabletbeta
 
-import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
-import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
-import org.threeten.bp.zone.ZoneOffsetTransitionRule
-import org.threeten.bp.zone.ZoneRules
-import org.threeten.bp.zone.ZoneRulesProvider
 import java.util.Locale
 
-/** RFC 5545 history and infinite future from the pinned, complete ThreeTen TZDB.
+/** RFC 5545 history and infinite future from the pinned normative TZif/POSIX provider.
  * No event occurrence expansion, guessed DST rules or finite future snapshots. */
 object TimeZoneExport {
     class UnsupportedException(message: String) : IllegalArgumentException(message)
     /** The public data version actually loaded from the bundled TZDB resource. */
-    val databaseVersion: String get() = ZoneRulesProvider.getVersions("Europe/Berlin").lastKey()
+    val databaseVersion: String get() = ProviderZoneDatabase.bundled.version
     private val names = listOf("SU", "MO", "TU", "WE", "TH", "FR", "SA")
     private val stamp = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss", Locale.ROOT)
     private data class Key(val daylight: Boolean, val before: Int, val after: Int)
@@ -52,12 +46,12 @@ object TimeZoneExport {
         }
         return dates
     }
-    private fun futurePattern(rule: ZoneOffsetTransitionRule, check: () -> Unit): String {
-        // ZoneOffsetTransitionRule is annual and uses only Gregorian dates and
+    private fun futurePatterns(rule: ProviderZone.DateRule, check: () -> Unit): List<FuturePattern> {
+        // The normative POSIX date rule is annual and uses only Gregorian dates and
         // fixed offsets. Checking the complete 400-year leap/weekday cycle is
         // therefore a proof for every future year, including UTC/STANDARD clocks,
         // end-of-day rules and date shifts caused by their offset conversion.
-        val byYear = (1999..2400).map { rule.createTransition(it).dateTimeBefore }
+        val byYear = (1999..2400).map { rule.wall(it) }
             .filter { it.year in 2000..2399 }.groupBy { it.year }
         requireZone(byYear.size == 400 && byYear.values.all { it.size == 1 })
         val dates = byYear.values.map { it.single() }
@@ -81,51 +75,65 @@ object TimeZoneExport {
                 if (year % 32 == 0) check()
                 if (candidates(pattern, year, clocks.single()) != byYear.getValue(year)) { valid = false; break }
             }
-            if (valid) return pattern.text
+            if (valid) return listOf(pattern)
         }
+        // A wall-clock shift can cross a month boundary (for example Egypt's
+        // last Thursday at 24:00). Separate annual month predicates remain
+        // unlimited and avoid a spurious Cartesian product of month/day sets.
+        val split=dates.groupBy {it.monthValue}.toSortedMap().map { (month,entries) ->
+            val monthDays=entries.map {it.dayOfMonth}.toSet()
+            val negativeDays=entries.map {it.dayOfMonth-it.toLocalDate().lengthOfMonth()-1}.toSet()
+            val selected=if(negativeDays.size==1) negativeDays else monthDays
+            val weekday=weekdays.singleOrNull()
+            FuturePattern("FREQ=YEARLY;BYMONTH=$month;BYMONTHDAY="+selected.sorted().joinToString(",")+
+                (weekday?.let {";BYDAY="+names[it]} ?: ""),setOf(month),selected,weekday,null)
+        }
+        if((2000..2399).all { year ->
+                if(year%32==0) check()
+                split.flatMap {candidates(it,year,clocks.single())}.distinct().sorted()==byYear.getValue(year)
+            }) return split
         throw UnsupportedException("The system time zone's future rule has no verified lossless RFC 5545 representation.")
-    }
-    /** Empty lists may mean unknown, not fixed (notably desugar's public
-     * TimeZone-backed provider). Require a complete fixed-offset value before
-     * representing such a provider as one observance for all time. */
-    internal fun requireCompleteRules(rules: ZoneRules) {
-        if (rules.transitions.isEmpty()) {
-            requireZone(rules.transitionRules.isEmpty() && rules.isFixedOffset &&
-                rules == ZoneRules.of(rules.getOffset(Instant.EPOCH)))
-        }
     }
     @JvmOverloads
     fun definition(identifier: String, checkCancelled: () -> Unit = {}): List<String> {
         requireZone(identifier.isNotEmpty() && identifier.toByteArray(Charsets.UTF_8).size <= 255 && identifier.none { it.code < 32 || it.code == 127 || it == ':' || it == ';' })
-        val zone = try { ZoneId.of(identifier) } catch (_: org.threeten.bp.DateTimeException) { throw UnsupportedException("The system time zone is unavailable.") }
-        val rules = zone.rules
-        requireCompleteRules(rules)
-        val history = rules.transitions; val future = rules.transitionRules
-        requireZone(history.size <= 100_000 && future.size <= 16 && (future.isEmpty() || history.isNotEmpty()))
+        val zone = try { ProviderZoneDatabase.bundled.zone(identifier) } catch (_: IllegalArgumentException) { throw UnsupportedException("The system time zone is unavailable.") }
+        val model=zone.model
+        val history=model.history
+        requireZone(history.size<=100_000)
         val minimum = LocalDate.of(1, 1, 1).atStartOfDay()
-        val firstOffset = history.firstOrNull()?.offsetBefore ?: rules.getOffset(Instant.EPOCH)
-        val initial = Key(rules.isDaylightSavings(minimum.toInstant(ZoneOffset.UTC)), firstOffset.totalSeconds, firstOffset.totalSeconds)
+        val firstOffset = if(history.isEmpty()) zone.offsetAt(ProviderZone.seconds(minimum)) else model.initial.offset
+        val initial = Key(zone.daylightAt(ProviderZone.seconds(minimum)), firstOffset, firstOffset)
         val groups = linkedMapOf<Key, MutableList<LocalDateTime>>()
         groups[initial] = mutableListOf(minimum.plusSeconds(maxOf(0, initial.before).toLong()))
         for (transition in history) {
             checkCancelled()
-            requireZone(transition.dateTimeBefore.year in 1..9999)
-            val key = Key(rules.isDaylightSavings(transition.instant.plusSeconds(1)), transition.offsetBefore.totalSeconds, transition.offsetAfter.totalSeconds)
-            groups.getOrPut(key) { mutableListOf() }.add(transition.dateTimeBefore)
+            val wall=ProviderZone.fromSeconds(transition.at+transition.before)
+            requireZone(wall.year in 1..9999)
+            val key=Key(transition.daylight,transition.before,transition.after)
+            groups.getOrPut(key) { mutableListOf() }.add(wall)
         }
         val lines = mutableListOf("BEGIN:VTIMEZONE", "TZID:" + identifier.replace("\\", "\\\\").replace(",", "\\,"))
         for ((key, dates) in groups) lines.addAll(component(key, dates))
-        val last = history.lastOrNull()?.instant
-        for (rule in future) {
+        val boundary=history.lastOrNull()?.at ?: ProviderZone.seconds(minimum)-1
+        val future=if(model.tail.daylightOffset==null) emptyList() else listOf(
+            model.tail.start!! to Key(true,model.tail.standardOffset,model.tail.daylightOffset),
+            model.tail.end!! to Key(false,model.tail.daylightOffset,model.tail.standardOffset))
+        for ((rule,key) in future) {
             checkCancelled()
-            val text = futurePattern(rule, checkCancelled)
-            val boundary = last ?: throw UnsupportedException("Missing time-zone history boundary.")
-            val year = boundary.atOffset(ZoneOffset.UTC).year
-            requireZone(year in 1..9995)
-            val first = (maxOf(1, year - 1)..year + 4).map { rule.createTransition(it) }.filter { it.instant > boundary }.minByOrNull { it.instant }
-                ?: throw UnsupportedException("Missing future time-zone transition.")
-            val key = Key(rule.offsetAfter != rule.standardOffset, rule.offsetBefore.totalSeconds, rule.offsetAfter.totalSeconds)
-            lines.addAll(component(key, listOf(first.dateTimeBefore), text))
+            val patterns=futurePatterns(rule,checkCancelled)
+            val year=ProviderZone.fromSeconds(boundary).year
+            requireZone(year in 0..9598)
+            for(pattern in patterns) {
+                val first=(maxOf(1,year-1)..year+401).map {
+                    if(it%32==0) checkCancelled()
+                    rule.wall(it)
+                }.filter {ProviderZone.seconds(it)-key.before>boundary && it.year in 1..9999 &&
+                    it in candidates(pattern,it.year,it.toLocalTime())}
+                    .minByOrNull {ProviderZone.seconds(it)-key.before}
+                    ?: throw UnsupportedException("Missing future time-zone transition.")
+                lines.addAll(component(key,listOf(first),pattern.text))
+            }
         }
         lines.add("END:VTIMEZONE"); return lines
     }

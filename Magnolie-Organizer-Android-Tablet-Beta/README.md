@@ -420,3 +420,11 @@ death the obsolete quarantine is discarded, while the saved increasing request
 code prevents an old result from completing a new request. These transitions have
 pure negative fixtures; actual Android recreation/dialog behavior still needs
 native verification.
+
+Calendar codec timezone rules now come from the single SHA-verified shared
+TZif/POSIX database, including full history and unlimited tails; ThreeTen remains
+for Gregorian arithmetic only. See [timezone provenance and limits](third-party/README.md).
+The confirmed Gaza2074 codec regression has a production-codec test: 12:30 local
+resolves to 09:30Z, and the old contradictory 10:30Z projection rejects export.
+Shared JavaScript reminder projection and actual Android resource/device
+acceptance are separate checks; this codec change does not establish them.

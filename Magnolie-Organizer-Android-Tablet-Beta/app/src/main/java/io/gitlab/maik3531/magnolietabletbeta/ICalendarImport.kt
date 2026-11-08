@@ -8,7 +8,6 @@ import java.security.MessageDigest
 import java.text.Normalizer
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
@@ -165,9 +164,8 @@ object ICalendarImport {
         }
         return roots
     }
-    private const val absoluteUTC = "@magnolie-utc-instant"
     private val dayNames = listOf("SU", "MO", "TU", "WE", "TH", "FR", "SA")
-    private data class Clock(val instant: Long, val wall: LocalDateTime, val dateOnly: Boolean, val source: String)
+    private data class Clock(val instant: Long, val wall: LocalDateTime, val dateOnly: Boolean, val source: String?)
     private fun naive(text: String): LocalDateTime {
         val value = upper(text)
         requireImport(matches(value, "[0-9]{8}(?:T[0-9]{4}(?:[0-9]{2})?)?"), "Invalid calendar date/time.")
@@ -182,15 +180,15 @@ object ICalendarImport {
     }
     private fun naiveSeconds(value: LocalDateTime) = value.toEpochSecond(ZoneOffset.UTC)
     private fun fromSeconds(value: Long) = LocalDateTime.ofEpochSecond(value, 0, ZoneOffset.UTC)
-    private fun knownZone(name: String): ZoneId {
+    private fun knownZone(name: String): ProviderZone {
         requireImport(name.isNotEmpty() && name.toByteArray(Charsets.UTF_8).size <= 255, "Unresolved source time zone.")
-        return try { ZoneId.of(name) } catch (_: org.threeten.bp.DateTimeException) { throw ImportException("Unresolved source time zone.") }
+        return try { ProviderZoneDatabase.bundled.zone(name) } catch (_: IllegalArgumentException) { throw ImportException("Unresolved source time zone.") }
     }
-    private fun ordinaryWall(wall: LocalDateTime, zone: ZoneId): Long {
-        val offsets = zone.rules.getValidOffsets(wall)
-        requireImport(offsets.isNotEmpty(), "A calendar wall time falls in a daylight-saving gap.")
-        return offsets.minOf { wall.toEpochSecond(it) } // RFC first occurrence in an overlap.
+    private fun ordinaryWall(wall: LocalDateTime, zone: ProviderZone): Long {
+        return try { PointResolver.resolve(zone,wall)!! }
+        catch (_: IllegalArgumentException) { throw ImportException("A calendar wall time falls in a daylight-saving gap.") }
     }
+
     private fun ruleDictionary(value: String): Map<String, String> {
         val result = linkedMapOf<String, String>()
         val allowed = setOf("FREQ", "INTERVAL", "COUNT", "UNTIL", "BYSECOND", "BYMINUTE", "BYHOUR", "BYDAY", "BYMONTHDAY", "BYYEARDAY", "BYWEEKNO", "BYMONTH", "BYSETPOS", "WKST")
@@ -325,9 +323,9 @@ object ICalendarImport {
             return candidates.minOrNull() ?: throw ImportException("A source time falls in an embedded time-zone gap.")
         }
     }
-    private class Resolver(val display: ZoneId, val displayName: String, val zones: Map<String, EmbeddedZone>) {
-        fun instant(wall: LocalDateTime, source: String): Long = when {
-            source == absoluteUTC -> naiveSeconds(wall)
+    private class Resolver(val display: ProviderZone, val displayName: String, val zones: Map<String, EmbeddedZone>) {
+        fun instant(wall: LocalDateTime, source: String?): Long = when {
+            source == null -> naiveSeconds(wall)
             zones.containsKey(source) -> zones.getValue(source).instant(wall)
             else -> ordinaryWall(wall, if (source.isEmpty()) display else knownZone(source))
         }
@@ -336,12 +334,12 @@ object ICalendarImport {
             val dateOnly = upper(property.parameters["VALUE"] ?: "") == "DATE" || matches(value, "[0-9]{8}")
             if (dateOnly) {
                 requireImport(matches(value, "[0-9]{8}") && property.parameters["TZID"] == null, "Invalid date-only source property.")
-                val date = naive(value); return Clock(naiveSeconds(date), date, true, absoluteUTC)
+                val date = naive(value); return Clock(naiveSeconds(date), date, true, null)
             }
             requireImport(property.parameters["VALUE"]?.let { upper(it) in setOf("DATE-TIME") } != false && matches(value, "[0-9]{8}T[0-9]{4}(?:[0-9]{2})?Z?") && (!value.endsWith('Z') || property.parameters["TZID"] == null), "Invalid source calendar date-time.")
-            val source = if (value.endsWith('Z')) absoluteUTC else property.parameters["TZID"] ?: ""
+            val source = if (value.endsWith('Z')) null else property.parameters["TZID"] ?: ""
             val wall = naive(value.removeSuffix("Z")); val resolved = instant(wall, source)
-            requireImport(org.threeten.bp.Instant.ofEpochSecond(resolved).atZone(display).year in 1..9999, "Calendar time is outside the supported display range.")
+            requireImport(display.project(resolved).year in 1..9999, "Calendar time is outside the supported display range.")
             return Clock(resolved, wall, false, source)
         }
         fun duration(specification: String, start: Clock): Clock {
@@ -352,12 +350,12 @@ object ICalendarImport {
             val wall = start.wall.plusDays(values[0] * 7 + values[1])
             val exact = values[2] * 3600 + values[3] * 60 + values[4]
             val end = instant(wall, start.source) + exact
-            val projected = org.threeten.bp.Instant.ofEpochSecond(end).atZone(if (start.dateOnly) ZoneOffset.UTC else display)
+            val projected = (if (start.dateOnly) ProviderZoneDatabase.bundled.zone("UTC") else display).project(end)
             requireImport(projected.year in 1..9999, "Calendar duration is outside the supported range.")
             return Clock(end, wall.plusSeconds(exact), start.dateOnly, start.source)
         }
-        fun date(clock: Clock) = org.threeten.bp.Instant.ofEpochSecond(clock.instant).atZone(if (clock.dateOnly) ZoneOffset.UTC else display).toLocalDate().toString()
-        fun time(clock: Clock) = if (clock.dateOnly) "" else org.threeten.bp.Instant.ofEpochSecond(clock.instant).atZone(display).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))
+        fun date(clock: Clock) = (if (clock.dateOnly) ProviderZoneDatabase.bundled.zone("UTC") else display).project(clock.instant).toLocalDate().toString()
+        fun time(clock: Clock) = if (clock.dateOnly) "" else display.project(clock.instant).format(DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT))
     }
     private fun simpleRule(fields: Map<String, String>, start: Clock, resolver: Resolver): Map<String, Any>? {
         val type = mapOf("DAILY" to "daily", "WEEKLY" to "weekly", "MONTHLY" to "monthly", "YEARLY" to "yearly")[fields["FREQ"]] ?: return null
@@ -383,7 +381,7 @@ object ICalendarImport {
         fields["UNTIL"]?.let { value ->
             if ('T' in value && !value.endsWith("00") && !value.endsWith("00Z")) return null
             val ending = resolver.clock(Property("DTSTART" + (if (value.length == 8) ";VALUE=DATE" else "") + ":" + value))
-            var last = org.threeten.bp.Instant.ofEpochSecond(ending.instant).atZone(if (ending.dateOnly) ZoneOffset.UTC else resolver.display)
+            var last = (if (ending.dateOnly) ProviderZoneDatabase.bundled.zone("UTC") else resolver.display).project(ending.instant)
             if (!ending.dateOnly && resolver.time(start).isNotEmpty() && resolver.time(ending) < resolver.time(start)) last = last.minusDays(1)
             until = last.toLocalDate().toString()
         }
@@ -514,13 +512,13 @@ object ICalendarImport {
         val date = resolver.date(start); val time = resolver.time(start); var endDate = ""; var endTime = ""
         end?.let { ending ->
             val exclusive = ending.instant - if (start.dateOnly) 86400 else 0
-            val projected = org.threeten.bp.Instant.ofEpochSecond(exclusive).atZone(if (start.dateOnly) ZoneOffset.UTC else resolver.display).toLocalDate().toString()
+            val projected = (if (start.dateOnly) ProviderZoneDatabase.bundled.zone("UTC") else resolver.display).project(exclusive).toLocalDate().toString()
             if (projected > date) endDate = projected
             if (!start.dateOnly && (resolver.date(ending) > date || resolver.time(ending) != time)) endTime = resolver.time(ending)
         }
         val recurrenceNames = component.properties.filter { it.name in setOf("RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID") }.map { it.name }
         var complex = seriesUID in complexUIDs || recurrenceNames.any { it in setOf("EXDATE", "EXRULE", "RECURRENCE-ID") }
-        val sourceName = if (start.source == absoluteUTC) "UTC" else start.source
+        val sourceName = start.source ?: "UTC"
         if (rules.containsKey("RRULE") && time.isNotEmpty() && sourceName.isNotEmpty() && sourceName != resolver.displayName) complex = true
         if (rules.containsKey("RRULE") && component.property("DURATION") != null) complex = true
         if (rules.containsKey("RRULE") && time.isNotEmpty() && (endTime.isEmpty() || start.wall.second != 0 || end?.wall?.second?.let { it != 0 } == true)) complex = true
@@ -581,8 +579,8 @@ object ICalendarImport {
         val components = wrapper?.children ?: roots
         val items = components.filter { it.name in setOf("VEVENT", "VTODO") }
         requireImport(items.isNotEmpty() && items.size <= maximumRecords, "Calendar contains no supported items or too many items.")
-        val display = if (displayTimeZone.isEmpty() || displayTimeZone == "system") ZoneId.systemDefault() else knownZone(displayTimeZone)
-        val displayName = if (displayTimeZone.isEmpty() || displayTimeZone == "system") display.id else displayTimeZone
+        val display = knownZone(if (displayTimeZone.isEmpty() || displayTimeZone == "system") java.util.TimeZone.getDefault().id else displayTimeZone)
+        val displayName = if (displayTimeZone.isEmpty() || displayTimeZone == "system") display.identifier else displayTimeZone
         val zoneBlocks = mutableListOf<List<String>>(); val zoneSources = mutableMapOf<String, List<String>>(); val zones = mutableMapOf<String, EmbeddedZone>()
         for (component in components.filter { it.name == "VTIMEZONE" }) {
             checkCancelled()
