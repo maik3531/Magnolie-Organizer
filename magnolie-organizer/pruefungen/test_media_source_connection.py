@@ -101,6 +101,70 @@ def test_normal_connection_plans_actual_mapped_bytes_without_cache_output_or_sen
         assert h.connection._local().owner is owner
 
 
+def test_conditional_normal_preparation_waits_for_actual_send_ack_and_skips_unchanged_source(source,native,monkeypatch):
+    with composition(source,native[0]) as h:
+        def prepare():
+            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+        with pytest.raises(TransferError,match='current_send_control_required'):prepare()
+        assert not h.source._prepared
+        agree(h,native[0]);result=prepare()
+        assert not result.plan.changed and result.cache is None and not result.grants_read_authority
+        assert not h.source._prepared and h.connection._media_sender is None
+
+
+def test_conditional_prepare_rejects_plan_freeze_file_change_before_creating_cache(source,native,monkeypatch):
+    from pathlib import Path
+    with composition(source,native[0]) as h:
+        agree(h,native[0]);h.target.write_bytes(png());original=h.source.plan
+        def changed(*args,**kwargs):
+            result=original(*args,**kwargs);h.target.write_bytes(png(1));return result
+        monkeypatch.setattr(h.source,'plan',changed)
+        with pytest.raises(TransferError,match='observed_content_changed'):
+            h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+        assert not h.source._prepared and not list(Path(h.authority.binding.native_directory).glob('.magnolie-source-*'))
+        assert h.target.read_bytes()==png(1)
+
+
+def test_conditional_prepare_pins_catalog_between_plan_and_fresh_freeze(source,native,monkeypatch):
+    with composition(source,native[0]) as h:
+        agree(h,native[0]);h.target.write_bytes(png());original=h.source.plan;created=[]
+        def changed(*args,**kwargs):
+            result=original(*args,**kwargs)
+            created.append(h.source.freeze(h.preferences.issue_action(),h.preferences.read(),h.association,h.record.protected_record_sha256))
+            return result
+        monkeypatch.setattr(h.source,'plan',changed)
+        with pytest.raises(TransferError,match='observed_history_changed'):
+            h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+        assert len(created)==1 and set(h.source._prepared)=={created[0].manifest.source_id}
+        assert h.connection._media_sender is None and created[0].directory.exists()
+
+
+def test_actual_conditional_prepare_uses_shared_sender_then_skips_completed_source_without_owner_changes(source,native):
+    with composition(source,native[0]) as h:
+        controls=agree(h,native[0]);owner=h.connection._local().owner;h.target.write_bytes(png())
+        def prepare():
+            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256)
+        selected=prepare();cache=selected.cache
+        assert selected.plan.changed and cache is not None and selected.plan.observation.sha256==cache.manifest.files[0].sha256
+        sender=h.connection.open_prepared_media_sender(cache.manifest.source_id)
+        assert sender._controls is h.connection._controls
+        offer=sender.send_media_offer();assert h.wire.receive()==offer
+        accepted=acceptance(sender,cache,offer);dispatch(h,native[0],accepted)
+        for index in range(cache.manifest.files[0].chunks):
+            dispatch(h,native[0],request(accepted,cache,index));assert h.wire.receive()['kind']=='file_transfer.chunk'
+        dispatch(h,native[0],saved(accepted,cache));dispatch(h,native[0],readback(sender,cache,offer))
+        with open_backup(h) as backups:
+            backup=backup_prepared_source(backups,h.source,cache.manifest.source_id)
+            archived=_NativeSourceRetirement(sender,backups,backup).run()
+            assert archived.body['state']=='archived'
+        skipped=prepare()
+        assert not skipped.plan.changed and skipped.plan.basis=='latest_completed' and skipped.cache is None
+        assert not h.source._prepared and h.connection._media_sender is None
+        after=h.connection._controls.packet()
+        assert after.session_epoch==controls.session_epoch and after.grants==controls.grants
+        assert h.connection._local().owner is owner
+
+
 def test_close_during_actual_borrowed_sender_output_retains_connection_cleanup_and_os_lane_until_drain(source,native,monkeypatch):
     with composition(source,native[0]) as h:
         agree(h,native[0]);sender,cache=prepare(h)

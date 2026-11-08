@@ -113,3 +113,22 @@ def test_unknown_legacy_order_never_skips_equal_bytes(source,monkeypatch):
             assert result.changed and result.basis=='legacy_order_unknown' and result.latest_job_id is None
             assert not h.source._prepared
     finally:sender.close()
+
+
+@pytest.mark.parametrize('fault',['size','signature','reference','digest'])
+def test_frozen_observation_is_only_a_constraint_never_a_read_or_copy_authority(source,fault):
+    from dataclasses import replace
+    from pathlib import Path
+    h=source;observed=plan(h).observation
+    if fault=='size':observed=replace(observed,size=observed.size+1)
+    elif fault=='signature':observed=replace(observed,signature=(*observed.signature[:-1],observed.signature[-1]+1))
+    elif fault=='reference':observed=replace(observed,_original_reference=tuple(sorted(dict(observed.original_reference,receipt_sha256='f'*64).items())))
+    else:observed=replace(observed,sha256='f'*64)
+    with pytest.raises(TransferError,match='observed_content_changed'):
+        h.source.freeze_observed(h.preferences.issue_action(),h.policy,h.association,h.record.protected_record_sha256,observed)
+    assert not h.source._prepared and h.target.read_bytes()==b'hello'
+    stages=list(Path(h.authority.binding.native_directory).glob('.magnolie-source-*.part'))
+    if fault!='digest':assert not stages
+    else:
+        assert len(stages)==1 and (stages[0]/'intent.enc').exists()
+        assert not (stages[0]/'manifest.enc').exists() # Retain partial work; never promote a mismatched hash.

@@ -388,6 +388,25 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_album_worker_busy')
             return self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
 
+    def prepare_changed_media_source(self,action,expected,association,record_sha256,*,kind='images'):
+        self._take_action(action)
+        with self._operation():
+            if self._media_source is None:raise TransferError('media_source_native_composition_required')
+            if self._album_worker is not None or self._run is not None or self._source_pending is not None or self._media_sender is not None:
+                raise TransferError('file_desktop_album_worker_busy')
+            def agreed():
+                if self._controls.binding('0'*64,sender_is_local=True) is None:
+                    raise TransferError('media_source_current_send_control_required')
+            agreed()
+            plan=self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
+            agreed()
+            cache=None
+            if plan.changed:
+                cache=self._media_source.freeze_observed(self._preferences.issue_action(),expected,association,
+                    record_sha256,plan.observation,kind=kind,catalog_version=plan.catalog_version)
+            from magnolie_media_source_planning import NativeMediaSourcePreparation
+            return NativeMediaSourcePreparation(plan,cache)
+
     def open_prepared_media_sender(self,job_id):
         with self._operation():
             if self._media_source is None or self._media_sender is not None:

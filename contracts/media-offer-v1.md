@@ -450,6 +450,24 @@ keine Unverändert-Entscheidung begründen. Die Entscheidung ist weiterhin nur
 Metadaten: kein Lese-, Cache-, Wiederaufnahme- oder Löschrecht. Seitenweise
 Auswahl und automatische Ausgangsplanung sind noch nicht angeschlossen.
 
+Die native Verbindung besitzt zusätzlich eine ausdrückliche bedingte
+Vorbereitung: Erst nach der tatsächlichen SEND-/RECEIVE-Steuervereinbarung wird
+geprüft; bei unveränderten Bytes entsteht kein Auftrag. Für geänderte Bytes wird
+die Quelle mit einer frischen nativen Aktion und allen aktuellen Zustimmungen
+erneut geöffnet. Ursprüngliche Dateisignatur, Zuordnung und Katalogversion müssen
+vor der Cache-Anlage genau dem Prüfstand entsprechen; die kopierten Bytes müssen
+vor Ready nochmals denselben Hash ergeben. Eine dazwischen veränderte Datei
+oder Quellhistorie sperrt die Vorbereitung. Eine unpassende Hashvorgabe wird
+nicht zu Ready befördert; bereits geschriebene Teilstände bleiben erhalten.
+
+Ein so vorbereiteter Auftrag nutzt denselben tatsächlichen Quellbesitzer und
+dieselbe Steuersitzung wie die bestehende native Verbindung. Saved, Readback,
+unabhängige Sicherung und Archivierung bleiben eigenständige Nachweise. Nach
+ihrem Abschluss kann dieselbe unveränderte Quelle ohne neuen Cache übersprungen
+werden, ohne SEND oder den Steuereigentümer durch Arbeiteraktivität umzuschalten.
+Das ist weiterhin eine einzelne native Auswahl, noch kein automatisch
+seitenweise laufender Sammlungsscheduler.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

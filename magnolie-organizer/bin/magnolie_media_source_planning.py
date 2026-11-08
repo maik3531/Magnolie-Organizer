@@ -22,6 +22,16 @@ class NativeMediaSourcePlanObservation:
     def permits_deletion(self):return False
 
 
+@dataclass(frozen=True)
+class NativeMediaSourcePreparation:
+    plan: NativeMediaSourcePlanObservation
+    cache: object | None
+    @property
+    def grants_read_authority(self):return False
+    @property
+    def is_saved_receipt(self):return False
+
+
 def compare_current_source(source,mapping,observation,current):
     """Called only inside actual source/book/mapping/file/OS-I/O ownership.
 
