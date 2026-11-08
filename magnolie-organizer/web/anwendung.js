@@ -30952,7 +30952,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const entry of medienPapierkorb.entries) {
       const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
       const thumbnail = medienThumbnailsAn ? medienVorschaubilder.get(medienVorschauSchluessel(entry)) : null;
-      const ansehen = knopf(_("Preview"), "medien-papierkorb-vorschau", () => medienPapierkorbAnfordern("preview", entry));
+      const ansehen = knopf(_("Preview"), medienThumbnailsAn ? "medien-papierkorb-vorschau" : "klein", () => medienPapierkorbAnfordern("preview", entry));
       ansehen.dataset.mediaPreview = entry.operation; ansehen.dataset.mediaThumbnailKey = medienVorschauSchluessel(entry);
       ansehen.disabled = !!medienPapierkorb.pending; ansehen.title = entry.name + " · " + _("Preview");
       if (thumbnail?.status === "ready") {

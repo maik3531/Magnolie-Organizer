@@ -61,6 +61,7 @@
     const trashThumbnails = node("input"), trashThumbnailLabel = node("label", "Preview");
     trashThumbnails.type = "checkbox"; trashThumbnails.dataset.mediaThumbnails = "";
     trashThumbnailLabel.prepend(trashThumbnails); trashArea.insertBefore(trashThumbnailLabel, trashRows);
+    const previewStatus = node("p"); previewStatus.setAttribute("role", "status"); trashArea.insertBefore(previewStatus, trashRows);
     const previewRows = new Map(); let thumbnailQueue = [], thumbnailObserver = null, previewDialog = null;
     function closePreview() {
       if (!previewDialog) return;
@@ -165,7 +166,9 @@
       pending.set(requestId, item);
       if (["trash_thumbnail", "trash_preview"].includes(action)) item.timer = setTimeout(() => {
         if (pending.get(requestId) !== item) return;
-        pending.delete(requestId); busy = false; toggle(); pumpThumbnails();
+        pending.delete(requestId); busy = false;
+        if (action === "trash_preview") previewStatus.textContent = t("Preview") + " · " + t("Failed");
+        toggle(); pumpThumbnails();
       }, 65000);
       if (action !== "status" && action !== "cancel") busy = true;
       if (action === "sync") { transfer = true; status.textContent = t("Waiting for native media status"); }
@@ -235,6 +238,7 @@
           typeof preview.data_base64 === "string" && preview.data_base64.length > 0 && preview.data_base64.length <= 699052 &&
           preview.data_base64.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(preview.data_base64) &&
           (preview.mime_type === "image/png" ? preview.data_base64.startsWith("iVBORw0KGgo") : preview.data_base64.startsWith("/9j/"));
+        if (action === "trash_preview") previewStatus.textContent = valid ? "" : t("Preview") + " · " + t("Failed");
         if (valid && (action === "trash_preview" || trashThumbnails.checked)) {
           const image = node("img"); image.alt = entry.name; image.src = "data:" + preview.mime_type + ";base64," + preview.data_base64;
           if (action === "trash_thumbnail") { image.className = "media-trash-thumbnail"; entry.row.prepend(image); entry.image = image; }

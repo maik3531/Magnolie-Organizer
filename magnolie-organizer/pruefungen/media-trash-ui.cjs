@@ -78,6 +78,8 @@ const plain = value => JSON.parse(JSON.stringify(value));
       let called = calls().length;
       assert.equal(observer, undefined, "Automatic thumbnails are opt-in; text notes need no thumbnails");
       assert.equal(d.querySelector("#medien-thumbnails-an").checked, false);
+      assert.equal(root().querySelector("[data-media-preview]").classList.contains("medien-papierkorb-vorschau"), false,
+        "Opt-out leaves a compact action, not an empty thumbnail-sized placeholder");
       d.querySelector("#medien-thumbnails-an").click();
       observer.callback(observer.elements.map(target => ({ target, isIntersecting: true })));
       assert.equal(calls().at(-1).action, "thumbnail");

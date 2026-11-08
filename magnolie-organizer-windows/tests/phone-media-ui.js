@@ -95,6 +95,7 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   saveAllowed = false;
   buttons("Preview")[0].click(); await tick(); assert.equal(last().action, "trash_preview"); assert.equal(saves, previewSaves);
   previewReply({ operation_id: "c".repeat(32) }); assert.equal(panel.querySelector("dialog"), null);
+  assert(panel.textContent.includes("Preview · Failed"), "Unavailable preview needs its own truthful status without implying a mutation");
   buttons("Preview")[0].click(); await tick(); previewReply({ preview: { ...raster, mime_type: "image/svg+xml" } });
   assert.equal(panel.querySelector("dialog"), null, "Active or foreign content must never open in a recovery preview");
   buttons("Preview")[0].click(); await tick(); previewReply();
