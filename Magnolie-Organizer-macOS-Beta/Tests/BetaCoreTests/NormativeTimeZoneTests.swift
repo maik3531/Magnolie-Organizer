@@ -19,6 +19,12 @@ final class NormativeTimeZoneTests: XCTestCase {
             XCTAssertFalse(try database.wall(at: instant, in: zone).fields.isEmpty)
         }
         XCTAssertThrowsError(try database.named("Factory"))
+        XCTAssertEqual(try database.named("Asia/Kathmandu").identifier, "Asia/Kathmandu")
+        for lookalike in ["Asia/\u{212A}athmandu", "Pacific/\u{212A}iritimati", "UTC\u{0301}"] {
+            XCTAssertThrowsError(try database.named(lookalike)) { error in
+                XCTAssertEqual(error as? NormativeTimeZoneDatabase.Failure, .unknownZone)
+            }
+        }
         XCTAssertThrowsError(try database.named("Not/AZone"))
         var changed = payload; changed[changed.startIndex] ^= 1
         XCTAssertThrowsError(try NormativeTimeZoneDatabase.load(payload: changed, manifest: manifest))

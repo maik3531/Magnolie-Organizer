@@ -208,6 +208,10 @@ public final class NormativeTimeZoneDatabase: Sendable {
         }
     }
     public func named(_ identifier: String) throws -> Zone {
+        // The pinned registry consists solely of ASCII protocol identifiers.
+        // Swift String equality otherwise admits canonical Unicode lookalikes
+        // such as U+212A (Kelvin sign) for ASCII K before dictionary lookup.
+        guard Self.validIdentifier(identifier) else { throw Failure.unknownZone }
         if rejected.contains(identifier) { throw Failure.unsupportedZone }
         if let index = registry[identifier] { return Zone(identifier: identifier, index: index, identity: payloadSHA256) }
         if ["UTC", "GMT", "UT", "Z"].contains(identifier) { return Zone(identifier: identifier, index: -1, identity: payloadSHA256) }
