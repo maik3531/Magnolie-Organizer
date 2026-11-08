@@ -566,7 +566,11 @@ public enum ICalendarExport {
         guard !input.isEmpty else { throw BetaError("There are no calendar records to export.") }
         let records = input.map { value -> [String: Any] in
             var copy = value
-            if text(copy, "icsAnzeigeZeitzone").isEmpty { copy["icsAnzeigeZeitzone"] = defaultTimeZone }
+            let requested = text(copy, "icsAnzeigeZeitzone").isEmpty ? defaultTimeZone : text(copy, "icsAnzeigeZeitzone")
+            if requested.isEmpty || requested == "system" {
+                let identifier = TimeZone.current.identifier
+                copy["icsAnzeigeZeitzone"] = ["UTC", "GMT", "Etc/UTC", "Etc/GMT"].contains(identifier) ? "UTC" : identifier
+            } else { copy["icsAnzeigeZeitzone"] = requested }
             return copy
         }
         var definitions: [String: [String]] = [:], components: [[String]] = [], identities: Set<String> = [], owners: [String: String] = [:]

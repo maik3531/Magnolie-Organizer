@@ -76,6 +76,33 @@ final class CalendarInterchangeTests: XCTestCase {
         }
     }
 
+    func testGeneratedSystemClockIsBoundButRawFloatingSourceStaysFloating() throws {
+        // Actual new system-zone UI record has no icsAnzeigeZeitzone and an
+        // empty icsRoundtrip; native export must bind its generated clocks.
+        let record: [String: Any] = ["uid": "new-system", "titel": "New", "datum": "2026-01-15", "zeit": "10:00", "endZeit": "11:00", "icsRoundtrip": [String]()]
+        let identifier = TimeZone.current.identifier
+        let utc = ["UTC", "GMT", "Etc/UTC", "Etc/GMT"].contains(identifier)
+        let generated = try ICalendarExport.encode([record], kind: .appointments, defaultTimeZone: "system")
+        let expected = utc ? "DTSTART:20260115T100000Z" : "DTSTART;TZID=" + identifier + ":20260115T100000"
+        XCTAssertTrue(generated.contains(expected + "\r\n"))
+        var floating = record
+        floating["icsRoundtrip"] = ["DTSTART:20260115T100000", "DTEND:20260115T110000"]
+        let preserved = try ICalendarExport.encode([floating], kind: .appointments, defaultTimeZone: "system")
+        XCTAssertTrue(preserved.contains("DTSTART:20260115T100000\r\n"))
+        XCTAssertTrue(preserved.contains("DTEND:20260115T110000\r\n"))
+        for (date, expectedUTC) in [("2026-01-15", "09:00"), ("2026-07-15", "08:00")] {
+            var season = record
+            season["datum"] = date
+            let encoded = try ICalendarExport.encode([season], kind: .appointments, defaultTimeZone: "Europe/Berlin")
+            XCTAssertTrue(encoded.contains("DTSTART;TZID=Europe/Berlin:" + date.replacingOccurrences(of: "-", with: "") + "T100000"))
+            let imported = try ICalendarImport.decode(Data(encoded.utf8), displayTimeZone: "UTC")
+            XCTAssertEqual(imported.appointments.first?["zeit"] as? String, expectedUTC)
+        }
+        var explicit = record
+        explicit["icsAnzeigeZeitzone"] = "UTC"
+        XCTAssertTrue(try ICalendarExport.encode([explicit], kind: .appointments, defaultTimeZone: "Europe/Berlin").contains("DTSTART:20260115T100000Z"))
+    }
+
     func testDueOnlyTaskCannotSilentlyDiscardStructuredRecurrence() throws {
         let dueOnly: [String: Any] = ["uid": "due-task", "titel": "Task", "faellig": "2026-04-01", "wiederholung": ["art": "daily"]]
         XCTAssertThrowsError(try ICalendarExport.encode([dueOnly], kind: .tasks))

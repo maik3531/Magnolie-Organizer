@@ -549,7 +549,14 @@ object ICalendarExport {
             checkCancelled(); val encoded = record.toString()
             inputBytes += encoded.toByteArray(Charsets.UTF_8).size
             requireExport(inputBytes <= ICalendarImport.maximumProjectedBytes, "Calendar input exceeds the export projection limit.")
-            JSONObject(encoded).also { if (text(it, "icsAnzeigeZeitzone").isEmpty()) it.put("icsAnzeigeZeitzone", defaultTimeZone) }
+            JSONObject(encoded).also {
+                val requested = text(it, "icsAnzeigeZeitzone").ifEmpty { defaultTimeZone }
+                // New local wall times need a portable named zone, just like
+                // the desktop writer. Resolving the display default does not
+                // rewrite authoritative raw floating DTSTART/RRULE properties.
+                val resolved = if (requested.isEmpty() || requested == "system") ZoneId.systemDefault().id else requested
+                it.put("icsAnzeigeZeitzone", resolved)
+            }
         }
         val definitions = definitions(records, checkCancelled); val resolver = Resolver(definitions, checkCancelled)
         val recordSources = records.groupBy { identifier(it) }.mapValues { (_, owners) -> owners.map { text(it, "icsQuelleId") }.toSet() }

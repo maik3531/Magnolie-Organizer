@@ -1,0 +1,103 @@
+{
+  "uiTimeZone": "Europe/Berlin",
+  "profileTimeZone": "system",
+  "records": [
+    {
+      "id": "mw850ksfxcfqhz",
+      "uid": "mag-mw850ksfic8rvo@magnolie-organizer",
+      "sync": false,
+      "icsRoundtrip": [],
+      "providerMetadaten": {},
+      "datum": "2030-01-15",
+      "endDatum": "",
+      "titel": "System zone 2030-01-15",
+      "ort": "",
+      "zeit": "10:00",
+      "endZeit": "11:00",
+      "notiz": "",
+      "kategorien": "",
+      "akzentFarbe": "",
+      "vertraulich": false,
+      "vorlaeufig": false,
+      "kostenstelle": "",
+      "kunde": "",
+      "individuelleErinnerungTage": 0,
+      "standardErinnerung": true,
+      "alarme": [],
+      "kalenderQuelle": {
+        "id": "",
+        "name": "",
+        "gruppe": "",
+        "farbe": "",
+        "anbieter": ""
+      },
+      "syncKalenderUid": "",
+      "organisator": {
+        "uri": "",
+        "name": "",
+        "email": ""
+      },
+      "teilnehmer": [],
+      "kalenderAnhaenge": [],
+      "wiederholung": {
+        "art": "none",
+        "bis": ""
+      },
+      "aufgaben": [],
+      "geaendert": 1794160799295
+    },
+    {
+      "id": "mw850kxes889jw",
+      "uid": "mag-mw850kxe7n703n@magnolie-organizer",
+      "sync": false,
+      "icsRoundtrip": [],
+      "providerMetadaten": {},
+      "datum": "2030-07-15",
+      "endDatum": "",
+      "titel": "System zone 2030-07-15",
+      "ort": "",
+      "zeit": "10:00",
+      "endZeit": "11:00",
+      "notiz": "",
+      "kategorien": "",
+      "akzentFarbe": "",
+      "vertraulich": false,
+      "vorlaeufig": false,
+      "kostenstelle": "",
+      "kunde": "",
+      "individuelleErinnerungTage": 0,
+      "standardErinnerung": true,
+      "alarme": [],
+      "kalenderQuelle": {
+        "id": "",
+        "name": "",
+        "gruppe": "",
+        "farbe": "",
+        "anbieter": ""
+      },
+      "syncKalenderUid": "",
+      "organisator": {
+        "uri": "",
+        "name": "",
+        "email": ""
+      },
+      "teilnehmer": [],
+      "kalenderAnhaenge": [],
+      "wiederholung": {
+        "art": "none",
+        "bis": ""
+      },
+      "aufgaben": [],
+      "geaendert": 1794160799474
+    }
+  ],
+  "sourceSHA256": {
+    "beta-i18n.js": "b01dce57d8581728844542e84faefcecff60f633793d7da00b36f955e5db6d65",
+    "tablet.js": "232a93f0643056cc9199db0030febcadc9ff7350a9aed698bdc096d435c3ad43",
+    "i18n.js": "869354b780bb22f442dedd0e62e18caae8cb2aaef07599db0f41470e4513a358",
+    "i18n-active.js": "f99a4169960bb06a2256e0e4b681c7e7577a1e9c7ae60f037014323c8a873caf",
+    "i18n-start.js": "29e904c052904fcbf499694237ed0d7cd953a677a61fecfed5de6a0009109f02",
+    "mcp-protocol.js": "e142ac6258fc3445c97ef4608ae8054f74ed1f632ef496f879035f69ff8038a1",
+    "anwendung.js": "3a9da3cdcb427d6f7729bf9dc71b49dba5255406a98e1b250c1858990ae85a46"
+  }
+}
