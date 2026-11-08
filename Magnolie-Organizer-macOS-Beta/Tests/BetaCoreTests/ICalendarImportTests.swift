@@ -23,6 +23,27 @@ final class ICalendarImportTests: XCTestCase {
         XCTAssertNotNil(result.document["icsImportMetadata"])
         XCTAssertEqual(result.sourceSHA256.count, 64)
     }
+    func testCRLFLFAndMixedTerminatorsUnfoldTabsWithoutAcceptingBareCR() throws {
+        let body = event.replacingOccurrences(of: "SUMMARY:Public item\r\n", with:
+            "SUMMARY:Public item\r\nDESCRIPTION:Folded \r\n\tsecond piece\r\nX-OPAQUE:part-\r\n\ttwo\r\n")
+        let crlf = String(decoding: data(body), as: UTF8.self)
+        let lf = crlf.replacingOccurrences(of: "\r\n", with: "\n")
+        let mixed = crlf.replacingOccurrences(of: "VERSION:2.0\r\n", with: "VERSION:2.0\n")
+        var first: [String: Any]?
+        for source in [crlf, lf, mixed] {
+            let result = try ICalendarImport.decode(Data(source.utf8), displayTimeZone: "UTC")
+            XCTAssertEqual(result.appointments.count, 1)
+            let record = result.appointments[0]
+            XCTAssertEqual(record["notiz"] as? String, "Folded second piece")
+            XCTAssertTrue((record["icsRoundtrip"] as? [String] ?? []).contains("X-OPAQUE:part-two"))
+            if let expected = first { XCTAssertTrue(NSDictionary(dictionary: record).isEqual(NSDictionary(dictionary: expected))) }
+            else { first = record }
+        }
+        let embeddedCR = crlf.replacingOccurrences(of: "SUMMARY:Public item", with: "SUMMARY:Public\ritem")
+        XCTAssertThrowsError(try ICalendarImport.decode(Data(embeddedCR.utf8), displayTimeZone: "UTC"))
+        let trailingCR = crlf.replacingOccurrences(of: "END:VCALENDAR\r\n", with: "END:VCALENDAR\r")
+        XCTAssertThrowsError(try ICalendarImport.decode(Data(trailingCR.utf8), displayTimeZone: "UTC"))
+    }
     func testInvalidComponentAfterAValidItemThrowsInsteadOfReturningAPrefix() throws {
         for invalid in [
             "BEGIN:VEVENT\r\nUID:bad\r\nDTSTART:20260230T100000Z\r\nSUMMARY:Bad date\r\nEND:VEVENT\r\n",

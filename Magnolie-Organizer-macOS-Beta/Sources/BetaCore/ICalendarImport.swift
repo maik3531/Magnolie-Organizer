@@ -126,11 +126,14 @@ public enum ICalendarImport {
     }
     private static func unfold(_ text: String) throws -> [String] {
         guard !text.contains("\0") else { throw BetaError("Calendar files cannot contain NUL bytes.") }
-        let physical = text.split(separator: "\n", omittingEmptySubsequences: false)
+        // Swift Character treats CRLF as one extended grapheme cluster, so
+        // splitting directly on the LF Character would leave CRLF files whole.
+        // Normalize the paired wire terminator first; reject every remaining CR.
+        let physical = text.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false)
         guard physical.count <= 250_000 else { throw BetaError("Calendar file has too many lines.") }
         var lines: [String] = []
         for raw in physical {
-            var line = String(raw); if line.hasSuffix("\r") { line.removeLast() }
+            let line = String(raw)
             guard !line.contains("\r"), line.unicodeScalars.allSatisfy({ $0.value >= 32 || $0 == "\t" }) else { throw BetaError("Invalid calendar line/control character.") }
             if line.first == " " || line.first == "\t" {
                 guard !lines.isEmpty else { throw BetaError("Calendar continuation has no preceding property.") }
