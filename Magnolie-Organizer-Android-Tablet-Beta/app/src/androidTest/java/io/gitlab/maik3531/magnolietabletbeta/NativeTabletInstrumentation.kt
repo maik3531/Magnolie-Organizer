@@ -68,7 +68,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             when(stage) {
                 "services" -> {
                     pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
-                    pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context))
+                    pass("native Android calendar codecs and system time zones", NativeCalendarSmoke.run(context,targetContext))
                 }
                 "domains" -> domains()
                 "basics" -> basics()
@@ -394,19 +394,20 @@ class NativeTabletInstrumentation : Instrumentation() {
             .joinToString("") {"%02x".format(it.toInt() and 255)}
         check(fixtureHash=="03c3278c744c8e121c3cdb4d1b6f7b3518adebdb10bca36affb3b7a6def72238") {"Civil-time oracle changed"}
         val fixture=JSONObject(fixtureBytes.toString(Charsets.UTF_8))
-        check(fixture.getString("expectedBundledTZDBVersion")==TimeZoneExport.databaseVersion)
+        val providerIdentity=NativeCalendarSmoke.providerIdentity(targetContext)
+        check(fixture.getString("expectedBundledTZDBVersion")==ProviderZoneDatabase.bundled.version)
         val clocks=fixture.getJSONArray("clocks"); check(clocks.length()==37)
         for(index in 0 until clocks.length()) {
             val row=clocks.getJSONObject(index)
             val wall=org.threeten.bp.LocalDateTime.parse(row.getString("wall"))
-            val actual=wall.atZone(org.threeten.bp.ZoneId.of(row.getString("identifier"))).toInstant().toEpochMilli()
+            val actual=ProviderZoneDatabase.bundled.zone(row.getString("identifier")).validInstants(wall).first()*1000
             check(actual==row.getLong("epochMs")) {"Bundled provider disagrees with external civil-time oracle"}
         }
         val before=data(); val savedBefore=vault().read()!!.getJSONObject("data")
         raw(context.assets.open("timezone-interop.js").bufferedReader().use {it.readText()})
         val proof=JSONObject(value("NativeTimezoneInterop.run("+fixture.toString()+")"))
-            .put("oracleSHA256",fixtureHash).put("nativeProvider","ThreeTenBP")
-            .put("nativeTZDBVersion",TimeZoneExport.databaseVersion).put("referenceIANA",fixture.getString("ianaVersion"))
+            .put("oracleSHA256",fixtureHash).put("nativeProvider","normative-tzif-posix").put("nativeProviderIdentity",providerIdentity)
+            .put("nativeTZDBVersion",ProviderZoneDatabase.bundled.version).put("referenceIANA",fixture.getString("ianaVersion"))
             .put("publishedVersion",fixture.getString("publishedVersion"))
         check(calendarComparable(data())==calendarComparable(before)) {"Civil-time audit changed the book"}
         check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Civil-time audit changed saved data"}

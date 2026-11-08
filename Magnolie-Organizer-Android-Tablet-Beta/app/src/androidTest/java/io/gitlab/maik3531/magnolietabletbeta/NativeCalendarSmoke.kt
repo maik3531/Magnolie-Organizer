@@ -5,14 +5,12 @@ import android.os.Looper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
-import org.threeten.bp.Instant
 import org.threeten.bp.LocalDateTime
-import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
 
-/** Production calendar codecs on Android's actual org.json / java.time runtime.
+/** Production calendar codecs on Android's actual org.json and verified normative provider.
  * Runs on the instrumentation worker, with public synthetic assets only. This
  * does not start an Activity, expand event occurrences, write a profile or sync. */
 internal object NativeCalendarSmoke {
@@ -45,11 +43,29 @@ internal object NativeCalendarSmoke {
     private fun event() = JSONObject().put("uid", "native-calendar-event").put("titel", "Synthetic appointment")
         .put("datum", "2026-03-28").put("zeit", "10:00").put("endZeit", "11:00").put("icsAnzeigeZeitzone", "UTC")
 
-    fun run(instrumentationContext: Context): JSONObject {
+    /** Read the actual installed target APK, then exercise its production singleton.
+     * No test-supplied data is passed to a production database constructor. */
+    fun providerIdentity(targetContext: Context): JSONObject {
+        check(targetContext.packageName == "io.gitlab.maik3531.magnolieorganizer.tablet.beta") { "Expected the installed production target context" }
+        val bytes = java.util.zip.ZipFile(targetContext.applicationInfo.sourceDir).use { apk ->
+            val entry = apk.getEntry(ProviderZoneDatabase.RESOURCE) ?: error("Normative resource missing from the target APK")
+            check(entry.size == 428473L) { "Unexpected packaged normative resource size" }
+            apk.getInputStream(entry).use { it.readBytes() }
+        }
+        check(hash(bytes) == ProviderZoneDatabase.PAYLOAD_SHA256) { "Installed target APK normative resource checksum mismatch" }
+        val database = ProviderZoneDatabase.bundled
+        check(database.version == "2026egtz" && database.payloadSHA256 == hash(bytes) && database.identifiers.size == 597)
+        return JSONObject().put("provider", "normative-tzif-posix").put("version", database.version)
+            .put("payloadSHA256", database.payloadSHA256).put("resource", ProviderZoneDatabase.RESOURCE)
+            .put("resourceInTargetAPK", true).put("namedZones", database.identifiers.size)
+    }
+
+    fun run(instrumentationContext: Context, targetContext: Context): JSONObject {
         check(Looper.myLooper() != Looper.getMainLooper()) { "Native calendar checks require the instrumentation worker" }
         check(DisposableEmulatorPolicy.accepts(android.os.Build.FINGERPRINT, android.os.Build.MODEL, android.os.Build.BRAND)) { "Disposable emulator required" }
         // Context is Instrumentation.context, never targetContext: this asset is
         // part of the test APK and must not enter the application's shipped assets.
+        val provider = providerIdentity(targetContext)
         val bytes = instrumentationContext.assets.open(ASSET).use { it.readBytes() }
         check(bytes.size <= 1024 * 1024 && hash(bytes) == SHA256) { "Native calendar oracle asset checksum mismatch" }
         val golden = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -99,6 +115,7 @@ internal object NativeCalendarSmoke {
         val custom = customOffsetAndFiniteRecurrence()
         val aliasRecords = qualifiedTasks()
         val timeZones = systemTimeZones(instrumentationContext)
+        val gazaCases = gazaProductCodecs()
         rejectExport { ICalendarExport.encode(listOf(event().put("datum", "2026-03-29").put("zeit", "02:30").put("endZeit", "03:30").put("icsAnzeigeZeitzone", "Europe/Berlin")), "ics-termine") }
         rejectExport {
             ICalendarExport.encode(listOf(event().put("endZeit", "").put("icsNullDauer", true)
@@ -107,7 +124,9 @@ internal object NativeCalendarSmoke {
         return JSONObject().put("publishedCases", cases.length()).put("importedRecords", importedRecords).put("exportedRecords", exportedRecords)
             .put("retainedSourceProperties", rawProperties).put("retainedTimeZoneBlocks", sourceZones).put("customOffsetSeconds", custom)
             .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones)
-            .put("timeZoneProvider", "org.threeten.bp").put("timeZoneDatabaseVersion", TimeZoneExport.databaseVersion)
+            .put("timeZoneProvider", "normative-tzif-posix").put("timeZoneProviderIdentity", provider)
+            .put("timeZoneDatabaseVersion", ProviderZoneDatabase.bundled.version)
+            .put("gazaProductCodecCases", gazaCases)
             .put("systemZoneClockChecks", 30).put("legacyOsOffsetComparisons", if (android.os.Build.VERSION.SDK_INT >= 26) 30 else 10)
             .put("maximumProofYear", 8000)
             .put("negativeCases", 2).put("liveNetworkUsed", false).put("fullSyncAccepted", false)
@@ -139,6 +158,20 @@ internal object NativeCalendarSmoke {
         check(unfold(encoded).count { it.startsWith("UID:urn:magnolie:task:") } == 2) { "Native colliding task UIDs were not aliased" }
         return result.size
     }
+    private fun gazaProductCodecs(): Int {
+        val source = listOf("BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", "UID:native-gaza-provider-regression",
+            "SUMMARY:Synthetic Gaza codec regression", "DTSTART;TZID=Asia/Gaza:20740715T123000", "DURATION:PT1H", "END:VEVENT", "END:VCALENDAR")
+        val imported = ICalendarImport.decode(source.joinToString("\r\n", postfix="\r\n").toByteArray(Charsets.UTF_8), "UTC").appointments.single()
+        check(imported.getString("datum") == "2074-07-15" && imported.getString("zeit") == "09:30") { "Production import used the defective BP Gaza offset" }
+        val fresh = event().put("datum", "2074-07-15").put("endDatum", "2074-07-15")
+            .put("zeit", "12:30").put("endZeit", "13:30").put("icsAnzeigeZeitzone", "Asia/Gaza")
+        val encoded = ICalendarExport.encode(listOf(fresh), "ics-termine", "Asia/Gaza")
+        check("DTSTART;TZID=Asia/Gaza:20740715T123000" in unfold(encoded))
+        val back = ICalendarImport.decode(encoded.toByteArray(Charsets.UTF_8), "UTC").appointments.single()
+        check(back.getString("datum") == "2074-07-15" && back.getString("zeit") == "09:30") { "Production export retained the defective BP Gaza offset" }
+        return 2
+    }
+
     private fun systemTimeZones(instrumentationContext: Context): Int {
         val bytes = instrumentationContext.assets.open("timezone-native-tzdb-oracle.json").use { it.readBytes() }
         check(hash(bytes) == "74551065e797d10df72caa7f82a13bfb8d923e2f33a16546728cd6ecf7bfb5cf") { "Native timezone oracle checksum mismatch" }
@@ -149,10 +182,10 @@ internal object NativeCalendarSmoke {
         val identifiers = listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham")
         var verified = 0
         for (identifier in identifiers) {
-            val zone = ZoneId.of(identifier); val legacy = java.util.TimeZone.getTimeZone(identifier)
-            check(zone.rules.transitionRules.isNotEmpty()) { "Bundled provider exposes no verified infinite seasonal future" }
+            val zone = ProviderZoneDatabase.bundled.zone(identifier); val legacy = java.util.TimeZone.getTimeZone(identifier)
+            check(zone.model.tail.start != null && zone.model.tail.end != null) { "Bundled provider exposes no verified infinite seasonal future" }
             val definition = TimeZoneExport.definition(identifier)
-            check(definition.count { it.startsWith("RRULE:") } == zone.rules.transitionRules.size) { "Native zone future observances were lost" }
+            check(definition.count { it.startsWith("RRULE:") } >= 2) { "Native zone future observances were lost" }
             check(definition.none { it.startsWith("RRULE:") && ("COUNT=" in it || "UNTIL=" in it) }) { "Native zone future was bounded" }
             for (index in 0 until clocks.length()) {
                 val clock = clocks.getJSONObject(index)
@@ -163,10 +196,10 @@ internal object NativeCalendarSmoke {
                     "DTSTAMP;TZID=$identifier:" + wall.format(stamp), "SUMMARY:Synthetic timezone probe", "END:VEVENT", "END:VCALENDAR")
                 val record = ICalendarImport.decode(lines.joinToString("\r\n", postfix = "\r\n").toByteArray(Charsets.UTF_8), "UTC").appointments.single()
                 val actual = wall.toEpochSecond(ZoneOffset.UTC) - record.getLong("geaendert") / 1000
-                val expected = zone.rules.getValidOffsets(wall).first()
-                val instant = wall.toEpochSecond(expected)
-                check(actual == clock.getLong("offsetSeconds") && actual == expected.totalSeconds.toLong() &&
-                    actual == zone.rules.getOffset(Instant.ofEpochSecond(instant)).totalSeconds.toLong()) {
+                val instant = zone.validInstants(wall).first()
+                val expected = wall.toEpochSecond(ZoneOffset.UTC) - instant
+                check(actual == clock.getLong("offsetSeconds") && actual == expected &&
+                    actual == zone.offsetAt(instant).toLong()) {
                     "Native generated timezone differs from the independent published Python oracle or bundled rules"
                 }
                 // API23 OS data may itself freeze after 2038. Never replace the
