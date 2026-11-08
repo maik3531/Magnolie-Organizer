@@ -38,6 +38,28 @@ val verifyThreeTenRuntime = tasks.register("verifyThreeTenRuntime") {
     }
 }
 
+// One authoritative shared resource, verified before packaging and compilation.
+val normativeTimezoneResources = layout.buildDirectory.dir("generated/normative-timezones/resources")
+val prepareNormativeTimezones = tasks.register("prepareNormativeTimezones") {
+    val payload = rootProject.file("../port-adapters/timezones/tzdb-2026egtz.json")
+    val license = rootProject.file("../port-adapters/timezones/LICENSE-tzdb.txt")
+    inputs.files(payload,license)
+    outputs.dir(normativeTimezoneResources)
+    outputs.upToDateWhen { false }
+    doLast {
+        val bytes=payload.readBytes()
+        val hash=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+        check(hash=="2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c") {
+            "Normative timezone resource does not match the approved shared payload"
+        }
+        val destination=normativeTimezoneResources.get().dir("normative-timezones").asFile
+        check(!destination.exists() || destination.deleteRecursively()) { "Cannot clear generated timezone resources" }
+        check(destination.mkdirs()) { "Cannot prepare generated timezone resources" }
+        File(destination,"tzdb-2026egtz.json").writeBytes(bytes)
+        license.copyTo(File(destination,"LICENSE-tzdb.txt"),overwrite=true)
+    }
+}
+
 val betaDebugKey = rootProject.file(".debug-signing/beta-debug.keystore")
 val createBetaDebugKey = tasks.register<Exec>("createBetaDebugKey") {
     onlyIf { !betaDebugKey.exists() }
@@ -68,6 +90,7 @@ android {
     sourceSets["androidTest"].assets.srcDir(rootProject.file("../port-adapters/tests"))
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/projection/assets"))
     sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/projection/res"))
+    sourceSets["main"].resources.srcDir(normativeTimezoneResources)
     testOptions { unitTests.isReturnDefaultValues = false }
 }
 kotlin {
@@ -82,10 +105,10 @@ kotlin {
             "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")
     }
 }
-tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime) }
+tasks.named("preBuild") { dependsOn(projection, verifyThreeTenRuntime, prepareNormativeTimezones) }
 tasks.matching { it.name == "validateSigningDebug" }.configureEach { dependsOn(createBetaDebugKey) }
 tasks.configureEach {
-    if (name.startsWith("compile") || name.startsWith("test")) dependsOn(verifyThreeTenRuntime)
+    if (name.startsWith("compile") || name.startsWith("test") || name.endsWith("JavaRes")) dependsOn(verifyThreeTenRuntime,prepareNormativeTimezones)
     if (name.contains("Release")) doFirst { error("Development gate supports debug only; production workflow required.") }
 }
 tasks.withType<Test>().configureEach {
