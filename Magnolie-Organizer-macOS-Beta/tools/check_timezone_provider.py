@@ -7,17 +7,71 @@ import calendar
 from datetime import datetime, timedelta
 import hashlib
 import json
+import os
 import selectors
+import signal
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 
 BETA = Path(__file__).resolve().parents[1]
 ROOT = BETA.parent
 DATA = ROOT / 'port-adapters/timezones'
 
+def cleanup_group(process):
+    # Every caller starts a fresh session: this group contains only this owned
+    # invocation and its compiler/oracle descendants, never unrelated processes.
+    def send(sig):
+        try:
+            os.killpg(process.pid, sig)
+            return True
+        except ProcessLookupError:
+            return False
+    if send(signal.SIGTERM):
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            process.poll()  # Reap the direct child even if descendants remain.
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(.02)
+        else:
+            send(signal.SIGKILL)
+            # The direct child may already be reaped while its worker is still
+            # handling the signal. Give the owned group a bounded exit window.
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                process.poll()
+                try:
+                    os.killpg(process.pid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(.02)
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        send(signal.SIGKILL)
+        process.wait(timeout=2)
+
+
+def run_owned(command, *, timeout, cwd=None, capture=False):
+    process = subprocess.Popen(command, cwd=cwd, start_new_session=True,
+                               stdout=subprocess.PIPE if capture else None, text=True)
+    try:
+        output, _ = process.communicate(timeout=timeout)
+        if process.returncode:
+            raise subprocess.CalledProcessError(process.returncode, command, output=output)
+        return output
+    finally:
+        cleanup_group(process)
+        if process.stdout:
+            process.stdout.close()
+
+
 def civil_reference(worker, payload, manifest):
-    process = subprocess.Popen([str(worker), str(payload), str(manifest)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    process = subprocess.Popen([str(worker), str(payload), str(manifest)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, start_new_session=True)
     selector = selectors.DefaultSelector()
     selector.register(process.stdout, selectors.EVENT_READ)
     batch, checked = [], 0
@@ -49,12 +103,7 @@ def civil_reference(worker, payload, manifest):
         print(json.dumps({'provider': 'actual Swift integer civil engine', 'reference': 'Python datetime/calendar proleptic Gregorian', 'checks': checked}), flush=True)
     finally:
         selector.close()
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                process.kill(); process.wait(timeout=2)
+        cleanup_group(process)
         for stream in [process.stdin, process.stdout]:
             stream.close()
 
@@ -70,13 +119,13 @@ def main():
         if args.worker:
             worker = args.worker.resolve()
         else:
-            subprocess.run([args.swift, 'build', '--product', 'TimezoneReferenceWorker', '--scratch-path', scratch, '--jobs', '2'], cwd=BETA, check=True, timeout=300)
-            binary = subprocess.check_output([args.swift, 'build', '--show-bin-path', '--scratch-path', scratch], cwd=BETA, text=True).strip()
+            run_owned([args.swift, 'build', '--product', 'TimezoneReferenceWorker', '--scratch-path', scratch, '--jobs', '2'], cwd=BETA, timeout=300)
+            binary = run_owned([args.swift, 'build', '--show-bin-path', '--scratch-path', scratch], cwd=BETA, timeout=300, capture=True).strip()
             worker = Path(binary) / 'TimezoneReferenceWorker'
         civil_reference(worker, payload, manifest)
-        subprocess.run(['python3', str(DATA / 'check-independent.py'), str(args.archive), '--worker-command',
+        run_owned(['python3', str(DATA / 'check-independent.py'), str(args.archive), '--worker-command',
                         json.dumps([str(worker), str(payload), str(manifest)]), '--engine-label', 'actual Swift normative schema2 provider',
-                        '--worker-input', str(worker), '--worker-input', str(manifest)], check=True, timeout=300)
+                        '--worker-input', str(worker), '--worker-input', str(manifest)], timeout=300)
     assert snapshots == {file: hashlib.sha256(file.read_bytes()).hexdigest() for file in snapshots}, 'Reference assets changed during validation'
 
 if __name__ == '__main__':
