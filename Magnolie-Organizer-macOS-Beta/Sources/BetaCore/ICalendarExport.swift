@@ -161,7 +161,7 @@ public enum ICalendarExport {
         var allowed = localMetadata.union(["notiz", "kategorien", "akzentFarbe"])
         switch kind {
         case .appointments:
-            allowed.formUnion(["titel", "datum", "zeit", "endDatum", "endZeit", "ganztag", "ort", "wiederholung", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsRangeOverrides", "icsEndeFehlt", "icsNullDauer", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung"])
+            allowed.formUnion(["titel", "datum", "zeit", "endDatum", "endZeit", "ganztag", "ort", "wiederholung", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsRangeOverrides", "icsEndeFehlt", "icsNullDauer", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung", "alarme"])
         case .tasks:
             allowed.formUnion(["titel", "startDatum", "startZeit", "faellig", "faelligZeit", "prio", "erledigt", "erinnern", "individuelleErinnerungTage", "elternUid", "icsElternUid", "icsElternQuelleId", "reihenfolge", "personen", "wiederholung", "erinnerungsMinute"])
         case .anniversaries: allowed.formUnion(["name", "datum", "typ", "kontaktId", "quelle"])
@@ -203,6 +203,76 @@ public enum ICalendarExport {
         }
         guard depth == 0 else { throw BetaError("Unclosed calendar alarm.") }; return result
     }
+    /// Accept a normalized source-alarm view only while it still describes the
+    /// retained VALARM semantics. The shared UI owns coherent alarm rewrites.
+    private static func validateSourceAlarms(_ record: [String: Any], sources: [Property]) throws {
+        guard let supplied = record["alarme"] else { return }
+        guard let alarms = supplied as? [[String: Any]], alarms.count <= 32 else { throw BetaError("Invalid normalized calendar alarms.") }
+        for alarm in alarms {
+            for key in ["aktiviert", "bearbeitbar"] {
+                guard let value = alarm[key] as? NSNumber, CFGetTypeID(value) == CFBooleanGetTypeID() else { throw BetaError("Invalid normalized alarm boolean.") }
+            }
+            guard let offset = alarm["offsetMinuten"] as? NSNumber, CFGetTypeID(offset) != CFBooleanGetTypeID(),
+                  offset.doubleValue.isFinite, offset.doubleValue.rounded() == offset.doubleValue else { throw BetaError("Invalid normalized alarm offset.") }
+        }
+        var expected: [[String: Any]] = [], block: [Property] = [], seen = Set<String>(), index = 0
+        for property in sources {
+            if property.name == "BEGIN" { block = [property]; continue }
+            if block.isEmpty { continue }
+            block.append(property)
+            guard property.name == "END" else { continue }
+            let triggers = block.filter { $0.name == "TRIGGER" }, actions = block.filter { $0.name == "ACTION" }
+            guard triggers.count == 1, actions.count <= 1, block.allSatisfy({ $0.line.count <= 4000 }), index < 32 else { throw BetaError("Ambiguous source alarm projection.") }
+            let trigger = triggers[0], action = actions.first?.value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "display"
+            let related = trigger.parameters["RELATED"]?.uppercased() == "END" ? "END" : "START"
+            let expression = try NSRegularExpression(pattern: "^-P(?:(\\d+)W)?(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?)?$", options: [.caseInsensitive])
+            let value = trigger.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            var minutes: Int?
+            if let match = expression.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)) {
+                var total: Double = 0, any = false
+                for (group, scale) in [(1, 10080.0), (2, 1440.0), (3, 60.0), (4, 1.0), (5, 1.0 / 60)] {
+                    if let range = Range(match.range(at: group), in: value), let number = Double(value[range]) {
+                        any = true; total += group == 5 ? ceil(number * scale) : number * scale
+                    }
+                }
+                if any && total.isFinite && total <= 525600 { minutes = Int(total) }
+            }
+            let editable = minutes != nil && action == "display"
+            let offset = editable ? minutes! : 0
+            let key = editable ? "\(offset)|\(related)|\(action)" : "raw|\(value)|\(related)"
+            // IDs and source hints are UI metadata, not alarm semantics.
+            let identifier = "source-alarm-\(index)"; index += 1
+            if !editable && value.isEmpty { continue }
+            guard seen.insert(key).inserted else { block = []; continue }
+            var alarm: [String: Any] = ["id": identifier, "offsetMinuten": offset, "aktion": action,
+                "aktiviert": true, "quelle": "ics", "related": related, "bearbeitbar": editable]
+            if !value.isEmpty { alarm["triggerRaw"] = value }
+            if let zone = trigger.parameters["TZID"], !zone.isEmpty { alarm["triggerTzid"] = zone }
+            expected.append(alarm); block = []
+        }
+        func semantics(_ values: [[String: Any]]) throws -> [String] {
+            var result: [String] = []
+            let allowed: Set<String> = ["id", "offsetMinuten", "aktion", "aktiviert", "quelle", "related", "bearbeitbar", "triggerRaw", "triggerTzid"]
+            for value in values {
+                guard Set(value.keys).isSubset(of: allowed), value["id"] is String, value["quelle"] is String else { throw BetaError("Invalid normalized alarm schema.") }
+                var item = value
+                item.removeValue(forKey: "id"); item.removeValue(forKey: "quelle")
+                if value["bearbeitbar"] as? Bool == true {
+                    // Shared UI retains source hints across edits, but rewrites
+                    // DISPLAY VALARMs from these current visible semantics.
+                    guard value["aktion"] as? String == "display" else { throw BetaError("Invalid editable alarm action.") }
+                    item.removeValue(forKey: "triggerRaw"); item.removeValue(forKey: "triggerTzid")
+                    if value["aktiviert"] as? Bool == false { continue }
+                }
+                result.append(try Document.encode(item))
+            }
+            return result.sorted()
+        }
+        guard try semantics(alarms) == semantics(expected) else {
+            throw BetaError("Structured alarms differ from retained source VALARMs; nothing was exported.")
+        }
+    }
+
     private static func topLevel(_ properties: [Property]) -> [Property] {
         var depth = 0
         return properties.filter { property in
@@ -329,6 +399,7 @@ public enum ICalendarExport {
     private static func component(_ record: [String: Any], kind: Kind, taskParent: String? = nil) throws -> [String] {
         try validateRecord(record, kind: kind)
         let sources = try raw(record), top = topLevel(sources), display = try displayZone(record)
+        if kind == .appointments { try validateSourceAlarms(record, sources: sources) }
         var generated: [String] = ["UID:" + escape(identifier(record)), "DTSTAMP:" + format(Date(), "yyyyMMdd'T'HHmmss'Z'")]
         let title = text(record, kind == .anniversaries ? "name" : "titel")
         guard !title.isEmpty else { throw BetaError("Calendar records need a title.") }
