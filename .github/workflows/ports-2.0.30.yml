@@ -7,7 +7,7 @@ on:
         description: Candidate to build (tablet-aosp is a diagnostic comparison only)
         type: choice
         default: all
-        options: [all, macos, tablet, tablet-aosp]
+        options: [all, macos, tablet, tablet-aosp, tablet-components]
   push:
     branches: [codex/ports-2.0.30]
     paths:
@@ -128,11 +128,17 @@ jobs:
           retention-days: 14
 
   tablet:
-    name: ${{ inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || 'tablet' }}
+    name: ${{ inputs.target == 'tablet-aosp' && 'tablet-AOSP-API34-diagnostic-only' || inputs.target == 'tablet-components' && format('tablet-component-only-{0}', matrix.suite) || 'tablet' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        suite: ${{ fromJSON(inputs.target == 'tablet-components' && '["services","files"]' || '["ui"]') }}
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
+      TABLET_COMPONENT_SUITE: ${{ matrix.suite }}
       TABLET_SYSTEM_IMAGE: ${{ inputs.target == 'tablet-aosp' && 'default' || 'google_apis' }}
       MAGNOLIE_JS_RUNTIME: node
       NODE_PATH: ${{ github.workspace }}/.ci-js/node_modules
@@ -189,21 +195,34 @@ jobs:
                        nativeAcceptance=False, productionRelease=False,
                        systemImage=os.environ['TABLET_SYSTEM_IMAGE'],
                        diagnosticComparison=os.environ['TABLET_SYSTEM_IMAGE'] == 'default',
+                       componentOnly=os.environ['TABLET_COMPONENT_SUITE'] != 'ui',
+                       componentSuite=os.environ['TABLET_COMPONENT_SUITE'],
                        googleAcceptance=False)
           pathlib.Path('artifacts/sources.json').write_text(json.dumps(proof, indent=2)+'\n')
           PY
-      - name: Exercise the candidate in the owned Android tablet emulator
+      - name: Prepare the official Android runtime image
         working-directory: Magnolie-Organizer-Android-Tablet-Beta
         shell: bash
         run: |
           set -euo pipefail
           test -c /dev/kvm
           sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          if [ "$TABLET_COMPONENT_SUITE" != ui ]; then
+            echo 'COMPONENT-ONLY EVIDENCE: no UI or full Google tablet acceptance is claimed.'
+          fi
           case "$TABLET_SYSTEM_IMAGE" in google_apis|default) ;; *) exit 2 ;; esac
           if [ "$TABLET_SYSTEM_IMAGE" = default ]; then
             echo 'AOSP API34 DIAGNOSTIC ONLY: this result is not Google tablet or production acceptance.'
           fi
           timeout 600 "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' "system-images;android-34;$TABLET_SYSTEM_IMAGE;x86_64"
+      - name: Exercise the candidate in the owned Android tablet emulator
+        if: matrix.suite == 'ui'
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           # This dedicated runner has no concurrent Windows/Android native work.
           # The owner retains all five leases through emulator cleanup.
           systemd-run --user --wait --pipe --collect \
@@ -214,7 +233,7 @@ jobs:
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite ui --image "$TABLET_SYSTEM_IMAGE" </dev/null
       - name: Verify Android DAV parser and Keystore transactions independently of UI timing
-        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' && (matrix.suite == 'ui' || matrix.suite == 'services') }}
         working-directory: Magnolie-Organizer-Android-Tablet-Beta
         shell: bash
         run: |
@@ -232,7 +251,7 @@ jobs:
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite services --image "$TABLET_SYSTEM_IMAGE" </dev/null
       - name: Exercise actual ICS import and export file pickers independently
-        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' && (matrix.suite == 'ui' || matrix.suite == 'files') }}
         working-directory: Magnolie-Organizer-Android-Tablet-Beta
         shell: bash
         run: |
@@ -267,7 +286,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || 'Google-candidate' }}-and-proof
+          name: Android-Tablet-2.0.30Beta-${{ inputs.target == 'tablet-aosp' && 'AOSP-diagnostic-only' || inputs.target == 'tablet-components' && format('component-only-{0}', matrix.suite) || 'Google-candidate' }}-and-proof
           path: |
             Magnolie-Organizer-Android-Tablet-Beta/artifacts/
             Magnolie-Organizer-Android-Tablet-Beta/app/build/test-results/testDebugUnitTest/
