@@ -51,7 +51,19 @@ Saved-, Ablauf-, Abbruch- und Journalbindungen verwenden weiterhin dieselbe
 Angebots-ID und dasselbe Manifest. Fünf native Windows-Versandgruppen prüfen
 diesen Weg, darunter eine echte umbenannte PNG mit zwei verschlüsselten Chunks
 und unbekannter Inhalt trotz `.jpg`-Name ohne Ausgabe. Das ist noch kein
-Produktionsdispatcher-/Android-Ende-zu-Ende-Nachweis. Die gemeinsame native
-Zusammensetzung, Android-Nachrichtenverteilung und vollständigen Abschluss-/
+Produktionsdispatcher-/Android-Ende-zu-Ende-Nachweis. Android reserviert den
+Umschlag inzwischen im normalen authentifizierten Nachrichtenverteiler und
+übergibt ihn ausschließlich an die bereits vorhandene identische native
+Verbindung. Chunkantworten erreichen direkt den auf sie wartenden nativen
+Empfangsworker, ohne hinter dessen Warteoperation eingereiht zu werden. Ein
+Angebot kann weder eine Verbindung noch eine aktuelle Medienabsicht oder
+Empfangszustimmung herstellen. Die source-only Produktionsfactory bleibt
+weiterhin empfangsgeschlossen. Native Verbindungsweiterleitung mit echter PNG-
+Veröffentlichung/Saved sowie Ablehnung fremder Verbindung, normaler Dateiangebote
+und fehlender Empfängerfactory sind geprüft; im echten Werk-Verteiler sind
+reservierte Ablehnung ohne Bootstrap und vorhandene Kontrollaktivierung geprüft.
+Das ersetzt keinen positiven Ende-zu-Ende-Nachweis der gemeinsamen Factory.
+
+Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
 keine Berechtigung, den Ausgangscache zu entfernen.

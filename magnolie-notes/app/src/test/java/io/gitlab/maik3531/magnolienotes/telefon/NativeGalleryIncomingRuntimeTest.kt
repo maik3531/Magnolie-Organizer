@@ -51,6 +51,7 @@ class NativeGalleryIncomingRuntimeTest {
         var held: JsonObject? = null
         var run: NativeGalleryIncomingRun? = null
         var inspection: NativeGalleryPublishedReadRun? = null
+        private var connection: NativeGalleryFileConnection? = null
         init {
             if (joined && localConsent) helper.grant(f)
             ShadowContentResolver.registerProviderInternal("media", provider)
@@ -91,7 +92,9 @@ class NativeGalleryIncomingRuntimeTest {
         fun answer(message: JsonObject) {
             val request = DeviceFileChunkEnvelope.parseRequest(message); val offset = request.chunkIndex * 65536
             val response = DeviceFileChunkEnvelope.response(request, raw.copyOfRange(offset, minOf(raw.size, offset + 65536)))
-            assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
+            val current = connection
+            if (current == null) assertTrue(runtime.observeIncomingChunk(link.channel, link.receive(response)))
+            else assertNull(current.receiveIncomingMedia(link.channel, link.receive(response)) { error("Chunk dispatcher must not capture a new book") })
         }
         fun start(): NativeGalleryIncomingRun = runtime.beginIncoming(DeviceFileOfferEnvelope.create(manifest), GalleryMediaType.IMAGES,
             mapOf("1".repeat(32) to "image/png"), f.book()).also { run = it }
@@ -103,6 +106,10 @@ class NativeGalleryIncomingRuntimeTest {
             }))
         }
         fun startMedia(offer: JsonObject = mediaOffer()) = runtime.beginIncomingMediaOffer(link.receive(offer), f.book()).also { run = it }
+        fun nativeConnection(): NativeGalleryFileConnection = connection ?: NativeGalleryFileConnection(link.channel) { }.also {
+            it.bind(runtime); connection = it
+        }
+        fun startDispatched(offer: JsonObject = mediaOffer()) = checkNotNull(nativeConnection().receiveIncomingMedia(link.channel, link.receive(offer), f::book)).also { run = it }
         fun published(): GalleryIncomingPublication {
             val id = f.rows().keys.single { it.startsWith(GalleryIncomingPublication.PREFIX) }.removePrefix(GalleryIncomingPublication.PREFIX)
             return f.index.incomingPublication(id)!!
@@ -117,7 +124,7 @@ class NativeGalleryIncomingRuntimeTest {
             runtime.revokeControl()
             run?.let { check(it.awaitIoEnded(10000)) }
             inspection?.let { check(it.awaitIoEnded(10000)) }
-            runtime.close(); pc.close(); f.close(); link.close()
+            connection?.close(); runtime.close(); pc.close(); f.close(); link.close()
             Shadows.shadowOf(Looper.getMainLooper()).idle()
         }
     }
@@ -131,6 +138,34 @@ class NativeGalleryIncomingRuntimeTest {
             assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
             assertTrue(h.link.frames.any { it["kind"] == JsonPrimitive(DeviceFileChunkEnvelope.REQUEST) })
             assertEquals(JsonPrimitive(DeviceFileSavedEnvelope.KIND), run.actualSavedOutput()!!["kind"])
+        }
+    }
+
+    @Test fun nativeConnectionDispatcherRoutesMediaOfferAndEncryptedChunksToExactNativeWorker() {
+        Harness().use { h ->
+            val offer = h.mediaOffer(); val run = h.startDispatched(offer)
+            assertTrue(run.awaitIoEnded(10000)); assertNull(run.nativeFailure()); assertNotNull(run.actualSavedOutput())
+            assertArrayEquals(h.raw, h.file.readBytes()); assertEquals(1, h.provider.inserts); assertEquals(1, h.provider.publishes)
+            val acceptance = h.link.frames.single { it["kind"] == JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND) }
+            assertEquals(offer["message_id"], acceptance.getValue("body").jsonObject["offer_id"])
+        }
+    }
+
+    @Test fun nativeIncomingDispatcherCannotCreateRightsFromForeignConnectionOrdinaryOfferOrSourceOnlyFactory() {
+        Harness().use { h ->
+            NativeGalleryIncomingTransferTest.Link().use { foreign ->
+                assertThrows(PhotoFolderScopeError::class.java) {
+                    h.nativeConnection().receiveIncomingMedia(foreign.channel, h.mediaOffer()) { error("Foreign channel reached native book capture") }
+                }
+            }
+            assertThrows(PhotoFolderScopeError::class.java) {
+                h.nativeConnection().receiveIncomingMedia(h.link.channel, DeviceFileOfferEnvelope.create(h.manifest)) { error("Ordinary offer reached media receiving") }
+            }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.writeOpens)
+        }
+        Harness(joined = false).use { h ->
+            assertThrows(PhotoFolderScopeError::class.java) { h.startDispatched() }
+            assertEquals(0, h.provider.inserts); assertEquals(0, h.provider.publishes)
         }
     }
 

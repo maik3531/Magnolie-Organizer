@@ -2653,7 +2653,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             channel.send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted"))
             return // Phone requests are never a desktop-to-phone legacy command.
         }
-        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
+        if (message["kind"] in setOf(JsonPrimitive(DeviceFileControl.KIND), JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND),
                 JsonPrimitive(DeviceFileChunkEnvelope.REQUEST), JsonPrimitive(DeviceFileChunkEnvelope.RESULT),
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND), JsonPrimitive(DeviceFileSourceCommand.REQUEST),
                 JsonPrimitive(DeviceFileSourceCommand.RESULT), JsonPrimitive(DeviceFileSourceCommand.CATALOG),
@@ -2671,7 +2671,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 })
                 return
             }
-            if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
+            if (message["kind"] in setOf(JsonPrimitive(MediaOfferEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.RESULT))) {
+                connection.receiveIncomingMedia(channel, message) {
+                    val documents = Ablage.hole(context)
+                    NativeGalleryReceiveBookPermit.capture({ Ablage.hole(context) }) {
+                        Ablage.hole(context) === documents && documents.synchronisationsSchreibbar()
+                    }
+                }
+            }
+            else if (message["kind"] == JsonPrimitive(DeviceFileControl.KIND)) runtime.observeControls(message)
             else if (message["kind"] in setOf(JsonPrimitive(DeviceFileAcceptanceEnvelope.KIND), JsonPrimitive(DeviceFileChunkEnvelope.REQUEST),
                 JsonPrimitive(DeviceFileSavedEnvelope.KIND))) runtime.receiveTransferMessage(message, channel::send)
             else if (message["kind"] == JsonPrimitive(DeviceFileSourceCommand.REQUEST))

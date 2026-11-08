@@ -401,6 +401,22 @@ class NativeFilePairingBootstrapTest {
     private fun activationControl(receive: Boolean = true) = DeviceFileControlEnvelope.create(
         DeviceFileControlPacket(DeviceFileGrantState(1, "c".repeat(64), false, receive), "e".repeat(64), 1, null))
 
+    @Test fun actualWerkReservesMediaOffersAndChunkResultsWithoutBootstrappingFromTheirMetadata() {
+        withNativeTransport { work, channel, generation ->
+            captureFileIdentity(work, channel)
+            val legacy = storage.fileAuthorityPeers().peer!!
+            val output = field(TelefonSecureChannel::class.java, "output").get(channel) as ByteArrayOutputStream
+            for (kind in listOf(MediaOfferEnvelope.KIND, DeviceFileChunkEnvelope.RESULT)) {
+                val message = TelefonNachrichten.message(kind, buildJsonObject { put("format", 1) }, 60_000)
+                val failure = assertThrows(PhotoFolderScopeError::class.java) { work.receiveMessage(legacy, message, channel, generation) }
+                assertEquals("file_control_native_handler_unavailable", failure.message)
+                assertNull(field(TelefonWerk::class.java, "galleryFileConnection").get(work))
+                assertEquals(legacy, storage.fileAuthorityPeers().peer)
+                assertEquals(0, output.size()) // No ordinary-message ACK/staging or data output.
+            }
+        }
+    }
+
     @Test fun actualFirstReceiverControlBootstrapsOnlyClosedGalleryRuntimeWithoutNotesOrReadGrants() {
         withNativeTransport { work, channel, generation ->
             captureFileIdentity(work, channel)

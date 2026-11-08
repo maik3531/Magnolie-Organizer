@@ -2,6 +2,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.os.Handler
 import android.os.Looper
+import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Native transport ownership, retained until actual UI cleanup. No worker-END
@@ -23,6 +24,22 @@ internal class NativeGalleryFileConnection internal constructor(internal val cha
         check(bound == null)
         bound = value
         if (ended.get()) { close(); DeviceFileControl.fail("gallery_file_connection_ended") }
+    }
+
+    /** Only the existing authenticated native connection can receive these
+     * reserved frames. This never constructs a runtime, intent or consent from
+     * a packet. Chunk delivery must not queue behind the worker waiting for it. */
+    internal fun receiveIncomingMedia(authenticatedChannel: TelefonSecureChannel, message: JsonObject,
+        book: () -> NativeGalleryReceiveBookPermit): NativeGalleryIncomingRun? {
+        if (authenticatedChannel !== channel || ended.get()) DeviceFileControl.fail("gallery_incoming_foreign_connection")
+        return when (message.string("kind")) {
+            MediaOfferEnvelope.KIND -> runtime.beginIncomingMediaOffer(message, book())
+            DeviceFileChunkEnvelope.RESULT -> {
+                if (!runtime.observeIncomingChunk(authenticatedChannel, message)) DeviceFileControl.fail("gallery_incoming_unsolicited_chunk")
+                null
+            }
+            else -> DeviceFileControl.fail("gallery_incoming_unexpected_message")
+        }
     }
 
     /** Called after native I/O actually ends, outside the TelefonWerk monitor. */
