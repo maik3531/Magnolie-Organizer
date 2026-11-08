@@ -6081,6 +6081,9 @@ body[data-linien="aus"] #tb-notiz {
   align-items: flex-start;
   gap: 7px;
 }
+.notes-foto-sync > summary { display: flex; align-items: center; gap: 14px; }
+.telefon-medien-aktivierung { display: inline-flex; align-items: center; padding: 4px; }
+.telefon-medien-aktivierung input { margin: 0; }
 .kde-empfangsordner {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto auto;

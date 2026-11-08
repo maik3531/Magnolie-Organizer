@@ -28953,7 +28953,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const wurzel of einzelneWurzel ? [einzelneWurzel] : document.querySelectorAll("[data-notes-photo-root]")) {
       const alt = wurzel.querySelector("details");
       if (alt && wurzel.dataset.photoPeer) telefonFotoAnsichten.set(wurzel.dataset.photoPeer, {
-        offen: alt.open, album: wurzel.querySelector("select[data-photo-album]")?.value || "",
+        offen: alt.open, medienOffen: wurzel.querySelector("details.notes-foto-sync")?.open === true,
+        album: wurzel.querySelector("select[data-photo-album]")?.value || "",
         videoAlbum: wurzel.querySelector("select[data-video-album]")?.value || ""
       });
       wurzel.replaceChildren();
@@ -28966,7 +28967,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
       erweitert.open = ansicht.offen; erweitert.append(el("summary", null, _("Advanced functions")));
-      const gruppe = el("div", "notes-foto-sync");
+      const gruppe = el("details", "einst-gruppe notes-foto-sync"); gruppe.open = ansicht.medienOffen === true;
+      const titel = el("summary"); titel.append(el("span", null, _("Photos and videos"))); gruppe.append(titel);
       const sende = (action, album_id, job_owner, historical_choice) => {
         telefonFotoFehler.delete(peer.device_id);
         const request = { action }; if (album_id !== undefined) request.album_id = album_id;
@@ -28976,9 +28978,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       };
       const an = document.createElement("input"); an.type = "checkbox";
       an.checked = stand.enabled === true; an.disabled = stand.busy === true && !an.checked;
+      an.setAttribute("aria-label", _("Synchronize photos"));
       an.addEventListener("change", () => sende(an.checked ? "enable" : "disable"));
-      const label = el("label", "hak"); label.append(an, document.createTextNode(" " + _("Synchronize photos")));
-      gruppe.append(label);
+      const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
+      label.addEventListener("click", event => event.stopPropagation());
+      label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
       if (stand.enabled) {
         const richtung = document.createElement("select");
         const nurHandy = document.createElement("option"); nurHandy.value = "phone_to_desktop";

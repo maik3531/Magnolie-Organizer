@@ -7524,12 +7524,23 @@ function knopfMit(text, wurzel) {
   let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&
     !bd.querySelector(".telefon-kde-karte").contains(fotoGruppe), "Fotoeinstellungen gehören ausschließlich zu Notes");
-  const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
-  fotoAn.checked = true; fotoAn.dispatchEvent(new bw.Event("change", { bubbles: true }));
+   const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
+   const medienGruppe = fotoGruppe.querySelector("details.notes-foto-sync");
+   assert.ok(!fotoGruppe.open && !medienGruppe.open, "Erweiterte Funktionen und Medien sind unabhängig standardmäßig eingeklappt");
+   assert.ok(medienGruppe.querySelector("summary").contains(fotoAn), "Aktivierung gehört neben die eingeklappte Medienüberschrift");
+   const vorAufklappen = baumNachrichten.length;
+   medienGruppe.open = true;
+   assert.strictEqual(baumNachrichten.length, vorAufklappen, "Aufklappen darf den Abgleich nicht aktivieren");
+   medienGruppe.open = false;
+   fotoAn.click();
+   assert.ok(fotoAn.checked, "Die Checkbox aktiviert den Abgleich per normalem Klick");
+   assert.ok(!medienGruppe.open && !fotoGruppe.open, "Aktivierung darf keine Gruppe aufklappen");
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.kennung === fotoPeer.device_id &&
     value.fingerprint === fotoPeer.fingerprint && value.request.action === "enable"), "explizite Fotoaktivierung erreicht den nativen Einstieg");
   fotoStand({ available: true, enabled: true, state: "permission_required", mode: "manual", albums: [] });
-  fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
+   fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
+   assert.ok(!fotoGruppe.querySelector("details.notes-foto-sync").open, "Die Mediengruppe folgt nicht automatisch der äußeren Gruppe");
+   fotoGruppe.querySelector("details.notes-foto-sync").open = true;
   assert.ok(fotoGruppe.textContent.includes("Nur den Bestand auf dem Handy abgleichen") &&
     fotoGruppe.textContent.includes("Manuell"), "Anfangszustand ist ausschließlich manuell und einseitig");
   assert.ok(!fotoGruppe.querySelector("option[value='bidirectional']") && !fotoGruppe.textContent.includes("Automatisch"),
@@ -7547,7 +7558,8 @@ function knopfMit(text, wurzel) {
     { album_id: "album-native-1", display_name: "Camera", visible_images: 2 },
     { album_id: "album-native-2", display_name: "<img src=x onerror=bad>", visible_images: 1 }] });
   fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
-  assert.ok(fotoGruppe.open && !fotoGruppe.querySelector("img"), "Aktualisierung bewahrt Details und escaped native Albumnamen");
+   assert.ok(fotoGruppe.open && !fotoGruppe.querySelector("img"), "Aktualisierung bewahrt Details und escaped native Albumnamen");
+   assert.ok(fotoGruppe.querySelector("details.notes-foto-sync").open, "Native Statusänderungen bewahren auch die innere Mediengruppe");
   fotoGruppe.querySelector("select[data-photo-album]").value = "album-native-2";
   Array.from(fotoGruppe.querySelectorAll("button")).find(value => value.textContent === "Jetzt synchronisieren").click();
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.request.action === "sync" &&
