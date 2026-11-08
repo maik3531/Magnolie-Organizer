@@ -136,10 +136,10 @@ internal object NativeDavAccountSmoke {
             check(String(requireNotNull(ops.read(old,32)))=="new" && String(requireNotNull(ops.read(pending,32)))=="pending")
             val link=File(directory,"link");Os.symlink(old.path,link.path)
             try { ops.read(link,32);error("Followed storage symlink") } catch (_: IOException) { symlinkRejected=true }
-            Os.unlink(link.path)
+            Os.remove(link.path)
             val hard=File(directory,"hard");Os.link(old.path,hard.path)
             try { ops.read(old,32);error("Accepted linked storage file") } catch (_: IOException) { hardlinkRejected=true }
-            Os.unlink(hard.path)
+            Os.remove(hard.path)
             try { ops.read(old,2);error("Read past configured byte bound") } catch (_: IOException) { boundedReadRejected=true }
             ops.delete(old);ops.delete(pending)
             val frameworkParent=File(directory,"framework-parent");ops.ensurePrivateDirectory(frameworkParent,true)
@@ -147,8 +147,8 @@ internal object NativeDavAccountSmoke {
             val child=File(frameworkParent,"private-child");ops.ensurePrivateDirectory(child,true)
             check(mode(frameworkParent)==0x1f9 && mode(child)==directoryMode)
             check(Os.lstat(frameworkParent.path).st_uid==Os.getuid())
-            Os.rmdir(child.path);ops.ensurePrivateDirectory(frameworkParent);ops.syncDirectory(frameworkParent)
-            Os.rmdir(frameworkParent.path);ops.syncDirectory(directory)
+            Os.remove(child.path);ops.ensurePrivateDirectory(frameworkParent);ops.syncDirectory(frameworkParent)
+            Os.remove(frameworkParent.path);ops.syncDirectory(directory)
             for (boundary in listOf("file-sync","rename","directory-sync")) {
                 val fixture=File(directory,boundary);ops.ensurePrivateDirectory(fixture,true)
                 fun data(title: String)=JSONObject().put("version",6).put("termine",org.json.JSONArray().put(JSONObject().put("id","fixture").put("titel",title)))
@@ -166,7 +166,7 @@ internal object NativeDavAccountSmoke {
                 val value=requireNotNull(reopened.read()).getJSONObject("data").getJSONArray("termine").getJSONObject(0).getString("titel")
                 check(value==if(boundary=="file-sync")"old" else "new")
                 for(file in ops.children(fixture))check(ops.delete(file))
-                Os.rmdir(fixture.path);ops.syncDirectory(directory);checkpoints++
+                Os.remove(fixture.path);ops.syncDirectory(directory);checkpoints++
             }
             check(renameDenied && symlinkRejected && hardlinkRejected && boundedReadRejected && checkpoints==3)
             return JSONObject().put("backend","android.system.Os").put("api",android.os.Build.VERSION.SDK_INT)
@@ -180,7 +180,7 @@ internal object NativeDavAccountSmoke {
         } finally {
             ops.ensurePrivateDirectory(directory)
             check(ops.children(directory).isEmpty()) { "Unexpected file in storage fixture" }
-            Os.rmdir(directory.path);ops.syncDirectory(parent)
+            Os.remove(directory.path);ops.syncDirectory(parent)
         }
     }
 
@@ -250,7 +250,7 @@ internal object NativeDavAccountSmoke {
             val metadata = File(fixture,"nextcloud.json")
             ops.delete(metadata)
             check(ops.children(fixture).isEmpty()) { "Unexpected file in owned fixture; refusing recursive deletion" }
-            Os.rmdir(fixture.path);ops.syncDirectory(root)
+            Os.remove(fixture.path);ops.syncDirectory(root)
             val credentialDirectory = File(root,"dav-credentials-v1")
             val remainingCredentials = ops.children(credentialDirectory)
             if (!previousAlias && remainingCredentials.isEmpty()) keyStore.deleteEntry(ALIAS)

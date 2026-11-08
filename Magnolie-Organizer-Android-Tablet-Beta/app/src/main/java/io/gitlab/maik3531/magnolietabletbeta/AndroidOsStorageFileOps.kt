@@ -14,7 +14,9 @@ import java.util.UUID
  * unchecked File.renameTo, or weakened directory durability barrier is used on Android.
  */
 object AndroidOsStorageFileOps : StorageFileOps {
-    private val directoryFlags = OsConstants.O_RDONLY or OsConstants.O_DIRECTORY or OsConstants.O_NOFOLLOW or OsConstants.O_CLOEXEC
+    // O_DIRECTORY is not in the public SDK. Open without following the final link, then
+    // require fstat to prove an owned directory before chmod/fsync; no hidden numeric flag.
+    private val directoryFlags = OsConstants.O_RDONLY or OsConstants.O_NOFOLLOW or OsConstants.O_CLOEXEC
     private fun record(info: StructStat) = StorageFileStat(info.st_uid.toLong(), info.st_mode, info.st_size,
         info.st_nlink, info.st_dev, info.st_ino)
     override fun stat(file: File): StorageFileStat? = try { record(Os.lstat(file.path)) }
@@ -120,7 +122,7 @@ object AndroidOsStorageFileOps : StorageFileOps {
     override fun delete(file: File): Boolean {
         if (stat(file) == null) return false
         checkDirectory(file.parentFile!!); checkRegular(file)
-        Os.unlink(file.path)
+        Os.remove(file.path)
         if (stat(file) != null) throw IOException("Storage deletion could not be verified")
         return true
     }
