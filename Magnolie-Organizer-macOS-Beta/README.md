@@ -43,10 +43,10 @@ checks against a moving development checkout do not establish release-tag parity
 | JSON import/restore | Native selection pins path and bytes; current UI normalizer preflight; full replacement after pre-restore copy; current encryption retained |
 | Recovery/deletion | Shared recycle-bin/contact-delete logic; token-correlated checkpoints; private exact-byte JSON files readable after restart |
 | Language/keyboard | Shared regional page enabled and durably saved; generated native gettext catalogs; Command+digit sections, Command formatting, Undo/Redo menus |
-| Export | Simple appointment ICS, including consistent editor-mirrored LOCATION and time properties; rich/recurring/provider-bound records refused rather than flattened |
+| Export | Source-preserving appointment/task/anniversary ICS, recurrence/exceptions and historical/future timezone definitions; unsupported or contradictory records fail the whole export |
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
-| macOS calendars/reminders | Optional EventKit listing of calendar/list names and sources from native menus, read-only; no item import or sync |
+| macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; full import/synchronization remains unfinished |
 
 "Implemented source" is not a statement of native build or runtime validation.
 Current-source integration and the remaining macOS/Android Organizer parity work
@@ -82,14 +82,11 @@ source checkpoint, not a completed native parity acceptance.
 - Recovery files have no automatic expiry, pruning, index, or scheduled snapshots.
   Restore them with the same JSON picker. They consume disk space until explicitly
   managed by the user; disk-full/native APFS crash behavior still needs Mac testing.
-- The ICS subset uses desktop `endDatum`/`endZeit`, escapes/folds content, and
-  refuses recurrence, alarms, attendees, attachment links, provider data and other
-  meaningful fields it cannot represent. Global reminder preferences and local
-  record metadata are not ICS fields. Redundant raw properties must agree with
-  structured fields; supported UTC/IANA timezone qualifiers are retained and
-  mismatched/partial zoned start/end pairs are rejected. The editor's empty
-  `TZID=` denotes floating time and is emitted without that empty parameter.
-  Use JSON backup for a complete copy.
+- ICS exports retain source recurrence/exception/timezone properties and validate
+  structured times against them. Tasks and anniversaries have dedicated export
+  kinds. Unsupported or conflicting data aborts the complete export. Independent
+  roundtrips use the published 2.0.30 Python codec; renewed native validation is
+  pending. Use JSON backup for the complete profile.
 - A one-off task's "Custom notification" (1 through 7 days before) is independent
   of "remind me on the due date". Both may be enabled. Early times use calendar
   days in the source timezone, not a fixed 24-hour duration across DST. Global
@@ -108,13 +105,17 @@ source checkpoint, not a completed native parity acceptance.
   restart deduplication, recurring-occurrence scheduling parity or delivery
   guarantee is claimed. EventKit "reminder lists" and Magnolie notifications are
   separate features.
-- No macOS Internet Accounts integration is offered. The generated sync page
-  has no Linux EDS/Akonadi selectors or Linux package-install instructions. Native
-  read-only EventKit discovery does not masquerade as desktop synchronization.
-- No DAV/Graph/Nextcloud sync, Magnolia tree, phone/SMS/Bluetooth, system contacts,
-  weather/holiday downloads, tray/background service, autostart, scheduled backup,
-  printing/PDF/office export, full ICS/vCard/CSV codecs, updater, manual downloader,
-  contributor validation or native protected-image rendering is implemented.
+- The native system-source page discovers EventKit calendars/reminders and Contacts
+  containers through macOS permissions. Discovery does not prompt; explicit buttons
+  request access. Missing/revoked sources retain their saved selections. Complete
+  system synchronization is unfinished and its action remains disabled.
+- Public/school holiday retrieval uses a bounded native HTTPS service and the
+  canonical cache importer. DAV protocol and OS credential adapters are foundations;
+  complete Nextcloud sync, account UI and conflict transactions remain unfinished.
+- No Graph sync, Magnolia tree, phone/SMS/Bluetooth, weather download,
+  tray/background service, autostart, scheduled backup, printing/PDF/office export,
+  full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
+  native protected-image rendering is implemented.
 - Unsupported desktop controls retain an explicit Beta limitation notice or
   receive a negative response. They do not signify native feature parity.
 - This is a non-sandboxed development shell, not a hardened/notarized distribution.

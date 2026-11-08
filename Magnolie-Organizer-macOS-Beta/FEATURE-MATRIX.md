@@ -21,7 +21,7 @@ alone do not establish macOS behavior.
 | Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement | Native picker/crypto/commit integration on Mac; not `.magnolie` complete archive import |
 | JSON backup/export | Whole document including unknown fields and embedded attachments; always encrypted; separate password prompt for plain profile | Native prompt/save panel/crypto interoperability run; no external backups rekeyed |
 | Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors | Apple crypto execution; password change/removal; keychain/rekey transactions |
-| ICS export | Simple appointments, LOCATION and time reconciliation, TZ/DST validation; live shared editor → compiled Swift tests | Recurrence, VTODO, VALARM, attendees, provider data, full round-trip codec |
+| ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Renewed independent published-codec roundtrips and native picker acceptance; unsupported fields fail the whole export |
 | ICS/vCard/CSV import/export | Shared controls remain; unsupported native commands return negative responses | Full codecs, import previews/merging and format interoperability |
 | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
 | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
@@ -35,16 +35,16 @@ alone do not establish macOS behavior.
 
 | Area | Current status | Priority/acceptance |
 | --- | --- | --- |
-| AppKit/WKWebView host | Source exists; Linux excludes it entirely. A real-WKWebView test is prepared but **NOT RUN** | P0: legitimate macOS runner compilation, UI load, native Host save/quit/navigation and permission failures |
+| AppKit/WKWebView host | Both architectures passed real WKWebView tests and application save/quit/reopen at the earlier baseline | New native modules require renewed builds; permission/native-dialog/upgrade acceptance remains open |
 | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
-| macOS calendars/reminders | EventKit read-only listing of calendar/list names via native menu | Item import/edit/sync, permissions; not Internet Accounts/EDS synchronization |
-| System contacts | Unsupported | Contacts.framework/provider contracts and user-approved import/sync |
-| DAV/CalDAV/CardDAV/Nextcloud/Graph | Unsupported | Authentication, retries, conflict/deletion contracts, transport tests |
+| macOS calendars/reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Full item import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
+| System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
+| DAV/CalDAV/CardDAV/Nextcloud/Graph | Bounded HTTPS DAV protocol layer (18 native tests passed); separate Keychain credential adapter added | Keychain native validation, account UI and complete conflict/deletion/local-commit coordinator; Graph unsupported |
 | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
 | Phone/SMS/Bluetooth/KDE Connect/audio | Unsupported | Native transport/hardware/control contracts and actual-device validation |
 | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
 | Printing/PDF/ODS/office letters | Unsupported native bridge | Print pagination, export fidelity and platform launch integration |
-| Weather/holidays/maps/mail/external links | Unsupported native network/launch handlers | Restricted native services and callback/error contracts |
+| Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live holiday/native UI acceptance pending; other listed services unsupported |
 | Manual/update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and authorized native implementation |
 | Shipping/signing/notarization/installer | No production artifact or release | Review + Mac acceptance + final explicit release authorization |
 
@@ -56,9 +56,8 @@ datasets are not fabricated as successful empty results.
 ## Next Bounded Phase
 
 1. Review the new recovery/restore transaction and its encryption retention policy.
-2. With explicit repository/runner authorization, install the inactive CI template
-   on a reviewed ref and run it on GitHub's real macOS runner. Record exact SDK,
-   architecture, test output and failures. No Linux macOS spoof/emulator substitute.
+2. Continue the authorized GitHub macOS runner checks on both architectures.
+   Record exact source, SDK, test output and failures for each candidate.
 3. Exercise the production Host (not just the WK test harness) for native dialogs,
    permissions, write failure/quit, VoiceOver and keyboard-only operation.
 4. Continue common format/import/export and native service implementations against
