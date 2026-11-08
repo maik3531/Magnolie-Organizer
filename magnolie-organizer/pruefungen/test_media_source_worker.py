@@ -77,11 +77,16 @@ def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_seco
             monkeypatch.setattr(sender,'_media_readback',held_readback)
             monkeypatch.setattr(worker,'_archive',archive_after_hint)
             def receive():
-                try:dispatch(h,native[0],readback(sender,cache,offer))
+                try:
+                    # This peer-fixture builder consults the desktop controls.
+                    # Serialize that synthetic lookup like every real caller;
+                    # do not race an idle consent poll outside the native lane.
+                    with h.connection._operation(incoming=True):packet=readback(sender,cache,offer)
+                    dispatch(h,native[0],packet)
                 except BaseException as error:errors.append(error)
             thread=threading.Thread(target=receive,daemon=True);thread.start()
             try:
-                assert entered.wait(10) and attempted.wait(10)
+                assert entered.wait(10) and attempted.wait(10),(errors,worker.progress())
                 assert worker.progress()['saved_files']==0 and cache.directory.exists()
                 assert not worker.join(.1) # Protected readback exists, actual source I/O has NOT drained.
             finally:release.set();thread.join(30)
@@ -104,6 +109,48 @@ def test_worker_without_actual_send_control_holds_before_creating_cache(source,n
         worker=start(h);assert worker.join(30),worker.progress()
         assert worker.progress()['state']=='held' and not h.source._prepared
         assert h.connection._mapped_worker is None
+
+
+@pytest.mark.parametrize('withdrawal',['remote_receive','local_send'])
+def test_idle_offered_worker_observes_consent_withdrawal_without_more_phone_requests(source,native,withdrawal):
+    from magnolie_file_control import FileControlPacket,FileGrantState,KIND as CONTROL
+    from magnolie_file_transfer import TransferError
+    with composition(source,native[0]) as h:
+        controls=agree(h,native[0]);h.target.write_bytes(png())
+        h.wire.sock.settimeout(30);worker=start(h)
+        try:
+            offer=h.wire.receive();assert offer['kind']=='file_transfer.media_offer'
+            sender=h.connection._media_sender;cache=sender._cache
+            if withdrawal=='remote_receive':
+                withdrawn=FileControlPacket(FileGrantState(2,'8'*64,False,False),'7'*64,2,controls.challenge)
+                dispatch(h,native[0],message(CONTROL,withdrawn.wire()))
+                assert h.wire.receive()['kind']==CONTROL
+            else:
+                with h.connection._operation(incoming=True):
+                    prefs=h.preferences
+                    prefs.configure_sending(prefs.issue_action(),prefs.read(),photos=False,videos=False)
+            assert worker.join(5),'Idle source ignored current consent withdrawal: '+str(worker.progress())
+            assert worker.progress()['state']=='held' and worker.progress()['saved_files']==0,worker.progress()
+            assert cache.directory.exists() and h.target.read_bytes()==png()
+            assert sender._closed.is_set() and h.connection._media_sender is None and h.connection._mapped_worker is None
+            assert not list(Path(h.authority.binding.native_directory).glob('.magnolie-source-*.retired'))
+            if withdrawal=='remote_receive':
+                renewed=FileControlPacket(FileGrantState(3,'9'*64,False,True),'7'*64,3,controls.challenge)
+                dispatch(h,native[0],message(CONTROL,renewed.wire()))
+                assert h.wire.receive()['kind']==CONTROL
+                assert h.connection._controls.binding('0'*64,sender_is_local=True) is not None
+                assert sender._closed.is_set() and h.connection._mapped_worker is None
+            with pytest.raises(TransferError,match='native_operation_ended'):worker._current()
+        finally:
+            worker.stop();assert worker.join(15),worker.progress()
+
+
+def test_schedule_scope_does_not_probe_controls_while_connection_io_is_owned(source,native,monkeypatch):
+    with composition(source,native[0]) as h:
+        agree(h,native[0]);session=h.connection.desktop_session()
+        with monkeypatch.context() as patch:
+            patch.setattr(h.connection._controls,'binding',lambda *a,**k:pytest.fail('Scheduler entered controls during owned connection I/O'))
+            with h.connection._operation():assert session._schedule_scope() is None
 
 
 def test_normal_session_pc_only_manual_pass_never_discovers_or_requests_phone_read(source,native,monkeypatch):

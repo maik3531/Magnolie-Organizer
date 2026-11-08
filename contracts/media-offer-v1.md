@@ -552,6 +552,20 @@ Wiederanbindung nicht durch den älteren Empfangs-Autostart ersetzt werden.
 Noch nicht wieder angebundene gemeinsame automatische Empfangspfade erhalten
 eine ausdrückliche Review-Sperre statt unangeforderter Telefon-READ-Aktionen.
 
+Auch ein nach seinem Angebot auf weitere Telefonanfragen wartender Ausgangslauf
+prüft die aktuelle lokale Zustimmung und seine genaue Dateisteuerbindung. Diese
+Prüfung läuft ausschließlich außerhalb einer Quell-/Cache-Lease und auf der
+serialisierten Verbindungsspur. Während tatsächlicher Socket-I/O wird sie
+nicht blockierend aufgeschoben, nicht als Zustimmungsfehler gewertet. Ein
+beobachteter Entzug von lokalem SEND oder entferntem RECEIVE beendet den Lauf
+auch ohne weitere Chunk-/Saved-/Readback-Nachricht. Original und bestehender
+Cache bleiben erhalten; ein später erneut positiver Grant belebt den beendeten
+Lauf nicht wieder und ersetzt weder Saved noch Sicherung oder Archivierung.
+
+Auch die Metadatenabfrage des Zeitplaners belegt diese Verbindungsspur nur
+nicht blockierend. Eine belegte Spur bedeutet vorerst keinen planbaren Lauf,
+nicht neue Zustimmung oder eine Berechtigung, laufende Quell-I/O zu untersuchen.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

@@ -57,6 +57,25 @@ class NativeMappedMediaWorker:
             raise TransferError('media_source_local_consent_required')
         return True
 
+    def _idle_sender_current(self,sender):
+        # Only the idle worker polls here, never a held source/cache callback.
+        # Controls consult local mapping availability. Serialize that lookup
+        # with actual socket handlers, but do not block or manufacture a busy
+        # consent failure while such a handler still owns real I/O.
+        c=self._connection
+        if not c._gate.acquire(blocking=False):return
+        try:
+            self._current()
+            if sender._closed.is_set() or c._media_sender is not sender:
+                raise TransferError('media_source_sender_retired')
+            if c._preferences.read()!=self._preferences:
+                raise TransferError('media_source_local_consent_required')
+            binding=sender._binding
+            if binding is None or c._controls.binding(binding.destination_token,sender_is_local=True)!=binding:
+                raise TransferError('media_source_sender_binding_changed')
+            self._current()
+        finally:c._gate.release()
+
     def _archive(self,sender,record):
         from magnolie_media_backups import NativeMediaBackups,NativeMediaBackupLocations
         from magnolie_media_source_backup import backup_prepared_source
@@ -126,6 +145,7 @@ class NativeMappedMediaWorker:
                     sender.send_media_offer()
                     while True:
                         self._current()
+                        self._idle_sender_current(sender)
                         observed=sender._record
                         # A wake/projection is not completion authority. The
                         # archive path independently validates the exact protected

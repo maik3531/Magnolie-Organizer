@@ -2768,6 +2768,15 @@ class NativePhotoDesktopSession:
         return (thread is None or not thread.is_alive()) and (not self.connection._closed.is_set() or timer is None or not timer.is_alive())
 
     def _schedule_scope(self):
+        # A schedule observation must not run _local()/mapping availability
+        # concurrently with native source/control I/O. Busy is simply not due,
+        # never a new consent epoch or permission to inspect held cache leases.
+        connection=self.connection
+        if not connection._gate.acquire(blocking=False):return None
+        try:return self._schedule_scope_owned()
+        finally:connection._gate.release()
+
+    def _schedule_scope_owned(self):
         # Scheduling is not READ authority. Its generation is the authenticated
         # source-policy witness; every scan/file still obtains fresh native grants.
         # Do not take the UI lock from the schedule's native-scope callback.
