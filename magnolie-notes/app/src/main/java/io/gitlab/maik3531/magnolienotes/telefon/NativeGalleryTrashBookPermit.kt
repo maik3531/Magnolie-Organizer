@@ -24,6 +24,13 @@ internal class NativeGalleryTrashBookPermit private constructor(private val docu
         } catch (error: Exception) { revoked = true; throw error }
     }
 
+    internal fun requireTrashEnabled() {
+        requireCurrent()
+        // OFF forbids new recovery copies/trash actions. It is not permission
+        // to purge existing history or to issue an unconfirmed permanent delete.
+        if (!trashEnabled) throw PhotoFolderScopeError("gallery_trash_disabled")
+    }
+
     companion object {
         fun capture(documents: Ablage, unlocked: () -> Boolean) = NativeGalleryTrashBookPermit(documents, unlocked)
         private fun fail(): Nothing = throw PhotoFolderScopeError("gallery_trash_current_saved_unlocked_book_required")

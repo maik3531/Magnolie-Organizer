@@ -282,6 +282,37 @@ class AndroidGalleryPhotoSourceTest {
             .also { it.setzePapierkorb(true, 0) }
     }
 
+    @Test @Config(sdk = [30]) fun disabledTrashDoesNotCreateHiddenRecoveryCopiesOrPrepareAnotherTrashAction() {
+        Fixture().use { f ->
+            val documents = archiveBook(f)
+            val enabled = NativeGalleryTrashBookPermit.capture(documents) { true }
+            val protection = DeviceTransferProtection.fromExistingKeyReader { SecretKeySpec(ByteArray(32) { 41 }, "AES") }
+            val root = Files.createTempDirectory(f.root.toPath(), "disabled-recovery-").toFile()
+            val lease = f.lease(); val entry = f.reader.enumerate(lease).entries.single()
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest("hello".toByteArray()).joinToString("") { "%02x".format(it) }
+            NativeGalleryTrashArchive(root, protection).use { archive ->
+                val previous = archive.archive(lease, f.scope, entry, f.reader, hash, enabled)
+                documents.setzePapierkorb(false, 0)
+                val disabled = NativeGalleryTrashBookPermit.capture(documents) { true }
+                assertFalse(disabled.trashEnabled)
+                val opens = f.provider.opens.size
+                assertThrows(PhotoFolderScopeError::class.java) { archive.archive(lease, f.scope, entry, f.reader, hash, disabled) }
+                assertThrows(PhotoFolderScopeError::class.java) { archive.prepareTrash(previous, disabled) { } }
+                val denied = assertThrows(PhotoFolderScopeError::class.java) {
+                    NativeGalleryWriteRequest.prepare(f.context, archive, previous, disabled, { f.receiver })
+                }
+                assertEquals("gallery_trash_disabled", denied.message)
+                assertEquals(opens, f.provider.opens.size)
+                // A setting change does not purge historical user data. Those
+                // copies stay explicit local recovery only, never OS mutation.
+                assertEquals(listOf(previous), archive.entries(disabled))
+                assertTrue(archive.actions(disabled).isEmpty()); assertEquals(0, f.provider.writeRequests)
+                assertEquals(0, f.provider.trashWrites); assertEquals(0, f.provider.restoreInserts)
+                assertEquals("hello", File(f.root, "source.bin").readText())
+            }
+        }
+    }
+
     @Test @Config(sdk = [30]) fun actualRecoveryArchiveSurvivesSourceRevocationWithoutBecomingMutationAuthority() {
         Fixture().use { f ->
             val documents = archiveBook(f); var unlocked = true

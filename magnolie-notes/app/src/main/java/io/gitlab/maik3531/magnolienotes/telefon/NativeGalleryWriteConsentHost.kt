@@ -67,6 +67,7 @@ internal class NativeGalleryWriteRequest private constructor(internal val entry:
             permit: NativeGalleryTrashBookPermit, current: () -> NativePhotoReceiver?,
             elapsed: () -> Long = { DeviceFileControl.monotonicMs() }): NativeGalleryWriteRequest {
             if (Build.VERSION.SDK_INT < 30) fail("gallery_write_android30_required")
+            permit.requireTrashEnabled()
             val observed = current()?.takeIf { it.allowed } ?: fail("gallery_write_native_receiver_required")
             if (observed.pairingEpoch?.let(DeviceFileControl::hash) != true) fail("gallery_write_current_pairing_required")
             val origin = archive.verifiedOriginalOrigin(entry, permit)

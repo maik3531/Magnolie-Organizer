@@ -189,7 +189,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
 
     internal fun archiveRecoverableMember(selection: NativeGalleryAlbumSelection, job: PhotoSourceJob, fileId: String,
         permit: NativeGalleryTrashBookPermit, cancellation: CancellationSignal): NativeGalleryArchiveEntry {
-        ready(); permit.requireCurrent()
+        ready(); permit.requireTrashEnabled()
         val album = selection.catalog.resolve(this, selection)
         val observed = readBound(mediaType(selection.catalog.source))
         val lease = observed.scope.capture(selection.catalog.source, album, selection.desktopChoice)
@@ -208,7 +208,7 @@ internal class NativeGalleryPhotoWorkflow private constructor(context: Context, 
 
     internal fun prepareWriteConsent(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit,
         cancellation: CancellationSignal): NativeGalleryWriteRequest {
-        ready(); permit.requireCurrent(); cancellation.throwIfCanceled()
+        ready(); permit.requireTrashEnabled(); cancellation.throwIfCanceled()
         return NativeGalleryTrashArchive.openExistingForApplication(app, protection).use { archive ->
             val origin = archive.verifiedOrigin(entry, permit)
             val kind = GalleryMediaType.entries.single { it.uriSegment == origin.string("media_type") }

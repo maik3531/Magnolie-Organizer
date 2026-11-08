@@ -308,6 +308,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
     }
 
     @Synchronized internal fun prepareTrash(entry: NativeGalleryArchiveEntry, permit: NativeGalleryTrashBookPermit, current: () -> Unit): NativeGalleryTrashAction {
+        permit.requireTrashEnabled()
         verifyContent(entry, permit); current()
         val previous = readActions()
         if (previous.size >= MAX_ACTIONS || previous.any { it.archiveId == entry.id && it.state != "canceled" })
@@ -417,7 +418,7 @@ internal class NativeGalleryTrashArchive(private val directory: File, private va
         reader: AndroidGalleryPhotoSource, expectedSha256: String, permit: NativeGalleryTrashBookPermit,
         cancellation: CancellationSignal = CancellationSignal()): NativeGalleryArchiveEntry {
         fun current() {
-            permit.requireCurrent(); cancellation.throwIfCanceled()
+            permit.requireTrashEnabled(); cancellation.throwIfCanceled()
             if (!scope.isCurrent(lease)) fail("gallery_archive_source_revoked")
         }
         current(); val revision = verify()
