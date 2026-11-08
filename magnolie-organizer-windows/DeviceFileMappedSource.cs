@@ -15,15 +15,40 @@ internal sealed partial class TelefonStore
         private readonly JsonObject original;
         private readonly string senderId, receiverId, path;
         private DeviceFileManifest? prepared;
+        internal readonly TelefonStore Store;
+        internal readonly string PeerId;
+        private readonly JsonObject provenance;
+        private NativePreparedMediaSource? frozen;
+        private bool freezeAttempted;
         internal NativeMappedMediaSource(DeviceFileNativeDirectory root, DeviceFileNativeDirectory? album,
-            DeviceFileNativeDirectory.ManagedSource file, JsonObject original, string senderId, string receiverId, string path)
+            DeviceFileNativeDirectory.ManagedSource file, JsonObject original, string senderId, string receiverId, string path,
+            TelefonStore store, string peerId, JsonObject provenance)
         {
             this.root = root; this.album = album; this.file = file; this.original = original.DeepClone().AsObject();
             this.senderId = senderId; this.receiverId = receiverId; this.path = path;
+            Store = store; PeerId = peerId; this.provenance = provenance.DeepClone().AsObject();
         }
         internal long Size => file.Size;
         internal JsonObject OriginalReference => original.DeepClone().AsObject(); // Correlation, never a phone grant.
         internal byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
+        internal void Require() => file.Require();
+        internal JsonObject Provenance => provenance.DeepClone().AsObject();
+        internal NativePreparedMediaSource Freeze()
+        {
+            NativePreparedMediaSource result;
+            lock (sourceGate)
+            {
+                file.Require();
+                if (frozen is null)
+                {
+                    if (freezeAttempted) throw DeviceFileControl.Error("media_source_original_preparation_required");
+                    freezeAttempted = true;
+                    frozen = Store.FreezeNativeMappedMediaSource(this);
+                }
+                result = frozen;
+            }
+            result.Require(); return result;
+        }
         // Hash the SAME immutable held bytes that an eventual sender will read.
         // No wire output, cache adoption, Saved receipt or persistent send job
         // is created by preparation. The source handle must remain owned.
@@ -142,7 +167,9 @@ internal sealed partial class TelefonStore
             source = (album ?? root).OpenManagedSource(mappedFile.Path, NativeMediaReceiveJob.NativeAlbumIdentity(member["identity"]!.AsObject()), Current);
             if (mediaType == "images" && MediaSyncSettings.Effective(intent)["photos_only"]!.GetValue<bool>() && !source.MatchesPhotoMetadata())
                 throw DeviceFileControl.Error("media_source_photo_metadata_required");
-            Current(); return new(root, album, source, reference, sending.SenderId, sending.ReceiverId, mappedFile.Path);
+            var provenance = new JsonObject { ["mapping_job"] = jobId, ["mapping_version"] = jobVersion, ["mapping_file"] = fileId,
+                ["book_version"] = book.Version, ["media_type"] = mediaType, ["settings"] = intent.DeepClone(), ["sending_binding"] = sending.Snapshot() };
+            Current(); return new(root, album, source, reference, sending.SenderId, sending.ReceiverId, mappedFile.Path, this, peerId, provenance);
         }
         catch { source?.Dispose(); album?.Dispose(); root?.Dispose(); throw; }
     }

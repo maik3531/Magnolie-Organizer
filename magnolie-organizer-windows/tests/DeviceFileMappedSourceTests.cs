@@ -13,7 +13,7 @@ internal static class DeviceFileMappedSourceTests
         => f.Native.Store.ChangeNativeMediaSharedSetting(f.Native.Peer.Id, f.Native.Peer.PublicKey, field, value,
             f.Native.Store.NativeMediaSharedFieldVersion(f.Native.Peer.Id, f.Native.Peer.PublicKey, field));
 
-    private static async Task<DeviceFileReceiveJobTests.Fixture> Established()
+    internal static async Task<DeviceFileReceiveJobTests.Fixture> Established()
     {
         var f = await DeviceFileReceiveJobTests.Fixture.CreateAsync(sharedMedia: true);
         try
@@ -26,7 +26,7 @@ internal static class DeviceFileMappedSourceTests
         catch { f.Dispose(); throw; }
     }
 
-    private static async Task AllowSending(DeviceFileReceiveJobTests.Fixture f)
+    internal static async Task AllowSending(DeviceFileReceiveJobTests.Fixture f)
     {
         f.Local = new(new(8, new string('c', 64), true, true), f.Local.Owner, true);
         f.RemoteLocal = new(new(4, new string('d', 64), true, true), f.RemoteLocal.Owner, true);

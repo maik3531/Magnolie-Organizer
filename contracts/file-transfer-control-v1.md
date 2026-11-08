@@ -288,6 +288,24 @@ matching, book/direction withdrawal and foreign-file rejection. Outgoing
 durable preparation/send/offer/chunk/Saved/readback/END and dispatcher composition
 remain required; this API does not enable production SEND or capability 23.
 
+Windows mapped-PC preparation now also has a bounded protected outgoing cache
+(Refs #429) in the existing native phone database. A random preparation nonce,
+original saved-book version, exact shared intent and sending binding, completed
+mapping and new outgoing manifest/reference bind its durable reservation before
+any source copy. Each bounded chunk is sealed with the existing native key and
+its original job/nonce/index context; an atomic protected header records its
+cipher hash. No SQLite writer lease spans the source read or network I/O. The
+cache becomes ready only after complete decrypted readback matches the actual
+outgoing manifest. Active reads require the exact live preparation, unchanged
+protected ready record, original book/connection/rights and each sealed chunk.
+Cancellation retires permission before draining actual I/O, without erasing the
+ready/partial records or the mapped originals. Missing/corrupt state cannot be
+silently adopted, repaired or recreated by a fresh owner. Four native Windows
+groups cover current multi-chunk content, encrypted persistence, duplicate
+preparation, corrupt/missing state, actual saved-book change after the first
+committed chunk and cancellation during a blocked native read. This ready cache
+is not offer output, peer Saved, local Saved, END, restart or retirement authority.
+
 Prepared Linux PC versions now also have a native local backup path (#401),
 separate from phone Saved mappings and partner Saved assertions. The exact
 in-process preparation retains its authenticated original mapping only as

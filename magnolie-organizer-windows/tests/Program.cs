@@ -318,6 +318,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file mapped source / Windows actual completed mapping and matched send intent", DeviceFileMappedSourceTests.WindowsCompletedMappingAsync);
     runner.Add("Device file mapped source / Windows original saved book and file identity", DeviceFileMappedSourceTests.WindowsOriginalBookAndFileAsync);
     runner.Add("Device file mapped source / Windows import scope and actual metadata filter", DeviceFileMappedSourceTests.WindowsScopeAndMetadataAsync);
+    runner.Add("Device file source cache / Windows actual sealed preparation and original history", DeviceFileSourceCacheTests.WindowsActualFreezeAsync);
+    runner.Add("Device file source cache / Windows corruption and missing original record", DeviceFileSourceCacheTests.WindowsCorruptionAndMissingHeadAsync);
+    runner.Add("Device file source cache / Windows original book change during committed copy", DeviceFileSourceCacheTests.WindowsSaveDuringCopyAsync);
+    runner.Add("Device file source cache / Windows cancellation drains actual cache read", DeviceFileSourceCacheTests.WindowsCancellationDrainsReadAsync);
     runner.Add("Device file native receive / Windows actual content verification", DeviceFileNativeReceiveTests.WindowsVerificationAsync);
     runner.Add("Device file native receive / Windows uncertain publication and reparse", DeviceFileNativeReceiveTests.WindowsUncertainAndReparseAsync);
     runner.Add("Device file native destination / Windows independent protected roots", DeviceFileStoreDestinationsTests.WindowsPersistenceAsync);
