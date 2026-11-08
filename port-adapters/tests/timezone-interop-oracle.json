@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "publishedVersion": "2.0.30",
+  "publishedRecurrenceSHA256": "86269e77f87d0bc671733151053378077acc7eda417adce47f1395e7357ed6fe",
+  "ianaVersion": "2026e",
+  "ianaURL": "https://data.iana.org/time-zones/releases/tzdata2026e.tar.gz",
+  "ianaSHA256": "b26882805f26aac59d5b222978e6580484b834ccdc98be89df2f05a6dc53a652",
+  "expectedBundledTZDBVersion": "2026egtz",
+  "clocks": [
+    {
+      "identifier": "Europe/Berlin",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768476600000,
+      "offsetSeconds": 3600
+    },
+    {
+      "identifier": "Europe/Berlin",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784111400000,
+      "offsetSeconds": 7200
+    },
+    {
+      "identifier": "Europe/Berlin",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570716600000,
+      "offsetSeconds": 3600
+    },
+    {
+      "identifier": "Europe/Berlin",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586437800000,
+      "offsetSeconds": 7200
+    },
+    {
+      "identifier": "America/New_York",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768498200000,
+      "offsetSeconds": -18000
+    },
+    {
+      "identifier": "America/New_York",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784133000000,
+      "offsetSeconds": -14400
+    },
+    {
+      "identifier": "America/New_York",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570738200000,
+      "offsetSeconds": -18000
+    },
+    {
+      "identifier": "America/New_York",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586459400000,
+      "offsetSeconds": -14400
+    },
+    {
+      "identifier": "Australia/Sydney",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768440600000,
+      "offsetSeconds": 39600
+    },
+    {
+      "identifier": "Australia/Sydney",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784082600000,
+      "offsetSeconds": 36000
+    },
+    {
+      "identifier": "Australia/Sydney",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570680600000,
+      "offsetSeconds": 39600
+    },
+    {
+      "identifier": "Australia/Sydney",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586409000000,
+      "offsetSeconds": 36000
+    },
+    {
+      "identifier": "Australia/Lord_Howe",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768440600000,
+      "offsetSeconds": 39600
+    },
+    {
+      "identifier": "Australia/Lord_Howe",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784080800000,
+      "offsetSeconds": 37800
+    },
+    {
+      "identifier": "Australia/Lord_Howe",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570680600000,
+      "offsetSeconds": 39600
+    },
+    {
+      "identifier": "Australia/Lord_Howe",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586407200000,
+      "offsetSeconds": 37800
+    },
+    {
+      "identifier": "Pacific/Chatham",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768430700000,
+      "offsetSeconds": 49500
+    },
+    {
+      "identifier": "Pacific/Chatham",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784072700000,
+      "offsetSeconds": 45900
+    },
+    {
+      "identifier": "Pacific/Chatham",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570670700000,
+      "offsetSeconds": 49500
+    },
+    {
+      "identifier": "Pacific/Chatham",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586399100000,
+      "offsetSeconds": 45900
+    },
+    {
+      "identifier": "Africa/Casablanca",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768476600000,
+      "offsetSeconds": 3600
+    },
+    {
+      "identifier": "Africa/Casablanca",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784115000000,
+      "offsetSeconds": 3600
+    },
+    {
+      "identifier": "Africa/Casablanca",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570720200000,
+      "offsetSeconds": 0
+    },
+    {
+      "identifier": "Africa/Casablanca",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586445000000,
+      "offsetSeconds": 0
+    },
+    {
+      "identifier": "Africa/Cairo",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768473000000,
+      "offsetSeconds": 7200
+    },
+    {
+      "identifier": "Africa/Cairo",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784107800000,
+      "offsetSeconds": 10800
+    },
+    {
+      "identifier": "Africa/Cairo",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570713000000,
+      "offsetSeconds": 7200
+    },
+    {
+      "identifier": "Africa/Cairo",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586434200000,
+      "offsetSeconds": 10800
+    },
+    {
+      "identifier": "America/Mexico_City",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768501800000,
+      "offsetSeconds": -21600
+    },
+    {
+      "identifier": "America/Mexico_City",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784140200000,
+      "offsetSeconds": -21600
+    },
+    {
+      "identifier": "America/Mexico_City",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570741800000,
+      "offsetSeconds": -21600
+    },
+    {
+      "identifier": "America/Mexico_City",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586466600000,
+      "offsetSeconds": -21600
+    },
+    {
+      "identifier": "Asia/Almaty",
+      "wall": "2026-01-15T12:30",
+      "epochMs": 1768462200000,
+      "offsetSeconds": 18000
+    },
+    {
+      "identifier": "Asia/Almaty",
+      "wall": "2026-07-15T12:30",
+      "epochMs": 1784100600000,
+      "offsetSeconds": 18000
+    },
+    {
+      "identifier": "Asia/Almaty",
+      "wall": "2400-01-15T12:30",
+      "epochMs": 13570702200000,
+      "offsetSeconds": 18000
+    },
+    {
+      "identifier": "Asia/Almaty",
+      "wall": "2400-07-15T12:30",
+      "epochMs": 13586427000000,
+      "offsetSeconds": 18000
+    },
+    {
+      "identifier": "Africa/Casablanca",
+      "wall": "2026-10-15T12:30",
+      "epochMs": 1792067400000,
+      "offsetSeconds": 0
+    }
+  ]
+}

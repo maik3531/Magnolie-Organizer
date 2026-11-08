@@ -78,6 +78,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "navigation" -> {launch(); navigation()}
                 "saf" -> saf()
                 "calendar-files" -> calendarFiles()
+                "timezone-interop" -> timezoneInterop()
                 "fault" -> fault()
                 "print" -> printPdf()
                 "notifications" -> notifications(false)
@@ -97,7 +98,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             .put("brand",android.os.Build.BRAND).put("applicationId",targetContext.packageName)
             .put("applicationLabel",targetContext.applicationInfo.loadLabel(targetContext.packageManager).toString())
             .put("sourceHash",JSONObject(targetContext.assets.open("projection.json").bufferedReader().readText()).getString("sourceHash"))
-            .put("webview",WebView.getCurrentWebViewPackage()?.versionName).put("startup",startupState ?: JSONObject.NULL)
+            .put("webview",androidx.webkit.WebViewCompat.getCurrentWebViewPackage(targetContext)?.versionName).put("startup",startupState ?: JSONObject.NULL)
             .put("error",error?.stackTraceToString() ?: JSONObject.NULL)
         File(out,"$stage.json").writeText(proof.toString(2))
         if(inputPort!=null) runOnMainSync {inputPort?.close()}
@@ -384,6 +385,35 @@ class NativeTabletInstrumentation : Instrumentation() {
         }
         pass("native font/display settings", fontSettings)
         pass("real WebView responsive binder geometry",geometry)
+    }
+    /** Actual WebView civil-time paths, independent of the bundled native provider. */
+    private fun timezoneInterop() {
+        launch()
+        val fixtureBytes=context.assets.open("timezone-interop-oracle.json").use {it.readBytes()}
+        val fixtureHash=java.security.MessageDigest.getInstance("SHA-256").digest(fixtureBytes)
+            .joinToString("") {"%02x".format(it.toInt() and 255)}
+        check(fixtureHash=="03c3278c744c8e121c3cdb4d1b6f7b3518adebdb10bca36affb3b7a6def72238") {"Civil-time oracle changed"}
+        val fixture=JSONObject(fixtureBytes.toString(Charsets.UTF_8))
+        check(fixture.getString("expectedBundledTZDBVersion")==TimeZoneExport.databaseVersion)
+        val clocks=fixture.getJSONArray("clocks"); check(clocks.length()==37)
+        for(index in 0 until clocks.length()) {
+            val row=clocks.getJSONObject(index)
+            val wall=org.threeten.bp.LocalDateTime.parse(row.getString("wall"))
+            val actual=wall.atZone(org.threeten.bp.ZoneId.of(row.getString("identifier"))).toInstant().toEpochMilli()
+            check(actual==row.getLong("epochMs")) {"Bundled provider disagrees with external civil-time oracle"}
+        }
+        val before=data(); val savedBefore=vault().read()!!.getJSONObject("data")
+        raw(context.assets.open("timezone-interop.js").bufferedReader().use {it.readText()})
+        val proof=JSONObject(value("NativeTimezoneInterop.run("+fixture.toString()+")"))
+            .put("oracleSHA256",fixtureHash).put("nativeProvider","ThreeTenBP")
+            .put("nativeTZDBVersion",TimeZoneExport.databaseVersion).put("referenceIANA",fixture.getString("ianaVersion"))
+            .put("publishedVersion",fixture.getString("publishedVersion"))
+        check(calendarComparable(data())==calendarComparable(before)) {"Civil-time audit changed the book"}
+        check(calendarComparable(vault().read()!!.getJSONObject("data"))==calendarComparable(savedBefore)) {"Civil-time audit changed saved data"}
+        File(out,"timezone-interop-comparison.json").writeText(proof.toString(2))
+        check(proof.getJSONArray("failures").length()==0) {"Actual WebView civil-time disagreement; see timezone-interop-comparison.json"}
+        check(proof.getInt("checks")==148 && proof.getBoolean("bookUnchanged"))
+        pass("actual WebView appointment task and Intl civil-time paths match external clocks",proof)
     }
     private fun domains() {
         launch()
