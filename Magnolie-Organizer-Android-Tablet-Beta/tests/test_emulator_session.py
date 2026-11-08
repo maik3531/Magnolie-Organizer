@@ -22,11 +22,33 @@ class EmulatorBootDiagnosticTests(unittest.TestCase):
         output = session.emulator_boot_failure_signature(
             'ERROR | Cannot launch multiple emulators with the same AVD /private/profile\n'
             'FATAL: private document title\nGPU backend failed /private/password\n'
-            'Address already in use 5580\nKVM permission unavailable')
-        self.assertEqual(output['categories'], ['acceleration_failure','address_in_use','backend_failure','emulator_fatal','same_avd_running'])
+            'Address already in use 5580\nCould not access KVM: Permission denied')
+        self.assertEqual(output['categories'], ['address_in_use','backend_failure','emulator_fatal','kvm_permission_denied','same_avd_running'])
         self.assertTrue(output['recognized'])
         self.assertNotIn('private', json.dumps(output))
         self.assertEqual(session.emulator_boot_failure_signature('private document text'), {'categories':[], 'recognized':False})
+
+    def test_kvm_signatures_distinguish_only_specific_errors(self):
+        signatures = {
+            'Could not access KVM: Permission denied': 'kvm_permission_denied',
+            '/dev/kvm is not found': 'kvm_unavailable',
+            'KVM: Device or resource busy': 'kvm_busy',
+            'x86_64 emulation currently requires hardware acceleration': 'hardware_accel_required',
+        }
+        for message, category in signatures.items():
+            self.assertEqual(session.emulator_boot_failure_signature(message)['categories'],[category])
+        self.assertFalse(session.emulator_boot_failure_signature('KVM initialized; acceleration available')['recognized'])
+
+    def test_kvm_facts_are_numeric_or_boolean_and_missing_is_explicit(self):
+        with patch.object(session.os, 'stat', side_effect=FileNotFoundError):
+            facts = session.kvm_access_facts()
+        self.assertFalse(facts['exists']); self.assertFalse(facts['readable']); self.assertFalse(facts['writable'])
+        device = os.stat_result((0o20660,0,0,0,12,34,0,0,0,0))
+        with patch.object(session.os, 'stat', return_value=device), patch.object(session.os,'access',side_effect=[True,False]):
+            facts = session.kvm_access_facts()
+        self.assertTrue(facts['character']); self.assertEqual(facts['uid'],12); self.assertEqual(facts['gid'],34)
+        self.assertEqual(facts['mode'],0o660); self.assertTrue(facts['readable']); self.assertFalse(facts['writable'])
+        self.assertTrue(all(type(value) in (int,bool) for value in facts.values()))
 
     def test_preboot_exit_keeps_original_failure_and_reads_only_bounded_tail(self):
         with tempfile.NamedTemporaryFile(mode='w+') as log:

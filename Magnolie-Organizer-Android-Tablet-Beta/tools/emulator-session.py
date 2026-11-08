@@ -355,6 +355,19 @@ def adb(owner, state, args, timeout=30):
                          timeout=timeout, env=environment(Path(state['run'])))
 
 
+def kvm_access_facts():
+    facts = dict(processUid=os.geteuid(), processGid=os.getegid(), exists=False,
+                 character=False, readable=False, writable=False)
+    try:
+        device = os.stat('/dev/kvm')
+    except OSError:
+        return facts
+    facts.update(exists=True, character=stat.S_ISCHR(device.st_mode),
+                 uid=device.st_uid, gid=device.st_gid, mode=stat.S_IMODE(device.st_mode),
+                 readable=os.access('/dev/kvm', os.R_OK), writable=os.access('/dev/kvm', os.W_OK))
+    return facts
+
+
 def emulator_boot_failure_signature(output):
     # Fixed categories only: emulator logs can contain host paths and command
     # arguments. Never forward arbitrary lines from the combined session log.
@@ -365,7 +378,10 @@ def emulator_boot_failure_signature(output):
         'missing_image': r'(?:missing|cannot find|not found|does not exist).*(?:system image|kernel|system\.img)|broken AVD system path',
         'snapshot_failure': r'snapshot.*(?:failed|error|incompatible|cannot|could not)',
         'backend_failure': r'(?:EGL|OpenGL|Vulkan|renderer|graphics|GPU|backend).*(?:failed|error|unavailable|cannot|could not)',
-        'acceleration_failure': r'(?:KVM|acceleration|hypervisor).*(?:failed|error|unavailable|cannot|could not|requires|permission)',
+        'kvm_permission_denied': r'(?:KVM|/dev/kvm)[^\n]*(?:permission denied|access denied)|(?:permission denied|access denied)[^\n]*(?:KVM|/dev/kvm)',
+        'kvm_unavailable': r'(?:KVM|/dev/kvm)[^\n]*(?:not available|unavailable|not found|does not exist|no such file)|(?:cannot find|could not find|no such file)[^\n]*(?:KVM|/dev/kvm)',
+        'kvm_busy': r'(?:KVM|/dev/kvm)[^\n]*(?:device or resource busy|already in use)|(?:device or resource busy)[^\n]*(?:KVM|/dev/kvm)',
+        'hardware_accel_required': r'(?:x86_64|x86) emulation currently requires hardware acceleration',
         'disk_failure': r'no space left|not enough (?:disk|space)|disk.*(?:full|insufficient)',
         'emulator_fatal': r'\b(?:PANIC|FATAL)\s*:',
     }
@@ -456,6 +472,7 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
             if owns_adb_socket(owner.state['adbIdentity']):
                 break
             time.sleep(0.2)
+        owner.record('kvm-access-before-emulator', **kvm_access_facts())
         child = owner.spawn([SDK / 'emulator/emulator', '-avd', state['avd'], '-port', '5580', '-cores', '2',
             '-memory', '2048', '-gpu', 'swangle', '-no-audio', '-no-snapshot', '-no-boot-anim',
             '-no-window', '-no-metrics', '-feature', '-Vulkan', '-camera-back', 'none', '-camera-front', 'none'],

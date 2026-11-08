@@ -220,6 +220,7 @@ jobs:
         run: |
           set -euo pipefail
           test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           test -d "$ANDROID_HOME/system-images/android-34/$TABLET_SYSTEM_IMAGE/x86_64"
           # A separate fresh session proves platform services without changing the UI suite's
           # cold-start conditions. Failed UI checks still fail this job.
@@ -237,6 +238,7 @@ jobs:
         run: |
           set -euo pipefail
           test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           test -d "$ANDROID_HOME/system-images/android-34/$TABLET_SYSTEM_IMAGE/x86_64"
           # The file workflow has its own fresh session and the same original limits.
           # It cannot turn a failed UI or platform-service check into acceptance.
