@@ -94,7 +94,8 @@ public final class AtomicStore {
         return path
     }
 
-    public static func read(_ url: URL, requirePrivate: Bool = true) throws -> Data? {
+    public static func read(_ url: URL, requirePrivate: Bool = true, maximumBytes: Int = Document.maximumBytes) throws -> Data? {
+        guard maximumBytes > 0, maximumBytes <= Document.maximumBytes else { throw BetaError("Invalid read limit.") }
         let fd = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         if fd < 0 {
             if errno == ENOENT { return nil }
@@ -104,7 +105,7 @@ public final class AtomicStore {
         var info = stat()
         guard fstat(fd, &info) == 0, (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
               info.st_nlink == 1, (!requirePrivate || (info.st_uid == getuid() && info.st_mode & 0o077 == 0)),
-              info.st_size > 0, info.st_size <= Document.maximumBytes else {
+              info.st_size > 0, info.st_size <= maximumBytes else {
             throw BetaError("File is empty, oversized, linked or not private (0600). Original retained.")
         }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
@@ -117,6 +118,9 @@ public final class AtomicStore {
     }
 
     public static func write(_ data: Data, to destination: URL) throws {
+        try write(data, to: destination, checkpoint: { _ in })
+    }
+    internal static func write(_ data: Data, to destination: URL, checkpoint: (String) throws -> Void) throws {
         guard !data.isEmpty, data.count <= Document.maximumBytes else { throw BetaError("Invalid output size.") }
         let parent = destination.deletingLastPathComponent()
         guard parent.standardizedFileURL.path == parent.resolvingSymlinksInPath().path else {
@@ -132,15 +136,22 @@ public final class AtomicStore {
         guard fd >= 0 else { throw BetaError("Cannot create private temporary file.") }
         defer { close(fd); unlink(temp.path) }
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+        try checkpoint("temporary-created")
         try handle.write(contentsOf: data)
+        try checkpoint("temporary-written")
         guard fsync(fd) == 0 else { throw BetaError("File synchronization failed.") }
+        try checkpoint("file-fsync")
         #if canImport(Darwin)
         guard fcntl(fd, F_FULLFSYNC) == 0 else { throw BetaError("Durable file synchronization failed.") }
         #endif
+        try checkpoint("file-fullsync")
         let dirfd = open(parent.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)
         guard dirfd >= 0 else { throw BetaError("Cannot synchronize output directory.") }
         defer { close(dirfd) }
+        try checkpoint("before-rename")
         guard rename(temp.path, destination.path) == 0 else { throw BetaError("Atomic replacement failed.") }
+        try checkpoint("renamed")
         guard fsync(dirfd) == 0 else { throw BetaError("Directory synchronization failed; restart before further writes.") }
+        try checkpoint("directory-fsync")
     }
 }
