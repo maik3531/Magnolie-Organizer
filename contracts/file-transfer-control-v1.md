@@ -277,10 +277,15 @@ eight-field phone-original reference retains the historical phone baseline.
 Import-only never exports these files; phone-inventory admits mapped members
 only. The real capture-metadata filter reads at most the existing bounded prefix
 from the same handle and excludes unknown metadata without proving deletion.
+The owner can now hash the same held bytes into one immutable outgoing manifest
+and correlate its new file ID with the preserved phone-original reference.
+Repeated preparation retains that manifest, but still rechecks the live owner;
+a retired book/intent cannot revive it from metadata. This in-process result is
+not a durable outgoing job, restart capability or output receipt.
 Three native Windows reader groups and three completed-mapping/policy groups
 pass, including actual preceding receive/Saved/END, secure control/settings
 matching, book/direction withdrawal and foreign-file rejection. Outgoing
-preparation, durable send/offer/chunk/Saved/readback/END and dispatcher composition
+durable preparation/send/offer/chunk/Saved/readback/END and dispatcher composition
 remain required; this API does not enable production SEND or capability 23.
 
 Prepared Linux PC versions now also have a native local backup path (#401),

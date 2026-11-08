@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -7,17 +8,59 @@ internal sealed partial class TelefonStore
 {
     internal sealed class NativeMappedMediaSource : IDisposable
     {
+        private readonly object sourceGate = new();
         private readonly DeviceFileNativeDirectory root;
         private readonly DeviceFileNativeDirectory? album;
         private readonly DeviceFileNativeDirectory.ManagedSource file;
         private readonly JsonObject original;
+        private readonly string senderId, receiverId, path;
+        private DeviceFileManifest? prepared;
         internal NativeMappedMediaSource(DeviceFileNativeDirectory root, DeviceFileNativeDirectory? album,
-            DeviceFileNativeDirectory.ManagedSource file, JsonObject original)
-        { this.root = root; this.album = album; this.file = file; this.original = original.DeepClone().AsObject(); }
+            DeviceFileNativeDirectory.ManagedSource file, JsonObject original, string senderId, string receiverId, string path)
+        {
+            this.root = root; this.album = album; this.file = file; this.original = original.DeepClone().AsObject();
+            this.senderId = senderId; this.receiverId = receiverId; this.path = path;
+        }
         internal long Size => file.Size;
         internal JsonObject OriginalReference => original.DeepClone().AsObject(); // Correlation, never a phone grant.
         internal byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
-        public void Dispose() { try { file.Dispose(); } finally { try { album?.Dispose(); } finally { root.Dispose(); } } }
+        // Hash the SAME immutable held bytes that an eventual sender will read.
+        // No wire output, cache adoption, Saved receipt or persistent send job
+        // is created by preparation. The source handle must remain owned.
+        internal DeviceFileManifest PrepareManifest()
+        {
+            lock (sourceGate)
+            {
+                file.Require();
+                if (prepared is not null) return prepared;
+                using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                for (long offset = 0; offset < file.Size;)
+                {
+                    var chunk = file.ReadExact(offset, (int)Math.Min(DeviceFileManifest.ChunkBytes, file.Size - offset));
+                    try { digest.AppendData(chunk); offset += chunk.Length; }
+                    finally { CryptographicOperations.ZeroMemory(chunk); }
+                }
+                file.Require();
+                var hash = Convert.ToHexString(digest.GetHashAndReset()).ToLowerInvariant();
+                var manifest = new DeviceFileManifest(Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"), senderId, receiverId,
+                    [new DeviceManifestFile(Guid.NewGuid().ToString("N"), path, file.Size, hash)], file.Size);
+                file.Require(); prepared = manifest; return manifest;
+            }
+        }
+        internal JsonObject PreparedOriginalReferences()
+        {
+            lock (sourceGate)
+            {
+                file.Require();
+                if (prepared is null) throw DeviceFileControl.Error("media_source_prepared_manifest_required");
+                return new JsonObject { [prepared.Files[0].Id] = original.DeepClone() };
+            }
+        }
+        public void Dispose()
+        {
+            lock (sourceGate)
+                try { file.Dispose(); } finally { try { album?.Dispose(); } finally { root.Dispose(); } }
+        }
     }
 
     // Only the actual connection's original-book, exact matched-intent and
@@ -99,7 +142,7 @@ internal sealed partial class TelefonStore
             source = (album ?? root).OpenManagedSource(mappedFile.Path, NativeMediaReceiveJob.NativeAlbumIdentity(member["identity"]!.AsObject()), Current);
             if (mediaType == "images" && MediaSyncSettings.Effective(intent)["photos_only"]!.GetValue<bool>() && !source.MatchesPhotoMetadata())
                 throw DeviceFileControl.Error("media_source_photo_metadata_required");
-            Current(); return new(root, album, source, reference);
+            Current(); return new(root, album, source, reference, sending.SenderId, sending.ReceiverId, mappedFile.Path);
         }
         catch { source?.Dispose(); album?.Dispose(); root?.Dispose(); throw; }
     }

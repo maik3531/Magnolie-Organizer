@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
@@ -54,18 +55,29 @@ internal static class DeviceFileMappedSourceTests
         await AllowSending(f);
         TestAssert.Throws<InvalidDataException>(() => Open(new string('0', 64)), "Stale receive head selected a source.");
         TestAssert.Throws<InvalidDataException>(() => Open(member: new string('f', 32)), "Foreign PC member entered phone-inventory scope.");
-        var edited = "intentional mapped PC edit"u8.ToArray();
+        var edited = Enumerable.Range(0, 70013).Select(index => (byte)(index % 251)).ToArray();
         using (var file = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write)) { file.SetLength(0); file.Write(edited); }
         using (var source = Open())
         {
-            TestAssert.That(source.ReadExact(0, edited.Length).SequenceEqual(edited), "Mapped source read old phone bytes instead of current PC edit.");
+            TestAssert.That(source.ReadExact(0, DeviceFileManifest.ChunkBytes).Concat(
+                source.ReadExact(DeviceFileManifest.ChunkBytes, edited.Length - DeviceFileManifest.ChunkBytes)).SequenceEqual(edited),
+                "Mapped source read old phone bytes instead of current PC edit.");
+            TestAssert.Throws<InvalidDataException>(() => source.PreparedOriginalReferences(), "Unprepared source fabricated outgoing file correlation.");
+            var prepared = source.PrepareManifest();
+            TestAssert.That(ReferenceEquals(prepared, source.PrepareManifest()) && prepared.SenderId == f.Native.Store.ReadFileIdentity().DeviceId &&
+                prepared.ReceiverId == f.Native.Peer.Id && prepared.Files.Single().Size == edited.Length &&
+                prepared.Files.Single().Sha256 == Convert.ToHexString(SHA256.HashData(edited)).ToLowerInvariant(),
+                "Prepared outgoing manifest did not freeze the actual held PC bytes and current direction.");
             var reference = source.OriginalReference;
             TestAssert.That(reference["original_size"]!.GetValue<long>() == "original first"u8.Length && reference["file_id"]!.GetValue<string>() == fileId &&
                 reference.Count == 8, "Outgoing correlation did not retain the exact protected phone baseline.");
             reference["photo_id"] = "injected";
             TestAssert.That(source.OriginalReference["photo_id"]!.GetValue<string>() != "injected", "Caller mutated the protected source reference.");
+            TestAssert.That(JsonNode.DeepEquals(source.PreparedOriginalReferences()[prepared.Files.Single().Id], source.OriginalReference),
+                "New outgoing file identity did not correlate with the exact original phone reference.");
             Change(f, "direction", JsonValue.Create("phone_to_pc")!);
             TestAssert.Throws<InvalidDataException>(() => source.ReadExact(0, 1), "A changed direction left the old source readable.");
+            TestAssert.Throws<InvalidDataException>(() => source.PrepareManifest(), "Cached preparation bypassed native source retirement.");
             await DeviceFileSharedTransportTests.MatchAsync(f.Native);
             TestAssert.Throws<InvalidDataException>(() => Open(), "Phone-to-PC intent exported PC bytes.");
         }
