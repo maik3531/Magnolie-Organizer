@@ -57,12 +57,23 @@ Umschlag inzwischen im normalen authentifizierten Nachrichtenverteiler und
 Verbindung. Chunkantworten erreichen direkt den auf sie wartenden nativen
 Empfangsworker, ohne hinter dessen Warteoperation eingereiht zu werden. Ein
 Angebot kann weder eine Verbindung noch eine aktuelle Medienabsicht oder
-Empfangszustimmung herstellen. Die source-only Produktionsfactory bleibt
-weiterhin empfangsgeschlossen. Native Verbindungsweiterleitung mit echter PNG-
+Empfangszustimmung herstellen. Der gewöhnliche source-only/Legacy-Zweig bleibt
+empfangsgeschlossen. Der gemeinsame Factory-Zweig verbindet ab Android 30 die
+bereits vorhandenen nativen Empfangshandler ausschließlich mit einem tatsächlich
+aktuellen gemeinsam bestätigten eingehenden Absichtsbesitzer. Seine gespeicherte
+Empfangszustimmung bleibt unabhängig und zunächst geschlossen; erst der echte
+lokale positive native Dialog kann sie ändern. Native Verbindungsweiterleitung mit echter PNG-
 Veröffentlichung/Saved sowie Ablehnung fremder Verbindung, normaler Dateiangebote
 und fehlender Empfängerfactory sind geprüft; im echten Werk-Verteiler sind
 reservierte Ablehnung ohne Bootstrap und vorhandene Kontrollaktivierung geprüft.
-Das ersetzt keinen positiven Ende-zu-Ende-Nachweis der gemeinsamen Factory.
+Ein zusätzlicher Test prüft inzwischen auch die tatsächliche Werk-Factory,
+gemeinsame Absichtsabstimmung, native Kontrollabstimmung, positiven nativen
+Zustimmungsdialog und den normalen Werk-Verteiler bis zur PNG-Veröffentlichung
+und verschlüsselten Saved-Ausgabe. Nur dieser Test stellt die ansonsten gesperrte
+gemeinsame Capability bereit. Dies ist kein physischer Telefon-/Desktop-
+Ende-zu-Ende-Nachweis und keine Produktfreigabe dieser Capability. Die lokale
+Bedienungsanbindung des Empfangsdialogs und die vollständigen folgenden
+Abschluss-/Wiederaufnahmewege bleiben offen.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

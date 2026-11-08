@@ -808,9 +808,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     MediaSyncSettings.DISCOVERY_VERSION in sharedLocalCapabilities().getValue("device_status").versions
             } || queue.hasMediaSettings(peerId)
             val media = if (sharedMedia) mediaTransport(channel) else null
-            val runtime = NativeGalleryFileRuntime.withSharedMediaIntent(context, directory, identity, protection, channel,
-                { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) },
-                handlersReady, { nativeGalleryVideoHandlersReady }, if (sharedMedia) ({ type -> media?.intentFor(type) }) else null)
+            val currentPeer = { if (connection.isEnded) null else currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) }
+            val runtime = if (sharedMedia && media != null) NativeGalleryFileRuntime.withIncomingMedia(context, directory, identity, protection, channel,
+                currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, { type -> media.intentFor(type) },
+                { type -> media.incomingIntentFor(type) }, {
+                    android.os.Build.VERSION.SDK_INT >= 30 && handlersReady() &&
+                        GalleryMediaType.entries.any { media.incomingIntentFor(it) != null }
+                })
+            else NativeGalleryFileRuntime.withSharedMediaIntent(context, directory, identity, protection, channel,
+                currentPeer, handlersReady, { nativeGalleryVideoHandlersReady }, null)
             connection.bind(runtime)
             if (currentNativeFileIdentity(peerId, publicKey, channel, generation) != identity ||
                 currentNativeFilePeer(peerId, publicKey, channel, generation, handlersReady()) != peer)
