@@ -16,8 +16,8 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===2 && x.every(Boolean)), '20 manual beta locales');
   const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=read('anwendung.js');
-  ok(projected.replace('  window.MagnolieTabletActions = { afterSave: action => navigiereMitGuard(() => nachDauerhaftemSpeichern(action)) };\n','')===canonical,
-    'generated core differs only by explicit guarded-action API');
+  ok(projected.replace('  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n','').replace('    { id: "regional", name: msgid("Language and regional display") },\n','').replace('  async function aktualisiereAutomatischeZeitzone() { return;', '  async function aktualisiereAutomatischeZeitzone() {')===canonical,
+    'generated core differs only by reviewed guard, regional entry and native detection suppression');
   const fontCss=read('desktop-fonts.css');
   assert.match(read('index.html'),/href="desktop-fonts\.css"/);
   for (const family of ['Noto Serif','DejaVu Sans','Noto Sans','DejaVu Sans Mono','Magnolie Handschrift'])
@@ -54,7 +54,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
         }
       },0);
     }};
-    for(const f of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','anwendung.js']) w.eval(read(f));
+    for(const f of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','mcp-protocol.js','anwendung.js']) w.eval(read(f));
     await wait(); await wait();
     return dom;
   }
@@ -122,6 +122,54 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(w.document.querySelector('#ort-abrufen').disabled && w.document.querySelector('#ort-jahre').disabled &&
     !w.document.querySelector('#ort-ferien').disabled && w.document.querySelector('#tablet-holiday-limit'),
     'network holiday retrieval disabled; local cached-holiday filter remains usable');
+  ok(w.document.querySelector('#ort-zeitzonenmanagement').disabled,
+    'native-only time-zone management cannot open an unsupported MCP transaction');
+  w.document.querySelector('#einst-tab-regional').click(); await wait();
+  w.document.querySelector('#regional-sprache').value='en';
+  w.document.querySelector('#regional-formatgebiet').value='en-GB';
+  w.document.querySelector('#regional-zeitzone').value='Europe/Berlin';
+  const regionalCommands=messages.length;
+  w.document.querySelector('#regional-speichern').click(); await wait(); await wait();
+  ok(disk.einstellungen.regional.formatLocale==='en-GB' &&
+    disk.einstellungen.regional.timeZone==='Europe/Berlin' &&
+    w.document.querySelector('#tablet-status').textContent.includes('Regional settings saved.') &&
+    !w.document.querySelector('#regional-speichern').disabled,
+    'local regional form persists through native save ACK without desktop MCP');
+  assert.ok(messages.slice(regionalCommands).every(m=>['speichern','erinnerung_einrichten'].includes(m.cmd)));
+  disk.einstellungen.regional.timeZoneManagement='automatic';
+  dom.window.close(); dom=await open(); w=dom.window; T=w.OrganizerTest;
+  const nativeBeforeAutomatic=messages.length, rejectedBeforeAutomatic=Array.from(w.Tablet.rejected);
+  w.dispatchEvent(new w.Event('focus')); await wait();
+  assert.deepEqual(Array.from(w.Tablet.rejected),rejectedBeforeAutomatic);
+  ok(T.daten().einstellungen.regional.timeZoneManagement==='automatic' && messages.length===nativeBeforeAutomatic,
+    'imported automatic time-zone mode is preserved without unsupported native MCP polling');
+  ok(T.daten().einstellungen.regional.formatLocale==='en-GB' &&
+    T.daten().einstellungen.regional.timeZone==='Europe/Berlin',
+    'regional choices survive a real binder reload from native document data');
+  T.oeffneEinstellungen(); await wait();
+  w.document.querySelector('#einst-tab-regional').click(); await wait();
+  const savedRegional=JSON.stringify(disk.einstellungen.regional);
+  failSave=true; T.daten().notizen[0].text='Unsaved regional guard boundary';
+  w.document.querySelector('#regional-formatgebiet').value='en-US';
+  w.document.querySelector('#regional-speichern').click(); await wait(); await wait();
+  ok(JSON.stringify(disk.einstellungen.regional)===savedRegional &&
+    JSON.stringify(T.daten().einstellungen.regional)===savedRegional &&
+    w.document.querySelector('#tablet-status').textContent.includes('could not be saved') &&
+    !w.document.querySelector('#regional-speichern').disabled,
+    'failed pre-change save keeps regional preferences intact and makes retry available');
+  failSave=false; T.speichereJetzt(); await wait();
+  failSave=true;
+  w.document.querySelector('#regional-speichern').click(); await wait(); await wait();
+  ok(JSON.stringify(disk.einstellungen.regional)===savedRegional &&
+    T.daten().einstellungen.regional.formatLocale==='en-US' &&
+    w.document.querySelector('#tablet-status').textContent.includes('could not be saved') &&
+    !w.document.querySelector('#regional-speichern').disabled,
+    'failed regional write reports failure and retains the visible unsaved choice for retry');
+  failSave=false;
+  w.document.querySelector('#regional-speichern').click(); await wait(); await wait();
+  ok(disk.einstellungen.regional.formatLocale==='en-US' &&
+    w.document.querySelector('#tablet-status').textContent.includes('Regional settings saved.'),
+    'retry after failed regional persistence commits the chosen preferences');
   assert.throws(()=>w.webkit.messageHandlers.bridge.postMessage('{"cmd":"invented_success"}'));
   for(const cmd of ['telefon_waehlen','kde_sms_senden','sms','feiertage']) {
     assert.throws(()=>w.webkit.messageHandlers.bridge.postMessage(JSON.stringify({cmd})));

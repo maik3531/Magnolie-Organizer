@@ -30,7 +30,7 @@ class ProjectionTests(unittest.TestCase):
         self.assertEqual(info["CFBundleName"], "Magnolie Organizer macOS Beta")
         self.assertEqual(info["CFBundleIdentifier"], "io.gitlab.maik3531.MagnolieOrganizer.macOSBeta")
         identity = json.loads((BETA / "Resources/BetaIdentity.json").read_text())
-        self.assertEqual(identity["version"], "2.0.18-beta.1")
+        self.assertEqual(identity["version"], "2.0.30-beta.1")
         self.assertEqual(info["MagnolieBetaVersion"], identity["version"])
         self.assertEqual(info["CFBundleShortVersionString"], identity["bundleShortVersion"])
         self.assertEqual(info["CFBundleVersion"], identity["bundleVersion"])
@@ -65,7 +65,7 @@ class ProjectionTests(unittest.TestCase):
             self.assertIn("connect-src 'none'", html)
             app = (a / "web/anwendung.js").read_text()
             self.assertIn('const SPEICHER_SCHLUESSEL = "magnolie-organizer-macOSBeta-daten";', app)
-            self.assertIn('const FASSUNG = "2.0.18-beta.1";', app)
+            self.assertIn('const FASSUNG = "2.0.30-beta.1";', app)
             self.assertFalse(any(file.suffix.lower() in {".pem", ".key", ".pub", ".p12", ".mobileprovision"} for file in a.rglob("*")))
             for src in re.findall(r'<script src="([^"]+)"', html):
                 self.assertTrue((a / "web" / src).is_file(), src)
@@ -99,6 +99,16 @@ class ProjectionTests(unittest.TestCase):
     def test_regional_form_drift_refuses_instead_of_guessing_native_contract(self):
         changed = dict(self.snapshot)
         key = projection.LINUX.relative_to(projection.REPO).as_posix() + "/web/anwendung.js"
+        # Both equivalent catch forms are supported, while native transaction
+        # changes below still fail closed rather than shipping a stale adapter.
+        bare = b'} catch { zettel(_("The regional settings could not be saved.")); }'
+        bound = b'} catch (_) { zettel(_("The regional settings could not be saved.")); }'
+        for source, replacement in [(bare, bound), (bound, bare)]:
+            if source in self.snapshot[key]:
+                variant = dict(self.snapshot)
+                variant[key] = variant[key].replace(source, replacement)
+                with tempfile.TemporaryDirectory(prefix="macOS-Beta-catch-binding-") as temp:
+                    projection.project(variant, Path(temp) / "UI")
         old = b"const before = await tools[0].call({}, signal);"
         self.assertEqual(changed[key].count(old), 1)
         changed[key] = changed[key].replace(old, b"const before = await differentRegionalSource();")

@@ -1,8 +1,9 @@
-# Magnolie Organizer Android Tablet Beta 2.0.18Beta
+# Magnolie Organizer Android Tablet Beta 2.0.30Beta
 
 Development snapshot of the debug beta, **not a production release**.
-Development is paused. The source is retained here so work can resume from one
-documented state, tracked in [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9).
+The 2.0.30Beta candidate uses the shared 2.0.30 interface with the native limits
+below. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
+[issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
 Basic startup and restart have been exercised in an emulator. Layout, input
 handling and complete Android runtime verification remain unfinished. There has
@@ -16,9 +17,9 @@ This directory is the tablet project's only canonical directory. Nothing in
 Notes, desktop, Windows, or the shared contracts is edited by the tablet build.
 
 - Application ID: `io.gitlab.maik3531.magnolieorganizer.tablet.beta`.
-- Launcher/activity label: `Magnolie Organizer Android Tablet Beta 2.0.18Beta`.
-- Android version name/code: `2.0.18Beta` / `20018`.
-- Candidate: `artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-debug.apk`.
+- Launcher/activity label: `Magnolie Organizer Android Tablet Beta 2.0.30Beta`.
+- Android version name/code: `2.0.30Beta` / `20030`.
+- Candidate: `artifacts/Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk`.
 - Android private data, notifications, Keystore alias, debug signing key, and
   application sandbox are separate from the phone Notes profile.
 - Minimum Android 8/API 26; compile/target API 35; JDK 17.
@@ -86,6 +87,16 @@ or desktop password-lock emulation. There is no INTERNET permission, system
 contacts/calendar permission, shared UID, or account manager permission.
 New file attachments via the WebView file picker are not implemented. Existing
 embedded note data is retained by the shared core subject to its validation.
+
+## Local language and regional settings
+
+The shared **Language and regional display** form now saves its local choices
+through the existing canonical normalizer and native encrypted document save.
+The save waits for any edited record first and reports success only after the
+native save acknowledgment. Failed saves retain the visible changes for retry.
+Native desktop time-zone management/detection is unavailable and its management
+button is disabled; local timezone selection remains available. These local
+preferences do not configure Android system settings or desktop account services.
 
 ## Storage and Security
 
@@ -196,7 +207,29 @@ bash tools/build-beta.sh
 ```
 
 `MAGNOLIE_JS_RUNTIME=node` is supported on hosts with Node; otherwise Bun is the
-default. `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` can be overridden.
+default. `JAVA_HOME`, `ANDROID_HOME`, `GRADLE_USER_HOME` can be overridden. `ANDROID_SDK_ROOT`
+may identify the same SDK; conflicting SDK paths fail before execution.
+
+For an empty, isolated CI cache, `bash tools/build-beta.sh --online` allows Gradle
+dependency downloads. The default remains offline. This option retains the same
+systemd resource limits, five coordination locks, deadlines, source checks, unit
+tests and artifact verification; it does not start an emulator or authorize release
+Gradle tasks. Direct JVM-only gate invocations may use `--jvm --online` within the
+same required resource-limited user service. A cloud host without that service and
+cgroup support cannot run the complete APK gate.
+
+The dedicated [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml) workflow
+prepares that service on a fresh Ubuntu runner. It selects the published desktop
+tag `v2.0.30` at commit `067c38934b539943d8e1720abafd8a80b401d797`, retains the
+reviewed tablet adapter, generates canonical catalogs, and invokes `--online`
+inside the same bounded build gate. The following owned emulator UI suite tests
+the exact hash-checked app/test pair. Synthetic runtime evidence, candidate
+metadata and checksums are retained as Actions artifacts for 14 days, including
+diagnostics when a stage fails. This workflow is manual or runs on the dedicated
+`codex/ports-2.0.30` branch; it does not publish a production release. Check the
+job outcome and native evidence before treating an APK as tested. A debug key
+generated on a fresh runner is not a stable update-signing identity.
+
 The gate reuses Notes' verified wrapper with `-p` pointing **here**. It does not
 configure/build Notes. Release-named Gradle tasks are intentionally refused.
 

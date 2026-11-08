@@ -19,7 +19,15 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SDK = Path.home() / ".local/share/android-sdk"
+def sdk_root(environ=None):
+    environ = os.environ if environ is None else environ
+    roots = [Path(environ[name]).expanduser().resolve() for name in ('ANDROID_HOME', 'ANDROID_SDK_ROOT') if environ.get(name)]
+    if len(set(roots)) > 1:
+        raise ValueError('ANDROID_HOME and ANDROID_SDK_ROOT must identify the same SDK')
+    return roots[0] if roots else Path.home() / '.local/share/android-sdk'
+
+
+SDK = sdk_root()
 STATE = ROOT / "artifacts/emulator-session.json"
 RUNTIME = 20 * 60
 BOOT = 3 * 60

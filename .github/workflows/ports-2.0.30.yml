@@ -1,0 +1,197 @@
+name: Organizer 2.0.30 port candidates
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ports-2.0.30]
+    paths:
+      - '.github/workflows/ports-2.0.30.yml'
+      - 'Magnolie-Organizer-macOS-Beta/**'
+      - 'Magnolie-Organizer-Android-Tablet-Beta/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ports-2.0.30-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DESKTOP_COMMIT: 067c38934b539943d8e1720abafd8a80b401d797
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Select the published desktop sources without replacing the port
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"
+          git restore --source="$DESKTOP_COMMIT" -- magnolie-organizer magnolie-organizer-windows magnolie-handbuch magnolie-notes contracts LICENSE.md PROTECTED-ASSETS-LICENSE.txt
+          mkdir -p "$RUNNER_TEMP/port-proof"
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          proof = dict(portCommit=os.environ['GITHUB_SHA'], desktopTag='v2.0.30',
+                       desktopCommit=os.environ['DESKTOP_COMMIT'],
+                       nativeAcceptance=False, productionRelease=False)
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'port-proof', 'sources.json').write_text(json.dumps(proof, indent=2)+'\n')
+          PY
+      - name: Prepare private dependencies and canonical catalogs
+        run: |
+          set -euo pipefail
+          if ! brew list gettext >/dev/null 2>&1; then brew install gettext; fi
+          export PATH="$(brew --prefix gettext)/bin:$PATH"
+          python3 -m venv "$RUNNER_TEMP/mac-python"
+          "$RUNNER_TEMP/mac-python/bin/pip" install --disable-pip-version-check cryptography==46.0.3
+          npm install --prefix "$RUNNER_TEMP/mac-js" --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
+          cd magnolie-organizer
+          mkdir -p web/i18n
+          while read -r language; do
+            python3 werkzeuge/po_zu_js.py "$language" "po/$language.po" "web/i18n/$language.js"
+          done < po/LINGUAS
+      - name: Freeze this isolated build's published source and run host and Apple tests
+        working-directory: Magnolie-Organizer-macOS-Beta
+        run: |
+          set -euo pipefail
+          python3 tools/project_ui.py freeze --confirm-desktop-frozen
+          python3 tools/project_ui.py generate
+          export MACOS_BETA_JSDOM="$RUNNER_TEMP/mac-js/node_modules/jsdom/lib/api.js"
+          export MACOS_BETA_SWIFT="$(command -v swift)"
+          export MACOS_BETA_UI_PATH="$PWD/Generated"
+          "$RUNNER_TEMP/mac-python/bin/python" tools/crypto_vectors.py --check
+          "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
+          python3 tools/build_dev.py
+          python3 tools/project_ui.py check
+      - name: Package the ad-hoc development app with its evidence
+        working-directory: Magnolie-Organizer-macOS-Beta
+        run: |
+          set -euo pipefail
+          output='Output/Magnolie Organizer macOS Beta-2.0.30-beta.1'
+          app="$output/Magnolie Organizer macOS Beta.app"
+          codesign --verify --strict "$app"
+          cp "$RUNNER_TEMP/port-proof/sources.json" "$output/sources.json"
+          cp SourceFreeze.json "$output/SourceFreeze.json"
+          cp README.md FEATURE-MATRIX.md "$output/"
+          ditto -c -k --sequesterRsrc --keepParent "$output" "$RUNNER_TEMP/port-proof/Magnolie-Organizer-macOS-2.0.30-beta.1.zip"
+          cd "$RUNNER_TEMP/port-proof"
+          shasum -a 256 Magnolie-Organizer-macOS-2.0.30-beta.1.zip > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: macOS-2.0.30-beta.1-development-candidate
+          path: ${{ runner.temp }}/port-proof/
+          if-no-files-found: error
+          retention-days: 14
+
+  tablet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      MAGNOLIE_JS_RUNTIME: node
+      NODE_PATH: ${{ github.workspace }}/.ci-js/node_modules
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Select the published desktop sources without replacing the port
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse v2.0.30^{commit})" = "$DESKTOP_COMMIT"
+          git restore --source="$DESKTOP_COMMIT" -- magnolie-organizer magnolie-organizer-windows magnolie-handbuch magnolie-notes contracts LICENSE.md PROTECTED-ASSETS-LICENSE.txt
+      - name: Prepare the existing resource-limited build gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y gettext openjdk-17-jdk-headless libvirt-daemon-system libvirt-clients acl
+          sudo systemctl start libvirtd
+          sudo setfacl -m "u:$(id -un):rw" /run/libvirt/libvirt-sock
+          echo 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> "$GITHUB_ENV"
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+          npm install --prefix .ci-js --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
+          cd magnolie-organizer
+          mkdir -p web/i18n
+          while read -r language; do
+            python3 werkzeuge/po_zu_js.py "$language" "po/$language.po" "web/i18n/$language.js"
+          done < po/LINGUAS
+          cd ..
+          mkdir -p /tmp/opencode "$GITHUB_WORKSPACE/../Test-VMs-20260912" "$HOME/.local/share/magnolie-testing/vms/rebuild-20260912"
+          mkdir -p Magnolie-Organizer-Android-Tablet-Beta/artifacts
+          sudo loginctl enable-linger "$(id -un)"
+          sudo systemctl start "user@$(id -u).service"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
+      - name: Build and verify debug APKs within the original locks and resource limits
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/build-beta.sh --readiness
+          bash tools/build-beta.sh --online
+          python3 - <<'PY'
+          import json, os, pathlib
+          proof = dict(portCommit=os.environ['GITHUB_SHA'], desktopTag='v2.0.30',
+                       desktopCommit=os.environ['DESKTOP_COMMIT'],
+                       nativeAcceptance=False, productionRelease=False)
+          pathlib.Path('artifacts/sources.json').write_text(json.dumps(proof, indent=2)+'\n')
+          PY
+      - name: Exercise the candidate in the owned Android tablet emulator
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          timeout 600 "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' 'system-images;android-34;google_apis;x86_64'
+          # This dedicated runner has no concurrent Windows/Android native work.
+          # The owner retains all five leases through emulator cleanup.
+          systemd-run --user --wait --pipe --collect \
+            --setenv="ANDROID_HOME=$ANDROID_HOME" --setenv="ANDROID_SDK_ROOT=$ANDROID_HOME" \
+            --setenv="JAVA_HOME=$JAVA_HOME" --setenv="MAGNOLIE_JS_RUNTIME=node" \
+            --setenv="NODE_PATH=$NODE_PATH" \
+            -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
+            -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
+            --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite ui </dev/null
+      - name: Collect synthetic native evidence
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          source = Path.home()/'.local/share/magnolie-testing/tablet-beta'
+          target = Path('Magnolie-Organizer-Android-Tablet-Beta/artifacts/native-evidence')
+          if source.exists():
+              for run in source.iterdir():
+                  if (run/'evidence').is_dir():
+                      shutil.copytree(run/'evidence', target/run.name)
+          PY
+      - name: Preserve build diagnostics even when a gate fails
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Android-Tablet-2.0.30Beta-candidate-and-proof
+          path: |
+            Magnolie-Organizer-Android-Tablet-Beta/artifacts/
+            Magnolie-Organizer-Android-Tablet-Beta/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: error
+          retention-days: 14

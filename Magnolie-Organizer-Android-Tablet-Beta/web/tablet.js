@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const document = window.document;
-  const name = 'Magnolie Organizer Android Tablet Beta 2.0.18Beta';
+  const name = 'Magnolie Organizer Android Tablet Beta 2.0.30Beta';
   const supported = new Set(['bereit','speichern','beenden_bereit','beenden_abgebrochen',
     'drucken','ablage_kopieren','ablage_holen','tablet_import','tablet_export',
     'tablet_notifications','tablet_about','tablet_replace','tablet_import_cancel','erinnerung_einrichten','tablet_loaded']);
@@ -126,6 +126,30 @@
     window.MagnolieTabletActions.afterSave(() => {
       pendingAction = null; native({cmd});
     }).then(ok => { if (!ok) pendingAction = null; });
+  }
+  function saveRegional(control) {
+    if (!loaded || blocked || replacement || pendingAction || control.disabled) return;
+    const fields = {language:'sprache',formatLocale:'formatgebiet',hourCycle:'stunden',
+      firstDayOfWeek:'wochenanfang',temperatureUnit:'temperatur',timeZone:'zeitzone',homeCountry:'heimatland'};
+    const values = Object.fromEntries(Object.entries(fields).map(([key,id])=>
+      [key,document.getElementById('regional-'+id).value.trim()]));
+    const T=window.OrganizerTest, before=T.daten().einstellungen.regional;
+    // Reuse canonical validation and retain imported regional extension fields.
+    const regional={...before,...T.normalisiere({...T.daten(),einstellungen:{...T.daten().einstellungen,
+      regional:{...before,...values}}}).einstellungen.regional};
+    pendingAction='tablet_regional'; control.disabled=true;
+    const finish=success=>{
+      pendingAction=null; control.disabled=false;
+      status(tr(success ? 'Regional settings saved. Restart the Organizer to apply them completely.' :
+        'The regional settings could not be saved.'));
+    };
+    // First settle an active editor and its save. Then acknowledge the changed
+    // preferences only after the existing native whole-document save succeeds.
+    window.MagnolieTabletActions.afterSave(()=>{
+      if (blocked || replacement) { finish(false); return; }
+      T.daten().einstellungen.regional=regional;
+      window.MagnolieTabletActions.persist(()=>finish(true),()=>finish(false));
+    },()=>finish(false)).then(ok=>{if(!ok) finish(false);}).catch(()=>finish(false));
   }
   function initialize(payload) {
     if (session || blocked) return;
@@ -255,7 +279,7 @@
         (id==='erinnerung'?'':' JSON'),()=>action('tablet_'+(id==='erinnerung'?'notifications':id))));
     }
     const unsupportedIds = ['schrift-pruefung','erinnerung-wecken','knopf-sicherung',
-      'ort-abrufen','ort-jahre','adressen-brief','adressen-brief-layout',
+      'ort-abrufen','ort-jahre','ort-zeitzonenmanagement','adressen-brief','adressen-brief-layout',
       'adressen-karte','adressen-route','adressen-karten','adressen-soziale-symbole'];
     for (const id of unsupportedIds) {
       const b = document.getElementById(id);
@@ -309,6 +333,12 @@
       button(tr('Notifications'),()=>action('tablet_notifications')),details,notice);
     document.body.prepend(bar);
     new MutationObserver(applyCapabilities).observe(document.body,{childList:true,subtree:true});
+    document.addEventListener('click',event=>{
+      const control=event.target.closest('#regional-speichern');
+      if (!control) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      saveRegional(control);
+    },true);
     document.addEventListener('contextmenu',event=>{
       if (event.target.closest('.kontakt-sms,.kontakt-anruf')?.disabled) {
         event.preventDefault(); event.stopImmediatePropagation(); status(beta(0));

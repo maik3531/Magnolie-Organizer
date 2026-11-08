@@ -15,12 +15,21 @@ session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
 
 
+def gradle_command(tasks, *, online=False, rerun=False):
+    return ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
+            *([] if online else ['--offline']), '--console=plain', '--no-daemon', '--max-workers=1',
+            *(['--rerun-tasks'] if rerun else []), *tasks]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--jvm', action='store_true', help='Only offline unit tests; no APK, signing or install tasks')
     mode.add_argument('--build', action='store_true', help='Offline tests, then debug app and test-only instrumentation APKs')
+    parser.add_argument('--online', action='store_true', help='Allow Gradle dependency downloads within the existing bounded gate (empty CI cache)')
     opts = parser.parse_args()
+    if opts.online and not (opts.jvm or opts.build):
+        parser.error('--online requires --jvm or --build')
     os.chdir(ROOT)
     cpus = session.pin_two_cpus()
     cgroup = Path('/sys/fs/cgroup') / Path('/proc/self/cgroup').read_text().strip().split('::', 1)[1].lstrip('/')
@@ -41,7 +50,8 @@ def main():
         try:
             session.idle(owner)
             owner.record('offline-checks', jvm=opts.jvm or opts.build, build=opts.build,
-                         memoryMax=memory, cpuQuota=quota, cpuPeriod=period, cpuAffinity=cpus, temporaryResources=temporary)
+                         memoryMax=memory, cpuQuota=quota, cpuPeriod=period, cpuAffinity=cpus, temporaryResources=temporary,
+                         dependencyDownloads=opts.online)
             for command, timeout in [([sys.executable, '-B', 'tests/test_emulator_session.py'], 30),
                                      ([sys.executable, '-B', 'tests/test_host_capacity.py'], 30),
                                      ([runtime, 'tests/touch-proof.test.cjs'], 30),
@@ -64,14 +74,11 @@ def main():
                         raise RuntimeError('Missing setup-holiday test count')
                     owner.record('setup-tests-passed', setupHolidayCases=int(count[1]), setupLocales=int(count[2]))
             if opts.jvm or opts.build:
-                command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
-                           '--offline', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']
+                command = gradle_command([':app:testDebugUnitTest'], online=opts.online, rerun=True)
                 owner.record('offline-jvm', command=command)
                 print(owner.command(command, timeout=300, env=env), flush=True)
             if opts.build:
-                command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
-                           '--offline', '--console=plain', '--no-daemon', '--max-workers=1',
-                           ':app:assembleDebug', ':app:assembleDebugAndroidTest']
+                command = gradle_command([':app:assembleDebug', ':app:assembleDebugAndroidTest'], online=opts.online)
                 owner.record('offline-debug-build', command=command)
                 print(owner.command(command, timeout=600, env=env), flush=True)
             print(owner.command([runtime, 'tools/project-web.cjs', '--check'], timeout=60, env=env), flush=True)

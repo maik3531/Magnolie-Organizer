@@ -75,13 +75,22 @@ for (const match of fontFaces.join('\n').matchAll(/url\(["']?([^"')]+)["']?\)/g)
 }
 generated.set('assets/web/desktop-fonts.css',Buffer.from(fontFaces.join('\n\n')+'\n'));
 const appSource = buffers.get(path.join(desktop,'anwendung.js')).toString();
+const regionalAnchor = '    { id: "ort", name: msgid("Country & holidays") },';
+if (appSource.split(regionalAnchor).length !== 2) throw Error('Desktop regional settings anchor changed');
+let regionalSource = appSource.replace(regionalAnchor,
+  '    { id: "regional", name: msgid("Language and regional display") },\n'+regionalAnchor);
+const automaticZoneAnchor = '  async function aktualisiereAutomatischeZeitzone() {';
+if (regionalSource.split(automaticZoneAnchor).length !== 2) throw Error('Desktop automatic time-zone anchor changed');
+// Android Beta has no native source-bound detection. Preserve imported settings
+// while refusing to initiate the desktop-only background MCP transaction.
+regionalSource = regionalSource.replace(automaticZoneAnchor, automaticZoneAnchor+' return;');
 const anchor = '  window.App = App;';
 if (appSource.split(anchor).length !== 2) throw Error('Desktop adapter anchor changed');
-generated.set('assets/web/anwendung.js', Buffer.from(appSource.replace(anchor,
-  '  window.MagnolieTabletActions = { afterSave: action => navigiereMitGuard(() => nachDauerhaftemSpeichern(action)) };\n'+anchor)));
+generated.set('assets/web/anwendung.js', Buffer.from(regionalSource.replace(anchor,
+  '  window.MagnolieTabletActions = { afterSave: (action, failed) => navigiereMitGuard(() => nachDauerhaftemSpeichern(action, failed)), persist: (action, failed) => nachDauerhaftemSpeichern(action, failed) };\n'+anchor)));
 let html = buffers.get(path.join(desktop,'index.html')).toString();
 if (!html.includes('<script src="anwendung.js"></script>')) throw Error('Desktop entry point changed');
-html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.18Beta</title>')
+html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.30Beta</title>')
   .replace('</head>', '<link rel="stylesheet" href="desktop-fonts.css">\n<link rel="stylesheet" href="tablet.css">\n<script src="tablet.js"></script>\n</head>');
 generated.set('assets/web/index.html',Buffer.from(html));
 for (const f of ['tablet.js','tablet.css']) generated.set('assets/web/'+f,buffers.get(path.join(root,'web',f)));
@@ -120,7 +129,7 @@ for (const [p,b] of generated) { const dest = path.join(out,p); fs.mkdirSync(pat
 const manifest = {format:1, kind:'debug-beta-generated-build-projection', sourceHash, inputs:hashes,
   transformations:['index: beta title, adapter and responsive stylesheet',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
-    'anwendung: expose existing editor guard + durable action queue without changing either implementation',
+    'anwendung: expose existing editor guard + durable action queue without changing either implementation; expose existing regional form for local persistence; suppress unsupported native automatic time-zone polling',
     'i18n-active: concatenate canonical catalogs', 'native resources: reuse catalogs + 20 manual beta translations'],
   outputs:Object.fromEntries([...generated].map(([p,b])=>[p,sha(b)]))};
 fs.writeFileSync(path.join(out,'assets/projection.json'),JSON.stringify(manifest,null,2)+'\n');

@@ -14,8 +14,8 @@ const sdk=process.env.ANDROID_HOME || path.join(process.env.HOME,'.local/share/a
 const tools=path.join(sdk,'build-tools/35.0.0');
 const badging=execFileSync(path.join(tools,'aapt'),['dump','badging',apkPath],{encoding:'utf8'});
 if(!badging.includes("package: name='io.gitlab.maik3531.magnolieorganizer.tablet.beta'") ||
-   !badging.includes("versionCode='20018'") || !badging.includes("versionName='2.0.18Beta'") ||
-   !badging.includes("application-label:'Magnolie Organizer Android Tablet Beta 2.0.18Beta'")) throw Error('APK beta identity mismatch');
+   !badging.includes("versionCode='20030'") || !badging.includes("versionName='2.0.30Beta'") ||
+   !badging.includes("application-label:'Magnolie Organizer Android Tablet Beta 2.0.30Beta'")) throw Error('APK beta identity mismatch');
 const signature=execFileSync(path.join(tools,'apksigner'),['verify','--print-certs',apkPath],{encoding:'utf8'});
 if(!signature.includes('CN=Android Debug')) throw Error('Only the explicitly generated debug certificate is authorized');
 if(/uses-permission: name='android.permission.(?:INTERNET|SEND_SMS|CALL_PHONE|READ_CONTACTS|READ_CALENDAR)'/.test(badging))
@@ -38,8 +38,8 @@ for(const file of fs.readdirSync(results).filter(f=>f.endsWith('.xml'))) {
   unitTests+=attr('tests');
 }
 if(!unitTests) throw Error('No native unit tests ran');
-const name='Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-debug.apk';
-const testName='Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-instrumentation.apk';
+const name='Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk';
+const testName='Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-instrumentation.apk';
 const testPath=path.join(root,'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk');
 const testApk=fs.readFileSync(testPath);
 const testHash=createHash('sha256').update(testApk).digest('hex');
@@ -62,7 +62,7 @@ fs.writeFileSync(path.join(out,'apk-verification.txt'),badging+'\n'+signature);
 fs.writeFileSync(path.join(out,'candidate.json'),JSON.stringify({name,sha256:hash,sourceHash:manifest.sourceHash,
   testApk:testName,testApkSha256:testHash,instrumentationTestOnly:true,
   applicationId:'io.gitlab.maik3531.magnolieorganizer.tablet.beta',signing:'debug only',
-  displayName:'Magnolie Organizer Android Tablet Beta 2.0.18Beta',versionName:'2.0.18Beta',versionCode:20018,
+  displayName:'Magnolie Organizer Android Tablet Beta 2.0.30Beta',versionName:'2.0.30Beta',versionCode:20030,
   status:'unaccepted beta candidate; not a production release',stale:false,emulatorTested:false,
   webChecks:web.passed,editorReminderCases:reminders.cases.length,unitTests,unitReport:'app/build/reports/tests/testDebugUnitTest/index.html',
   runnerTests:build.runnerTests,setupHolidayCases:build.setupHolidayCases,setupLocales:build.setupLocales,

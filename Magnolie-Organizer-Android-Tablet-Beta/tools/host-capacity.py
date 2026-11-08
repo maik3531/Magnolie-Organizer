@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('session', ROOT / 'tools/emulator-session.py')
 session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
-APK_NAMES = ('Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-debug.apk',
-             'Magnolie-Organizer-Android-Tablet-Beta-2.0.18Beta-instrumentation.apk')
+APK_NAMES = ('Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-debug.apk',
+             'Magnolie-Organizer-Android-Tablet-Beta-2.0.30Beta-instrumentation.apk')
 BINDING_FILE = ROOT / 'artifacts/capacity-apk-binding.json'
 BASELINE = Path.home() / '.local/share/magnolie-testing/tablet-beta/20260914T175328/evidence'
 FIXTURE = BASELINE / 'native-evidence/legacy/fixture.json'

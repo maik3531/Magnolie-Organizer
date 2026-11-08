@@ -47,6 +47,19 @@ try {
   t.daten().notizen[0].text = "Changed after restore";
   t.speichereJetzt(); saveAck();
   equal(JSON.parse(messages.filter(m => m.cmd === "speichern").at(-1).text).future.keep, "imported", "post-restore save uses new document");
+  // Current desktop time-zone controls must not start unavailable native MCP
+  // transactions or mutate imported preferences in this port.
+  t.baueEinstellungen(); w.document.getElementById("einst-tab-ort").click();
+  const timeZoneBefore = clone(t.daten().einstellungen.regional), nativeBefore = messages.length;
+  w.document.getElementById("ort-zeitzonenmanagement").click(); await tick();
+  equal(w.document.getElementById("zeitzonenverwaltung"), null, "unsupported native time-zone dialog stays closed");
+  equal(messages.length, nativeBefore, "unsupported time-zone management sends no native command");
+  equal(t.daten().einstellungen.regional, timeZoneBefore, "unsupported management retains regional preferences");
+  assert.match(w.document.getElementById("zettel").textContent, /native time zone management is unavailable/); checks++;
+  t.daten().einstellungen.regional.timeZoneManagement = "automatic";
+  w.dispatchEvent(new w.Event("focus")); await tick();
+  equal(messages.length, nativeBefore, "imported automatic mode does not query unavailable native detection");
+  t.daten().einstellungen.regional.timeZoneManagement = timeZoneBefore.timeZoneManagement;
   // Actual desktop regional form also waits for the profile save before the native command.
   t.baueEinstellungen(); w.document.getElementById("einst-tab-regional").click();
   const regionalBeforeFailure = clone(t.daten().einstellungen.regional);

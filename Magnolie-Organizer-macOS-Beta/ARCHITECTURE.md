@@ -113,7 +113,7 @@ poisons the session instead of retrying over possibly committed data. The lease
 prevents two cooperative Beta processes sharing the profile. This is not a
 security boundary against malicious code already running as the same OS user.
 
-## Recovery And Restore Follow-up (2.0.18-beta.1)
+## Recovery And Restore Follow-up (2.0.30-beta.1)
 
 `AtomicStore.checkpoint()` copies its expected on-disk bytes, never a decrypted
 shadow. It checks the exclusive profile state, creates a private recovery directory,

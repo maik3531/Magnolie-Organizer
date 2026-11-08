@@ -57,6 +57,24 @@ class Process:
 
 
 class LifecycleTest(unittest.TestCase):
+    def test_sdk_override_reaches_build_and_emulator_paths(self):
+        self.assertEqual(session.sdk_root({'ANDROID_HOME':'/workspace/android-sdk'}), Path('/workspace/android-sdk'))
+        self.assertEqual(session.sdk_root({'ANDROID_SDK_ROOT':'/workspace/android-sdk'}), Path('/workspace/android-sdk'))
+        with self.assertRaisesRegex(ValueError, 'same SDK'):
+            session.sdk_root({'ANDROID_HOME':'/workspace/one','ANDROID_SDK_ROOT':'/workspace/two'})
+
+    def test_online_mode_preserves_bounded_serial_gradle_options(self):
+        spec = importlib.util.spec_from_file_location('offline_checks', session.ROOT / 'tools/offline-checks.py')
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        default = gate.gradle_command([':app:testDebugUnitTest'], rerun=True)
+        online = gate.gradle_command([':app:testDebugUnitTest'], online=True, rerun=True)
+        self.assertIn('--offline', default)
+        self.assertEqual([arg for arg in default if arg != '--offline'], online)
+        self.assertIn('--no-daemon', online)
+        self.assertIn('--max-workers=1', online)
+        self.assertIn('--rerun-tasks', online)
+
     def test_api_default_and_explicit_supported_images(self):
         self.assertEqual(session.parser().parse_args(['prepare']).api,34)
         self.assertEqual(session.parser().parse_args(['run','--api','35']).api,35)

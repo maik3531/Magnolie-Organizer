@@ -121,10 +121,17 @@ def project(snapshot, target):
           if (pfad) zeigeSicherungsanlage(pfad);
           else Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''',
                         '''          Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''')
+    # Native time-zone management/refresh is not implemented by the Beta.
+    # Keep imported preferences intact without sending unsupported MCP requests.
+    text = replace_once(text, "  function oeffneZeitzonenManagement() {",
+                        '  function oeffneZeitzonenManagement() {\n'
+                        '    zettel("macOS Beta: native time zone management is unavailable. Use Language and regional display for the local time zone."); return;')
+    text = replace_once(text, "  async function aktualisiereAutomatischeZeitzone() {",
+                        "  async function aktualisiereAutomatischeZeitzone() { return;")
     # The current desktop form uses revision-bound native MCP calls. The Beta
     # has no such native API: bind only this form to its existing validated
     # whole-document handler, retaining the save-ACK fence, not fake MCP success.
-    text = replace_once(text, '''    const speichern = knopf(_("Save"), "", async () => {
+    regional_save = '''    const speichern = knopf(_("Save"), "", async () => {
       if (!Bruecke.vorhanden) return;
       speichern.disabled = true;
       try {
@@ -137,7 +144,14 @@ def project(snapshot, target):
         zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
       } catch (_) { zettel(_("The regional settings could not be saved.")); }
       finally { speichern.disabled = false; }
-    });''', '''    const speichern = knopf(_("Save"), "", () => {
+    });'''
+    # Optional catch bindings are equivalent; every other part of the reviewed
+    # regional transaction remains an exact, single-match projection anchor.
+    regional_candidates = [regional_save, regional_save.replace("} catch (_) {", "} catch {")]
+    matching = [value for value in regional_candidates if value in text]
+    if len(matching) != 1:
+        raise ValueError("Canonical UI anchor changed; review the regional projection.")
+    text = replace_once(text, matching[0], '''    const speichern = knopf(_("Save"), "", () => {
       if (!Bruecke.vorhanden || speichern.disabled) return;
       speichern.disabled = true;
       const regional = { language: sprache.value, formatLocale: format.value.trim(),

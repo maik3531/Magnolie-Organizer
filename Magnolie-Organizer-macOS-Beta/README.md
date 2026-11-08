@@ -11,13 +11,18 @@ dependency, active workflow or release artifact is modified by this port.
 
 ## Identity
 
-- Version: **`2.0.18-beta.1`**. See [POLICY.md](POLICY.md) for numeric bundle versions and release boundaries.
+- Version: **`2.0.30-beta.1`**. See [POLICY.md](POLICY.md) for numeric bundle versions and release boundaries.
 - App name and executable: `Magnolie Organizer macOS Beta`.
 - App bundle: `Magnolie Organizer macOS Beta.app`.
 - Identifier: `io.gitlab.maik3531.MagnolieOrganizer.macOSBeta`.
 - Data: `~/Library/Application Support/io.gitlab.maik3531.MagnolieOrganizer.macOSBeta/organizer.json`.
 - Development output and exported filenames include `macOS Beta`.
 - No stable Windows, Linux or Notes profile is discovered, imported or reused automatically.
+
+The `2.0.30-beta.1` identity targets the published desktop 2.0.30 baseline.
+It remains a partial macOS Beta, not a claim that every desktop native feature
+is available. Projection/build manifests record the actual input hashes; host
+checks against a moving development checkout do not establish release-tag parity.
 
 ## Implemented Source
 
@@ -204,17 +209,25 @@ It refuses to overwrite an existing output app. It does not launch the app,
 build a DMG/PKG/production release, notarize, upload or publish anything.
 
 The resulting development path is
-`Output/Magnolie Organizer macOS Beta-2.0.18-beta.1/Magnolie Organizer macOS Beta.app`.
+`Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app`.
 Its build record explicitly says native UI validation and production release
 are false, even when compilation and Swift tests pass.
 
-`ci/macos-beta-manual.yml.example` is an **inactive** workflow template, outside
-`.github/workflows`. It has only `workflow_dispatch`, a required freeze
-confirmation gate, read-only repository permissions, a macOS runner and no
-upload steps. Installing/dispatching it requires separate approval and an
-available runner. It prepares isolated test dependencies, current-source host tests,
-Apple crypto tests and a real-WKWebView smoke test; the template has not been run.
-No active stable CI configuration was changed.
+The authorized candidate workflow is
+[`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml). It runs manually or on
+the dedicated `codex/ports-2.0.30` branch. It retains the reviewed port sources but
+selects canonical desktop inputs from the exact published `v2.0.30` commit
+`067c38934b539943d8e1720abafd8a80b401d797` in its disposable runner checkout.
+Catalog generation precedes the build-local freeze. Host, Apple crypto and real
+WKWebView tests must pass before the development app is packaged and uploaded.
+The zip includes source provenance and SHA-256 checksums; Actions retains it for
+14 days. Its architecture follows the runner and is recorded in the build metadata.
+
+This workflow has read-only repository permissions and creates development
+artifacts, not a GitHub Release. A successful WKWebView test is not full production
+Host/permission/Gatekeeper acceptance. No notarization or production signing is
+provided. The old `ci/macos-beta-manual.yml.example` remains an inactive historical
+template; the Windows release workflow is unchanged.
 
 ## Licensing
 

@@ -43,7 +43,7 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
     const project=(name,record,zone,expected)=>{
       T.daten().aufgaben=[record]; T.daten().einstellungen.regional.timeZone=zone;
       const result=w.Tablet.alarms().filter(a=>a.section==='aufgaben');
-      assert.deepEqual(result.map(a=>new Date(a.at).toISOString()),expected,name);
+      assert.deepEqual(Array.from(result,a=>new Date(a.at).toISOString()),expected,name);
       assert.equal(new Set(result.map(a=>a.id)).size,result.length,name+' separate IDs');
       cases.push({name,task:JSON.parse(JSON.stringify(record)),zone,alarms:JSON.parse(JSON.stringify(result))});
       global.console.log('PASS '+name); return result;

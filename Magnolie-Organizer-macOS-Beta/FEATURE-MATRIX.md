@@ -1,4 +1,4 @@
-# macOS Beta Feature Matrix — 2.0.18-beta.1
+# macOS Beta Feature Matrix — 2.0.30-beta.1
 
 Updated 2026-11-01 (current-source regional projection and bridge inventory).
 The target remains the same UI and functionality as the current
@@ -22,7 +22,7 @@ compiled or exercised here. Linux host/Swift tests do not establish macOS behavi
 | ICS/vCard/CSV import/export | Shared controls remain; unsupported native commands return negative responses | Full codecs, import previews/merging and format interoperability |
 | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
 | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
-| Regional settings | Current shared renderer bound to existing Beta handler (not the desktop MCP API); save-ACK before native commit; validated values; field mapping/save-failure/double-click host tests | Native locale/timezone behavior and all localized system dialogs; desktop revision-bound native MCP parity |
+| Regional settings | Current shared renderer bound to existing Beta handler (not the desktop MCP API); save-ACK before native commit; validated values; field mapping/save-failure/double-click host tests. Native time-zone management shows an explicit limitation; automatic native zone refresh is inactive and imported settings remain intact | Native locale/timezone behavior and all localized system dialogs; desktop revision-bound native MCP and automatic time-zone detection parity |
 | Localization | Entire current shared gettext-generated UI catalogs; native catalog generated from those same messages; English fallback + 19 locale catalogs | Existing Beta capability prose, EventKit/notification notices and many diagnostic messages remain English; full native localization is **not** claimed |
 | Native standard controls | Shared gettext labels; Undo/Redo supplement has all 19 translations plus English msgids (20 languages) | Human language review and actual AppKit/VoiceOver reading |
 | Keyboard/accessibility | Shared tablists/modal focus/escape; Command+digit/formatting bindings; native Undo/Redo/clipboard menu actions; visible Beta-summary focus | Real Cmd+formatting, focus restoration, VoiceOver, contrast/zoom/RTL and keyboard-only native dialogs |

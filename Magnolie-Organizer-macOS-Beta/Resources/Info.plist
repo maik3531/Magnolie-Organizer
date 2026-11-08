@@ -6,9 +6,9 @@
   <key>CFBundleDisplayName</key><string>Magnolie Organizer macOS Beta</string>
   <key>CFBundleExecutable</key><string>Magnolie Organizer macOS Beta</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>2.0.18</string>
-  <key>CFBundleVersion</key><string>2018.1</string>
-  <key>MagnolieBetaVersion</key><string>2.0.18-beta.1</string>
+  <key>CFBundleShortVersionString</key><string>2.0.30</string>
+  <key>CFBundleVersion</key><string>2030.1</string>
+  <key>MagnolieBetaVersion</key><string>2.0.30-beta.1</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSCalendarsUsageDescription</key><string>Optional read-only listing of macOS calendar names. No synchronization or changes.</string>

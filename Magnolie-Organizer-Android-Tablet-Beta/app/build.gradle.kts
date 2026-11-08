@@ -26,8 +26,8 @@ android {
         applicationId = "io.gitlab.maik3531.magnolieorganizer.tablet.beta"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20018
-        versionName = "2.0.18Beta"
+        versionCode = 20030
+        versionName = "2.0.30Beta"
         testInstrumentationRunner = "io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation"
     }
     compileOptions {
