@@ -132,6 +132,17 @@ internal object NativeCalendarSmoke {
             exportedRecords += selected.size
             receipt("case-complete",JSONObject().put("case",case.getString("name")).put("importedRecords",importedRecords).put("exportedRecords",exportedRecords))
         }
+        val sourceTimeZones = sourceTimeZoneCases { path ->
+            instrumentationContext.assets.open(path).use { stream ->
+                val buffer = ByteArray(4097); var size = 0
+                while (size < buffer.size) {
+                    val count = stream.read(buffer, size, buffer.size - size); if (count < 0) break
+                    check(count > 0) { "Source timezone fixture reader stalled" }; size += count
+                }
+                check(size <= 4096) { "Source timezone fixture exceeds its native test bound" }; buffer.copyOf(size)
+            }
+        }
+        receipt("source-vtimezone-cases-complete", sourceTimeZones)
         val custom = customOffsetAndFiniteRecurrence()
         val aliasRecords = qualifiedTasks()
         val timeZones = systemTimeZones(instrumentationContext)
@@ -143,6 +154,8 @@ internal object NativeCalendarSmoke {
         }
         return JSONObject().put("publishedCases", cases.length()).put("importedRecords", importedRecords).put("exportedRecords", exportedRecords)
             .put("retainedSourceProperties", rawProperties).put("retainedTimeZoneBlocks", sourceZones).put("customOffsetSeconds", custom)
+            .put("sourceTimeZoneCases", sourceTimeZones.getInt("cases")).put("sourceTimeZoneNegativeCases", sourceTimeZones.getInt("negativeCases"))
+            .put("sourceTimeZoneRawLines", sourceTimeZones.getInt("retainedRawLines"))
             .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones.getInt("identifiers"))
             .put("legacyOsOffsetDiagnostic", timeZones.getJSONObject("legacyOS"))
             .put("timeZoneProvider", "normative-tzif-posix").put("timeZoneProviderIdentity", provider)
@@ -152,6 +165,55 @@ internal object NativeCalendarSmoke {
             .put("legacyOsOffsetComparisons", timeZones.getJSONObject("legacyOS").getInt("comparisons"))
             .put("maximumProofYear", 8000)
             .put("negativeCases", 2).put("liveNetworkUsed", false).put("fullSyncAccepted", false)
+    }
+
+    /** Actual native services call this with test-APK AssetManager bytes. The
+     * reader seam also permits an offline JSON mirror; it never injects zone rules. */
+    internal fun sourceTimeZoneCases(readFixture: (String) -> ByteArray): JSONObject {
+        val hashes = linkedMapOf(
+            "uppercase" to "4bc2b8d5b8df6dce68b30cc2ddcb7e7c18f635a536cd3a552f332d0688dd61f3",
+            "component-values" to "c8ea355357c04134e649bd188c703ae239ef31a715032c054984804b1a05b04e",
+            "property-names" to "86bb642009935505da734a8d92a56c47d09306f7262e1d22a6c8828572c2360f")
+        var retained = 0; val verifiedHashes = JSONObject(); var componentSource = ""
+        for ((name, expectedHash) in hashes) {
+            check(!Thread.currentThread().isInterrupted) { "Native source timezone proof cancelled" }
+            val bytes = readFixture("fixtures/source-vtimezone-case/$name.ics")
+            check(bytes.size <= 4096 && hash(bytes) == expectedHash) { "Shared source timezone fixture checksum mismatch: $name" }
+            val originalSource = bytes.toString(Charsets.UTF_8)
+            if (name == "component-values") componentSource = originalSource
+            val source = originalSource.replace("TZOFFSETTO:+0300", "TZOFFSETTO:+0300\r\nX-OPAQUE;X-CASE=KeepValue:KeepBody")
+                .replace("END:Standard", "eNd:sTANDARD")
+            val imported = ICalendarImport.decode(source.toByteArray(Charsets.UTF_8), "UTC")
+            check(imported.appointments.size == 1 && imported.appointments.single().getString("zeit") == "09:00") { "Source timezone offset was not applied: $name" }
+            check(imported.document.getJSONObject("icsImportMetadata").getString("sourceSHA256") == hash(source.toByteArray(Charsets.UTF_8)))
+            val records = imported.appointments; val before = records.map { it.toString() }
+            val raw = records.single().getJSONArray("icsTimezones").getJSONArray(0)
+            val output = ICalendarExport.encode(records, "ics-termine", "UTC"); val lines = unfold(output)
+            check(before == records.map { it.toString() }) { "Source timezone export mutated its input: $name" }
+            for (line in strings(raw)) check(line in lines) { "Source timezone raw token was rewritten: $name" }
+            check("TZID:Private/MixedCase" in lines && "X-OPAQUE;X-CASE=KeepValue:KeepBody" in lines)
+            val again = ICalendarImport.decode(output.toByteArray(Charsets.UTF_8), "UTC").appointments
+            compare(JSONArray(records), JSONArray(again), "$name/source-vtimezone/reimport")
+            check(raw.toString() == again.single().getJSONArray("icsTimezones").getJSONArray(0).toString()) { "Source timezone raw block changed after reimport: $name" }
+            retained += raw.length(); verifiedHashes.put(name, expectedHash)
+        }
+        val record = ICalendarImport.decode(componentSource.toByteArray(Charsets.UTF_8), "UTC").appointments.single()
+        val original = record.toString(); val lines = strings(record.getJSONArray("icsTimezones").getJSONArray(0))
+        val malformed = listOf(
+            lines.filterNot { it == "END:Standard" },
+            lines.map { if (it == "END:Standard") "END:Daylight" else it },
+            lines.map { it.replace("Standard", "Vevent") },
+            lines.map { it.replace("Standard", "ſtandard") },
+            lines.map { it.replace("VtimeZone", "Vevent") },
+            lines.dropLast(1))
+        for (bad in malformed) {
+            val changed = JSONObject(original).put("icsTimezones", JSONArray().put(JSONArray(bad))); val before = changed.toString()
+            rejectExport { ICalendarExport.encode(listOf(event(), changed), "ics-termine", "UTC") }
+            check(before == changed.toString()) { "Rejected source timezone export mutated its input" }
+        }
+        check(original == record.toString())
+        return JSONObject().put("cases", hashes.size).put("negativeCases", malformed.size).put("retainedRawLines", retained)
+            .put("fixtureSHA256", verifiedHashes).put("nativeAssetPath", "fixtures/source-vtimezone-case")
     }
 
     private fun customOffsetAndFiniteRecurrence(): Int {
