@@ -169,6 +169,42 @@ public enum ICalendarResourcePatch {
     public static func keys(from original: Data) throws -> [Key] {
         try parse(original).parts.compactMap { $0.key }
     }
+    /// Extract selected components in one parse. Returned keys use the same canonical identity
+    /// as keys(from:). Wrapper properties and source VTIMEZONE bytes are retained exactly;
+    /// other components are intentionally excluded from these single-component calendars.
+    public static func extract(original: Data, keys requested: [Key], maximumOutputBytes: Int = ICalendarImport.maximumProjectedBytes) throws -> [Key: Data] {
+        guard maximumOutputBytes > 0, maximumOutputBytes <= ICalendarImport.maximumProjectedBytes,
+              requested.count <= ICalendarImport.maximumRecords else { throw fail("extraction limit") }
+        let calendar = try parse(original)
+        var selected: [Key] = [], seen = Set<Key>()
+        let indexed = Dictionary(uniqueKeysWithValues: calendar.parts.compactMap { part in part.key.map { ($0, part) } })
+        for input in requested {
+            let key = try canonical(input)
+            guard seen.insert(key).inserted, indexed[key] != nil else { throw fail("duplicate or missing extraction target") }
+            selected.append(key)
+        }
+        var prefix = Data(), cursor = 0
+        for part in calendar.parts {
+            prefix.append(calendar.bytes.subdata(in: cursor..<part.range.lowerBound))
+            if part.name == "VTIMEZONE" { prefix.append(calendar.bytes.subdata(in: part.range)) }
+            cursor = part.range.upperBound
+        }
+        prefix.append(calendar.bytes.subdata(in: cursor..<calendar.end))
+        let suffix = calendar.bytes.subdata(in: calendar.end..<calendar.bytes.count)
+        var total = 0
+        for key in selected {
+            let size = prefix.count + indexed[key]!.range.count + suffix.count
+            guard size <= ICalendarImport.maximumBytes, size <= maximumOutputBytes - total else { throw fail("aggregate extraction size limit") }
+            total += size
+        }
+        var result: [Key: Data] = [:]
+        for key in selected {
+            var output = prefix
+            output.append(calendar.bytes.subdata(in: indexed[key]!.range)); output.append(suffix)
+            result[key] = output
+        }
+        return result
+    }
     /// Replacements require an existing key; insertions require an absent key.
     /// Conflicting timezone definitions are refused rather than rewritten.
     public static func apply(original: Data, replacements: [Replacement], insertions: [Replacement] = [], deletions: [Key] = []) throws -> Result {

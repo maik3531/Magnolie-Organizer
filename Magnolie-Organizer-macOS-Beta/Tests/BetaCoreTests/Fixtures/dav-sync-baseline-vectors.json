@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "nativeFormat": "native-calendar-1",
+  "linuxSourceCommit": "067c38934b539943d8e1720abafd8a80b401d797",
+  "cases": [
+    {
+      "name": "empty appointment",
+      "kind": "appointment",
+      "input": {},
+      "nativeHash": "405f3cb53ef2da3da193dc1d33c1b97754a6d9047ca12a484a3c1165395298f4",
+      "nativeCanonical": "{\"akzentFarbe\":null,\"alarme\":null,\"datum\":null,\"endDatum\":null,\"endZeit\":null,\"ganztag\":null,\"icsAnzeigeZeitzone\":null,\"icsAusnahmeTermine\":null,\"icsAusnahmen\":null,\"icsElternUid\":null,\"icsEndeFehlt\":null,\"icsKomplex\":null,\"icsNullDauer\":null,\"icsOriginalDatum\":null,\"icsOriginalZeit\":null,\"icsRangeOverrides\":null,\"icsRoundtrip\":null,\"icsSequence\":null,\"icsSerienUid\":null,\"icsStatus\":null,\"icsTimezones\":null,\"icsZusatzDaten\":null,\"icsZusatzTermine\":null,\"individuelleErinnerungTage\":null,\"kalenderAnhaenge\":null,\"kategorien\":null,\"kostenstelle\":null,\"kunde\":null,\"notiz\":null,\"organisator\":null,\"ort\":null,\"standardErinnerung\":null,\"teilnehmer\":null,\"titel\":null,\"vertraulich\":null,\"vorlaeufig\":null,\"wiederholung\":{},\"zeit\":null}",
+      "linuxHash": "0a30a3a485b41501435b5a86297d6414e71a6b5bbdef3cb8ca6347750d78cadd"
+    },
+    {
+      "name": "unicode recurrence appointment",
+      "kind": "appointment",
+      "input": {
+        "titel": "Änne / Café ☕",
+        "notiz": "line1\nline2",
+        "datum": "2026-11-08",
+        "zeit": "09:30",
+        "vertraulich": false,
+        "icsSequence": 2,
+        "wiederholung": {
+          "art": "monthly",
+          "intervall": 1,
+          "ordinal": -1,
+          "wochentag": "FR",
+          "rruleForm": "bysetpos",
+          "bis": ""
+        },
+        "icsRoundtrip": [
+          "DTSTART;TZID=Europe/Berlin:20261108T093000",
+          "X-OPAQUE;KEY=x:Ä/ß"
+        ]
+      },
+      "nativeHash": "a7cf1bab93893fea20e1bcac546eccd8b9c8c3dc412aa666e861e360eb174e17",
+      "nativeCanonical": "{\"akzentFarbe\":null,\"alarme\":null,\"datum\":\"2026-11-08\",\"endDatum\":null,\"endZeit\":null,\"ganztag\":null,\"icsAnzeigeZeitzone\":null,\"icsAusnahmeTermine\":null,\"icsAusnahmen\":null,\"icsElternUid\":null,\"icsEndeFehlt\":null,\"icsKomplex\":null,\"icsNullDauer\":null,\"icsOriginalDatum\":null,\"icsOriginalZeit\":null,\"icsRangeOverrides\":null,\"icsRoundtrip\":[\"DTSTART;TZID=Europe/Berlin:20261108T093000\",\"X-OPAQUE;KEY=x:Ä/ß\"],\"icsSequence\":2,\"icsSerienUid\":null,\"icsStatus\":null,\"icsTimezones\":null,\"icsZusatzDaten\":null,\"icsZusatzTermine\":null,\"individuelleErinnerungTage\":null,\"kalenderAnhaenge\":null,\"kategorien\":null,\"kostenstelle\":null,\"kunde\":null,\"notiz\":\"line1\\nline2\",\"organisator\":null,\"ort\":null,\"standardErinnerung\":null,\"teilnehmer\":null,\"titel\":\"Änne / Café ☕\",\"vertraulich\":false,\"vorlaeufig\":null,\"wiederholung\":{\"art\":\"monthly\",\"bis\":\"\",\"intervall\":1,\"ordinal\":-1,\"wochentag\":\"FR\"},\"zeit\":\"09:30\"}",
+      "linuxHash": "593632e0978e861aa5804426449bf34d004f3ce7e2a3f092aababe3718fd5855"
+    },
+    {
+      "name": "empty task",
+      "kind": "task",
+      "input": {},
+      "nativeHash": "658a9f59e5dfaf1051c47c6cc4e4e7ebaf53c57f0d44b9144fa5226f8f4a4ae2",
+      "nativeCanonical": "{\"akzentFarbe\":null,\"alarme\":null,\"elternUid\":null,\"erinnern\":null,\"erinnerungsMinute\":480,\"erledigt\":null,\"faellig\":null,\"faelligZeit\":null,\"ganztag\":null,\"icsAnzeigeZeitzone\":null,\"icsAusnahmeTermine\":null,\"icsAusnahmen\":null,\"icsElternQuelleId\":null,\"icsElternUid\":null,\"icsEndeFehlt\":null,\"icsKomplex\":null,\"icsNullDauer\":null,\"icsOriginalDatum\":null,\"icsOriginalZeit\":null,\"icsQuelleId\":null,\"icsRangeOverrides\":null,\"icsRoundtrip\":null,\"icsSequence\":null,\"icsSerienUid\":null,\"icsStatus\":null,\"icsTimezones\":null,\"icsZusatzDaten\":null,\"icsZusatzTermine\":null,\"individuelleErinnerungTage\":null,\"kalenderAnhaenge\":null,\"kategorien\":null,\"kostenstelle\":null,\"kunde\":null,\"notiz\":null,\"organisator\":null,\"ort\":null,\"personen\":null,\"prio\":null,\"reihenfolge\":null,\"standardErinnerung\":null,\"startDatum\":null,\"startZeit\":null,\"teilnehmer\":null,\"titel\":null,\"vertraulich\":null,\"vorlaeufig\":null,\"wiederholung\":{}}",
+      "linuxHash": "c822818224f6f4282d30cd03ef050a5e6efa2ab7d17251f64fa123be7b02ee5f"
+    },
+    {
+      "name": "hierarchical task",
+      "kind": "task",
+      "input": {
+        "titel": "Task",
+        "faellig": "2026-11-09",
+        "prio": 2,
+        "erledigt": false,
+        "elternUid": "parent",
+        "reihenfolge": 2.5,
+        "icsRoundtrip": [
+          "RRULE:FREQ=DAILY;COUNT=3"
+        ],
+        "icsElternQuelleId": "ics:fixture"
+      },
+      "nativeHash": "64ac08b89c59f2b6aea700ffc1455d5453fb2fb2c4e6e1d5ba9657224c50387a",
+      "nativeCanonical": "{\"akzentFarbe\":null,\"alarme\":null,\"elternUid\":\"parent\",\"erinnern\":null,\"erinnerungsMinute\":480,\"erledigt\":false,\"faellig\":\"2026-11-09\",\"faelligZeit\":null,\"ganztag\":null,\"icsAnzeigeZeitzone\":null,\"icsAusnahmeTermine\":null,\"icsAusnahmen\":null,\"icsElternQuelleId\":\"ics:fixture\",\"icsElternUid\":null,\"icsEndeFehlt\":null,\"icsKomplex\":null,\"icsNullDauer\":null,\"icsOriginalDatum\":null,\"icsOriginalZeit\":null,\"icsQuelleId\":null,\"icsRangeOverrides\":null,\"icsRoundtrip\":[\"RRULE:FREQ=DAILY;COUNT=3\"],\"icsSequence\":null,\"icsSerienUid\":null,\"icsStatus\":null,\"icsTimezones\":null,\"icsZusatzDaten\":null,\"icsZusatzTermine\":null,\"individuelleErinnerungTage\":null,\"kalenderAnhaenge\":null,\"kategorien\":null,\"kostenstelle\":null,\"kunde\":null,\"notiz\":null,\"organisator\":null,\"ort\":null,\"personen\":null,\"prio\":2,\"reihenfolge\":2.5,\"standardErinnerung\":null,\"startDatum\":null,\"startZeit\":null,\"teilnehmer\":null,\"titel\":\"Task\",\"vertraulich\":null,\"vorlaeufig\":null,\"wiederholung\":{}}",
+      "linuxHash": "66f38001eeca193b6870e05c3a6f3c72d021917fdf97107df39fa8a726aa6919"
+    },
+    {
+      "name": "marked anniversary",
+      "kind": "anniversary",
+      "input": {
+        "name": "Birthday",
+        "datum": "--02-29",
+        "typ": "birthday",
+        "icsRoundtrip": [
+          "DTSTART;VALUE=DATE:20000229",
+          "RRULE:FREQ=YEARLY"
+        ]
+      },
+      "nativeHash": "c501aadc9407f75f1e7a5b2386c29d53b1a98d8d00cb676f9f89ad5161075a77",
+      "nativeCanonical": "{\"akzentFarbe\":null,\"alarme\":null,\"datum\":\"--02-29\",\"ganztag\":null,\"icsAnzeigeZeitzone\":null,\"icsAusnahmeTermine\":null,\"icsAusnahmen\":null,\"icsElternUid\":null,\"icsEndeFehlt\":null,\"icsKomplex\":null,\"icsNullDauer\":null,\"icsOriginalDatum\":null,\"icsOriginalZeit\":null,\"icsRangeOverrides\":null,\"icsRoundtrip\":[\"DTSTART;VALUE=DATE:20000229\",\"RRULE:FREQ=YEARLY\"],\"icsSequence\":null,\"icsSerienUid\":null,\"icsStatus\":null,\"icsTimezones\":null,\"icsZusatzDaten\":null,\"icsZusatzTermine\":null,\"individuelleErinnerungTage\":null,\"kalenderAnhaenge\":null,\"kategorien\":null,\"kostenstelle\":null,\"kunde\":null,\"name\":\"Birthday\",\"notiz\":null,\"organisator\":null,\"ort\":null,\"standardErinnerung\":null,\"teilnehmer\":null,\"typ\":\"birthday\",\"vertraulich\":null,\"vorlaeufig\":null}"
+    }
+  ]
+}

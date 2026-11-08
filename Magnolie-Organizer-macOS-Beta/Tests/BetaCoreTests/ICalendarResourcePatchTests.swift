@@ -61,6 +61,30 @@ final class ICalendarResourcePatchTests: XCTestCase {
         XCTAssertThrowsError(try Patch.apply(original: malformed, replacements: []))
         XCTAssertThrowsError(try Patch.keys(from: Data("BEGIN:VCALENDAR\rEND:VCALENDAR\r".utf8)))
     }
+    func testBatchExtractionPreservesWrapperZonesAndExactSelectedComponentBytes() throws {
+        let one=event("one", "X-OPAQUE:folded-\r\n\tvalue\r\n"), two=event("two"), todo=event("task",kind:"VTODO")
+        let original=calendar(zone+one+two+todo)
+        let selected=[Patch.Key(kind:"VEVENT",uid:"one"),Patch.Key(kind:"VTODO",uid:"task")]
+        let extracted=try Patch.extract(original:original,keys:selected)
+        XCTAssertEqual(extracted.count,2)
+        XCTAssertEqual(extracted[selected[0]],calendar(zone+one))
+        XCTAssertEqual(extracted[selected[1]],calendar(zone+todo))
+        XCTAssertEqual(original,calendar(zone+one+two+todo))
+        XCTAssertEqual(try Patch.keys(from:extracted[selected[0]]!),[selected[0]])
+    }
+    func testBatchExtractionDuplicateUnknownMalformedAndAggregateLimitsRejectAtomically() throws {
+        let key=Patch.Key(kind:"VEVENT",uid:"one"), original=calendar(zone+event("one")+event("two"))
+        XCTAssertThrowsError(try Patch.extract(original:original,keys:[key,key]))
+        XCTAssertThrowsError(try Patch.extract(original:original,keys:[key,.init(kind:"VEVENT",uid:"missing")]))
+        XCTAssertThrowsError(try Patch.extract(original:original,keys:[key],maximumOutputBytes:1))
+        XCTAssertThrowsError(try Patch.extract(original:original,keys:[key],maximumOutputBytes:0))
+        XCTAssertThrowsError(try Patch.extract(original:Data("broken".utf8),keys:[key]))
+        XCTAssertTrue(try Patch.extract(original:original,keys:[]).isEmpty)
+        let rid="RECURRENCE-ID;TZID=Europe/Berlin:20260329T120000"
+        let recurring=calendar(event("series",rid+"\r\n"))
+        XCTAssertThrowsError(try Patch.extract(original:recurring,keys:[.init(kind:"VEVENT",uid:"series",recurrenceID:rid),
+            .init(kind:"VEVENT",uid:"series",recurrenceID:"RECURRENCE-ID;RANGE=THISANDFUTURE;TZID=\"Europe/Berlin\";VALUE=DATE-TIME:20260329T120000")]))
+    }
     func testTimezoneAdditionAndConflictAreAtomic() throws {
         let original = calendar(zone + event("one"))
         let key = Patch.Key(kind: "VEVENT", uid: "one")

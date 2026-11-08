@@ -396,11 +396,11 @@ public enum ICalendarExport {
             throw BetaError("Source calendar times contradict the visible record. Export was cancelled instead of replacing them.")
         }
     }
-    private static func component(_ record: [String: Any], kind: Kind, taskParent: String? = nil) throws -> [String] {
+    private static func component(_ record: [String: Any], kind: Kind, taskParent: String? = nil, timestamp: Date, wireUID: String? = nil) throws -> [String] {
         try validateRecord(record, kind: kind)
         let sources = try raw(record), top = topLevel(sources), display = try displayZone(record)
         if kind == .appointments { try validateSourceAlarms(record, sources: sources) }
-        var generated: [String] = ["UID:" + escape(identifier(record)), "DTSTAMP:" + format(Date(), "yyyyMMdd'T'HHmmss'Z'")]
+        var generated: [String] = ["UID:" + escape(wireUID ?? identifier(record)), "DTSTAMP:" + format(timestamp, "yyyyMMdd'T'HHmmss'Z'")]
         let title = text(record, kind == .anniversaries ? "name" : "titel")
         guard !title.isEmpty else { throw BetaError("Calendar records need a title.") }
         generated.append("SUMMARY:" + escape(title))
@@ -436,7 +436,9 @@ public enum ICalendarExport {
             if !parent.isEmpty { generated.append("RELATED-TO;RELTYPE=PARENT:" + escape(parent)) }
             let order = try integer(record["reihenfolge"], default: 0)
             guard order >= 0 else { throw BetaError("Invalid task order.") }; generated.append("X-MAGNOLIE-REIHENFOLGE:" + String(order))
-            let identity: [String: Any] = ["v": 1, "source": text(record, "icsQuelleId"), "uid": identifier(record), "parent": parent,
+            let originalUID = text(record, "icsSerienUid").isEmpty ? (text(record, "uid").isEmpty ? identifier(record) : text(record, "uid")) : text(record, "icsSerienUid")
+            let originalParent = text(record, "elternUid").isEmpty ? parent : text(record, "elternUid")
+            let identity: [String: Any] = ["v": 1, "source": text(record, "icsQuelleId"), "uid": originalUID, "parent": originalParent,
                                          "parentSource": record["icsElternQuelleId"] as? String ?? text(record, "icsQuelleId")]
             generated.append("X-MAGNOLIE-TASK-IDENTITY:" + escape(try Document.encode(identity)))
         } else {
@@ -471,6 +473,10 @@ public enum ICalendarExport {
         for line in generated { let property = try Property(line); guard byName[property.name] == nil else { throw BetaError("Conflicting structured calendar fields.") }; byName[property.name] = property }
         let start = top.first(where: { $0.name == "DTSTART" }) ?? byName["DTSTART"]
         for property in top {
+            if property.name == "X-MAGNOLIE-ACCENT-COLOR", !property.parameters.isEmpty,
+               property.value.lowercased() != text(record, "akzentFarbe").lowercased() {
+                throw BetaError("Parameterized source accent color cannot be changed without losing its parameters.")
+            }
             if property.name == "RELATED-TO", property.parameters["RELTYPE"]?.uppercased() != "PARENT" { continue }
             if ["DTSTART", "DTEND", "DUE"].contains(property.name) {
                 if kind != .anniversaries { try validateProjection(clock(property, defaultZone: display), name: property.name, record: record, kind: kind) }
@@ -562,7 +568,7 @@ public enum ICalendarExport {
         } + byName.keys.sorted().compactMap { byName[$0]?.line } + sources.map { $0.line } + ["END:" + type]
     }
 
-    public static func encode(_ input: [[String: Any]], kind: Kind, defaultTimeZone: String = "system") throws -> String {
+    public static func encode(_ input: [[String: Any]], kind: Kind, defaultTimeZone: String = "system", timestamp: Date = Date(), wireUIDs: [String: String] = [:]) throws -> String {
         guard !input.isEmpty else { throw BetaError("There are no calendar records to export.") }
         let records = input.map { value -> [String: Any] in
             var copy = value
@@ -606,7 +612,7 @@ public enum ICalendarExport {
                 if matches.count == 1 { parent = identifier(matches[0]) }
                 else if matches.count > 1 { throw BetaError("Ambiguous task parent identity.") }
             }
-            let lines = try component(record, kind: kind, taskParent: parent)
+            let lines = try component(record, kind: kind, taskParent: parent, timestamp: timestamp, wireUID: wireUIDs[text(record, "uid")])
             components.append(lines)
             if let value = record["icsTimezones"] {
                 guard let blocks = value as? [[String]] else { throw BetaError("Invalid source time-zone definitions.") }
