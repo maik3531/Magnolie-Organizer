@@ -329,6 +329,24 @@ bauen. Linux-Parität, vollständige Sammlungs-/Lösch-/Wiederherstellungswege u
 gemeinsame physische Ende-zu-Ende-Abnahme bleiben offen; Capability 23 bleibt
 geschlossen.
 
+## Linux: begrenzte Kandidatenliste aus geschützten Zuordnungen
+
+Die lokale Exportauswahl kann nun ausschließlich die neuesten geschützten
+Zuordnungen seitenweise lesen. Der genaue Eigentümer-Snapshot bleibt über die
+Seiten gebunden. Sämtliche ursprünglichen Datensätze, Versionsköpfe und
+Vorgängerketten werden vor der Auswahl authentifiziert; nicht zugeordnete oder
+beschädigte Metadatensätze dürfen nicht durch einen Foto-/Videofilter verschwinden.
+Es werden keine Mediendateien geöffnet, geprüft, gesucht oder neu erzeugt.
+
+Die Liste ist nur historische Kandidatenmetadaten, keine Lese-, Schreib-,
+Lösch- oder Neustartberechtigung. Eine inzwischen fehlende Datei bleibt fehlend;
+der spätere tatsächliche Quellbesitzer muss sie mit Buch, Zustimmung und
+ursprünglicher Identität unabhängig öffnen. Zehn native Fälle prüfen begrenzte
+Seiten, Snapshot-Wechsel, Versionsköpfe, alle bestehenden Schutzdomänen,
+verwaiste Metadaten auch im jeweils anderen Medienfilter und fehlende Ziele
+ohne Wiederherstellung. Die normale Exportplanung und sichere Entscheidung
+gegenüber der letzten abgeschlossenen Quellversion bleiben noch offen.
+
 ## Linux: expliziter nativer Medien-Quellsender
 
 Der vorhandene private Linux-Quellsender besitzt zusätzlich zu seinem unveränderten
