@@ -45,6 +45,7 @@ class MedienWiederherstellungUiTest {
     private val thumbnails = mutableStateMapOf<String, android.graphics.Bitmap?>()
     private val thumbnailsEnabled = mutableStateOf(false)
     private var refreshed = 0
+    private val expandedChanges = mutableListOf<Boolean>()
 
     private fun row(state: String?, name: String = "Synthetic photo.jpg"): NativeGalleryRecoveryRow {
         val entry = NativeGalleryArchiveEntry("10000000-0000-0000-0000-000000000001", "a".repeat(64), 5, "b".repeat(64), name, 1000, true)
@@ -53,17 +54,20 @@ class MedienWiederherstellungUiTest {
                 if (it == "trashed") 2 else 4, it, 2000, "c".repeat(64))
         })
     }
-    private fun launch() {
+    private fun launch(expand: Boolean = true) {
         controller = Robolectric.buildActivity(ComponentActivity::class.java).create()
         view = ComposeView(controller!!.get()); view.setParentCompositionContext(recomposer)
         controller!!.get().setContentView(view)
         scope.launch { recomposer.runRecomposeAndApplyChanges() }
         view.setContent { MagnolieThema {
-            MedienVorschauOption(thumbnailsEnabled.value) { thumbnailsEnabled.value = it }
             MedienWiederherstellungListe(rows.value, busy.value, failed.value, { refreshed++ },
-                thumbnails = if (thumbnailsEnabled.value) thumbnails else emptyMap(), showPreview = { previewed += it }, restore = { restored += it })
+                thumbnails = if (thumbnailsEnabled.value) thumbnails else emptyMap(), showPreview = { previewed += it },
+                options = { MedienVorschauOption(thumbnailsEnabled.value) { thumbnailsEnabled.value = it } },
+                onExpandedChanged = { open -> expandedChanges += open; if (open) refreshed++ else thumbnailsEnabled.value = false },
+                restore = { restored += it })
         } }
         controller!!.start().resume().visible().windowFocusChanged(true); frames()
+        if (expand) toggle()
     }
     private fun frames() {
         repeat(12) {
@@ -84,6 +88,11 @@ class MedienWiederherstellungUiTest {
         text(it) == controller!!.get().getString(label) && it.config.getOrNull(SemanticsActions.OnClick) != null
     }
     private fun click(label: Int, root: View = view) { assertTrue(buttons(label, root).single().config[SemanticsActions.OnClick].action!!.invoke()); frames() }
+    private fun toggle() {
+        val control = nodes().single { text(it) in setOf("▸", "▾") && it.config.getOrNull(SemanticsActions.OnClick) != null }
+        assertEquals(listOf(controller!!.get().getString(R.string.media_recovery_title)), control.config[SemanticsProperties.ContentDescription])
+        assertTrue(control.config[SemanticsActions.OnClick].action!!.invoke()); frames()
+    }
 
     @Test fun listShowsTruthfulStatesAndOnlyConfirmedTrashOrProtectedHeldRowCanRestore() {
         rows.value = listOf(row("trashed"), row("restore_row_prepared", "Held.mp4"), row("prepared", "Uncertain.jpg"), row("restored", "Done.jpg"), row(null, "Only copy.jpg"))
@@ -93,12 +102,31 @@ class MedienWiederherstellungUiTest {
             R.string.media_recovery_restored, R.string.media_recovery_copy_only)) {
             assertTrue(nodes().any { text(it) == controller!!.get().getString(label) })
         }
-        assertTrue(restored.isEmpty()); assertEquals(0, refreshed)
+        assertTrue(restored.isEmpty()); assertEquals(1, refreshed)
+    }
+
+    @Test fun recoveryStartsCollapsedAndExpandingNeverRestoresOrEnablesThumbnails() {
+        val selected = row("trashed"); rows.value = listOf(selected); launch(expand = false)
+        assertTrue(nodes().any { text(it) == controller!!.get().getString(R.string.media_recovery_title) })
+        assertFalse("Recovery entries must start separately collapsed", nodes().any { text(it) == selected.entry.displayName })
+        assertTrue(buttons(R.string.journal_restore).isEmpty()); assertTrue(buttons(R.string.media_recovery_refresh).isEmpty())
+        assertTrue(nodes().none { it.config.getOrNull(SemanticsProperties.Role) == Role.Checkbox })
+        assertTrue(restored.isEmpty()); assertTrue(previewed.isEmpty()); assertEquals(0, refreshed)
+        assertTrue(expandedChanges.isEmpty())
+        toggle()
+        assertEquals(listOf(true), expandedChanges); assertEquals(1, refreshed)
+        assertTrue(nodes().any { text(it) == selected.entry.displayName })
+        assertEquals(1, buttons(R.string.journal_restore).size); assertFalse(thumbnailsEnabled.value)
+        busy.value = true; frames(); toggle()
+        assertEquals(listOf(true, false), expandedChanges); assertEquals(1, refreshed)
+        assertTrue(buttons(R.string.journal_restore).isEmpty()); assertTrue(buttons(R.string.media_recovery_refresh).isEmpty())
+        assertTrue(nodes().none { it.config.getOrNull(SemanticsProperties.Role) == Role.Checkbox })
+        assertTrue(restored.isEmpty()); assertTrue(previewed.isEmpty()); assertFalse(thumbnailsEnabled.value)
     }
 
     @Test fun nativeConfirmationIsRequiredAndKeepsTheExactVersionedSelection() {
         val selected = row("trashed"); rows.value = listOf(selected); launch()
-        click(R.string.media_recovery_refresh); assertEquals(1, refreshed)
+        click(R.string.media_recovery_refresh); assertEquals(2, refreshed)
         click(R.string.journal_restore); assertTrue(restored.isEmpty())
         var dialog = ShadowDialog.getLatestDialog(); assertTrue(dialog.isShowing)
         click(R.string.abbrechen, dialog.window!!.decorView); assertTrue(restored.isEmpty())
@@ -118,7 +146,7 @@ class MedienWiederherstellungUiTest {
         assertTrue(option.config[SemanticsActions.OnClick].action!!.invoke()); frames()
         assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(selected.entry.displayName) == true })
         click(R.string.journal_vorschau)
-        assertSame(selected, previewed.single()); assertTrue(restored.isEmpty()); assertEquals(0, refreshed)
+        assertSame(selected, previewed.single()); assertTrue(restored.isEmpty()); assertEquals(1, refreshed)
         assertTrue(nodes().single { it.config.getOrNull(SemanticsProperties.Role) == Role.Checkbox }.config[SemanticsActions.OnClick].action!!.invoke()); frames()
         assertFalse(nodes().any { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(selected.entry.displayName) == true })
         busy.value = true; frames()

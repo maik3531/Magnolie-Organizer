@@ -717,6 +717,15 @@ nur das Feld, den Wert und dessen Version. Fehlende Feldversion oder deaktiviert
 Abgleich sperren die Auswahl. Die vorhandene Prüfung der Aufnahmemetadaten in
 Galeriequelle und nativem Empfänger bleibt unverändert, ohne neue Android-Rechte.
 
+Der lokale Notes-Wiederherstellungsbereich startet separat eingeklappt, auch
+ohne Telefonkopplung. Archivladen beginnt erst beim ausdrücklichen Öffnen;
+Vorschauoption, Einträge und Aktionen bleiben vorher verborgen. Zuklappen
+entfernt Vorschauen und offene Bestätigungen, schaltet automatische Miniaturen
+wieder aus und beendet einen noch aktiven Restore-Kontext, ohne dessen native
+I/O-Handles vor tatsächlichem END zu schließen. Späte Vorschaubilder werden im
+geschlossenen Bereich verworfen statt erneut angezeigt. Dies ersetzt weder
+Aufbewahrungs-/Leeren-Funktion noch native Geräteabnahme.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

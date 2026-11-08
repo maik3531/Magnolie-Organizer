@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.telefon.*
@@ -37,6 +39,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
     var preview by remember { mutableStateOf<Pair<NativeGalleryRecoveryRow, Bitmap>?>(null) }
     var previewRestore by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
     var showThumbnails by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
     DisposableEffect(owner) { onDispose {
         session?.close(); owner.close(); thumbnails.values.forEach { it?.recycle() }; thumbnails.clear()
         preview?.second?.recycle(); preview = null
@@ -56,7 +59,6 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
             }
         } catch (_: Exception) { busy = false; failed = true; rows = emptyList() }
     }
-    LaunchedEffect(owner) { refresh() }
     fun restore(row: NativeGalleryRecoveryRow) {
         failed = false
         try {
@@ -65,7 +67,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
             session = native; busy = true
             owner.restore(native) { result ->
                 native.close(); session = null; busy = false; failed = result.isFailure
-                if (result.isSuccess) refresh()
+                if (result.isSuccess && expanded) refresh()
             }
         } catch (_: Exception) { session?.close(); session = null; busy = false; failed = true }
     }
@@ -76,7 +78,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
             owner.preview(row, permit(), 1024) { result ->
                 busy = false
                 result.onSuccess { bitmap ->
-                    if (row in rows) { preview?.second?.recycle(); preview = row to bitmap }
+                    if (expanded && row in rows) { preview?.second?.recycle(); preview = row to bitmap }
                     else bitmap.recycle()
                 }.onFailure { failed = true }
             }
@@ -101,11 +103,19 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
         thumbnails.keys.filter { it !in versions }.forEach { thumbnails.remove(it)?.recycle() }
         if (preview?.first?.let { it !in rows } == true) { preview?.second?.recycle(); preview = null }
     }
-    MedienVorschauOption(showThumbnails) { enabled ->
-            showThumbnails = enabled
-            if (!enabled) { thumbnails.values.forEach { it?.recycle() }; thumbnails.clear() }
-    }
-    MedienWiederherstellungListe(rows, busy, failed, ::refresh, thumbnails, ::showPreview, ::restore)
+    MedienWiederherstellungListe(rows, busy, failed, ::refresh, thumbnails, ::showPreview,
+        options = { MedienVorschauOption(showThumbnails) { enabled ->
+             showThumbnails = enabled
+             if (!enabled) { thumbnails.values.forEach { it?.recycle() }; thumbnails.clear() }
+        } }, onExpandedChanged = { open ->
+            expanded = open
+            if (open) refresh()
+            else {
+                session?.close(); session = null
+                showThumbnails = false; thumbnails.values.forEach { it?.recycle() }; thumbnails.clear()
+                preview?.second?.recycle(); preview = null; previewRestore = null
+            }
+        }, restore = ::restore)
     preview?.let { (row, bitmap) ->
         fun closePreview() { preview = null; bitmap.recycle() }
         AlertDialog(onDismissRequest = { closePreview() }, title = { Text(row.entry.displayName) },
@@ -137,10 +147,21 @@ internal fun MedienVorschauOption(enabled: Boolean, changed: (Boolean) -> Unit) 
 @Composable
 internal fun MedienWiederherstellungListe(rows: List<NativeGalleryRecoveryRow>, busy: Boolean, failed: Boolean,
     refresh: () -> Unit, thumbnails: Map<String, Bitmap?> = emptyMap(),
-    showPreview: ((NativeGalleryRecoveryRow) -> Unit)? = null, restore: (NativeGalleryRecoveryRow) -> Unit) {
+    showPreview: ((NativeGalleryRecoveryRow) -> Unit)? = null, options: @Composable () -> Unit = {},
+    onExpandedChanged: (Boolean) -> Unit = {}, restore: (NativeGalleryRecoveryRow) -> Unit) {
     var selected by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
+    var expanded by remember { mutableStateOf(false) }
     LaunchedEffect(rows) { if (selected != null && selected !in rows) selected = null }
-    Abschnitt(stringResource(R.string.media_recovery_title), hinweis = stringResource(R.string.media_recovery_hint)) {
+    val title = stringResource(R.string.media_recovery_title)
+    Abschnitt(title, hinweis = if (expanded) stringResource(R.string.media_recovery_hint) else "", kopfAktion = {
+        Papierknopf(if (expanded) "▾" else "▸", Modifier.semantics { contentDescription = title }) {
+            expanded = !expanded
+            if (!expanded) selected = null
+            onExpandedChanged(expanded)
+        }
+    }) {
+        if (!expanded) return@Abschnitt
+        options()
         if (busy) Text(stringResource(R.string.media_recovery_working))
         if (failed) Text(stringResource(R.string.media_recovery_unavailable))
         Papierknopf(stringResource(R.string.media_recovery_refresh), Modifier.fillMaxWidth(), aktiv = !busy) { refresh() }
