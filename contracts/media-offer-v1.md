@@ -704,6 +704,13 @@ gespeicherte PC→Telefon-/Zwei-Wege-Richtung sichtbar und unabhängig editierba
 Umfang. Weder die nur lesende Ansicht noch ein Umfangswechsel schreiben die
 Richtungsregister, Dateirechte oder Historien um.
 
+Notes verwendet dieselbe Trennung in seiner gespeicherten Einstellungsansicht
+und im nativen Compose-Richtungsmenü. Die Galerie-Empfangsaktion bleibt bei
+Import-only gesperrt, auch wenn die konfigurierte Richtung PC→Telefon oder
+Zwei-Wege ist. Die tatsächlichen Transport-Intents verwenden weiterhin nur
+die wirksame Richtung; ein Menüklick übergibt ausschließlich den gewählten
+Richtungswert und seine aktuelle native Feldversion.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

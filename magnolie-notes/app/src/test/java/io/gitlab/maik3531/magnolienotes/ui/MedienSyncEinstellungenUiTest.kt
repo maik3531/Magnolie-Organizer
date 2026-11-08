@@ -111,21 +111,36 @@ class MedienSyncEinstellungenUiTest {
         assertNotNull(nodes().single { text(it) == syncLabel }.config.getOrNull(SemanticsProperties.Disabled))
     }
 
-    @Test fun importScopeLocksDirectionAndReturningRestoresTheNativePcToPhoneChoice() {
+    @Test fun importScopeKeepsIndependentDirectionEditableWithoutEnablingGalleryReceive() {
         val pc = "11111111-1111-4111-8111-111111111111"
         val phone = "22222222-2222-4222-8222-222222222222"
         var body = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "enabled", JsonPrimitive(true))
         body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("pc_to_phone"))
         body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("import_only"))
-        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body), mediaPreferencesReady = true)
         launch(); open()
         assertTrue(nodes().any { text(it) == label(R.string.medien_sync_scope_import) })
-        assertNotNull(nodes().single { text(it) == label(R.string.medien_sync_direction_import) }.config.getOrNull(SemanticsProperties.Disabled))
+        val direction = nodes().single { text(it) == label(R.string.medien_sync_direction_export) }
+        assertNull(direction.config.getOrNull(SemanticsProperties.Disabled))
         assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        click(direction)
+        val choice = android.view.inspector.WindowInspector.getGlobalWindowViews().flatMap { nodes(it) }
+            .single { text(it) == label(R.string.personal_note_two_way) }
+        click(choice)
+        assertEquals(Triple("direction", JsonPrimitive("two_way"), versions.getValue("direction")), changes.single())
+        body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive("two_way"))
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
+        assertFalse(MediaSyncSettings.transferRequestedFor(body, "images", true))
+        for (kind in listOf(R.string.medien_sync_fotos, R.string.medien_sync_videos)) {
+            assertNotNull(nodes().single { text(it) == label(kind) + " · " + label(R.string.medien_empfang_erlauben) }
+                .config.getOrNull(SemanticsProperties.Disabled))
+        }
+        val directionRegister = body["settings"]!!.jsonObject["direction"]
         body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
-        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.effective(body)); frames()
-        assertNull(nodes().single { text(it) == label(R.string.medien_sync_direction_export) }.config.getOrNull(SemanticsProperties.Disabled))
-        assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = MediaSyncSettings.configured(body)); frames()
+        assertNull(nodes().single { text(it) == label(R.string.personal_note_two_way) }.config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(directionRegister, body["settings"]!!.jsonObject["direction"])
+        assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }
 
     @Test fun unsupportedOrMissingNativeValuesNeverExposeMediaControls() {

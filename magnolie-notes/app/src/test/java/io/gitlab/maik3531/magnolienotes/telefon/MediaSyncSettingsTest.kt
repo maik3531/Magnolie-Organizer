@@ -48,6 +48,8 @@ class MediaSyncSettingsTest {
             body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive(scope))
             body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive(direction))
             val before = body.toString(); val activeDirection = if (scope == "import_only") "phone_to_pc" else direction
+            assertEquals(JsonPrimitive(direction), MediaSyncSettings.configured(body)["direction"])
+            assertEquals(JsonPrimitive(scope), MediaSyncSettings.configured(body)["collection_mode"])
             assertEquals(JsonPrimitive(activeDirection), MediaSyncSettings.effective(body)["direction"])
             assertEquals(activeDirection in setOf("phone_to_pc", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", false))
             assertEquals(activeDirection in setOf("pc_to_phone", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", true))

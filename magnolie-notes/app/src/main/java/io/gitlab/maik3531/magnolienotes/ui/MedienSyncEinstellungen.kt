@@ -80,7 +80,7 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             "manual" to stringResource(R.string.shared_sync_manual), "wifi" to stringResource(R.string.personal_sync_auto_wlan)))
         choice("direction", stringResource(R.string.medien_sync_richtung), listOf(
             "phone_to_pc" to stringResource(R.string.medien_sync_direction_import), "two_way" to stringResource(R.string.personal_note_two_way),
-            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)), available = values["collection_mode"] != JsonPrimitive("import_only"))
+            "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)))
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
         val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
