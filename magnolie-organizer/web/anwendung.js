@@ -28998,7 +28998,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           modus.addEventListener("change", () => sende("mode_" + modus.value));
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
-        if (stand.destination) gruppe.append(formZeile(_("Destination folder"), el("span", null, stand.destination)));
         if (stand.animation_grouping_supported === true) {
           const animationen = document.createElement("input"); animationen.type = "checkbox";
           animationen.dataset.photoAnimations = "true";
@@ -29116,7 +29115,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           gruppe.append(videos);
         }
       }
-      if (stand.destination) gruppe.append(baueTelefonBackupOrdner(peer, stand));
+      if (stand.destination) {
+        const fotoOrdner = el("div", "kde-empfangsordner"), fotoPfad = document.createElement("input");
+        fotoPfad.type = "text"; fotoPfad.readOnly = true; fotoPfad.className = "feld";
+        fotoPfad.dataset.photoDestinationPath = "true"; fotoPfad.setAttribute("aria-label", _("Destination folder"));
+        fotoPfad.value = stand.destination; fotoPfad.title = fotoPfad.value;
+        const fotoZiel = knopf(_("Choose folder …"), "", () => Bruecke.sende({ cmd: "telefon_fotoziel_waehlen",
+          kennung: peer.device_id, fingerprint: peer.fingerprint })); fotoZiel.dataset.photoDestination = "true";
+        const fotoStandard = knopf(_("Use default"), "", () => sende("photos_default_destination")); fotoStandard.dataset.photoDestinationDefault = "true";
+        fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
+        fotoOrdner.append(fotoPfad, fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
+          el("p", "einst-hinweis", _("Existing files stay in their current folders.")), baueTelefonBackupOrdner(peer, stand));
+      }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       erweitert.append(gruppe); wurzel.append(erweitert);
     }

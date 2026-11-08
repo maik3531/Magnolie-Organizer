@@ -22349,7 +22349,7 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_foto_aktion(nachricht),
                              name="magnolie-photo-native-ui", daemon=True).start()
 
-        elif befehl == "telefon_videoziel_waehlen":
+        elif befehl in ("telefon_videoziel_waehlen","telefon_fotoziel_waehlen"):
             self._telefon_videoziel_waehlen(nachricht)
         elif befehl == "telefon_backupziel":
             self._telefon_backupziel(nachricht)
@@ -24825,12 +24825,14 @@ class Fenster(_FENSTER_BASIS):
         kennung=nachricht.get("kennung")
         try:
             if (self._gesperrt or not self._telefon or set(nachricht)!={"cmd","kennung","fingerprint"}
-                    or nachricht.get("cmd")!="telefon_videoziel_waehlen" or getattr(self,"_telefon_videoziel_dialog",False)
+                    or nachricht.get("cmd") not in ("telefon_videoziel_waehlen","telefon_fotoziel_waehlen") or getattr(self,"_telefon_videoziel_dialog",False)
                     or type(kennung) is not str or type(nachricht.get("fingerprint")) is not str):
                 raise ValueError("photo_sync_invalid_action")
             self._telefon_videoziel_dialog=True
             try:
-                pfad=self._ordner_waehlen(_("Destination folder"),standard=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
+                fotos=nachricht["cmd"]=="telefon_fotoziel_waehlen"
+                pfad=self._ordner_waehlen(_("Destination folder"),standard=GLib.get_user_special_dir(
+                    GLib.UserDirectory.DIRECTORY_PICTURES if fotos else GLib.UserDirectory.DIRECTORY_VIDEOS) or "")
             finally:self._telefon_videoziel_dialog=False
             if not pfad:
                 self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung, "canceled": True})
@@ -24838,7 +24840,8 @@ class Fenster(_FENSTER_BASIS):
             def annehmen():
                 try:
                     if self._gesperrt or not self._telefon:raise ValueError("photo_sync_unavailable")
-                    self._telefon.photo_sync_video_destination(kennung,nachricht["fingerprint"],pfad)
+                    auswahl=self._telefon.photo_sync_photo_destination if fotos else self._telefon.photo_sync_video_destination
+                    auswahl(kennung,nachricht["fingerprint"],pfad)
                     self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung})
                 except (ValueError, RuntimeError, OSError):
                     self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung, "error": _("Synchronization failed.")})

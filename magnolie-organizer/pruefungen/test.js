@@ -7520,11 +7520,21 @@ function knopfMit(text, wurzel) {
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
   fotoStand(undefined);
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
-  fotoStand({ available: true, enabled: false, state: "off", albums: [] });
+  fotoStand({ available: true, enabled: false, state: "off", albums: [], destination: "/native/Pictures/Notes-Fotos" });
   let fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen");
   assert.ok(fotoGruppe && bd.querySelector(".telefon-karte").contains(fotoGruppe) &&
     !bd.querySelector(".telefon-kde-karte").contains(fotoGruppe), "Fotoeinstellungen gehören ausschließlich zu Notes");
    const fotoAn = fotoGruppe.querySelector('input[type="checkbox"]');
+   const fotoPfad = fotoGruppe.querySelector("[data-photo-destination-path]");
+   assert.ok(fotoPfad.readOnly && fotoPfad.value === "/native/Pictures/Notes-Fotos" && fotoPfad.title === fotoPfad.value &&
+     fotoPfad.parentElement.classList.contains("kde-empfangsordner"));
+   assert.strictEqual(fotoPfad.parentElement.querySelectorAll("button").length, 2);
+   fotoGruppe.querySelector("[data-photo-destination]").click();
+   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1))), {
+     cmd: "telefon_fotoziel_waehlen", kennung: fotoPeer.device_id, fingerprint: fotoPeer.fingerprint });
+   fotoGruppe.querySelector("[data-photo-destination-default]").click();
+   assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "photos_default_destination" });
+   assert.ok(!fotoAn.checked, "Fotoordnerwahl aktiviert keinen Abgleich");
    const medienGruppe = fotoGruppe.querySelector("details.notes-foto-sync");
    assert.ok(!fotoGruppe.open && !medienGruppe.open, "Erweiterte Funktionen und Medien sind unabhängig standardmäßig eingeklappt");
    assert.ok(medienGruppe.querySelector("summary").contains(fotoAn), "Aktivierung gehört neben die eingeklappte Medienüberschrift");
@@ -7537,8 +7547,10 @@ function knopfMit(text, wurzel) {
    assert.ok(!medienGruppe.open && !fotoGruppe.open, "Aktivierung darf keine Gruppe aufklappen");
   assert.ok(baumNachrichten.some(value => value.cmd === "telefon_foto_aktion" && value.kennung === fotoPeer.device_id &&
     value.fingerprint === fotoPeer.fingerprint && value.request.action === "enable"), "explizite Fotoaktivierung erreicht den nativen Einstieg");
-  fotoStand({ available: true, enabled: true, state: "permission_required", mode: "manual", albums: [] });
+  fotoStand({ available: true, enabled: true, state: "permission_required", mode: "manual", albums: [], destination: "/native/Pictures/Notes-Fotos" });
    fotoGruppe = bd.querySelector(".notes-erweiterte-funktionen"); fotoGruppe.open = true;
+   assert.ok(fotoGruppe.querySelector("[data-photo-destination]").disabled && fotoGruppe.querySelector("[data-photo-destination-default]").disabled,
+     "Aktiver Fotoabgleich bietet keine nur ausgeschaltet nutzbare Zieländerung an");
    assert.ok(!fotoGruppe.querySelector("details.notes-foto-sync").open, "Die Mediengruppe folgt nicht automatisch der äußeren Gruppe");
    fotoGruppe.querySelector("details.notes-foto-sync").open = true;
   assert.ok(fotoGruppe.textContent.includes("Nur den Bestand auf dem Handy abgleichen") &&

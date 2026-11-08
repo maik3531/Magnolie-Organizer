@@ -2972,7 +2972,14 @@ class PhoneService:
         operation or a path. The native owner still validates the current pairing,
         protected preference CAS, explicit directory witness and OFF-only choice.
         """
-        if type(path) is not str or not path or len(path)>4096:raise ValueError('photo_sync_invalid_action')
+        return self._photo_sync_native_destination(peer_id,expected_fingerprint,path,'videos_destination')
+
+    def photo_sync_photo_destination(self,peer_id,expected_fingerprint,path):
+        return self._photo_sync_native_destination(peer_id,expected_fingerprint,path,'photos_destination')
+
+    def _photo_sync_native_destination(self,peer_id,expected_fingerprint,path,operation):
+        if operation not in ('photos_destination','videos_destination') or type(path) is not str or not path or len(path)>4096:
+            raise ValueError('photo_sync_invalid_action')
         if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
         with self.lock:
             channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
@@ -2981,7 +2988,7 @@ class PhoneService:
                 raise ValueError('phone_control_conflict')
             connection=self._native_file_connections.get(channel)
         if connection is None:raise ValueError('photo_sync_not_enabled')
-        return connection.desktop_session().start('videos_destination',destination_path=path)
+        return connection.desktop_session().start(operation,destination_path=path)
 
     def photo_sync_backup_locations(self,peer_id,expected_fingerprint,media_type,operation,version,book_version,path):
         """Private native IPC only, separate from public photo action/wire schemas."""
@@ -3000,7 +3007,7 @@ class PhoneService:
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',
-                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination')
+                    'videos_enable','videos_disable','videos_request_read','videos_discover','videos_sync','videos_default_destination','photos_default_destination')
                 or ('album_id' in request) != (request['action'] in ('sync','videos_sync'))
                 or ('job_owner' in request) != (request['action'] in ('recover_saved','repair_receipt'))
                 or ('historical_choice' in request) != (request['action'] in ('animations_separate','animations_together','captures_separate','captures_together'))

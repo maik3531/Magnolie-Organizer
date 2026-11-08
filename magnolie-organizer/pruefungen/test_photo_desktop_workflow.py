@@ -32,6 +32,39 @@ from magnolie_file_desktop_connection import NativePhotoDesktopSession
 from test_file_desktop_receive import receiving
 
 
+def test_explicit_photo_default_is_native_off_only_idempotent_and_retains_original_locations(receiving,tmp_path,monkeypatch):
+    prepared(receiving);service,peer,channel,connection=receiving[:4]
+    converge_controls(service,peer,channel)
+    session=connection.desktop_session();session._local_enabled(False);session._automatic_paused=True
+    before=connection._preferences.read();old=Path(before.policy.destination.path)
+    original=old/'keep-edited-photo.jpg';original.write_bytes(b'keep original photo')
+    from gi.repository import GLib
+    pictures=tmp_path/'Native-Pictures';pictures.mkdir(mode=0o700)
+    def directory(kind):
+        assert kind==GLib.UserDirectory.DIRECTORY_PICTURES;return str(pictures)
+    monkeypatch.setattr(GLib,'get_user_special_dir',directory)
+    from magnolie_media_backups import NativeMediaBackupLocations
+    from magnolie_file_acceptance import NativeAcceptedDestination
+    scope=sha256(phone.canonical(dict(subject=connection._preferences._subject,media_type='images'))).hexdigest()
+    first=tmp_path/'Former-Photos';first.mkdir(mode=0o700)
+    with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,lambda:True) as locations:
+        locations.choose(locations.issue_action(),locations.read(),NativeAcceptedDestination.capture(first),None)
+    sent=channel.send.call_count
+    request=lambda:service.photo_sync_action(peer['device_id'],phone.fingerprint(phone.unb64(peer['static_public'],32)),dict(action='photos_default_destination'))
+    request();assert session.join(15)
+    assert session.snapshot()['state']=='off',session.snapshot().get('error')
+    saved=connection._preferences.read();selected=Path(saved.policy.destination.path)
+    assert selected.parent==pictures and selected.name.endswith('-Fotos') and not saved.policy.enabled and session._automatic_paused
+    assert saved.policy.videos==before.policy.videos and saved.policy.mapping_store==before.policy.mapping_store and saved.policy.job_catalog==before.policy.job_catalog
+    assert original.read_bytes()==b'keep original photo' and not list(selected.iterdir()) and channel.send.call_count==sent
+    with NativeMediaBackupLocations(connection._authority.binding.native_directory,scope,lambda:True) as locations:
+        assert {str(old),str(first),str(selected)}<={str(parent.path) for _,parent in locations.sources(saved.policy.destination)}
+    request();assert session.join(15);assert connection._preferences.read()==saved and session._automatic_paused
+    active=connection._preferences.configure(connection._preferences.issue_action(),saved,enabled=True,mode=saved.mode)
+    request();assert session.join(15)
+    assert session.snapshot()['state']=='held' and connection._preferences.read()==active
+
+
 def converge_controls(service,peer,channel):
     for kind,body in (('capabilities.update',deepcopy(peer['capabilities'])),
                       ('grants.update',deepcopy(peer['grants'])),

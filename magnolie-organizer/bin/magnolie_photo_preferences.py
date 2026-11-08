@@ -533,10 +533,16 @@ class ProtectedPhotoPreferences:
         """
         return self._set_behavior(action,expected,{},video_settings=(enabled,destination_choice),historical_choice=historical_choice)
 
-    def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None):
+    def set_photo_destination(self,action,expected,choice,*,historical_choice):
+        return self._set_behavior(action,expected,{},photo_destination_choice=choice,historical_choice=historical_choice)
+
+    def _set_behavior(self,action,expected,changes,*,historical_choice=None,video_settings=None,photo_destination_choice=None):
         if type(action) is not NativePhotoDestinationAction:raise TransferError('photo_preferences_native_action_required')
         action.consume(self)
-        if video_settings is not None:
+        if photo_destination_choice is not None:
+            if changes or video_settings is not None or type(photo_destination_choice) is not NativePhotoDestinationChoice or historical_choice!='keep_existing':
+                raise TransferError('photo_preferences_historical_destination_choice_required')
+        elif video_settings is not None:
             if (changes or type(video_settings) is not tuple or len(video_settings)!=2 or type(video_settings[0]) is not bool
                     or video_settings[1] is not None and type(video_settings[1]) is not NativeVideoDestinationChoice
                     or historical_choice not in (None,'keep_existing')):
@@ -554,8 +560,19 @@ class ProtectedPhotoPreferences:
                 current=self._snapshot();policy=current.policy
                 if current.version!=expected.version:raise TransferError('photo_preferences_cas_conflict')
                 if (policy is None or not current.associated
-                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False)):
+                        or photo_destination_choice is not None and policy.enabled
+                        or not policy.enabled and not (video_settings is not None and video_settings[0] is False or photo_destination_choice is not None)):
                     raise TransferError('photo_preferences_authority_changed')
+                if photo_destination_choice is not None:
+                    choice=photo_destination_choice
+                    if (type(choice.owner) is not NativePhotoDestinationController or choice.owner._authority is not self._authority):
+                        raise TransferError('photo_preferences_foreign_destination_choice')
+                    selected=choice.owner.verify_choice(choice)
+                    if policy.destination is None:raise TransferError('photo_preferences_destination_required')
+                    if selected!=policy.destination:
+                        if policy.videos is not None and policy.videos.destination_token==choice.destination_token:
+                            raise TransferError('photo_preferences_distinct_destination_token_required')
+                        changes={'destination':selected,'destination_token':choice.destination_token}
                 video_choice=None
                 if video_settings is not None:
                     enabled,video_choice=video_settings
