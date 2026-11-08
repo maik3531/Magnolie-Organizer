@@ -4606,6 +4606,10 @@ textarea,
 /* The containing .baum-zeile already contributes a 10px row gap. */
 .telefon-karte .telefon-erweitert { flex: 1 1 100%; width: 100%; min-width: 0; box-sizing: border-box; margin: calc(5mm - 10px) 0 0; }
 .telefon-medien { min-width: 0; }
+.media-trash-thumbnail { width: 88px; height: 64px; object-fit: contain; vertical-align: middle; margin-inline-end: 8px; }
+.media-trash-preview { max-width: min(94vw, 1100px); max-height: 94vh; overflow: auto; background: var(--papier); color: var(--tinte); }
+.media-trash-preview::backdrop { background: #0008; }
+.media-trash-preview img { display: block; max-width: 100%; max-height: 72vh; object-fit: contain; margin: 12px auto; }
 .telefon-medien-aktivierung { display: inline-flex; align-items: center; margin-inline-start: 16px; vertical-align: middle; }
 .telefon-medien-aktivierung[hidden] { display: none; }
 .telefon-medien-aktivierung input { margin: 0; }

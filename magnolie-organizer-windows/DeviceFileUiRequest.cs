@@ -12,10 +12,10 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         string Text(string key) => TelefonMessagingContract.String(value, key);
         var action = Text("action"); var fields = new List<string> { "cmd", "requestId", "device_id", "action" };
         if (action is "pick_backup_parent" or "backup_default" or "backup_list" or "backup_restore" or "pick_destination" or "default_destination" or "discover" or "page" or "sync" or "request_read") fields.Add("media_type");
-        if (action is "pick_backup_parent" or "backup_default" or "backup_restore" or "trash_restore" or "trash_purge" or "mode" or "settings" or "pick_destination" or "default_destination" or "page" or "sync" or "request_read") fields.Add("version");
+        if (action is "pick_backup_parent" or "backup_default" or "backup_restore" or "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview" or "mode" or "settings" or "pick_destination" or "default_destination" or "page" or "sync" or "request_read") fields.Add("version");
         if (action is "backup_list" or "backup_restore" && value.ContainsKey("location_id")) fields.Add("location_id");
         if (action == "backup_restore") fields.Add("backup_id");
-        if (action is "trash_restore" or "trash_purge") fields.Add("operation_id");
+        if (action is "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview") fields.Add("operation_id");
         if (action == "mode") fields.Add("automatic");
         if (action is "page" or "sync") fields.Add("catalog_id");
         if (action is "backup_list" or "page" or "trash_list") fields.Add("after");
@@ -24,13 +24,13 @@ internal sealed record NativeMediaUiRequest(string RequestId, string PeerId, str
         if (action == "shared_setting") fields.AddRange(["field", "value", "version"]);
         if (action == "receive_consent") fields.AddRange(["granted", "version"]);
         TelefonProtocolContract.ExactObject(value, fields.ToArray());
-        if (Text("cmd") != "telefon_medien" || action is not ("pick_backup_parent" or "backup_default" or "shared_setting" or "receive_consent" or "activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "status" or "mode" or "settings" or "pick_destination" or "default_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
+        if (Text("cmd") != "telefon_medien" || action is not ("pick_backup_parent" or "backup_default" or "shared_setting" or "receive_consent" or "activate" or "backup_list" or "backup_restore" or "trash_list" or "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview" or "status" or "mode" or "settings" or "pick_destination" or "default_destination" or "discover" or "page" or "sync" or "cancel" or "request_read") ||
             !Regex.IsMatch(Text("requestId"), "\\A[A-Za-z0-9_-]{8,80}\\z") || !DeviceFileControl.Identity(Text("device_id")))
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var kind = value.ContainsKey("media_type") ? Text("media_type") : "images";
         if (kind is not ("images" or "video")) throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var version = value["version"] is null ? null : Text("version");
-        if (version is not null && !DeviceFileControl.Hash(version) || action is "shared_setting" or "receive_consent" or "backup_restore" or "trash_restore" or "trash_purge" or "page" or "sync" && version is null)
+        if (version is not null && !DeviceFileControl.Hash(version) || action is "shared_setting" or "receive_consent" or "backup_restore" or "trash_restore" or "trash_purge" or "trash_thumbnail" or "trash_preview" or "page" or "sync" && version is null)
             throw DeviceFileControl.Error("file_media_ui_request_invalid");
         var catalog = value.ContainsKey("catalog_id") ? Text("catalog_id") : null;
         var album = value.ContainsKey("album_id") ? Text("album_id") : null;

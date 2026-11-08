@@ -147,6 +147,15 @@ internal static class DeviceFileUiTests
         var remove = request.DeepClone().AsObject(); remove["action"] = "trash_purge";
         remove["operation_id"] = new string('a', 32); remove["version"] = new string('b', 64);
         _ = NativeMediaUiRequest.Parse(remove);
+        foreach (var action in new[] { "trash_thumbnail", "trash_preview" })
+        {
+            var preview = remove.DeepClone().AsObject(); preview["action"] = action;
+            TestAssert.That(NativeMediaUiRequest.Parse(preview).TrashOperation == new string('a', 32), "Preview lost its opaque operation.");
+            preview["path"] = @"C:\untrusted";
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted a filesystem path.");
+            preview.Remove("path"); preview["version"] = null;
+            TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(preview), "Preview accepted an unversioned selection.");
+        }
         remove["confirmed"] = true;
         TestAssert.Throws<InvalidDataException>(() => NativeMediaUiRequest.Parse(remove), "Browser confirmation bypassed the native removal dialog.");
         var backup = request.DeepClone().AsObject(); backup["action"] = "backup_restore"; backup["media_type"] = "images";

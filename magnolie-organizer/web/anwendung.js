@@ -30829,12 +30829,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
   const medienVorschaubilder = new Map();
-  let medienVorschauWartend = [], medienVorschauBeobachter = null, medienVorschauSchliessen = null;
+  let medienVorschauWartend = [], medienVorschauBeobachter = null, medienVorschauSchliessen = null, medienThumbnailsAn = false;
   const medienVorschauSchluessel = entry => entry.scope + "." + entry.operation + "." + entry.version;
 
   function starteMedienVorschaubilder() {
     const root = $("#medien-papierkorb"), oben = modalStapel.at(-1);
-    if (gesperrt || medienPapierkorb.pending || !root?.isConnected || (oben && !oben.dialog.contains(root))) return;
+    if (!medienThumbnailsAn || gesperrt || medienPapierkorb.pending || !root?.isConnected || (oben && !oben.dialog.contains(root))) return;
     while (medienVorschauWartend.length) {
       const entry = medienVorschauWartend.shift(), key = medienVorschauSchluessel(entry);
       if (!medienPapierkorb.entries.includes(entry) || medienVorschaubilder.get(key)?.status !== "queued") continue;
@@ -30875,6 +30875,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (medienPapierkorb.pending) clearTimeout(medienPapierkorb.pending.timer);
     medienVorschauSchliessen?.(false); medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
     medienVorschauWartend = []; medienVorschaubilder.clear();
+    medienThumbnailsAn = false;
     Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false });
     const root = $("#medien-papierkorb"); if (root) {
       root.querySelectorAll("img").forEach(bild => bild.removeAttribute("src"));
@@ -30918,7 +30919,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const root = $("#medien-papierkorb");
     if (!root) return;
     medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
-    if (typeof IntersectionObserver === "function") medienVorschauBeobachter = new IntersectionObserver(items => {
+    if (medienThumbnailsAn && typeof IntersectionObserver === "function") medienVorschauBeobachter = new IntersectionObserver(items => {
       for (const item of items) {
         if (!item.isIntersecting) continue;
         const entry = medienPapierkorb.entries.find(row => medienVorschauSchluessel(row) === item.target.dataset.mediaThumbnailKey);
@@ -30934,6 +30935,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     root.append(el("h3", null, _("Photos and videos") + (medienPapierkorb.error && !medienPapierkorb.entries.length
       ? "" : " (" + zahlText(medienPapierkorb.total) + ")")));
     root.append(el("p", "einst-hinweis", _("Media files use the retention period above, including “Never”. Use “Delete permanently” to remove an individual media entry now. Restoring never replaces an existing file.")));
+    const vorschauOption = el("label", "hak"), vorschauHak = document.createElement("input");
+    vorschauHak.type = "checkbox"; vorschauHak.checked = medienThumbnailsAn; vorschauHak.id = "medien-thumbnails-an";
+    vorschauHak.addEventListener("change", () => {
+      medienThumbnailsAn = vorschauHak.checked;
+      if (!medienThumbnailsAn) { medienVorschauWartend = []; medienVorschaubilder.clear(); }
+      zeichneMedienPapierkorb();
+    });
+    vorschauOption.append(vorschauHak, document.createTextNode(" " + _("Preview"))); root.append(vorschauOption);
     // A reply can be lost after native byte release. Never promise that files
     // were kept merely because a final completion could not be verified.
     if (medienPapierkorb.error) root.append(el("p", "einst-warnung", _("Failed") + " · " + _("Refresh")));
@@ -30942,7 +30951,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const list = el("div", "papierkorb-liste");
     for (const entry of medienPapierkorb.entries) {
       const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
-      const thumbnail = medienVorschaubilder.get(medienVorschauSchluessel(entry));
+      const thumbnail = medienThumbnailsAn ? medienVorschaubilder.get(medienVorschauSchluessel(entry)) : null;
       const ansehen = knopf(_("Preview"), "medien-papierkorb-vorschau", () => medienPapierkorbAnfordern("preview", entry));
       ansehen.dataset.mediaPreview = entry.operation; ansehen.dataset.mediaThumbnailKey = medienVorschauSchluessel(entry);
       ansehen.disabled = !!medienPapierkorb.pending; ansehen.title = entry.name + " · " + _("Preview");
@@ -30990,7 +30999,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         typeof preview.data_base64 === "string" && preview.data_base64.length > 0 && preview.data_base64.length <= 699052 && preview.data_base64.length % 4 === 0 &&
         /^[A-Za-z0-9+/]+={0,2}$/.test(preview.data_base64) && (preview.mime_type === "image/png" ? preview.data_base64.startsWith("iVBORw0KGgo") : preview.data_base64.startsWith("/9j/"));
       const result = valid ? { status: "ready", src: "data:" + preview.mime_type + ";base64," + preview.data_base64, width: preview.width, height: preview.height } : { status: "failed" };
-      if (pending.action === "thumbnail") {
+      if (pending.action === "thumbnail" && medienThumbnailsAn) {
         medienVorschaubilder.set(medienVorschauSchluessel(entry), result);
         const ready = [...medienVorschaubilder].filter(([, value]) => value.status === "ready");
         for (const [key] of ready.slice(0, Math.max(0, ready.length - 48))) medienVorschaubilder.set(key, { status: "evicted" });

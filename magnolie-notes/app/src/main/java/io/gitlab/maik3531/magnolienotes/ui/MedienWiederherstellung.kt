@@ -5,12 +5,14 @@ import android.content.ContextWrapper
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +36,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
     val thumbnails = remember(owner) { mutableStateMapOf<String, Bitmap?>() }
     var preview by remember { mutableStateOf<Pair<NativeGalleryRecoveryRow, Bitmap>?>(null) }
     var previewRestore by remember { mutableStateOf<NativeGalleryRecoveryRow?>(null) }
+    var showThumbnails by remember { mutableStateOf(false) }
     DisposableEffect(owner) { onDispose {
         session?.close(); owner.close(); thumbnails.values.forEach { it?.recycle() }; thumbnails.clear()
         preview?.second?.recycle(); preview = null
@@ -79,8 +82,8 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
             }
         } catch (_: Exception) { busy = false; failed = true }
     }
-    LaunchedEffect(rows, busy, preview, previewRestore) {
-        if (!busy && preview == null && previewRestore == null) {
+    LaunchedEffect(rows, busy, preview, previewRestore, showThumbnails) {
+        if (showThumbnails && !busy && preview == null && previewRestore == null) {
             val row = rows.take(NativeGalleryTrashArchive.MAX_ENTRIES).firstOrNull { it.entry.version !in thumbnails }
             if (row != null) {
                 thumbnails[row.entry.version] = null; busy = true
@@ -88,7 +91,7 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
                     owner.preview(row, permit(), 192) { result ->
                         busy = false
                         result.onSuccess { bitmap ->
-                            if (row in rows) thumbnails[row.entry.version] = bitmap else bitmap.recycle()
+                            if (showThumbnails && row in rows) thumbnails[row.entry.version] = bitmap else bitmap.recycle()
                         }
                     }
                 } catch (_: Exception) { busy = false }
@@ -97,6 +100,10 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
         val versions = rows.map { it.entry.version }.toSet()
         thumbnails.keys.filter { it !in versions }.forEach { thumbnails.remove(it)?.recycle() }
         if (preview?.first?.let { it !in rows } == true) { preview?.second?.recycle(); preview = null }
+    }
+    MedienVorschauOption(showThumbnails) { enabled ->
+            showThumbnails = enabled
+            if (!enabled) { thumbnails.values.forEach { it?.recycle() }; thumbnails.clear() }
     }
     MedienWiederherstellungListe(rows, busy, failed, ::refresh, thumbnails, ::showPreview, ::restore)
     preview?.let { (row, bitmap) ->
@@ -116,6 +123,14 @@ internal fun MedienWiederherstellung(ablage: Ablage) {
                 previewRestore = null; if (row in rows) restore(row)
             }) { Text(stringResource(R.string.journal_restore)) } },
             dismissButton = { TextButton(onClick = { previewRestore = null }) { Text(stringResource(R.string.abbrechen)) } })
+    }
+}
+
+@Composable
+internal fun MedienVorschauOption(enabled: Boolean, changed: (Boolean) -> Unit) {
+    Row {
+        Checkbox(checked = enabled, onCheckedChange = changed)
+        Text(stringResource(R.string.journal_vorschau))
     }
 }
 

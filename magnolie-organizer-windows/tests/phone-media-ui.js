@@ -87,6 +87,35 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   const retained = { operation_id: "a".repeat(32), version: "b".repeat(64), state: "trashed", display_name: "<img>my-file.jpg", media_type: "images" };
   reply({ after: 0, next_cursor: 128, trash: [retained] }); assert.equal(panel.querySelector("img"), null);
   assert(panel.textContent.includes("Permanent removal requires native confirmation"));
+  const previewSaves = saves;
+  assert.equal(panel.querySelector("[data-media-thumbnails]").checked, false, "Thumbnails must remain optional and off by default");
+  const raster = { mime_type: "image/png", width: 1, height: 1,
+    data_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aX0AAAAASUVORK5CYII=" };
+  const previewReply = (extra = {}) => reply({ operation_id: retained.operation_id, version: retained.version, preview: raster, ...extra });
+  saveAllowed = false;
+  buttons("Preview")[0].click(); await tick(); assert.equal(last().action, "trash_preview"); assert.equal(saves, previewSaves);
+  previewReply({ operation_id: "c".repeat(32) }); assert.equal(panel.querySelector("dialog"), null);
+  buttons("Preview")[0].click(); await tick(); previewReply({ preview: { ...raster, mime_type: "image/svg+xml" } });
+  assert.equal(panel.querySelector("dialog"), null, "Active or foreign content must never open in a recovery preview");
+  buttons("Preview")[0].click(); await tick(); previewReply();
+  const viewer = panel.querySelector("dialog"), privateImage = viewer.querySelector("img");
+  assert.equal(privateImage.alt, retained.display_name); assert(privateImage.src.startsWith("data:image/png;base64,"));
+  assert(viewer.textContent.includes(retained.display_name));
+  const viewedCalls = messages.length; viewer.querySelectorAll("button")[2].click();
+  assert.equal(messages.length, viewedCalls); assert.equal(panel.querySelector("dialog"), null); assert(!privateImage.hasAttribute("src"));
+  let observer;
+  w.IntersectionObserver = class {
+    constructor(callback) { this.callback = callback; this.elements = []; observer = this; }
+    observe(element) { this.elements.push(element); }
+    disconnect() { this.elements = []; }
+  };
+  const thumbnailOption = panel.querySelector("[data-media-thumbnails]");
+  thumbnailOption.closest("details").open = true;
+  thumbnailOption.click(); observer.callback(observer.elements.map(target => ({ target, isIntersecting: true })));
+  assert.equal(last().action, "trash_thumbnail"); previewReply();
+  assert(panel.querySelector(".media-trash-thumbnail")); assert.equal(saves, previewSaves);
+  thumbnailOption.click(); assert.equal(panel.querySelector(".media-trash-thumbnail"), null);
+  saveAllowed = true;
   saveAllowed = false; const beforePurge = messages.length;
   buttons("Delete permanently")[0].click(); await tick(); assert.equal(messages.length, beforePurge);
   saveAllowed = true; buttons("Delete permanently")[0].click(); await tick();
@@ -262,7 +291,11 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   api.changed({ device_id: peer }); await tick();
   assert(messages.length > beforeChanged && messages.slice(beforeChanged).every(message => message.action === "status"));
   assert.equal(saves, savesBeforeChanged); sharedReply();
+  buttons("Preview")[0].click(); await tick(); previewReply();
+  const detachedPreviewImage = panel.querySelector("dialog img"); assert(detachedPreviewImage);
   for (const old of [panel, legacyPanel, backupPanel, unsupported]) old.remove();
+  await tick();
+  assert(!detachedPreviewImage.hasAttribute("src"), "Lock/panel disposal must remove private raster sources from detached dialog nodes");
   master.checked = false; master.dispatchEvent(new w.Event("change")); await tick();
   const beforeBusyChanged = messages.length;
   api.changed({ device_id: peer }); assert.equal(messages.length, beforeBusyChanged);

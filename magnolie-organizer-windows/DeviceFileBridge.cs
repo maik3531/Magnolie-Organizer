@@ -78,6 +78,14 @@ internal sealed partial class BridgeDispatcher
                         trash = items.Skip(request.After).Take(128).Select(item => new { operation_id = item.Entry.Operation, version = item.Entry.Version,
                             state = item.Entry.State, changed_ms = item.Entry.ChangedMs, display_name = item.DisplayName, media_type = item.MediaType }) });
                     return;
+                case "trash_thumbnail":
+                case "trash_preview":
+                    var previewBook = NativeActorSavedBook() ?? throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                    var raster = await Task.Run(() => telefon.PreviewNativeMediaTrashUi(peerId, request.TrashOperation!, request.Version!,
+                        request.Action == "trash_thumbnail" ? 192 : 1024, NativeMediaPreviewDrawing.Render));
+                    if (NativeActorSavedBook() != previewBook) throw DeviceFileControl.Error("file_media_current_saved_book_required");
+                    await Reply(new { requestId, device_id = peerId, ok = true, operation_id = request.TrashOperation, version = request.Version,
+                        preview = new { mime_type = raster.MimeType, width = raster.Width, height = raster.Height, data_base64 = raster.DataBase64 } }); return;
                 case "trash_restore":
                     var restored = telefon.RestoreNativeMediaTrashUi(peerId, request.TrashOperation!, request.Version!);
                     await Reply(new { requestId, device_id = peerId, ok = true, state = restored.State }); return;

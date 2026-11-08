@@ -372,6 +372,10 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native reconcile / Windows mixed preview selects only new content", DeviceFileReconcileTests.WindowsMixedPreviewSelectsOnlyNewAsync);
     runner.Add("Device file native reconcile / Windows corrupt subset and reused owner HOLD", DeviceFileReconcileTests.WindowsSelectionRejectsChangedSubsetAsync);
     runner.Add("Device file native media trash / Windows original bytes restore and stale replay HOLD", DeviceFileMediaTrashTests.WindowsOriginalTrashRestoreAsync);
+    runner.Add("Device file native media trash / Windows readonly preview exact retained file and withdrawal HOLD", DeviceFileMediaTrashTests.WindowsReadonlyTrashPreviewAsync);
+    // Optional actual-product fixture, staged only by the bounded native probe.
+    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "preview-product")))
+        runner.Add("Device file native media trash / Windows actual product drawing preview", DeviceFileMediaTrashTests.WindowsActualProductDrawingPreviewAsync);
     runner.Add("Device file native media trash / Windows occupied restore and original retry", DeviceFileMediaTrashTests.WindowsRestoreOccupiedTargetAsync);
     runner.Add("Device file native media trash / Windows changed identity content and permit HOLD", DeviceFileMediaTrashTests.WindowsTrashChangedSourceAndPermitHoldAsync);
     runner.Add("Device file native media trash / Windows interrupted move and original recovery", DeviceFileMediaTrashTests.WindowsInterruptedMoveRecoveryAsync);

@@ -58,6 +58,56 @@
       node("p", "Media files use the saved recycle-bin retention period. Never means manual removal only. Restoring never replaces an existing file."), trashRows);
     settingsArea.append(trashArea);
     let nextTrash = null;
+    const trashThumbnails = node("input"), trashThumbnailLabel = node("label", "Preview");
+    trashThumbnails.type = "checkbox"; trashThumbnails.dataset.mediaThumbnails = "";
+    trashThumbnailLabel.prepend(trashThumbnails); trashArea.insertBefore(trashThumbnailLabel, trashRows);
+    const previewRows = new Map(); let thumbnailQueue = [], thumbnailObserver = null, previewDialog = null;
+    function closePreview() {
+      if (!previewDialog) return;
+      previewDialog.querySelectorAll("img").forEach(image => image.removeAttribute("src"));
+      previewDialog.remove(); previewDialog = null;
+    }
+    function clearPreviews() {
+      closePreview(); thumbnailObserver?.disconnect(); thumbnailObserver = null; thumbnailQueue = [];
+      for (const [id, item] of pending) if (item.root === root && ["trash_thumbnail", "trash_preview"].includes(item.action)) {
+        clearTimeout(item.timer); pending.delete(id);
+      }
+      trashRows.querySelectorAll("img").forEach(image => { image.removeAttribute("src"); image.remove(); });
+      previewRows.clear();
+    }
+    function pumpThumbnails() {
+      if (!trashThumbnails.checked || busy || previewDialog || !root.isConnected || !trashArea.open) return;
+      while (thumbnailQueue.length) {
+        const entry = thumbnailQueue.shift();
+        if (!entry.row.isConnected || entry.loaded) continue;
+        entry.loaded = true;
+        request("trash_thumbnail", entry.data, false); break;
+      }
+    }
+    function observeThumbnails() {
+      thumbnailObserver?.disconnect(); thumbnailObserver = null;
+      if (!trashThumbnails.checked || typeof IntersectionObserver !== "function") return;
+      thumbnailObserver = new IntersectionObserver(items => {
+        for (const item of items) {
+          const entry = previewRows.get(item.target.dataset.mediaOperation);
+          if (item.isIntersecting && entry && !entry.queued && !entry.loaded) { entry.queued = true; thumbnailQueue.push(entry); }
+        }
+        pumpThumbnails();
+      });
+      for (const entry of previewRows.values()) thumbnailObserver.observe(entry.row);
+    }
+    trashThumbnails.addEventListener("change", () => {
+      if (!trashThumbnails.checked) {
+        thumbnailQueue = []; thumbnailObserver?.disconnect();
+        for (const entry of previewRows.values()) { entry.loaded = entry.queued = false; entry.image?.removeAttribute("src"); entry.image?.remove(); entry.image = null; }
+      } else observeThumbnails();
+    });
+    trashArea.addEventListener("toggle", pumpThumbnails);
+    const previewLifetime = new MutationObserver(() => {
+      if (!root.isConnected) { clearPreviews(); previewLifetime.disconnect(); }
+    });
+    // Observe after the caller has had a chance to attach this panel.
+    queueMicrotask(() => { if (root.isConnected) previewLifetime.observe(document.body, { childList: true, subtree: true }); });
     let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
     let requestSequence = 0, appliedSettingsSequence = 0;
     let deferredStatus = false;
@@ -111,13 +161,17 @@
       if (pending.size >= 128) { status.textContent = t("Too many pending requests. Wait for the current operation."); return; }
       const requestId = crypto.randomUUID(), message = { cmd: "telefon_medien", requestId, device_id: peerId, action, ...data };
       const sequence = ++requestSequence;
-      const item = { root, peerId, action, receive: (reply, action) => receive(reply, action, sequence), until: now + 60000 };
+      const item = { root, peerId, action, receive: (reply, action) => receive(reply, action, sequence, data), until: now + 60000 };
       pending.set(requestId, item);
+      if (["trash_thumbnail", "trash_preview"].includes(action)) item.timer = setTimeout(() => {
+        if (pending.get(requestId) !== item) return;
+        pending.delete(requestId); busy = false; toggle(); pumpThumbnails();
+      }, 65000);
       if (action !== "status" && action !== "cancel") busy = true;
       if (action === "sync") { transfer = true; status.textContent = t("Waiting for native media status"); }
       if (action === "sync" || action === "discover") review.replaceChildren();
       toggle();
-      if (!send(message)) { pending.delete(requestId); busy = false; if (action === "sync") transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
+      if (!send(message)) { clearTimeout(item.timer); pending.delete(requestId); busy = false; if (action === "sync") transfer = false; restoreSharedInputs(); toggle(); status.textContent = t("Native media connection is unavailable."); }
     };
     const settings = () => {
       if (skip.indeterminate) {
@@ -170,7 +224,38 @@
     const activate = button("Enable", () => request("activate"), root); activate.hidden = true;
     manualSync = button("Synchronize now", () => selectedAlbum && catalog && request("sync", {
       media_type: kind, version: catalog.version, catalog_id: catalog.id, album_id: selectedAlbum }), manualArea);
-    function receive(reply, action, sequence) {
+    function receive(reply, action, sequence, data) {
+      if (action === "trash_thumbnail" || action === "trash_preview") {
+        busy = false;
+        const entry = previewRows.get(data.operation_id), preview = reply.preview, side = action === "trash_thumbnail" ? 192 : 1024;
+        const valid = reply.ok === true && entry?.row.isConnected && entry.data.version === data.version &&
+          reply.operation_id === data.operation_id && reply.version === data.version && preview &&
+          ["image/png", "image/jpeg"].includes(preview.mime_type) && Number.isSafeInteger(preview.width) && Number.isSafeInteger(preview.height) &&
+          preview.width > 0 && preview.height > 0 && Math.max(preview.width, preview.height) <= side &&
+          typeof preview.data_base64 === "string" && preview.data_base64.length > 0 && preview.data_base64.length <= 699052 &&
+          preview.data_base64.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(preview.data_base64) &&
+          (preview.mime_type === "image/png" ? preview.data_base64.startsWith("iVBORw0KGgo") : preview.data_base64.startsWith("/9j/"));
+        if (valid && (action === "trash_preview" || trashThumbnails.checked)) {
+          const image = node("img"); image.alt = entry.name; image.src = "data:" + preview.mime_type + ";base64," + preview.data_base64;
+          if (action === "trash_thumbnail") { image.className = "media-trash-thumbnail"; entry.row.prepend(image); entry.image = image; }
+          else {
+            closePreview(); previewDialog = node("dialog"); previewDialog.className = "media-trash-preview";
+            const heading = node("h3"); heading.textContent = entry.name; previewDialog.append(heading, image);
+            if (["prepared", "trashed", "restore_prepared"].includes(entry.state)) button("Restore", () => {
+              closePreview(); request("trash_restore", entry.data);
+            }, previewDialog);
+            if (["trashed", "purge_prepared"].includes(entry.state)) button("Delete permanently", () => {
+              closePreview(); request("trash_purge", entry.data);
+            }, previewDialog);
+            const close = button("Close", () => { closePreview(); pumpThumbnails(); }, previewDialog);
+            previewDialog.addEventListener("cancel", event => { event.preventDefault(); closePreview(); pumpThumbnails(); });
+            trashArea.append(previewDialog);
+            if (typeof previewDialog.showModal === "function") previewDialog.showModal(); else previewDialog.setAttribute("open", "");
+            close.focus();
+          }
+        }
+        toggle(); pumpThumbnails(); return;
+      }
       if (settingsActions.has(action)) {
         if (sequence < appliedSettingsSequence) return;
         appliedSettingsSequence = sequence;
@@ -181,6 +266,7 @@
         if (!reply.ok) { status.textContent = t("Media operation paused. No completion was confirmed."); return; }
       }
       if (reply.supported === false) {
+        clearPreviews();
         advanced.hidden = root.hidden = true; native = null; busy = transfer = false; catalog = null;
         albumChoice.replaceChildren(); albumChoice.hidden = true; selectedAlbum = null; review.replaceChildren(); trashRows.replaceChildren(); nextTrash = null;
         more.hidden = moreTrash.hidden = true; toggle(); return;
@@ -211,21 +297,28 @@
       }
       if (reply.canceled) { restoreSharedInputs(); toggle(); return; }
       if (action === "trash_list") {
+        clearPreviews();
         trashRows.replaceChildren();
         nextTrash = reply.next_cursor; moreTrash.hidden = !Number.isSafeInteger(nextTrash);
         for (const item of (reply.trash || []).slice(0, 128)) {
           const row = node("li"); row.append(document.createTextNode(String(item.display_name || "") + " · " + t(item.media_type === "video" ? "Videos" : "Photos")));
           trashRows.append(row);
           const data = { operation_id: item.operation_id, version: item.version };
+          row.dataset.mediaOperation = item.operation_id;
+          if (typeof data.operation_id === "string" && /^[0-9a-f]{32}$/.test(data.operation_id) && typeof data.version === "string" && /^[0-9a-f]{64}$/.test(data.version)) {
+            previewRows.set(data.operation_id, { row, data, state: item.state, name: String(item.display_name || ""), queued: false, loaded: false });
+            button("Preview", () => request("trash_preview", data, false), row);
+          }
           if (["prepared", "trashed", "restore_prepared"].includes(item.state))
             button(item.state === "prepared" ? "Recover operation" : "Restore", () => request("trash_restore", data), row);
           if (["trashed", "purge_prepared"].includes(item.state))
             button("Delete permanently", () => request("trash_purge", data), row);
         }
         status.textContent = t(trashRows.children.length ? "Media recycle bin loaded. Permanent removal requires native confirmation." : "No retained media entries on this page.");
-        toggle(); return;
+        toggle(); observeThumbnails(); return;
       }
       if (action === "trash_restore" || action === "trash_purge") {
+        clearPreviews();
         trashRows.replaceChildren(); nextTrash = null; moreTrash.hidden = true;
         status.textContent = t("Media recycle-bin operation finished. Read the entries again before another operation.");
         toggle(); return;
@@ -393,7 +486,7 @@
       const item = pending.get(reply.requestId);
       if (!item || reply.device_id !== item.peerId || !item.root.isConnected || item.until < Date.now()) return;
       if (reply.state === "running") item.until = Date.now() + 2 * 60 * 60 * 1000;
-      else pending.delete(reply.requestId);
+      else { clearTimeout(item.timer); pending.delete(reply.requestId); }
       item.receive(reply, item.action);
     }
   };
