@@ -156,6 +156,20 @@ def validate_imports(module, fixtures, output):
         print('Canonical native import/reexport roundtrip: ' + case['name'], flush=True)
 
 
+def validate_resource_patch(module, output):
+    before = module.ics_lesen((output / 'patch-before.ics').read_text())
+    after = module.ics_lesen((output / 'patch-after.ics').read_text())
+    expected = module.ics_lesen((output / 'patch-expected.ics').read_text())
+    for group in ['termine', 'aufgaben', 'jahrestage']:
+        if [stable(x) for x in after[group]] != [stable(x) for x in expected[group]]:
+            raise AssertionError('Resource patch differs from independently parsed expected calendar: ' + group)
+    if len(before['termine']) != len(after['termine']) or len(before['aufgaben']) != len(after['aufgaben']):
+        raise AssertionError('Resource patch lost sibling records')
+    if [x['titel'] for x in after['termine']] != ['Changed', 'Original']:
+        raise AssertionError('Resource patch did not selectively edit its target')
+    print('Published parser resource-patch sibling/recurrence/task oracle passed', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--swift')
@@ -176,6 +190,7 @@ def main():
             subprocess.run([args.swift, 'test', '--scratch-path', str(root / 'swift-build'), '--jobs', '2'], cwd=BETA, env=env, check=True, timeout=300)
             validate(module, fixtures, output)
             validate_imports(module, fixtures, output)
+            validate_resource_patch(module, output)
         else:
             print('Swift calendar export NOT executed; pass --swift for native/portable validation.', flush=True)
 
