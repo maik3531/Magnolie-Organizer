@@ -29013,10 +29013,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const empfang = DATEN.einstellungen.sync.kdeEmpfang;
     const empfangMoeglich = !!kde.paired && !!kde.device_id;
     const empfangSpeichern = () => {
-      empfang.geraetId = empfang.dateien ? kde.device_id || "" : "";
+      empfang.geraetId = empfang.dateien || empfang.zwischenablage ? kde.device_id || "" : "";
       planeSpeichern();
       Bruecke.sende({ cmd: "kde_receive_settings", files: empfang.dateien, deviceId: empfang.geraetId,
-        directory: empfang.ordner, chooseEach: empfang.ordnerBeiAnnahme });
+        directory: empfang.ordner, chooseEach: empfang.ordnerBeiAnnahme,
+        clipboard: empfang.zwischenablage, automaticClipboard: empfang.zwischenablage && empfang.zwischenablageAutomatisch });
     };
     const empfangOption = el("div", "kde-empfang-option");
     const empfangAn = document.createElement("input"); empfangAn.type = "checkbox";
@@ -29062,7 +29063,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     const ordnerReihe = el("div", "kde-empfangsordner"); ordnerReihe.append(ordnerPfad, ordnerWaehlen, ordnerStandard);
     kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
-      el("p", "einst-hinweis", _("Incoming KDE Connect files (always confirm)")), empfangOption, ordnerLabel, ordnerReihe);
+      el("p", "einst-hinweis", _("Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled.")), empfangOption, ordnerLabel, ordnerReihe);
+    const clipboard = document.createElement("input"); clipboard.type = "checkbox";
+    clipboard.id = "kde-zwischenablage-an"; clipboard.checked = empfang.zwischenablage;
+    clipboard.disabled = !empfang.zwischenablage && !empfangMoeglich;
+    const clipboardLabel = el("label", "hak");
+    clipboardLabel.append(clipboard, document.createTextNode(" " + _("Transfer received text to the clipboard")));
+    const autoClipboard = document.createElement("input"); autoClipboard.type = "checkbox";
+    autoClipboard.id = "kde-zwischenablage-automatisch"; autoClipboard.checked = empfang.zwischenablageAutomatisch;
+    autoClipboard.disabled = !empfangMoeglich || !clipboard.checked;
+    const autoClipboardLabel = el("label", "hak hak-eingerueckt");
+    autoClipboardLabel.append(autoClipboard, document.createTextNode(" " + _("Accept automatically")));
+    clipboard.addEventListener("change", () => {
+      empfang.zwischenablage = clipboard.checked;
+      if (!clipboard.checked) { autoClipboard.checked = false; empfang.zwischenablageAutomatisch = false; }
+      autoClipboard.disabled = !empfangMoeglich || !clipboard.checked;
+      empfangSpeichern();
+    });
+    autoClipboard.addEventListener("change", () => {
+      empfang.zwischenablageAutomatisch = autoClipboard.checked; empfangSpeichern();
+    });
+    kdeBlock.append(clipboardLabel, autoClipboardLabel);
     erweitert.id = "kde-erweiterte-funktionen";
     erweitert.append(el("summary", null, _("Advanced functions")));
     baueKdeEingabe(erweitert);
@@ -33632,19 +33653,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kdeEmpfangGeprueft(nutzlast) {
       const aktiv = kdeEmpfangAktiv;
       if (!aktiv || nutzlast?.id !== aktiv.id || aktiv.beendet || aktiv.dialog) return;
-      if (!nutzlast.live || !Array.isArray(nutzlast.files) || !nutzlast.files.length) {
+      const clipboard = nutzlast?.kind === "clipboard" && typeof nutzlast.text === "string";
+      if (!nutzlast.live || (!clipboard && (!Array.isArray(nutzlast.files) || !nutzlast.files.length))) {
         kdeEmpfangAktiv = null; frageKdeEmpfang(); return;
       }
       if (gesperrt || dialogAufloeser) {
         kdeEmpfangAngebote.unshift({ id: aktiv.id }); kdeEmpfangAktiv = null; return;
       }
-      const vorschau = nutzlast.files.map(datei => String(datei.name || _("Unknown file")) +
+      if (clipboard && nutzlast.automatic === true) {
+        Bruecke.sende({ cmd: "kde_receive_decide", id: aktiv.id, accept: true });
+        kdeEmpfangAktiv = null; frageKdeEmpfang(); return;
+      }
+      const vorschau = clipboard ? nutzlast.text : nutzlast.files.map(datei => String(datei.name || _("Unknown file")) +
         " · " + geraeteGroesse(datei.size)).join("\n");
-      const antwort = frage(_("Receive files"), _("Accept"), _("Reject"), vorschau, true);
+      const antwort = frage(clipboard ? _("Transfer received text to the clipboard") : _("Receive files"), _("Accept"), _("Reject"), vorschau, true);
       aktiv.dialog = dialogAufloeser;
       antwort.then(ja => {
         if (aktiv.beendet) return;
-        Bruecke.sende({ cmd: ja ? "kde_receive_ziel_waehlen" : "kde_receive_decide", id: aktiv.id, accept: !!ja });
+        Bruecke.sende({ cmd: ja && !clipboard ? "kde_receive_ziel_waehlen" : "kde_receive_decide", id: aktiv.id, accept: !!ja });
       }).finally(() => { if (kdeEmpfangAktiv === aktiv) kdeEmpfangAktiv = null; frageKdeEmpfang(); });
     },
     kdeEmpfangBeendet(nutzlast) {

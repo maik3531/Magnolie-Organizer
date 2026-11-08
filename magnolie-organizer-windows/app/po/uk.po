@@ -4949,6 +4949,15 @@ msgstr "Готово."
 msgid "Reason"
 msgstr "Причина"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Отримання вхідних файлів завжди потребує підтвердження. Текст із буфера обміну також потребує підтвердження, якщо автоматичне приймання не ввімкнено явним чином."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Перенести отриманий текст до буфера обміну"
+
+msgid "Accept automatically"
+msgstr "Приймати автоматично"
+
 msgid "Receive with KDE Connect"
 msgstr "Отримувати через KDE Connect"
 

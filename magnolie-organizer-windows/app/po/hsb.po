@@ -5013,6 +5013,15 @@ msgstr "Hotowo."
 msgid "Reason"
 msgstr "Přičina"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Dochadźace dataje so přeco wobkrućeja. Tekst z mjezyskłada so wobkrući, chibazo je awtomatiske přiwzaće wuraznje zmóžnjene."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Přijaty tekst do mjezyskłada přenjesć"
+
+msgid "Accept automatically"
+msgstr "Awtomatisce přiwzać"
+
 msgid "Receive with KDE Connect"
 msgstr "Z KDE Connect přijimać"
 

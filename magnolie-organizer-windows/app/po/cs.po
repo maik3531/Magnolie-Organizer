@@ -4930,6 +4930,15 @@ msgstr "Připraveno."
 msgid "Reason"
 msgstr "Důvod"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Příchozí soubory se vždy potvrzují. Text ze schránky se potvrzuje, pokud není výslovně povoleno automatické přijímání."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Přenést přijatý text do schránky"
+
+msgid "Accept automatically"
+msgstr "Přijímat automaticky"
+
 msgid "Receive with KDE Connect"
 msgstr "Přijímat pomocí KDE Connect"
 

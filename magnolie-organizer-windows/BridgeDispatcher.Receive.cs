@@ -12,17 +12,21 @@ internal sealed partial class BridgeDispatcher
     private bool ReceiveOwnerCurrent(string? owner) => owner is not null && !disposed &&
         currentPlainTextAvailable && !restoreInProgress && NativeActorBookSource() == owner;
 
-    private void ConfigureReceive(bool enabled, string device, string directory = "", bool chooseEach = true)
+    private void ConfigureReceive(bool enabled, string device, string directory = "", bool chooseEach = true,
+        bool clipboard = false, bool automaticClipboard = false)
     {
         var owner = NativeActorBookSource();
-        if (!ReceiveOwnerCurrent(owner)) enabled = false;
+        if (!ReceiveOwnerCurrent(owner)) enabled = clipboard = false;
         var destination = !enabled || chooseEach ? "" : directory.Length != 0 ? directory : NativeMethods.UserDownloadsPath();
-        var signature = JsonSerializer.Serialize(new { enabled, device = enabled ? device : "", destination, owner });
+        var signature = JsonSerializer.Serialize(new { enabled, clipboard, automaticClipboard = clipboard && automaticClipboard,
+            device = enabled || clipboard ? device : "", destination, owner });
         lock (receiveConfigurationGate)
         {
             if (signature == receiveConfigurationSignature) return;
             if (enabled) kdeConnectSms.ConfigureFileReceive(true, device, destination, () => ReceiveOwnerCurrent(owner));
             else kdeInstance?.ConfigureFileReceive(false, "", "");
+            if (clipboard) kdeConnectSms.ConfigureClipboardReceive(true, device, automaticClipboard, () => ReceiveOwnerCurrent(owner));
+            else kdeInstance?.ConfigureClipboardReceive(false, "", false);
             receiveConfigurationSignature = signature;
         }
     }
@@ -36,12 +40,14 @@ internal sealed partial class BridgeDispatcher
             if (root.TryGetProperty("einstellungen", out var settings) && settings.TryGetProperty("sync", out var sync) &&
                 sync.TryGetProperty("kdeEmpfang", out var receive) && receive.ValueKind == JsonValueKind.Object)
                 ConfigureReceive(Boolean(receive, "dateien"), Text(receive, "geraetId"), Text(receive, "ordner"),
-                    !receive.TryGetProperty("ordnerBeiAnnahme", out var choose) || choose.ValueKind != JsonValueKind.False);
+                    !receive.TryGetProperty("ordnerBeiAnnahme", out var choose) || choose.ValueKind != JsonValueKind.False,
+                    Boolean(receive, "zwischenablage"), Boolean(receive, "zwischenablageAutomatisch"));
             else ConfigureReceive(false, "");
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             kdeInstance?.ConfigureFileReceive(false, "", "");
+            kdeInstance?.ConfigureClipboardReceive(false, "", false);
             lock (receiveConfigurationGate) receiveConfigurationSignature = "";
             RotatingLog.Append(Path.Combine(paths.Logs, "background.log"), "KDE receive configuration: " + error.GetType().Name);
         }
@@ -56,7 +62,8 @@ internal sealed partial class BridgeDispatcher
         {
             if (!ReceiveOwnerCurrent(NativeActorBookSource())) return;
             ConfigureReceive(Boolean(message, "files"), Text(message, "deviceId"), Text(message, "directory"),
-                !message.TryGetProperty("chooseEach", out var choose) || choose.ValueKind != JsonValueKind.False);
+                !message.TryGetProperty("chooseEach", out var choose) || choose.ValueKind != JsonValueKind.False,
+                Boolean(message, "clipboard"), Boolean(message, "automaticClipboard"));
             return;
         }
         if (command == "kde_receive_directory")
@@ -76,10 +83,28 @@ internal sealed partial class BridgeDispatcher
         if (!ReceiveId(id)) return;
         if (command == "kde_receive_angebot")
         {
+            var clipboard = kdeInstance?.CurrentClipboardReceiveProposal(id);
+            if (clipboard is not null && ReceiveOwnerCurrent(NativeActorBookSource()))
+            {
+                await form.SendAsync("App.kdeEmpfangGeprueft", new { id, live = true, kind = "clipboard",
+                    text = clipboard.Text, automatic = clipboard.Automatic });
+                return;
+            }
             var live = kdeInstance?.CurrentFileReceiveProposal(id);
             await form.SendAsync("App.kdeEmpfangGeprueft", live is null ? new { id, live = false } :
                 (object)new { id, live = true, destination_fixed = live.DestinationFixed,
                     files = live.Files.Select(file => new { name = file.Name, size = file.Size }) });
+            return;
+        }
+        if (command == "kde_receive_decide" && kdeInstance?.CurrentClipboardReceiveProposal(id) is not null)
+        {
+            var accept = Boolean(message, "accept") && ReceiveOwnerCurrent(NativeActorBookSource());
+            var text = kdeInstance.TakeClipboardReceive(id, accept);
+            if (text is not null && ReceiveOwnerCurrent(NativeActorBookSource()))
+            {
+                if (text.Length == 0) Clipboard.Clear(); else Clipboard.SetText(text);
+            }
+            await form.SendAsync("App.kdeEmpfangBeendet", new { id });
             return;
         }
         if (command == "kde_receive_decide" && !Boolean(message, "accept"))
@@ -145,6 +170,13 @@ internal sealed partial class BridgeDispatcher
         await form.SendAsync("App.kdeEmpfangAngebot", new { id = live.Id, device_id = live.DeviceId,
             size = live.Size, destination_fixed = live.DestinationFixed,
             files = live.Files.Select(file => new { name = file.Name, size = file.Size }) });
+    });
+
+    private void HandleKdeClipboardProposed(KdeClipboardReceiveProposal proposal) => _ = SafeBackgroundAsync(async () =>
+    {
+        if (kdeInstance?.CurrentClipboardReceiveProposal(proposal.Id) is null || !ReceiveOwnerCurrent(NativeActorBookSource())) return;
+        if (!proposal.Automatic) form.ShowTelefonNotification(T("Transfer received text to the clipboard"), T("Open"));
+        await form.SendAsync("App.kdeEmpfangAngebot", new { id = proposal.Id });
     });
 
     private void HandleKdeFileReceiveProgress(KdeFileReceiveProgress progress) => _ = SafeBackgroundAsync(async () =>

@@ -57,6 +57,7 @@ internal sealed partial class BridgeDispatcher
                     created.PairingChanged += HandleKdePairingChanged; created.DigitizerReceived += HandleKdeDigitizer;
                     created.FileProposed += HandleKdeFileProposed; created.FileReceiveProgress += HandleKdeFileReceiveProgress;
                     created.FileSaved += HandleKdeFileSaved;
+                    created.ClipboardProposed += HandleKdeClipboardProposed;
                     created.ConfigureInput(permitted: () => !disposed && !form.IsDisposed && !form.Disposing && currentPlainTextAvailable);
                     kdeInstance = created; return created;
                 }

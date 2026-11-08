@@ -1196,6 +1196,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                     active.TryGetValue(connection.Identity.DeviceId, out var current) && ReferenceEquals(current, connection)).ConfigureAwait(false);
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type is KdeShareProtocol.Request or KdeShareProtocol.Update) HandleFileReceivePacket(connection, packet);
+                else if (packet.Type is ClipboardPacket or ClipboardConnectPacket) HandleClipboardPacket(connection, packet);
                 else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
                 else if (packet.Type == KdeSftpDescription.Packet) HandleFilesystemPacket(connection, packet);

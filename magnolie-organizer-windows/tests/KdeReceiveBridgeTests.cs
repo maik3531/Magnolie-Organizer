@@ -11,6 +11,12 @@ namespace MagnolieOrganizer.Windows
     {
         internal static string UserDownloadsPath() => "C:\\Native-Downloads-Fixture";
     }
+    internal static class Clipboard
+    {
+        internal static string Value = "original fixture clipboard";
+        internal static void SetText(string value) => Value = value;
+        internal static void Clear() => Value = "";
+    }
     internal enum DialogResult { OK, Cancel }
     internal sealed class FolderBrowserDialog : IDisposable
     {
@@ -33,12 +39,22 @@ namespace MagnolieOrganizer.Windows
     internal sealed class KdeReceiveBridgeService
     {
         internal KdeFileReceiveProposal? Proposal;
+        internal KdeClipboardReceiveProposal? ClipboardProposal;
+        internal readonly List<(bool Enabled, string Device, bool Automatic, Func<bool>? Permission)> ClipboardConfigurations = [];
         internal readonly List<(bool Enabled, string Device, string Directory, Func<bool>? Permission)> Configurations = [];
         internal readonly List<(string Id, string Directory)> Accepted = [];
         internal readonly List<string> Rejected = [];
         internal void ConfigureFileReceive(bool enabled, string device, string directory, Func<bool>? permission = null) =>
             Configurations.Add((enabled, device, directory, permission));
         internal KdeFileReceiveProposal? CurrentFileReceiveProposal(string id) => Proposal?.Id == id ? Proposal : null;
+        internal void ConfigureClipboardReceive(bool enabled, string device, bool automatic, Func<bool>? permission = null) =>
+            ClipboardConfigurations.Add((enabled, device, automatic, permission));
+        internal KdeClipboardReceiveProposal? CurrentClipboardReceiveProposal(string id) => ClipboardProposal?.Id == id ? ClipboardProposal : null;
+        internal string? TakeClipboardReceive(string id, bool accept)
+        {
+            var current = CurrentClipboardReceiveProposal(id); ClipboardProposal = null;
+            return accept ? current?.Text : null;
+        }
         internal Task RejectFileReceiveAsync(string id) { Rejected.Add(id); return Task.CompletedTask; }
         internal Task<JsonObject> AcceptFileReceiveAsync(string id, string directory, CancellationToken cancellation)
         { cancellation.ThrowIfCancellationRequested(); Accepted.Add((id, directory)); return Task.FromResult(new JsonObject { ["ok"] = true, ["id"] = id }); }
@@ -121,6 +137,40 @@ namespace MagnolieOrganizer.Windows
             currentPlainTextAvailable = false;
             Tests.TestAssert.That(!kdeInstance.Configurations.Last().Permission!(), "Lock retained native receiving authority.");
         }
+
+        internal async Task CheckClipboardBridgeAsync()
+        {
+            ConfigureReceive(false, "fixture", clipboard: true);
+            Tests.TestAssert.That(kdeInstance.ClipboardConfigurations.Single().Enabled &&
+                !kdeInstance.ClipboardConfigurations.Single().Automatic, "Clipboard receive did not default to confirmation.");
+            var id = new string('c', 32);
+            async Task Send(string command, bool accept)
+            {
+                using var input = JsonDocument.Parse(JsonSerializer.Serialize(new { cmd = command, id, accept, text = "injected" }));
+                await KdeReceiveAsync(input.RootElement);
+            }
+            kdeInstance.ClipboardProposal = new(id, "fixture", "Actual received clipboard text", false);
+            await Send("kde_receive_angebot", false);
+            var projection = JsonSerializer.SerializeToElement(form.Sent.Last().Payload);
+            Tests.TestAssert.That(projection.GetProperty("kind").GetString() == "clipboard" &&
+                projection.GetProperty("text").GetString() == kdeInstance.ClipboardProposal.Text &&
+                !projection.GetProperty("automatic").GetBoolean(), "Clipboard preview did not read the actual live offer.");
+            await Send("kde_receive_decide", false);
+            Tests.TestAssert.That(Clipboard.Value == "original fixture clipboard", "Rejecting an offer changed the clipboard.");
+            kdeInstance.ClipboardProposal = new(id, "fixture", "Actual received clipboard text", false);
+            await Send("kde_receive_decide", true);
+            Tests.TestAssert.That(Clipboard.Value == "Actual received clipboard text", "Native receive used a caller-supplied clipboard value.");
+            kdeInstance.ClipboardProposal = new(id, "fixture", "Revoked offer", false);
+            currentPlainTextAvailable = false;
+            await Send("kde_receive_decide", true);
+            Tests.TestAssert.That(Clipboard.Value == "Actual received clipboard text", "Locked book accepted an old clipboard offer.");
+            currentPlainTextAvailable = true;
+            ConfigureReceive(false, "fixture", clipboard: true, automaticClipboard: true);
+            Tests.TestAssert.That(kdeInstance.ClipboardConfigurations.Last().Automatic, "Explicit automatic acceptance was lost.");
+            kdeInstance.ClipboardProposal = new(id, "fixture", "", true);
+            await Send("kde_receive_decide", true);
+            Tests.TestAssert.That(Clipboard.Value == "", "Received empty clipboard did not clear its previous text.");
+        }
     }
 }
 
@@ -128,6 +178,10 @@ namespace MagnolieOrganizer.Windows.Tests
 {
     internal static class KdeReceiveBridgeTests
     {
-        internal static Task RunAsync() => new BridgeDispatcher().CheckReceiveBridgeAsync();
+        internal static async Task RunAsync()
+        {
+            await new BridgeDispatcher().CheckReceiveBridgeAsync();
+            await new BridgeDispatcher().CheckClipboardBridgeAsync();
+        }
     }
 }

@@ -4971,6 +4971,15 @@ msgstr "Gotowe."
 msgid "Reason"
 msgstr "Powód"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Przychodzące pliki zawsze wymagają potwierdzenia. Tekst ze schowka wymaga potwierdzenia, chyba że wyraźnie włączono automatyczne akceptowanie."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Przenieś odebrany tekst do schowka"
+
+msgid "Accept automatically"
+msgstr "Akceptuj automatycznie"
+
 msgid "Receive with KDE Connect"
 msgstr "Odbieraj przez KDE Connect"
 

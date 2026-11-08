@@ -52,6 +52,15 @@ internal sealed class KdeConnectSms : IDisposable
     internal Task<JsonObject> AcceptFileReceiveAsync(string id, string directory, CancellationToken cancellation) =>
         native.AcceptFileReceiveAsync(id, directory, cancellation);
     internal Task RejectFileReceiveAsync(string id) => native.RejectFileReceiveAsync(id);
+    internal void ConfigureClipboardReceive(bool enabled, string deviceId, bool automatic, Func<bool>? permitted = null)
+    {
+        if (enabled || backend.IsValueCreated) native.ConfigureClipboardReceive(enabled, deviceId, automatic, permitted);
+    }
+    internal KdeClipboardReceiveProposal? CurrentClipboardReceiveProposal(string id) =>
+        backend.IsValueCreated ? backend.Value.CurrentClipboardReceiveProposal(id) : null;
+    internal string? TakeClipboardReceive(string id, bool accept) => backend.IsValueCreated ? backend.Value.TakeClipboardReceive(id, accept) : null;
+    internal event Action<KdeClipboardReceiveProposal>? ClipboardProposed
+    { add => native.ClipboardProposed += value; remove { if (backend.IsValueCreated) backend.Value.ClipboardProposed -= value; } }
     internal event Action<KdeFileReceiveProposal>? FileProposed
     { add => native.FileProposed += value; remove { if (backend.IsValueCreated) backend.Value.FileProposed -= value; } }
     internal event Action<KdeFileReceiveProgress>? FileReceiveProgress

@@ -4709,6 +4709,15 @@ msgstr "就绪。"
 msgid "Reason"
 msgstr "原因"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "始终需要确认传入文件。除非明确启用自动接受，否则也需要确认剪贴板文本。"
+
+msgid "Transfer received text to the clipboard"
+msgstr "将收到的文本传送到剪贴板"
+
+msgid "Accept automatically"
+msgstr "自动接受"
+
 msgid "Receive with KDE Connect"
 msgstr "通过 KDE Connect 接收"
 

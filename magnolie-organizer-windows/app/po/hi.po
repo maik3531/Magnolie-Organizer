@@ -4828,6 +4828,15 @@ msgstr "तैयार।"
 msgid "Reason"
 msgstr "कारण"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "आने वाली फ़ाइलों की हमेशा पुष्टि की जाती है। क्लिपबोर्ड टेक्स्ट की भी पुष्टि की जाती है, जब तक स्वचालित स्वीकृति को स्पष्ट रूप से सक्षम न किया गया हो।"
+
+msgid "Transfer received text to the clipboard"
+msgstr "प्राप्त टेक्स्ट को क्लिपबोर्ड पर भेजें"
+
+msgid "Accept automatically"
+msgstr "अपने आप स्वीकार करें"
+
 msgid "Receive with KDE Connect"
 msgstr "KDE Connect से प्राप्त करें"
 

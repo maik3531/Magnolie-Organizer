@@ -9,7 +9,8 @@ internal sealed partial class KdeConnectDirectBackend
     private readonly IKdeFilesystemBrowser filesystem;
     private JsonObject OwnIdentity() => KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort,
         localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows(), filesystemSupported: filesystem.Available,
-        systemVolumeSupported: systemVolume is not null, fileReceiveSupported: FileReceiveAdvertised);
+        systemVolumeSupported: systemVolume is not null, fileReceiveSupported: FileReceiveAdvertised,
+        clipboardReceiveSupported: ClipboardReceiveAdvertised);
 
     private Connection FilesystemConnection(string id)
     {

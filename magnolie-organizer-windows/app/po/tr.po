@@ -4913,6 +4913,15 @@ msgstr "Hazır."
 msgid "Reason"
 msgstr "Neden"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Gelen dosyalar için her zaman onay istenir. Otomatik kabul açıkça etkinleştirilmedikçe pano metni için de onay istenir."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Alınan metni panoya aktar"
+
+msgid "Accept automatically"
+msgstr "Otomatik kabul et"
+
 msgid "Receive with KDE Connect"
 msgstr "KDE Connect ile al"
 

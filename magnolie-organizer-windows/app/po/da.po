@@ -4916,6 +4916,15 @@ msgstr "Klar."
 msgid "Reason"
 msgstr "Årsag"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Indgående filer skal altid bekræftes. Tekst fra udklipsholderen skal bekræftes, medmindre automatisk accept udtrykkeligt er aktiveret."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Overfør modtaget tekst til udklipsholderen"
+
+msgid "Accept automatically"
+msgstr "Acceptér automatisk"
+
 msgid "Receive with KDE Connect"
 msgstr "Modtag med KDE Connect"
 

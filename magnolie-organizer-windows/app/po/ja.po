@@ -4863,6 +4863,15 @@ msgstr "準備完了。"
 msgid "Reason"
 msgstr "理由"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "受信ファイルは必ず確認されます。クリップボードのテキストも、自動承認を明示的に有効にしていない限り確認されます。"
+
+msgid "Transfer received text to the clipboard"
+msgstr "受信したテキストをクリップボードに転送"
+
+msgid "Accept automatically"
+msgstr "自動的に承認"
+
 msgid "Receive with KDE Connect"
 msgstr "KDE Connect で受信"
 

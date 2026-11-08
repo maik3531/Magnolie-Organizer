@@ -4999,6 +4999,15 @@ msgstr "جاهز."
 msgid "Reason"
 msgstr "السبب"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "يُطلب دائمًا تأكيد الملفات الواردة. ويُطلب تأكيد نص الحافظة ما لم يُمكَّن القبول التلقائي صراحةً."
+
+msgid "Transfer received text to the clipboard"
+msgstr "نقل النص المستلم إلى الحافظة"
+
+msgid "Accept automatically"
+msgstr "القبول تلقائيًا"
+
 msgid "Receive with KDE Connect"
 msgstr "الاستقبال عبر KDE Connect"
 

@@ -161,7 +161,7 @@ internal static class KdeConnectProtocol
         return result;
     }
 
-    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false, bool localInputSupported = false, bool filesystemSupported = false, bool systemVolumeSupported = false, bool fileReceiveSupported = false)
+    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false, bool localInputSupported = false, bool filesystemSupported = false, bool systemVolumeSupported = false, bool fileReceiveSupported = false, bool clipboardReceiveSupported = false)
     {
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
@@ -195,6 +195,11 @@ internal static class KdeConnectProtocol
         {
             body["incomingCapabilities"]!.AsArray().Add(KdeShareProtocol.Request);
             body["incomingCapabilities"]!.AsArray().Add(KdeShareProtocol.Update);
+        }
+        if (clipboardReceiveSupported)
+        {
+            body["incomingCapabilities"]!.AsArray().Add(KdeConnectDirectBackend.ClipboardPacket);
+            body["incomingCapabilities"]!.AsArray().Add(KdeConnectDirectBackend.ClipboardConnectPacket);
         }
         if (!string.IsNullOrEmpty(targetDeviceId))
         { body["targetDeviceId"] = targetDeviceId; body["targetProtocolVersion"] = Version; }

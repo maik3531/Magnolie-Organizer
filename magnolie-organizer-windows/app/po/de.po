@@ -4982,6 +4982,15 @@ msgstr "Bereit."
 msgid "Reason"
 msgstr "Grund"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "Eingehende Dateien werden immer bestätigt. Text aus der Zwischenablage wird bestätigt, sofern die automatische Annahme nicht ausdrücklich aktiviert ist."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Empfangenen Text in die Zwischenablage übertragen"
+
+msgid "Accept automatically"
+msgstr "Automatisch annehmen"
+
 msgid "Receive with KDE Connect"
 msgstr "Mit KDE Connect empfangen"
 

@@ -4982,6 +4982,15 @@ msgstr "Pronto."
 msgid "Reason"
 msgstr "Motivo"
 
+msgid "Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled."
+msgstr "I file in arrivo richiedono sempre conferma. Il testo degli appunti richiede conferma, a meno che l'accettazione automatica non sia abilitata esplicitamente."
+
+msgid "Transfer received text to the clipboard"
+msgstr "Trasferisci il testo ricevuto negli appunti"
+
+msgid "Accept automatically"
+msgstr "Accetta automaticamente"
+
 msgid "Receive with KDE Connect"
 msgstr "Ricevi con KDE Connect"
 

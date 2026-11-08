@@ -140,6 +140,7 @@
     <Compile Include="..\KdeConnectDirectBackend.MediaPayload.cs" Link="KdeConnectDirectBackend.MediaPayload.cs" />
     <Compile Include="..\KdeConnectDirectBackend.ReceiveTransport.cs" Link="KdeConnectDirectBackend.ReceiveTransport.cs" />
     <Compile Include="..\KdeConnectDirectBackend.Receive.cs" Link="KdeConnectDirectBackend.Receive.cs" />
+    <Compile Include="..\KdeConnectDirectBackend.Clipboard.cs" Link="KdeConnectDirectBackend.Clipboard.cs" />
     <Compile Include="..\KdeRegisteredPlayers.cs" Link="KdeRegisteredPlayers.cs" />
     <Compile Include="..\KdeInputState.cs" Link="KdeInputState.cs" />
     <Compile Include="..\KdeWindowsInput.cs" Link="KdeWindowsInput.cs" />

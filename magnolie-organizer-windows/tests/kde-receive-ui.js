@@ -54,6 +54,20 @@ const web = path.resolve(__dirname, "../app/web");
     w.App.kdeEmpfangGeprueft({ id, live: true, files: [{ name: "old owner", size: 1 }] });
     assert.ok(w.document.querySelector("#dialog-schleier").classList.contains("verborgen"));
 
+    const textId = "c".repeat(32);
+    w.App.kdeEmpfangAngebot({ id: textId });
+    w.App.kdeEmpfangGeprueft({ id: textId, live: true, kind: "clipboard", text: "<img src=x> received text", automatic: false });
+    assert(w.document.querySelector("#dialog-hinweis").textContent.includes("<img src=x> received text"));
+    assert.equal(w.document.querySelector("#dialog-hinweis img"), null);
+    assert.equal(commands().at(-1).cmd, "kde_receive_angebot", "Clipboard applied before confirmation");
+    w.document.querySelector("#dialog-ja").click(); await settle();
+    assert.deepEqual(commands().at(-1), { cmd: "kde_receive_decide", id: textId, accept: true });
+    w.App.kdeEmpfangBeendet({ id: textId });
+    w.App.kdeEmpfangAngebot({ id: later });
+    w.App.kdeEmpfangGeprueft({ id: later, live: true, kind: "clipboard", text: "explicit automatic mode", automatic: true });
+    assert.deepEqual(commands().at(-1), { cmd: "kde_receive_decide", id: later, accept: true });
+    assert(w.document.querySelector("#dialog-schleier").classList.contains("verborgen"));
+
     init({ einstellungen: { sync: { kdeEmpfang: { dateien: false, geraetId: "phone",
       ordner: "/home/phone/LinuxDownload", zwischenablage: true, zwischenablageAutomatisch: true } } } });
     const prefs = w.OrganizerTest.daten().einstellungen.sync.kdeEmpfang;
@@ -66,7 +80,7 @@ const web = path.resolve(__dirname, "../app/web");
     w.OrganizerTest.baueEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
     const option = w.document.querySelector(".kde-empfang-option");
     assert.ok(option && option.querySelectorAll('input[type="checkbox"]').length === 1,
-      "Windows offered an unimplemented clipboard receiver");
+      "File reception must remain a separate setting");
     assert.equal(option.closest("#kde-erweiterte-funktionen"), null, "Basic receive settings were hidden inside advanced functions");
     const checkbox = option.querySelector("input"); assert.equal(checkbox.disabled, false);
     checkbox.checked = true; checkbox.dispatchEvent(new w.Event("change"));
@@ -87,6 +101,14 @@ const web = path.resolve(__dirname, "../app/web");
     assert.equal(commands().at(-1).directory, prefs.ordner);
     folderRow.querySelectorAll("button")[1].click();
     assert.equal(prefs.ordner, ""); assert.equal(commands().at(-1).directory, "");
+    const textEnabled = w.document.querySelector("#kde-zwischenablage-an");
+    const automaticText = w.document.querySelector("#kde-zwischenablage-automatisch");
+    assert(textEnabled.checked && automaticText.checked, "Explicit existing clipboard choices were discarded");
+    automaticText.checked = false; automaticText.dispatchEvent(new w.Event("change"));
+    assert.equal(commands().at(-1).clipboard, true); assert.equal(commands().at(-1).automaticClipboard, false);
+    textEnabled.checked = false; textEnabled.dispatchEvent(new w.Event("change"));
+    assert.equal(commands().at(-1).clipboard, false); assert.equal(automaticText.disabled, true);
+    assert.equal(prefs.zwischenablageAutomatisch, false);
     w.App.telefonStand({ peers: [], kdeconnect: { paired: false, available: false } });
     w.OrganizerTest.baueEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
     const disable = w.document.querySelector(".kde-empfang-option input");
