@@ -1,14 +1,19 @@
 """#429: actual native shared-setting actions, independent of RECEIVE/SEND."""
 from pathlib import Path
+from types import SimpleNamespace
+import ast
 import sys
 sys.path.insert(0,str(Path(__file__).parents[1]/'bin'))
 import pytest
 import magnolie_telefon as phone
+import magnolie_hintergrund as background
 from magnolie_file_control import KIND as CONTROL
 from test_file_authenticated_desktop import native
 from test_media_sending_setup import setup_peer
 from test_media_source_connection import dispatch
 from test_media_source_sender import message
+from test_media_source_connection import source,receiving,mappings,composition
+from test_media_source_worker import warm_metadata
 
 
 def confirm(h):
@@ -71,3 +76,68 @@ def test_invalid_native_shared_setting_does_not_create_records_or_change_grants(
         with pytest.raises((ValueError,RuntimeError)):change(h,field,value,before['version'])
         assert c.desktop_snapshot()['shared_media']==before and c._media_transport._store.read() is None
         assert c._preferences.read()==policy and c._source_pending is None and c._mapped_worker is None
+
+
+@pytest.mark.parametrize('valid',[True,False])
+def test_actual_gtk_action_echoes_only_bounded_request_ids_and_reaches_native_setting(native,tmp_path,valid):
+    with setup_peer(native,tmp_path,'fresh') as h:
+        c=confirm(h);answers=[];reports=[];before=c._preferences.read()
+        tree=ast.parse((Path(__file__).parents[1]/'bin/magnolie-organizer').read_text())
+        method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef) for node in cls.body
+            if isinstance(node,ast.FunctionDef) and node.name=='_telefon_foto_aktion')
+        namespace={'_':lambda text:text}
+        exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-shared-setting-action','exec'),namespace)
+        server=background.IPCServer(None,str(tmp_path/'shared-choice.sock'),phone_backend=h.service,
+            settings_getter=lambda:background.normalize_settings({})).start()
+        try:
+            window=SimpleNamespace(_gesperrt=False,_telefon=background.PhoneServiceProxy(server.path),antwort=lambda name,value:answers.append((name,value)),
+                _telefon_stand_melden=lambda:reports.append(True))
+            request=dict(action='shared_setting',field='direction',value='pc_to_phone',version=c.desktop_snapshot()['shared_media']['version'])
+            payload=dict(kennung=h.peer['device_id'],fingerprint=h.fingerprint,request=request,requestId='actual-shared-choice' if valid else 'x'*129)
+            namespace['_telefon_foto_aktion'](window,payload)
+        finally:server.close()
+        assert len(answers)==1 and reports==[True] and answers[0][0]=='App.telefonFotoErgebnis'
+        assert answers[0][1]['ok'] is valid
+        if valid:
+            assert answers[0][1]['requestId']=='actual-shared-choice'
+            assert h.wire.receive()['kind']=='file_transfer.shared_settings'
+        else:
+            assert 'requestId' not in answers[0][1] and c._media_transport._store.read() is None
+        assert c._preferences.read()==before and c._source_pending is None
+
+
+@pytest.mark.parametrize('state',['disabled','unconfirmed'])
+def test_selected_legacy_start_cannot_bypass_configured_shared_off_or_pending_agreement(source,native,monkeypatch,state):
+    from magnolie_file_control import FileControlPacket,FileGrantState
+    from magnolie_file_transfer import TransferError
+    import magnolie_file_sources as sources
+    from test_file_desktop_sources import response,ALBUM,CATALOG
+    with composition(source,native[0]) as h:
+        warm_metadata(h,native[0]);c=h.connection;session=c.desktop_session()
+        session._local_enabled(True)
+        first=FileControlPacket.parse(h.wire.receive()['body'])
+        remote=FileControlPacket(FileGrantState(1,'6'*64,True,True),'7'*64,1,first.challenge)
+        dispatch(h,native[0],message(CONTROL,remote.wire()));h.wire.receive()
+        c.request_source(c.issue_receive_action(),'status');request=h.wire.receive()
+        dispatch(h,native[0],response(request,sources.RESULT,version='b'*64,revision=2,enabled=True,
+            associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
+        refreshed=FileControlPacket(remote.grants,remote.session_epoch,2,first.challenge)
+        dispatch(h,native[0],message(CONTROL,refreshed.wire())) # Same challenge needs no redundant echo.
+        session.start('discover');discover=h.wire.receive()
+        dispatch(h,native[0],response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+            after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
+            albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
+        assert session.join(15) and session.snapshot()['state']=='albums',session.snapshot()
+        h.controller.change('enabled',False) if state=='disabled' else h.controller.change('direction','phone_to_pc')
+        offered=h.controller.send_settings();assert h.wire.receive()==offered
+        if state=='disabled':
+            dispatch(h,native[0],dict(type='ack',message_id=offered['message_id'],status='accepted',error='none'))
+            dispatch(h,native[0],message('file_transfer.shared_settings',offered['body']));assert h.wire.receive()['type']=='ack'
+        assert c._receive_binding() is not None # Real independent receiving consent/control still positive.
+        attempted=[]
+        def blocked(*args,**kwargs):attempted.append(args[1]);raise TransferError('unexpected_shared_phone_request')
+        monkeypatch.setattr(c,'request_source',blocked)
+        native[0].photo_sync_action(h.peer['device_id'],phone.fingerprint(phone.unb64(h.peer['static_public'],32)),dict(action='sync',album_id=ALBUM))
+        assert session.join(15),session.snapshot()
+        assert not attempted,'Legacy selected action bypassed shared '+state+': '+str(attempted)
+        assert session.snapshot()['state']=='held' and session.snapshot()['error']=='media_source_current_intent_required'

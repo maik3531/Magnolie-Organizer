@@ -3064,6 +3064,19 @@ class NativePhotoDesktopSession:
         if syncing:self._sync_activity(True)
         try:
             book_fence=None
+            transport=self.connection._media_transport
+            if syncing and transport is not None and transport._display_body is not None:
+                # Once shared settings exist, legacy selected-album actions
+                # cannot bypass OFF/pending settings using receiving consent.
+                # The cache only selects this restrictive gate; actual intent
+                # identity, never display values, decides whether work may start.
+                if operation=='sync_selected':
+                    kinds=(['images'] if album_id is not None else [])+(['video'] if video_album_id is not None else [])
+                elif operation in ('sync','videos_sync'):kinds=['video'] if operation=='videos_sync' else ['images']
+                else:kinds=[kind for kind in ('images','video')
+                    if transport.intent_for(kind) is not None or transport.intent_for(kind,to_phone=True) is not None]
+                if not kinds or any(transport.intent_for(kind) is None and transport.intent_for(kind,to_phone=True) is None for kind in kinds):
+                    raise TransferError('media_source_current_intent_required')
             if syncing:
                 from magnolie_media_retention import maintain_native_media_trash
                 maintain_native_media_trash(self.connection._authority.binding.native_directory,

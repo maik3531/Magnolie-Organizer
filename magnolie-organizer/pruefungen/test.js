@@ -7535,6 +7535,59 @@ function knopfMit(text, wurzel) {
   assert.ok(!baumNachrichten.slice(setupBefore).some(value => value.cmd === "telefon_foto_aktion"), "Erstmaliges Senden aktiviert keinen Empfang oder Abgleich");
   bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: firstSetup.requestId, ok: true, canceled: true });
   assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="photos"]').disabled);
+  const sharedChoices = { enabled: false, photos_enabled: true, videos_enabled: false, collection_mode: "phone_inventory",
+    direction: "pc_to_phone", auto_mode: "manual", skip_deletions: true, photos_only: false };
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "d".repeat(64), values: sharedChoices, agreed: false } });
+  assert.ok(bd.querySelector('[data-media-setting="collection_mode"]') && bd.querySelector('[data-media-setting="direction"]') &&
+    bd.querySelector('[data-media-setting="auto_mode"]'), "Gemeinsamer Bereich, Richtung und Modus fehlen bei ausgeschaltetem Empfang");
+  const sharedBefore = baumNachrichten.length;
+  const scopeChoice = bd.querySelector('[data-media-setting="collection_mode"]');
+  assert.ok(scopeChoice.querySelector('option[value="entire_collection"]').disabled &&
+    bd.querySelector('[data-media-setting="skip_deletions"]').disabled, "Nicht angebundene Sammlung/Löschweitergabe wird nicht als nutzbar angeboten");
+  assert.strictEqual(bd.querySelector('[data-media-setting="direction"]').value, "pc_to_phone");
+  assert.ok(!bd.querySelector('[data-media-setting="enabled"]').checked && !bd.querySelector('[data-media-setting="videos_enabled"]'));
+  scopeChoice.value = "import_only"; scopeChoice.dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.strictEqual(bd.querySelector('[data-media-setting="collection_mode"]').value, "phone_inventory", "Keine optimistische gemeinsame Zustimmung");
+  await tick(); await tick();
+  const sharedRequest = baumNachrichten.filter(value => value.cmd === "telefon_foto_aktion" && value.request.action === "shared_setting").at(-1);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sharedRequest.request)),
+    { action: "shared_setting", field: "collection_mode", value: "import_only", version: "d".repeat(64) });
+  assert.deepStrictEqual(Object.keys(sharedRequest).sort(), ["cmd", "kennung", "fingerprint", "requestId", "request"].sort());
+  assert.ok(bd.querySelector('[data-media-setting="auto_mode"]').disabled && bd.querySelector('[data-media-setting="direction"]').disabled);
+  assert.ok(!baumNachrichten.slice(sharedBefore).some(value => value.cmd === "telefon_medien_senden" ||
+    value.cmd === "telefon_foto_aktion" && value.request.action !== "shared_setting"), "Bereichswahl erfindet keine SEND-/RECEIVE- oder Abgleichaktion");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: "unrelated-old-config", ok: false, error: "stale shared error" });
+  assert.ok(bd.querySelector('[data-media-setting="auto_mode"]').disabled);
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "e".repeat(64), values: { ...sharedChoices, collection_mode: "import_only" }, agreed: true } });
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: sharedRequest.requestId, ok: true });
+  assert.strictEqual(bd.querySelector('[data-media-setting="collection_mode"]').value, "import_only");
+  assert.strictEqual(bd.querySelector('[data-media-setting="direction"]').value, "pc_to_phone", "Import-only überschreibt nicht die gespeicherte Richtung");
+  assert.strictEqual(bd.querySelector('[data-media-setting="auto_mode"]').value, "manual");
+  assert.ok(!bd.querySelector('[data-media-setting="auto_mode"]').disabled);
+  const wifiChoice = bd.querySelector('[data-media-setting="auto_mode"]'); wifiChoice.value = "wifi";
+  wifiChoice.dispatchEvent(new bw.Event("change", { bubbles: true })); await tick(); await tick();
+  const wifiRequest = baumNachrichten.filter(value => value.cmd === "telefon_foto_aktion" && value.request.action === "shared_setting").at(-1);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(wifiRequest.request)),
+    { action: "shared_setting", field: "auto_mode", value: "wifi", version: "e".repeat(64) });
+  fotoStand({ available: true, enabled: false, state: "off", albums: [],
+    shared_media: { version: "f".repeat(64), values: sharedChoices, agreed: false } },
+    { peers: [{ ...fotoPeer, fingerprint: "new-shared-pair", photo_sync: { available: true, shared_media:
+      { version: "f".repeat(64), values: sharedChoices, agreed: false } } }] });
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: wifiRequest.requestId, ok: false, error: "stale shared error" });
+  assert.ok(!bd.querySelector('[data-media-setting="auto_mode"]').disabled &&
+    !bd.querySelector(".notes-erweiterte-funktionen").textContent.includes("stale shared error"));
+  fotoStand({ available: true, enabled: true, state: "albums", albums: [{ album_id: "shared-album", display_name: "Camera", needs_choice: false }],
+    shared_media: { configured: true, version: "e".repeat(64), values: sharedChoices, agreed: true } });
+  assert.ok(bd.querySelector('[data-photo-manual-sync]').disabled && !bd.querySelector('[data-photo-mode]'),
+    "Nativer Empfang ist kein Umweg um gemeinsame OFF-Einstellung und kein zweiter Modusregler");
+  fotoStand({ available: true, enabled: false, state: "syncing", busy: true, albums: [],
+    shared_media: { configured: true, version: "f".repeat(64), values: sharedChoices, agreed: false } });
+  assert.ok(bd.querySelector('[data-media-setting="direction"]').disabled && bd.querySelector('[data-photo-manual-sync]').disabled);
+  const sharedStop = bd.querySelector('[data-photo-stop]');
+  assert.ok(sharedStop && !sharedStop.disabled, "Stop bleibt bei beschäftigtem Arbeiter nach Verlust des Ausgangshinweises erreichbar");
+  sharedStop.click(); assert.deepStrictEqual(JSON.parse(JSON.stringify(baumNachrichten.at(-1).request)), { action: "stop" });
   const sendRights = { available: true, enabled: false, state: "off", albums: [],
     sending_consent: { version: "a".repeat(64), photos: false, videos: false } };
   fotoStand(sendRights);

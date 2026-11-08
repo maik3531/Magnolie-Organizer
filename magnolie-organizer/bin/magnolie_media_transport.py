@@ -87,6 +87,7 @@ class NativeMediaSettingsTransport:
         body=self._display_body
         return dict(version=sha256(canonical(body)).hexdigest(),
             values=media.configured(body) if body is not None else dict(media.DEFAULTS),
+            configured=body is not None,
             agreed=bool(body is not None and self._intent is not None and self._intent.body==body))
 
     def send_settings(self):

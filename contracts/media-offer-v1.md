@@ -610,6 +610,25 @@ Berechtigungsrevision bei. Der Buchnachweis hält dabei keinen SQLite-
 Wartungsschreiblock über die separate Registertransaktion in derselben
 `phone.db`, sondern prüft den tatsächlichen ursprünglichen Buchstand erneut.
 
+Die Linux-Oberfläche bearbeitet diese Felder erst nach tatsächlicher dauerhafter
+Buch-Speicherbestätigung und mit der aktuellen gemeinsamen Registerversion.
+Bereich, konfigurierte Richtung und Modus bleiben getrennte Auswahlen; ein
+ausstehender Auftrag zeigt weder optimistische Zustimmung noch vorweggenommene
+Übereinstimmung an. Native Antworten sind mit begrenzten Anfrage-IDs korreliert;
+alte Antworten dürfen keine neue Kopplung oder einen neueren Auftrag verändern.
+Empfang und native Senderechte bleiben eigene Bedienelemente. Ein noch nicht
+angelegter gemeinsamer Registerstand ist ausdrücklich als unkonfiguriert
+ausgewiesen, nicht als Widerruf einer bestehenden Legacy-Empfangskonfiguration.
+
+Sobald gemeinsame Register vorhanden sind, darf auch der ältere Albumstart
+eine ausgeschaltete oder noch unbestätigte gemeinsame Vereinbarung nicht über
+weiterhin positive native Empfangsrechte umgehen. Der native Sitzungsstart
+verlangt vor neuem Batch-/Dateiablauf die tatsächlich aktuelle passende
+Übereinstimmung. Nicht implementierte gesamte PC-Sammlung und Löschweitergabe
+bleiben in der UI gesperrt; gespeicherte Werte werden deshalb nicht verworfen.
+Stop bleibt während tatsächlicher Arbeit auch dann erreichbar, wenn eine
+Übereinstimmungsänderung den bisherigen Ausgangs-Anzeigehinweis zurückzieht.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

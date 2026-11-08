@@ -28964,6 +28964,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   const telefonFotoFehler = new Map();
   const telefonSendeZustimmungen = new Map();
+  const telefonMedienEinstellungen = new Map();
+
+  function telefonMedienEinstellung(peer, stand, field, value) {
+    if (telefonMedienEinstellungen.has(peer.device_id) || !stand.shared_media) return;
+    const pending = { requestId: crypto.randomUUID(), book: DATEN, fingerprint: peer.fingerprint, version: stand.shared_media.version };
+    const failed = () => {
+      if (telefonMedienEinstellungen.get(peer.device_id) !== pending) return;
+      clearTimeout(pending.timer); telefonMedienEinstellungen.delete(peer.device_id);
+      if (DATEN === pending.book && telefonStand?.peers?.some(entry => entry.device_id === peer.device_id && entry.fingerprint === pending.fingerprint))
+        telefonFotoFehler.set(peer.device_id, _("Photo synchronization could not be started."));
+      zeichneTelefonFotos();
+    };
+    pending.timer = setTimeout(failed, 25000);
+    telefonMedienEinstellungen.set(peer.device_id, pending);
+    nachDauerhaftemSpeichern(() => {
+      const current = telefonStand?.peers?.find(entry => entry.device_id === peer.device_id);
+      if (telefonMedienEinstellungen.get(peer.device_id) !== pending || DATEN !== pending.book ||
+          current?.fingerprint !== pending.fingerprint || current.photo_sync?.shared_media?.version !== pending.version) { failed(); return; }
+      telefonFotoFehler.delete(peer.device_id);
+      if (!Bruecke.sende({ cmd: "telefon_foto_aktion", kennung: peer.device_id, fingerprint: peer.fingerprint,
+        requestId: pending.requestId, request: { action: "shared_setting", field, value, version: pending.version } })) failed();
+    }, failed);
+    zeichneTelefonFotos();
+  }
 
   function telefonSendeZustimmung(peer, stand, field, wanted) {
     if (telefonSendeZustimmungen.has(peer.device_id)) return;
@@ -29086,6 +29110,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (oldConsent && (oldConsent.book !== DATEN || oldConsent.fingerprint !== peer.fingerprint)) {
         clearTimeout(oldConsent.timer); telefonSendeZustimmungen.delete(peer.device_id);
       }
+      const oldSetting = telefonMedienEinstellungen.get(peer.device_id);
+      if (oldSetting && (oldSetting.book !== DATEN || oldSetting.fingerprint !== peer.fingerprint)) {
+        clearTimeout(oldSetting.timer); telefonMedienEinstellungen.delete(peer.device_id);
+      }
       wurzel.dataset.photoPeer = peer.device_id;
       const ansicht = telefonFotoAnsichten.get(peer.device_id) || { offen: false, album: "" };
       const erweitert = el("details", "einst-gruppe notes-erweiterte-funktionen");
@@ -29101,9 +29129,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       };
       const an = document.createElement("input"); an.type = "checkbox";
       an.checked = stand.enabled === true; an.disabled = stand.busy === true && !an.checked;
-      an.setAttribute("aria-label", _("Synchronize photos"));
+      an.setAttribute("aria-label", _("Receive") + " · " + _("Photos"));
       an.addEventListener("change", () => sende(an.checked ? "enable" : "disable"));
-      const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
+      const label = el("label", "telefon-medien-aktivierung"); label.title = _("Receive") + " · " + _("Photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
       const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
@@ -29123,7 +29151,54 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         gruppe.append(rights);
       }
       let fotoAlbumWahl = null, videoAlbumWahl = null;
-      if (stand.enabled || stand.mapped_outgoing === true) {
+      if (stand.shared_media) {
+        const shared = stand.shared_media, settings = el("section", "notes-medien-einstellungen");
+        settings.append(el("h4", null, _("Shared settings")));
+        if (shared.configured === false) settings.append(el("p", "einst-hinweis", _("Shared settings are not configured yet.")));
+        const waiting = telefonMedienEinstellungen.has(peer.device_id);
+        const check = (field, title, unsupported = false) => {
+          const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSetting = field;
+          input.checked = shared.values[field] === true; input.disabled = waiting || stand.busy === true || unsupported;
+          input.addEventListener("change", () => {
+            const wanted = input.checked; input.checked = shared.values[field] === true;
+            telefonMedienEinstellung(peer, stand, field, wanted);
+          });
+          const row = el("label", "hak"); row.append(input, document.createTextNode(" " + title)); settings.append(row);
+        };
+        const select = (field, title, options) => {
+          const input = document.createElement("select"); input.className = "feld"; input.dataset.mediaSetting = field;
+          input.setAttribute("aria-label", title);
+          for (const [value, label, unsupported] of options) {
+            const option = document.createElement("option"); option.value = value; option.textContent = label;
+            option.disabled = unsupported === true; input.append(option);
+          }
+          input.value = shared.values[field]; input.disabled = waiting || stand.busy === true;
+          input.addEventListener("change", () => {
+            const wanted = input.value; input.value = shared.values[field];
+            telefonMedienEinstellung(peer, stand, field, wanted);
+          });
+          settings.append(formZeile(title, input));
+        };
+        check("enabled", _("Enable photo and video synchronization"));
+        select("collection_mode", _("Scope"), [["phone_inventory", _("Only the phone inventory")],
+          ["entire_collection", _("Entire collection"), true], ["import_only", _("Import phone → PC only")]]);
+        select("direction", _("Direction"), [["phone_to_pc", _("Phone → PC")],
+          ["two_way", _("Two-way synchronization")], ["pc_to_phone", _("PC → phone")]]);
+        select("auto_mode", _("Mode"), [["manual", pgettext("photo synchronization", "Manual")],
+          ["wifi", _("Automatically synchronize over Wi-Fi")]]);
+        check("photos_enabled", _("Synchronize photos"));
+        if (stand.video_supported === true) check("videos_enabled", _("Synchronize videos"));
+        check("photos_only", _("Photos only"));
+        // Deletion propagation and unmapped entire-PC collection are not joined.
+        // Preserve their stored choices, but never advertise usable controls.
+        check("skip_deletions", _("Skip deletions"), true);
+        settings.append(el("p", "einst-hinweis", _("Deletions are not synchronized yet.")));
+        if (shared.values.collection_mode === "entire_collection")
+          settings.append(el("p", "einst-warnung", _("Changes need review. No conflicting version was overwritten.")));
+        if (!shared.agreed) settings.append(el("p", "einst-hinweis", _("Waiting for the phone…")));
+        gruppe.append(settings);
+      }
+      if ((stand.enabled || stand.mapped_outgoing === true) && (!stand.shared_media || stand.shared_media.configured === false)) {
         if (stand.mapped_outgoing === true) {
           gruppe.append(formZeile(_("Direction"), el("span", null, stand.mapped_direction === "two_way"
             ? _("Two-way synchronization") : "Organizer → Notes")));
@@ -29143,14 +29218,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           modus.addEventListener("change", () => sende("mode_" + modus.value));
           gruppe.append(formZeile(_("Mode"), modus));
         } else gruppe.append(formZeile(_("Mode"), el("span", null, pgettext("photo synchronization", "Manual"))));
-        if (!stand.enabled && stand.mapped_outgoing === true) {
-          const ausgangStatus = { syncing: _("Photo synchronization active"), stopping: _("Stopping photo synchronization…"),
-            complete: _("Done"), canceled: _("Canceled"),
-            held: _("Changes need review. No conflicting version was overwritten.") };
-          if (ausgangStatus[stand.state]) {
-            const statusFeld = el("p", stand.state === "held" ? "einst-warnung" : "einst-hinweis", ausgangStatus[stand.state]);
-            statusFeld.dataset.mappedOutgoingStatus = "true"; gruppe.append(statusFeld);
-          }
+      }
+      if (!stand.enabled && stand.mapped_outgoing === true) {
+        const ausgangStatus = { syncing: _("Photo synchronization active"), stopping: _("Stopping photo synchronization…"),
+          complete: _("Done"), canceled: _("Canceled"),
+          held: _("Changes need review. No conflicting version was overwritten.") };
+        if (ausgangStatus[stand.state]) {
+          const statusFeld = el("p", stand.state === "held" ? "einst-warnung" : "einst-hinweis", ausgangStatus[stand.state]);
+          statusFeld.dataset.mappedOutgoingStatus = "true"; gruppe.append(statusFeld);
         }
       }
       if (stand.enabled) {
@@ -29280,7 +29355,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
-      if (stand.enabled || stand.mapped_outgoing === true) {
+      if (stand.enabled || stand.mapped_outgoing === true || stand.busy === true) {
         const manuell = el("div", "knopfreihe notes-medien-manuell");
         const jetzt = knopf(_("Synchronize now"), "hauptknopf", () => {
           telefonFotoFehler.delete(peer.device_id);
@@ -29289,9 +29364,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               { action: "sync_selected", album_id: fotoAlbumWahl?.value || null, video_album_id: videoAlbumWahl?.value || null } });
         });
         jetzt.dataset.photoManualSync = "true";
-        jetzt.disabled = stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length);
+        jetzt.disabled = stand.busy === true || !(stand.mapped_outgoing === true || fotoAlbumWahl?.options.length || videoAlbumWahl?.options.length) ||
+          !!(stand.shared_media && stand.shared_media.configured !== false && (!stand.shared_media.values.enabled || !stand.shared_media.agreed));
         manuell.append(jetzt);
-        if (stand.busy) manuell.append(knopf(_("Stop"), "", () => sende("stop")));
+        if (stand.busy) {
+          const stop = knopf(_("Stop"), "", () => sende("stop")); stop.dataset.photoStop = "true"; manuell.append(stop);
+        }
         gruppe.append(manuell);
       }
       erweitert.append(gruppe); wurzel.append(erweitert);
@@ -34935,9 +35013,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     telefonFotoErgebnis(value) {
       if (typeof value?.device_id !== "string") return;
       if (typeof value.requestId === "string") {
-        const pending = telefonSendeZustimmungen.get(value.device_id);
+        const settings = telefonMedienEinstellungen.get(value.device_id);
+        const choices = settings?.requestId === value.requestId ? telefonMedienEinstellungen : telefonSendeZustimmungen;
+        const pending = choices.get(value.device_id);
         if (!pending || pending.requestId !== value.requestId) return;
-        clearTimeout(pending.timer); telefonSendeZustimmungen.delete(value.device_id);
+        clearTimeout(pending.timer); choices.delete(value.device_id);
         if (pending.book !== DATEN || !telefonStand?.peers?.some(peer => peer.device_id === value.device_id && peer.fingerprint === pending.fingerprint)) return;
       }
       if (value.ok) telefonFotoFehler.delete(value.device_id);

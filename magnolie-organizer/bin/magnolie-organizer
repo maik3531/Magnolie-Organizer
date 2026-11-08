@@ -25068,14 +25068,19 @@ class Fenster(_FENSTER_BASIS):
 
     def _telefon_foto_aktion(self, nachricht):
         kennung=nachricht.get("kennung")
+        result={"device_id":kennung}
         try:
+            request_id=nachricht.get("requestId")
+            if request_id is not None:
+                if type(request_id) is not str or not 1<=len(request_id)<=128:raise ValueError("photo_sync_invalid_action")
+                result["requestId"]=request_id
             if self._gesperrt or not self._telefon:
                 raise ValueError("photo_sync_unavailable")
             self._telefon.photo_sync_action(kennung,nachricht.get("fingerprint"),nachricht.get("request"))
-            self.antwort("App.telefonFotoErgebnis", {"ok": True, "device_id": kennung})
+            self.antwort("App.telefonFotoErgebnis", dict(result,ok=True))
         except (ValueError, RuntimeError, OSError):
-            self.antwort("App.telefonFotoErgebnis", {"ok": False, "device_id": kennung,
-                "error": _("Photo synchronization could not be started. Check the current phone connection and permissions.")})
+            self.antwort("App.telefonFotoErgebnis", dict(result,ok=False,
+                error=_("Photo synchronization could not be started. Check the current phone connection and permissions.")))
         self._telefon_stand_melden()
 
     def _medien_papierkorb_aufbewahrung_laden(self):
