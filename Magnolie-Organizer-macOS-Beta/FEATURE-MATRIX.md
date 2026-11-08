@@ -4,7 +4,7 @@ Updated 2026-11-08 (2.0.30 projection and native candidate verification).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
 Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
-smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42478388184). The smoke
+smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42491267861). The smoke
 verifies first save, normal quit, reopen, a second atomic save and strict whole-data
 equality. Full application/feature acceptance remains pending. Linux host tests
 alone do not establish macOS behavior.
@@ -21,8 +21,8 @@ alone do not establish macOS behavior.
 | Full JSON import/restore | Native selected-file capability; pinned bytes/path; duplicate-key/shape checks; canonical normalizer preflight; durable pre-restore copy; complete replacement | Native picker/crypto/commit integration on Mac; not `.magnolie` complete archive import |
 | JSON backup/export | Whole document including unknown fields and embedded attachments; always encrypted; separate password prompt for plain profile | Native prompt/save panel/crypto interoperability run; no external backups rekeyed |
 | Encryption | Desktop v1 read/v2 read-write CryptoKit/CommonCrypto implementation and public test vectors | Apple crypto execution; password change/removal; keychain/rekey transactions |
-| ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Renewed independent published-codec roundtrips and native picker acceptance; unsupported fields fail the whole export |
-| ICS/vCard/CSV import/export | Shared controls remain; unsupported native commands return negative responses | Full codecs, import previews/merging and format interoperability |
+| ICS export | Source-preserving appointments/tasks/anniversaries, recurrence and exception/raw properties, historical/future VTIMEZONE; real shared editor → Swift tests | Eight independent published-codec roundtrips pass on both architectures; native picker/manual acceptance remains open; unsupported fields fail the whole export |
+| ICS/vCard/CSV import/export | Selected-file ICS import, canonical merge and source-header metadata; eight published-codec import/reexport cases pass on both architectures | Native picker/manual import acceptance; vCard/CSV and other formats remain unsupported |
 | `.magnolie` multi-file complete archive | Unsupported explicitly | Full format/attachments/settings/restore transaction and shared fixtures |
 | Clipboard/attachments | Native text clipboard; Save for supported PDF/image data URLs | Native AppKit validation; automatic attachment opening |
 | Regional settings | Current shared renderer bound to existing Beta handler (not the desktop MCP API); save-ACK before native commit; validated values; field mapping/save-failure/double-click host tests. Native time-zone management shows an explicit limitation; automatic native zone refresh is inactive and imported settings remain intact | Native locale/timezone behavior and all localized system dialogs; desktop revision-bound native MCP and automatic time-zone detection parity |
@@ -39,12 +39,12 @@ alone do not establish macOS behavior.
 | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
 | macOS calendars/reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Full item import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
 | System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
-| DAV/CalDAV/CardDAV/Nextcloud/Graph | Bounded HTTPS DAV protocol layer (18 native tests passed); separate Keychain credential adapter added | Keychain native validation, account UI and complete conflict/deletion/local-commit coordinator; Graph unsupported |
+| DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (18 tests), Keychain storage, 19 account/boundary/transaction cases pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
 | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
 | Phone/SMS/Bluetooth/KDE Connect/audio | Unsupported | Native transport/hardware/control contracts and actual-device validation |
 | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
 | Printing/PDF/ODS/office letters | Unsupported native bridge | Print pagination, export fidelity and platform launch integration |
-| Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live holiday/native UI acceptance pending; other listed services unsupported |
+| Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live public-holiday HTTPS passed on both architectures; broader school/region/native UI acceptance pending; other listed services unsupported |
 | Manual/update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and authorized native implementation |
 | Shipping/signing/notarization/installer | No production artifact or release | Review + Mac acceptance + final explicit release authorization |
 

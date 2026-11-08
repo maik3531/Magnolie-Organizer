@@ -56,9 +56,9 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
 | `erinnerung_einrichten` | yes | yes | LIMITATION RESPONSE ONLY: no native scheduler is configured |
 | `erinnerung_zeigen` | yes | yes | partial: open/unlocked/consented session only; delivery untested |
-| `export` | yes | yes | partial: source-preserving appointment/task/anniversary ICS; native extended roundtrips pending |
+| `export` | yes | yes | partial: source-preserving appointment/task/anniversary ICS; eight native extended roundtrips passed |
 | `exportieren` | yes | — | UNSUPPORTED: negative Beta response |
-| `feiertage` | yes | yes | source: bounded HTTPS public/school holiday retrieval with regional scope; native validation pending |
+| `feiertage` | yes | yes | source: bounded HTTPS public/school holiday retrieval with regional scope; native service tests/live public retrieval passed; full UI acceptance pending |
 | `gesamtarchiv_exportieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_importieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `gesamtarchiv_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |

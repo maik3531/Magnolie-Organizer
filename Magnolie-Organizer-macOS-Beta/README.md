@@ -47,6 +47,7 @@ checks against a moving development checkout do not establish release-tag parity
 | Clipboard/attachments | Text clipboard; attachment Save for PDF/JPEG/PNG/GIF/WebP data URLs, not automatic attachment opening |
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; full import/synchronization remains unfinished |
+| DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
 
 "Implemented source" is not a statement of native build or runtime validation.
 Current-source integration and the remaining macOS/Android Organizer parity work
@@ -82,11 +83,14 @@ source checkpoint, not a completed native parity acceptance.
 - Recovery files have no automatic expiry, pruning, index, or scheduled snapshots.
   Restore them with the same JSON picker. They consume disk space until explicitly
   managed by the user; disk-full/native APFS crash behavior still needs Mac testing.
+- Selected UTF-8 ICS files are decoded off the UI thread and applied through the
+  canonical importer; source headers are retained by file hash in the same saved
+  profile transaction. Independent native import/reexport checks pass on both
+  architectures. vCard/CSV/archive import remains unfinished.
 - ICS exports retain source recurrence/exception/timezone properties and validate
   structured times against them. Tasks and anniversaries have dedicated export
   kinds. Unsupported or conflicting data aborts the complete export. Independent
-  roundtrips use the published 2.0.30 Python codec; renewed native validation is
-  pending. Use JSON backup for the complete profile.
+  roundtrips use the published 2.0.30 Python codec and pass on both architectures. Use JSON backup for the complete profile.
 - A one-off task's "Custom notification" (1 through 7 days before) is independent
   of "remind me on the due date". Both may be enabled. Early times use calendar
   days in the source timezone, not a fixed 24-hour duration across DST. Global
@@ -110,8 +114,9 @@ source checkpoint, not a completed native parity acceptance.
   request access. Missing/revoked sources retain their saved selections. Complete
   system synchronization is unfinished and its action remains disabled.
 - Public/school holiday retrieval uses a bounded native HTTPS service and the
-  canonical cache importer. DAV protocol and OS credential adapters are foundations;
-  complete Nextcloud sync, account UI and conflict transactions remain unfinished.
+  canonical cache importer. DAV account configuration and explicit discovery use native Keychain storage and
+  verified rollback. Complete Nextcloud synchronization and conflict/deletion
+  transactions remain unfinished; successful setup is not a synchronization ACK.
 - No Graph sync, Magnolia tree, phone/SMS/Bluetooth, weather download,
   tray/background service, autostart, scheduled backup, printing/PDF/office export,
   full ICS/vCard/CSV import, updater, manual downloader, contributor validation or
