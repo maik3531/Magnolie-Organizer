@@ -23,6 +23,26 @@ final class ICalendarImportTests: XCTestCase {
         XCTAssertNotNil(result.document["icsImportMetadata"])
         XCTAssertEqual(result.sourceSHA256.count, 64)
     }
+    func testPhysicalLineBudgetAndUnfoldedSizeAreRejectedBeforeExpansion() throws {
+        let newlineFlood = Data(repeating: 10, count: 250_000)
+        XCTAssertThrowsError(try ICalendarImport.decode(newlineFlood, displayTimeZone: "UTC")) { error in
+            XCTAssertTrue(error.localizedDescription.contains("too many lines"))
+        }
+        let tinyLines = String(repeating: "X:A\r\n", count: 250_000)
+        XCTAssertThrowsError(try ICalendarImport.decode(data(tinyLines), displayTimeZone: "UTC")) { error in
+            XCTAssertTrue(error.localizedDescription.contains("too many lines"))
+        }
+        let hugeFold = "DESCRIPTION:" + String(repeating: "a", count: 512 * 1024) + "\r\n\t" +
+            String(repeating: "b", count: 512 * 1024) + "\r\n"
+        let oversizedEvent = event.replacingOccurrences(of: "END:VEVENT\r\n", with: hugeFold + "END:VEVENT\r\n")
+        XCTAssertThrowsError(try ICalendarImport.decode(data(oversizedEvent), displayTimeZone: "UTC")) { error in
+            XCTAssertTrue(error.localizedDescription.contains("content line is too large"))
+        }
+        let validFold = "DESCRIPTION:first\r\n\tsecond\r\n"
+        let validEvent = event.replacingOccurrences(of: "END:VEVENT\r\n", with: validFold + "END:VEVENT\r\n")
+        let result = try ICalendarImport.decode(data(validEvent), displayTimeZone: "UTC")
+        XCTAssertEqual(result.appointments.first?["notiz"] as? String, "firstsecond")
+    }
     func testCRLFLFAndMixedTerminatorsUnfoldTabsWithoutAcceptingBareCR() throws {
         let body = event.replacingOccurrences(of: "SUMMARY:Public item\r\n", with:
             "SUMMARY:Public item\r\nDESCRIPTION:Folded \r\n\tsecond piece\r\nX-OPAQUE:part-\r\n\ttwo\r\n")

@@ -129,6 +129,13 @@ public enum ICalendarImport {
         // Swift Character treats CRLF as one extended grapheme cluster, so
         // splitting directly on the LF Character would leave CRLF files whole.
         // Normalize the paired wire terminator first; reject every remaining CR.
+        // Count before split: even a byte-bounded file may contain millions of
+        // tiny lines. Include split's final (possibly empty) physical line.
+        var physicalCount = 1
+        for byte in text.utf8 where byte == 10 {
+            physicalCount += 1
+            guard physicalCount <= 250_000 else { throw BetaError("Calendar file has too many lines.") }
+        }
         let physical = text.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false)
         guard physical.count <= 250_000 else { throw BetaError("Calendar file has too many lines.") }
         var lines: [String] = []
@@ -137,8 +144,8 @@ public enum ICalendarImport {
             guard !line.contains("\r"), line.unicodeScalars.allSatisfy({ $0.value >= 32 || $0 == "\t" }) else { throw BetaError("Invalid calendar line/control character.") }
             if line.first == " " || line.first == "\t" {
                 guard !lines.isEmpty else { throw BetaError("Calendar continuation has no preceding property.") }
+                guard lines[lines.count - 1].utf8.count + line.utf8.count - 1 <= 1024 * 1024 else { throw BetaError("Calendar content line is too large.") }
                 lines[lines.count - 1] += line.dropFirst()
-                guard lines.last!.utf8.count <= 1024 * 1024 else { throw BetaError("Calendar content line is too large.") }
             } else if !line.isEmpty {
                 guard line.utf8.count <= 1024 * 1024 else { throw BetaError("Calendar content line is too large.") }
                 lines.append(line)
