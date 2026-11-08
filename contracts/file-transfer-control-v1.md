@@ -263,6 +263,26 @@ closed. Outbound-version backup/pinning, retirement/restart, original-reference
 and MIME dispatcher joins, platform parity and physical acceptance remain
 required before production composition.
 
+Windows now has a native mapped-PC source reader and owner (Refs #429), not
+yet an outbound transfer. The connection requires the actual current positive
+local SEND/remote RECEIVE control agreement, exact matched eight-field media
+intent and the original saved-book permit. An exact protected receive-head
+version with local Saved and source END identifies the original file; unfinished,
+ambiguous, superseded, foreign and stale mappings hold. Original target/root,
+album and file identities remain pinned. Each bounded read rechecks this owner
+and history through the held read-only handle; other writes/renames are denied,
+withdrawal is sticky and disposal drains actual reading. A deliberate edit of
+the same mapped file before capture is the current PC content, while its cloned
+eight-field phone-original reference retains the historical phone baseline.
+Import-only never exports these files; phone-inventory admits mapped members
+only. The real capture-metadata filter reads at most the existing bounded prefix
+from the same handle and excludes unknown metadata without proving deletion.
+Three native Windows reader groups and three completed-mapping/policy groups
+pass, including actual preceding receive/Saved/END, secure control/settings
+matching, book/direction withdrawal and foreign-file rejection. Outgoing
+preparation, durable send/offer/chunk/Saved/readback/END and dispatcher composition
+remain required; this API does not enable production SEND or capability 23.
+
 Prepared Linux PC versions now also have a native local backup path (#401),
 separate from phone Saved mappings and partner Saved assertions. The exact
 in-process preparation retains its authenticated original mapping only as
