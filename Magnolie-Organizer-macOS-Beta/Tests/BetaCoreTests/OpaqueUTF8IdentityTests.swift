@@ -52,7 +52,7 @@ final class OpaqueUTF8IdentityTests: XCTestCase {
         let text = try XCTUnwrap(String(data: changed.data, encoding: .utf8))
         XCTAssertTrue(text.contains(event(nfc, title: "NFC original")))
         XCTAssertTrue(text.contains("SUMMARY:NFD changed"))
-        let removed = try Patch.apply(original: original, deletions: [.init(kind: "VEVENT", uid: nfd)])
+        let removed = try Patch.apply(original: original, replacements: [], deletions: [.init(kind: "VEVENT", uid: nfd)])
         XCTAssertEqual(try Patch.keys(from: removed.data), [.init(kind: "VEVENT", uid: nfc)])
         let first = Patch.Key(kind: "VEVENT", uid: "series", recurrenceID: "RECURRENCE-ID;TZID=Custom/\(nfc):20260101T120000")
         let second = Patch.Key(kind: "VEVENT", uid: "series", recurrenceID: "RECURRENCE-ID;TZID=Custom/\(nfd):20260101T120000")
