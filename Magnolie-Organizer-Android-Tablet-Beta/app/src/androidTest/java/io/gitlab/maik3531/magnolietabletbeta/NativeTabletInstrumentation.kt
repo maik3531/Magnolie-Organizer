@@ -65,6 +65,7 @@ class NativeTabletInstrumentation : Instrumentation() {
             check(injector in listOf("shell","async")) {"Unknown injector"}
             check(android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.MODEL.contains("sdk")) {"Disposable emulator required"}
             when(stage) {
+                "services" -> pass("native Android DAV parser and secure account transactions", NativeDavAccountSmoke.run(targetContext))
                 "basics" -> basics()
                 "restart" -> {launch(); assertPersisted()}
                 "layout" -> {launch(); checkLayout(); navigation()}
@@ -78,7 +79,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 "verify-reboot" -> verifyReboot()
                 else -> error("Unknown stage")
             }
-            capture(stage)
+            if (stage != "services") capture(stage)
         } catch(t: Throwable) {
             error=t
             android.util.Log.e("TabletNativeTest","FAIL $stage",t)

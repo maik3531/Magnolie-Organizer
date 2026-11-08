@@ -406,8 +406,9 @@ class LifecycleTest(unittest.TestCase):
         native = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(native)
         with patch.object(native.session.subprocess, 'Popen') as process, patch.object(native.session, 'locks') as locks:
-            with self.assertRaises(SystemExit):
-                native.main(['--suite', 'ui'])
+            for suite in ('ui', 'services'):
+                with self.assertRaises(SystemExit):
+                    native.main(['--suite', suite])
             process.assert_not_called()
             locks.assert_not_called()
 
