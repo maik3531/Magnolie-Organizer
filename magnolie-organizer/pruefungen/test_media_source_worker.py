@@ -25,13 +25,21 @@ def test_actual_worker_skips_unchanged_mapped_file_without_cache_or_phone_read(s
         assert not list(Path(h.authority.binding.native_directory).glob('.magnolie-source-*.part'))
 
 
-def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_second_pass(source,native,monkeypatch):
+@pytest.mark.parametrize('trigger',['manual','wifi'])
+def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_second_pass(source,native,monkeypatch,trigger):
     with composition(source,native[0]) as h:
-        controls=agree(h,native[0]);owner=h.connection._local().owner;h.target.write_bytes(png())
-        h.wire.sock.settimeout(30);worker=start(h)
+        owner=h.connection._local().owner;h.target.write_bytes(png())
+        if trigger=='wifi':
+            from magnolie_file_desktop_connection import NativePhotoDesktopSession
+            monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.1)
+            h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi')
+        controls=agree(h,native[0])
+        h.wire.sock.settimeout(30);worker=start(h) if trigger=='manual' else None
         try:
             try:offer=h.wire.receive()
-            except TimeoutError:pytest.fail(str(worker.progress()))
+            except TimeoutError:pytest.fail(str(worker.progress() if worker is not None else h.connection.desktop_session().snapshot()))
+            if worker is None:worker=h.connection._mapped_worker
+            assert worker is not None
             sender=h.connection._media_sender
             assert sender is not None and sender._controls is h.connection._controls
             cache=sender._cache;accepted=acceptance(sender,cache,offer)
@@ -68,7 +76,7 @@ def test_actual_worker_sends_changed_bytes_then_backs_up_archives_and_skips_seco
             assert second.progress()['saved_files']==0 and h.target.read_bytes()==png()
             assert h.connection._local().owner is owner and h.connection._controls.packet().grants==controls.grants
         finally:
-            worker.stop();assert worker.join(30),worker.progress()
+            if worker is not None:worker.stop();assert worker.join(30),worker.progress()
 
 
 def test_worker_without_actual_send_control_holds_before_creating_cache(source,native):
@@ -181,3 +189,72 @@ def test_unjoined_wifi_automatic_path_holds_instead_of_exporting_under_manual_sh
         assert session.snapshot()['state']=='held'
         assert session.snapshot()['error']=='media_source_wifi_automatic_composition_required'
         assert not h.source._prepared
+
+
+def test_actual_shared_wifi_arms_native_pc_only_automatic_pass_without_receiving_or_phone_read(source,native,monkeypatch):
+    from magnolie_file_desktop_connection import NativePhotoDesktopSession
+    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
+    with composition(source,native[0]) as h:
+        session=h.connection.desktop_session();completed=threading.Event()
+        h.connection._status_changed=lambda:completed.set() if session.snapshot()['state']=='complete' else None
+        monkeypatch.setattr(h.connection,'request_source',lambda *a,**k:pytest.fail('Automatic PC-only pass requested phone READ'))
+        h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi')
+        controls=agree(h,native[0]);owner=h.connection._local().owner
+        assert completed.wait(30),session.snapshot()
+        assert session.join(10),session.snapshot()
+        state=session.snapshot()
+        assert state['state']=='complete' and state['known_files']==1 and state['mode']=='automatic',state
+        assert state['enabled'] is False and not h.source._prepared
+        assert h.connection._local().owner is owner and h.connection._controls.packet().grants==controls.grants
+        session.start('stop');assert session._automatic_paused
+        session.shared_settings_changed();assert session._automatic_paused # duplicate matched echo cannot revive Stop.
+        session._apply_mode('manual');session.shared_settings_changed()
+        pending=h.wire.receive();assert pending['kind']=='file_transfer.shared_settings'
+        dispatch(h,native[0],dict(type='ack',message_id=pending['message_id'],status='accepted',error='none'))
+        dispatch(h,native[0],message('file_transfer.shared_settings',pending['body']));assert h.wire.receive()['type']=='ack'
+        assert session.snapshot()['mode']=='manual' and session._schedule.mode=='manual'
+        assert h.preferences.read().policy.enabled is False
+
+
+def test_actual_wifi_automatic_worker_denies_route_change_during_source_read(source,native,monkeypatch):
+    from magnolie_file_desktop_connection import NativePhotoDesktopSession
+    monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',60)
+    with composition(source,native[0]) as h:
+        h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi');agree(h,native[0])
+        def boundary(phase):
+            if phase=='source_chunk_read':native[0].connection_transports[h.peer['device_id']]='bluetooth'
+        h.source._boundary=boundary
+        worker=h.connection.start_mapped_media_worker(h.connection.issue_receive_action(),automatic=True)
+        try:
+            assert worker.join(30),worker.progress()
+            assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_native_wifi_required',worker.progress()
+            assert not h.source._prepared and h.target.read_bytes()==b'hello'
+        finally:native[0].connection_transports[h.peer['device_id']]='wifi'
+
+
+def test_automatic_worker_requires_shared_wifi_mode_even_on_real_wifi_channel(source,native,monkeypatch):
+    with composition(source,native[0]) as h:
+        agree(h,native[0]);assert h.connection._native_wifi_current() is True
+        monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Shared manual mode started automatic export'))
+        worker=h.connection.start_mapped_media_worker(h.connection.issue_receive_action(),automatic=True)
+        assert worker.join(30),worker.progress()
+        assert worker.progress()['state']=='held' and worker.progress()['error']=='media_source_native_wifi_required'
+        assert not h.source._prepared
+
+
+def test_matched_wifi_and_peer_receive_do_not_arm_sending_without_independent_native_consent(source,native,monkeypatch):
+    from magnolie_file_control import FileControlPacket,FileGrantState,KIND as CONTROL
+    with composition(source,native[0]) as h:
+        h.preferences.configure_sending(h.preferences.issue_action(),h.preferences.read(),photos=False,videos=False)
+        monkeypatch.setattr(h.source,'plan',lambda *a,**k:pytest.fail('Shared settings replaced native sending consent'))
+        h.controller.change('direction','pc_to_phone');h.controller.change('auto_mode','wifi')
+        attempted=h.controller.send_settings();assert h.wire.receive()==attempted
+        dispatch(h,native[0],dict(type='ack',message_id=attempted['message_id'],status='accepted',error='none'))
+        dispatch(h,native[0],message('file_transfer.shared_settings',attempted['body']));assert h.wire.receive()['type']=='ack'
+        assert h.connection.send_controls();first=FileControlPacket.parse(h.wire.receive()['body'])
+        assert not first.grants.send_files and not first.grants.receive_files
+        remote=FileControlPacket(FileGrantState(1,'6'*64,False,True),'7'*64,1,first.challenge)
+        dispatch(h,native[0],message(CONTROL,remote.wire()));h.wire.receive()
+        session=h.connection.desktop_session()
+        assert not session._shared_automatic and session._timer is None
+        assert session._schedule_scope() is None and not h.source._prepared

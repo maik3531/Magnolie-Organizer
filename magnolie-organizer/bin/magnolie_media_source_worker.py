@@ -12,9 +12,10 @@ from magnolie_telefon import canonical
 
 class NativeMappedMediaWorker:
     PAGE_SIZE=32
-    def __init__(self,connection,kind,book_fence=None):
+    def __init__(self,connection,kind,book_fence=None,*,automatic=False):
         from magnolie_file_desktop_connection import NativeDesktopFileConnection
         if (type(connection) is not NativeDesktopFileConnection or kind not in ('images','video')
+                or type(automatic) is not bool
                 or book_fence is not None and (type(book_fence) is not tuple or len(book_fence)!=3)):
             raise TransferError('media_source_native_worker_required')
         self._connection=connection;self._kind=kind
@@ -23,6 +24,7 @@ class NativeMappedMediaWorker:
         self._state='starting';self._error=None;self._saved=self._known=0
         self._token=None;self._preferences=None;self._book=None;self._deadline=None
         self._book_fence=book_fence
+        self._automatic=automatic
 
     def start(self):self._thread.start()
     def stop(self):self._stop.set();self._connection._wake_album_worker()
@@ -36,6 +38,10 @@ class NativeMappedMediaWorker:
                 or self._deadline is None or time.monotonic()>=self._deadline
                 or self._token is None or c._media_transport.intent_for(self._kind,to_phone=True) is not self._token):
             raise TransferError('media_source_native_operation_ended')
+        if self._automatic:
+            from magnolie_media_sync import effective
+            if effective(self._token.body)['auto_mode']!='wifi' or c._native_wifi_current() is not True:
+                raise TransferError('media_source_native_wifi_required')
         # Open on the calling lane: sender callbacks also run on the socket
         # dispatcher, never share a worker-thread SQLite handle with that lane.
         with NativeMediaRetention(c._authority.binding.native_directory) as policy:

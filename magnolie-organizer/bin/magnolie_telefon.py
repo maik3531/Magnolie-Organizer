@@ -2953,7 +2953,9 @@ class PhoneService:
                         self._native_file_connections.pop(channel, None)
             connection = NativeDesktopFileConnection(authority, channel, released=released,
                 activity_changed=lambda owner, active: self._native_photo_activity_changed(connection, owner, active),
-                status_changed=lambda: self.callback('photo_sync', {}))
+                status_changed=lambda: self.callback('photo_sync', {}),
+                native_wifi_current=lambda:(self.connections.get(peer_id) is channel
+                    and self.connection_transports.get(peer_id)=='wifi' and not self.stop_event.is_set()))
         except BaseException:
             authority.close()
             raise

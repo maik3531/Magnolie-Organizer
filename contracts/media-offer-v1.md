@@ -505,8 +505,24 @@ Telefon-READ noch dessen Empfangszustimmung an. Import-only kann diesen Arbeiter
 nicht zum Export veranlassen. Nicht implementierte gesamte PC-Sammlungen erhalten
 eine ausdrückliche Review-Sperre statt eines Erfolgsergebnisses für eine Teilmenge.
 Dies ersetzt keine native/physische Gesamtabnahme. Die vollständige gemeinsame
-UI- und WLAN-Automatikkomposition bleibt offen; automatische Ausgangsläufe
-bleiben bis zur eigenen geprüften WLAN-Anbindung ausdrücklich gesperrt.
+UI-Anbindung bleibt offen.
+
+Der native WLAN-Einstieg wird nur aus tatsächlich abgeglichenen gemeinsamen
+Einstellungen und unabhängiger nativer Sendezustimmung geplant. Die bestehende
+Sitzung plant dabei auch PC-only, ohne Telefon-READ oder RECEIVE einzuschalten.
+Der tatsächliche Dienst bindet die zusätzliche WLAN-Prüfung an genau seinen
+aktuellen Kanal und dessen Transportart; eine Behauptung aus einem Protokoll-
+oder UI-Feld reicht nicht. Automatische Quelloperationen prüfen diese Bindung
+und den aktuellen gemeinsamen WLAN-Modus auch während späterer Socket-/Cache-I/O.
+Manueller gemeinsamer Modus, fehlende Zustimmung und Transportwechsel sperren
+den automatischen Export. Ein bestätigtes Readback ersetzt weiterhin keinen
+tatsächlichen I/O-Abschluss, auch nicht beim automatischen Lauf.
+
+Bei vorhandener gemeinsamer Vereinbarung bearbeitet die native Modusauswahl
+deren eigenen geschützten Modusregister und wartet wieder auf den genauen
+ACK-/Peer-Echo-Abgleich. Sie erfordert keine Aktivierung des Empfangs. Stop
+pausiert auch einen gerade untätigen Automatiklauf; doppelte unveränderte
+Einstellungs-Echos dürfen weder diese Pause noch eine manuelle Moduswahl aufheben.
 
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.

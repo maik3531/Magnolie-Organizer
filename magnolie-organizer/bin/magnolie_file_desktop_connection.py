@@ -52,7 +52,10 @@ class NativeDesktopFileConnection:
     _data_handlers_ready = True
     _video_data_handlers_ready = True
 
-    def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None):
+    def __init__(self, authority, channel, *, released=lambda owner:None, activity_changed=None, status_changed=None,
+                 native_wifi_current=lambda:False):
+        if not callable(native_wifi_current):raise TransferError('media_source_native_wifi_required')
+        self._native_wifi_current=native_wifi_current
         if (type(authority) is not NativeDesktopFileAuthority or channel is not authority.native_channel
                 or not callable(getattr(channel, 'send', None)) or not callable(released)):
             raise TransferError('file_desktop_native_owner_required')
@@ -346,7 +349,9 @@ class NativeDesktopFileConnection:
             return sender.observe(self._channel,message)
         with self._operation(incoming=True):
             if self._media_transport is not None and message.get('kind')=='file_transfer.shared_settings':
-                return self._media_transport.observe(self._channel,message)
+                result=self._media_transport.observe(self._channel,message)
+                self._shared_schedule_changed()
+                return result
             if self._data_handlers_ready and message.get('kind') in (source_messages.RESULT, source_messages.CATALOG,
                     source_messages.PERMISSION_RESULT, source_messages.RUN_RESULT, source_messages.MEDIA, source_messages.RESUME, source_messages.ABANDONED):
                 self._receive_source_result(message, clock)
@@ -362,6 +367,18 @@ class NativeDesktopFileConnection:
             packet = FileControlPacket.parse(body)
             self._controls.observe_remote(packet, self._peer())
             self._send_controls(clock)
+            self._shared_schedule_changed()
+
+    def _shared_schedule_changed(self):
+        transport=self._media_transport
+        if transport is None:return
+        # Refresh native consent on this serialized observer lane, not inside
+        # a source/mapping callback and not from a passive UI status request.
+        try:self._local()
+        except (TransferError,OSError,InvalidTag):return
+        if self._desktop_session is None and any(transport.intent_for(kind,to_phone=True) is not None for kind in ('images','video')):
+            self._desktop_session=NativePhotoDesktopSession(self)
+        if self._desktop_session is not None:self._desktop_session.shared_settings_changed()
 
     def receive_media_ack(self,message):
         transport=self._media_transport
@@ -371,7 +388,9 @@ class NativeDesktopFileConnection:
         with self._operation(incoming=True):
             with transport._gate:
                 if message.get('message_id') not in transport._attempts:return False
-                return transport.observe(self._channel,message)
+                result=transport.observe(self._channel,message)
+                self._shared_schedule_changed()
+                return result
 
     def prepare_media_source(self,action,expected,association,record_sha256,*,kind='images'):
         self._take_action(action)
@@ -414,7 +433,7 @@ class NativeDesktopFileConnection:
             from magnolie_media_source_planning import NativeMediaSourcePreparation
             return NativeMediaSourcePreparation(plan,cache)
 
-    def start_mapped_media_worker(self,action,*,kind='images',book_fence=None):
+    def start_mapped_media_worker(self,action,*,kind='images',book_fence=None,automatic=False):
         self._take_action(action)
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
@@ -422,7 +441,7 @@ class NativeDesktopFileConnection:
                     or self._source_pending is not None or self._source_run is not None or self._media_sender is not None):
                 raise TransferError('file_desktop_album_worker_busy')
             from magnolie_media_source_worker import NativeMappedMediaWorker
-            worker=NativeMappedMediaWorker(self,kind,book_fence);self._mapped_worker=worker
+            worker=NativeMappedMediaWorker(self,kind,book_fence,automatic=automatic);self._mapped_worker=worker
             try:worker.start()
             except BaseException:self._mapped_worker=None;raise
             return worker
@@ -2633,6 +2652,7 @@ class NativePhotoDesktopSession:
         self._video_supported=False; self._video_enabled=False
         self._video_destination=None; self._video_albums=[]; self._video_permission=None
         self._mode='manual';self._pending_mode=None;self._automatic_paused=False
+        self._shared_schedule_token=None;self._shared_automatic=False
         self._timer=None;self._sync_active=False
         self._recovery=[];self._recovery_result=None
         self._separate_animations=False
@@ -2694,6 +2714,7 @@ class NativePhotoDesktopSession:
                 if worker is not None:worker.stop()
                 self.connection._wake_album_worker()
             elif operation=='stop':
+                self._automatic_paused=True;self._state='canceled'
                 return self.snapshot()
             else:
                 if running:raise TransferError('photo_sync_busy')
@@ -2742,8 +2763,10 @@ class NativePhotoDesktopSession:
         # Do not take the UI lock from the schedule's native-scope callback.
         transport=self.connection._media_transport
         if transport is not None:
+            sending=self.connection._media_sending_state or {}
             outgoing=next((token for kind in ('images','video')
-                if (token:=transport.intent_for(kind,to_phone=True)) is not None),None)
+                if sending.get('photos' if kind=='images' else 'videos') is True
+                and (token:=transport.intent_for(kind,to_phone=True)) is not None),None)
             if outgoing is not None:
                 try:
                     binding=self.connection._controls.binding('0'*64,sender_is_local=True)
@@ -2756,9 +2779,27 @@ class NativePhotoDesktopSession:
         try:return NativePhotoSyncScope(self.connection._receive_binding(),status.version,self.connection)
         except (TransferError,OSError):return None
 
+    def shared_settings_changed(self):
+        """Only actual matched native transport observations call this hook."""
+        from magnolie_media_sync import effective
+        transport=self.connection._media_transport
+        sending=self.connection._media_sending_state or {}
+        token=next((value for kind in ('images','video')
+            if sending.get('photos' if kind=='images' else 'videos') is True
+            and (value:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None else None
+        automatic=token is not None and effective(token.body)['auto_mode']=='wifi'
+        with self._lock:
+            previous=self._shared_schedule_token
+            if previous is token:return # Duplicate echo cannot undo local Stop/manual mode.
+            self._shared_schedule_token=token;self._shared_automatic=automatic
+            self._mode='automatic' if automatic else 'manual'
+        # Same token/echo never clears _automatic_paused after explicit Stop.
+        self._schedule.set_mode('automatic' if automatic else 'manual')
+        self._ensure_timer()
+
     def _ensure_timer(self):
         with self._lock:
-            if (not self._enabled or self._mode!='automatic' or self.connection._closed.is_set()
+            if ((not self._enabled and not self._shared_automatic) or self._mode!='automatic' or self.connection._closed.is_set()
                     or self._timer is not None and self._timer.is_alive()):return
             self._timer=threading.Thread(target=self._automatic_loop,name='magnolie-photo-schedule',daemon=True)
             self._timer.start()
@@ -2767,7 +2808,8 @@ class NativePhotoDesktopSession:
         try:
             while not self.connection._closed.wait(self.AUTO_TICK_SECONDS):
                 with self._lock:
-                    if self._running or self._automatic_paused or not self._enabled:continue
+                    if self._running or self._automatic_paused or not self._enabled and not self._shared_automatic:continue
+                    if self._shared_automatic and self.connection._native_wifi_current() is not True:continue
                     run=self._schedule.take_due()
                     if run is None:continue
                     try:self.start('automatic',schedule_run=run)
@@ -2786,6 +2828,16 @@ class NativePhotoDesktopSession:
             except Exception:pass
 
     def _apply_mode(self, mode):
+        if self._shared_schedule_token is not None:
+            # Shared mode is its own protected register, not receiving consent.
+            # A PC-only user must not enable RECEIVE just to choose manual/WLAN.
+            with self.connection._operation():
+                transport=self.connection._media_transport
+                transport.change('auto_mode','wifi' if mode=='automatic' else 'manual')
+                transport.send_settings()
+                self.shared_settings_changed() # Invalidate scheduling until the new exact ACK/echo.
+            with self._lock:self._pending_mode=None
+            return
         prefs=self.connection._preferences
         changed=prefs.set_mode(prefs.issue_action(),prefs.read(),mode)
         with self._lock:self._mode=changed.mode;self._pending_mode=None
@@ -3040,13 +3092,13 @@ class NativePhotoDesktopSession:
                 with self._lock:self._state='albums' if self._albums else 'permission_required'
             elif syncing:
                 media_types=['video'] if operation=='videos_sync' else ['images']
-                if operation=='sync_shared':
+                if operation=='sync_shared' or operation=='automatic' and self._shared_automatic:
                     transport=self.connection._media_transport
                     media_types=[kind for kind in ('images','video') if transport is not None and (
                         transport.intent_for(kind) is not None or transport.intent_for(kind,to_phone=True) is not None)]
                     if not media_types:raise TransferError('media_source_current_intent_required')
                 if operation=='sync_selected':media_types=(['images'] if album_id is not None else [])+(['video'] if video_album_id is not None else [])
-                if (operation=='automatic' and self._video_enabled and self.connection._video_data_handlers_ready
+                if (operation=='automatic' and 'video' not in media_types and self._video_enabled and self.connection._video_data_handlers_ready
                         and self.connection._authority.video_available()):media_types.append('video')
                 for media_type in media_types:
                     if self._stop.is_set():break
@@ -3057,9 +3109,10 @@ class NativePhotoDesktopSession:
                     transport=self.connection._media_transport
                     outgoing=transport.intent_for(media_type,to_phone=True) if transport is not None else None
                     if outgoing is not None:
-                        if operation=='automatic':
+                        if operation=='automatic' and (not self._shared_automatic or self._shared_schedule_token is not outgoing):
                             raise TransferError('media_source_wifi_automatic_composition_required')
-                        worker=self.connection.start_mapped_media_worker(self.connection.issue_receive_action(),kind=media_type,book_fence=book_fence)
+                        worker=self.connection.start_mapped_media_worker(self.connection.issue_receive_action(),kind=media_type,
+                            book_fence=book_fence,automatic=operation=='automatic')
                         with self._lock:self._worker=worker;self._state='syncing'
                         self._notify()
                         while not worker.join(.25):
