@@ -5,7 +5,6 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
-import java.util.Base64
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
@@ -156,7 +155,7 @@ class DavClient(
     private fun request(method: String, uri: URI, body: ByteArray = byteArrayOf(), headers: Map<String, String> = emptyMap(),
                         limit: Int = XML_LIMIT, expected: Set<Int>, cancellation: DavCancellation): Pair<BoundedHttpResponse, URI> {
         var target = sameOrigin(uri.toASCIIString())
-        val authenticated = headers + mapOf("Authorization" to "Basic " + Base64.getEncoder().encodeToString("$username:$password".toByteArray(Charsets.UTF_8)), "User-Agent" to "Magnolie-Organizer-Tablet/2.0.30")
+        val authenticated = headers + mapOf("Authorization" to "Basic " + StandardBase64.encode("$username:$password".toByteArray(Charsets.UTF_8)), "User-Agent" to "Magnolie-Organizer-Tablet/2.0.30")
         val started = System.nanoTime()
         repeat(2) { attempt ->
             cancellation.check()

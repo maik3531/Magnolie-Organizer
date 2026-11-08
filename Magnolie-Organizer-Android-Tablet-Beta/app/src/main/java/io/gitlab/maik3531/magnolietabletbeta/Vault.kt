@@ -8,7 +8,6 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.security.SecureRandom
-import java.util.Base64
 import java.util.UUID
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
@@ -237,15 +236,15 @@ internal object Portable {
         val key = key(password, salt)
         val bytes = DatenDateiKrypto({ key }).verschluesseln(text.toByteArray(Charsets.UTF_8), "tablet-export.json")
         return JSONObject().put("format", FORMAT).put("iterations", ITERATIONS)
-            .put("salt", Base64.getEncoder().encodeToString(salt))
-            .put("ciphertext", Base64.getEncoder().encodeToString(bytes)).toString()
+            .put("salt", StandardBase64.encode(salt))
+            .put("ciphertext", StandardBase64.encode(bytes)).toString()
     }
     fun open(text: String, password: CharArray): String {
         val obj = parseObject(text)
         require(obj.getString("format") == FORMAT && obj.getInt("iterations") == ITERATIONS)
-        val salt = Base64.getDecoder().decode(obj.getString("salt"))
+        val salt = StandardBase64.decode(obj.getString("salt"))
         val key = key(password, salt)
-        val bytes = Base64.getDecoder().decode(obj.getString("ciphertext"))
+        val bytes = StandardBase64.decode(obj.getString("ciphertext"))
         val plain = decodeUtf8(DatenDateiKrypto({ key }).entschluesseln(bytes, "tablet-export.json"))
         validateData(parseObject(plain))
         return plain
