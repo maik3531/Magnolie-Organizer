@@ -3299,19 +3299,23 @@ class PhoneService:
                 if policy is None or not stored.associated:return
                 receiver_auto=(policy.enabled and stored.mode=='automatic' and stored.destination_available
                     and policy.mapping_store is not None and policy.job_catalog is not None)
+                media=import_module('magnolie_media_sync')
+                shared_saved=media.NativeMediaSettingsStore.has_stored_settings(authority)
+                receiver_shared=(shared_saved and policy.enabled and stored.destination_available
+                    and policy.mapping_store is not None and policy.job_catalog is not None
+                    and self._current_native_source_metadata(peer['device_id'],peer['static_public'],channel,binding.generation))
                 consent=policy.sending
                 sender=(consent is not None and consent.pairing_epoch==binding.pairing_epoch
                     and (consent.photos or consent.videos)
                     and self._current_native_source_metadata(peer['device_id'],peer['static_public'],channel,binding.generation))
-                if not receiver_auto and not sender:return
+                if not (receiver_auto and not shared_saved) and not receiver_shared and not sender:return
             finally:authority.close()
             connection=self.open_native_file_connection(peer['device_id'],peer['static_public'],channel,binding.generation)
-            shared_waiting=False
-            if sender:
+            shared_waiting=shared_saved
+            if sender or receiver_shared:
                 # Composition/control only. No discovery, RECEIVE, media scan,
                 # default directory, or cached shared-intent adoption on reconnect.
                 connection.send_controls()
-                shared_waiting=connection._media_transport._store.read() is not None
                 connection._media_transport.send_settings()
             # A saved shared direction must not be replaced by the older
             # receiver-only bootstrap before this channel's fresh agreement.

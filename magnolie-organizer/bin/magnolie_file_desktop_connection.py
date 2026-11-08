@@ -143,6 +143,8 @@ class NativeDesktopFileConnection:
         if consent is not None and consent.pairing_epoch!=snapshot.policy.pairing_epoch:consent=None
         self._media_sending_state=dict(version=snapshot.version,photos=bool(consent is not None and consent.photos),
             videos=bool(consent is not None and consent.videos))
+        self._media_receiving_state=dict(version=snapshot.version,photos=grant.grants.receive_files,
+            videos=bool(grant.grants.receive_files and snapshot.policy.videos is not None and snapshot.policy.videos.enabled))
         if grant.grants.send_files or grant.grants.receive_files:
             witness=snapshot.policy.mapping_store
             if witness is not None:
@@ -2867,6 +2869,15 @@ class NativePhotoDesktopSession:
                         from hashlib import sha256
                         return NativePhotoSyncScope(binding,sha256(canonical(outgoing.body)).hexdigest(),self.connection)
                 except (TransferError,OSError):return None
+            receiving=getattr(self.connection,'_media_receiving_state',{})
+            for kind in ('images','video'):
+                incoming=transport.intent_for(kind)
+                if incoming is not None and receiving.get('photos' if kind=='images' else 'videos') is True:
+                    try:
+                        from hashlib import sha256
+                        return NativePhotoSyncScope(self.connection._receive_binding(media_type=kind),
+                            sha256(canonical(incoming.body)).hexdigest(),self.connection)
+                    except (TransferError,OSError):return None
         status=self.connection._source_status
         if not self._enabled or status is None or not status.enabled or not status.associated or status.repair_pending:return None
         try:return NativePhotoSyncScope(self.connection._receive_binding(),status.version,self.connection)
@@ -2880,6 +2891,11 @@ class NativePhotoDesktopSession:
         token=next((value for kind in ('images','video')
             if sending.get('photos' if kind=='images' else 'videos') is True
             and (value:=transport.intent_for(kind,to_phone=True)) is not None),None) if transport is not None else None
+        if token is None and transport is not None:
+            receiving=getattr(self.connection,'_media_receiving_state',{})
+            token=next((value for kind in ('images','video')
+                if receiving.get('photos' if kind=='images' else 'videos') is True
+                and (value:=transport.intent_for(kind)) is not None),None)
         automatic=token is not None and effective(token.body)['auto_mode']=='wifi'
         with self._lock:
             previous=self._shared_schedule_token
@@ -3035,6 +3051,29 @@ class NativePhotoDesktopSession:
         connection._receive_binding(media_type='video')
         self._command('configure_videos',enabled=True) # Required even for saved ON/idempotent policy.
         with self._lock:self._video_supported=True
+
+    def _prepare_shared_incoming(self,media_type):
+        # Adopt only an already granted native receiver. Do not call the legacy
+        # enable/configure path: a shared choice cannot manufacture phone SEND,
+        # a local destination/consent or Android OS READ permission.
+        connection=self.connection;before=connection._preferences.read()
+        if before.policy is None or not before.associated or not before.policy.enabled:
+            raise TransferError('media_source_shared_incoming_review_required')
+        connection._receive_binding(media_type=media_type)
+        with self._lock:
+            self._enabled=True;self._destination=before.policy.destination.path
+            self._separate_animations=before.separate_animations;self._separate_captures=before.separate_own_recordings
+            videos=before.policy.videos
+            self._video_enabled=bool(videos is not None and videos.enabled)
+            self._video_destination=videos.destination.path if videos is not None and videos.destination is not None else None
+        state=self._command('status');status=state['status']
+        if status.repair_pending or not status.enabled or not status.associated:
+            raise TransferError('media_source_shared_incoming_review_required')
+        if media_type=='video':
+            if status.videos is None or not status.videos.enabled:
+                raise TransferError('media_source_shared_incoming_review_required')
+            connection._require_video_metadata_scope()
+            with self._lock:self._video_supported=True
 
     def _retain_backup_destination(self,before,media_type,previous,selected):
         if previous is None or previous==selected:return
@@ -3258,9 +3297,9 @@ class NativePhotoDesktopSession:
                         with self._lock:self._state=progress['state'];self._error=progress['error']
                         if progress['state']!='complete':break
                         if not outgoing.requested_for(media_type):continue # PC-only never requests phone READ.
-                        if operation=='automatic' and not self._enabled:
-                            raise TransferError('media_source_shared_incoming_review_required')
-                    if media_type=='video':self._prepare_video()
+                    if shared_constraint is not None and operation in ('automatic','sync_shared'):
+                        self._prepare_shared_incoming(media_type)
+                    elif media_type=='video':self._prepare_video()
                     catalog=self.connection._source_catalog
                     if operation in ('automatic','sync_shared') or media_type=='video' or catalog is None or catalog.media_type!=media_type:
                         self._discover(media_type)

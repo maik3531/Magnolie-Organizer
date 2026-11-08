@@ -646,6 +646,22 @@ Laufkontext übergehen; neue Chunks oder Veröffentlichung dürfen das nicht.
 Verifizierte Teilstücke, ursprüngliche Dateien, Jobhistorie und Quota bleiben
 erhalten. Unbekannter Quellabschluss bleibt ausdrücklich HOLD.
 
+Gemeinsamer WLAN-Empfang ist unabhängig von nativer SEND-Zustimmung planbar,
+verlangt aber bereits bestehende native Empfangszustimmung und aktuelle
+Dateisteuerbestätigungen. Nach einem Verbindungswechsel werden gespeicherte
+Empfangseinstellungen nur lesend übernommen; gemeinsame Metadaten und
+Dateisteuerung müssen auf dem neuen Kanal tatsächlich neu bestätigt sein.
+Der folgende Lauf holt zuerst den aktuellen Telefonstatus und danach den
+Katalog. Er benutzt nicht den älteren Aktivierungsweg: weder Telefon-SEND noch
+Videos oder Android-READ werden dabei automatisch eingeschaltet. Ein OFF- oder
+Reparaturstatus des Telefons bleibt Review/HOLD statt einer Konfiguration.
+
+Die bloße Existenz gespeicherter gemeinsamer Einstellungen ist eine zusätzliche
+Wiederverbindungsgrenze, keine Übereinstimmung und kein Dateirecht. Auch bei
+entzogener Medienfähigkeit darf sie nicht durch einen älteren automatischen
+Empfangs-Bootstrap ersetzt werden. Ohne solche gemeinsamen Einstellungen bleibt
+der bestehende ausdrücklich konfigurierte Legacy-Empfangsweg erhalten.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

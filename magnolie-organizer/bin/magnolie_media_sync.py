@@ -149,6 +149,29 @@ class NativeMediaSettingsStore:
     still establish actual secure output, ACK and peer echo before any intent
     projection can reach source IO.
     """
+    @staticmethod
+    def has_stored_settings(authority):
+        """Read-only reconnect fence, including a withdrawn media capability.
+
+        Presence is never shared intent. It only prevents legacy receiving
+        bootstrap from replacing an existing shared choice after downgrade.
+        """
+        import sqlite3
+        from pathlib import Path
+        from magnolie_file_native_authority import NativeDesktopFileAuthority
+        if type(authority) is not NativeDesktopFileAuthority:raise ValueError('native media settings authority required')
+        peer=authority.current_peer()
+        if peer is None or not peer.metadata_supported:raise PermissionError('media_settings_native_owner_changed')
+        store=authority.binding.store_owner
+        store._shared_settings_binding(authority.binding.peer_id,authority.binding.static_public)
+        key='media_settings:'+authority.binding.peer_id+':'+peer.identity_sha256
+        db=sqlite3.connect(Path(store.database_path).absolute().as_uri()+'?mode=ro',uri=True)
+        try:present=db.execute('SELECT 1 FROM meta WHERE key=?',(key,)).fetchone() is not None
+        finally:db.close()
+        if authority.current_peer()!=peer:raise PermissionError('media_settings_native_owner_changed')
+        store._shared_settings_binding(authority.binding.peer_id,authority.binding.static_public)
+        return present
+
     def __init__(self,authority):
         from magnolie_file_native_authority import NativeDesktopFileAuthority
         if type(authority) is not NativeDesktopFileAuthority:raise ValueError('native media settings authority required')

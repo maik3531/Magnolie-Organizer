@@ -121,22 +121,39 @@ def test_actual_encrypted_shared_run_keeps_original_scope_after_new_positive_agr
         assert c._source_run is None and c._run is None and h.target.read_bytes()==b'hello'
 
 
-@pytest.mark.parametrize('pc_change,withdraw_at',[(False,None),(True,None),(False,0),(False,1)])
-def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changing_original(source,native,pc_change,withdraw_at):
+@pytest.mark.parametrize('pc_change,withdraw_at,automatic',[(False,None,False),(True,None,False),(False,0,False),(False,1,False),(False,None,True)])
+def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changing_original(source,native,monkeypatch,pc_change,withdraw_at,automatic):
     from magnolie_file_transfer import FileManifest,ManifestFile,CHUNK_BYTES
     from test_file_desktop_media import media
     import magnolie_media_sync as settings
     import io
     from PIL import Image
+    from magnolie_file_desktop_connection import NativePhotoDesktopSession
+    from test_file_desktop_sources import response,CATALOG
+    import magnolie_file_sources as sources
+    if automatic:monkeypatch.setattr(NativePhotoDesktopSession,'AUTO_TICK_SECONDS',.02)
     with composition(source,native[0]) as h:
-        c,session=prime_receiving(h,native[0]);original=agree_shared(h,native[0])
+        if automatic:h.preferences.configure_sending(h.preferences.issue_action(),h.preferences.read(),photos=False,videos=False)
+        c,session=prime_receiving(h,native[0])
+        if automatic:
+            h.controller.change('direction','phone_to_pc');h.controller.change('auto_mode','wifi')
+        original=agree_shared(h,native[0])
         content=png();path='Camera/shared-native.png'
         image=Image.open(io.BytesIO(content));image.load();assert image.format=='PNG' and image.size==(1,1)
         full=FileManifest('e'*32,'f'*32,h.peer['device_id'],c._authority.identity.receiver_id,
             (ManifestFile('a'*32,path,len(content),sha256(content).hexdigest()),),len(content))
         pc_content=png(1) if pc_change else b'hello'
         if pc_change:h.target.write_bytes(pc_content)
-        session.start('sync',ALBUM);h.wire.sock.settimeout(30)
+        if not automatic:session.start('sync',ALBUM)
+        h.wire.sock.settimeout(30)
+        if automatic:
+            status=h.wire.receive();assert status['body']['operation']=='status'
+            secure_dispatch(h,native[0],response(status,sources.RESULT,version='b'*64,revision=2,enabled=True,
+                associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
+            discover=h.wire.receive();assert discover['body']['operation']=='discover'
+            secure_dispatch(h,native[0],response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+                after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
+                albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
         first=h.wire.receive()
         if pc_change:
             assert first['kind']=='file_transfer.media_offer'
@@ -195,3 +212,6 @@ def test_actual_encrypted_shared_incoming_png_is_saved_then_ends_without_changin
         assert session.snapshot()['saved_files']==1
         assert (Path(h.record.destination.path)/path).read_bytes()==content
         assert h.target.read_bytes()==pc_content and c._run is None and c._source_run is None
+        if automatic:
+            assert not h.preferences.read().policy.sending.photos
+            session.start('stop')
