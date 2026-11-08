@@ -7,6 +7,7 @@ the runtime-ready callback is a lock-free local joined-backend observation.
 import copy
 import threading
 import uuid
+from hashlib import sha256
 
 import magnolie_media_sync as media
 from magnolie_telefon import SecureChannel,canonical,now_ms,CLOCK_SKEW_MS
@@ -38,6 +39,7 @@ class NativeMediaSettingsTransport:
         self._gate=threading.RLock();self._closed=threading.Event();self._withdrawn=threading.Event();self._generation=0
         self._sent=self._acknowledged=self._received=self._intent=None
         self._attempts={};self._received_ids={}
+        self._display_body=self._store.read() # Existing metadata only; never create defaults.
 
     def _fresh(self):
         if self._withdrawn.is_set():self._invalidate();self._withdrawn.clear()
@@ -66,6 +68,7 @@ class NativeMediaSettingsTransport:
 
     def _publish(self):
         self._fresh();body=self._store.read()
+        self._display_body=copy.deepcopy(body)
         if body is None or not body==self._sent==self._acknowledged==self._received:
             self._intent=None
         elif self._intent is None or self._intent.body!=body:self._intent=NativeMediaIntent(body)
@@ -74,13 +77,23 @@ class NativeMediaSettingsTransport:
         with self._gate:
             if self._closed.is_set():raise PermissionError('media_transport_closed')
             self._invalidate()
-            return self._store.change(field,value)
+            body=self._store.change(field,value)
+            self._display_body=copy.deepcopy(body)
+            return body
+
+    def display_snapshot(self):
+        # No monitor or protected store access from passive native status.
+        if self._closed.is_set() or self._authority._revoked.is_set() or self._ready() is not True:return None
+        body=self._display_body
+        return dict(version=sha256(canonical(body)).hexdigest(),
+            values=media.configured(body) if body is not None else dict(media.DEFAULTS),
+            agreed=bool(body is not None and self._intent is not None and self._intent.body==body))
 
     def send_settings(self):
         with self._gate:
             try:
                 self._fresh();body=self._store.read()
-                if body is None:self._invalidate();return None
+                if body is None:self._display_body=None;self._invalidate();return None
                 if body==self._sent:self._publish();return None
                 self._intent=None
                 at=self._clock()

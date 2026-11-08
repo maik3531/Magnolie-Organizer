@@ -488,7 +488,43 @@ class NativeDesktopFileConnection:
             if token is not None:
                 from magnolie_media_sync import effective
                 value['mapped_direction']=effective(token.body)['direction']
+        if self._media_source is not None and self._media_transport is not None:
+            shared=self._media_transport.display_snapshot()
+            if shared is not None:value['shared_media']=shared
         return value
+
+    def native_shared_media_setting(self,field,value,version):
+        from hashlib import sha256
+        from magnolie_file_control import _hex
+        from magnolie_media_retention import NativeMediaRetention
+        import magnolie_media_sync as media
+        if type(field) is not str or type(value) not in (bool,str) or not _hex(version):
+            raise TransferError('media_settings_native_choice_invalid')
+        with self._operation():
+            transport=self._media_transport
+            if self._media_source is None or transport is None:raise TransferError('media_source_native_composition_required')
+            def current():
+                self._ready()
+                if self._native_metadata_current() is not True:raise TransferError('media_source_current_metadata_required')
+                return True
+            with NativeMediaRetention(self._authority.binding.native_directory) as retention:
+                # Shared registers live in phone.db too. A maintenance writer
+                # lease here would block our separate metadata transaction.
+                # Only a revalidated saved-book observation is needed; no
+                # destructive maintenance or file publication is performed.
+                with retention.active_copy_permit(current) as permit:
+                    if permit is None:raise TransferError('media_settings_saved_book_required')
+                    body=transport._store.read()
+                    if sha256(canonical(body)).hexdigest()!=version:raise TransferError('media_settings_native_choice_changed')
+                    # Validate on a pure projection before touching the actual
+                    # registers or invalidating any current agreement.
+                    local=self._authority.identity.receiver_id;peer=self._authority.binding.peer_id
+                    media.change(body if body is not None else media.create(local),local,peer,field,value)
+                    permit.require_current();current()
+                    transport.change(field,value);transport.send_settings()
+                    self._shared_schedule_changed()
+                    permit.require_current();current()
+            return self.desktop_snapshot()
 
     def native_sending_consent(self,operation,*,photos=None,videos=None,selection=None,version=None):
         """Two-phase private native dialog choice; never a wire/browser approval.

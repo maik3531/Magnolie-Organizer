@@ -3209,6 +3209,17 @@ class PhoneService:
 
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
+        if type(request) is dict and request.get('action')=='shared_setting':
+            if set(request)!={'action','field','value','version'}:raise ValueError('photo_sync_invalid_action')
+            if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+            with self.lock:
+                channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+                if (binding is None or type(expected_fingerprint) is not str
+                        or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                    raise ValueError('phone_control_conflict')
+                connection=self._native_file_connections.get(channel)
+            if connection is None:raise ValueError('photo_sync_not_enabled')
+            return connection.native_shared_media_setting(request['field'],request['value'],request['version'])
         if (type(request) is not dict or not {'action'}<=set(request)<= {'action','album_id','video_album_id','job_owner','historical_choice'}
                  or request['action'] not in ('enable','disable','request_read','discover','sync','stop','mode_manual','mode_automatic',
                     'inspect_recovery','recover_saved','repair_receipt','animations_separate','animations_together','captures_separate','captures_together',

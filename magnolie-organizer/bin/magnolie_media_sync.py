@@ -80,13 +80,19 @@ def normalize_stored(body,local_actor,peer_actor):
     return scoped(result,local_actor,peer_actor)
 
 
-def effective(body):
+def configured(body):
+    """Independent stored choices for display; not effective wire authority."""
     validate(body)
     result={field:_value(field,shared.effective(_register(field,raw))[FIELDS[field]],False) for field,raw in body['settings'].items()}
     modes=body['settings'].get('auto_mode')
     if modes is not None:
         newest=max(edit['counter'] for edit in modes.values())
         result['auto_mode']='manual' if any(edit['counter']==newest and edit['value']=='manual' for edit in modes.values()) else 'wifi'
+    return result
+
+
+def effective(body):
+    result=configured(body)
     # Import scope never exports. Keep the independent stored direction for
     # switching back to an inventory scope without rewriting its edit history.
     if result.get('collection_mode')=='import_only' and 'direction' in result:result['direction']='phone_to_pc'

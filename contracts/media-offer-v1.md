@@ -593,6 +593,23 @@ erzeugt. Die gespeicherte Sendezustimmung allein startet keinen Abgleich:
 gemeinsamer Bereich/Richtung/Modus und ihr tatsächlicher neuer ACK-/Echo-Abgleich
 sowie Dateisteuerbindung bleiben getrennte Voraussetzungen.
 
+Der native Einstellungsanschluss `shared_setting` bearbeitet genau ein
+typgeprüftes gemeinsames Feld mit CAS gegen den vollständigen aktuellen
+Registerstand. Er bestätigt keinen Empfang und keine Sendezustimmung. Ungültige
+Felder/Werte und veraltete Versionen werden vor einer Registeränderung oder
+Invalidierung bestehender Übereinstimmung abgewiesen. Nach einer gültigen
+Änderung bleiben tatsächlicher gesicherter Ausgang, ACK und Peer-Echo nötig;
+ein lokaler Anzeigehinweis allein ist kein gemeinsamer Vertrag.
+
+Die passive native Projektion dieser Einstellungen stammt nur aus dem
+speicherinternen Transportbeobachter. Sie unterscheidet gespeicherte unabhängige
+Auswahl und effektive Übertragungsrichtung: Import-only zeigt die zuvor gewählte
+Richtung weiterhin an, kann sie aber nicht zum Export benutzen. Änderungen
+behalten native Foto-/Video-Sendebits, RECEIVE, Steuersitzung und deren
+Berechtigungsrevision bei. Der Buchnachweis hält dabei keinen SQLite-
+Wartungsschreiblock über die separate Registertransaktion in derselben
+`phone.db`, sondern prüft den tatsächlichen ursprünglichen Buchstand erneut.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
