@@ -428,3 +428,8 @@ The confirmed Gaza2074 codec regression has a production-codec test: 12:30 local
 resolves to 09:30Z, and the old contradictory 10:30Z projection rejects export.
 Shared JavaScript reminder projection and actual Android resource/device
 acceptance are separate checks; this codec change does not establish them.
+
+Recurrence-instance identity hashes use explicit canonical JSON string quoting,
+matching the published Python contract for slashes, escapes and Unicode. This
+fixes Android's platform-dependent slash escaping ([#456](https://github.com/maik3531/Magnolie-Organizer/issues/456)); it does not automatically repair
+previously stored incorrect instance UIDs.

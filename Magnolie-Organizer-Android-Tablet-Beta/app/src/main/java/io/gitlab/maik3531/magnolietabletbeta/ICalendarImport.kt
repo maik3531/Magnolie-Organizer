@@ -453,8 +453,7 @@ object ICalendarImport {
         }
         val seriesUID = baseUID; val recurrence = component.property("RECURRENCE-ID")
         if (recurrence != null) {
-            val parameters = recurrence.parameters.keys.sorted().joinToString(",", "{", "}") { JSONObject.quote(it) + ":" + JSONObject.quote(recurrence.parameters.getValue(it)) }
-            val json = "[" + parameters + "," + JSONObject.quote(recurrence.value) + "]"
+            val json = CalendarIdentity.recurrenceKey(recurrence.parameters,recurrence.value)
             baseUID += "-magnolie-instanz-" + hash(json).take(16)
         }
         var modified = 0L

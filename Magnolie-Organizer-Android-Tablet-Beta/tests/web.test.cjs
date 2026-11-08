@@ -452,6 +452,22 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   ok(!!nativeEnvelope && JSON.parse(nativeEnvelope.text).aufgaben.some(item=>item.uid===stableTaskUid && item.icsImportUid===nativeFiles.taskUid && item.icsQuelleId===nativeFiles.sourceId) &&
     messages.some(message=>message.cmd==='tablet_calendar_import_done' && message.requestId===picker.requestId),
     'actual native fixture records and source SHA share the durable envelope before its picker is completed');
+  const ridCase=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-import-v2.0.30.json'))).cases.find(item=>item.name==='caldav-series-resource');
+  const ridPayload=structuredClone(ridCase.importExpected);
+  for(const record of ridPayload.termine) {record.icsQuelleId='rid-source-A';record.icsQuelleName='Synthetic RID source';}
+  ridPayload.icsImportMetadata={version:1,sourceSHA256:createHash('sha256').update(ridCase.importSource).digest('hex'),calendarProperties:['VERSION:2.0']};
+  const ridExpected=ridPayload.termine.map(item=>item.uid).sort();
+  assert.ok(ridExpected.includes('caldav-series-1-magnolie-instanz-1201680171431eb3'));
+  const ridBefore=disk.termine.length;
+  picker=await calendarPicker();w.Tablet.receive(calendarReply(picker,ridPayload));await wait();await wait();
+  const importedRid=()=>disk.termine.filter(item=>item.icsQuelleId==='rid-source-A');
+  assert.deepEqual(importedRid().map(item=>item.uid).sort(),ridExpected);
+  ok(disk.termine.length===ridBefore+2 && importedRid().some(item=>item.uid.endsWith('1201680171431eb3') && item.icsRoundtrip.includes('RECURRENCE-ID;TZID=Europe/Berlin:20261102T100000')),
+    'source-qualified recurrence override keeps unchanged published canonical UID and raw RID after durable merge');
+  picker=await calendarPicker();w.Tablet.receive(calendarReply(picker,structuredClone(ridPayload)));await wait();await wait();
+  assert.deepEqual(importedRid().map(item=>item.uid).sort(),ridExpected);
+  ok(disk.termine.length===ridBefore+2 && messages.some(message=>message.cmd==='tablet_calendar_import_done' && message.requestId===picker.requestId),
+    'source-qualified recurrence reimport retains canonical identities without duplicate records and finishes its durable picker');
   const taskTemplates=JSON.parse(fs.readFileSync(path.join(root,'app/src/test/resources/calendar-import-v2.0.30.json'))).cases.find(item=>item.name==='tasks').importExpected.aufgaben;
   const taskGraphPayload={termine:[],jahrestage:[],aufgaben:['source-A','source-B'].flatMap(source=>taskTemplates.map(item=>({...structuredClone(item),
     icsQuelleId:source,icsQuelleName:source,icsElternQuelleId:source,titel:source+' '+item.titel}))),

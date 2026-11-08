@@ -1,0 +1,98 @@
+{
+  "abi": "Python json.dumps ensure_ascii=False sort_keys=True separators=comma-colon",
+  "quotes": [
+    {
+      "value": "Europe/Berlin",
+      "expected": "\"Europe/Berlin\""
+    },
+    {
+      "value": "quote\"slash/back\\slash",
+      "expected": "\"quote\\\"slash/back\\\\slash\""
+    },
+    {
+      "value": "\b\f\n\r\t\u0000\u0001\u001f",
+      "expected": "\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\""
+    },
+    {
+      "value": "Caf\u00e9",
+      "expected": "\"Caf\u00e9\""
+    },
+    {
+      "value": "Cafe\u0301",
+      "expected": "\"Cafe\u0301\""
+    },
+    {
+      "value": "\u6771\u4eac \ud83d\ude00",
+      "expected": "\"\u6771\u4eac \ud83d\ude00\""
+    },
+    {
+      "value": "\u0085\u2028\u2029",
+      "expected": "\"\u0085\u2028\u2029\""
+    }
+  ],
+  "recurrences": [
+    {
+      "parameters": {
+        "TZID": "Europe/Berlin",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Europe/Berlin\"},\"20261102T100000\"]",
+      "sha256": "d81818bf15d5fd90c4ce2c5f6274da5c8f5b04e65e4838086c3017a39874b6a6"
+    },
+    {
+      "parameters": {
+        "TZID": "quote\"slash/back\\slash",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"quote\\\"slash/back\\\\slash\"},\"20261102T100000\"]",
+      "sha256": "9b007e0930328dbd4f606335587c91d206cac3b542bda2957a2641ff032b1a4c"
+    },
+    {
+      "parameters": {
+        "TZID": "\b\f\n\r\t\u0000\u0001\u001f",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"\\b\\f\\n\\r\\t\\u0000\\u0001\\u001f\"},\"20261102T100000\"]",
+      "sha256": "7a642ba57588f3d52556af08b860fc47559ab93861115fdd81e8a6eaefad9306"
+    },
+    {
+      "parameters": {
+        "TZID": "Caf\u00e9",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Caf\u00e9\"},\"20261102T100000\"]",
+      "sha256": "519975a7b8070d8b692815887e043c6775923bd62b4222e7ce3f8b5743c8ae6b"
+    },
+    {
+      "parameters": {
+        "TZID": "Cafe\u0301",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"Cafe\u0301\"},\"20261102T100000\"]",
+      "sha256": "53618686d27834d2151eeb479829837d0ac6f59df1c61095d62ef4b6eb0c413f"
+    },
+    {
+      "parameters": {
+        "TZID": "\u6771\u4eac \ud83d\ude00",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"\u6771\u4eac \ud83d\ude00\"},\"20261102T100000\"]",
+      "sha256": "73661b16395a40977e12b5c183a5d150649bab4f443f8367a92d92770881b523"
+    },
+    {
+      "parameters": {
+        "TZID": "\u0085\u2028\u2029",
+        "RANGE": "THISANDFUTURE"
+      },
+      "value": "20261102T100000",
+      "expected": "[{\"RANGE\":\"THISANDFUTURE\",\"TZID\":\"\u0085\u2028\u2029\"},\"20261102T100000\"]",
+      "sha256": "491bdd9e2265b00bfb644ce972dd6abb5a899d7bece76aba0eb8bf7674fe6146"
+    }
+  ]
+}

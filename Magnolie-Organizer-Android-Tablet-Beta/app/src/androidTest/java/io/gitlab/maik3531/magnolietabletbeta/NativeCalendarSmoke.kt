@@ -30,11 +30,28 @@ internal object NativeCalendarSmoke {
     }
     private fun stable(record: JSONObject) = semantic(JSONObject(record.toString()).also { copy -> ignored.forEach { copy.remove(it) } })
     private fun unfold(text: String) = text.replace("\r\n ", "").replace("\r\n\t", "").split("\r\n")
-    private fun compare(expected: JSONArray, actual: JSONArray) {
-        check(expected.length() == actual.length()) { "Native calendar record count differs from published oracle" }
-        for (index in 0 until expected.length()) check(stable(expected.getJSONObject(index)) == stable(actual.getJSONObject(index))) {
-            "Native calendar semantic fields differ from published oracle at record $index"
+    private fun compare(expected: JSONArray, actual: JSONArray, context: String) {
+        check(expected.length() == actual.length()) { "Native calendar count differs: $context expected=${expected.length()} actual=${actual.length()}" }
+        for (index in 0 until expected.length()) {
+            val left=stable(expected.getJSONObject(index));val right=stable(actual.getJSONObject(index))
+            check(left==right) {
+                val before=left as Map<*,*>;val after=right as Map<*,*>
+                val differences=JSONArray()
+                for(key in (before.keys+after.keys).map {it.toString()}.toSet().sorted()) {
+                    if(before.containsKey(key)!=after.containsKey(key) || before[key]!=after[key]) {
+                        differences.put(JSONObject().put("field",key).put("expectedPresent",before.containsKey(key))
+                            .put("actualPresent",after.containsKey(key)).put("expected",before[key]?.toString()?.take(240) ?: JSONObject.NULL)
+                            .put("actual",after[key]?.toString()?.take(240) ?: JSONObject.NULL))
+                        if(differences.length()>=8) break
+                    }
+                }
+                "Native calendar semantic mismatch: $context record=$index differences=$differences"
+            }
         }
+    }
+    private fun receipt(phase: String, detail: JSONObject) {
+        // Only hash-checked public oracle data and technical counts. No profile is read.
+        android.util.Log.i("TabletNativeTest","CALENDAR_RECEIPT "+JSONObject().put("phase",phase).put("detail",detail))
     }
     private fun rejectExport(action: () -> Unit) {
         val rejected = try { action(); false } catch (_: ICalendarExport.ExportException) { true }
@@ -66,6 +83,7 @@ internal object NativeCalendarSmoke {
         // Context is Instrumentation.context, never targetContext: this asset is
         // part of the test APK and must not enter the application's shipped assets.
         val provider = providerIdentity(targetContext)
+        receipt("installed-provider",provider)
         val bytes = instrumentationContext.assets.open(ASSET).use { it.readBytes() }
         check(bytes.size <= 1024 * 1024 && hash(bytes) == SHA256) { "Native calendar oracle asset checksum mismatch" }
         val golden = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -73,6 +91,7 @@ internal object NativeCalendarSmoke {
             "Unexpected published calendar oracle revision"
         }
         val cases = golden.getJSONArray("cases"); check(cases.length() == 8)
+        receipt("published-oracle",JSONObject().put("assetSHA256",SHA256).put("tag",golden.getString("canonicalTag")).put("cases",cases.length()))
         val groups = mapOf("ics-termine" to "termine", "ics-aufgaben" to "aufgaben", "ics-jahrestage" to "jahrestage")
         var importedRecords = 0; var exportedRecords = 0; var rawProperties = 0; var sourceZones = 0
         for (index in 0 until cases.length()) {
@@ -86,7 +105,7 @@ internal object NativeCalendarSmoke {
             check("VERSION:2.0" in strings(metadata.getJSONArray("calendarProperties"))) { "Native calendar wrapper metadata missing" }
             for ((kind, group) in groups) {
                 val original = expected.getJSONArray(group); val actual = imported.getJSONArray(group)
-                compare(original, actual); importedRecords += actual.length()
+                compare(original, actual,case.getString("name")+"/import/"+group); importedRecords += actual.length()
                 for (row in 0 until original.length()) {
                     val before = original.getJSONObject(row); val after = actual.getJSONObject(row)
                     val retained = strings(after.getJSONArray("icsRoundtrip"))
@@ -102,15 +121,16 @@ internal object NativeCalendarSmoke {
                     for (row in rows(actual)) for (line in strings(row.getJSONArray("icsRoundtrip"))) {
                         check(line in serializedLines) { "Native calendar reexport changed an authoritative source property" }
                     }
-                    compare(original, ICalendarImport.decode(reexport.toByteArray(Charsets.UTF_8), "UTC").document.getJSONArray(group))
+                    compare(original, ICalendarImport.decode(reexport.toByteArray(Charsets.UTF_8), "UTC").document.getJSONArray(group),case.getString("name")+"/reexport/"+group)
                 }
             }
             val selected = rows(case.getJSONArray("records")); val kind = case.getString("kind")
             val serialized = ICalendarExport.encode(selected, kind, "UTC")
             val selectedGroup = groups.getValue(kind)
-            compare(case.getJSONArray("expected"), ICalendarImport.decode(serialized.toByteArray(Charsets.UTF_8), "UTC").document.getJSONArray(selectedGroup))
+            compare(case.getJSONArray("expected"), ICalendarImport.decode(serialized.toByteArray(Charsets.UTF_8), "UTC").document.getJSONArray(selectedGroup),case.getString("name")+"/export/"+selectedGroup)
             check(serialized.split("\r\n").all { it.toByteArray(Charsets.UTF_8).size <= 75 }) { "Native calendar UTF-8 folding exceeded RFC limit" }
             exportedRecords += selected.size
+            receipt("case-complete",JSONObject().put("case",case.getString("name")).put("importedRecords",importedRecords).put("exportedRecords",exportedRecords))
         }
         val custom = customOffsetAndFiniteRecurrence()
         val aliasRecords = qualifiedTasks()
