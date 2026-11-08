@@ -90,6 +90,61 @@ class ICalendarExportTest {
         assertEquals(records.map(::stable), ICalendarImport.decode(exported.toByteArray(), "UTC").appointments.map(::stable))
         System.getenv("ANDROID_BETA_CALENDAR_OUTPUT")?.let { File(it, "custom-embedded-offset.ics").writeText(exported, Charsets.UTF_8) }
     }
+    private fun sourceZoneCaseFixture(name: String): String {
+        val directory = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            .map { File(it, "port-adapters/tests/fixtures/source-vtimezone-case") }.firstOrNull { it.isDirectory }
+            ?: throw AssertionError("Missing shared source-VTIMEZONE case fixtures")
+        return File(directory, "$name.ics").readText(Charsets.UTF_8)
+    }
+    @Test fun importedMixedCaseSourceZonesRoundtripWithoutRewritingRawTokens() {
+        for (name in listOf("uppercase", "component-values", "property-names")) {
+            val source = sourceZoneCaseFixture(name).replace("TZOFFSETTO:+0300", "TZOFFSETTO:+0300\r\nX-OPAQUE;X-CASE=KeepValue:KeepBody")
+                .replace("END:Standard", "eNd:sTANDARD")
+            val records = ICalendarImport.decode(source.toByteArray(Charsets.UTF_8), "UTC").appointments
+            assertEquals(1, records.size); assertEquals("09:00", records[0].getString("zeit"))
+            val before = records.map { it.toString() }
+            val raw = records[0].getJSONArray("icsTimezones").getJSONArray(0)
+            val output = ICalendarExport.encode(records, "ics-termine", "UTC").replace("\r\n ", "")
+            assertEquals(before, records.map { it.toString() })
+            for (index in 0 until raw.length()) assertTrue(name + ": " + raw.getString(index), output.split("\r\n").contains(raw.getString(index)))
+            assertTrue(output.contains("TZID:Private/MixedCase\r\n"))
+            assertTrue(output.contains("X-OPAQUE;X-CASE=KeepValue:KeepBody\r\n"))
+            val again = ICalendarImport.decode(output.toByteArray(Charsets.UTF_8), "UTC").appointments
+            assertEquals(records.map(::stable), again.map(::stable))
+            assertEquals(raw.toString(), again[0].getJSONArray("icsTimezones").getJSONArray(0).toString())
+        }
+    }
+    @Test fun sourceZoneCaseAcceptanceDoesNotConflateOpaqueTZIDValues() {
+        val first = sourceZoneCaseFixture("component-values")
+        val second = first.replace("Private/MixedCase", "private/mixedcase").replace("+0300", "+0200").replace("UID:mixed-source", "UID:other-source")
+        val combined = first.substringBefore("END:VCALENDAR") + second.substringAfter("VERSION:2.0\r\n")
+        val records = ICalendarImport.decode(combined.toByteArray(Charsets.UTF_8), "UTC").appointments
+        assertEquals(listOf("09:00", "10:00"), records.map { it.getString("zeit") })
+        val output = ICalendarExport.encode(records, "ics-termine", "UTC")
+        assertTrue(output.contains("TZID:Private/MixedCase\r\n")); assertTrue(output.contains("TZID:private/mixedcase\r\n"))
+        assertEquals(records.map(::stable), ICalendarImport.decode(output.toByteArray(Charsets.UTF_8), "UTC").appointments.map(::stable))
+    }
+    @Test fun mixedCaseSourceZoneValidationStillRejectsWrongAndUnbalancedComponentsAtomically() {
+        val imported = ICalendarImport.decode(sourceZoneCaseFixture("component-values").toByteArray(Charsets.UTF_8), "UTC").appointments.single()
+        val original = imported.toString()
+        val block = imported.getJSONArray("icsTimezones").getJSONArray(0)
+        val lines = (0 until block.length()).map { block.getString(it) }
+        val variants = listOf(
+            lines.filterNot { it == "END:Standard" },
+            lines.map { if (it == "END:Standard") "END:Daylight" else it },
+            lines.map { it.replace("Standard", "Vevent") },
+            lines.map { it.replace("Standard", "ſtandard") },
+            lines.map { it.replace("VtimeZone", "Vevent") },
+            lines.dropLast(1)
+        )
+        for (bad in variants) {
+            val changed = JSONObject(original).put("icsTimezones", JSONArray().put(JSONArray(bad)))
+            val before = changed.toString()
+            rejected { ICalendarExport.encode(listOf(event(), changed), "ics-termine", "UTC") }
+            assertEquals(before, changed.toString())
+        }
+        assertEquals(original, imported.toString())
+    }
     @Test fun contradictionsInvalidRulesAndDSTGapsNeverProduceAPartialFile() {
         rejected { ICalendarExport.encode(listOf(event(), event().put("uid", "bad").put("unrecognizedState", JSONObject().put("keep", true))), "ics-termine") }
         rejected { ICalendarExport.encode(listOf(event().put("ganztag", "true")), "ics-termine") }

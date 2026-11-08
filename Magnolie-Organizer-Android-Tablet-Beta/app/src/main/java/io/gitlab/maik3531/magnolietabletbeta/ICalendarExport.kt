@@ -505,16 +505,26 @@ object ICalendarExport {
                 requireExport(value is JSONArray, "Invalid source time-zone definitions.")
                 val blocks = value as JSONArray
                 for (index in 0 until blocks.length()) {
-                    val block = strings(blocks.get(index)); requireExport(block.firstOrNull() == "BEGIN:VTIMEZONE" && block.lastOrNull() == "END:VTIMEZONE", "Invalid source time-zone component.")
-                    val properties = block.map(::Property); val names = properties.filter { it.name == "TZID" }
+                    val block = strings(blocks.get(index))
+                    val properties = block.map(::Property)
+                    // RFC5545 structural tokens are ASCII case-insensitive. Keep
+                    // every raw line and opaque TZID value exactly as imported.
+                    fun token(property: Property): String {
+                        requireExport(property.value.all { it in 'A'..'Z' || it in 'a'..'z' }, "Invalid time-zone component token.")
+                        return upper(property.value)
+                    }
+                    requireExport(properties.firstOrNull()?.let { it.name == "BEGIN" && it.parameters.isEmpty() && token(it) == "VTIMEZONE" } == true &&
+                        properties.lastOrNull()?.let { it.name == "END" && it.parameters.isEmpty() && token(it) == "VTIMEZONE" } == true, "Invalid source time-zone component.")
+                    val names = properties.filter { it.name == "TZID" }
                     requireExport(names.size == 1 && names[0].value.isNotEmpty(), "Missing or duplicate source TZID.")
                     val stack = mutableListOf<String>()
                     for (property in properties) {
                         if (property.name == "BEGIN") {
-                            requireExport(if (stack.isEmpty()) property.value == "VTIMEZONE" else stack.size == 1 && property.value in setOf("STANDARD", "DAYLIGHT"), "Invalid time-zone component nesting.")
-                            stack.add(property.value)
+                            val component = token(property)
+                            requireExport(if (stack.isEmpty()) component == "VTIMEZONE" else stack.size == 1 && component in setOf("STANDARD", "DAYLIGHT"), "Invalid time-zone component nesting.")
+                            stack.add(component)
                         } else if (property.name == "END") {
-                            requireExport(stack.isNotEmpty() && stack.removeAt(stack.lastIndex) == property.value, "Unbalanced source time-zone definition.")
+                            requireExport(stack.isNotEmpty() && stack.removeAt(stack.lastIndex) == token(property), "Unbalanced source time-zone definition.")
                         }
                     }
                     requireExport(stack.isEmpty(), "Unclosed source time-zone definition.")
