@@ -4609,6 +4609,13 @@ textarea,
 .telefon-medien-aktivierung { display: inline-flex; align-items: center; margin-inline-start: 16px; vertical-align: middle; }
 .telefon-medien-aktivierung[hidden] { display: none; }
 .telefon-medien-aktivierung input { margin: 0; }
+.kde-empfangsordner { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 7px; align-items: center; margin: 0 0 4px 22px; }
+.kde-empfangsordner input { min-width: 0; }
+.telefon-medien .kde-empfangsordner { margin-inline-start: 0; }
+@media (max-width: 620px) {
+  .kde-empfangsordner { grid-template-columns: 1fr 1fr; }
+  .kde-empfangsordner input { grid-column: 1 / -1; }
+}
 .telefon-medien-gruppe { display: grid; gap: 8px; min-width: 0; margin-block: 12px; }
 .telefon-medien-gruppe > h4 { margin: 4px 0; }
 .telefon-medien-gruppe > label.hak { display: flex; align-items: flex-start; margin: 6px 0; }

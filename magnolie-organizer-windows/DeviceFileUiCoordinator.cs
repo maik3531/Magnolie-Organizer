@@ -200,7 +200,20 @@ internal sealed partial class TelefonCoordinator
         JsonNode? Destination(string kind)
         {
             var value = store.ReadNativeMediaDestination(peerId, kind);
-            if (value is not null) return new JsonObject { ["version"] = value.Version, ["display_path"] = value.NativePath };
+            if (value is not null)
+            {
+                var isDefault = false;
+                try
+                {
+                    var name = store.LoadPeers().Single(peer => peer.Id == peerId).Name;
+                    var expected = kind == "images"
+                        ? Path.Combine(PhotoDestinationPaths.NativePicturesDirectory(), PhotoDestinationPaths.NativeFolderComponent(name))
+                        : Path.Combine(VideoDestinationPaths.NativeVideosDirectory(), VideoDestinationPaths.NativeFolderComponent(name));
+                    isDefault = string.Equals(Path.GetFullPath(value.NativePath).TrimEnd('\\'), Path.GetFullPath(expected).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+                }
+                catch (InvalidDataException) { }
+                return new JsonObject { ["version"] = value.Version, ["display_path"] = value.NativePath, ["default"] = isDefault };
+            }
             // Read-only default projection. Merely opening settings must never
             // create folders, persist a destination, or enable a transfer.
             try
@@ -312,6 +325,22 @@ internal sealed partial class TelefonCoordinator
     {
         RequireNativeMediaUiDestinationConsent(peerId);
         if (store.ReadNativeMediaDestination(peerId, mediaType) is not null) return;
+        SetNativeMediaDefaultDestination(peerId, mediaType, nativeKnownFolder, null);
+    }
+
+    internal void ResetNativeMediaUiDestination(string peerId, string mediaType, string? version)
+    {
+        var connection = NativeMediaOnlineConnection(peerId);
+        if (!connection.NativeMediaUiMetadataAvailable(videos: mediaType == "video")) throw DeviceFileControl.Error("file_media_native_peer_unavailable");
+        if (Volatile.Read(ref nativeMediaWorker) != 0) throw DeviceFileControl.Error("file_media_native_worker_busy");
+        SetNativeMediaDefaultDestination(peerId, mediaType, mediaType == "images" ? PhotoDestinationPaths.NativePicturesDirectory()
+            : mediaType == "video" ? VideoDestinationPaths.NativeVideosDirectory() : throw DeviceFileControl.Error("file_media_type_invalid"), version);
+    }
+
+    private void SetNativeMediaDefaultDestination(string peerId, string mediaType, string nativeKnownFolder, string? version)
+    {
+        RequireNativeMediaUiDestinationConsent(peerId);
+        if (store.ReadNativeMediaDestination(peerId, mediaType)?.Version != version) throw DeviceFileControl.Error("file_destination_stale_choice");
         var permit = NativeMediaLocalBookPermit(); permit.Require();
         var peer = store.LoadPeers().Single(value => value.Id == peerId && value.State == "paired");
         var name = mediaType == "images" ? PhotoDestinationPaths.NativeFolderComponent(peer.Name)
@@ -325,7 +354,7 @@ internal sealed partial class TelefonCoordinator
         using (child)
         {
             permit.Require(); _ = parent.CurrentReceiveIdentity();
-            store.SetNativeMediaDestination(peerId, mediaType, null, child);
+            store.SetNativeMediaDestination(peerId, mediaType, version, child);
             permit.Require();
         }
     }

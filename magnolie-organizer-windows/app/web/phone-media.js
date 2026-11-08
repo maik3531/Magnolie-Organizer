@@ -61,7 +61,8 @@
     let native = null, busy = false, transfer = false, catalog = null, kind = "images", selectedAlbum = null;
     let requestSequence = 0, appliedSettingsSequence = 0;
     let deferredStatus = false;
-    const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "shared_setting", "receive_consent"]);
+    const settingsActions = new Set(["status", "mode", "settings", "pick_destination", "default_destination", "shared_setting", "receive_consent"]);
+    const defaultDestinations = new Map();
     const allButtons = [], actions = [], rightActions = []; let refresh, manualSync;
     const albumChoice = node("select"); albumChoice.className = "feld"; albumChoice.hidden = true;
     albumChoice.setAttribute("aria-label", t("Phone album")); albumList.append(albumChoice);
@@ -90,6 +91,7 @@
         entry.button.disabled = busy || !enabled || !runtimeReady || !(entry.mediaType === "video" ? videos.checked : photos.checked);
       }
       for (const b of destinations.querySelectorAll("button")) b.disabled = busy || !enabled || (shared && !receiveConsent.checked);
+      for (const [key, b] of defaultDestinations) b.disabled ||= !native || native[key]?.default === true;
       if (deferredStatus && !busy) {
         deferredStatus = false;
         queueMicrotask(() => {
@@ -141,9 +143,15 @@
     direction.addEventListener("change", () => sharedSetting("direction", direction.value));
     const kinds = [["images", "Photos", "pictures"], ["video", "Videos", "video_destination"]];
     for (const [mediaType, label, key] of kinds) {
-      const row = node("div"), path = node("p", "No destination selected"); path.dataset.destination = mediaType;
-      row.append(node("strong", label), path); destinations.append(row);
-      button("Choose another folder…", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), row);
+      const row = node("div"), path = node("input"), picker = node("div");
+      row.dataset.destinationKind = mediaType; picker.className = "kde-empfangsordner";
+      path.type = "text"; path.readOnly = true; path.className = "feld";
+      path.dataset.destination = mediaType; path.placeholder = t("No destination selected");
+      path.setAttribute("aria-label", t(label));
+      picker.append(path); row.append(node("strong", label), picker); destinations.append(row);
+      button("Choose folder …", () => request("pick_destination", { media_type: mediaType, version: native?.[key]?.version ?? null }), picker);
+      defaultDestinations.set(key, button("Use default", () => request("default_destination", {
+        media_type: mediaType, version: native?.[key]?.version ?? null }), picker));
       const rights = node("div"); rights.append(node("strong", label)); rightsArea.append(rights);
       const read = button("Request access on phone", () => request("request_read", { media_type: mediaType, version: null }), rights);
       rightActions.push({ row: rights, button: read, mediaType });
@@ -232,7 +240,7 @@
         }
         const videoAvailable = reply.metadata_ready?.video === true;
         videos.parentElement.hidden = !videoAvailable;
-        destinations.querySelector('[data-destination="video"]').parentElement.hidden = !videoAvailable;
+        destinations.querySelector('[data-destination-kind="video"]').hidden = !videoAvailable;
         actions.find(entry => entry.mediaType === "video").button.hidden = !videoAvailable;
         caption.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
         busy = !!reply.busy || !!reply.transfer_busy || !!reply.automatic_busy;
@@ -240,7 +248,10 @@
         automatic.value = shared?.auto_mode ?? (reply.automatic ? "wifi" : "manual"); automatic.parentElement.hidden = reply.automatic_ready !== true;
         skip.indeterminate = !shared && reply.skip_deletions === null; skip.checked = shared ? shared.skip_deletions === true : reply.skip_deletions !== false;
         mode.textContent = t(automatic.value === "wifi" ? "Automatically synchronize over Wi-Fi" : "Manual synchronization");
-        for (const [mediaType, , key] of kinds) destinations.querySelector(`[data-destination="${mediaType}"]`).textContent = reply[key]?.display_path || t("No destination selected");
+        for (const [mediaType, , key] of kinds) {
+          const path = destinations.querySelector(`[data-destination="${mediaType}"]`);
+          path.value = reply[key]?.display_path || ""; path.title = path.value;
+        }
         status.textContent = t(busy ? "A native media operation is still running." : reply.metadata_ready?.images !== true
           ? "Media transfer is not available on this connection yet." : "Native settings loaded. No transfer has been started.");
         if (shared && reply.shared_runtime_ready !== true && shared.enabled)

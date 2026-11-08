@@ -105,6 +105,11 @@ internal sealed partial class BridgeDispatcher
                     var settings = telefon.SetNativeMediaUiChoices(peerId, request.Version, request.Photos, request.Videos, request.SkipDeletions);
                     settings["requestId"] = requestId; settings["device_id"] = peerId; settings["ok"] = true;
                     await Reply(settings); return;
+                case "default_destination":
+                    telefon.ResetNativeMediaUiDestination(peerId, request.MediaType, request.Version);
+                    var defaultDestination = telefon.NativeMediaUiStatus(peerId);
+                    defaultDestination["requestId"] = requestId; defaultDestination["device_id"] = peerId; defaultDestination["ok"] = true;
+                    await Reply(defaultDestination); return;
                 case "pick_destination":
                     telefon.RequireNativeMediaUiDestinationConsent(peerId);
                     // Only the actual native picker supplies a path. Request

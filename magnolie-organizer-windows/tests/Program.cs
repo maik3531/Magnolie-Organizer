@@ -269,6 +269,7 @@ runner.Add("Device file native receive / conservative leaf grammar", DeviceFileN
 runner.Add("Device file native run lifecycle / strict batch and END codec", DeviceFileConnectionRunsTests.CodecAsync);
 runner.Add("Device file native run lifecycle / retained cleanup lease boundaries", DeviceFileMetadataCommandTests.SourceCleanupLeaseAsync);
 runner.Add("Device file native destination / absent read does not bootstrap", DeviceFileStoreDestinationsTests.DefaultsAsync);
+runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
@@ -371,7 +372,6 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native saved book / Windows actual failed save revokes media authority", DeviceFileBookPermitTests.WindowsFailedNativeSaveRevokesAsync);
     runner.Add("Device file native saved book / Windows canonical policy and prewrite rejection", DeviceFileBookPermitTests.WindowsSavedPolicyAndRejectedSaveAsync);
     runner.Add("Device file native saved book / Windows actual incoming data after book change HOLD", DeviceFileBookPermitTests.WindowsBookChangedDuringActualReceiveAsync);
-    runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
     runner.Add("Device file automatic media / Windows actual saved book ACK fresh catalog and empty END", DeviceFileAutomaticTests.WindowsEmptyAlbumAsync);
     runner.Add("Device file automatic media / Windows owned stop cleanup and paused next tick", DeviceFileAutomaticTests.WindowsStopPreparingAsync);
     runner.Add("Device file automatic media / Windows video requires fresh ACK configure then catalog", DeviceFileAutomaticTests.WindowsVideoEmptyAlbumAsync);

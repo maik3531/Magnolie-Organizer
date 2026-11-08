@@ -154,7 +154,7 @@ internal static class DeviceFileUiTests
         TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupId == new string('a', 64), "Opaque backup selection was not parsed.");
         backup["location_id"] = new string('c', 64);
         TestAssert.That(NativeMediaUiRequest.Parse(backup).BackupLocation == new string('c', 64), "Historical backup source locator was not parsed independently.");
-        foreach (var action in new[] { "pick_backup_parent", "backup_default" })
+        foreach (var action in new[] { "pick_backup_parent", "backup_default", "pick_destination", "default_destination" })
         {
             var pick = request.DeepClone().AsObject(); pick["action"] = action; pick["media_type"] = "images"; pick["version"] = null;
             _ = NativeMediaUiRequest.Parse(pick);
