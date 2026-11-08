@@ -106,7 +106,10 @@ internal sealed partial class TelefonConnection
             await fileControlIo.WaitAsync(lifetime.Token);
             try
             {
-                RequireNativeMediaTransfer(transfer!); job.PublishAll();
+                RequireNativeMediaTransfer(transfer!);
+                var photosOnly = choice.MediaType == "images" && choice.SharedIntent is not null &&
+                    MediaSyncSettings.Effective(choice.SharedIntent)["photos_only"]!.GetValue<bool>();
+                job.PublishAll(requirePhotoMetadata: photosOnly);
                 var receipts = job.CommitNativeSavedReceipts(); RequireNativeMediaTransfer(transfer!);
                 var accepted = transfer!.Acceptance;
                 var saved = NativeFileMessage(DeviceFileSavedEnvelope.Kind, new JsonObject { ["format"] = 1, ["transfer_id"] = accepted.TransferId,

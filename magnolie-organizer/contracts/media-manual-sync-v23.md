@@ -42,9 +42,15 @@ before creating a frozen sending cache or returning a source observation. Its
 bounded standard-library reader recognizes JPEG EXIF, TIFF and PNG eXIf; other
 formats are excluded while filtering. It preserves original bytes and mappings,
 and still requires separate current sending consent, intent and saved-book proof.
-Windows source/filter integration and the complete productive shared runtime
-remain unfinished. These components do not enable the reserved runtime or expose
-the unfinished cross-platform filter control.
+Windows receiving now passes its exact matched photo-filter choice into native
+publication. It checks all original staged prefixes before preserving/replacing
+or publishing any member, retaining a rejected batch's stage and journal. Its
+portable metadata parser uses the same JPEG/TIFF/PNG capture criterion. Parser
+tests and production compilation are not native Windows stage/publication
+acceptance; that added native test lane remains separately required. Windows
+PC-source integration and the complete productive shared runtime remain
+unfinished. These components do not enable the reserved runtime or expose the
+unfinished cross-platform filter control.
 Only authenticated protected stored records with exactly the previous seven
 registers may be projected to eight by adding local `photos_only=false` at clock
 zero. This projection does not write on read or alter any existing register.

@@ -105,6 +105,7 @@ if (args.FirstOrDefault() == "--published-release-audit")
 var runner = new TestRunner();
 runner.Add("Personal synchronization confirmed-success metadata / identity / no grants", PersonalSyncSuccessTests.RunAsync);
 runner.Add("Media shared preferences / independent registers safe defaults replay and actor guards", MediaSyncSettingsTests.RunAsync);
+runner.Add("Media photo metadata / bounded actual TIFF JPEG PNG tags / unknown exclusion", PhotoCaptureMetadataTests.RunAsync);
 runner.Add("Media backup exclusions / recursive independent native component classifier", DeviceFileBackupExclusionTests.ClassifierAsync);
 runner.Add("Personal synchronization confirmed-success actual ACK / stale channel / failure", PersonalSyncSuccessTests.AcknowledgmentsAsync);
 runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
@@ -317,6 +318,7 @@ if (OperatingSystem.IsWindows())
     runner.Add("Device file native destination / Windows binding and ciphertext HOLD", DeviceFileStoreDestinationsTests.WindowsBindingAndTamperAsync);
     runner.Add("Device file native destination / Windows missing database never bootstraps", DeviceFileStoreDestinationsTests.WindowsMissingDatabaseAsync);
     runner.Add("Device file native receive job / Windows secure agreement to protected publication", DeviceFileReceiveJobTests.WindowsActualReceiveAsync);
+    runner.Add("Device file native receive job / Windows metadata filter preserves rejected staged originals", DeviceFileReceiveJobTests.WindowsPhotoMetadataSelectionAsync);
     runner.Add("Device file native receive job / Windows interrupted original and withdrawal", DeviceFileReceiveJobTests.WindowsInterruptedAndWithdrawnAsync);
     runner.Add("Device file native receive job / Windows partial publication preserves history", DeviceFileReceiveJobTests.WindowsPartialPublicationAsync);
     runner.Add("Device file native receive job / Windows missing history and occupied target", DeviceFileReceiveJobTests.WindowsMissingHistoryAndOccupiedAsync);

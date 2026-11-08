@@ -338,7 +338,7 @@ internal sealed partial class TelefonStore
             }
         }
 
-        internal void PublishAll()
+        internal void PublishAll(bool requirePhotoMetadata = false)
         {
             lock (jobGate)
             {
@@ -347,6 +347,23 @@ internal sealed partial class TelefonStore
                     throw DeviceFileControl.Error("file_receive_not_complete");
                 try
                 {
+                    // Inspect every original staged prefix before preserving or
+                    // publishing ANY replacement. A rejection retains the job.
+                    if (requirePhotoMetadata) foreach (var file in Manifest.Files)
+                    {
+                        Current(); var prefix = new byte[(int)Math.Min(file.Size, PhotoCaptureMetadata.MaximumBytes)];
+                        try
+                        {
+                            for (var offset = 0; offset < prefix.Length; offset += DeviceFileManifest.ChunkBytes)
+                            {
+                                Current(); var chunk = files[file.Id].ReadExact(offset, Math.Min(DeviceFileManifest.ChunkBytes, prefix.Length - offset));
+                                try { chunk.CopyTo(prefix, offset); } finally { CryptographicOperations.ZeroMemory(chunk); }
+                            }
+                            Current(); var selected = PhotoCaptureMetadata.Matches(prefix); Current();
+                            if (!selected) throw DeviceFileControl.Error("file_receive_photo_metadata_required");
+                        }
+                        finally { CryptographicOperations.ZeroMemory(prefix); }
+                    }
                     foreach (var file in Manifest.Files)
                     {
                         PreserveReplacementOriginal(file.Id); // Only after ALL incoming chunks are durable; before publishing any replacement.

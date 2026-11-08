@@ -98,6 +98,32 @@ internal static class DeviceFileReceiveJobTests
         TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Count == rowsBefore, "Duplicate publication fabricated another history row.");
     }
 
+    internal static async Task WindowsPhotoMetadataSelectionAsync()
+    {
+        foreach (var rejectedBatch in new[] { false, true })
+        {
+            using var f = await Fixture.CreateAsync(); var capture = PhotoCaptureMetadataTests.Jpeg(); var unknown = "no camera metadata"u8.ToArray();
+            var manifest = rejectedBatch ? f.Manifest(("capture.txt", capture), ("IMG_camera.jpg", unknown)) : f.Manifest(("capture.txt", capture));
+            using var job = f.Begin(manifest);
+            job.ReceiveChunk(manifest.Files[0].Id, 0, capture);
+            if (rejectedBatch)
+            {
+                job.ReceiveChunk(manifest.Files[1].Id, 0, unknown);
+                TestAssert.Throws<InvalidDataException>(() => job.PublishAll(requirePhotoMetadata: true), "Unknown capture metadata was published.");
+                TestAssert.That(!File.Exists(Path.Combine(f.Root, "capture.txt")) && !File.Exists(Path.Combine(f.Root, "IMG_camera.jpg")) &&
+                    f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single().Phase == "receiving", "A rejected batch published an earlier member or changed its journal.");
+                var stage = Path.Combine(f.Root, ".magnolie-receive-" + job.JobId);
+                TestAssert.That(SharedRead(Path.Combine(stage, manifest.Files[0].Id + ".part")).SequenceEqual(capture) &&
+                    SharedRead(Path.Combine(stage, manifest.Files[1].Id + ".part")).SequenceEqual(unknown), "Rejected metadata filtering discarded staged originals.");
+            }
+            else
+            {
+                job.PublishAll(requirePhotoMetadata: true);
+                TestAssert.That(SharedRead(Path.Combine(f.Root, "capture.txt")).SequenceEqual(capture), "A renamed capture did not preserve its original received bytes.");
+            }
+        }
+    }
+
     internal static async Task WindowsInterruptedAndWithdrawnAsync()
     {
         using var f = await Fixture.CreateAsync(); var bytes = "hello"u8.ToArray(); var manifest = f.Manifest(("pending.jpg", bytes));
