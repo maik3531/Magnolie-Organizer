@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import tempfile
 import unittest
@@ -14,6 +15,33 @@ from unittest.mock import patch
 SPEC = importlib.util.spec_from_file_location('session', Path(__file__).resolve().parents[1] / 'tools/emulator-session.py')
 session = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(session)
+
+
+class PortAvailabilityTests(unittest.TestCase):
+    def test_active_listener_rejected_even_with_address_reuse(self):
+        with socket.socket() as server:
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(('127.0.0.1', 0))
+            port = server.getsockname()[1]
+            server.listen()
+            with self.assertRaisesRegex(RuntimeError, f'port {port} unavailable: errno=98'):
+                session.require_available_port(port)
+
+    def test_closed_own_connection_time_wait_does_not_block_fresh_owner(self):
+        with socket.socket() as server:
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(('127.0.0.1', 0))
+            port = server.getsockname()[1]
+            server.listen()
+            with socket.create_connection(('127.0.0.1', port), timeout=1) as client:
+                accepted, _ = server.accept()
+                accepted.close()  # Server side actively closes, retaining TIME_WAIT.
+                self.assertEqual(client.recv(1), b'')
+        with socket.socket() as original_probe:
+            with self.assertRaises(OSError) as error:
+                original_probe.bind(('127.0.0.1', port))
+            self.assertEqual(error.exception.errno, 98)
+        session.require_available_port(port)
 
 
 class Clock:

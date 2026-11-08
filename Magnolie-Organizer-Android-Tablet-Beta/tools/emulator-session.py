@@ -79,6 +79,18 @@ def zombie(pid):
         return False
 
 
+def require_available_port(port):
+    # A previous owned server can be fully reaped while its accepted connections
+    # remain in TIME_WAIT. Match normal server rebinding without permitting a
+    # second active listener (SO_REUSEPORT is deliberately never enabled).
+    with socket.socket() as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind(('127.0.0.1', port))
+        except OSError as exc:
+            raise RuntimeError(f'Owned loopback port {port} unavailable: errno={exc.errno}') from exc
+
+
 def owns_adb_socket(expected):
     if not expected or identity(expected['pid']) != expected or zombie(expected['pid']):
         return False
@@ -383,8 +395,7 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
     owner.record('starting', locks=[str(p) for p in lock_paths(opts)], bootSeconds=opts.boot_timeout,
                  testSeconds=opts.test_timeout, permission='main-slot-granted')
     for port in (5039, 5580, 5581):
-        with socket.socket() as probe:
-            probe.bind(('127.0.0.1', port))
+        require_available_port(port)
     env = environment(run)
     # A foreground server is a direct waitable child. Never use global kill-server,
     # start-server, pkill or a server selected by port alone.
