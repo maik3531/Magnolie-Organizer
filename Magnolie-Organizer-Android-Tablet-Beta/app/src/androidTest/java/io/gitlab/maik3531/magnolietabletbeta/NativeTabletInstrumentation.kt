@@ -445,7 +445,7 @@ class NativeTabletInstrumentation : Instrumentation() {
         NativeDomainAcceptance.requireEqual(reopenedBookExpected,data(),"Reopened renderer changed or dropped persisted book fields beyond the declared optional-zero default")
         NativeDomainAcceptance.requireEqual(expected,JSONObject(value("NativeDomains.snapshot()")),"Reopened health custom or drawing graph differs")
         pass("complete native book and feature graph preserve all fields through save and reopen",JSONObject()
-            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(expected))
+            .put("bookSHA256",NativeDomainAcceptance.hash(persisted)).put("featureSHA256",NativeDomainAcceptance.hash(expected)))
     }
 
     private fun basics() {
