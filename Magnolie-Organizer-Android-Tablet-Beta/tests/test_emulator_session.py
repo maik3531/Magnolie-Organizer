@@ -242,6 +242,29 @@ class LifecycleTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'different source snapshot'):
                 session.run_test(session.Owner(), {'expectedSourceHash': 'new'}, 'basics', 120)
 
+    def test_native_failure_output_retains_technical_stack_and_is_bounded(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        log = ('11-08 12:00:00.000 111 222 E AndroidRuntime: FATAL EXCEPTION: main\n'
+               '11-08 12:00:00.001 111 222 E AndroidRuntime: at package.Class.method(Class.kt:42)\n'
+               '11-08 12:00:00.002 111 222 I TabletNativeTest: synthetic document text\n'
+               '11-08 12:00:00.003 111 222 W ActivityManager: unrelated warning')
+        output = native.technical_failure_log(log)
+        self.assertIn('FATAL EXCEPTION', output)
+        self.assertIn('Class.kt:42', output)
+        self.assertNotIn('synthetic document text', output)
+        self.assertNotIn('unrelated warning', output)
+        self.assertLessEqual(len(native.technical_failure_log(log*500)), 16000)
+        self.assertLessEqual(len(native.technical_failure_log(log*500).splitlines()), 160)
+        exit_info = 'process=synthetic.package reason=4 (CRASH) status=0 importance=100 pss=123 rss=456 description=private text'
+        signature = native.exit_info_signature(exit_info)
+        self.assertIn('reason=4 (CRASH)', signature)
+        self.assertIn('rss=456', signature)
+        self.assertNotIn('process=', signature)
+        self.assertNotIn('private text', signature)
+        self.assertLessEqual(len(native.exit_info_signature(exit_info*500)), 2000)
+
     def test_next_suite_requires_main_before_process_or_lock(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
         native = importlib.util.module_from_spec(spec)

@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,20 @@ SUITES = {
     'storage': ['basics', 'saf', 'fault', 'print'],
     'notifications': ['notifications'],
 }
+
+
+def technical_failure_log(output):
+    # The fresh disposable AVD contains synthetic fixtures only. Emit bounded
+    # runtime/crash diagnostics, never the captured DOM, records or full logcat.
+    lines = [line for line in output.splitlines()
+             if re.search(r'\s[EF]\s+(?:AndroidRuntime|chromium|libc|DEBUG)\s*:', line)]
+    return '\n'.join(lines[-160:])[-16000:]
+
+
+def exit_info_signature(output):
+    fields = re.findall(r'\b(reason|status|importance|pss|rss)=(\d+)(?:\s+\(([A-Z_]+)\))?', output)
+    return '\n'.join(key+'='+value+(' ('+label+')' if label else '')
+                     for key, value, label in fields[-40:])[-2000:]
 
 
 def candidate_files(candidate, projection):
@@ -96,6 +111,8 @@ def main(argv=None):
             owner.record('failed', reason=str(exc), output=str(getattr(exc, 'output', ''))[-8000:])
         finally:
             try:
+                if code:
+                    owner.record('native-failure-resources', **session.memory_usage())
                 if owner.state.get('booted') and not owner.signal and session.time.monotonic() < owner.deadline:
                     for name, command in {
                         'android-test-log': ['logcat', '-b', 'all', '-d', '-v', 'threadtime', '-s',
@@ -106,6 +123,10 @@ def main(argv=None):
                         try:
                             output = session.adb(owner, owner.state, command, 15)
                             (Path(owner.state['run']) / 'evidence' / (name+'.txt')).write_text(output)
+                            if code and name == 'android-test-log':
+                                print('NATIVE_RUNTIME_FAILURE_LOG\n'+technical_failure_log(output), flush=True)
+                            elif code and name == 'app-exit-info':
+                                print('NATIVE_EXIT_REASON_SIGNATURE\n'+exit_info_signature(output), flush=True)
                         except Exception as exc:
                             owner.record('diagnostic-collection-failed', name=name, reason=str(exc))
                     try:
