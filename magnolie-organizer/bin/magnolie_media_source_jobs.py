@@ -74,10 +74,14 @@ class _NativeSourceJobs:
     def _decode(self,job,cipher,db_key):
         if type(cipher) is not bytes or not 29<=len(cipher)<=self.MAX_BYTES+28:raise TransferError('media_source_jobs_record_invalid')
         plain=self._authority.protection.unseal(cipher,self._key(job));body=strict_json(plain)
+        ordered=type(body) is dict and type(body.get('format')) is int and body['format']==2
         if (type(body) is not dict or set(body)!={'format','scope','database_key','job_id','nonce','state','intent_sha256','root_key',
-                'parent_key','book_version','source_policy_sha256','pairing_epoch','manifest','proof_sha256','original_references'}
-                or type(body['format']) is not int or body['format']!=1 or body['scope']!=self._scope or body['job_id']!=job
+                'parent_key','book_version','source_policy_sha256','pairing_epoch','manifest','proof_sha256','original_references'} | ({'lineage'} if ordered else set())
+                or type(body['format']) is not int or body['format'] not in (1,2) or body['scope']!=self._scope or body['job_id']!=job
                 or body['database_key']!=list(db_key) or canonical(body)!=plain):raise TransferError('media_source_jobs_record_invalid')
+        if ordered:
+            from magnolie_media_source_lineage import validate_lineage
+            validate_lineage(body['lineage'])
         for name in ('nonce','intent_sha256','book_version','source_policy_sha256','pairing_epoch'):
             if not _hex(body[name]):raise TransferError('media_source_jobs_record_invalid')
         for name in ('root_key','parent_key'):
@@ -120,7 +124,9 @@ class _NativeSourceJobs:
             if self._read(db,key,job) is not None:raise TransferError('media_source_jobs_original_plan_required')
             count=db.execute('SELECT COUNT(*) FROM meta WHERE key LIKE ?',(self._prefix+'%',)).fetchone()[0]
             if count>=self.MAX_RECORDS:raise TransferError('media_source_jobs_capacity')
-            body=dict(format=1,scope=self._scope,database_key=list(key),job_id=job,nonce=intent['job_nonce'],state='cache_planned',
+            from magnolie_media_source_lineage import _NativeSourceLineage
+            lineage=_NativeSourceLineage(self).predecessor(db,key,catalog)
+            body=dict(format=2,scope=self._scope,database_key=list(key),job_id=job,nonce=intent['job_nonce'],state='cache_planned',lineage=lineage,
                 intent_sha256=writer._intent_sha256,root_key=list(writer._root_key),parent_key=list(writer._parent_key),
                 book_version=intent['book_version'],source_policy_sha256=intent['source_policy_sha256'],pairing_epoch=intent['pairing_epoch'],
                 manifest=None,proof_sha256=None,original_references=None)

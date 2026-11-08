@@ -409,6 +409,26 @@ bleibt geschlossen.
 
 ## Linux: native Quell-Factory und gemeinsame Steuersitzung
 
+### Geschützte Reihenfolge neuer Quellversionen
+
+Neue native Cache-Aufträge binden zusätzlich den exakten abgeschlossenen
+Vorgänger: dessen geschützte Ready-Version und dessen Archivabschluss. Die
+vollständige Vorgängerkette wird vor einem weiteren Auftrag authentifiziert.
+Fehlende oder veränderte Vorgänger, mehrere Wurzeln, Verzweigungen und nicht
+erreichbare Einträge sperren die Fortsetzung. Ein noch laufender Auftrag kann
+nicht als abgeschlossener Vorgänger verwendet werden. Die bestehende Prüfung
+der tatsächlichen Archivdateien vor Nutzung des freien Quellplatzes bleibt
+zusätzlich erforderlich.
+
+Bestehende Aufträge ohne diese Reihenfolge bleiben unverändert als vollständig
+authentifizierter, aber ungeordneter Altbestand erhalten. Neue Ketten binden
+diesen Bestand über einen gemeinsamen Digest; sie erfinden keinen neuesten
+Alteintrag. UUIDs, SQLite-Zeilenfolge und sortierte Katalogmitgliedschaften
+begründen keine zeitliche Reihenfolge. Die Projektion sind ausschließlich
+historische Metadaten, keine Lese-, Wiederaufnahme- oder Löschrechte. Die
+eigentliche Exportplanung und ihr Vergleich mit der letzten relevanten,
+abgeschlossenen Quellversion werden dadurch noch nicht eingeschaltet.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte
