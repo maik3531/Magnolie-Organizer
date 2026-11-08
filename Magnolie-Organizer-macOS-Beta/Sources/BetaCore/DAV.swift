@@ -51,6 +51,9 @@ public enum DAVError: Error, Equatable {
     case reportOutsideCollection
     case homeMissing
     case missingETag
+    case weakETag
+    case unexpectedContentEncoding
+    case resourceScopeRejected
     case localAttachment
     case unauthorized
     case forbidden
@@ -192,6 +195,22 @@ public struct DAVResource: Equatable {
     public let data: String
 }
 
+/// Exact identity-encoded resource read, not a recovered-write or durable-book acknowledgement.
+/// GET never interprets byte equality or HTTP404 as successful journal resolution on its own.
+public enum DAVResourceRead {
+    public struct Binding {
+        public let sourceUID: String, requestedHref: URL, finalHref: URL
+        /// Decoded escaped-path UTF8 bytes, with no Unicode normalization-equivalent comparison.
+        public let resourcePathBytes: Data
+    }
+    public struct Present {
+        public let binding: Binding, etag: String, bytes: Data
+        /// Only a syntactically strong specific HTTP ETag can construct this result.
+    }
+    case present(Present)
+    case absent(Binding)
+}
+
 /// DAV resource transfer only. Scheduling, local merge/deletion journals and atomic profile saves
 /// belong to the sync coordinator, which must not report sync success on transfer alone.
 public final class DAVClient {
@@ -251,7 +270,9 @@ public final class DAVClient {
     }
 
     private func request(_ method: String, url: URL, body: Data = Data(), headers: [String: String] = [:],
-                         limit: Int = DAVClient.xmlLimit, expected: Set<Int>) async throws -> (BoundedHTTPResponse, URL) {
+                         limit: Int = DAVClient.xmlLimit, expected: Set<Int>,
+                         validateDestination: ((String, URL?) throws -> Void)? = nil) async throws -> (BoundedHTTPResponse, URL) {
+        try validateDestination?(url.absoluteString, nil)
         var target = try sameOriginURL(url.absoluteString)
         var headers = headers
         headers["Authorization"] = "Basic " + Data("\(username):\(password)".utf8).base64EncodedString()
@@ -263,12 +284,14 @@ public final class DAVClient {
             guard remaining > 0 else { throw DAVError.timeout }
             let response = try await transport.send(BoundedHTTPRequest(url: target, method: method,
                 headers: headers, body: body, timeout: remaining, maximumResponseBytes: limit))
+            try Task.checkCancellation()
             guard (ProcessInfo.processInfo.systemUptime - started) <= timeout else { throw DAVError.timeout }
             guard response.body.count <= limit else { throw DAVError.responseTooLarge }
             if (300..<400).contains(response.status) {
                 guard attempt == 0, let location = response.headers["location"] else {
                     throw DAVError.httpStatus(response.status)
                 }
+                try validateDestination?(location, target)
                 target = try sameOriginURL(location, relativeTo: target)
                 continue
             }
@@ -367,6 +390,85 @@ public final class DAVClient {
             result.append(DAVResource(href: href, etag: row.properties[Self.dav + "|getetag"]?.text ?? "", data: raw))
         }
         return result
+    }
+
+    /// Bounded exact-byte GET for future recovery verification. Does not resolve a journal or
+    /// authorize a write. Redirects must retain both collection scope and byte-exact path identity.
+    public func getResource(href: URL, in collection: DAVCollection, maximumBytes: Int = DAVClient.itemLimit) async throws -> DAVResourceRead {
+        guard maximumBytes > 0, maximumBytes <= Self.itemLimit else { throw DAVError.invalidConfiguration }
+        let sourcePath = try Self.recoveryPath(collection.href.absoluteString)
+        guard collection.uid.utf8.count <= 1024,
+              Data(collection.uid.utf8) == Data(Self.sourceID(kind: collection.kind, href: collection.href, accountType: accountType).utf8) else { throw DAVError.resourceScopeRejected }
+        guard sourcePath.last == 47 else { throw DAVError.resourceScopeRejected }
+        _ = try sameOriginURL(collection.href.absoluteString)
+        let requestedPath = try Self.recoveryPath(href.absoluteString)
+        func validate(_ reference: String, relativeTo base: URL?) throws {
+            // Inspect raw redirect syntax before URL resolution/standardization can remove dots.
+            let rawPath = try Self.recoveryPath(reference)
+            let absoluteRawPath: Data
+            if rawPath.first == 47 { absoluteRawPath = rawPath }
+            else if let base {
+                let basePath = try Self.recoveryPath(base.absoluteString)
+                if rawPath.isEmpty { absoluteRawPath = basePath }
+                else {
+                    guard let slash = basePath.lastIndex(of: 47) else { throw DAVError.resourceScopeRejected }
+                    absoluteRawPath = Data(basePath.prefix(through: slash)) + rawPath
+                }
+            } else { absoluteRawPath = rawPath }
+            // Compare raw resolved bytes BEFORE Foundation may standardize Unicode or escapes.
+            guard absoluteRawPath == requestedPath else { throw DAVError.resourceScopeRejected }
+            let resolved = try sameOriginURL(reference, relativeTo: base)
+            let path = try Self.recoveryPath(resolved.absoluteString)
+            guard path.count > sourcePath.count, path.starts(with: sourcePath), path == requestedPath else { throw DAVError.resourceScopeRejected }
+        }
+        try validate(href.absoluteString, relativeTo: nil)
+        let (response, final) = try await request("GET", url: href,
+            headers: ["Accept-Encoding": "identity", "Cache-Control": "no-cache, no-store", "Pragma": "no-cache"],
+            limit: maximumBytes, expected: [200, 404], validateDestination: { reference, base in try validate(reference, relativeTo: base) })
+        if let encoding = response.headers["content-encoding"], encoding.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "identity" {
+            throw DAVError.unexpectedContentEncoding
+        }
+        let binding = DAVResourceRead.Binding(sourceUID: collection.uid, requestedHref: href, finalHref: final, resourcePathBytes: requestedPath)
+        if response.status == 404 { return .absent(binding) }
+        guard let etag = response.headers["etag"], etag.utf8.count <= 8192, Self.validETag(etag) else { throw DAVError.missingETag }
+        let tag = etag.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !tag.hasPrefix("W/") else { throw DAVError.weakETag }
+        let bytes = Array(tag.utf8)
+        guard bytes.count >= 2, bytes.first == 34, bytes.last == 34,
+              bytes.dropFirst().dropLast().allSatisfy({ $0 == 33 || (35...126).contains($0) || $0 >= 128 }) else { throw DAVError.missingETag }
+        return .present(DAVResourceRead.Present(binding: binding, etag: etag, bytes: response.body))
+    }
+    /// Percent-decode into bytes, never Swift String equality (NFC and NFD filenames differ).
+    /// Encoded separators, backslashes, dot segments, controls and URI credentials/query are unsafe.
+    private static func recoveryPath(_ reference: String) throws -> Data {
+        guard reference.utf8.count <= 16_384,
+              !reference.contains("\\"), !reference.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }),
+              let parts = URLComponents(string: reference), parts.user == nil, parts.password == nil,
+              parts.query == nil, parts.fragment == nil else { throw DAVError.resourceScopeRejected }
+        func hex(_ value: UInt8) -> UInt8? {
+            if (48...57).contains(value) { return value - 48 }
+            if (65...70).contains(value) { return value - 65 + 10 }
+            if (97...102).contains(value) { return value - 97 + 10 }
+            return nil
+        }
+        var path = Data()
+        for (offset, segment) in parts.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false).enumerated() {
+            if offset > 0 { path.append(47) }
+            let encoded = Array(segment.utf8)
+            var decoded = Data(), index = 0
+            while index < encoded.count {
+                let value: UInt8
+                if encoded[index] == 37 {
+                    guard index + 2 < encoded.count, let high = hex(encoded[index + 1]), let low = hex(encoded[index + 2]) else { throw DAVError.resourceScopeRejected }
+                    value = high * 16 + low; index += 3
+                } else { value = encoded[index]; index += 1 }
+                guard value >= 32, value != 127, value != 47, value != 92 else { throw DAVError.resourceScopeRejected }
+                decoded.append(value)
+            }
+            guard decoded != Data([46]), decoded != Data([46, 46]) else { throw DAVError.resourceScopeRejected }
+            path.append(decoded)
+        }
+        return path
     }
 
     /// A 412 remains an explicit conflict: callers may compare/refetch without overwriting local data.
