@@ -17,6 +17,7 @@ internal sealed partial class TelefonConnection
         internal readonly TaskCompletionSource<RemoteSavedConfirmation> Saved = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<RemotePublishedReadback> Readback = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly bool ExpectReadback;
+        internal bool OutputDrained;
         internal TelefonStore.NativeMediaSourceExchange Exchange = null!;
         internal RemoteFileAcceptance? Acceptance;
         internal NativeMediaSendRun(TelefonConnection connection, TelefonStore.NativePreparedMediaSource cache,
@@ -47,13 +48,23 @@ internal sealed partial class TelefonConnection
         return (result.Saved, result.Readback ?? throw DeviceFileControl.Error("media_source_send_readback_required"));
     }
 
+    // Explicit local terminal stage. The protected source cache/history remains
+    // retained; return values are still peer metadata, not deletion authority.
+    internal async Task<(RemoteSavedConfirmation Saved, RemotePublishedReadback Readback)> SendNativeMappedMediaSourceToSourceEndAsync(
+        TelefonStore.NativePreparedMediaSource cache, CancellationToken token = default)
+    {
+        var result = await SendNativeMappedMediaSourceCoreAsync(cache, true, token, endSource: true);
+        return (result.Saved, result.Readback ?? throw DeviceFileControl.Error("media_source_send_readback_required"));
+    }
+
     private async Task<(RemoteSavedConfirmation Saved, RemotePublishedReadback? Readback)> SendNativeMappedMediaSourceCoreAsync(
-        TelefonStore.NativePreparedMediaSource cache, bool expectReadback, CancellationToken token)
+        TelefonStore.NativePreparedMediaSource cache, bool expectReadback, CancellationToken token, bool endSource = false)
     {
         if (!ReferenceEquals(cache.OwnerStore, store) || !ReferenceEquals(cache.ConnectionOwner, this))
             throw DeviceFileControl.Error("media_source_send_native_cache_required");
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellation, token); lifetime.CancelAfter(TimeSpan.FromSeconds(60));
         NativeMediaSendRun? run = null;
+        var sourceEndReady = false;
         try
         {
             await fileControlIo.WaitAsync(lifetime.Token);
@@ -76,6 +87,7 @@ internal sealed partial class TelefonConnection
             _ = await run.Accepted.Task.WaitAsync(lifetime.Token);
             var saved = await run.Saved.Task.WaitAsync(lifetime.Token); run.Require();
             var readback = expectReadback ? await run.Readback.Task.WaitAsync(lifetime.Token) : null; run.Require();
+            sourceEndReady = endSource && readback is not null;
             return (saved, readback); // Remote assertions ONLY. Never local Saved/END, deletion, retirement or full UI completion.
         }
         finally
@@ -85,8 +97,13 @@ internal sealed partial class TelefonConnection
                 lifetime.Cancel();
                 // Drain a response's actual encrypted write before releasing this cache/native file owner.
                 await fileControlIo.WaitAsync(CancellationToken.None);
-                try { lock (fileRouteGate) if (ReferenceEquals(nativeMediaSend, run)) nativeMediaSend = null; }
+                try
+                {
+                    lock (fileRouteGate) if (ReferenceEquals(nativeMediaSend, run)) nativeMediaSend = null;
+                    run.OutputDrained = true;
+                }
                 finally { fileControlIo.Release(); }
+                if (sourceEndReady) run.Exchange.SourceEnd();
             }
         }
     }

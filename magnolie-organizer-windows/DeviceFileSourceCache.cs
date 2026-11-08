@@ -110,6 +110,8 @@ internal sealed partial class TelefonStore
     internal sealed class NativePreparedMediaSource : IDisposable
     {
         private readonly object cacheGate = new();
+        private readonly object endGate = new();
+        private volatile bool sourceIoEnded;
         private readonly TelefonStore store;
         private readonly NativeMappedMediaSource source;
         private readonly NativeMediaPreferenceScope scope;
@@ -287,7 +289,26 @@ internal sealed partial class TelefonStore
                 throw DeviceFileControl.Error("media_source_cache_content_changed");
             var ready = record.DeepClone().AsObject(); ready["phase"] = "ready"; Write(ready); Require();
         }
-        public void Dispose() { retired = true; lock (cacheGate) { } source.Dispose(); }
+        internal void RequireIoEnded()
+        {
+            if (!sourceIoEnded || !retired) throw DeviceFileControl.Error("media_source_cache_io_pending");
+            // After the volatile native-end publication the record is immutable:
+            // all old readers drained and retired forbids every new source read.
+            // Do not take cache/end locks underneath a protected store transaction.
+            store.RequireNativeMediaStorageKey();
+            lock (store.gate) { using var db = store.OpenNativeMediaDatabase(); db.Open(); _ = ReadHead(db, null); }
+        }
+        public void Dispose()
+        {
+            retired = true;
+            lock (endGate)
+            {
+                if (sourceIoEnded) return;
+                lock (cacheGate) { } // Wait for the exact cache reader, not a cancellation flag.
+                source.Dispose(); // Includes the actual held file/album/root handles.
+                sourceIoEnded = true; // Never set when native disposal failed.
+            }
+        }
 
         internal static NativePreparedMediaSource Create(TelefonStore store, NativeMappedMediaSource source)
         {

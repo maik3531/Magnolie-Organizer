@@ -39,9 +39,10 @@ internal sealed partial class TelefonStore
             Write(body.DeepClone().AsObject()); // Intent committed before the FIRST actual secure offer byte.
         }
 
-        private void Write(JsonObject next)
+        private void Write(JsonObject next, bool sourceEnded = false)
         {
-            run.Require();
+            void RequireOwner() { if (sourceEnded) cache.RequireIoEnded(); else run.Require(); }
+            RequireOwner();
             var plain = TelefonCrypto.Canonical(next); byte[] cipher;
             try
             {
@@ -51,7 +52,7 @@ internal sealed partial class TelefonStore
             finally { CryptographicOperations.ZeroMemory(plain); }
             lock (store.gate)
             {
-                run.Require(); using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+                RequireOwner(); using var db = store.OpenNativeMediaDatabase(); db.Open(); using var transaction = db.BeginTransaction();
                 using var command = db.CreateCommand(); command.Transaction = transaction;
                 command.CommandText = "CREATE TABLE IF NOT EXISTS native_media_source_exchanges(peer_id TEXT NOT NULL,job_id TEXT NOT NULL,value BLOB NOT NULL,PRIMARY KEY(peer_id,job_id))";
                 command.ExecuteNonQuery();
@@ -71,11 +72,11 @@ internal sealed partial class TelefonStore
                     finally { CryptographicOperations.ZeroMemory(clear); }
                 }
                 command.CommandText = "INSERT INTO native_media_source_exchanges(peer_id,job_id,value) VALUES($peer,$job,$value) ON CONFLICT(peer_id,job_id) DO UPDATE SET value=excluded.value";
-                command.Parameters.AddWithValue("$value", cipher); command.ExecuteNonQuery(); run.Require(); transaction.Commit();
+                command.Parameters.AddWithValue("$value", cipher); command.ExecuteNonQuery(); RequireOwner(); transaction.Commit();
                 body = next; version = SourceDigest(cipher);
                 command.Transaction = null; command.CommandText = "SELECT value FROM native_media_source_exchanges WHERE peer_id=$peer AND job_id=$job";
                 if (command.ExecuteScalar() is not byte[] saved || SourceDigest(saved) != version) throw DeviceFileControl.Error("media_source_exchange_readback_failed");
-                run.Require();
+                RequireOwner();
             }
         }
         internal void OfferSent()
@@ -115,6 +116,22 @@ internal sealed partial class TelefonStore
             if (!run.ExpectReadback || Phase != "peer_saved" || body["pending_chunk"] is not null || !AllChunksSent || body["peer_readback"] is not null)
                 throw DeviceFileControl.Error("media_source_exchange_readback_state");
             var next = body.DeepClone().AsObject(); next["phase"] = "peer_readback"; next["peer_readback"] = readback.DeepClone(); Write(next);
+        }
+        internal void SourceEnd()
+        {
+            if (!run.OutputDrained || !run.ExpectReadback || !run.Readback.Task.IsCompletedSuccessfully ||
+                Phase != "peer_readback" || body["pending_chunk"] is not null || !AllChunksSent || body["source_end"] is not null)
+                throw DeviceFileControl.Error("media_source_exchange_native_end_required");
+            Require(); // Last original live cache/head check, before native disposal.
+            var next = body.DeepClone().AsObject();
+            next["phase"] = "source_ended";
+            next["source_end"] = new JsonObject { ["format"] = 1, ["job_id"] = cache.JobId,
+                ["cache_version"] = body["cache_version"]!.DeepClone(), ["nonce"] = body["nonce"]!.DeepClone(),
+                ["readback_sha256"] = body["peer_readback"]!["readback_sha256"]!.DeepClone() };
+            cache.Dispose();
+            // This private terminal write uses only the exact ended native owner
+            // and CAS of both original protected heads. It cannot reopen source IO.
+            Write(next, sourceEnded: true);
         }
     }
 }

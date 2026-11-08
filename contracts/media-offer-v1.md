@@ -162,9 +162,37 @@ Windows-Sendegruppen bestehen nach der Änderung ebenfalls. Beide optionalen
 Windows-Produktkompositionen (Foto-/Kameramodule ein beziehungsweise aus) bauen.
 Dies ist kein gemeinsamer physischer Telefon-/Windows-Ende-zu-Ende-Nachweis.
 
-Die automatische gemeinsame Ablaufsteuerung und der tatsächliche Source-END
-bleiben offen; Capability 23 bleibt geschlossen. Die Fortsetzung ist derzeit ein
+Die automatische gemeinsame Ablaufsteuerung bleibt offen; Capability 23 bleibt
+geschlossen. Die Fortsetzung ist derzeit ein
 ausdrücklicher nativer Anschluss, keine automatisch gestartete Hintergrundaktion.
+
+## Windows: tatsächlicher lokaler Source-END
+
+Der gesonderte native Sendeeintritt
+`SendNativeMappedMediaSourceToSourceEndAsync` führt nach demselben korrelierten
+Saved-/Readback-Ablauf zusätzlich den lokalen Quellabschluss aus. Erst nachdem
+ausstehende verschlüsselte Ausgabe tatsächlich beendet und der Sendeplatz
+freigegeben ist, wird der ursprüngliche Quellbesitzer geschlossen. Dabei wird
+auf laufende Cache-Leser gewartet; anschließend werden die tatsächlich gehaltenen
+Datei-/Album-/Wurzelhandles geschlossen. Ein Fehler beim nativen Schließen darf
+keinen erfolgreichen Endzustand setzen.
+
+Der geschützte Austauschverlauf erhält erst danach `source_ended` mit dem
+ursprünglichen Cache-Kopf, dessen Nonce und dem exakten Readback-Hash. Dieser
+private terminale Schreibweg prüft den tatsächlich beendeten lokalen Besitzer
+sowie unveränderte geschützte Quell- und Austauschköpfe. Er verwendet nicht die
+bereits entzogene Leseberechtigung des alten Quellbesitzers neu. Spätere
+Quell-/Chunk-Leseversuche sind gesperrt; der geschützte Cache und vorhandene
+Historien werden trotzdem nicht gelöscht oder ersetzt.
+
+Vier native Windows-Gruppen prüfen erfolgreichen Abschluss, falsche Publikation,
+Readback vor Saved und Abbruch. Nur im Erfolgsfall sind die ursprünglichen
+Handles tatsächlich unbenutzbar und der terminale Verlauf gespeichert. Vier
+weitere native Regressionen prüfen wartende Cache-/Quellleser, abgebrochene
+verschlüsselte Ausgabe und den weiterhin nichtterminalen Readback-only-Weg.
+Beide optionalen Produktkompositionen bauen. Das ist noch keine automatische
+gemeinsame Ablaufsteuerung, Cache-Löschberechtigung oder physische gemeinsame
+Telefon-/Windows-Abnahme.
 
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und

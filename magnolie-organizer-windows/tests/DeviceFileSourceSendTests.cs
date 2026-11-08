@@ -124,15 +124,18 @@ internal static class DeviceFileSourceSendTests
 
     internal static async Task WindowsCorrelatedReadbackAsync(string scenario)
     {
-        foreach (var fault in new[] { scenario })
+        var endSource = scenario.StartsWith("end-", StringComparison.Ordinal);
+        foreach (var fault in new[] { endSource ? scenario[4..] : scenario })
         {
             using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
             var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "readback-book"), Book);
             using var source = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
             using var cache = source.Freeze(); using var stop = new CancellationTokenSource();
+            TestAssert.Throws<InvalidDataException>(cache.RequireIoEnded, "A prepared cache fabricated native source END.");
             DeviceFileConnectionRunsTests.Clear(f);
             var before = f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single();
-            var send = f.Native.Connection.SendNativeMappedMediaSourceWithReadbackAsync(cache, stop.Token);
+            var send = endSource ? f.Native.Connection.SendNativeMappedMediaSourceToSourceEndAsync(cache, stop.Token) :
+                f.Native.Connection.SendNativeMappedMediaSourceWithReadbackAsync(cache, stop.Token);
             try
             {
                 var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
@@ -153,6 +156,7 @@ internal static class DeviceFileSourceSendTests
                     await f.Native.Connection.HandlePlainAsync(Saved(cache, acceptance, offer));
                     TestAssert.That(!send.IsCompleted && Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == "peer_saved",
                         "Peer Saved alone completed a readback-aware sender.");
+                    TestAssert.Throws<InvalidDataException>(cache.RequireIoEnded, "Peer Saved manufactured native source END.");
                 }
                 if (fault == "cancel") { stop.Cancel(); await Failed(send); }
                 else if (fault != "none")
@@ -165,9 +169,20 @@ internal static class DeviceFileSourceSendTests
                 {
                     await f.Native.Connection.HandlePlainAsync(readback); var result = await send;
                     TestAssert.That(!result.Readback.IsSavedReceipt && !result.Readback.GrantsWriteAuthority && !result.Readback.AllowsChunkOutput &&
-                        Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == "peer_readback",
+                        Exchange(f, cache.JobId)["phase"]!.GetValue<string>() == (endSource ? "source_ended" : "peer_readback"),
                         "Correlated peer readback became native completion authority.");
+                    if (endSource)
+                    {
+                        cache.RequireIoEnded();
+                        TestAssert.Throws<Exception>(source.Require, "Native Source-END left original source handle usable.");
+                        TestAssert.Throws<InvalidDataException>(() => cache.ReadChunk(0), "Native Source-END reopened cached chunk output.");
+                        var terminal = Exchange(f, cache.JobId);
+                        TestAssert.That(terminal["source_end"]!["readback_sha256"]!.GetValue<string>() == result.Readback.Body["readback_sha256"]!.GetValue<string>(),
+                            "Native source end lost its exact correlated readback.");
+                    }
                 }
+                if (!endSource || fault != "none") TestAssert.Throws<InvalidDataException>(cache.RequireIoEnded,
+                    "Readback metadata or a failed send manufactured local native source END.");
                 TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == before &&
                     f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single().Phase == "ready",
                     "Readback or its failure retired source cache/changed receive history.");
