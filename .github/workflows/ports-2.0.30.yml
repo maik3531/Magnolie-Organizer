@@ -118,6 +118,14 @@ jobs:
           path: ${{ runner.temp }}/port-proof/
           if-no-files-found: error
           retention-days: 14
+      - name: Preserve native failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: macOS-2.0.30-beta.1-${{ matrix.arch }}-failure-diagnostics
+          path: ${{ runner.temp }}/port-proof/
+          if-no-files-found: warn
+          retention-days: 14
 
   tablet:
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
