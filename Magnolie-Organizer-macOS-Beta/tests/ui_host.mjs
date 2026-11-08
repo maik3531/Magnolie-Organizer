@@ -29,9 +29,52 @@ try {
   t.baueEinstellungen();
   w.document.getElementById("einst-tab-sync").click();
   const accountPage = w.document.getElementById("einst-seite-sync");
-  assert.match(accountPage.textContent, /macOS Internet Accounts are not integrated/); assertions++;
-  assert.equal(accountPage.querySelector("input,button,select"), null); assertions++;
+  assert.match(accountPage.textContent, /Full synchronization is not available/); assertions++;
+  assert.equal(accountPage.querySelector("#sync-jetzt").disabled, true); assertions++;
+  assert.equal(accountPage.querySelectorAll("[data-system-access]").length, 3); assertions++;
+  assert.ok(messages.some(m => m.cmd === "eds_status")); assertions++;
   assert.doesNotMatch(accountPage.textContent, /sudo apt install/); assertions++;
+  const firstStatus = messages.filter(m => m.cmd === "eds_status").at(-1);
+  const oldSync = t.daten().einstellungen.sync;
+  oldSync.kalenderUids = ["legacy-calendar"]; oldSync.kalenderUid = "legacy-calendar";
+  oldSync.adressbuchUid = "legacy-addressbook"; oldSync.futureNative = { keep: 42 };
+  w.MacBeta.receive("edsStatus", { requestId: "stale", kalender: [], adressbuecher: [] });
+  assert.equal(accountPage.querySelector("#macos-system-refresh").disabled, true); assertions++;
+  w.MacBeta.receive("edsStatus", { requestId: firstStatus.requestId, permissions: { events: "denied", reminders: "restricted", contacts: "not_determined" },
+    fehler: "macOS events: denied.", kalender: [], adressbuecher: [] });
+  assert.equal(accountPage.querySelector("#macos-system-refresh").disabled, false); assertions++;
+  assert.equal(oldSync.kalenderUids[0], "legacy-calendar"); assertions++;
+  assert.equal(accountPage.querySelector("#macos-system-addressbook").value, "legacy-addressbook"); assertions++;
+  accountPage.querySelector('[data-system-access="events"]').click();
+  const permission = messages.filter(m => m.cmd === "macos_systemzugriff").at(-1);
+  assert.equal(permission.art, "events"); assertions++;
+  assert.equal(messages.some(m => m.cmd === "sync"), false); assertions++;
+  w.MacBeta.receive("edsStatus", { requestId: permission.requestId, permissions: { events: "authorized" },
+    kalender: [{ uid: "macos-events:one", name: "<img onerror='bad()'>", readOnly: true }],
+    adressbuecher: [{ uid: "macos-contacts:one", name: "Synthetic contacts" }] });
+  assert.equal(accountPage.querySelector("img"), null); assertions++;
+  assert.match(accountPage.textContent, /<img onerror/); assertions++;
+  const selected = accountPage.querySelector('input[value="macos-events:one"]');
+  selected.checked = true; selected.dispatchEvent(new w.Event("change"));
+  assert.equal(JSON.stringify(oldSync.kalenderUids), '["macos-events:one","legacy-calendar"]'); assertions++;
+  const addressBook = accountPage.querySelector("#macos-system-addressbook");
+  addressBook.value = "macos-contacts:one"; addressBook.dispatchEvent(new w.Event("change"));
+  assert.equal(oldSync.adressbuchUid, "macos-contacts:one"); assertions++;
+  assert.equal(oldSync.futureNative.keep, 42); assertions++;
+  t.speichereJetzt();
+  const sourceSave = messages.filter(m => m.cmd === "speichern").at(-1);
+  assert.equal(JSON.parse(sourceSave.text).einstellungen.sync.adressbuchUid, "macos-contacts:one"); assertions++;
+  w.MacBeta.receive("gespeichert", { id: sourceSave.id, ok: true });
+  assert.equal(accountPage.querySelector("#sync-jetzt").disabled, true); assertions++;
+  accountPage.querySelector("#macos-system-refresh").click();
+  const failedRead = messages.filter(m => m.cmd === "eds_status").at(-1);
+  w.MacBeta.receive("edsStatus", { requestId: failedRead.requestId, fehler: "Synthetic permission revoked", ok: false });
+  assert.equal(accountPage.querySelector("#macos-system-addressbook").value, "macos-contacts:one"); assertions++;
+  assert.equal(JSON.stringify(oldSync.kalenderUids), '["macos-events:one","legacy-calendar"]'); assertions++;
+  assert.equal(messages.filter(m => m.cmd === "macos_systemzugriff").length, 1); assertions++;
+  // Ensure encryption still waits for a real pending native save.
+  t.daten().notizen[0].text = "pending native save before encryption";
+  t.speichereJetzt();
   // The canonical security form must actually emit the Beta-supported encryption scope.
   w.document.getElementById("einst-tab-sicherheit").click();
   w.document.getElementById("kennwort-neu").value = "public synthetic password";
@@ -62,7 +105,7 @@ try {
   w.MacBeta.receive("gespeichert", { id: save.id + 9, ok: true });
   assert.equal(messages.some(m => m.cmd === "beenden_bereit"), false); assertions++;
   w.MacBeta.receive("gespeichert", { id: save.id, ok: true });
-  for (const command of ["sync", "eds_status", "kennwort_entfernen", "update_installieren", "telefon_stand", "journal_liste"]) {
+  for (const command of ["sync", "kennwort_entfernen", "update_installieren", "telefon_stand", "journal_liste"]) {
     const count = messages.length;
     w.MacBeta.send({ cmd: command, token: "synthetic", pfad: "/must-not-open" }, "hostTest");
     await tick();

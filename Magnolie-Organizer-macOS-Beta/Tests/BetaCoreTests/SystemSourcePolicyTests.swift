@@ -2,6 +2,21 @@ import XCTest
 @testable import BetaCore
 
 final class SystemSourcePolicyTests: XCTestCase {
+    func testNativeSourceBridgeContractRejectsAmbiguousFields() throws {
+        XCTAssertEqual(try Request(#"{"cmd":"eds_status"}"#).command, .eds_status)
+        XCTAssertEqual(try Request(#"{"cmd":"eds_status","requestId":"source-1"}"#).command, .eds_status)
+        for kind in SystemSourcePolicy.Kind.allCases {
+            let request = try Request(Document.encode(["cmd": "macos_systemzugriff", "art": kind.rawValue, "requestId": "consent-1"]))
+            XCTAssertEqual(request.command, .macos_systemzugriff)
+        }
+        for text in [#"{"cmd":"macos_systemzugriff","art":"events"}"#,
+                     #"{"cmd":"macos_systemzugriff","art":"passwords","requestId":"x"}"#,
+                     #"{"cmd":"macos_systemzugriff","art":"events","requestId":""}"#,
+                     #"{"cmd":"eds_status","requestId":1}"#,
+                     #"{"cmd":"eds_status","requestId":"x","path":"/tmp/private"}"#] {
+            XCTAssertThrowsError(try Request(text))
+        }
+    }
     func testOpaqueIdentifiersCannotCrossSourceKinds() throws {
         for kind in SystemSourcePolicy.Kind.allCases {
             let id = "账户:/calendar?opaque=ä"

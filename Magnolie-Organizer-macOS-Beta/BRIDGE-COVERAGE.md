@@ -50,7 +50,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `contributor_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `debug_startphase` | yes | — | UNSUPPORTED: negative Beta response |
 | `drucken` | yes | yes | UNSUPPORTED: negative Beta response |
-| `eds_status` | yes | yes | UNSUPPORTED: negative Beta response |
+| `eds_status` | yes | yes | partial: passive native EventKit/Contacts discovery; no synchronization |
 | `eigenes_profil_office` | yes | yes | UNSUPPORTED: negative Beta response |
 | `eigenes_profil_telefon` | yes | yes | UNSUPPORTED: negative Beta response |
 | `entsperren` | yes | yes | partial: v1/v2 Apple crypto fixtures verified; full password lifecycle pending |
@@ -120,6 +120,7 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `kennwort_entfernen` | yes | yes | UNSUPPORTED: negative Beta response |
 | `kennwort_setzen` | yes | yes | partial: enable for current profile only; no change/rekey |
 | `lo_benutzer` | yes | yes | UNSUPPORTED: negative Beta response |
+| `macos_systemzugriff` | — | — | partial: explicit OS access prompt and refreshed source status; no synchronization |
 | `mail` | yes | yes | UNSUPPORTED: negative Beta response |
 | `mcp_antwort` | yes | yes | UNSUPPORTED: negative Beta response |
 | `medien_backup` | yes | — | UNSUPPORTED: negative Beta response |

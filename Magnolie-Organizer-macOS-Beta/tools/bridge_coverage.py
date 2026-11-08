@@ -20,6 +20,8 @@ SCOPES = {
     "mutations_snapshot": "partial: durable exact file checkpoint; no desktop journal index/retention",
     "regional_einstellungen": "source: validated durable preferences; native locale handling untested",
     "export": "partial: source-preserving appointment/task/anniversary ICS; native extended roundtrips pending",
+    "eds_status": "partial: passive native EventKit/Contacts discovery; no synchronization",
+    "macos_systemzugriff": "partial: explicit OS access prompt and refreshed source status; no synchronization",
     "feiertage": "source: bounded HTTPS public/school holiday retrieval with regional scope; native validation pending",
     "erinnerung_zeigen": "partial: open/unlocked/consented session only; delivery untested",
     "erinnerung_einrichten": "LIMITATION RESPONSE ONLY: no native scheduler is configured",

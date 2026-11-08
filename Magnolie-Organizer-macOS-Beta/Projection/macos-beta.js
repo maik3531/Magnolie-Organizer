@@ -6,7 +6,7 @@
   const identity = /*GENERATED_IDENTITY*/{};
   const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "exportErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
-    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis"]);
+    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
     "attachment Save; clipboard; reminders only while open. No sync, background " +
@@ -37,7 +37,7 @@
       erinnerung_einrichten: "erinnerungStand", erinnerung_zeigen: "erinnerungStand",
       notiz_anhang_datei: "notizAnhangDateiErgebnis", sicherung_waehlen: "sicherungAusgewaehlt",
       sicherung_wiederherstellen: "sicherungWiederhergestellt",
-      regional_einstellungen: "regionalErgebnis",
+      regional_einstellungen: "regionalErgebnis", eds_status: "edsStatus", macos_systemzugriff: "edsStatus",
       gesamtarchiv_exportieren: "gesamtarchivExportiert", gesamtarchiv_importieren: "gesamtarchivImportiert"
     };
     if (command === "sync") app.syncFehler(payload.fehler);
@@ -175,6 +175,7 @@
       if (!methods.has(method)) throw new Error("Invalid native callback.");
       if (method === "init") {
         ready = false;
+        window.MacBetaSystemAccounts?.reset();
         window.App.init(payload);
         ready = payload.gesperrt !== true;
       } else {

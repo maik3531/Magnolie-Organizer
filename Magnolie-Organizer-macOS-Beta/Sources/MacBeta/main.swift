@@ -23,6 +23,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var notificationConsent = false
     private var selection: BackupSelection?
     private var restoring = false
+    private var documentGeneration = UUID()
     private var catalog: [String: String] = [:]
     private let systemAccounts = SystemAccounts()
 
@@ -117,6 +118,8 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     @objc private func reminders() { listSystemSources(.reminders) }
     @objc private func systemContacts() { listSystemSources(.contacts) }
     private func listSystemSources(_ kind: SystemSourcePolicy.Kind) {
+        guard plain != nil, !restoring else { alert("Unlock first."); return }
+        let generation = documentGeneration
         Task {
             do {
                 try await systemAccounts.requestAccess(kind)
@@ -127,6 +130,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 }
                 let names = sources.compactMap { $0["name"] as? String }.sorted()
                 DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
                     self.alert(names.isEmpty ? "No accessible sources in this macOS service." :
                         "macOS sources (discovery only; full synchronization is not yet enabled):\n\n" + names.joined(separator: "\n"))
                 }
@@ -144,7 +148,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         decisionHandler(allowed ? .allow : .cancel)
     }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        plain = nil; encryption = nil
+        plain = nil; encryption = nil; documentGeneration = UUID()
         alert("WebKit stopped. Unsaved changes may be lost. Disk data was not replaced with an empty document. Restart the Beta.")
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -176,12 +180,13 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
         web.callAsyncJavaScript("window.MacBeta.receive(method, payload)",
                                 arguments: ["method": method, "payload": payload], in: nil, in: .page) { result in
             if case .failure = result {
-                self.plain = nil; self.encryption = nil
+                self.plain = nil; self.encryption = nil; self.documentGeneration = UUID()
                 self.alert("UI response failed. Further saves are blocked; restart and inspect the retained file.")
             }
         }
     }
     private func initialize(_ text: String?, new: Bool = false, locked: Bool = false) throws {
+        documentGeneration = UUID()
         let data: Any = try text.map { try Document.plain($0) } ?? [:]
         let preferences = regional(text)
         localize(preferences)
@@ -316,7 +321,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             // plaintext merely because the current profile had no password yet.
             let targetEncryption = encryption ?? importedEncryption
             let output = try targetEncryption?.encrypt(incoming) ?? incoming
-            restoring = true
+            restoring = true; documentGeneration = UUID()
             web.callAsyncJavaScript("window.MacBeta.validateRestore(text)", arguments: ["text": incoming], in: nil, in: .page) { result in
                 defer { self.restoring = false }
                 do {
@@ -333,6 +338,25 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "fehler": self.tr(error.localizedDescription)])
                 }
             }
+        case .eds_status, .macos_systemzugriff:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            let generation = documentGeneration
+            let requestID = request.fields["requestId"] as? String
+            let accessKind = request.command == .macos_systemzugriff
+                ? SystemSourcePolicy.Kind(rawValue: request.text("art")) : nil
+            Task { @MainActor in
+                var response: [String: Any]
+                do {
+                    if let accessKind { try await self.systemAccounts.requestAccess(accessKind) }
+                    response = try await self.systemAccounts.status(requestID: requestID)
+                } catch {
+                    response = ["macos": true, "fehler": error.localizedDescription,
+                                "systemAccountSyncImplemented": false]
+                    if let requestID { response["requestId"] = requestID }
+                }
+                guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                self.send("edsStatus", response)
+            }
         case .feiertage:
             var regions: [HolidayService.Region] = []
             let selected = request.text("region")
@@ -348,6 +372,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             }
             let selectedLanguage = regional(plain)["language"] as? String ?? "system"
             let holidayLanguage = selectedLanguage == "system" ? (Locale.preferredLanguages.first ?? "EN") : selectedLanguage
+            let holidayGeneration = documentGeneration
             let holidayRequestID = request.fields["requestId"] as? String
             let holidayMessage = tr("The holidays were imported.")
             let query = try HolidayService.Query(country: request.text("land"), regions: regions,
@@ -363,7 +388,10 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 } catch { response = ["fehler": error.localizedDescription] }
                 if let id = holidayRequestID { response["requestId"] = id }
                 let result = response
-                DispatchQueue.main.async { self.send("feiertageErgebnis", result) }
+                DispatchQueue.main.async {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == holidayGeneration else { return }
+                    self.send("feiertageErgebnis", result)
+                }
             }
         case .regional_einstellungen:
             guard let plain else { throw BetaError("Unlock first.") }

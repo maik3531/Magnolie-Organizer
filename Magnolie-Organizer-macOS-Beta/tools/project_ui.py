@@ -104,12 +104,13 @@ def project(snapshot, target):
     text = replace_once(text, "  function normalisiere(roh) {",
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
                         "  function normalisiereDesktop(roh) {")
-    disabled = {
-        "baueSeiteSync": "macOS Internet Accounts are not integrated. Linux EDS/Akonadi and DAV/Graph sync are not available. Read-only EventKit discovery is in the application menu.",
-    }
-    for function, message in disabled.items():
-        anchor = "  function " + function + "(wurzel) {"
-        text = replace_once(text, anchor, anchor + "\n    window.MacBeta.platformNotice(wurzel, " + json.dumps(message) + "); return;")
+    text = replace_once(text, "  function baueSeiteSync(wurzel) {", '''  function baueSeiteSync(wurzel) {
+    window.MacBetaSystemAccounts.render(wurzel, { tr: _, id: uid,
+      settings: () => DATEN.einstellungen.sync,
+      change: values => { wendeSyncEinstellungenDatenAn(values); planeSpeichern(); },
+      send: message => Bruecke.sende(message) }); return;''')
+    text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
+    if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
     for function in ["baueSicherungsdateien"]:
         anchor = "  function " + function + "(wurzel) {"
         text = replace_once(text, anchor, anchor + '''
@@ -195,10 +196,7 @@ def project(snapshot, target):
                         '    window.MacBeta.platformNotice(wurzel, "macOS Beta: encryption can be enabled for the current profile only. Password changes/removal, backup rekeying and closed-app reminders are unavailable. Recovery files retain their original encryption state. The desktop background-service controls below have no native effect.");')
     text = replace_once(text, "  function fuelleEdsAuswahl(nutzlast) {",
                         '  function fuelleEdsAuswahl(nutzlast) {\n'
-                        '    const betaStatus = document.getElementById("sync-status");\n'
-                        '    if (betaStatus) betaStatus.textContent = "macOS Internet Accounts are not integrated in this Beta.";\n'
-                        '    const betaButton = document.getElementById("sync-jetzt");\n'
-                        '    if (betaButton) betaButton.disabled = true; return;')
+                        '    window.MacBetaSystemAccounts.update(nutzlast); return;')
     # Preserve the existing timer and due-item calculation, not a new recurrence implementation.
     text = replace_once(text, "if (!Bruecke.vorhanden) {\n        setInterval(() => pruefeErinnerungen(false), 30000);",
                         "if (window.MacBeta) {\n        setInterval(() => pruefeErinnerungen(false), 30000);")
@@ -238,6 +236,7 @@ def project(snapshot, target):
     adapter = replace_once(adapter, "/*GENERATED_COMMANDS*/[]", json.dumps(commands(snapshot)))
     adapter = replace_once(adapter, "/*GENERATED_IDENTITY*/{}", json.dumps(identity))
     (target / "web/macos-beta.js").write_text(adapter)
+    (target / "web/system-accounts.js").write_bytes(snapshot[str((BETA / "Projection/system-accounts.js").relative_to(REPO))])
     (target / "web/macos-beta.css").write_bytes(snapshot[str((BETA / "Projection/macos-beta.css").relative_to(REPO))])
     index = target / "web/index.html"
     html = replace_once(index.read_text(), "<title>Magnolie Organizer</title>",
@@ -247,7 +246,7 @@ def project(snapshot, target):
     html = replace_once(html, '<script src="i18n-active.js"></script>',
                         "\n".join('<script src="i18n/' + file.name + '"></script>' for file in catalogs))
     html = replace_once(html, '<script src="anwendung.js"></script>',
-                        '<script src="macos-beta.js"></script>\n<script src="anwendung.js"></script>')
+                        '<script src="macos-beta.js"></script>\n<script src="system-accounts.js"></script>\n<script src="anwendung.js"></script>')
     index.write_text(html)
     # Reuse the shared gettext-generated catalogs for native standard controls.
     native = shared_catalogs(snapshot)

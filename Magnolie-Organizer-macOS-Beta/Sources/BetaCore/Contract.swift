@@ -11,7 +11,7 @@ public enum Command: String, CaseIterable {
     case beenden, beenden_bereit, beenden_abgebrochen
     case ablage_kopieren, ablage_holen, sicherung, export
     case erinnerung_zeigen, erinnerung_einrichten, notiz_anhang_datei
-    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen, feiertage
+    case mutations_snapshot, sicherung_waehlen, sicherung_wiederherstellen, regional_einstellungen, feiertage, eds_status, macos_systemzugriff
 }
 
 public struct Request {
@@ -47,6 +47,10 @@ public struct Request {
             schema.merge(["land": "string", "region": "string", "regionen": "array", "jahre": "years",
                           "ferien": "bool", "regionErforderlich": "bool", "requestId": "string"]) { _, b in b }
             optional = ["region", "regionen", "ferien", "regionErforderlich", "requestId"]
+        case .eds_status:
+            schema["requestId"] = "string"; optional = ["requestId"]
+        case .macos_systemzugriff:
+            schema.merge(["art": "string", "requestId": "string"]) { _, b in b }
         case .regional_einstellungen: schema["regional"] = "object"
         case .export: schema.merge(["art": "string", "daten": "array"]) { _, b in b }
         case .erinnerung_zeigen:
@@ -84,6 +88,14 @@ public struct Request {
             default: valid = false
             }
             guard valid else { throw BetaError("Invalid bridge field type.") }
+        }
+        if command == .eds_status || command == .macos_systemzugriff {
+            if let id = fields["requestId"] as? String {
+                guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid request identifier.") }
+            }
+            if command == .macos_systemzugriff {
+                guard SystemSourcePolicy.Kind(rawValue: text("art")) != nil else { throw BetaError("Invalid macOS source kind.") }
+            }
         }
         if command == .speichern, ((fields["id"] as? NSNumber)?.int64Value ?? 0) < 1 {
             throw BetaError("Invalid save identifier.")
