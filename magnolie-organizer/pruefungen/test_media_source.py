@@ -61,6 +61,34 @@ def test_native_source_inspects_actual_same_inode_pc_edit_without_promoting_hist
     assert observation.original_reference==h.record.phone_original_reference()
 
 
+def test_selected_metadata_filter_uses_actual_pc_bytes_before_cache_or_source_observation(source,monkeypatch):
+    from test_photo_metadata import capture_jpeg
+    h=source;h.controller.change('photos_only',True);agreement(h)
+    def forbidden(*args,**kwargs):raise AssertionError('Filtered source must not create a cache')
+    monkeypatch.setattr('magnolie_media_source_cache._NativeSourceCacheWriter',forbidden)
+    with pytest.raises(TransferError,match='photo_metadata_required'):
+        h.source.freeze(h.preferences.issue_action(),h.policy,h.association,h.record.protected_record_sha256)
+    assert h.target.read_bytes()==b'hello' and not h.source._prepared
+    image=capture_jpeg();h.target.write_bytes(image)
+    observed=inspect(h)
+    assert observed.sha256==sha256(image).hexdigest() and observed.size==len(image)
+    assert h.target.read_bytes()==image and observed.original_reference==h.record.phone_original_reference()
+
+
+def test_filter_metadata_read_still_rechecks_actual_intent_withdrawal(source,monkeypatch):
+    from test_photo_metadata import capture_jpeg
+    h=source;h.target.write_bytes(capture_jpeg());h.controller.change('photos_only',True);agreement(h)
+    pread=os.pread
+    def revoked(fd,size,offset):
+        result=pread(fd,size,offset)
+        if (os.fstat(fd).st_dev,os.fstat(fd).st_ino)==h.record.file_key:
+            h.controller.change('enabled',False)
+        return result
+    monkeypatch.setattr(os,'pread',revoked)
+    with pytest.raises(TransferError,match='current_intent_required'):inspect(h)
+    assert not h.source._prepared
+
+
 def test_historical_mapping_and_shared_agreement_cannot_read_without_positive_local_source_consent(source,monkeypatch):
     h=source;h.policy=h.preferences.configure_sending(h.preferences.issue_action(),h.policy,photos=False,videos=False)
     monkeypatch.setattr(h.source,'_file',lambda *args:pytest.fail('Source was opened before native positive consent'))

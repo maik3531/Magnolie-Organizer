@@ -211,6 +211,16 @@ class NativeMappedMediaSource:
                             if mapping.association.media_type!=kind:raise TransferError('media_source_media_kind_changed')
                             def current():book.require_current();mapping_current();return True
                             with self._file(mapping,current) as (fd,size,signature,unchanged):
+                                from magnolie_media_sync import effective
+                                if kind == 'images' and effective(token.body)['photos_only']:
+                                    from magnolie_photo_metadata import MAX_METADATA_BYTES,camera_photo_matches
+                                    prefix=bytearray(os.pread(fd,min(size,MAX_METADATA_BYTES),0))
+                                    try:
+                                        unchanged()
+                                        selected=camera_photo_matches(prefix)
+                                        unchanged()
+                                    finally:prefix[:]=b'\0'*len(prefix)
+                                    if not selected:raise TransferError('media_source_photo_metadata_required')
                                 if freeze:
                                     from magnolie_media_source_cache import _NativeSourceCacheWriter
                                     target=_NativeSourceCacheWriter(self,mapping,size,signature,token,expected,kind,book.book_version,unchanged)
