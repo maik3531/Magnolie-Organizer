@@ -17,6 +17,44 @@ Current host checks used in this work: Mac host 18 tests including 82UI/81recove
 
 ## Functional families (all main product surfaces, not only requested examples)
 
+### Later component checkpoints (2026-11-08; Refs #121)
+
+The table below remains the source inventory at its stated snapshot. Later
+implementation and test evidence does not silently upgrade that snapshot:
+
+- Mac: the bundled handbook's actual WebKit load/search/isolation, actual AppKit
+  PDF generation, and selected note-file import with durable save/reopen passed
+  on both architectures in subsequent component runs. Run
+  [42520170252](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42520170252)
+  at `200d1c0a` still fails drawing acceptance: trusted events hit the closed
+  cover. The real-cover-click test correction is `1f5c9fd0`; its native result is
+  pending. Mail/maps/HTTPS launchers now exist (`5de7da08`); real external-app
+  handoff remains unverified.
+- Tablet: run
+  [42520174583](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42520174583)
+  at `200d1c0a` passes the APK/JVM/artifact gates and boots each isolated API34
+  component emulator. Actual settings, health tables, custom editors, and native
+  canvas pixels/vectors with Undo/Redo pass. The domains stage then reaches its
+  deadline before complete save/reopen acceptance. SAF cancellation preserves
+  the entire book; the next file fixture fails in its separate test process
+  because Kotlin runtime classes are unavailable. Services cleanup masks the
+  primary exception. Neither component suite nor full UI acceptance is green.
+- Read-only Android system-source discovery now exists (`1e580b1b`); native
+  provider/permission acceptance and full synchronization remain open.
+- Normative timezone data/resolvers (`a2dbc859`, `0ad30bd4`) and Kotlin codec
+  migration (`b14d6a9d`) pass independent host checks for 597 IDs and 269,817
+  cases. Kotlin-emitted VTIMEZONEs also pass those cases through the published
+  Python parser. Installed-APK validation, Swift integration and actual
+  frontend/worker migration remain separate pending gates; raw OS Intl rules
+  are not repaired by these host results. See issues #447, #452 and #453.
+- Existing KDE Connect iOS supports explicit file transfer. See
+  [iPhone investigation](../../Magnolie-Organizer-macOS-Beta/IPHONE-INTEROPERABILITY.md).
+  This establishes an alternative to publishing a new iOS app, not actual
+  iPhone-to-Magnolie acceptance or whole Apple Notes access.
+
+All these are partial, source-bound results. They do not establish complete
+feature parity, old-device compatibility, production signing or release approval.
+
 | Family | Published operations | Mac current scope | Tablet current scope | Actual evidence type | Missing adapter / acceptance |
 | --- | --- | --- | --- | --- | --- |
 | Binder/navigation | 8 sections, day/week/month pages, page flips, tab order/visibility, modal focus/dirty-editor guard | shared local UI | shared local UI | host editor/navigation; native geometry/basic earlier | native 40 trusted touches, IME/RTL/accessibility, low-end devices |
