@@ -206,9 +206,28 @@ internal sealed class NextcloudMailboxSettingsStore
     {
         lock (gate)
         {
+            ArgumentNullException.ThrowIfNull(applicationPassword);
+            settings = settings with { ServerBase = NextcloudMailbox.ValidateServer(settings.ServerBase).AbsoluteUri.TrimEnd('/'),
+                User = ValidateUser(settings.User), AccountType = ValidateAccountType(settings.AccountType) };
+            if (settings.AccountType == "generic-dav" && settings.MailboxActive)
+                throw new ArgumentException("Der Magnolienbaum-Briefkasten benötigt ein Nextcloud-Konto.");
+            if (deletePassword && applicationPassword.Length > 0)
+                throw new ArgumentException("A credential cannot be replaced and deleted in one transaction.");
             var files = new AtomicStore();
             var previousSettings = files.Read(settingsPath, 16 * 1024);
             var previousPassword = files.Read(passwordPath, 64 * 1024);
+            // The one credential file belongs to the existing normalized account,
+            // not to whichever endpoint a later blank form happens to select.
+            // Reject BEFORE the first write/revision change, including disabled
+            // rebinding that would otherwise permit a later silent activation.
+            if (applicationPassword.Length == 0 && !deletePassword && previousPassword is not null)
+            {
+                var previous = Load();
+                if (previous is null || previous.ServerBase != settings.ServerBase || previous.User != settings.User || previous.AccountType != settings.AccountType)
+                    throw new ArgumentException("Für ein anderes DAV-Konto ist ein neues Anwendungskennwort erforderlich.", nameof(applicationPassword));
+            }
+            if ((settings.DavActive || settings.MailboxActive) && applicationPassword.Length == 0 && (deletePassword || previousPassword is null))
+                throw new ArgumentException("Das Nextcloud-Anwendungskennwort fehlt.", nameof(applicationPassword));
             try
             {
                 Save(settings with { DavActive = false, MailboxActive = false });

@@ -9,6 +9,71 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class NextcloudMailboxTests
 {
+    internal static Task CredentialIdentityGuardAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-identity-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var original = new NextcloudMailboxSettings(true, false, "https://old.example.test/Cloud", "FixtureUser");
+            var changes = new[] { original with { ServerBase = "https://new.example.test/Cloud" },
+                original with { User = "DifferentUser" }, original with { User = "fixtureuser" },
+                original with { ServerBase = "https://old.example.test/cloud" }, original with { AccountType = "generic-dav" } };
+            foreach (var changed in changes)
+            {
+                var settingsPath = Path.Combine(root, "config.json"); var passwordPath = Path.Combine(root, "credential.dat");
+                var store = new NextcloudMailboxSettingsStore(settingsPath, passwordPath, new FakeProtector());
+                store.SaveConfiguration(original, "synthetic-identity-secret", false);
+                var before = store.ReadSnapshot(); var config = File.ReadAllBytes(settingsPath); var credential = File.ReadAllBytes(passwordPath);
+                var rejected = false;
+                try { store.SaveConfigurationChecked(changed, "", false, before.Revision); }
+                catch (ArgumentException) { rejected = true; }
+                if (!rejected)
+                {
+                    var context = store.Context(mailbox: false); // No HTTP client/request is invoked.
+                    TestAssert.That(context.Authorization is null,
+                        "#439 reproduced: changed account accepted a retained credential in Context without a new password (no HTTP performed).");
+                }
+                TestAssert.That(rejected && store.ReadSnapshot() == before && File.ReadAllBytes(settingsPath).SequenceEqual(config) &&
+                    File.ReadAllBytes(passwordPath).SequenceEqual(credential), "Rejected identity change altered native config, credential or revision.");
+                TestAssert.Throws<ArgumentException>(() => store.SaveConfiguration(changed with { DavActive = false }, "", false),
+                    "Inactive identity change rebound a retained credential for later activation.");
+                var same = store.SaveConfigurationChecked(original with { ServerBase = "https://OLD.example.test/Cloud/", User = " FixtureUser " }, "", false, before.Revision);
+                TestAssert.That(same.Settings == original && File.ReadAllBytes(passwordPath).SequenceEqual(credential), "Canonical unchanged identity lost its retained credential.");
+                var replaced = store.SaveConfigurationChecked(changed, "synthetic-explicit-replacement", false, same.Revision);
+                TestAssert.That(replaced.Settings == changed && replaced.CredentialPresent && store.Context(mailbox: false).Authorization is not null,
+                    "Explicit new credentials could not authorize the new account identity.");
+                var cleared = store.SaveConfigurationChecked(original with { DavActive = false }, "", true, replaced.Revision);
+                TestAssert.That(!cleared.CredentialPresent && !store.HasApplicationPassword, "Explicit disabled-account deletion retained a foreign credential.");
+            }
+            var orphanConfig = Path.Combine(root, "orphan-config.json"); var orphanSecret = Path.Combine(root, "orphan-credential.dat");
+            var orphanStore = new NextcloudMailboxSettingsStore(orphanConfig, orphanSecret, new FakeProtector());
+            orphanStore.SetApplicationPassword("synthetic-orphan-secret");
+            var orphanBefore = orphanStore.ReadSnapshot(); var orphanBytes = File.ReadAllBytes(orphanSecret);
+            TestAssert.Throws<ArgumentException>(() => orphanStore.SaveConfigurationChecked(original, "", false, orphanBefore.Revision),
+                "A new active identity adopted an orphan credential.");
+            TestAssert.Throws<ArgumentException>(() => orphanStore.SaveConfiguration(original with { DavActive = false }, "", false),
+                "A new inactive identity adopted an orphan credential for later activation.");
+            TestAssert.That(!File.Exists(orphanConfig) && orphanStore.ReadSnapshot() == orphanBefore && File.ReadAllBytes(orphanSecret).SequenceEqual(orphanBytes),
+                "Rejected orphan adoption changed native files or revision.");
+            orphanStore.SaveConfiguration(original, "synthetic-known-secret", false);
+            var knownBefore = orphanStore.ReadSnapshot(); var knownConfig = File.ReadAllBytes(orphanConfig); var knownSecret = File.ReadAllBytes(orphanSecret);
+            TestAssert.Throws<ArgumentException>(() => orphanStore.SaveConfigurationChecked(original, "", true, knownBefore.Revision),
+                "Deleting a password activated an account without credentials.");
+            TestAssert.Throws<ArgumentException>(() => orphanStore.SaveConfiguration(original, "synthetic-conflicting-secret", true),
+                "Conflicting replace/delete intent was accepted by the ordinary native transaction.");
+            TestAssert.That(orphanStore.ReadSnapshot() == knownBefore && File.ReadAllBytes(orphanConfig).SequenceEqual(knownConfig) &&
+                File.ReadAllBytes(orphanSecret).SequenceEqual(knownSecret), "Rejected deletion/conflict discarded an existing account or credential.");
+            orphanStore.SaveConfiguration(original with { DavActive = false }, "", true);
+            var noCredential = orphanStore.ReadSnapshot();
+            TestAssert.Throws<ArgumentException>(() => orphanStore.SaveConfigurationChecked(original, "", false, noCredential.Revision),
+                "An active account without any stored credential was accepted.");
+            TestAssert.That(orphanStore.ReadSnapshot() == noCredential, "Missing-password rejection changed the disabled account.");
+            return Task.CompletedTask;
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     internal static async Task RunAsync()
     {
         TestServerAndSecretStorage();
