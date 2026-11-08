@@ -94,7 +94,7 @@ public struct Request {
                 guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid request identifier.") }
             }
             if command == .macos_systemzugriff {
-                guard SystemSourcePolicy.Kind(rawValue: text("art")) != nil else { throw BetaError("Invalid macOS source kind.") }
+                guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
             }
         }
         if command == .speichern, ((fields["id"] as? NSNumber)?.int64Value ?? 0) < 1 {
