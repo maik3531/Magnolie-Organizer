@@ -479,6 +479,14 @@ Abbruch schließt keine Deskriptoren aus einem fremden laufenden I/O heraus.
 Bereits geschriebene Teilstände bleiben erhalten, werden aber nicht als Ready
 oder wiederaufgenommene Leseautorität ausgegeben.
 
+Für die folgende begrenzte Kandidatenauswahl kann die native Quelle außerdem
+den genauen Zuordnungs-Snapshot und den aktuellen Versionskopf verlangen. Beide
+werden innerhalb derselben geschützten Zuordnungslease vor dem Dateiöffnen
+geprüft, bei der frischen Kopie erneut. Eine inzwischen historische Version
+darf auch mit einem aktuellen Snapshot nicht zur automatischen Auswahl werden.
+Die bisherige ausdrückliche historische Backup-/Restore-Auswahl bleibt ohne
+diese zusätzlichen, ausschließlich einschränkenden Bedingungen unverändert.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

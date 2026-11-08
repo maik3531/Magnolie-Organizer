@@ -400,24 +400,32 @@ class ProtectedPhotoMappings(ProtectedPhotoPreferences):
             raise
 
     @contextmanager
-    def saved_record_lease(self, association, expected_record_sha256):
-        """Native backup read only: one exact protected version for held file IO.
+    def saved_record_lease(self, association, expected_record_sha256, *, expected=None, latest=False):
+        """Native read only: one exact protected version for held file IO.
 
         Keep the existing store/OS lock, rather than re-running a durable lookup
         and fsync for every 64 KiB. No write/network authority is constructed.
         Native revocation remains checked on each chunk; membership/head is
         reverified before releasing the lease or reporting successful copying.
+        Optional snapshot/latest constraints narrow automatic source selection;
+        explicit historical backup leases keep their original default behavior.
         """
-        if type(association) is not PhotoMappingAssociation or not _hex(expected_record_sha256):
+        if (type(association) is not PhotoMappingAssociation or not _hex(expected_record_sha256)
+                or expected is not None and type(expected) is not PhotoMappingsSnapshot or type(latest) is not bool):
             raise TransferError('photo_mappings_native_associations_required')
         with self._operation():
             if not self._open():raise TransferError('photo_mapping_original_record_required')
             with self._locked():
                 self._schema(); before=self._snapshot()
-                record=next((value for _,value in self._mapping_records(association)
+                if expected is not None and before!=expected:
+                    raise TransferError('photo_mappings_lease_snapshot_changed')
+                records=self._mapping_records(association)
+                record=next((value for _,value in records
                     if value.protected_record_sha256==expected_record_sha256),None)
                 if not before.associated or record is None or record.protected_record_sha256!=expected_record_sha256:
                     raise TransferError('photo_mapping_original_record_required')
+                if latest and records[0][1]!=record:
+                    raise TransferError('photo_mappings_lease_latest_required')
                 yield record,self._fresh
                 self._fresh()
                 if self._snapshot()!=before or record not in tuple(value for _,value in self._mapping_records(association)):

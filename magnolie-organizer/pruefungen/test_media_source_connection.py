@@ -148,7 +148,8 @@ def test_actual_conditional_prepare_uses_shared_sender_then_skips_completed_sour
     with composition(source,native[0]) as h:
         controls=agree(h,native[0]);owner=h.connection._local().owner;h.target.write_bytes(png())
         def prepare():
-            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,h.record.protected_record_sha256,native_current=lambda:True)
+            return h.connection.prepare_changed_media_source(h.connection.issue_receive_action(),h.preferences.read(),h.association,
+                h.record.protected_record_sha256,native_current=lambda:True,mapping_snapshot=h.mappings.read())
         selected=prepare();cache=selected.cache
         assert selected.plan.changed and cache is not None and selected.plan.observation.sha256==cache.manifest.files[0].sha256
         sender=h.connection.open_prepared_media_sender(cache.manifest.source_id)

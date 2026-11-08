@@ -388,7 +388,7 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_album_worker_busy')
             return self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind)
 
-    def prepare_changed_media_source(self,action,expected,association,record_sha256,*,kind='images',native_current=None):
+    def prepare_changed_media_source(self,action,expected,association,record_sha256,*,kind='images',native_current=None,mapping_snapshot=None):
         if native_current is not None and not callable(native_current):
             raise TransferError('media_source_native_operation_required')
         self._take_action(action)
@@ -402,12 +402,14 @@ class NativeDesktopFileConnection:
                 if self._controls.binding('0'*64,sender_is_local=True) is None:
                     raise TransferError('media_source_current_send_control_required')
             agreed()
-            plan=self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind,native_current=native_current)
+            plan=self._media_source.plan(self._preferences.issue_action(),expected,association,record_sha256,kind=kind,
+                native_current=native_current,mapping_snapshot=mapping_snapshot)
             agreed()
             cache=None
             if plan.changed:
                 cache=self._media_source.freeze_observed(self._preferences.issue_action(),expected,association,
-                    record_sha256,plan.observation,kind=kind,catalog_version=plan.catalog_version,native_current=native_current)
+                    record_sha256,plan.observation,kind=kind,catalog_version=plan.catalog_version,
+                    native_current=native_current,mapping_snapshot=mapping_snapshot)
             from magnolie_media_source_planning import NativeMediaSourcePreparation
             return NativeMediaSourcePreparation(plan,cache)
 
