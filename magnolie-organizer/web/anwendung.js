@@ -33330,15 +33330,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mergeNotizen(liste, leise = false, notizbuchId = null) {
     const z = { neu: 0, doppelt: 0, uebersprungen: 0 };
     const zielbuch = notizbuchId === null ? zustand.notizen.notizbuchId : notizbuchId;
-    const schluessel = new Set(DATEN.notizen.map(
-      (n) => kanonischerText(n.titel) + "|" + kanonischerText(n.text)));
+    const schluessel = new Map();
+    const merke = (s, anhaenge) => {
+      if (!schluessel.has(s)) schluessel.set(s, []);
+      schluessel.get(s).push(anhaenge);
+    };
+    const gleicheAnhaenge = (a, b) => a.length === b.length && a.every((anhang, index) =>
+      anhang.name === b[index].name && anhang.art === b[index].art && anhang.daten === b[index].daten);
+    for (const n of DATEN.notizen) merke(kanonischerText(n.titel) + "|" + kanonischerText(n.text), saubereNotizAnhaenge(n.anhaenge));
     for (const n of liste || []) {
       if (!n) { z.uebersprungen++; continue; }
       const titel = String(n.titel || "").trim();
       const text = String(n.text || "").trim();
       if (!titel && !text) { z.uebersprungen++; continue; }
       const s = kanonischerText(titel) + "|" + kanonischerText(text);
-      if (schluessel.has(s)) { z.doppelt++; continue; }
+      const anhaenge = saubereNotizAnhaenge(n.anhaenge);
+      // Never convert a partially rejected attachment list into a duplicate or
+      // silently import only the surviving part of this note.
+      if (n.anhaenge != null && (!Array.isArray(n.anhaenge) || anhaenge.length !== n.anhaenge.length)) {
+        z.uebersprungen++; continue;
+      }
+      if ((schluessel.get(s) || []).some(bisher => gleicheAnhaenge(bisher, anhaenge))) { z.doppelt++; continue; }
       const htmlStand = {};
       const sicheresHtml = saeubereHtml(String(n.html || ""), htmlStand);
       if (htmlStand.gekuerzt) {
@@ -33348,11 +33360,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       DATEN.notizen.push({ id: uid(), titel: titel || ersteZeile(text),
         text: text, html: sicheresHtml || textZuHtml(text),
-        anhaenge: saubereNotizAnhaenge(n.anhaenge),
+        anhaenge: anhaenge,
         notizbuchId: DATEN.notizbuecher.some((b) => b.id === zielbuch)
           ? zielbuch : DATEN.notizbuecher[0].id,
         geaendert: String(n.geaendert || isoHeute()) });
-      schluessel.add(s);
+      merke(s, anhaenge);
       z.neu++;
     }
     return z;
@@ -36174,7 +36186,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }, () => { setupImportBeenden(); resolve(); }));
         });
       }
-      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
+      const { teile, doppelt, counts, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
       if (changed) {
         planeSpeichern();
         zeichneAlles();
@@ -36184,9 +36196,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         : _("Nothing new was found.");
       if (doppelt) text += " " + uebersetztMehrzahl(
         "%(count)s existing entry skipped.", "%(count)s existing entries skipped.", doppelt);
-      if (nutzlast.uebersprungen) text += " " + uebersetztMehrzahl(
+      const ausgelassen = Number(nutzlast.uebersprungen || 0) + (counts.notes_skipped || 0);
+      if (ausgelassen) text += " " + uebersetztMehrzahl(
         "%(count)s unreadable row omitted.", "%(count)s unreadable rows omitted.",
-        nutzlast.uebersprungen);
+        ausgelassen);
       // Native codecs already count unresolved rules, not all complex rules.
       const einmalig = Math.max(0, Number(nutzlast.wiederholend || 0));
       if (einmalig) {
