@@ -212,7 +212,11 @@ public enum TimeZoneExport {
 
     private static func parseFuture(_ text: String, finalType: ZoneType) throws -> Future? {
         if text.isEmpty { return nil }
-        let pattern = #"^(<[A-Za-z0-9+\-]+>|[A-Za-z]{3,})([+\-]?\d{1,3}(?::\d{1,2}(?::\d{1,2})?)?)(?:(<[A-Za-z0-9+\-]+>|[A-Za-z]{3,})([+\-]?\d{1,3}(?::\d{1,2}(?::\d{1,2})?)?)?(?:,([^,]+),([^,]+))?$"#
+        // Build identical offset/name groups from shared noncapturing fragments, so the
+        // optional daylight offset cannot leave the enclosing group unbalanced.
+        let name = #"(?:<[A-Za-z0-9+\-]+>|[A-Za-z]{3,})"#
+        let number = #"[+\-]?[0-9]{1,3}(?::[0-9]{1,2}(?::[0-9]{1,2})?)?"#
+        let pattern = "^(" + name + ")(" + number + ")(?:(" + name + ")(" + number + ")?)?(?:,([^,]+),([^,]+))?$"
         let regex = try NSRegularExpression(pattern: pattern)
         let ns = text as NSString
         guard let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: ns.length)) else { throw ExportError.unsupportedRule }

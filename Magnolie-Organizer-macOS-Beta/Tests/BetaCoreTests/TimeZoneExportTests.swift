@@ -131,13 +131,35 @@ final class TimeZoneExportTests: XCTestCase {
         XCTAssertEqual(try exportedOffset(southern, at: date(2026, 7, 1)), 3600)
     }
 
+    func testPOSIXOptionalCapturesAndExplicitDaylightOffsets() throws {
+        // Exercise the actual Foundation/ICU parser through exported zone semantics;
+        // a regex-construction error must never satisfy a malformed-rule rejection.
+        for footer in ["STD-1DST,M3.5.0,M10.5.0/3",
+                       "STD-1DST-2,M3.5.0,M10.5.0/3",
+                       "<+01>-1<+02>-2,M3.5.0,M10.5.0/3"] {
+            let lines = try TimeZoneExport.definition("Fixture", data: fixture(footer: footer, transitions: []))
+            XCTAssertEqual(try exportedOffset(lines, at: date(2400, 1, 1)), 3600, footer)
+            XCTAssertEqual(try exportedOffset(lines, at: date(2400, 7, 1)), 7200, footer)
+            XCTAssertEqual(lines.filter { $0.hasPrefix("RRULE:") }.count, 2)
+        }
+        let halfHour = try TimeZoneExport.definition("Fixture", data: fixture(
+            footer: "STD-1DST-1:30,M3.5.0/2:15:30,M10.5.0/3", transitions: []))
+        XCTAssertEqual(try exportedOffset(halfHour, at: date(2400, 7, 1)), 5400)
+        XCTAssertTrue(halfHour.contains { $0.hasPrefix("DTSTART:") && $0.hasSuffix("T021530") })
+    }
+
     func testRejectTruncatedMalformedAndUnrepresentableRules() throws {
         let valid = fixture()
         for length in [0, 3, 43, 44, valid.count - 1] {
             XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: valid.prefix(length)))
         }
         for footer in ["bad", "STD-1DST,J60,J300", "STD-1DST,60,300", "STD-1DST,M3.5.0/-1,M10.5.0", "STD-1DST,M3.5.0/25,M10.5.0", "STD-1DST,M13.5.0,M10.5.0", "STD-1DST", "STD-2"] {
-            XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(footer: footer)), footer)
+            XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(footer: footer)), footer) { error in
+                guard let exportError = error as? TimeZoneExport.ExportError,
+                      case .unsupportedRule = exportError else {
+                    return XCTFail("Expected a deliberate unsupported-rule error, got \(error)")
+                }
+            }
         }
         XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(transitions: [(1, 2)])))
         XCTAssertThrowsError(try TimeZoneExport.definition("Test", data: fixture(transitions: [(1, 0), (1, 1)])))
