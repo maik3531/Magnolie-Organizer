@@ -15,7 +15,10 @@ import BetaCore
         self.uiRoot = uiRoot; self.harnessURL = harnessURL; self.directory = directory
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Task { do { try await run(); finish(nil) } catch { finish(error) } }
+        Task { do { try await run(); finish(nil) } catch {
+            if phase.hasPrefix("drawing") { try? await drawingDiagnostics("failure") }
+            finish(error)
+        } }
     }
     private func mark(_ value: String) { phase = value; proof["phase"] = value; writeProof() }
     private func writeProof() {
@@ -109,7 +112,7 @@ import BetaCore
               canvas:canvas?{width:canvas.width,height:canvas.height,pointerEvents:getComputedStyle(canvas).pointerEvents,touchAction:getComputedStyle(canvas).touchAction}:null,
               valid:window.MagnolieZeichnen.valid(module?.drawing),drawing:JSON.stringify(module?.drawing??null).slice(0,6000),
               pixelChanged:canvas?canvas.toDataURL('image/png')!==window.__domainCanvasBefore:null,
-              pointerCounts:window.__domainPointers,receipts:window.__domainEventReceipts||[]});
+              pointerCounts:window.__domainPointers,receipts:window.__domainEventReceipts||[],replay:window.__domainReplayDiagnostics||null});
             """, arguments: ["phase": phase])
         if let text = value as? String { proof["drawing-" + phase] = try? Document.object(text); writeProof() }
         print("Mac drawing diagnostics: " + (value as? String ?? "invalid diagnostic result"))

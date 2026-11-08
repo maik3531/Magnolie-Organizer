@@ -159,6 +159,26 @@ window.NativeDomains = (() => {
     });
     return (await drawingInputReady()).target;
   }
+  function drawingReplayState(canvas,module) {
+    assert(canvas.width*canvas.height<=4*1024*1024,'Synthetic replay diagnostic raster limit');
+    const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    const png=canvas.toDataURL('image/png'),rect=canvas.getBoundingClientRect();
+    const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
+    return {pixels,png,summary:{bitmap:[canvas.width,canvas.height],geometry:[rect.left,rect.top,rect.width,rect.height],
+      drawing:clone(module.drawing),pixelFNV1a32:hash(pixels),pngFNV1a32:hash(new TextEncoder().encode(png)),pngLength:png.length}};
+  }
+  function drawingReplayDiff(before,after,width) {
+    if(before.length!==after.length)return {sameLength:false,before:before.length,after:after.length};
+    let channels=0,maxDelta=0;const samples=[];let left=Infinity,top=Infinity,right=-1,bottom=-1;
+    for(let index=0;index<before.length;index++) {
+      const delta=Math.abs(before[index]-after[index]);if(!delta)continue;
+      channels++;maxDelta=Math.max(maxDelta,delta);
+      const pixel=Math.floor(index/4),x=pixel%width,y=Math.floor(pixel/width);
+      left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);
+      if(samples.length<16)samples.push({x,y,channel:index%4,before:before[index],after:after[index]});
+    }
+    return {sameLength:true,changedChannels:channels,maxDelta,bounds:channels?[left,top,right,bottom]:null,samples};
+  }
   async function drawingProof() {
     const module=T.daten().customOrganizer.modules.find(item=>item.type==='drawing');
     assert(module&&window.MagnolieZeichnen.valid(module.drawing)&&module.drawing.strokes.length===1,'Native input did not create one valid stroke');
@@ -168,12 +188,17 @@ window.NativeDomains = (() => {
     const xs=points.map(point=>point[0]),extent=Math.max(...xs)-Math.min(...xs);
     const intended=window.__domainIntendedStroke.widthFraction;
     assert(extent>=intended*.5,'Native stroke did not traverse a meaningful fraction of its intended path');
-    const canvas=$('.custom-zeichenblatt'),after=canvas.toDataURL('image/png');
+    const canvas=$('.custom-zeichenblatt'),beforeUndo=drawingReplayState(canvas,module),after=beforeUndo.png;
+    window.__domainReplayDiagnostics={beforeUndo:beforeUndo.summary};
     assert(after!==window.__domainCanvasBefore,'Native stroke changed no rendered pixels');
     const pointer=window.__domainPointers;assert(pointer.down>0&&pointer.move>0&&pointer.up>0&&pointer.untrusted===0&&pointer.pressedMove>0,'Native stroke lacked trusted pressed-button pointer events');
     aria('.zeichen-werkzeuge button','Undo');await tick();assert(module.drawing.strokes.length===0,'Drawing Undo did not remove stroke');
+    window.__domainReplayDiagnostics.afterUndo=drawingReplayState(canvas,module).summary;
     aria('.zeichen-werkzeuge button','Redo');await tick();assert(module.drawing.strokes.length===1,'Drawing Redo did not restore stroke');
-    assert(canvas.toDataURL('image/png')===after,'Drawing Redo did not restore rendered pixels');await save();
+    const afterRedo=drawingReplayState(canvas,module);
+    window.__domainReplayDiagnostics.afterRedo=afterRedo.summary;
+    window.__domainReplayDiagnostics.diff=drawingReplayDiff(beforeUndo.pixels,afterRedo.pixels,canvas.width);
+    assert(afterRedo.png===after,'Drawing Redo did not restore rendered pixels');await save();
     return {strokeCount:1,pointCount:points.length,distinctPoints:distinct,strokeExtent:extent,intendedExtent:intended,pixelChange:true,undoRedo:true,pointer};
   }
   const snapshot=()=>clone({health:T.daten().gesundheit,custom:T.daten().customOrganizer,tab:T.daten().einstellungen.allgemein.customTab,units:T.daten().einstellungen.kalender.gesundheitEinheiten});
