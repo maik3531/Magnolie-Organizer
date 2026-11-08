@@ -453,4 +453,5 @@
     <string name="medien_sync_scope_import">Jenož z telefona na PC importować</string>
     <string name="medien_sync_direction_export">PC → telefon</string>
     <string name="medien_empfang_erlauben">Přijimanje do galerije dowolić…</string>
+    <string name="medien_sync_nur_fotos">Jenož fota</string>
 </resources>

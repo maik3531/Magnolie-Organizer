@@ -711,6 +711,12 @@ Zwei-Wege ist. Die tatsächlichen Transport-Intents verwenden weiterhin nur
 die wirksame Richtung; ein Menüklick übergibt ausschließlich den gewählten
 Richtungswert und seine aktuelle native Feldversion.
 
+Notes bietet `photos_only` ebenfalls als eigene Auswahl nach Videos an. Der
+Haken folgt ausschließlich dem bestätigten nativen Zustand; der Klick übergibt
+nur das Feld, den Wert und dessen Version. Fehlende Feldversion oder deaktivierter
+Abgleich sperren die Auswahl. Die vorhandene Prüfung der Aufnahmemetadaten in
+Galeriequelle und nativem Empfänger bleibt unverändert, ohne neue Android-Rechte.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

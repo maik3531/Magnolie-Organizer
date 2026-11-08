@@ -526,4 +526,5 @@
     <string name="medien_sync_scope_import">Import phone → PC only</string>
     <string name="medien_sync_direction_export">PC → phone</string>
     <string name="medien_empfang_erlauben">Allow gallery reception…</string>
+    <string name="medien_sync_nur_fotos">Photos only</string>
 </resources>

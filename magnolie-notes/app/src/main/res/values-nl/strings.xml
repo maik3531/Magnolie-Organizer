@@ -425,4 +425,5 @@
     <string name="medien_sync_scope_import">Alleen van telefoon naar pc importeren</string>
     <string name="medien_sync_direction_export">Pc → telefoon</string>
     <string name="medien_empfang_erlauben">Ontvangst in de galerij toestaan…</string>
+    <string name="medien_sync_nur_fotos">Alleen foto’s</string>
 </resources>

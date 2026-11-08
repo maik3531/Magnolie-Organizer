@@ -460,4 +460,5 @@
     <string name="medien_sync_scope_import">Лише імпортувати з телефона на ПК</string>
     <string name="medien_sync_direction_export">ПК → телефон</string>
     <string name="medien_empfang_erlauben">Дозволити приймання до галереї…</string>
+    <string name="medien_sync_nur_fotos">Лише фотографії</string>
 </resources>

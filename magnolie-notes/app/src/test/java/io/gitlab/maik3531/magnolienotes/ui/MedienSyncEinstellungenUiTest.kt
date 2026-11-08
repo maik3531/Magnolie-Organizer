@@ -91,6 +91,8 @@ class MedienSyncEinstellungenUiTest {
         val master = checkbox(R.string.medien_sync_aktivieren)
         assertEquals(ToggleableState.Off, master.config[SemanticsProperties.ToggleableState])
         assertEquals(ToggleableState.Off, checkbox(R.string.personal_sync_skip_deletions).config[SemanticsProperties.ToggleableState])
+        assertEquals(ToggleableState.Off, checkbox(R.string.medien_sync_nur_fotos).config[SemanticsProperties.ToggleableState])
+        assertNotNull(checkbox(R.string.medien_sync_nur_fotos).config.getOrNull(SemanticsProperties.Disabled))
         assertNotNull(checkbox(R.string.medien_sync_fotos).config.getOrNull(SemanticsProperties.Disabled))
         assertTrue(changes.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
         click(master)
@@ -149,6 +151,28 @@ class MedienSyncEinstellungenUiTest {
         state.value = state.value.copy(mediaPreferencesSupported = true, mediaPreferencesValues = null); frames()
         assertFalse(nodes().any { text(it).contains(label(R.string.medien_sync_titel)) })
         assertTrue(changes.isEmpty()); assertEquals(0, permissions)
+    }
+
+    @Test fun photosOnlyForwardsItsIndependentVersionWithoutPermissionOrTransferAndWaitsForNativeState() {
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(values + ("enabled" to JsonPrimitive(true))), mediaPreferencesReady = true)
+        launch(); open()
+        fun filter() = nodes().singleOrNull { text(it) == "Nur Fotos" && it.config.getOrNull(SemanticsProperties.ToggleableState) != null }
+        assertNotNull("The native camera-photo metadata filter has no Compose control", filter())
+        val input = filter()!!
+        assertEquals(ToggleableState.Off, input.config[SemanticsProperties.ToggleableState])
+        assertNull(input.config.getOrNull(SemanticsProperties.Disabled))
+        val labels = nodes().filter { it.config.getOrNull(SemanticsProperties.ToggleableState) != null }.map(::text)
+        assertTrue(labels.indexOf(label(R.string.medien_sync_videos)) < labels.indexOf("Nur Fotos"))
+        assertTrue(labels.indexOf("Nur Fotos") < labels.indexOf(label(R.string.personal_sync_skip_deletions)))
+        click(input)
+        assertEquals(Triple("photos_only", JsonPrimitive(true), versions.getValue("photos_only")), changes.single())
+        assertEquals(ToggleableState.Off, filter()!!.config[SemanticsProperties.ToggleableState])
+        assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
+        state.value = state.value.copy(mediaPreferencesValues = JsonObject(state.value.mediaPreferencesValues!! + ("photos_only" to JsonPrimitive(true)))); frames()
+        assertEquals(ToggleableState.On, filter()!!.config[SemanticsProperties.ToggleableState])
+        state.value = state.value.copy(mediaPreferencesVersions = versions - "photos_only"); frames()
+        assertNotNull(filter()!!.config.getOrNull(SemanticsProperties.Disabled))
+        assertEquals(1, changes.size); assertTrue(receiving.isEmpty()); assertEquals(0, permissions); assertEquals(0, runs)
     }
 
     @Test fun galleryReceptionIsExplicitTypedAndCannotBypassClosedReadyOrImportOnly() {

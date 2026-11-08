@@ -431,4 +431,5 @@
     <string name="medien_sync_scope_import">केवल फ़ोन से PC पर आयात करें</string>
     <string name="medien_sync_direction_export">PC → फ़ोन</string>
     <string name="medien_empfang_erlauben">गैलरी में प्राप्त करने की अनुमति दें…</string>
+    <string name="medien_sync_nur_fotos">केवल फ़ोटो</string>
 </resources>

@@ -460,4 +460,5 @@
     <string name="medien_sync_scope_import">Толькі імпартаваць з тэлефона на ПК</string>
     <string name="medien_sync_direction_export">ПК → тэлефон</string>
     <string name="medien_empfang_erlauben">Дазволіць прыём у галерэю…</string>
+    <string name="medien_sync_nur_fotos">Толькі фотаздымкі</string>
 </resources>

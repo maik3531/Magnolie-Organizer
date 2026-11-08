@@ -494,4 +494,5 @@
     <string name="medien_sync_scope_import">Nur vom Telefon auf den PC importieren</string>
     <string name="medien_sync_direction_export">PC → Telefon</string>
     <string name="medien_empfang_erlauben">Galerie-Empfang erlauben…</string>
+    <string name="medien_sync_nur_fotos">Nur Fotos</string>
 </resources>

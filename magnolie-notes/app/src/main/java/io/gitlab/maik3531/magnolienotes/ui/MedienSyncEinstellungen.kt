@@ -83,6 +83,7 @@ internal fun MedienSyncEinstellungen(telefon: TelefonUiZustand,
             "pc_to_phone" to stringResource(R.string.medien_sync_direction_export)))
         checkbox("photos_enabled", stringResource(R.string.medien_sync_fotos))
         checkbox("videos_enabled", stringResource(R.string.medien_sync_videos))
+        checkbox("photos_only", stringResource(R.string.medien_sync_nur_fotos))
         val receiving = enabled && telefon.mediaPreferencesReady && !telefon.mediaManualBusy && android.os.Build.VERSION.SDK_INT >= 30 &&
             values["collection_mode"] != JsonPrimitive("import_only") &&
             values["direction"] in setOf(JsonPrimitive("two_way"), JsonPrimitive("pc_to_phone"))

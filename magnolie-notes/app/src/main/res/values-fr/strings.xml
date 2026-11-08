@@ -452,4 +452,5 @@
     <string name="medien_sync_scope_import">Importer uniquement du téléphone vers le PC</string>
     <string name="medien_sync_direction_export">PC → téléphone</string>
     <string name="medien_empfang_erlauben">Autoriser la réception dans la galerie…</string>
+    <string name="medien_sync_nur_fotos">Photos uniquement</string>
 </resources>
