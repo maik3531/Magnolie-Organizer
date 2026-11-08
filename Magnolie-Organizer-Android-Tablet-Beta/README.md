@@ -5,11 +5,15 @@ The 2.0.30Beta candidate uses the shared 2.0.30 interface with the native limits
 below. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
 [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
-Current native verification (Actions run 42476051871): APK build and 28 JVM unit
-tests passed. Emulator basics passed for calendar, tasks, contacts, notes, Custom,
-keyboard input, geometry and Keystore-encrypted readback. The following restart
-stage timed out before initialization acknowledgement; subsequent layout/time
-stages did not run. Complete Android runtime verification remains unfinished. There has
+Current native verification: the APK and JVM gate passed in Actions run
+42494608208, including the native DAV/account modules. Earlier emulator basics
+passed for calendar, tasks, contacts, notes, Custom, keyboard input, geometry and
+Keystore-encrypted readback; another run passed restart and the 17-series worker
+fixture. The complete 40-touch interaction gate has not passed. Run 42494608208
+failed its initial 25-second native readiness check, before those interactions.
+Bounded startup telemetry and a separate native DAV/Keystore component suite are
+being validated; they do not replace the UI gate. Complete Android runtime
+verification remains unfinished. There has
 been no physical-device acceptance or production release. The offline build
 produces debug-only candidates; source changes mark `artifacts/candidate.json`
 stale. A successful source projection does not establish release readiness.
@@ -71,6 +75,7 @@ against the projected core and through the existing shared desktop test runner.
 | Reminders | Persisted one-off calendar/task/custom alarms, global and separate custom consent, inexact AlarmManager wakeup, boot/package restart receiver, delivery receipts | No recurrence/anniversary/health/SMS scheduling, exact alarm SLA, foreground service or force-stop bypass |
 | Localization | Existing 20-language catalogs; two small manual beta strings in all 20 locales | Native locale follows Android, web locale follows organizer settings; linguistic review not claimed |
 | Setup/holidays | Current canonical setup logic/catalogs and local country/region/cached-holiday display filter | Native bounded HTTPS public/school holiday retrieval; no Android desktop setup wizard; native integration validation pending |
+| DAV account setup | Canonical account form, revision-bound configuration, Android Keystore credentials and explicit collection discovery | Setup/discovery only; actual record synchronization remains disabled; real-server acceptance pending |
 | Text editing | Current canonical context menu, Undo/Redo and accessible Tab-key help | Key/help catalogs checked in all 20 locales; actual WebView editing history/IME acceptance pending |
 
 Unsupported bridge operations reject; they never return invented success or empty
@@ -83,7 +88,7 @@ launchers and corresponding external-integration settings are disabled. Local
 contact phone/email/address editing remains available. The bridge rejects attempted
 outgoing SMS/call commands without handing them to Android.
 
-There is **no** EDS/Akonadi, Android account integration, Nextcloud/cloud backup,
+There is **no** EDS/Akonadi, Android system-account integration, complete Nextcloud synchronization/cloud backup,
 Magnolienbaum/phone pairing, SMS/calls, Bluetooth/WLAN sync, medication/weather
 lookup, desktop spelling service, LibreOffice/ODS/letter export, update service,
 or desktop password-lock emulation. INTERNET permits the native HTTPS service; the WebView still rejects external resources. There is no system
