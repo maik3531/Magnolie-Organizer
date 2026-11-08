@@ -158,7 +158,7 @@ object ICalendarExport {
     private val metadata = setOf("id", "uid", "angelegt", "geaendert", "angelegtGeschaetzt", "ursprungApp", "personalGeaendert", "personalVersion", "kalenderQuelle", "syncKalenderUid", "icsQuelleId", "icsQuelleName", "icsImportUid", "icsSerienUid", "icsAnzeigeZeitzone", "icsKomplex", "icsAenderungszeitFehlt", "icsSequence", "icsStatus", "icsTimezones", "icsRoundtrip", "baumFreigabe", "baumGeaendert", "baumInhaltVersion", "baumVersion", "baumQuelle", "persoenlichVerknuepft", "geloescht")
     private fun validateRecord(record: JSONObject, kind: Kind) {
         val allowed = metadata + setOf("notiz", "kategorien", "akzentFarbe") + when (kind) {
-            Kind.appointments -> setOf("titel", "datum", "zeit", "endDatum", "endZeit", "ganztag", "ort", "wiederholung", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsRangeOverrides", "icsEndeFehlt", "icsNullDauer", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung")
+            Kind.appointments -> setOf("titel", "datum", "zeit", "endDatum", "endZeit", "ganztag", "ort", "wiederholung", "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine", "icsRangeOverrides", "icsEndeFehlt", "icsNullDauer", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung", "alarme")
             Kind.tasks -> setOf("titel", "startDatum", "startZeit", "faellig", "faelligZeit", "prio", "erledigt", "erinnern", "individuelleErinnerungTage", "elternUid", "icsElternUid", "icsElternQuelleId", "reihenfolge", "personen", "wiederholung", "erinnerungsMinute")
             Kind.anniversaries -> setOf("name", "datum", "typ", "kontaktId", "quelle")
         }
@@ -167,6 +167,78 @@ object ICalendarExport {
         // These known local-only fields have no ICS representation. Do not
         // silently accept meaningful values merely because they are known.
         if (kind == Kind.tasks) requireExport(!meaningful(record.opt("personen")), "Task person assignments require a full JSON backup.")
+    }
+    private fun validateSourceDisplay(record: JSONObject) {
+        val value = record.opt("kalenderQuelle") ?: return
+        if (value === JSONObject.NULL) return
+        requireExport(value is JSONObject, "Invalid calendar source display metadata.")
+        val source = value as JSONObject
+        val limits = mapOf("id" to 200, "name" to 200, "gruppe" to 200, "farbe" to 7, "anbieter" to 100)
+        for (key in source.keys()) {
+            val text = source.opt(key)
+            requireExport(key in limits && text is String && text.length <= limits.getValue(key) &&
+                text.none { it < ' ' && it !in "\t\n\r" || it == '\u007f' }, "Invalid calendar source display metadata.")
+        }
+        val color = text(source,"farbe")
+        requireExport(color.isEmpty() || matches(color,"#[0-9a-fA-F]{6}"), "Invalid calendar source color.")
+        val actual = text(source,"id")
+        val expected = text(record,"icsQuelleId").ifEmpty { text(record,"syncKalenderUid") }
+            .filterNot { it < ' ' && it !in "\t\n\r" || it == '\u007f' }.take(200).trim()
+        requireExport(expected.isEmpty() || actual.isEmpty() || actual == expected, "Calendar display source contradicts its stored source identity.")
+    }
+    private fun validateAlarms(record: JSONObject, properties: List<Property>) {
+        if (!record.has("alarme")) return // Raw-only source records retain their whole original alarm blocks.
+        val value = record.opt("alarme")
+        requireExport(value is JSONArray, "Invalid structured calendar alarms.")
+        val alarms = value as JSONArray
+        requireExport(alarms.length() <= 32, "Too many structured calendar alarms.")
+        val expected = linkedMapOf<String, Map<String, Any>>()
+        var block: MutableList<Property>? = null
+        for (property in properties) {
+            if (property.name == "BEGIN") { block = mutableListOf(); continue }
+            if (property.name != "END") { block?.add(property); continue }
+            val parts = block ?: continue
+            block = null
+            val triggers = parts.filter { it.name == "TRIGGER" }; val actions = parts.filter { it.name == "ACTION" }
+            requireExport(triggers.size == 1 && actions.size == 1, "Calendar alarms require unambiguous source triggers and actions.")
+            val trigger = triggers.single(); val raw = trigger.value.trim()
+            val action = actions.single().value.trim().lowercase(Locale.ROOT)
+            val related = upper(trigger.parameters["RELATED"] ?: "START")
+            requireExport(related in setOf("START","END") && raw.isNotEmpty() && raw.length <= 500 && action.length <= 40,
+                "Unsupported calendar alarm projection.")
+            val tzid = (trigger.parameters["TZID"] ?: "").trim()
+            requireExport(tzid.length <= 200, "Unsupported calendar alarm time zone.")
+            val match = Regex("-P(?:(\\d+)W)?(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?)?",RegexOption.IGNORE_CASE).matchEntire(raw)
+            val groups = match?.groupValues?.drop(1)
+            val numbers = groups?.map { if (it.isEmpty()) 0.0 else it.toDoubleOrNull() ?: Double.POSITIVE_INFINITY }
+            val minutes = numbers?.let { it[0]*10080 + it[1]*1440 + it[2]*60 + it[3] + kotlin.math.ceil(it[4]/60) }
+            val relative = groups?.any(String::isNotEmpty) == true && minutes != null && minutes.isFinite() && minutes >= 0 && minutes <= 525600 && minutes == kotlin.math.floor(minutes)
+            val editable = relative && action == "display"
+            val offset = if (editable) minutes!!.toLong() else 0L
+            val key = if (editable) "$offset|$related|$action" else "raw|$raw|$related"
+            expected.putIfAbsent(key,mapOf("offsetMinuten" to offset, "aktion" to action, "related" to related,
+                "triggerRaw" to raw,"triggerTzid" to tzid,"bearbeitbar" to editable))
+        }
+        requireExport(alarms.length() == expected.size, "Structured alarms differ from their source VALARM blocks.")
+        val seen = mutableSetOf<String>()
+        val allowed = setOf("id","offsetMinuten","aktion","aktiviert","quelle","related","triggerRaw","triggerTzid","bearbeitbar")
+        for (index in 0 until alarms.length()) {
+            val alarm = alarms.opt(index) as? JSONObject ?: throw ExportException("Invalid structured calendar alarm.")
+            requireExport(alarm.keys().asSequence().all { it in allowed }, "Unsupported structured alarm field.")
+            for (key in listOf("aktion","related","triggerRaw","triggerTzid")) if (alarm.has(key))
+                requireExport(alarm.opt(key) is String, "Invalid structured alarm field type.")
+            requireExport(alarm.opt("id") is String && matches(text(alarm,"id"),"[A-Za-z0-9_.:@-]{1,160}") &&
+                alarm.opt("aktiviert") == true && alarm.opt("bearbeitbar") is Boolean && text(alarm,"quelle") in setOf("ics","magnolie"),
+                "Edited or disabled alarms require matching source VALARM data.")
+            val offset = integer(alarm.opt("offsetMinuten"),-1)
+            val editable = alarm.getBoolean("bearbeitbar"); val raw = text(alarm,"triggerRaw")
+            val related = text(alarm,"related"); val action = text(alarm,"aktion")
+            val key = if (editable) "$offset|$related|$action" else "raw|$raw|$related"
+            val source = expected[key] ?: throw ExportException("Structured alarm contradicts its source VALARM.")
+            requireExport(seen.add(key) && offset == source["offsetMinuten"] && action == source["aktion"] &&
+                related == source["related"] && (editable || raw == source["triggerRaw"]) && (editable || text(alarm,"triggerTzid") == source["triggerTzid"]) &&
+                editable == source["bearbeitbar"], "Structured alarm contradicts its source VALARM.")
+        }
     }
     private fun identifier(record: JSONObject): String = listOf("icsSerienUid", "icsImportUid", "uid", "id").firstNotNullOfOrNull { text(record, it).takeIf(String::isNotEmpty) }
         ?: throw ExportException("Calendar record has no stable identity.")
@@ -261,7 +333,10 @@ object ICalendarExport {
     private data class Parent(val original: String, val source: String, val wire: String)
     private fun component(record: JSONObject, kind: Kind, wireUID: String, parent: Parent?, resolver: Resolver): List<String> {
         validateRecord(record, kind)
-        val sources = raw(record); val top = topLevel(sources); val display = displayZone(record)
+        val sources = raw(record)
+        validateSourceDisplay(record)
+        if (kind == Kind.appointments) validateAlarms(record,sources)
+        val top = topLevel(sources); val display = displayZone(record)
         val generated = mutableListOf("UID:" + escape(wireUID), "DTSTAMP:" + Instant.now().atOffset(ZoneOffset.UTC).format(stamp) + "Z")
         val title = text(record, if (kind == Kind.anniversaries) "name" else "titel"); requireExport(title.isNotEmpty(), "Calendar records need a title.")
         generated.add("SUMMARY:" + escape(title))

@@ -122,4 +122,98 @@ class ICalendarExportTest {
         assertFalse(returned)
         rejected { ICalendarExport.encode(listOf(event().put("titel", "x".repeat(1024 * 1024))), "ics-termine") }
     }
+    private fun sharedUiFixture(): JSONObject {
+        val resource=javaClass.classLoader!!.getResourceAsStream("calendar-export-normalized-ui.json")
+            ?: throw AssertionError("Missing actual shared UI alarm projection fixture")
+        return resource.bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
+    }
+    @Test fun actualSharedImportedAndSavedAlarmProjectionExportsItsAuthoritativeValarms() {
+        val fixture=sharedUiFixture()
+        val nativeInput=ICalendarImport.decode(fixture.getString("source").toByteArray(),"UTC","gui-alarms.ics").document
+        assertEquals(semantic(fixture.getJSONObject("importDocument")),semantic(nativeInput))
+        val saved=fixture.getJSONObject("normalizedRecord")
+        assertEquals(2,saved.getJSONArray("alarme").length())
+        val before=saved.toString()
+        val output=ICalendarExport.encode(listOf(saved),"ics-termine","UTC")
+        assertEquals(before,saved.toString())
+        assertEquals(2,output.split("BEGIN:VALARM").size-1)
+        assertTrue(output.contains("TRIGGER:-PT15M\r\n"))
+        assertTrue(output.contains("TRIGGER;VALUE=DATE-TIME:20261115T083000Z\r\n"))
+        val decoded=ICalendarImport.decode(output.toByteArray(),"UTC").appointments.single()
+        val beforeRaw=saved.getJSONArray("icsRoundtrip"); val afterRaw=decoded.getJSONArray("icsRoundtrip")
+        fun blocks(raw: JSONArray): List<String> {
+            var active=false; val result=mutableListOf<String>()
+            for(index in 0 until raw.length()) {
+                val line=raw.getString(index)
+                if(line=="BEGIN:VALARM") active=true
+                if(active) result.add(line)
+                if(line=="END:VALARM") active=false
+            }
+            return result
+        }
+        assertEquals(blocks(beforeRaw),blocks(afterRaw))
+        System.getenv("ANDROID_BETA_CALENDAR_OUTPUT")?.let { File(it,"ui-normalized-valarm.ics").writeText(output) }
+    }
+    @Test fun editedDisabledAdditionalOrMissingStructuredAlarmsCannotDisappearIntoOldRawData() {
+        val original=sharedUiFixture().getJSONObject("normalizedRecord")
+        fun copy()=JSONObject(original.toString())
+        for(field in listOf("offsetMinuten","related","aktion","bearbeitbar","aktiviert")) {
+            val changed=copy(); val alarm=changed.getJSONArray("alarme").getJSONObject(0)
+            alarm.put(field,when(field) {
+                "offsetMinuten" -> 30; "related" -> "END"; "aktion" -> "email"; "triggerRaw" -> "-PT30M";
+                "triggerTzid" -> "Europe/Berlin"; else -> false
+            })
+            rejected { ICalendarExport.encode(listOf(changed),"ics-termine","UTC") }
+        }
+        val removed=copy().put("alarme",JSONArray())
+        rejected { ICalendarExport.encode(listOf(removed),"ics-termine","UTC") }
+        val extra=copy(); extra.getJSONArray("alarme").put(JSONObject(extra.getJSONArray("alarme").getJSONObject(0).toString()))
+        rejected { ICalendarExport.encode(listOf(extra),"ics-termine","UTC") }
+        val withoutRaw=copy().put("icsRoundtrip",JSONArray())
+        rejected { ICalendarExport.encode(listOf(withoutRaw),"ics-termine","UTC") }
+        val unknown=copy(); unknown.getJSONArray("alarme").getJSONObject(0).put("emailRecipients","must not silently disappear")
+        rejected { ICalendarExport.encode(listOf(unknown),"ics-termine","UTC") }
+    }
+    @Test fun readonlyAlarmTriggerAndTimezoneRemainAuthoritative() {
+        val original=sharedUiFixture().getJSONObject("normalizedRecord")
+        for(field in listOf("triggerRaw","triggerTzid")) {
+            val changed=JSONObject(original.toString())
+            changed.getJSONArray("alarme").getJSONObject(1).put(field,if(field=="triggerRaw") "20261115T080000Z" else "Europe/Berlin")
+            rejected { ICalendarExport.encode(listOf(changed),"ics-termine","UTC") }
+        }
+    }
+    @Test fun actualAppointmentFormEditsAndRemovalMatchCurrentRawSemanticsDespiteStaleHints() {
+        val resource=javaClass.classLoader!!.getResourceAsStream("calendar-export-edited-ui.json")!!
+        val cases=resource.bufferedReader().use { JSONObject(it.readText()).getJSONArray("cases") }
+        for(index in 0 until cases.length()) {
+            val case=cases.getJSONObject(index);val record=case.getJSONObject("record");val mode=case.getString("mode")
+            val output=ICalendarExport.encode(listOf(record),"ics-termine","UTC")
+            assertTrue(output.contains("TRIGGER;VALUE=DATE-TIME:20261115T083000Z"))
+            if(mode=="edit30") {
+                assertEquals("-PT15M",record.getJSONArray("alarme").getJSONObject(0).getString("triggerRaw"))
+                assertTrue(output.contains("TRIGGER;RELATED=START:-PT30M"))
+            }
+            assertEquals(if(mode=="removeEditable") 1 else 2,output.split("BEGIN:VALARM").size-1)
+            System.getenv("ANDROID_BETA_CALENDAR_OUTPUT")?.let { File(it,"ui-$mode.ics").writeText(output) }
+        }
+    }
+    @Test fun matchingLocallyEditedAlarmCanUseCurrentRawTriggerWithoutStaleDisplayHint() {
+        val record=sharedUiFixture().getJSONObject("normalizedRecord")
+        val alarm=record.getJSONArray("alarme").getJSONObject(0)
+        alarm.remove("triggerRaw"); alarm.put("quelle","magnolie")
+        assertTrue(ICalendarExport.encode(listOf(record),"ics-termine","UTC").contains("TRIGGER:-PT15M"))
+    }
+    @Test fun calendarSourceDisplayIsBoundedLocalMetadataAndCannotSmuggleCredentialsOrRebindSource() {
+        val original=sharedUiFixture().getJSONObject("normalizedRecord")
+        for((field,value) in listOf("password" to "must not export","id" to "different-source","farbe" to "invalid","name" to "x".repeat(201))) {
+            val changed=JSONObject(original.toString());changed.getJSONObject("kalenderQuelle").put(field,value)
+            rejected { ICalendarExport.encode(listOf(changed),"ics-termine","UTC") }
+        }
+        val valid=JSONObject(original.toString()); valid.getJSONObject("kalenderQuelle").put("name","Renamed local display").put("farbe","#12abEF")
+        assertTrue(ICalendarExport.encode(listOf(valid),"ics-termine","UTC").contains("BEGIN:VEVENT"))
+        val longSource=JSONObject(original.toString()).put("icsQuelleId","x".repeat(250))
+        longSource.getJSONObject("kalenderQuelle").put("id","x".repeat(200)).put("name","Local\ncalendar")
+        assertTrue(ICalendarExport.encode(listOf(longSource),"ics-termine","UTC").contains("BEGIN:VEVENT"))
+    }
+
 }
