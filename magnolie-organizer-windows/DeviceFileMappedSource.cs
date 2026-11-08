@@ -35,7 +35,9 @@ internal sealed partial class TelefonStore
         internal byte[] ReadExact(long offset, int count) => file.ReadExact(offset, count);
         internal void Require() => file.Require();
         internal JsonObject Provenance => provenance.DeepClone().AsObject();
-        internal NativePreparedMediaSource Freeze()
+        internal NativePreparedMediaSource Freeze() => FreezeCore(completedSuccessor: false);
+        internal NativePreparedMediaSource FreezeCompletedSuccessor() => FreezeCore(completedSuccessor: true);
+        private NativePreparedMediaSource FreezeCore(bool completedSuccessor)
         {
             NativePreparedMediaSource result;
             lock (sourceGate)
@@ -45,7 +47,7 @@ internal sealed partial class TelefonStore
                 {
                     if (freezeAttempted) throw DeviceFileControl.Error("media_source_original_preparation_required");
                     freezeAttempted = true;
-                    frozen = Store.FreezeNativeMappedMediaSource(this);
+                    frozen = Store.FreezeNativeMappedMediaSource(this, completedSuccessor);
                 }
                 result = frozen;
             }

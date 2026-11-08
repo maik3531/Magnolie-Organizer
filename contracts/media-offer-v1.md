@@ -213,6 +213,44 @@ Beide optionalen Produktkompositionen bauen. Das ist noch keine automatische
 gemeinsame Ablaufsteuerung, Cache-Löschberechtigung oder physische gemeinsame
 Telefon-/Windows-Abnahme.
 
+## Windows: nachfolgende Quellversion ohne Verlust des Vorgängers
+
+`FreezeCompletedSuccessor` bereitet mit dem neuen aktuellen nativen Quellbesitzer
+eine weitere Version derselben ursprünglichen Telefonzuordnung vor. Der normale
+`Freeze`-Weg behält seine bisherige Sperre gegen doppelte Vorbereitung. Der neue
+Weg übernimmt keinen alten Cache und erzeugt keine Lese-/Schreibberechtigung aus
+dessen Metadaten: gespeichertes Originalbuch, aktuelle gemeinsame Absicht,
+positive native SEND-Bindung und tatsächlich gehaltene aktuelle Datei bleiben
+für den neuen Besitzer unabhängig erforderlich.
+
+Vor einer neuen Version müssen die zugehörigen Vorgänger als eine eindeutige
+geschützte Kette mit tatsächlichem lokalem Source-END vorliegen. Die Prüfung
+bindet Cache-Kopf, Nonce, Austauschkopf, korrelierten Readback und jede erhaltene
+verschlüsselte Cache-Datei aneinander. Fehlende, unvollständige, beschädigte oder
+verzweigte Vorgänger bleiben gesperrt. Vor dem abschließenden Ready-Schreiben
+wird der erhaltene Vorgänger einschließlich seiner Cache-Dateien erneut geprüft,
+damit eine Änderung während der neuen Kopie nicht verdeckt wird. Die neue Vorbereitung
+erhält eine eigene Identität und einen geschützten `previous`-Verweis auf den exakten
+letzten Vorgänger; dessen Kopf und sämtliche Cache-Bytes bleiben
+unverändert. Die vorhandenen Speicher-/Historiengrenzen gelten weiter.
+
+Identische Bytes gegenüber der letzten abgeschlossenen Version erzeugen keine
+neue Vorbereitung. Ein bewusster späterer Wechsel zurück zu älteren Bytes ist
+hingegen eine neue Änderung gegenüber dem letzten Stand und wird nicht durch
+eine beliebige alte Historie unterdrückt. Dies ist eine Vorbereitungs-/
+Versionsentscheidung, keine automatische Cache-Löschung oder Übernahme alter
+Dateirechte.
+
+Sieben native Windows-Gruppen prüfen neue Version, unveränderte Bytes,
+unvollständigen Vorgänger, beschädigten Vorgängercache, noch gar nicht gesendete
+Vorbereitung und die Kette erste Version → zweite Version → ältere Bytes als
+dritte Version sowie beschädigte Vorgängerbytes während einer bereits laufenden
+neuen Kopie. Im letzten Fall bleibt die neue Vorbereitung als unvollständig
+erhalten, statt fälschlich Ready zu werden oder alte Daten zu reparieren/löschen.
+Die vier bisherigen Cache-/Korruptions-/Buch-/Drain-Gruppen
+bestehen ebenfalls. Die Einbindung in die periodische Desktop-Auswahl bleibt
+noch offen; Capability 23 bleibt geschlossen.
+
 Die gemeinsame native Zusammensetzung und vollständigen Abschluss-/
 Wiederaufnahmewege bleiben offen; Remote-Saved ist kein lokales Saved/END und
 keine Berechtigung, den Ausgangscache zu entfernen.

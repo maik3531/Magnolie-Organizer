@@ -340,6 +340,11 @@ if (OperatingSystem.IsWindows())
         runner.Add("Published readback / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
     foreach (var scenario in new[] { "end-none", "end-publication", "end-early", "end-cancel" })
         runner.Add("Source END / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
+    foreach (var scenario in new[] { "successor-new", "successor-unchanged", "successor-incomplete", "successor-corrupt" })
+        runner.Add("Source successor / Windows actual sender " + scenario, () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync(scenario));
+    runner.Add("Source successor / Windows actual sender successor-chain", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-chain"));
+    runner.Add("Source successor / Windows unattempted preparation stays held", DeviceFileSourceSendTests.WindowsSuccessorBeforeOfferAsync);
+    runner.Add("Source successor / Windows actual sender successor-during-copy", () => DeviceFileSourceSendTests.WindowsCorrelatedReadbackAsync("successor-during-copy"));
     runner.Add("Device file source send / Windows early Saved and missing exchange hold", DeviceFileSourceSendTests.WindowsRejectsEarlySavedAndLostAttemptAsync);
     runner.Add("Device file source send / Windows actual offer output cancellation drains", DeviceFileSourceSendTests.WindowsOfferDrainAndCancellationAsync);
     runner.Add("Device file source send / Windows early acceptance waits for actual output", DeviceFileSourceSendTests.WindowsEarlyAcceptanceWaitsForOutputAsync);

@@ -9,7 +9,7 @@ internal static class DeviceFileSourceSendTests
 {
     private const string Book = "{\"syncEpoch\":\"source-send-test\",\"einstellungen\":{\"papierkorb\":{\"an\":true,\"tage\":30}}}";
     private static readonly byte[] MediaBytes = PaddedPng();
-    private static byte[] PaddedPng()
+    private static byte[] PaddedPng(int salt = 0)
     {
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8AAAICAQB7CYF4AAAAAElFTkSuQmCC");
         // Valid private ancillary chunk before IEND: real PNG, still two chunks.
@@ -17,7 +17,7 @@ internal static class DeviceFileSourceSendTests
         var size = result.Length - png.Length - 12;
         System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(result.AsSpan(offset), size);
         "npAD"u8.CopyTo(result.AsSpan(offset + 4));
-        for (var index = 0; index < size; index++) result[offset + 8 + index] = (byte)(index % 251);
+        for (var index = 0; index < size; index++) result[offset + 8 + index] = (byte)((index + salt) % 251);
         uint crc = 0xffffffff;
         foreach (var value in result.AsSpan(offset + 4, size + 4))
         {
@@ -124,8 +124,9 @@ internal static class DeviceFileSourceSendTests
 
     internal static async Task WindowsCorrelatedReadbackAsync(string scenario)
     {
-        var endSource = scenario.StartsWith("end-", StringComparison.Ordinal);
-        foreach (var fault in new[] { endSource ? scenario[4..] : scenario })
+        var successor = scenario.StartsWith("successor-", StringComparison.Ordinal);
+        var endSource = successor || scenario.StartsWith("end-", StringComparison.Ordinal);
+        foreach (var fault in new[] { successor ? (scenario == "successor-incomplete" ? "cancel" : "none") : endSource ? scenario[4..] : scenario })
         {
             using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
             var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "readback-book"), Book);
@@ -186,9 +187,160 @@ internal static class DeviceFileSourceSendTests
                 TestAssert.That(f.Native.Store.NativeMediaReceiveHistory(f.Native.Peer.Id).Single() == before &&
                     f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single().Phase == "ready",
                     "Readback or its failure retired source cache/changed receive history.");
+                if (scenario == "successor-chain") await VerifySuccessorChainAsync(f, host, cache);
+                else if (scenario == "successor-during-copy") await VerifySuccessorMutationAsync(f, host, cache);
+                else if (successor) VerifySuccessor(f, host, cache, scenario);
             }
             finally { stop.Cancel(); try { await send; } catch { } }
         }
+    }
+
+    private static void VerifySuccessor(DeviceFileReceiveJobTests.Fixture f, PersonalActorNativeSaveHost host,
+        TelefonStore.NativePreparedMediaSource previous, string scenario)
+    {
+        var history = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single();
+        var exchange = Exchange(f, previous.JobId).ToJsonString();
+        byte[] OriginalChunk()
+        {
+            using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+            read.CommandText = "SELECT value FROM native_media_source_chunks WHERE job_id=$job AND number=0";
+            read.Parameters.AddWithValue("$job", previous.JobId); return (byte[])read.ExecuteScalar()!;
+        }
+        var cipher = OriginalChunk();
+        if (scenario == "successor-corrupt")
+        {
+            var corrupt = cipher.ToArray(); corrupt[0] ^= 1;
+            using var db = f.Native.Store.OpenDatabase(); db.Open(); using var write = db.CreateCommand();
+            write.CommandText = "UPDATE native_media_source_chunks SET value=$value WHERE job_id=$job AND number=0";
+            write.Parameters.AddWithValue("$value", corrupt); write.Parameters.AddWithValue("$job", previous.JobId); write.ExecuteNonQuery();
+        }
+        if (scenario != "successor-new")
+        {
+            using var source = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+            TestAssert.Throws<InvalidDataException>(() => source.FreezeCompletedSuccessor(),
+                "Unchanged, incomplete or corrupted predecessor admitted a new source version: " + scenario);
+            TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single() == history &&
+                Exchange(f, previous.JobId).ToJsonString() == exchange, "Rejected successor mutated predecessor history.");
+            return;
+        }
+        var changed = PaddedPng(1);
+        using (var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write))
+        { edit.SetLength(0); edit.Write(changed); }
+        using (var ordinary = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved)))
+            TestAssert.Throws<InvalidDataException>(() => ordinary.Freeze(), "Ordinary preparation bypassed its original duplicate guard.");
+        using var next = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+        using var cache = next.FreezeCompletedSuccessor();
+        var retained = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id);
+        TestAssert.That(retained.Count == 2 && retained.Single(item => item.JobId == previous.JobId) == history &&
+            cache.ReadChunk(0).Concat(cache.ReadChunk(1)).SequenceEqual(changed) && OriginalChunk().SequenceEqual(cipher) &&
+            Exchange(f, previous.JobId).ToJsonString() == exchange && cache.JobId != previous.JobId,
+            "Successor failed to keep original protected cache/history or did not freeze fresh current bytes.");
+    }
+
+    private static JsonObject SourceRecord(DeviceFileReceiveJobTests.Fixture f, string jobId)
+    {
+        using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+        read.CommandText = "SELECT value FROM native_media_source_jobs WHERE job_id=$job"; read.Parameters.AddWithValue("$job", jobId);
+        var open = typeof(TelefonStore).GetMethod("Open", BindingFlags.Instance | BindingFlags.NonPublic, null,
+            [typeof(string), typeof(string), typeof(byte[])], null)!;
+        var clear = (byte[])open.Invoke(f.Native.Store, ["native_media_source_job", f.Native.Peer.Id + "/" + jobId, (byte[])read.ExecuteScalar()!])!;
+        try { return JsonNode.Parse(clear)!.AsObject(); } finally { CryptographicOperations.ZeroMemory(clear); }
+    }
+
+    internal static async Task WindowsSuccessorBeforeOfferAsync()
+    {
+        using var f = await DeviceFileSourceCacheTests.Fixture(MediaBytes);
+        var host = new PersonalActorNativeSaveHost(Path.Combine(f.Native.Paths.Root, "unattempted-book"), Book);
+        using var originalSource = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+        using var original = originalSource.Freeze();
+        var before = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single();
+        DeviceFileConnectionRunsTests.Clear(f);
+        using var replacement = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+        TestAssert.Throws<InvalidDataException>(() => replacement.FreezeCompletedSuccessor(), "A prepared but never sent cache admitted successor preparation.");
+        TestAssert.That(f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single() == before && f.Native.Stream.Length == 0 && original.ReadChunk(0).Length > 0,
+            "Rejected successor altered the original unattempted source or emitted output.");
+    }
+
+    private static async Task VerifySuccessorMutationAsync(DeviceFileReceiveJobTests.Fixture f, PersonalActorNativeSaveHost host,
+        TelefonStore.NativePreparedMediaSource original)
+    {
+        using (var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write))
+        { edit.SetLength(0); edit.Write(PaddedPng(1)); }
+        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim(); var watch = false; var blocked = 0;
+        NativeBookSaveState? Saved()
+        {
+            using var db = f.Native.Store.OpenDatabase(); db.Open(); using var read = db.CreateCommand();
+            read.CommandText = "SELECT count(*) FROM native_media_source_chunks WHERE job_id<>$job";
+            read.Parameters.AddWithValue("$job", original.JobId);
+            if (Volatile.Read(ref watch) && Convert.ToInt32(read.ExecuteScalar()) == 1 && Interlocked.CompareExchange(ref blocked, 1, 0) == 0)
+            { entered.Set(); if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("successor mutation fixture deadline"); }
+            return host.Saved();
+        }
+        using var source = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, Saved));
+        Volatile.Write(ref watch, true);
+        var copying = Task.Run(() => TestAssert.Throws<InvalidDataException>(() => source.FreezeCompletedSuccessor(), "Changed predecessor completed a successor cache."));
+        try
+        {
+            TestAssert.That(entered.Wait(TimeSpan.FromSeconds(10)), "Successor did not reach the first committed native chunk.");
+            using var db = f.Native.Store.OpenDatabase(); db.Open(); using var change = db.CreateCommand();
+            change.CommandText = "SELECT value FROM native_media_source_chunks WHERE job_id=$job AND number=0";
+            change.Parameters.AddWithValue("$job", original.JobId); var cipher = (byte[])change.ExecuteScalar()!; cipher[0] ^= 1;
+            change.CommandText = "UPDATE native_media_source_chunks SET value=$value WHERE job_id=$job AND number=0";
+            change.Parameters.AddWithValue("$value", cipher); change.ExecuteNonQuery();
+        }
+        finally { Volatile.Write(ref watch, false); release.Set(); await copying; }
+        var records = f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id);
+        TestAssert.That(records.Count == 2 && records.Single(item => item.JobId != original.JobId).Phase == "planned" &&
+            records.Single(item => item.JobId == original.JobId).Phase == "ready",
+            "Mutation was concealed, partial successor erased or predecessor metadata replaced.");
+    }
+
+    private static async Task VerifySuccessorChainAsync(DeviceFileReceiveJobTests.Fixture f, PersonalActorNativeSaveHost host,
+        TelefonStore.NativePreparedMediaSource original)
+    {
+        void Edit(byte[] bytes)
+        {
+            using var edit = new FileStream(Path.Combine(f.Root, "first.jpg"), FileMode.Open, FileAccess.Write);
+            edit.SetLength(0); edit.Write(bytes);
+        }
+        Edit(PaddedPng(1));
+        using var secondSource = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+        using var second = secondSource.FreezeCompletedSuccessor(); var secondVersion = second.Version;
+        var link = SourceRecord(f, second.JobId)["previous"]!.AsObject();
+        TestAssert.That(link["job_id"]!.GetValue<string>() == original.JobId &&
+            link["job_version"]!.GetValue<string>() == f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Single(item => item.JobId == original.JobId).Version,
+            "Successor did not bind the exact original protected predecessor.");
+        DeviceFileConnectionRunsTests.Clear(f);
+        using var stop = new CancellationTokenSource();
+        var sending = f.Native.Connection.SendNativeMappedMediaSourceToSourceEndAsync(second, stop.Token);
+        try
+        {
+            var offer = await DeviceFileConnectionReceiveTests.Outbound(f, MediaOfferEnvelope.Kind);
+            var acceptance = Accept(f, second, offer); await f.Native.Connection.HandlePlainAsync(acceptance);
+            for (var index = 0; index < 2; index++) await f.Native.Connection.HandlePlainAsync(Chunk(second, acceptance, offer, index));
+            await f.Native.Connection.HandlePlainAsync(Saved(second, acceptance, offer));
+            var file = second.Manifest.Files.Single();
+            var context = new JsonObject { ["format"] = 1, ["offer_id"] = offer["message_id"]!.DeepClone(),
+                ["manifest_sha256"] = second.Manifest.Fingerprint, ["transfer_id"] = second.Manifest.TransferId,
+                ["source_id"] = second.Manifest.SourceId, ["file_id"] = file.Id, ["size"] = file.Size, ["sha256"] = file.Sha256,
+                ["media_type"] = "images", ["mime_type"] = "image/png", ["publication_sha256"] = new string('b', 64),
+                ["row_sha256"] = new string('d', 64), ["permission_epoch"] = acceptance["body"]!["permission_epoch"]!.DeepClone(), ["readback_nonce"] = new string('e', 64) };
+            var binding = f.Owner.Binding(DevicePublishedReadbackEnvelope.DestinationToken(context), true)!;
+            await f.Native.Connection.HandlePlainAsync(Message(DevicePublishedReadbackEnvelope.Kind, DevicePublishedReadbackEnvelope.EncodeBody(context, binding), offer));
+            await sending; second.RequireIoEnded();
+        }
+        finally { stop.Cancel(); try { await sending; } catch { } }
+        // Returning to older bytes is a NEW change relative to the latest end,
+        // not a reason to silently reuse the first historical cache.
+        Edit(MediaBytes);
+        using var thirdSource = DeviceFileSourceCacheTests.Open(f, NativeMediaBookPermit.Capture(host.Snapshot()!, host.Saved));
+        using var third = thirdSource.FreezeCompletedSuccessor();
+        var thirdLink = SourceRecord(f, third.JobId)["previous"]!.AsObject();
+        TestAssert.That(third.Manifest.Files.Single().Sha256 == original.Manifest.Files.Single().Sha256 &&
+            third.Manifest.Files.Single().Sha256 != second.Manifest.Files.Single().Sha256 &&
+            thirdLink["job_id"]!.GetValue<string>() == second.JobId && thirdLink["job_version"]!.GetValue<string>() == secondVersion &&
+            f.Native.Store.NativeMediaSourceHistory(f.Native.Peer.Id).Count == 3 && Exchange(f, original.JobId)["phase"]!.GetValue<string>() == "source_ended",
+            "Rollback bytes were suppressed by older history, forked lineage or discarded a previous version.");
     }
 
     internal static async Task WindowsRejectsEarlySavedAndLostAttemptAsync()
