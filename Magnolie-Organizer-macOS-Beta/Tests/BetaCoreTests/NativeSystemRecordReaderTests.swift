@@ -30,18 +30,29 @@ final class NativeSystemRecordReaderTests: XCTestCase {
         XCTAssertTrue((record.fields["metadataIncomplete"] as? [String] ?? []).contains("alarm-action-sound-email-procedure-details"))
         guard case .unsupported = try SystemRecordNormalizer.project(record, source: source, displayTimeZone: "UTC") else { return XCTFail("Never flatten an unsaved recurring native event") }
     }
-    func testUnsavedReminderKeepsDueOnlyAllDayComponentsWithoutInventedMidnight() throws {
+    func testUnsavedReminderKeepsPublicDateComponentsWithoutInventedMidnight() throws {
         let store = EKEventStore()
         let reminder = EKReminder(eventStore: store)
         reminder.title = "Synthetic due-only reminder"
         var due = DateComponents(); due.calendar = Calendar(identifier: .gregorian); due.year = 2026; due.month = 11; due.day = 30
         reminder.dueDateComponents = due
         reminder.priority = 5
+        let startBefore = SystemDateComponents.fields(reminder.startDateComponents)
+        let dueBefore = SystemDateComponents.fields(reminder.dueDateComponents)
         let fields = NativeSystemRecordReader.reminderFields(reminder)
+        let startAfter = SystemDateComponents.fields(reminder.startDateComponents)
+        let dueAfter = SystemDateComponents.fields(reminder.dueDateComponents)
+        XCTAssertEqual(try Document.encode(["value": startBefore as Any? ?? NSNull()]), try Document.encode(["value": startAfter as Any? ?? NSNull()]))
+        XCTAssertEqual(try Document.encode(["value": dueBefore as Any? ?? NSNull()]), try Document.encode(["value": dueAfter as Any? ?? NSNull()]))
+        XCTAssertEqual(try Document.encode(["value": fields["startComponents"]!]), try Document.encode(["value": startBefore as Any? ?? NSNull()]))
+        XCTAssertEqual(try Document.encode(["value": fields["dueComponents"]!]), try Document.encode(["value": dueBefore as Any? ?? NSNull()]))
         let components = try XCTUnwrap(fields["dueComponents"] as? [String: Any])
         XCTAssertEqual(components["year"] as? Int, 2026)
-        XCTAssertNil(components["hour"]); XCTAssertNil(components["minute"])
-        XCTAssertTrue(fields["startComponents"] is NSNull)
+        for key in ["hour", "minute", "second", "timeZone"] {
+            if let expected = dueBefore?[key] {
+                XCTAssertEqual(try Document.encode(["value": components[key] as Any? ?? NSNull()]), try Document.encode(["value": expected]))
+            } else { XCTAssertNil(components[key], "Reader must preserve actual getter absence: " + key) }
+        }
         XCTAssertEqual(fields["hierarchyAvailable"] as? Bool, false)
     }
     func testUnsavedContactYearlessLeapAndNonGregorianDateDoNotAcquireYear() throws {
