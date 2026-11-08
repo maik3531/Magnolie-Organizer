@@ -59,6 +59,9 @@ def cases(module):
         # Compare semantic fields against the desktop writer+parser, not against
         # our own serializer's interpretation. Generated stamps are not input.
         case['expected'] = module.ics_lesen(writers[case['kind']](case['records']))[groups[case['kind']]]
+        case['importSource'] = case.get('source') or writers[case['kind']](case['records'])
+        parsed = module.ics_lesen(case['importSource'])
+        case['importExpected'] = {group: parsed[group] for group in ['termine', 'aufgaben', 'jahrestage']}
     return result
 
 
@@ -123,6 +126,36 @@ def validate(module, fixtures, output):
         print('Canonical Swift export roundtrip: ' + case['name'], flush=True)
 
 
+def validate_imports(module, fixtures, output):
+    for case in fixtures:
+        file = output / (case['name'] + '-imported.json')
+        if not file.is_file():
+            raise AssertionError('Native import output missing: ' + case['name'])
+        imported = json.loads(file.read_text())
+        for group in ['termine', 'aufgaben', 'jahrestage']:
+            expected, actual = case['importExpected'][group], imported[group]
+            if [stable(record) for record in actual] != [stable(record) for record in expected]:
+                raise AssertionError('Native import differs from canonical parser: ' + case['name'] + '/' + group + '\n' + json.dumps(
+                    {'expected': [stable(x) for x in expected], 'actual': [stable(x) for x in actual]}, ensure_ascii=True))
+            if actual:
+                reexport = output / (case['name'] + '-reimport-' + group + '.ics')
+                reread = module.ics_lesen(reexport.read_text())[group]
+                if [stable(record) for record in reread] != [stable(record) for record in expected]:
+                    raise AssertionError('Native import/reexport canonical roundtrip differs: ' + case['name'] + '/' + group)
+            for source_record, native_record in zip(expected, actual):
+                # Extra retained source parameters are allowed; every property
+                # the published parser retained must still be present exactly.
+                native_raw = native_record.get('icsRoundtrip', [])
+                for line in source_record.get('icsRoundtrip', []):
+                    if line not in native_raw:
+                        raise AssertionError('Native import lost raw property: ' + case['name'] + ': ' + line)
+                if source_record.get('icsTimezones') != native_record.get('icsTimezones'):
+                    raise AssertionError('Native import changed source VTIMEZONE blocks: ' + case['name'])
+        if not imported.get('icsImportMetadata', {}).get('sourceSHA256'):
+            raise AssertionError('Native import has no source binding')
+        print('Canonical native import/reexport roundtrip: ' + case['name'], flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--swift')
@@ -142,6 +175,7 @@ def main():
             env = dict(os.environ, MACOS_BETA_CALENDAR_FIXTURES=str(fixture), MACOS_BETA_CALENDAR_OUTPUT=str(output))
             subprocess.run([args.swift, 'test', '--scratch-path', str(root / 'swift-build'), '--jobs', '2'], cwd=BETA, env=env, check=True, timeout=300)
             validate(module, fixtures, output)
+            validate_imports(module, fixtures, output)
         else:
             print('Swift calendar export NOT executed; pass --swift for native/portable validation.', flush=True)
 
