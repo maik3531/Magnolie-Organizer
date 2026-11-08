@@ -80,6 +80,26 @@ jobs:
           while read -r language; do
             python3 werkzeuge/po_zu_js.py "$language" "po/$language.po" "web/i18n/$language.js"
           done < po/LINGUAS
+      - name: Verify the standalone Swift time-zone engine against independent references
+        working-directory: Magnolie-Organizer-macOS-Beta
+        timeout-minutes: 12
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "$MACOS_ARCH"
+          curl --fail --location --max-time 120 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            'https://github.com/JodaOrg/global-tz/releases/download/2026egtz/tzdata2026egtz-rearguard.tar.gz' \
+            --output "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz"
+          python3 - <<'PY'
+          import hashlib, os, pathlib
+          archive = pathlib.Path(os.environ['RUNNER_TEMP'], 'tzdata2026egtz-rearguard.tar.gz')
+          if archive.stat().st_size > 8 * 1024 * 1024:
+              raise SystemExit('Unexpected time-zone reference archive size')
+          if hashlib.sha256(archive.read_bytes()).hexdigest() != '0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d':
+              raise SystemExit('Time-zone reference archive checksum mismatch')
+          PY
+          python3 tools/check_timezone_provider.py --swift "$(command -v swift)" \
+            --archive "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz" \
+            | tee "$RUNNER_TEMP/port-proof/timezone-provider-$MACOS_ARCH.log"
       - name: Freeze this isolated build's published source and run host and Apple tests
         working-directory: Magnolie-Organizer-macOS-Beta
         run: |
