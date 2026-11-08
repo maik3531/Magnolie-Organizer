@@ -29,6 +29,23 @@ It remains a partial macOS Beta, not a claim that every desktop native feature
 is available. Projection/build manifests record the actual input hashes; host
 checks against a moving development checkout do not establish release-tag parity.
 
+## Target systems and validation
+
+The deployment target is **macOS 12.7 (Monterey) or newer**, for Intel x86_64
+and Apple Silicon arm64. This includes a target for many 2016 Intel Macs whose
+last officially supported system is Monterey; individual models and future macOS
+versions still require verification. Use the artifact matching the processor.
+This is a build target, not a Monterey compatibility certification. Native evidence
+currently comes from macOS 15 on both architectures; startup, bundled WebKit,
+permissions and full feature behavior on macOS 12.7 have not been tested.
+
+The SDK compiler retains availability checks. EventKit uses the legacy permission
+API below macOS 14 and full-access APIs only behind its macOS 14 guard. CryptoKit,
+CommonCrypto and the existing TLS policy stay unchanged. The builder pins 12.7
+and verifies the executable's Mach-O minimum OS as well as the bundle metadata.
+Swift concurrency is supported on this deployment target; no user-installed Swift
+toolchain is required to run the bundle. A current SDK/toolchain is required to build.
+
 ## Implemented Source
 
 | Area | Current Scope |
@@ -211,8 +228,9 @@ approval. Existing desktop sources and repository workflows remain untouched.
 ## macOS Development
 
 Requires a legitimate Mac or an explicitly available Apple-hosted runner, Xcode
-15+ or its Apple Command Line Tools with the macOS SDK, Python 3.10+, and macOS
-13+. There are no Swift package downloads. Build only after the freeze steps:
+15+ or its Apple Command Line Tools with the macOS SDK, Python 3.10+, and a
+macOS host supported by that Xcode version (Xcode 15 requires macOS 13.5+).
+The generated application targets macOS 12.7+; the build host may be newer. There are no Swift package downloads. Build only after the freeze steps:
 
 ```sh
 python3 tools/build_dev.py

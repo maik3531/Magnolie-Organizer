@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Magnolie-Organizer-macOS-Beta",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS("12.7")],
     products: [.executable(name: "Magnolie Organizer macOS Beta", targets: ["MacBeta"])],
     targets: [
         .target(name: "BetaCore"),

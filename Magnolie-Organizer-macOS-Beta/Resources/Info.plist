@@ -9,7 +9,7 @@
   <key>CFBundleShortVersionString</key><string>2.0.30</string>
   <key>CFBundleVersion</key><string>2030.1</string>
   <key>MagnolieBetaVersion</key><string>2.0.30-beta.1</string>
-  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSMinimumSystemVersion</key><string>12.7</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSCalendarsUsageDescription</key><string>Access calendars that you select in macOS for reading and explicitly requested changes.</string>
   <key>NSRemindersUsageDescription</key><string>Access reminder lists that you select in macOS for reading and explicitly requested changes.</string>

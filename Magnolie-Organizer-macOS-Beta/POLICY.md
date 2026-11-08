@@ -21,6 +21,19 @@ notes advertising unavailable native sync features are not presented as Beta fea
 Changing a version requires changing the identity input and matching plist values;
 tests/build checks reject disagreement. An existing output is retained, not overwritten.
 
+## Deployment target
+
+The minimum application system is macOS **12.7**, recorded consistently in the
+Swift package, Beta identity and `LSMinimumSystemVersion`. Both x86_64 Intel and
+arm64 Apple Silicon builds target this version. The builder pins the deployment
+environment and refuses a Mach-O minimum version that differs from the identity.
+This broadens the build target to many 2016-era Intel Macs; it does not establish
+runtime acceptance on those machines. Current native evidence is macOS 15 only.
+Monterey startup/WebKit/permission behavior remains unverified until tested on a
+real macOS 12.7 host. No crypto or TLS requirement is lowered for older systems.
+SDK availability checks remain active, including the EventKit 14 permission guard
+and its older-system fallback. Future systems and all device models are not implied.
+
 ## Isolation And Data
 
 The profile stays under the Beta bundle identifier in Application Support. The

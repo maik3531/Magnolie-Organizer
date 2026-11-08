@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import re
 import plistlib
 import shutil
 import subprocess
@@ -18,13 +19,22 @@ def main():
         if not shutil.which(tool):
             raise RuntimeError("Missing Apple developer tool: " + tool)
     subprocess.run(["xcrun", "--sdk", "macosx", "--show-sdk-path"], check=True)
+    identity = json.loads((BETA / "Resources/BetaIdentity.json").read_text())
+    minimum = identity["minimumSystemVersion"]
+    if minimum != "12.7":
+        raise RuntimeError("Unsupported development deployment target.")
+    build_environment = dict(os.environ, MACOSX_DEPLOYMENT_TARGET=minimum)
     manifest = verify()
     # Mac tests exercise the actual CryptoKit, CommonCrypto and POSIX implementation.
     subprocess.run(["swift", "test", "--jobs", "2"], cwd=BETA, check=True, timeout=300,
-                   env=dict(os.environ, MACOS_BETA_UI_PATH=str(GENERATED)))
-    subprocess.run(["swift", "build", "-c", "debug", "--jobs", "2"], cwd=BETA, check=True, timeout=300)
-    binaries = Path(subprocess.check_output(["swift", "build", "-c", "debug", "--show-bin-path"], cwd=BETA, text=True).strip())
-    identity = json.loads((BETA / "Resources/BetaIdentity.json").read_text())
+                   env=dict(build_environment, MACOS_BETA_UI_PATH=str(GENERATED)))
+    subprocess.run(["swift", "build", "-c", "debug", "--jobs", "2"], cwd=BETA, check=True, timeout=300, env=build_environment)
+    binaries = Path(subprocess.check_output(["swift", "build", "-c", "debug", "--show-bin-path"], cwd=BETA, text=True, env=build_environment).strip())
+    executable = binaries / "Magnolie Organizer macOS Beta"
+    deployment = subprocess.check_output(["xcrun", "vtool", "-show-build", str(executable)], text=True)
+    targets = re.findall(r"^\s*minos\s+(\S+)\s*$", deployment, flags=re.MULTILINE)
+    if not targets or any(target not in (minimum, minimum + ".0") for target in targets):
+        raise RuntimeError("Built Mach-O minimum OS does not match " + minimum + ": " + repr(targets))
     output = BETA / "Output"
     if output.is_symlink():
         raise RuntimeError("Symlinked development output directory refused.")
@@ -38,7 +48,7 @@ def main():
         raise RuntimeError("Existing development app retained. Choose another working copy or explicitly remove your own old build first.")
     contents = app / "Contents"
     (contents / "MacOS").mkdir(parents=True)
-    shutil.copy2(binaries / "Magnolie Organizer macOS Beta", contents / "MacOS/Magnolie Organizer macOS Beta")
+    shutil.copy2(executable, contents / "MacOS/Magnolie Organizer macOS Beta")
     shutil.copy2(BETA / "Resources/Info.plist", contents / "Info.plist")
     with (contents / "Info.plist").open("rb") as stream:
         info = plistlib.load(stream)
@@ -46,10 +56,13 @@ def main():
     assert info["MagnolieBetaVersion"] == identity["version"]
     assert info["CFBundleShortVersionString"] == identity["bundleShortVersion"]
     assert info["CFBundleVersion"] == identity["bundleVersion"]
+    assert info["LSMinimumSystemVersion"] == minimum
     shutil.copytree(GENERATED, contents / "Resources/UI")
     (contents / "Resources/Magnolie Organizer macOS Beta-build.json").write_text(json.dumps({
         "name": identity["name"], "version": identity["version"], "configuration": "debug", "architecture": platform.machine(),
         "sourceInputs": manifest["inputs"], "swiftTestsPassed": True,
+        "minimumSystemVersion": minimum, "machOMinimumVerified": True,
+        "montereyRuntimeValidated": False,
         "nativeUIValidated": False, "productionRelease": False,
         "signing": "ad-hoc development only, not notarized"
     }, indent=2) + "\n")
