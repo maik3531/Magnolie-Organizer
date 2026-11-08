@@ -17,6 +17,8 @@ public actor DAVSyncJournalStore {
         }
     }
     public struct Binding: Codable, Equatable {
+        /// accountRevision is reserved for the native persistent account binding; an actor's
+        /// ephemeral public settings CAS revision is not restart-stable journal authority.
         public let accountIdentity: String, accountRevision: String, server: URL
         /// Caller must supply a persistent native book/restore binding verified against disk.
         /// Today's volatile host documentGeneration is NOT this contract; no host verifier exists yet.
@@ -98,14 +100,16 @@ public actor DAVSyncJournalStore {
     private struct State: Codable { let version: Int; var runs: [Run] }
     private let files: DAVSyncJournalFiles
     private let key: DAVSyncJournalKey
+    private let keyStore: any DAVSyncJournalKeyStore
     private let owner: UUID
     private let instance = UUID()
     private var state: State
     private var expected: Data?
     private var poisoned = false
+    private var accountSigner: DAVAccountBindingSigner?
 
     public init(files: DAVSyncJournalFiles, keys: any DAVSyncJournalKeyStore = KeychainDAVSyncJournalKeyStore()) throws {
-        self.files = files
+        self.files = files; self.keyStore = keys
         let token = try files.claimOwner()
         owner = token
         var opened = false
@@ -126,7 +130,28 @@ public actor DAVSyncJournalStore {
         }
         opened = true
     }
-    deinit { files.releaseOwner(owner) }
+    deinit { accountSigner?.invalidate(); files.releaseOwner(owner) }
+    /// Native-only signer, issued only after actual opened journal evidence revalidation.
+    public func accountBindingSigner() throws -> DAVAccountBindingSigner {
+        try validateAccountSigner()
+        if let accountSigner { return accountSigner }
+        let derived = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: key.bytes), salt: key.id,
+            info: Data(("Magnolie-DAV-account-binding-v1\0" + files.namespace).utf8), outputByteCount: 32)
+        let signer = DAVAccountBindingSigner(namespace: files.namespace, key: derived, validateJournal: { [weak self] in
+            guard let self else { throw DAVAccountLeaseError.signerUnavailable }
+            try await self.validateAccountSigner()
+        })
+        accountSigner = signer
+        return signer
+    }
+    private func validateAccountSigner() throws {
+        try current()
+        do {
+            let persisted = try keyStore.load(namespace: files.namespace, allowCreate: false)
+            guard persisted.id == key.id, persisted.bytes == key.bytes else { throw DAVSyncJournalError.missingKey }
+        } catch { poison(); throw error }
+    }
+    private func poison() { poisoned = true; accountSigner?.invalidate() }
     private static func encoder() -> JSONEncoder { let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]; return encoder }
     public static func digest(_ bytes: Data) -> String { SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined() }
     private static func validDigest(_ value: String) -> Bool { value.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil }
@@ -291,13 +316,15 @@ public actor DAVSyncJournalStore {
     }
     private func current() throws {
         guard !poisoned else { throw DAVSyncJournalError.poisoned }
-        guard try files.read(owner: owner) == expected else { poisoned = true; throw DAVSyncJournalError.externalChange }
+        do {
+            guard try files.read(owner: owner) == expected else { throw DAVSyncJournalError.externalChange }
+        } catch { poison(); throw error }
     }
     private func persist(_ next: State) throws {
         try current(); try Self.validateState(next)
         let encrypted = try Self.encrypt(next, key: key, namespace: files.namespace)
         do { try files.write(encrypted, owner: owner); expected = encrypted; state = next }
-        catch { poisoned = true; throw error }
+        catch { poison(); throw error }
     }
     private func index(_ handle: RunHandle) throws -> Int {
         try current()

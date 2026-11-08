@@ -92,7 +92,7 @@ public final class DAVAccountFileStore: DAVAccountConfigurationStore {
             throw DAVAccountError.storageUnavailable
         }
         guard info.st_size > 0, info.st_size <= 16_384 else { throw DAVAccountError.invalidConfiguration }
-        guard let data = try AtomicStore.read(file), let text = String(data: data, encoding: .utf8) else {
+        guard let data = try AtomicStore.read(file, maximumBytes: 16_384), let text = String(data: data, encoding: .utf8) else {
             throw DAVAccountError.invalidConfiguration
         }
         do { return try DAVAccountConfiguration(dictionary: Document.object(text)) }
@@ -181,6 +181,15 @@ public actor DAVAccountService {
     private var epoch: UInt64 = 0
     private var poisoned = false
     private var cachedDiscovery: DAVAccountDiscovery?
+    private let leaseOwner = UUID()
+    private let leaseClock: () -> TimeInterval
+    private var leaseGeneration: UInt64 = 0
+    private var discoveryGeneration: UInt64 = 0
+    private struct ActiveLease {
+        let binding: DAVSyncAccountLeaseBinding, signer: DAVAccountBindingSigner
+        let generation: UInt64, discoveryGeneration: UInt64, expires: TimeInterval
+    }
+    private var leases: [UUID: ActiveLease] = [:]
     private struct Snapshot {
         let configuration: DAVAccountConfiguration?
         let secret: String?
@@ -188,8 +197,10 @@ public actor DAVAccountService {
     }
     public init(configuration: any DAVAccountConfigurationStore,
                 credentials: any DAVCredentialStore = KeychainDAVCredentialStore(),
-                transport: any BoundedHTTPTransport = URLSessionBoundedTransport()) {
+                transport: any BoundedHTTPTransport = URLSessionBoundedTransport(),
+                monotonicTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         self.configurationStore = configuration; self.credentials = credentials; self.transport = transport
+        self.leaseClock = monotonicTime
     }
     private func snapshot() throws -> Snapshot {
         guard !poisoned else { throw DAVAccountError.verificationFailed }
@@ -250,6 +261,8 @@ public actor DAVAccountService {
         if wanted.davAktiv && (replacement?.isEmpty != false || (target != oldIdentity && applicationPassword.isEmpty)) {
             throw DAVAccountError.missingPassword
         }
+        // Only a validated request reaching its first actual mutation revokes active leases.
+        revokeLeases()
         do {
             if !applicationPassword.isEmpty { try credentials.write(applicationPassword, for: target) }
             else if clearPassword { try credentials.delete(for: target) }
@@ -300,6 +313,9 @@ public actor DAVAccountService {
         guard before.revision == expectedRevision else { throw DAVAccountError.conflict }
         guard let configuration = before.configuration, configuration.davAktiv else { throw DAVAccountError.notActive }
         guard let secret = before.secret, !secret.isEmpty else { throw DAVAccountError.missingPassword }
+        // A refresh cannot leave old capabilities authorized while its network work suspends.
+        revokeLeases(); discoveryGeneration &+= 1; cachedDiscovery = nil
+        let refreshGeneration = discoveryGeneration
         let client = try DAVClient(server: configuration.server, username: configuration.benutzer,
             password: secret, accountType: configuration.kontoArt,
             transport: DAVAccountDeadlineTransport(base: transport, deadline: ProcessInfo.processInfo.systemUptime + 60))
@@ -308,17 +324,109 @@ public actor DAVAccountService {
         do {
             calendars = try await client.collections(for: .calendar)
             // Check between service discovery calls as well as after the final await.
-            guard try snapshot().revision == before.revision else { throw DAVAccountError.conflict }
+            guard refreshGeneration == discoveryGeneration, try snapshot().revision == before.revision else { throw DAVAccountError.conflict }
             books = try await client.collections(for: .addressbook)
         } catch is CancellationError { throw CancellationError() }
         catch { code = Self.code(error) }
-        guard try snapshot().revision == before.revision else { throw DAVAccountError.conflict }
+        guard refreshGeneration == discoveryGeneration, try snapshot().revision == before.revision else { throw DAVAccountError.conflict }
         let partial = code != "none" && (!calendars.isEmpty || !books.isEmpty)
         let result = status(before, calendars: calendars, books: books, checked: true, error: code)
         let discovery = DAVAccountDiscovery(status: result, reachable: code == "none" || partial, partial: partial)
         cachedDiscovery = discovery
         return discovery
     }
+    private func revokeLeases() { leaseGeneration &+= 1; leases.removeAll() }
+    private func stableLeaseSnapshot() throws -> Snapshot {
+        let first = try snapshot(), second = try snapshot()
+        guard first.revision == second.revision else { throw DAVAccountLeaseError.bindingChanged }
+        return second
+    }
+    private func selectedLeaseSources(_ requested: [String], snapshot: Snapshot) throws -> [DAVCollection] {
+        guard let cached = cachedDiscovery, cached.status.revision == snapshot.revision,
+              cached.status.connectivityChecked, cached.status.errorCode == "none", cached.reachable, !cached.partial else {
+            throw DAVAccountLeaseError.discoveryRequired
+        }
+        guard (1...100).contains(requested.count) else { throw DAVAccountLeaseError.invalidSelection }
+        var available: [OpaqueUTF8Identity: DAVCollection] = [:], selected = Set<OpaqueUTF8Identity>()
+        guard let configuration = snapshot.configuration else { throw DAVAccountError.notActive }
+        let validator = try DAVClient(server: configuration.server, username: configuration.benutzer, password: "", accountType: configuration.kontoArt)
+        for source in cached.status.calendars {
+            let path: Data, canonical: URL
+            do {
+                path = try DAVClient.recoveryPath(source.href.absoluteString)
+                canonical = try validator.sameOriginURL(source.href.absoluteString)
+            } catch { throw DAVAccountLeaseError.invalidSelection }
+            guard source.uid.utf8.count <= 1024, source.kind == .calendar, path.last == 47,
+                  OpaqueUTF8Identity(source.uid) == OpaqueUTF8Identity(DAVClient.sourceID(kind: source.kind, href: source.href, accountType: configuration.kontoArt)),
+                  OpaqueUTF8Identity(canonical.absoluteString) == OpaqueUTF8Identity(source.href.absoluteString),
+                  available.updateValue(source, forKey: OpaqueUTF8Identity(source.uid)) == nil else { throw DAVAccountLeaseError.invalidSelection }
+        }
+        return try requested.map { uid in
+            guard uid.utf8.count <= 1024, selected.insert(OpaqueUTF8Identity(uid)).inserted, let source = available[OpaqueUTF8Identity(uid)] else { throw DAVAccountLeaseError.invalidSelection }
+            return source
+        }
+    }
+    private func fingerprint(_ sources: [DAVCollection]) -> String {
+        let fields = sources.flatMap { [$0.uid, $0.href.absoluteString, $0.kind.rawValue, $0.supportsVtodo ? "vtodo-on" : "vtodo-off"] }
+        return SHA256.hash(data: OpaqueUTF8Identity(parts: fields).bytes).map { String(format: "%02x", $0) }.joined()
+    }
+    private func leaseContext(_ snapshot: Snapshot) throws -> (DAVAccountConfiguration, String) {
+        guard let configuration = snapshot.configuration, configuration.davAktiv else { throw DAVAccountError.notActive }
+        guard !configuration.briefkastenAktiv else { throw DAVAccountError.unsupportedFeature }
+        guard let secret = snapshot.secret, !secret.isEmpty, secret.utf8.count <= 16_384 else { throw DAVAccountError.missingPassword }
+        return (configuration, secret)
+    }
+    /// Metadata/session pinning only. No callable network operation or dispatch authorization.
+    public func pinForSync(expectedRevision: String, orderedCalendarUIDs: [String], signer: DAVAccountBindingSigner) async throws -> DAVSyncAccountLease {
+        // Reject stale/invalid UI input before an await can alter any lease registry state.
+        let before = try stableLeaseSnapshot()
+        guard before.revision == expectedRevision else { throw DAVAccountError.conflict }
+        _ = try leaseContext(before)
+        _ = try selectedLeaseSources(orderedCalendarUIDs, snapshot: before)
+        let generation = leaseGeneration, discovery = discoveryGeneration
+        try await signer.ensureCurrent()
+        guard generation == leaseGeneration, discovery == discoveryGeneration else { throw DAVAccountLeaseError.bindingChanged }
+        let current = try stableLeaseSnapshot()
+        guard current.revision == expectedRevision else { throw DAVAccountError.conflict }
+        let (configuration, secret) = try leaseContext(current)
+        let sources = try selectedLeaseSources(orderedCalendarUIDs, snapshot: current)
+        let now = leaseClock()
+        guard now.isFinite, now >= 0, (now + 300).isFinite else { throw DAVAccountLeaseError.expired }
+        leases = leases.filter { $0.value.expires > now }
+        guard leases.count < 16 else { throw DAVAccountLeaseError.capacity }
+        let stable = try signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace)
+        let binding = DAVSyncAccountLeaseBinding(calendars: sources, accountIdentity: try configuration.identity.storageKey,
+            persistentAccountBinding: stable, sessionRevision: current.revision, discoveryFingerprint: fingerprint(sources))
+        let handle = DAVSyncAccountLease(owner: leaseOwner, id: UUID())
+        leases[handle.id] = ActiveLease(binding: binding, signer: signer, generation: generation, discoveryGeneration: discovery, expires: now + 300)
+        return handle
+    }
+    public func revalidate(_ handle: DAVSyncAccountLease) async throws {
+        guard handle.owner == leaseOwner, let active = leases[handle.id] else { throw DAVAccountLeaseError.invalidLease }
+        do {
+            try await active.signer.ensureCurrent()
+            guard let present = leases[handle.id], present.generation == active.generation,
+                  present.discoveryGeneration == active.discoveryGeneration, leaseGeneration == active.generation,
+                  discoveryGeneration == active.discoveryGeneration else { throw DAVAccountLeaseError.invalidLease }
+            let now = leaseClock()
+            guard now.isFinite, now >= 0, now < active.expires else { throw DAVAccountLeaseError.expired }
+            let current = try stableLeaseSnapshot(), (configuration, secret) = try leaseContext(current)
+            guard current.revision == active.binding.sessionRevision else { throw DAVAccountLeaseError.bindingChanged }
+            let sources = try selectedLeaseSources(active.binding.calendars.map(\.uid), snapshot: current)
+            guard fingerprint(sources) == active.binding.discoveryFingerprint,
+                  try active.signer.bind(configuration: configuration, secret: secret, storeNamespace: configurationStore.revisionNamespace) == active.binding.persistentAccountBinding else {
+                throw DAVAccountLeaseError.bindingChanged
+            }
+        } catch { leases.removeValue(forKey: handle.id); throw error }
+    }
+    public func binding(_ handle: DAVSyncAccountLease) async throws -> DAVSyncAccountLeaseBinding {
+        try await revalidate(handle)
+        guard let active = leases[handle.id] else { throw DAVAccountLeaseError.invalidLease }; return active.binding
+    }
+    public func release(_ handle: DAVSyncAccountLease) {
+        guard handle.owner == leaseOwner else { return }; leases.removeValue(forKey: handle.id)
+    }
+
     public static func code(_ error: Error) -> String {
         if let error = error as? DAVAccountError {
             switch error {

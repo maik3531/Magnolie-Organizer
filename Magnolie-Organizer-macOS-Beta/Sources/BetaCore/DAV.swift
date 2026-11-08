@@ -440,7 +440,7 @@ public final class DAVClient {
     }
     /// Percent-decode into bytes, never Swift String equality (NFC and NFD filenames differ).
     /// Encoded separators, backslashes, dot segments, controls and URI credentials/query are unsafe.
-    private static func recoveryPath(_ reference: String) throws -> Data {
+    internal static func recoveryPath(_ reference: String) throws -> Data {
         guard reference.utf8.count <= 16_384,
               !reference.contains("\\"), !reference.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }),
               let parts = URLComponents(string: reference), parts.user == nil, parts.password == nil,
