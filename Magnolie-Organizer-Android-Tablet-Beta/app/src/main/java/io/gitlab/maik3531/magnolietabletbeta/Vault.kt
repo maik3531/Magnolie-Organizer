@@ -15,8 +15,6 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 internal const val MAX_BYTES = 32 * 1024 * 1024
@@ -231,9 +229,8 @@ internal object Portable {
     private const val ITERATIONS = 210000
     private fun key(password: CharArray, salt: ByteArray): SecretKey {
         require(password.size in 8..1024 && salt.size == 32)
-        val spec = PBEKeySpec(password, salt, ITERATIONS, 256)
-        return try { SecretKeySpec(SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-            .generateSecret(spec).encoded, "AES") } finally { spec.clearPassword() }
+        val bytes=Pbkdf2Sha256.derive(password,salt,ITERATIONS)
+        return try { SecretKeySpec(bytes,"AES") } finally { bytes.fill(0) }
     }
     fun seal(text: String, password: CharArray): String {
         validateData(parseObject(text))

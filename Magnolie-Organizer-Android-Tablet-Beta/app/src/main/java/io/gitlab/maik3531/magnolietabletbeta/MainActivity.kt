@@ -23,6 +23,7 @@ import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import androidx.webkit.WebSettingsCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -151,7 +152,9 @@ class MainActivity : Activity() {
             domStorageEnabled = false; databaseEnabled = false; saveFormData = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             javaScriptCanOpenWindowsAutomatically = false; setSupportMultipleWindows(false)
-            mediaPlaybackRequiresUserGesture = true; safeBrowsingEnabled = true
+            mediaPlaybackRequiresUserGesture = true
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE))
+                WebSettingsCompat.setSafeBrowsingEnabled(this,true)
             cacheMode = WebSettings.LOAD_NO_CACHE
         }
     }
@@ -456,7 +459,8 @@ class MainActivity : Activity() {
         val epoch = generation
         val field = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            hint = getString(R.string.password); importantForAutofill = android.view.View.IMPORTANT_FOR_AUTOFILL_NO
+            hint = getString(R.string.password)
+            if (Build.VERSION.SDK_INT >= 26) importantForAutofill = android.view.View.IMPORTANT_FOR_AUTOFILL_NO
         }
         val dialog = AlertDialog.Builder(this).setTitle(R.string.password).setView(field)
             .setNegativeButton(R.string.cancel) { _,_ -> field.text.clear(); if (epoch == generation) cancelDocument() }

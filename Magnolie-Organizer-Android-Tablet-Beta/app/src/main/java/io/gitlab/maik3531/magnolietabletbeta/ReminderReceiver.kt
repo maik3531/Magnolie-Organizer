@@ -2,7 +2,6 @@ package io.gitlab.maik3531.magnolietabletbeta
 
 import android.Manifest
 import android.app.AlarmManager
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -11,13 +10,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
 
 internal fun notificationPermission(context: Context): Boolean =
     (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&
-        context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
 
 internal fun eligibleAlarms(value: JSONObject, now: Long): List<JSONObject> {
     if (!value.optBoolean("enabled")) return emptyList()
@@ -49,7 +50,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val vault = AndroidStore.vault(context)
                 val value = vault.read() ?: return@execute
                 val manager = context.getSystemService(NotificationManager::class.java)
-                manager.createNotificationChannel(NotificationChannel("tablet-beta-reminders",
+                if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel("tablet-beta-reminders",
                     context.getString(R.string.notifications), NotificationManager.IMPORTANCE_DEFAULT))
                 if (notificationPermission(context)) {
                     val now = System.currentTimeMillis()
@@ -60,11 +61,11 @@ class ReminderReceiver : BroadcastReceiver() {
                         val id = java.nio.ByteBuffer.wrap(digest).int and Int.MAX_VALUE
                         val open = PendingIntent.getActivity(context, id, Intent(context, MainActivity::class.java),
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                        val notification = Notification.Builder(context, "tablet-beta-reminders")
+                        val notification = NotificationCompat.Builder(context, "tablet-beta-reminders")
                             .setSmallIcon(R.drawable.beta_icon).setContentTitle(context.getString(R.string.notifications))
                             .setContentText(alarm.getString("title")).setContentIntent(open).setAutoCancel(true)
-                            .setVisibility(Notification.VISIBILITY_PRIVATE)
-                            .setPublicVersion(Notification.Builder(context, "tablet-beta-reminders")
+                            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                            .setPublicVersion(NotificationCompat.Builder(context, "tablet-beta-reminders")
                                 .setSmallIcon(R.drawable.beta_icon).setContentTitle("Magnolie Organizer Android Tablet Beta").build())
                             .build()
                         // Stable notification IDs make a crash between delivery and receipt idempotent.
@@ -79,9 +80,9 @@ class ReminderReceiver : BroadcastReceiver() {
                 // No plaintext recovery or empty state. Surface a non-sensitive failure when permitted.
                 val manager = context.getSystemService(NotificationManager::class.java)
                 if (notificationPermission(context)) {
-                    manager.createNotificationChannel(NotificationChannel("tablet-beta-errors",
+                    if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel("tablet-beta-errors",
                         context.getString(R.string.failed), NotificationManager.IMPORTANCE_DEFAULT))
-                    manager.notify(0, Notification.Builder(context, "tablet-beta-errors")
+                    manager.notify(0, NotificationCompat.Builder(context, "tablet-beta-errors")
                         .setSmallIcon(R.drawable.beta_icon).setContentTitle("Magnolie Organizer Android Tablet Beta")
                         .setContentText(context.getString(R.string.save_failed)).build())
                 }
