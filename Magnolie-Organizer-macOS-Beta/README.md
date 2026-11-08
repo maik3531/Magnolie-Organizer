@@ -3,7 +3,8 @@
 Parallel development port, not a production release and not feature-equivalent to
 the Linux/Windows native applications. Native builds, ad-hoc signing, core/WKWebView tests and the real bundled-app
 start/save/quit/reopen/data-preservation smoke passed on macOS 15 for Apple Silicon
-and Intel in [Actions run 42478388184](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42478388184).
+and Intel in [Actions run 42500979784](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42500979784)
+at port source `ab646c6d`. Later source changes require renewed native checks.
 The two development candidates include source provenance, checksums and native
 evidence. This validates the local startup/persistence workflow; full feature,
 permission, upgrade, accessibility and distribution acceptance remains incomplete. Do not use the only
@@ -48,6 +49,7 @@ checks against a moving development checkout do not establish release-tag parity
 | Reminders | Open-app checker with independent one-off early/due task reminders, connected to permission-gated macOS notifications; no persistent scheduler |
 | macOS calendars/reminders/contacts | Native explicit OS access, async discovery and canonical source selection; full import/synchronization remains unfinished |
 | DAV accounts | Canonical native configuration, Keychain credentials, revision-bound verified save/rollback and explicit collection discovery; 19 native account tests |
+| DAV calendar foundations | Complete typed REPORT snapshot decoding and surgical component edits preserving resource siblings; native tests pass on both architectures; no record-sync coordinator yet |
 
 "Implemented source" is not a statement of native build or runtime validation.
 Current-source integration and the remaining macOS/Android Organizer parity work
@@ -90,7 +92,10 @@ source checkpoint, not a completed native parity acceptance.
 - ICS exports retain source recurrence/exception/timezone properties and validate
   structured times against them. Tasks and anniversaries have dedicated export
   kinds. Unsupported or conflicting data aborts the complete export. Independent
-  roundtrips use the published 2.0.30 Python codec and pass on both architectures. Use JSON backup for the complete profile.
+  roundtrips use the published 2.0.30 Python codec and pass on both architectures.
+  Import preserves source-qualified task aliases. Combined export of colliding
+  external task UIDs from different sources still rejects explicitly; export
+  those sources separately or use JSON backup for the complete profile.
 - A one-off task's "Custom notification" (1 through 7 days before) is independent
   of "remind me on the due date". Both may be enabled. Early times use calendar
   days in the source timezone, not a fixed 24-hour duration across DST. Global

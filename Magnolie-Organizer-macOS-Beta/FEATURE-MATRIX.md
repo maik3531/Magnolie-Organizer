@@ -4,7 +4,8 @@ Updated 2026-11-08 (2.0.30 projection and native candidate verification).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
 Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
-smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42491267861). The smoke
+smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42500979784, port source
+ab646c6d; later source changes still require native checks). The smoke
 verifies first save, normal quit, reopen, a second atomic save and strict whole-data
 equality. Full application/feature acceptance remains pending. Linux host tests
 alone do not establish macOS behavior.
@@ -39,7 +40,7 @@ alone do not establish macOS behavior.
 | Notifications | Open/unlocked/consented checker only; one-off early/due task calculations tested | P0 for reminder parity: durable scheduler, restart deduplication, recurrence, wake/closed-app delivery, denial/revocation |
 | macOS calendars/reminders | Async EventKit facade, explicit OS permission actions, native settings source selection; unavailable sources preserved | Full item import/edit/sync coordinator and actual account/permission acceptance; sync remains disabled |
 | System contacts | Contacts.framework discovery, bounded vCard reads and explicit OS access facade | Full UI import/sync integration and real account permission acceptance |
-| DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (18 tests), Keychain storage, 19 account/boundary/transaction cases pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
+| DAV/CalDAV/CardDAV/Nextcloud/Graph | Native DAV configuration/discovery GUI, bounded HTTPS protocol (20 tests), Keychain storage, 19 account/boundary/transaction cases, 15 typed calendar-snapshot tests and sibling-preserving resource-patch tests pass on both architectures | Real server/account GUI acceptance and complete conflict/deletion/local-commit synchronization coordinator; Graph unsupported |
 | Magnolienbaum/personal sync | Unsupported | Pairing, consent, durable queues/receipts, contact/custom/attachment interop |
 | Phone/SMS/Bluetooth/KDE Connect/audio | Unsupported | Native transport/hardware/control contracts and actual-device validation |
 | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
