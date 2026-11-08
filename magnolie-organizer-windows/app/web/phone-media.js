@@ -10,7 +10,8 @@
     const advanced = node("details"); advanced.className = "telefon-erweitert telefon-freigaben einst-gruppe";
     advanced.hidden = true; advanced.open = false;
     advanced.append(node("summary", "Advanced functions"), root);
-    const title = node("summary", "Photos and videos"), status = node("p", "Waiting for native media status");
+    const title = node("summary"), caption = node("span", "Photos and videos"), status = node("p", "Waiting for native media status");
+    title.append(caption);
     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
     const note = node("p", "Only synchronize the phone inventory. Local edits are preserved. Deletions are not synchronized yet.");
     note.className = "einst-hinweis";
@@ -21,9 +22,13 @@
     manualArea.append(node("h4", "Manual synchronization"));
     root.append(title, status, rightsArea, settingsArea, manualArea);
     const masterRow = node("label"), master = node("input"); master.type = "checkbox"; master.dataset.media = "enabled";
-    masterRow.className = "hak"; masterRow.hidden = true;
-    masterRow.append(master, document.createTextNode(" " + t("Enable photo and video synchronization")));
-    root.insertBefore(masterRow, status);
+    masterRow.className = "telefon-medien-aktivierung"; masterRow.hidden = true;
+    master.setAttribute("aria-label", t("Enable photo and video synchronization"));
+    masterRow.title = t("Enable photo and video synchronization");
+    masterRow.append(master); title.append(masterRow);
+    // Activation is independent from expanding the settings.
+    masterRow.addEventListener("click", event => event.stopPropagation());
+    masterRow.addEventListener("keydown", event => event.stopPropagation());
     const receiveRow = node("label"), receiveConsent = node("input"); receiveConsent.type = "checkbox"; receiveConsent.dataset.media = "receive_consent";
     receiveRow.className = "hak"; receiveRow.hidden = true;
     receiveRow.append(receiveConsent, document.createTextNode(" Organizer – " + t("Receive files"))); rightsArea.append(receiveRow);
@@ -46,7 +51,7 @@
     };
     const scope = select("collection_mode", "Scope", [["phone_inventory", "Only the phone inventory"], ["entire_collection", "Entire collection"]]);
     const direction = select("direction", "Direction", [["phone_to_pc", "Phone → PC"], ["two_way", "Two-way synchronization"]]);
-    settingsArea.append(scope.parentElement, modeRow, skip.parentElement, direction.parentElement, photos.parentElement, videos.parentElement);
+    settingsArea.append(scope.parentElement, modeRow, direction.parentElement, photos.parentElement, videos.parentElement, skip.parentElement);
     const mode = node("p", "Manual synchronization"), destinations = node("div"), controls = node("div"), albumList = node("div"), review = node("ul");
     settingsArea.append(mode, destinations); manualArea.append(controls, albumList, review);
     const trashArea = node("details"), trashRows = node("ul"); trashArea.append(node("summary", "Media recycle bin"),
@@ -229,7 +234,7 @@
         videos.parentElement.hidden = !videoAvailable;
         destinations.querySelector('[data-destination="video"]').parentElement.hidden = !videoAvailable;
         actions.find(entry => entry.mediaType === "video").button.hidden = !videoAvailable;
-        title.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
+        caption.textContent = t(videoAvailable ? "Photos and videos" : "Photos");
         busy = !!reply.busy || !!reply.transfer_busy || !!reply.automatic_busy;
         transfer = !!reply.transfer_busy || !!reply.automatic_busy;
         automatic.value = shared?.auto_mode ?? (reply.automatic ? "wifi" : "manual"); automatic.parentElement.hidden = reply.automatic_ready !== true;

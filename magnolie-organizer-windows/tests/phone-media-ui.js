@@ -175,6 +175,15 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   sharedReply();
   const sharedInput = key => sharedPanel.querySelector(`[data-media="${key}"]`);
   const master = sharedInput("enabled"), receiving = sharedInput("receive_consent");
+  const mediaDetails = master.closest("details"), mediaSummary = master.closest("summary");
+  assert(mediaSummary && mediaSummary.parentElement === mediaDetails);
+  assert.equal(master.getAttribute("aria-label"), "Enable photo and video synchronization");
+  assert(!mediaDetails.open);
+  const beforeExpand = messages.length;
+  mediaSummary.click(); await tick();
+  assert(mediaDetails.open && !master.checked);
+  assert.equal(messages.length, beforeExpand, "Expanding settings must not activate media");
+  mediaSummary.click(); await tick(); assert(!mediaDetails.open);
   assert(!master.checked && !master.parentElement.hidden);
   assert(sharedInput("photos").checked && !sharedInput("videos").checked && !sharedInput("skip_deletions").checked);
   assert.equal(sharedInput("automatic").value, "manual");
@@ -189,6 +198,8 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(last().field, "enabled"); assert.equal(last().value, true); assert.equal(last().version, versions.enabled);
   assert(!("photos" in last()) && !("receive_files" in last()));
   values.enabled = true; sharedReply(); assert(!receiving.disabled);
+  assert.strictEqual(sharedInput("enabled"), master, "Status caption refresh must retain the activation control");
+  assert(!mediaDetails.open, "Activation must not expand the media settings");
   assert([...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Synchronize now").disabled);
   receiving.checked = true; receiving.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(last().action, "receive_consent"); assert.equal(last().granted, true); assert.equal(last().version, "e".repeat(64));
@@ -198,8 +209,10 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   values.collection_mode = "entire_collection"; sharedReply();
   const settingsKeys = [...sharedLabels[1].querySelectorAll("[data-media]")].map(input => input.dataset.media);
   assert(settingsKeys.indexOf("collection_mode") < settingsKeys.indexOf("automatic"));
-  assert(settingsKeys.indexOf("automatic") < settingsKeys.indexOf("skip_deletions"));
-  assert(settingsKeys.indexOf("skip_deletions") < settingsKeys.indexOf("direction"));
+  assert(settingsKeys.indexOf("automatic") < settingsKeys.indexOf("direction"));
+  assert(settingsKeys.indexOf("direction") < settingsKeys.indexOf("photos"));
+  assert(settingsKeys.indexOf("photos") < settingsKeys.indexOf("videos"));
+  assert(settingsKeys.indexOf("videos") < settingsKeys.indexOf("skip_deletions"));
   saveAllowed = false; master.checked = false; const beforeFailedSave = messages.length;
   master.dispatchEvent(new w.Event("change")); await tick();
   assert.equal(messages.length, beforeFailedSave); assert(master.checked); saveAllowed = true;

@@ -71,12 +71,21 @@ class MedienSyncEinstellungenUiTest {
     private fun text(node: SemanticsNode): String = node.config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text }.orEmpty()
     private fun label(id: Int) = controller!!.get().getString(id)
     private fun click(node: SemanticsNode) { assertTrue(node.config[SemanticsActions.OnClick].action!!.invoke()); frames() }
-    private fun checkbox(id: Int) = nodes().single { text(it) == label(id) && it.config.getOrNull(SemanticsProperties.ToggleableState) != null }
+    private fun checkbox(id: Int) = nodes().single {
+        (text(it) == label(id) || it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(label(id)) == true) &&
+            it.config.getOrNull(SemanticsProperties.ToggleableState) != null
+    }
     private fun open() = click(nodes().single { text(it) == "▸ " + label(R.string.medien_sync_titel) })
 
     @Test fun masterStartsOffAndOnlyForwardsItsOwnVersionWithoutPermissionOrRun() {
         launch()
-        assertFalse(nodes().any { text(it) == label(R.string.medien_sync_aktivieren) })
+        val collapsedMaster = checkbox(R.string.medien_sync_aktivieren)
+        assertEquals(ToggleableState.Off, collapsedMaster.config[SemanticsProperties.ToggleableState])
+        click(collapsedMaster)
+        assertEquals(Triple("enabled", JsonPrimitive(true), versions.getValue("enabled")), changes.single())
+        assertTrue(nodes().any { text(it) == "▸ " + label(R.string.medien_sync_titel) })
+        assertEquals(0, permissions); assertEquals(0, runs)
+        changes.clear()
         open()
         val master = checkbox(R.string.medien_sync_aktivieren)
         assertEquals(ToggleableState.Off, master.config[SemanticsProperties.ToggleableState])
