@@ -110,7 +110,7 @@ internal static class MediaSyncSettings
         return Validate(new JsonObject { ["format"] = Version, ["settings"] = fields });
     }
 
-    internal static JsonObject Effective(JsonObject body)
+    internal static JsonObject Configured(JsonObject body)
     {
         Validate(body); var result = new JsonObject();
         foreach (var (field, raw) in body["settings"]!.AsObject())
@@ -124,6 +124,12 @@ internal static class MediaSyncSettings
             result["auto_mode"] = modes.Any(edit => TelefonProtocolContract.Integer(edit.Value!["counter"]) == newest &&
                 edit.Value!["value"]!.GetValue<string>() == "manual") ? "manual" : "wifi";
         }
+        return result;
+    }
+
+    internal static JsonObject Effective(JsonObject body)
+    {
+        var result = Configured(body);
         // Import scope never exports; returning to an inventory scope retains
         // the independently stored direction and its original edit history.
         if (result["collection_mode"]?.GetValue<string>() == "import_only" && result.ContainsKey("direction")) result["direction"] = "phone_to_pc";

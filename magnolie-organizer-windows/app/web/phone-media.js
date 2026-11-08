@@ -142,7 +142,6 @@
         entry.input.disabled = !native?.send_consent || (busy && !entry.input.checked);
       }
       scope.disabled = direction.disabled = busy || !enabled;
-      direction.disabled ||= scope.value === "import_only";
       for (let i = allButtons.length - 1; i >= 0; i--) if (!root.contains(allButtons[i])) allButtons.splice(i, 1);
       for (const b of allButtons) b.disabled = busy;
       photos.disabled = videos.disabled = skip.disabled = busy || !native || !enabled;

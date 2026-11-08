@@ -697,6 +697,13 @@ Filterfunktion angeboten. Der Regler erteilt keine SEND-/RECEIVE-Rechte und
 startet keinen Transfer. Die vorhandene native Metadatenprüfung, nicht eine
 Dateiendungsprüfung, entscheidet weiterhin über die ausgewählten Aufnahmen.
 
+Auch die native Windows-Einstellungsansicht zeigt konfigurierte Richtung und
+Modus getrennt vom wirksamen Transferfilter. Bei Import-only bleibt eine
+gespeicherte PC→Telefon-/Zwei-Wege-Richtung sichtbar und unabhängig editierbar;
+`Effective`/`TransferRequestedFor` verbieten weiterhin jeden Export in diesem
+Umfang. Weder die nur lesende Ansicht noch ein Umfangswechsel schreiben die
+Richtungsregister, Dateirechte oder Historien um.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

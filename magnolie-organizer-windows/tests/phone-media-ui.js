@@ -286,8 +286,18 @@ const state = { supported: true, version: "a".repeat(64), photos: false, videos:
   assert.equal(last().field, "collection_mode"); assert.equal(last().value, "entire_collection"); assert.equal(last().version, versions.collection_mode);
   values.collection_mode = "entire_collection"; sharedReply();
   values.collection_mode = "import_only";
+  values.direction = "pc_to_phone";
   [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
-  assert(sharedInput("direction").disabled && sharedInput("direction").value === "phone_to_pc");
+  assert(!sharedInput("direction").disabled && sharedInput("direction").value === "pc_to_phone",
+    "Import-only must retain an independently editable configured direction, not pretend to export");
+  const importEditBefore = messages.length;
+  sharedInput("direction").value = "two_way"; sharedInput("direction").dispatchEvent(new w.Event("change")); await tick();
+  assert.equal(messages.length, importEditBefore + 1);
+  assert.equal(last().field, "direction"); assert.equal(last().value, "two_way"); assert.equal(last().version, versions.direction);
+  values.direction = "two_way"; sharedReply();
+  assert.equal(sharedInput("collection_mode").value, "import_only");
+  assert.equal(sharedInput("direction").value, "two_way"); assert.equal(sharedInput("automatic").value, "manual");
+  values.direction = "phone_to_pc";
   values.collection_mode = "entire_collection";
   [...sharedPanel.querySelectorAll("button")].find(button => button.textContent === "Refresh").click(); await tick(); sharedReply();
   assert(!sharedInput("direction").disabled);

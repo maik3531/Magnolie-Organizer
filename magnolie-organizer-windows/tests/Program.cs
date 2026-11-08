@@ -291,6 +291,7 @@ runner.Add("Device file native destination / absent read does not bootstrap", De
 runner.Add("Device file native media UI / strict requests reject browser paths and grants", DeviceFileUiTests.StrictRequestsAsync);
 if (OperatingSystem.IsWindows())
 {
+    runner.Add("Media independent choices / Windows import display does not expand authority", DeviceFileSharedPreferencesTests.IndependentDirectionViewAsync);
     runner.Add("Media shared storage / Windows readonly persistence independent fields and merge", DeviceFileSharedPreferencesTests.PersistenceAsync);
     runner.Add("Media shared storage / Windows seven-field projection preserves original ciphertext and clocks", DeviceFileSharedPreferencesTests.SevenFieldProjectionAsync);
     runner.Add("Media shared storage / Windows preserve legacy choices and ambiguous deletions", DeviceFileSharedPreferencesTests.LegacyAsync);
