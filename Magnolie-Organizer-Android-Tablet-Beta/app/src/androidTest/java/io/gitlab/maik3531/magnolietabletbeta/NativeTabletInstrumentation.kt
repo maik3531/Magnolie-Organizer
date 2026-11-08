@@ -737,11 +737,46 @@ class NativeTabletInstrumentation : Instrumentation() {
     }
     private fun seedDocument(name:String,text:String) {documentControl(name,text)}
     private fun selectProvider() {
-        if(nodes().none {it.text?.toString()=="Tablet Beta Test Documents"}) {
-            val menu=nodes().firstOrNull {it.contentDescription?.toString() in listOf("Show roots","Open navigation drawer","Show navigation drawer")}
-            if(menu!=null) menu.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        val label="Tablet Beta Test Documents"
+        fun documentsNode(node:AccessibilityNodeInfo)=node.isVisibleToUser && node.packageName?.toString() in setOf("com.android.documentsui","com.google.android.documentsui")
+        fun rootRowTarget(node:AccessibilityNodeInfo):AccessibilityNodeInfo? {
+            var cursor:AccessibilityNodeInfo?=node; var clickable:AccessibilityNodeInfo?=null
+            while(cursor!=null) {
+                if(clickable==null && cursor.isClickable && cursor.isEnabled && cursor.isVisibleToUser) clickable=cursor
+                if(cursor.viewIdResourceName?.endsWith(":id/roots_list")==true) return clickable
+                cursor=cursor.parent
+            }
+            return null
         }
-        clickNode("Tablet Beta Test Documents")
+        var drawerRequested=false; var rootRequested=false
+        waitFor("selected synthetic DocumentsUI provider root",15) {
+            val snapshot=nodes().filter(::documentsNode)
+            val target=snapshot.asSequence().filter {it.text?.toString()==label}.mapNotNull(::rootRowTarget).firstOrNull()
+            val state=NativeDocumentProviderState(
+                snapshot.any {it.text?.toString()==label && it.viewIdResourceName?.endsWith(":id/breadcrumb_text")==true},
+                snapshot.any {it.viewIdResourceName?.endsWith(":id/roots_list")==true},target!=null)
+            when(state.action()) {
+                NativeDocumentProviderState.Action.ALREADY_SELECTED -> true
+                NativeDocumentProviderState.Action.SELECT_ROOT -> {
+                    if(!rootRequested) {
+                        check(target!!.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot select synthetic provider root row"}
+                        rootRequested=true
+                    }
+                    false
+                }
+                NativeDocumentProviderState.Action.OPEN_ROOTS -> {
+                    if(!drawerRequested && !rootRequested) {
+                        val menu=snapshot.firstOrNull {it.isClickable && it.isEnabled && it.contentDescription?.toString() in listOf("Show roots","Open navigation drawer","Show navigation drawer")}
+                        if(menu!=null) {
+                            check(menu.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {"Cannot open DocumentsUI roots drawer"}
+                            drawerRequested=true
+                        }
+                    }
+                    false
+                }
+                NativeDocumentProviderState.Action.WAIT_FOR_ROOT -> false
+            }
+        }
     }
     private fun importFile(name:String) {
         raw("Tablet.action('tablet_import')")
