@@ -164,7 +164,7 @@ final class DAVAccountServiceTests: XCTestCase {
         let disabled = try configuration(active: false)
         let saved = try await service.save(expectedRevision: initial.revision!, configuration: disabled, clearPassword: true)
         XCTAssertEqual(saved.configuration, disabled); XCTAssertEqual(saved.credentialPresent, false); XCTAssertEqual(saved.state, "aus")
-        XCTAssertTrue(secrets.items.isEmpty())
+        XCTAssertTrue(secrets.items.isEmpty)
     }
     func testFailedConfigurationWriteAndCredentialWriteRollBackCompleteOldContext() async throws {
         for failCredential in [false, true] {
@@ -202,7 +202,7 @@ final class DAVAccountServiceTests: XCTestCase {
         config.failAfterReplaceOnce = true
         do { _ = try await service.save(expectedRevision: initial.revision!, configuration: try configuration(), applicationPassword: "new-fixture-secret"); XCTFail("Expected failure") }
         catch { }
-        XCTAssertNil(config.value); XCTAssertTrue(secrets.items.isEmpty())
+        XCTAssertNil(config.value); XCTAssertTrue(secrets.items.isEmpty)
     }
     func testUnverifiableRollbackFencesFurtherMutationsAndReportsExplicitFailure() async throws {
         let config = AccountMemoryConfiguration(), secrets = AccountMemoryCredentials()
@@ -225,7 +225,7 @@ final class DAVAccountServiceTests: XCTestCase {
         let initial = await service.status()
         let mailbox = try DAVAccountConfiguration(davAktiv: true, briefkastenAktiv: true, server: "https://cloud.example", benutzer: "person")
         await expect(.unsupportedFeature) { _ = try await service.save(expectedRevision: initial.revision!, configuration: mailbox, applicationPassword: "fixture-secret") }
-        XCTAssertTrue(secrets.items.isEmpty())
+        XCTAssertTrue(secrets.items.isEmpty)
     }
     func testDiscoveryReturnsRealStableSourcesAndReadOnlyConnectionReceipt() async throws {
         let config = AccountMemoryConfiguration(), secrets = AccountMemoryCredentials()
