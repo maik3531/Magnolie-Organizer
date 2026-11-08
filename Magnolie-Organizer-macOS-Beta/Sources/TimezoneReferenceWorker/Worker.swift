@@ -10,8 +10,17 @@ import BetaCore
     }
     static func main() {
         do {
-            guard CommandLine.arguments.count == 3 else { throw BetaError("Explicit payload and manifest arguments required.") }
+            guard [3, 4].contains(CommandLine.arguments.count) else { throw BetaError("Explicit payload and manifest arguments required.") }
             let db = try NormativeTimeZoneDatabase.load(payload: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])), manifest: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[2])))
+            if CommandLine.arguments.count == 4 {
+                guard CommandLine.arguments[3] == "--definitions" else { throw BetaError("Unknown oracle mode.") }
+                for identifier in db.identifiers {
+                    let lines = try NormativeTimeZoneDefinition.definition(identifier, database: db)
+                    let reply = try Document.encode(["identifier": identifier, "lines": lines]) + "\n"
+                    try FileHandle.standardOutput.write(contentsOf: Data(reply.utf8))
+                }
+                return
+            }
             while let line = readLine() {
                 guard line.utf8.count <= 2 * 1024 * 1024,
                       let rows = try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [[Any]], rows.count <= 2000 else { throw BetaError("Oracle batch limit/shape.") }

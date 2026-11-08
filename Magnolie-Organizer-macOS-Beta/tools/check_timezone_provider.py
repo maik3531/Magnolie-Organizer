@@ -111,6 +111,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--swift', required=True)
     parser.add_argument('--archive', required=True, type=Path)
+    parser.add_argument('--definitions', action='store_true', help='Also validate actual emitted unlimited VTIMEZONE with published Python and zic')
     parser.add_argument('--worker', type=Path, help='Use an already built exact Swift worker')
     args = parser.parse_args()
     payload, manifest = DATA / 'tzdb-2026egtz.json', DATA / 'provenance.json'
@@ -126,6 +127,13 @@ def main():
         run_owned(['python3', str(DATA / 'check-independent.py'), str(args.archive), '--worker-command',
                         json.dumps([str(worker), str(payload), str(manifest)]), '--engine-label', 'actual Swift normative schema2 provider',
                         '--worker-input', str(worker), '--worker-input', str(manifest)], timeout=300)
+        if args.definitions:
+            emitted = BETA / 'tools/check_timezone_definitions.py'
+            command = ['python3', str(emitted), '--serve', '--worker', str(worker)]
+            # One owned session covers checker -> Python server -> Swift emitter.
+            run_owned(['python3', str(DATA / 'check-independent.py'), str(args.archive), '--worker-command', json.dumps(command),
+                       '--engine-label', 'actual Swift unlimited VTIMEZONE via published v2.0.30 Python CalendarZone',
+                       '--worker-input', str(worker), '--worker-input', str(emitted)], timeout=300)
     assert snapshots == {file: hashlib.sha256(file.read_bytes()).hexdigest() for file in snapshots}, 'Reference assets changed during validation'
 
 if __name__ == '__main__':

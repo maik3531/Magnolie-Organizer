@@ -97,7 +97,7 @@ jobs:
           if hashlib.sha256(archive.read_bytes()).hexdigest() != '0f391ed721b54225189a1c5cac469fa24a07c1283e9e460650fd28155e19240d':
               raise SystemExit('Time-zone reference archive checksum mismatch')
           PY
-          python3 tools/check_timezone_provider.py --swift "$(command -v swift)" \
+          python3 tools/check_timezone_provider.py --definitions --swift "$(command -v swift)" \
             --archive "$RUNNER_TEMP/tzdata2026egtz-rearguard.tar.gz" \
             | tee "$RUNNER_TEMP/port-proof/timezone-provider-$MACOS_ARCH.log"
       - name: Freeze this isolated build's published source and run host and Apple tests
