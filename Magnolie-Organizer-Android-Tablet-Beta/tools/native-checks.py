@@ -29,9 +29,10 @@ def technical_failure_log(output):
 
 
 def exit_info_signature(output):
-    fields = re.findall(r'\b(reason|status|importance|pss|rss)=(\d+)(?:\s+\(([A-Z_]+)\))?', output)
-    return '\n'.join(key+'='+value+(' ('+label+')' if label else '')
-                     for key, value, label in fields[-40:])[-2000:]
+    fields = re.finditer(r'\b(?:timestamp=\d{4}-\d{2}-\d{2}[ T][0-9:.+-]+|'
+                         r'(?:pid|reason|status|importance|pss|rss)=\d+(?:[ \t]+\([A-Z_ ]+\))?)', output)
+    # dumpsys orders the newest process exits first: retain their correlation.
+    return '\n'.join(match.group() for match in list(fields)[:56])[:3000]
 
 
 def candidate_files(candidate, projection):

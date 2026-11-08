@@ -187,7 +187,7 @@ class LifecycleTest(unittest.TestCase):
     def test_each_instrument_test_is_bounded_and_single_selected(self):
         owner = session.Owner()
         results = ['INSTRUMENTATION_RESULT: stream='+json.dumps(dict(stage=name, passed=True))+'\nINSTRUMENTATION_CODE: -1' for name in ('basics', 'saf')]
-        with patch.object(session, 'adb', side_effect=results) as adb:
+        with patch.object(session, 'adb', side_effect=results) as adb, patch.object(session, 'prepare_test_process'):
             for name in ('basics', 'saf'):
                 session.run_test(owner, {}, name, 12)
             self.assertEqual([call.args[-1] for call in adb.call_args_list], [12, 12])
@@ -195,8 +195,58 @@ class LifecycleTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     session.run_test(owner, {}, name, 12)
 
+    def test_cold_stage_stop_is_scoped_verified_and_preserves_data(self):
+        package=session.BETA_PACKAGE
+        before='PID NAME\n42 '+package+'\n43 '+package+':service\n88 io.gitlab.maik3531.magnolienotes\n'
+        empty='PID NAME\n88 io.gitlab.maik3531.magnolienotes\n'
+        clock=Clock()
+        with patch.object(session.time,'monotonic',clock.time), patch.object(session.time,'sleep',clock.sleep), \
+             patch.object(session,'adb',side_effect=[before,'',before,empty]) as adb:
+            owner=session.Owner(runtime=20)
+            session.prepare_test_process(owner,{},'restart')
+        commands=[call.args[2] for call in adb.call_args_list]
+        self.assertEqual(commands,[['shell','ps','-A','-o','PID,NAME'],
+                                  ['shell','am','force-stop',package],
+                                  ['shell','ps','-A','-o','PID,NAME'],['shell','ps','-A','-o','PID,NAME']])
+        self.assertEqual(owner.state['events'][-1]['targetPidsAfter'],[])
+        self.assertTrue(all(0 < call.args[3] <= 5 for call in adb.call_args_list))
+        self.assertNotIn('pm',str(commands))
+        self.assertNotIn('clear',str(commands))
+        self.assertNotIn('rm',str(commands))
+
+    def test_cold_stage_wait_is_bounded_by_owner_deadline(self):
+        clock=Clock()
+        def output(owner,state,args,timeout):
+            return '' if args[1:3]==['am','force-stop'] else 'PID NAME\n42 '+session.BETA_PACKAGE+'\n'
+        with patch.object(session.time,'monotonic',clock.time), patch.object(session.time,'sleep',clock.sleep), \
+             patch.object(session,'adb',side_effect=output):
+            owner=session.Owner(runtime=1)
+            with self.assertRaises(session.Deadline): session.prepare_test_process(owner,{},'layout')
+        self.assertLessEqual(clock.now,1.1)
+        self.assertNotEqual(owner.state.get('phase'),'stage-process-stopped')
+
+    def test_cold_stage_read_errors_are_not_absent_processes(self):
+        for output in ('', 'Permission denied', 'PID NAME\ninvalid row', 'error: device offline'):
+            with patch.object(session,'adb',return_value=output) as adb:
+                with self.assertRaises(RuntimeError): session.prepare_test_process(session.Owner(),{},'layout')
+                self.assertEqual(adb.call_count,1)
+        with patch.object(session,'adb',side_effect=['PID NAME\n','Security exception']) as adb:
+            with self.assertRaises(RuntimeError): session.prepare_test_process(session.Owner(),{},'layout')
+            self.assertEqual(adb.call_count,2)
+        with patch.object(session,'adb',side_effect=subprocess.CalledProcessError(1,['ps'])):
+            with self.assertRaises(subprocess.CalledProcessError): session.prepare_test_process(session.Owner(),{},'layout')
+
+    def test_cold_start_applies_only_to_ui_stages_not_alarm_or_reboot_stages(self):
+        def proof(owner,state,args,timeout):
+            stage=args[args.index('stage')+1]
+            return 'INSTRUMENTATION_RESULT: stream='+json.dumps(dict(stage=stage,passed=True))+'\nINSTRUMENTATION_CODE: -1'
+        with patch.object(session,'prepare_test_process') as prepare, patch.object(session,'adb',side_effect=proof):
+            for stage in session.STAGES: session.run_test(session.Owner(),{},stage,12)
+        self.assertEqual([call.args[2] for call in prepare.call_args_list],
+                         ['basics','restart','layout','time','navigation'])
+
     def test_instrument_exit_zero_without_success_is_failure(self):
-        with patch.object(session, 'adb', return_value='INSTRUMENTATION_FAILED'):
+        with patch.object(session, 'adb', return_value='INSTRUMENTATION_FAILED'), patch.object(session, 'prepare_test_process'):
             with self.assertRaises(RuntimeError):
                 session.run_test(session.Owner(), {}, 'basics', 12)
 
@@ -238,7 +288,7 @@ class LifecycleTest(unittest.TestCase):
     def test_native_proof_must_match_installed_candidate(self):
         output = 'INSTRUMENTATION_RESULT: stream='+json.dumps(dict(stage='basics', passed=True,
             sourceHash='old'))+'\nINSTRUMENTATION_CODE: -1'
-        with patch.object(session, 'adb', return_value=output):
+        with patch.object(session, 'adb', return_value=output), patch.object(session, 'prepare_test_process'):
             with self.assertRaisesRegex(RuntimeError, 'different source snapshot'):
                 session.run_test(session.Owner(), {'expectedSourceHash': 'new'}, 'basics', 120)
 
@@ -263,7 +313,12 @@ class LifecycleTest(unittest.TestCase):
         self.assertIn('rss=456', signature)
         self.assertNotIn('process=', signature)
         self.assertNotIn('private text', signature)
-        self.assertLessEqual(len(native.exit_info_signature(exit_info*500)), 2000)
+        self.assertLessEqual(len(native.exit_info_signature(exit_info*500)), 3000)
+        correlated = native.exit_info_signature('timestamp=2026-11-08 12:26:10.123 pid=5432 reason=12 (DEPENDENCY DIED) description=private')
+        self.assertIn('timestamp=2026-11-08 12:26:10.123', correlated)
+        self.assertIn('pid=5432', correlated)
+        self.assertIn('reason=12 (DEPENDENCY DIED)', correlated)
+        self.assertNotIn('private', correlated)
 
     def test_next_suite_requires_main_before_process_or_lock(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')

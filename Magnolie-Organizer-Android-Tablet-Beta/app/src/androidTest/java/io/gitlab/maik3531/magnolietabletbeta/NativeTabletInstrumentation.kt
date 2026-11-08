@@ -52,6 +52,8 @@ class NativeTabletInstrumentation : Instrumentation() {
     override fun onStart() {
         val stage=options.getString("stage") ?: "basics"
         android.util.Log.i("TabletNativeTest","START $stage")
+        val processLine="NATIVE_STAGE_PROCESS stage=$stage pid=${android.os.Process.myPid()} timestampMs=${System.currentTimeMillis()}"
+        sendStatus(1,Bundle().apply {putString("stream",processLine+"\n")})
         var error: Throwable?=null
         try {
             check(injector in listOf("shell","async")) {"Unknown injector"}

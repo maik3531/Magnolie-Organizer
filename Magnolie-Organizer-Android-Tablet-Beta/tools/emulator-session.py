@@ -434,9 +434,53 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         return owner.wait(child, max(0.001, owner.deadline-time.monotonic()))
 
 
+BETA_PACKAGE = 'io.gitlab.maik3531.magnolieorganizer.tablet.beta'
+COLD_START_STAGES = frozenset(('basics', 'restart', 'layout', 'time', 'navigation'))
+
+
+def target_processes(owner, state, timeout):
+    output = adb(owner, state, ['shell', 'ps', '-A', '-o', 'PID,NAME'], timeout)
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if not lines or lines[0].split() not in (['PID', 'NAME'], ['PID', 'CMD']):
+        raise RuntimeError('Cannot verify target-process termination: invalid ps header')
+    matches = []
+    for line in lines[1:]:
+        fields = line.split(None, 1)
+        if len(fields) != 2 or not fields[0].isdigit() or int(fields[0]) <= 0:
+            raise RuntimeError('Cannot verify target-process termination: invalid ps row')
+        pid, name = int(fields[0]), fields[1]
+        if name == BETA_PACKAGE or name.startswith(BETA_PACKAGE+':'):
+            matches.append(pid)
+    return sorted(matches)
+
+
+def prepare_test_process(owner, state, selector):
+    # am instrument can return before the previous instrumentation's process and
+    # UiAutomation dependencies finish shutting down. Require a verified cold
+    # target process before each stage; retain all app data and Keystore keys.
+    deadline = min(owner.deadline, time.monotonic()+10)
+    def budget():
+        owner.check(deadline)
+        return max(0.001, min(5, deadline-time.monotonic()))
+    before = target_processes(owner, state, budget())
+    owner.record('stage-process-stop', test=selector, targetPidsBefore=before)
+    output = adb(owner, state, ['shell', 'am', 'force-stop', BETA_PACKAGE], budget())
+    if output.strip():
+        raise RuntimeError('Cannot verify target-process termination: force-stop reported output')
+    while True:
+        remaining = target_processes(owner, state, budget())
+        if not remaining:
+            owner.record('stage-process-stopped', test=selector, targetPidsAfter=[])
+            return
+        owner.check(deadline)
+        time.sleep(min(0.1, max(0, deadline-time.monotonic())))
+
+
 def run_test(owner, state, selector, timeout):
     if selector not in STAGES:
         raise ValueError('Select one existing native stage: ' + ', '.join(STAGES))
+    if selector in COLD_START_STAGES:
+        prepare_test_process(owner, state, selector)
     owner.record('test', test=selector, testTimeoutSeconds=timeout)
     output = adb(owner, state, ['shell', 'am', 'instrument', '-w', '-r', '-e', 'stage', selector,
         'io.gitlab.maik3531.magnolieorganizer.tablet.beta.test/io.gitlab.maik3531.magnolietabletbeta.NativeTabletInstrumentation'], timeout)
