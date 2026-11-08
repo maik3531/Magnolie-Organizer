@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ports-2.0.30-${{ github.ref }}
+  group: ports-2.0.30-${{ github.ref }}-${{ inputs.target || 'all' }}
   cancel-in-progress: false
 
 env:
