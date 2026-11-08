@@ -390,7 +390,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let targetEncryption = encryption ?? importedEncryption
             let output = try targetEncryption?.encrypt(incoming) ?? incoming
             restoring = true; documentGeneration = UUID()
-            web.callAsyncJavaScript("window.MacBeta.validateRestore(text)", arguments: ["text": incoming], in: nil, in: .page) { result in
+            web.callAsyncJavaScript("return window.MacBeta.validateRestore(text);", arguments: ["text": incoming], in: nil, in: .page) { (result: Result<Any, Error>) in
                 defer { self.restoring = false }
                 do {
                     guard case .success(let accepted) = result, accepted as? Bool == true, self.plain == current else {
