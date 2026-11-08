@@ -7502,6 +7502,9 @@ function knopfMit(text, wurzel) {
   assert.ok(telefonAbschnitt && kdeAbschnitt &&
     telefonAbschnitt.compareDocumentPosition(kdeAbschnitt) & bw.Node.DOCUMENT_POSITION_FOLLOWING,
   "Magnolie-Telefonverbindung und KDE-SMS sind nicht getrennt oder falsch geordnet");
+  assert.ok(telefonAbschnitt.querySelector("[data-media-backup-recovery]") &&
+    !telefonAbschnitt.querySelector("[data-media-backup-recovery] details").open,
+    "Lokale Medienwiederherstellung bleibt ohne verbundenes Telefon getrennt eingeklappt erreichbar");
   assert.ok(telefonAbschnitt.textContent.includes("8741") &&
     !telefonAbschnitt.textContent.includes("1739") && kdeAbschnitt.textContent.includes("1739") &&
     !kdeAbschnitt.textContent.includes("8741"),
@@ -7677,6 +7680,12 @@ function knopfMit(text, wurzel) {
   assert.ok([...bd.querySelectorAll("[data-photo-recovery]")].every(button => button.disabled), "keine überlappenden Wiederherstellungsaktionen");
   fotoStand({ available: true }, { enabled: false });
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Ausschalten blendet Notes-Fotocontrols vollständig aus");
+  assert.ok(bd.querySelector(".telefon-karte [data-media-backup-recovery]") && !bd.querySelector(".notes-backup-ordner"),
+    "Lokale Wiederherstellung braucht weder aktive Medien noch technische Sicherungsordner-Konfiguration");
+  Array.from(bd.querySelectorAll(".einst-reiter-knopf")).find(button => button.textContent === "Sicherheit").click();
+  assert.ok(!bd.querySelector("[data-media-backup-recovery]"), "Keine zusätzliche Medien-Sicherungsoption unter Sicherheit");
+  Array.from(bd.querySelectorAll(".einst-reiter-knopf")).find(button => button.textContent === "Magnolienbaum").click();
+  assert.strictEqual(bd.querySelectorAll("[data-media-backup-recovery]").length, 1, "Nur ein unabhängiger Medien-Wiederherstellungsbereich");
   bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],
     kdeconnect: { available: false, paired: 0, legacy_pinned_count: 1,
       locally_pinned_count: 1, transport_reachable: true, device_count: 0,

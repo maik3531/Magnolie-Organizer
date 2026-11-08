@@ -26501,7 +26501,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       Bruecke.sende({ cmd: "sicherung_waehlen" });
     });
     wiederherstellen.id = "allgemein-sicherung-wiederherstellen";
-    ab.append(baueMedienBackupWiederherstellung());
     const wiederReihe = el("div", "knopfreihe"); wiederReihe.append(wiederherstellen); ab.append(wiederReihe);
     ab.append(el("p", "einst-hinweis", _("Choose a backup file. Before restoring it, the organizer automatically " +
       "creates a copy of the current data. An encrypted backup requires its password.")));
@@ -29125,7 +29124,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const fotoStandard = knopf(_("Use default"), "", () => sende("photos_default_destination")); fotoStandard.dataset.photoDestinationDefault = "true";
         fotoZiel.disabled = fotoStandard.disabled = stand.busy === true || stand.enabled === true;
         fotoOrdner.append(fotoPfad, fotoZiel, fotoStandard); gruppe.append(fotoOrdner,
-          el("p", "einst-hinweis", _("Existing files stay in their current folders.")), baueTelefonBackupOrdner(peer, stand));
+          el("p", "einst-hinweis", _("Existing files stay in their current folders.")));
       }
       if (telefonFotoFehler.has(peer.device_id)) gruppe.append(el("p", "einst-warnung", telefonFotoFehler.get(peer.device_id)));
       erweitert.append(gruppe); wurzel.append(erweitert);
@@ -29152,11 +29151,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("KDE Connect for SMS is available only in the installed application.")));
       wurzel.append(ab, kdeAb); return;
     }
+    const medienWiederherstellen = baueMedienBackupWiederherstellung();
     if (!telefonStand) {
       ab.append(el("p", "sync-status", _("One moment…")));
       kdeAb.append(el("p", "sync-status", _("One moment…")));
       Bruecke.sende({ cmd: "telefon_stand" });
-      wurzel.append(ab, kdeAb); return;
+      ab.append(medienWiederherstellen); wurzel.append(ab, kdeAb); return;
     }
     if (telefonStand.error) ab.append(el("p", "einst-warnung", telefonStand.error));
     const an = document.createElement("input");
@@ -29258,7 +29258,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     ab.append(liste, el("p", "einst-hinweis",
       _("WLAN has priority. Bluetooth data starts only after WLAN failure and carries the same encrypted phone frames.")));
-    ab.append(fotoWurzel); zeichneTelefonFotos(fotoWurzel);
+    // Local recovery must remain reachable without a connected/enabled phone.
+    ab.append(fotoWurzel, medienWiederherstellen); zeichneTelefonFotos(fotoWurzel);
     wurzel.append(ab);
 
     const kde = telefonStand.kdeconnect || {};
