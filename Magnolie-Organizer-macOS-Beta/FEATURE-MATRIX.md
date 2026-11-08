@@ -1,10 +1,12 @@
 # macOS Beta Feature Matrix — 2.0.30-beta.1
 
-Updated 2026-11-01 (current-source regional projection and bridge inventory).
+Updated 2026-11-08 (2.0.30 projection and native candidate verification).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
-“Source implemented” means executable logic exists; no macOS branch has been
-compiled or exercised here. Linux host/Swift tests do not establish macOS behavior.
+Native builds, ad-hoc signing, core and WKWebView tests passed on macOS 15
+for arm64 and x86_64 (Actions run 42476270839). The real bundle lifecycle smoke
+timed out on both; full application acceptance remains pending. Linux host tests
+alone do not establish macOS behavior.
 
 ## Local Features
 

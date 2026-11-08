@@ -1,13 +1,15 @@
 # Magnolie Organizer macOS Beta
 
 Parallel development port, not a production release and not feature-equivalent to
-the Linux/Windows native applications. The native Swift implementation has **not
-been compiled or tested on macOS** in the current Linux environment. Do not use
-the only copy of important data with this Beta.
+the Linux/Windows native applications. Native builds, ad-hoc signing, core tests
+and the WKWebView test passed on macOS 15 for Apple Silicon and Intel in Actions
+run 42476270839. The real bundled-app lifecycle smoke timed out on both platforms;
+application readiness and full acceptance remain unverified. Do not use the only
+copy of important data with this Beta.
 
 The canonical directory is `Magnolie-Organizer-macOS-Beta` beside the existing
-Linux and Windows source directories. No stable product source, library,
-dependency, active workflow or release artifact is modified by this port.
+Linux and Windows source directories. Shared product sources, dependency declarations and the Windows release workflow
+remain unchanged. The dedicated candidate workflow builds this port separately.
 
 ## Identity
 

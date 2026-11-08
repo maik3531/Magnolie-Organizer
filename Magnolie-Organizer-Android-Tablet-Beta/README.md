@@ -5,8 +5,11 @@ The 2.0.30Beta candidate uses the shared 2.0.30 interface with the native limits
 below. Current port work is tracked in [issue #121](https://github.com/maik3531/Magnolie-Organizer/issues/121);
 [issue #9](https://github.com/maik3531/Magnolie-Organizer/issues/9) retains the historical checkpoint.
 
-Basic startup and restart have been exercised in an emulator. Layout, input
-handling and complete Android runtime verification remain unfinished. There has
+Current native verification (Actions run 42476051871): APK build and 28 JVM unit
+tests passed. Emulator basics passed for calendar, tasks, contacts, notes, Custom,
+keyboard input, geometry and Keystore-encrypted readback. The following restart
+stage timed out before initialization acknowledgement; subsequent layout/time
+stages did not run. Complete Android runtime verification remains unfinished. There has
 been no physical-device acceptance or production release. The offline build
 produces debug-only candidates; source changes mark `artifacts/candidate.json`
 stale. A successful source projection does not establish release readiness.
