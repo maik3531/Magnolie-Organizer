@@ -28,7 +28,17 @@ env:
 jobs:
   macos:
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'tablet'
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOS_ARCH: ${{ matrix.arch }}
     timeout-minutes: 25
     defaults:
       run:
@@ -83,6 +93,12 @@ jobs:
           "$RUNNER_TEMP/mac-python/bin/python" tests/test_host.py
           python3 tools/build_dev.py
           python3 tools/project_ui.py check
+      - name: Start, save, quit and reopen the real app bundle
+        working-directory: Magnolie-Organizer-macOS-Beta
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "$MACOS_ARCH"
+          swift tools/smoke_app.swift "$PWD/Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app" "$RUNNER_TEMP/port-proof"
       - name: Package the ad-hoc development app with its evidence
         working-directory: Magnolie-Organizer-macOS-Beta
         run: |
@@ -93,12 +109,12 @@ jobs:
           cp "$RUNNER_TEMP/port-proof/sources.json" "$output/sources.json"
           cp SourceFreeze.json "$output/SourceFreeze.json"
           cp README.md FEATURE-MATRIX.md "$output/"
-          ditto -c -k --sequesterRsrc --keepParent "$output" "$RUNNER_TEMP/port-proof/Magnolie-Organizer-macOS-2.0.30-beta.1.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$output" "$RUNNER_TEMP/port-proof/Magnolie-Organizer-macOS-2.0.30-beta.1-$MACOS_ARCH.zip"
           cd "$RUNNER_TEMP/port-proof"
-          shasum -a 256 Magnolie-Organizer-macOS-2.0.30-beta.1.zip > SHA256SUMS
+          shasum -a 256 Magnolie-Organizer-macOS-2.0.30-beta.1-$MACOS_ARCH.zip > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: macOS-2.0.30-beta.1-development-candidate
+          name: macOS-2.0.30-beta.1-${{ matrix.arch }}-development-candidate
           path: ${{ runner.temp }}/port-proof/
           if-no-files-found: error
           retention-days: 14

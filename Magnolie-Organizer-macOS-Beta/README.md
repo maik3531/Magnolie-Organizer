@@ -213,6 +213,28 @@ The resulting development path is
 Its build record explicitly says native UI validation and production release
 are false, even when compilation and Swift tests pass.
 
+On a fresh disposable macOS GUI runner, exercise that exact built bundle with:
+
+```sh
+swift tools/smoke_app.swift \
+  "Output/Magnolie Organizer macOS Beta-2.0.30-beta.1/Magnolie Organizer macOS Beta.app" \
+  /path/to/evidence-directory
+```
+
+The 90-second smoke check refuses an existing Beta profile or process. It launches
+through LaunchServices, requires a visible window owned by the launched PID,
+requests normal Cocoa quit, validates the real fresh profile and welcome note,
+then reopens the same bundle and checks data preservation after normal quit.
+It does not inject JavaScript or replace the production bridge. A real window
+screenshot is included when macOS permits capture; capture unavailability is
+recorded rather than replaced with an image. `bundle-smoke.json` distinguishes
+this startup/save/reopen evidence from full native feature acceptance.
+
+The builder replaces Swift's automatic ad-hoc executable signature with a new
+ad-hoc bundle signature using `codesign --force --sign -`, only in the newly
+created output. Strict signature verification remains required. No production
+certificate or notarization is used.
+
 The authorized candidate workflow is
 [`ports-2.0.30.yml`](../.github/workflows/ports-2.0.30.yml). It runs manually or on
 the dedicated `codex/ports-2.0.30` branch. It retains the reviewed port sources but

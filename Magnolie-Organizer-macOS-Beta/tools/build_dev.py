@@ -54,7 +54,9 @@ def main():
         "signing": "ad-hoc development only, not notarized"
     }, indent=2) + "\n")
     verify()  # Refuse a source change during the native build as well.
-    subprocess.run(["codesign", "--sign", "-", str(app)], check=True)
+    # Swift's arm64 executable may already carry an automatic ad-hoc signature.
+    # Replace it only inside this newly created, versioned development bundle.
+    subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
     subprocess.run(["codesign", "--verify", "--strict", str(app)], check=True)
     print(str(app))
     print("Development bundle only. No native UI test, notarization, release approval or publication implied.")
