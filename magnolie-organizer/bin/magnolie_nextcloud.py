@@ -2,6 +2,8 @@
 """Sicherer direkter Nextcloud-DAV-Zugang fuer Magnolie Organizer."""
 
 import base64
+import fcntl
+import functools
 import hashlib
 import hmac
 import http.client
@@ -108,17 +110,20 @@ def validate_user(value):
 
 
 def _atomic_json(path, value):
+    _atomic_bytes(path, (json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                  separators=(",", ":")) + "\n").encode("utf-8"))
+
+
+def _atomic_bytes(path, value):
     directory = os.path.dirname(os.path.abspath(path))
     os.makedirs(directory, mode=0o700, exist_ok=True)
     os.chmod(directory, 0o700)
     fd, temporary = tempfile.mkstemp(prefix=".nextcloud-", dir=directory)
     try:
         os.fchmod(fd, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as output:
+        with os.fdopen(fd, "wb") as output:
             fd = -1
-            json.dump(value, output, ensure_ascii=False, sort_keys=True,
-                      separators=(",", ":"))
-            output.write("\n")
+            output.write(value)
             output.flush()
             os.fsync(output.fileno())
         os.replace(temporary, path)
@@ -216,14 +221,68 @@ class SecretServiceStore:
                                  "secret_service_unavailable") from error
 
 
+def _account_access(method):
+    """Serialize all native account reads/writes, including other processes.
+
+    The stable lock is never replaced/unlinked. Nested calls retain its owner.
+    A pending journal is deliberately not auto-recovered using guessed secrets.
+    """
+    @functools.wraps(method)
+    def guarded(self, *args, **kwargs):
+        with self._gate:
+            path = os.path.realpath(self.path)
+            held = getattr(self._access_local, "held", None)
+            if held is None:
+                held = self._access_local.held = set()
+            if path in held:
+                return method(self, *args, **kwargs)
+            os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+            fd = os.open(path + ".lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+            try:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as error:
+                    raise NextcloudError("Die Kontoeinstellungen werden gerade bearbeitet.", "account_busy") from error
+                self._require_settled()
+                held.add(path)
+                try:
+                    return method(self, *args, **kwargs)
+                finally:
+                    held.remove(path)
+            finally:
+                os.close(fd)
+    return guarded
+
+
 class NextcloudSettingsStore:
     _gate = threading.RLock()
     _revision_key = os.urandom(32)
     _revision_epochs = {}
+    _access_local = threading.local()
 
     def __init__(self, path, secrets=None):
-        self.path = path
+        self.path = os.path.realpath(path)
         self.secrets = secrets or SecretServiceStore()
+
+    def _require_settled(self):
+        try:
+            with open(self.path + ".transaction", "rb") as source:
+                if source.read(32) == b"clean\n":
+                    return
+        except FileNotFoundError:
+            return
+        except OSError as error:
+            raise NextcloudError("Die Kontotransaktion ist nicht sicher lesbar.", "account_recovery_required") from error
+        raise NextcloudError("Die Kontotransaktion muss vor weiteren Zugriffen geprueft werden.", "account_recovery_required")
+
+    def _finish_transaction(self):
+        # Only reached after complete durable writes and readback (commit OR
+        # rollback). If clean's directory fsync fails after rename, either clean
+        # or the older pending survives a crash; both are safe, never a bypass.
+        try:
+            _atomic_bytes(self.path + ".transaction", b"clean\n")
+        except OSError:
+            self._require_settled()
 
     @staticmethod
     def account(server, user, account_type="nextcloud"):
@@ -232,6 +291,7 @@ class NextcloudSettingsStore:
         return hashlib.sha256((discriminator + validate_server(server) + "\0" +
                                validate_user(user)).encode("utf-8")).hexdigest()
 
+    @_account_access
     def load(self):
         try:
             if os.path.getsize(self.path) > 16384:
@@ -261,6 +321,7 @@ class NextcloudSettingsStore:
             raise NextcloudError("Die Nextcloud-Einstellungen sind ungueltig.",
                                  "invalid_config") from error
 
+    @_account_access
     def has_password(self, settings=None):
         settings = settings or self.load()
         if not settings:
@@ -268,6 +329,7 @@ class NextcloudSettingsStore:
         return bool(self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
                                                      settings.get("kontoArt"))))
 
+    @_account_access
     def read_snapshot(self):
         """Return public settings/presence and an opaque keyed revision, never a secret."""
         with self._gate:
@@ -281,6 +343,7 @@ class NextcloudSettingsStore:
             except Exception as error:
                 return settings, False, None, error
 
+    @_account_access
     def checked_client(self, expected_revision, purpose="dav", transport=None):
         """Pin a verified account/credential context before starting remote operations."""
         with self._gate:
@@ -294,6 +357,17 @@ class NextcloudSettingsStore:
                 raise NextcloudError("Der gespeicherte Zugang wurde geaendert.", "conflict")
             return client
 
+    @_account_access
+    def configured_client(self, transport=None, purpose="dav"):
+        settings = self.load()
+        active_key = "briefkastenAktiv" if purpose == "briefkasten" else "davAktiv"
+        if not settings or not settings[active_key]:
+            raise NextcloudError("Nextcloud ist nicht aktiviert.", "not_active")
+        client = DavHttpClient(settings["server"], settings["benutzer"],
+                               self.password(settings), transport=transport)
+        client.account_type = settings.get("kontoArt", "nextcloud")
+        return client
+
     def _snapshot_revision(self, settings, secret):
         path = os.path.abspath(self.path)
         material = json.dumps({"store": path, "settings": settings, "credential": secret or None,
@@ -301,6 +375,7 @@ class NextcloudSettingsStore:
                               ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hmac.new(self._revision_key, material, hashlib.sha256).hexdigest()
 
+    @_account_access
     def save_checked(self, expected_revision, dav_active, mailbox_active, server, user, password="",
                      delete_password=False, account_type="nextcloud"):
         with self._gate:
@@ -327,6 +402,7 @@ class NextcloudSettingsStore:
                 raise NextcloudError("Der alte Zugang wurde nicht entfernt.", "verification_failed")
             return actual, present, after_revision
 
+    @_account_access
     def password(self, settings=None):
         settings = settings or self.load()
         if not settings:
@@ -337,6 +413,7 @@ class NextcloudSettingsStore:
             raise NextcloudError("Das Nextcloud-App-Kennwort fehlt.", "app_password_missing")
         return password
 
+    @_account_access
     def save(self, dav_active, mailbox_active, server, user, password="",
               delete_password=False, account_type="nextcloud"):
         with self._gate:
@@ -345,6 +422,7 @@ class NextcloudSettingsStore:
             self._revision_epochs[path] = self._revision_epochs.get(path, 0) + 1
             return result
 
+    @_account_access
     def _save(self, dav_active, mailbox_active, server, user, password="",
               delete_password=False, account_type="nextcloud"):
         account_type = validate_account_type(account_type)
@@ -361,31 +439,90 @@ class NextcloudSettingsStore:
             raise NextcloudError("Das Nextcloud-App-Kennwort fehlt.", "app_password_missing")
         if (dav_active or mailbox_active) and not password and (account != old_account or not self.has_password(previous)):
             raise NextcloudError("Das Nextcloud-App-Kennwort fehlt.", "app_password_missing")
-        previous_secret = self.secrets.lookup(account) if account == old_account else None
-        changed_secret = bool(password or delete_password)
-        config_written = False
+        try:
+            with open(self.path, "rb") as source:
+                prior_bytes = source.read(16385)
+        except FileNotFoundError:
+            prior_bytes = None
+        if prior_bytes is not None and len(prior_bytes) > 16384:
+            raise NextcloudError("Die Nextcloud-Einstellungen sind ungueltig.", "invalid_config")
+        accounts = dict.fromkeys(key for key in (account, old_account) if key)
+        for key in accounts:
+            accounts[key] = self.secrets.lookup(key)
+            if accounts[key] is not None and not isinstance(accounts[key], str):
+                raise NextcloudError("Der gespeicherte Zugang ist nicht lesbar.", "secret_service_unavailable")
+        wanted = {"kontoArt": account_type, "davAktiv": bool(dav_active),
+                  "briefkastenAktiv": bool(mailbox_active), "server": server, "benutzer": user}
+        # Persist the crash barrier BEFORE any credential/config mutation. No
+        # secrets, account identities or recovery guesses are stored in it.
+        _atomic_bytes(self.path + ".transaction", b"pending\n")
         try:
             if password:
                 self.secrets.store(account, password)
             elif delete_password:
                 self.secrets.clear(account)
             # Erst nach erfolgreicher Secret-Service-Aktion wird die Config sichtbar.
-            _atomic_json(self.path, {"kontoArt": account_type,
-                                    "davAktiv": bool(dav_active),
-                                    "briefkastenAktiv": bool(mailbox_active),
-                                    "server": server, "benutzer": user})
-            config_written = True
+            _atomic_json(self.path, wanted)
             if old_account and old_account != account:
                 self.secrets.clear(old_account)
-        except Exception:
-            if changed_secret:
-                if previous_secret:
-                    self.secrets.store(account, previous_secret)
+            expected = dict(accounts)
+            if password:
+                expected[account] = password
+            elif delete_password:
+                expected[account] = None
+            if old_account and old_account != account:
+                expected[old_account] = None
+            if self.load() != wanted or any(self.secrets.lookup(key) != value for key, value in expected.items()):
+                raise NextcloudError("Die gespeicherte Aenderung konnte nicht bestaetigt werden.", "verification_failed")
+        except Exception as original:
+            failures = []
+            # Every independent restoration and readback is attempted, even if
+            # an earlier backend/file operation raised after changing state.
+            try:
+                if prior_bytes is None:
+                    try:
+                        os.unlink(self.path)
+                    except FileNotFoundError:
+                        pass
+                    parent = os.open(os.path.dirname(self.path), os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(parent)
+                    finally:
+                        os.close(parent)
                 else:
-                    self.secrets.clear(account)
-            if config_written and previous:
-                _atomic_json(self.path, previous)
+                    _atomic_bytes(self.path, prior_bytes)
+            except Exception:
+                failures.append("config_restore")
+            for key, value in accounts.items():
+                try:
+                    if value is None:
+                        self.secrets.clear(key)
+                    else:
+                        self.secrets.store(key, value)
+                except Exception:
+                    failures.append("credential_restore")
+            try:
+                if prior_bytes is None:
+                    if os.path.lexists(self.path):
+                        failures.append("config_readback")
+                else:
+                    with open(self.path, "rb") as source:
+                        if source.read(16385) != prior_bytes:
+                            failures.append("config_readback")
+            except Exception:
+                failures.append("config_readback")
+            for key, value in accounts.items():
+                try:
+                    if self.secrets.lookup(key) != value:
+                        failures.append("credential_readback")
+                except Exception:
+                    failures.append("credential_readback")
+            if failures:
+                raise NextcloudError("Die Kontotransaktion konnte nicht sicher zurueckgesetzt werden.",
+                                     "account_recovery_required") from original
+            self._finish_transaction()
             raise
+        self._finish_transaction()
         return self.load()
 
 
@@ -864,11 +1001,4 @@ class NextcloudMailbox:
 
 
 def configured_client(store, transport=None, purpose="dav"):
-    settings = store.load()
-    active_key = "briefkastenAktiv" if purpose == "briefkasten" else "davAktiv"
-    if not settings or not settings[active_key]:
-        raise NextcloudError("Nextcloud ist nicht aktiviert.", "not_active")
-    client = DavHttpClient(settings["server"], settings["benutzer"],
-                           store.password(settings), transport=transport)
-    client.account_type = settings.get("kontoArt", "nextcloud")
-    return client
+    return store.configured_client(transport=transport, purpose=purpose)
