@@ -164,7 +164,17 @@ window.NativeDomains = (() => {
     const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
     const png=canvas.toDataURL('image/png'),rect=canvas.getBoundingClientRect();
     const hash=bytes=>{let value=2166136261;for(const byte of bytes)value=Math.imul(value^byte,16777619);return (value>>>0).toString(16).padStart(8,'0');};
-    return {pixels,png,summary:{bitmap:[canvas.width,canvas.height],geometry:[rect.left,rect.top,rect.width,rect.height],
+    const currentCanvas=$('.custom-zeichenblatt'),currentModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    const ancestry=[];
+    for(let node=canvas;node&&ancestry.length<12;node=node.parentElement) {
+      const style=getComputedStyle(node),box=node.getBoundingClientRect();
+      ancestry.push({tag:node.tagName,id:node.id,className:String(node.className||'').slice(0,160),
+        client:[node.clientWidth,node.clientHeight],offset:[node.offsetWidth,node.offsetHeight],rect:[box.left,box.top,box.width,box.height],
+        computed:[style.width,style.height],transform:style.transform,transformOrigin:style.transformOrigin,zoom:style.zoom||'normal'});
+    }
+    return {pixels,png,summary:{canvasConnected:canvas.isConnected,currentCanvasSame:currentCanvas===canvas,currentModuleSame:currentModule===module,
+      controls:[...document.querySelectorAll('.zeichen-werkzeuge button')].filter(button=>[tr('Undo'),tr('Redo')].includes(button.getAttribute('aria-label'))).map(button=>({label:button.getAttribute('aria-label'),connected:button.isConnected,disabled:button.disabled})),
+      bitmap:[canvas.width,canvas.height],geometry:[rect.left,rect.top,rect.width,rect.height],ancestry,
       drawing:clone(module.drawing),pixelFNV1a32:hash(pixels),pngFNV1a32:hash(new TextEncoder().encode(png)),pngLength:png.length}};
   }
   function drawingReplayDiff(before,after,width) {
@@ -194,9 +204,17 @@ window.NativeDomains = (() => {
     const pointer=window.__domainPointers;assert(pointer.down>0&&pointer.move>0&&pointer.up>0&&pointer.untrusted===0&&pointer.pressedMove>0,'Native stroke lacked trusted pressed-button pointer events');
     aria('.zeichen-werkzeuge button','Undo');await tick();assert(module.drawing.strokes.length===0,'Drawing Undo did not remove stroke');
     window.__domainReplayDiagnostics.afterUndo=drawingReplayState(canvas,module).summary;
+    const undoCanvas=$('.custom-zeichenblatt'),undoModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    window.__domainReplayDiagnostics.freshAfterUndo=undoCanvas&&undoModule?drawingReplayState(undoCanvas,undoModule).summary:{missing:true};
     aria('.zeichen-werkzeuge button','Redo');await tick();assert(module.drawing.strokes.length===1,'Drawing Redo did not restore stroke');
     const afterRedo=drawingReplayState(canvas,module);
     window.__domainReplayDiagnostics.afterRedo=afterRedo.summary;
+    const redoCanvas=$('.custom-zeichenblatt'),redoModule=T.daten().customOrganizer.modules.find(value=>value.id===module.id);
+    if(redoCanvas&&redoModule) {
+      const freshRedo=drawingReplayState(redoCanvas,redoModule);
+      window.__domainReplayDiagnostics.freshAfterRedo=freshRedo.summary;
+      window.__domainReplayDiagnostics.freshDiff=drawingReplayDiff(beforeUndo.pixels,freshRedo.pixels,redoCanvas.width);
+    }else window.__domainReplayDiagnostics.freshAfterRedo={missing:true};
     window.__domainReplayDiagnostics.diff=drawingReplayDiff(beforeUndo.pixels,afterRedo.pixels,canvas.width);
     assert(afterRedo.png===after,'Drawing Redo did not restore rendered pixels');await save();
     return {strokeCount:1,pointCount:points.length,distinctPoints:distinct,strokeExtent:extent,intendedExtent:intended,pixelChange:true,undoRedo:true,pointer};
