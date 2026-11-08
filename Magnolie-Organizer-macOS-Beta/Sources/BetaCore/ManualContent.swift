@@ -58,9 +58,13 @@ import WebKit
     public func load() async throws {
         // Block network subresources, not just navigation. External HTTPS links
         // are handled explicitly by the delegate only after a user click.
-        let networkRules = #"[{"trigger":{"url-filter":"^(https?|wss?|ftp)://"},"action":{"type":"block"}}]"#
+        // WebKit content-blocker expressions have a narrower grammar than
+        // JavaScript/NSRegularExpression; alternation is rejected natively.
+        let networkRules = try Document.encode(["http", "https", "ws", "wss", "ftp"].map { scheme in
+            ["trigger": ["url-filter": "^" + scheme + "://"], "action": ["type": "block"]]
+        })
         let list: WKContentRuleList = try await withCheckedThrowingContinuation { continuation in
-            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "magnolie-manual-local-only-v1", encodedContentRuleList: networkRules) { list, error in
+            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "magnolie-manual-local-only-v2", encodedContentRuleList: networkRules) { list, error in
                 if let error { continuation.resume(throwing: error) }
                 else if let list { continuation.resume(returning: list) }
                 else { continuation.resume(throwing: BetaError("Manual network isolation unavailable.")) }
