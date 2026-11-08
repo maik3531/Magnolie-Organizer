@@ -514,8 +514,8 @@ public enum ICalendarImport {
             }
             let order = try ICalendarImport.integer(component.value("X-MAGNOLIE-REIHENFOLGE")); guard order >= 0 else { throw BetaError("Invalid task ordering.") }
             raw.removeAll(where: { $0.hasPrefix("X-MAGNOLIE-TASK-IDENTITY:") })
-            var result: [String: Any] = ["uid": baseUID, "titel": title, "faellig": end.map(resolver.date) ?? "", "faelligZeit": end.map(resolver.time) ?? "",
-                "startDatum": start.map(resolver.date) ?? "", "startZeit": start.map(resolver.time) ?? "", "icsAnzeigeZeitzone": resolver.displayName,
+            var result: [String: Any] = ["uid": baseUID, "titel": title, "faellig": try end.map(resolver.date) ?? "", "faelligZeit": try end.map(resolver.time) ?? "",
+                "startDatum": try start.map(resolver.date) ?? "", "startZeit": try start.map(resolver.time) ?? "", "icsAnzeigeZeitzone": resolver.displayName,
                 "prio": (1...3).contains(priority) ? 1 : priority >= 7 ? 3 : 2, "erledigt": component.value("STATUS").uppercased() == "COMPLETED" || component.value("PERCENT-COMPLETE") == "100",
                 "notiz": component.value("DESCRIPTION"), "kategorien": component.value("CATEGORIES"), "akzentFarbe": color(),
                 "erinnern": component.value("X-MAGNOLIE-ERINNERUNG-AM-TAG") == "1", "individuelleErinnerungTage": try reminder("X-MAGNOLIE-ERINNERUNG-TAGE"),
