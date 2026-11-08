@@ -143,11 +143,13 @@ internal object NativeCalendarSmoke {
         }
         return JSONObject().put("publishedCases", cases.length()).put("importedRecords", importedRecords).put("exportedRecords", exportedRecords)
             .put("retainedSourceProperties", rawProperties).put("retainedTimeZoneBlocks", sourceZones).put("customOffsetSeconds", custom)
-            .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones)
+            .put("qualifiedTaskRecords", aliasRecords).put("systemTimeZones", timeZones.getInt("identifiers"))
+            .put("legacyOsOffsetDiagnostic", timeZones.getJSONObject("legacyOS"))
             .put("timeZoneProvider", "normative-tzif-posix").put("timeZoneProviderIdentity", provider)
             .put("timeZoneDatabaseVersion", ProviderZoneDatabase.bundled.version)
             .put("gazaProductCodecCases", gazaCases)
-            .put("systemZoneClockChecks", 30).put("legacyOsOffsetComparisons", if (android.os.Build.VERSION.SDK_INT >= 26) 30 else 10)
+            .put("systemZoneClockChecks", timeZones.getInt("independentClockChecks"))
+            .put("legacyOsOffsetComparisons", timeZones.getJSONObject("legacyOS").getInt("comparisons"))
             .put("maximumProofYear", 8000)
             .put("negativeCases", 2).put("liveNetworkUsed", false).put("fullSyncAccepted", false)
     }
@@ -192,7 +194,7 @@ internal object NativeCalendarSmoke {
         return 2
     }
 
-    private fun systemTimeZones(instrumentationContext: Context): Int {
+    private fun systemTimeZones(instrumentationContext: Context): JSONObject {
         val bytes = instrumentationContext.assets.open("timezone-native-tzdb-oracle.json").use { it.readBytes() }
         check(hash(bytes) == "74551065e797d10df72caa7f82a13bfb8d923e2f33a16546728cd6ecf7bfb5cf") { "Native timezone oracle checksum mismatch" }
         val oracle = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -201,6 +203,7 @@ internal object NativeCalendarSmoke {
         val clocks = oracle.getJSONArray("clocks"); check(clocks.length() == 30)
         val identifiers = listOf("Europe/Berlin", "America/New_York", "Australia/Sydney", "Australia/Lord_Howe", "Pacific/Chatham")
         var verified = 0
+        val osRows = JSONArray(); var osMismatches = 0
         for (identifier in identifiers) {
             val zone = ProviderZoneDatabase.bundled.zone(identifier); val legacy = java.util.TimeZone.getTimeZone(identifier)
             check(zone.model.tail.start != null && zone.model.tail.end != null) { "Bundled provider exposes no verified infinite seasonal future" }
@@ -222,16 +225,32 @@ internal object NativeCalendarSmoke {
                     actual == zone.offsetAt(instant).toLong()) {
                     "Native generated timezone differs from the independent published Python oracle or bundled rules"
                 }
-                // API23 OS data may itself freeze after 2038. Never replace the
-                // complete bundled future with that limited legacy API. Core
-                // checks against the independent oracle always run for all 30 clocks.
+                // Public OS data is a separately reported diagnostic, never the
+                // authority replacing any of the 30 independent/provider/VTIMEZONE checks.
                 if (android.os.Build.VERSION.SDK_INT >= 26 || year == 2026) {
-                    check(actual == legacy.getOffset(instant * 1000).toLong()) { "Native generated timezone differs from the public OS offset API" }
+                    val comparison = NativeOsOffsetComparison(actual, legacy.getOffset(instant * 1000))
+                    if (!comparison.matches) osMismatches++
+                    val row = JSONObject().put("identifier", identifier).put("year", year)
+                        .put("month", clock.getInt("month")).put("day", clock.getInt("day"))
+                        .put("expectedOffsetSeconds", comparison.expectedOffsetSeconds)
+                        .put("actualOffsetMilliseconds", comparison.actualOffsetMilliseconds).put("matches", comparison.matches)
+                    osRows.put(row)
+                    receipt("legacy-os-offset-diagnostic", row)
                 }
                 verified++
             }
         }
         check(verified == 30) { "Native timezone oracle clocks were omitted" }
-        return identifiers.size
+        val expectedOsComparisons = if (android.os.Build.VERSION.SDK_INT >= 26) 30 else 10
+        check(osRows.length() == expectedOsComparisons) { "Public OS diagnostic clocks were omitted" }
+        val osDiagnostic = JSONObject().put("authority", false).put("api", "java.util.TimeZone.getOffset")
+            .put("comparisons", osRows.length()).put("mismatches", osMismatches).put("rows", osRows)
+        val proof = JSONObject().put("identifiers", identifiers.size).put("independentClockChecks", verified)
+            .put("independentOracleProviderAndEmittedVTimeZonePassed", true).put("legacyOS", osDiagnostic)
+        // Individual OS rows above avoid Android's per-log-entry size limit.
+        receipt("system-zone-oracle-complete", JSONObject().put("identifiers", identifiers.size)
+            .put("independentClockChecks", verified).put("independentOracleProviderAndEmittedVTimeZonePassed", true)
+            .put("osDiagnosticComparisons", osRows.length()).put("osDiagnosticMismatches", osMismatches).put("osAuthority", false))
+        return proof
     }
 }

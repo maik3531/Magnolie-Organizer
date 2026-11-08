@@ -465,6 +465,17 @@ class LifecycleTest(unittest.TestCase):
         self.assertLessEqual(len(native.startup_milestones((line+'\n')*100)), 6000)
         self.assertLessEqual(len(native.startup_milestones((line+'\n')*100).splitlines()), 48)
 
+    def test_calendar_receipts_are_visible_without_admitting_arbitrary_native_payloads(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        receipt = '11-08 12:00:00.000 111 222 I TabletNativeTest: CALENDAR_RECEIPT {"phase":"legacy-os-offset-diagnostic","detail":{"expectedOffsetSeconds":3600,"actualOffsetMilliseconds":3600000,"matches":true}}'
+        private = '11-08 12:00:00.001 111 222 I TabletNativeTest: PRIVATE_RECORD synthetic private text'
+        self.assertEqual(native.technical_failure_log(receipt+'\n'+private), receipt)
+        self.assertEqual(native.technical_failure_log(receipt.replace('TabletNativeTest', 'OtherApp')), '')
+        self.assertLessEqual(len(native.technical_failure_log((receipt+'\n')*500)), 16000)
+        self.assertLessEqual(len(native.technical_failure_log((receipt+'\n')*500).splitlines()), 160)
+
     def test_native_failure_output_retains_technical_stack_and_is_bounded(self):
         spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
         native = importlib.util.module_from_spec(spec)
