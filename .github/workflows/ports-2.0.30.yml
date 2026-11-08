@@ -230,6 +230,23 @@ jobs:
             -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
             -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
             --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite services --image "$TABLET_SYSTEM_IMAGE" </dev/null
+      - name: Exercise actual ICS import and export file pickers independently
+        if: ${{ !cancelled() && steps.tablet_build.outcome == 'success' }}
+        working-directory: Magnolie-Organizer-Android-Tablet-Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -c /dev/kvm
+          test -d "$ANDROID_HOME/system-images/android-34/$TABLET_SYSTEM_IMAGE/x86_64"
+          # The file workflow has its own fresh session and the same original limits.
+          # It cannot turn a failed UI or platform-service check into acceptance.
+          systemd-run --user --wait --pipe --collect \
+            --setenv="ANDROID_HOME=$ANDROID_HOME" --setenv="ANDROID_SDK_ROOT=$ANDROID_HOME" \
+            --setenv="JAVA_HOME=$JAVA_HOME" --setenv="MAGNOLIE_JS_RUNTIME=node" \
+            --setenv="NODE_PATH=$NODE_PATH" \
+            -p MemoryMax=6G -p MemorySwapMax=0 -p CPUQuota=200% -p RuntimeMaxSec=620 \
+            -p TimeoutStopSec=10 -p KillMode=control-group -p UMask=0077 \
+            --working-directory="$PWD" python3 -B tools/native-checks.py --main-slot-granted --suite files --image "$TABLET_SYSTEM_IMAGE" </dev/null
       - name: Collect synthetic native evidence
         if: always()
         shell: bash
