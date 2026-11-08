@@ -24,6 +24,16 @@ The independent registers are `enabled`, `photos_enabled`, `videos_enabled`,
 The metadata filter register defaults to false; adding its codec is not proof
 that metadata filtering or the full shared runtime is implemented. Concurrent
 equal-clock filter choices resolve to true (the narrower inventory).
+The Android outgoing gallery inventory now evaluates this filter using actual
+native READ bytes: an EXIF camera make or model plus a valid original capture
+timestamp. A filename, extension, camera-named directory or modification time
+alone never qualifies. Missing, redacted, invalid or unsupported EXIF is excluded;
+this is a selection criterion, not proof that metadata has never been edited.
+EXIF inspection is bounded to 1 MiB, uses existing READ without requesting
+unredacted location access, and revalidates the source even for excluded members.
+Video inventory is unaffected. Exclusion does not attest deletion. The incoming
+and desktop-source filter paths remain unfinished, so this does not enable the
+reserved shared runtime or expose the unfinished cross-platform filter control.
 Only authenticated protected stored records with exactly the previous seven
 registers may be projected to eight by adding local `photos_only=false` at clock
 zero. This projection does not write on read or alter any existing register.

@@ -92,6 +92,15 @@ internal class AndroidGalleryPhotoSource(context: Context, private val scope: Ga
                     val entry = member(lease, it)
                     val id = entry.documentId.substringBefore(':').toLong()
                     if (id <= after) fail("gallery_inventory_page_order")
+                    val photosOnly = lease.activation.mediaType == GalleryMediaType.IMAGES &&
+                        (lease.activation.mediaIntent as? MediaSyncTransport.IntentToken)?.photosOnly == true
+                    if (photosOnly) {
+                        val selected = openRead(lease, entry, cancellation).use(CameraPhotoMetadata::matches)
+                        // A parse failure is not a license to overlook revoked
+                        // READ or a changed member. Recheck even when excluded.
+                        verifyMetadata(lease, entry, cancellation); ready()
+                        if (!selected) { after = id; continue }
+                    }
                     if (batching && (entries.size >= maxFiles ||
                             total + entry.advertisedBytes > DeviceFileManifest.MAX_TOTAL_BYTES)) {
                         // Look ahead without consuming this member. The next batch

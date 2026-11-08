@@ -219,6 +219,59 @@ class AndroidGalleryPhotoSourceTest {
         override fun close() { assertClosed(); root.deleteRecursively() }
     }
 
+    private fun filterIntent(): MediaSyncTransport.IntentToken {
+        val pc = "11111111-1111-4111-8111-111111111111"; val phone = "22222222-2222-4222-8222-222222222222"
+        return MediaSyncTransport.IntentToken(MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "photos_only", JsonPrimitive(true)))
+    }
+
+    @Test @Config(sdk = [35]) fun metadataFilterIncludesRenamedCaptureAndExcludesCameraFolderScreenshot() {
+        Fixture().use { f ->
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), mediaIntent = filterIntent())
+            val image = CameraPhotoMetadataTest.photograph()
+            val source = File(f.root, "capture.bin").also { it.writeBytes(image) }
+            f.provider.restoredFiles[1L] = source
+            f.provider.rows = listOf(Row(name = "renamed.txt", bytes = image.size.toLong()), Row(id = 2, name = "IMG_camera.jpg"))
+            val inventory = f.reader.enumerate(f.lease())
+            assertEquals(listOf("renamed.txt"), inventory.entries.map { it.relativePath })
+            assertEquals(2, f.provider.opens.size); assertEquals(0, f.provider.writeRequests)
+            assertEquals(0, f.provider.originalRequests)
+            assertFalse(f.lease().provesFileDeletion)
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun metadataFilterAdvancesPastExcludedPagesAndRechecksRevokedRead() {
+        Fixture().use { f ->
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), mediaIntent = filterIntent())
+            f.provider.rows = (1L..33L).map { Row(id = it, name = "image-$it.jpg") }
+            val lease = f.lease(); val batch = f.reader.enumerateBatch(lease)
+            assertTrue(batch.inventory.entries.isEmpty()); assertNull(batch.continuation)
+            assertEquals(33, f.provider.opens.size); assertEquals(2, f.provider.requests.size)
+            f.provider.onOpen = { f.request = null }
+            assertThrows(PhotoFolderScopeError::class.java) { f.reader.enumerate(lease) }
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun metadataFilterContinuationPreservesSelectedRowsAcrossExcludedMembers() {
+        Fixture().use { f ->
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), mediaIntent = filterIntent())
+            val image = CameraPhotoMetadataTest.photograph()
+            val source = File(f.root, "capture.bin").also { it.writeBytes(image) }
+            f.provider.restoredFiles[1L] = source; f.provider.restoredFiles[34L] = source
+            f.provider.rows = (1L..34L).map { Row(id = it, name = "image-$it.jpg", bytes = if (it in setOf(1L, 34L)) image.size.toLong() else 5L) }
+            val lease = f.lease(); val first = f.reader.enumerateBatch(lease, maxFiles = 1)
+            assertEquals(listOf("image-1.jpg"), first.inventory.entries.map { it.relativePath }); assertNotNull(first.continuation)
+            val second = f.reader.enumerateBatch(lease, first.continuation, maxFiles = 1)
+            assertEquals(listOf("image-34.jpg"), second.inventory.entries.map { it.relativePath }); assertNull(second.continuation)
+        }
+    }
+
+    @Test @Config(sdk = [35]) fun metadataPhotoFilterDoesNotFilterVideoOrOpenItsBytesDuringInventory() {
+        Fixture(GalleryMediaType.VIDEO).use { f ->
+            f.request = NativeGalleryRequest(f.receiver, "b".repeat(64), setOf(GallerySourceKind.CAMERA), GalleryMediaType.VIDEO, filterIntent())
+            assertEquals(1, f.reader.enumerate(f.lease()).entries.size); assertTrue(f.provider.opens.isEmpty())
+        }
+    }
+
     private fun archiveBook(f: Fixture): io.gitlab.maik3531.magnolienotes.daten.Ablage {
         val directory = Files.createTempDirectory(f.root.toPath(), "archive-book-").toFile()
         val context = object : android.content.ContextWrapper(f.context) {
