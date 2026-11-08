@@ -119,8 +119,9 @@ internal object NativeDavAccountSmoke {
     private fun storageChecks(parent: File,key: SecretKey): JSONObject {
         val directory=File(parent,"os-storage");check(ops.stat(directory)==null)
         ops.ensurePrivateDirectory(directory,true)
-        var renameDenied=false;var symlinkRejected=false;var hardlinkRejected=false;var boundedReadRejected=false
+        var renameDenied=false;var symlinkRejected=false;var hardlinkSafe=false;var boundedReadRejected=false
         var checkpoints=0
+        var hardlinkProof=JSONObject()
         var originalFailure:Throwable?=null
         try {
             val old=File(directory,"old");val pending=File(directory,"pending")
@@ -135,13 +136,49 @@ internal object NativeDavAccountSmoke {
             catch (error: ErrnoException) { check(error.errno==OsConstants.EACCES || error.errno==OsConstants.EPERM);renameDenied=true }
             finally { ops.ensurePrivateDirectory(directory) }
             check(String(requireNotNull(ops.read(old,32)))=="new" && String(requireNotNull(ops.read(pending,32)))=="pending")
+            val pendingForCleanup=requireNotNull(ops.stat(pending))
             val link=File(directory,"link");Os.symlink(old.path,link.path)
             try { ops.read(link,32);error("Followed storage symlink") } catch (_: IOException) { symlinkRejected=true }
             Os.remove(link.path)
-            val hard=File(directory,"hard");Os.link(old.path,hard.path)
-            try { ops.read(old,32);error("Accepted linked storage file") } catch (_: IOException) { hardlinkRejected=true }
-            Os.remove(hard.path)
+            val hard=File(directory,"hard");check(ops.stat(hard)==null)
+            val hardDirectory=requireNotNull(ops.stat(directory))
+            val hardSource=requireNotNull(ops.stat(old));val hardBytes=requireNotNull(ops.read(old,32))
+            var creationErrno:Int?=null
+            try { Os.link(old.path,hard.path) }
+            catch(error:ErrnoException) {
+                if(error.errno!=OsConstants.EACCES && error.errno!=OsConstants.EPERM) throw error
+                creationErrno=error.errno
+            }
+            if(creationErrno!=null) {
+                HardlinkEvidence.denied(creationErrno,hardSource,ops.stat(old),ops.stat(hard),hardBytes.contentEquals(requireNotNull(ops.read(old,32))))
+                hardlinkProof=JSONObject().put("hardlinkCreationSupported",false).put("osCreationDenied",true)
+                    .put("creationErrno",creationErrno).put("sourceUnchanged",true).put("destinationAbsent",true)
+                    .put("adapterMultilinkRejectionTested",false)
+            } else {
+                val sourceLinked=requireNotNull(ops.stat(old));val recordedLink=requireNotNull(ops.stat(hard))
+                HardlinkEvidence.linked(hardSource,sourceLinked,recordedLink)
+                var hardFailure:Throwable?=null
+                try {
+                    var readRejected=false;var writeRejected=false
+                    try {ops.read(old,32);error("Accepted linked storage read")} catch(_:IOException) {readRejected=true}
+                    try {ops.writeAndSync(hard,"changed".toByteArray(),32);error("Accepted linked storage write")} catch(_:IOException) {writeRejected=true}
+                    check(readRejected && writeRejected)
+                } catch(failure:Throwable) {hardFailure=failure;throw failure}
+                finally {cleanupPreservingFailure(hardFailure) {
+                    HardlinkEvidence.cleanup(hardDirectory,ops.stat(directory),sourceLinked,ops.stat(old),recordedLink,ops.stat(hard))
+                    Os.remove(hard.path) // Only the exact recorded owned entry, never a recursive deletion.
+                    ops.syncDirectory(directory)
+                }}
+                check(ops.stat(hard)==null && ops.stat(old)==hardSource && hardBytes.contentEquals(requireNotNull(ops.read(old,32))))
+                hardlinkProof=JSONObject().put("hardlinkCreationSupported",true).put("osCreationDenied",false)
+                    .put("adapterMultilinkRejectionTested",true).put("adapterReadRejected",true).put("adapterWriteRejected",true)
+                    .put("sourceUnchanged",true).put("destinationAbsentAfterCleanup",true)
+            }
+            hardlinkSafe=true
             try { ops.read(old,2);error("Read past configured byte bound") } catch (_: IOException) { boundedReadRejected=true }
+            val directoryForCleanup=requireNotNull(ops.stat(directory))
+            check(hardDirectory.sameFile(directoryForCleanup) && hardDirectory.owner==directoryForCleanup.owner && hardDirectory.mode==directoryForCleanup.mode &&
+                ops.stat(old)==hardSource && ops.stat(pending)==pendingForCleanup) {"Refusing cleanup of changed owned storage fixtures"}
             ops.delete(old);ops.delete(pending)
             val frameworkParent=File(directory,"framework-parent");ops.ensurePrivateDirectory(frameworkParent,true)
             Os.chmod(frameworkParent.path,0x1f9) // 0771, matching possible framework app-owned modes.
@@ -169,11 +206,11 @@ internal object NativeDavAccountSmoke {
                 for(file in ops.children(fixture))check(ops.delete(file))
                 Os.remove(fixture.path);ops.syncDirectory(directory);checkpoints++
             }
-            check(renameDenied && symlinkRejected && hardlinkRejected && boundedReadRejected && checkpoints==3)
+            check(renameDenied && symlinkRejected && hardlinkSafe && boundedReadRejected && checkpoints==3)
             return JSONObject().put("backend","android.system.Os").put("api",android.os.Build.VERSION.SDK_INT)
                 .put("ownerUidVerified",true).put("directory0700",true).put("file0600",true)
                 .put("realDirectoryFsync",true).put("atomicInodeMoved",true).put("readonlyDirectoryRenameRejected",renameDenied)
-                .put("nofollowSymlinkRejected",symlinkRejected).put("hardlinkRejected",hardlinkRejected)
+                .put("nofollowSymlinkRejected",symlinkRejected).put("hardlinkEvidence",hardlinkProof)
                 .put("boundedReadRejected",boundedReadRejected).put("vaultDurabilityCheckpoints",checkpoints)
                 .put("frameworkOwnedParent0771Preserved",true)
                 .put("fixtureParentUid",Os.lstat(parent.parentFile!!.path).st_uid)
