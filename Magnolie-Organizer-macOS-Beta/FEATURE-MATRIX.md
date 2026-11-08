@@ -4,8 +4,8 @@ Updated 2026-11-08 (2.0.30 projection and native candidate verification).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
 Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
-smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42500979784, port source
-ab646c6d; later source changes still require native checks). The smoke
+smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42506117045, port source
+0c22df32; later source changes still require native checks). The smoke
 verifies first save, normal quit, reopen, a second atomic save and strict whole-data
 equality. Full application/feature acceptance remains pending. Linux host tests
 alone do not establish macOS behavior.
@@ -46,8 +46,10 @@ alone do not establish macOS behavior.
 | Background/tray/autostart/cloud backup | Unsupported | LaunchAgent/status item lifecycle, encrypted/locked policy, durable jobs |
 | Printing/PDF/ODS/office letters | Unsupported native bridge | Print pagination, export fidelity and platform launch integration |
 | Weather/holidays/maps/mail/external links | Native public/school holiday HTTPS service and canonical callback; atomic complete results and regional scopes | Live public-holiday HTTPS passed on both architectures; broader school/region/native UI acceptance pending; other listed services unsupported |
-| Manual/update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and authorized native implementation |
-| Shipping/signing/notarization/installer | No production artifact or release | Review + Mac acceptance + final explicit release authorization |
+| Handbook | Canonical offline 2.0.30 manual bundled byte-for-byte; isolated local WebKit window, search, Help menu and shared handbook command; 17 host tests pass | Native manual/search/isolation tests running on both architectures at 8e3aa630; no manual-specific native result yet |
+| Update/contributor/protected-image rendering | Unsupported; no production trust roots installed | Separate Beta metadata/trust policy and native implementation |
+| Compatibility | Deployment target 12.7 with actual Mach-O minimum verification implemented | Native build verification running; actual Monterey runtime and older-device acceptance pending |
+| Shipping/signing/notarization/installer | User explicitly authorized publication after complete validation; no production artifact or release yet | Complete native feature/package acceptance, production signing/notarization and upgrade checks |
 
 `BRIDGE-COVERAGE.md` lists each statically detected shared frontend/Windows-contract
 command against the Swift allowlist. `erinnerung_einrichten`, for example, is only
