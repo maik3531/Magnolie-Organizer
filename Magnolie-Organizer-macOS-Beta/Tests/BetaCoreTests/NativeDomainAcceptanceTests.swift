@@ -66,20 +66,47 @@ import XCTest
         }
         throw BetaError("Domain UI did not reach matching durable native save/ACK within 10 seconds.")
     }
+    private func drawingDiagnostics(_ phase: String) async throws {
+        let value = try await javascript("""
+            const canvas=document.querySelector('.custom-zeichenblatt');
+            const rect=canvas?.getBoundingClientRect();
+            const module=window.OrganizerTest.daten().customOrganizer.modules.find(item=>item.type==='drawing');
+            return JSON.stringify({phase,viewport:{width:innerWidth,height:innerHeight,devicePixelRatio},
+              geometry:rect?{left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom,width:rect.width,height:rect.height}:null,
+              canvas:canvas?{width:canvas.width,height:canvas.height,pointerEvents:getComputedStyle(canvas).pointerEvents,touchAction:getComputedStyle(canvas).touchAction}:null,
+              valid:window.MagnolieZeichnen.valid(module?.drawing),drawing:JSON.stringify(module?.drawing??null).slice(0,6000),
+              pixelChanged:canvas?canvas.toDataURL('image/png')!==window.__domainCanvasBefore:null,
+              pointerCounts:window.__domainPointers,receipts:window.__domainEventReceipts||[]});
+            """, arguments: ["phase": phase])
+        print("Mac drawing diagnostics: " + (value as? String ?? "invalid diagnostic result"))
+    }
     private func stroke(_ rect: [String: Any], window: NSWindow) async throws {
         let x1 = try XCTUnwrap(rect["x1"] as? Double), x2 = try XCTUnwrap(rect["x2"] as? Double), y = try XCTUnwrap(rect["y"] as? Double)
+        var receipts: [[String: Any]] = []
         for step in 0...25 {
             let fraction = Double(step) / 25
             let client = NSPoint(x: x1 + (x2 - x1) * fraction, y: y + sin(fraction * .pi) * 8)
             let local = NSPoint(x: client.x, y: web.isFlipped ? client.y : web.bounds.height - client.y)
             let location = web.convert(local, to: nil)
-            let type: NSEvent.EventType = step == 0 ? .leftMouseDown : step == 25 ? .leftMouseUp : .leftMouseDragged
-            let event = try XCTUnwrap(NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+            let eventType: NSEvent.EventType = step == 0 ? .leftMouseDown : step == 25 ? .leftMouseUp : .leftMouseDragged
+            let event = try XCTUnwrap(NSEvent.mouseEvent(with: eventType, location: location, modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                 context: nil, eventNumber: step + 1, clickCount: 1, pressure: step == 25 ? 0 : 0.5))
+            let hitPoint = web.superview?.convert(location, from: nil) ?? location
+            let hit = web.hitTest(hitPoint)
+            receipts.append(["step": step, "type": eventType.rawValue,
+                "client": [Double(client.x), Double(client.y)], "webLocal": [Double(local.x), Double(local.y)],
+                "windowPoint": [Double(location.x), Double(location.y)], "webFlipped": web.isFlipped,
+                "windowNumber": window.windowNumber, "eventWindowNumber": event.windowNumber,
+                "windowVisible": window.isVisible, "windowKey": window.isKeyWindow, "appActive": NSApp.isActive,
+                "appRunning": NSApp.isRunning, "pressedMouseButtons": NSEvent.pressedMouseButtons,
+                "currentEventType": NSApp.currentEvent.map { String($0.type.rawValue) } ?? "none",
+                "firstResponderClass": window.firstResponder.map { String(describing: type(of: $0)) } ?? "none",
+                "hitViewClass": hit.map { String(describing: type(of: $0)) } ?? "none"])
             window.sendEvent(event)
             try await Task.sleep(nanoseconds: 25_000_000)
         }
+        print("Mac drawing native event receipts: " + (try Document.encode(receipts)))
     }
     func testActualHealthCustomDrawingDurableSaveAndReopen() async throws {
         guard let path = ProcessInfo.processInfo.environment["MACOS_BETA_UI_PATH"] else { throw XCTSkip("Supply generated UI on a real Mac.") }
@@ -112,7 +139,22 @@ import XCTest
         }
         let rectangleValue = try await javascript("return await window.NativeDomains.drawing();")
         let rectangle = try XCTUnwrap(rectangleValue as? [String: Any])
+        _ = try await javascript("""
+            window.__domainEventReceipts=[];
+            for(const type of ['pointerdown','pointermove','pointerup','pointercancel','gotpointercapture','lostpointercapture','mousedown','mousemove','mouseup']) {
+              document.addEventListener(type,event=>{
+                if(window.__domainEventReceipts.length>=100)return;
+                const target=event.target;
+                window.__domainEventReceipts.push({type:event.type,trusted:event.isTrusted,button:event.button??null,buttons:event.buttons??null,
+                  pointerType:event.pointerType??null,pointerId:event.pointerId??null,x:event.clientX??null,y:event.clientY??null,
+                  target:{tag:target?.tagName??'',id:target?.id??'',className:String(target?.className??'').slice(0,160)}});
+              },true);
+            }
+            return true;
+            """)
+        try await drawingDiagnostics("before-native-input")
         try await stroke(rectangle, window: window)
+        try await drawingDiagnostics("after-native-input")
         let drawingValue = try await javascript("return await window.NativeDomains.drawingProof();")
         let drawing = try XCTUnwrap(drawingValue as? [String: Any])
         XCTAssertEqual(drawing["strokeCount"] as? Int, 1)
