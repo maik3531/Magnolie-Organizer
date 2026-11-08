@@ -77,7 +77,7 @@ final class TimeZoneExportTests: XCTestCase {
             XCTAssertEqual(lines.first, "BEGIN:VTIMEZONE")
             XCTAssertEqual(lines.last, "END:VTIMEZONE")
             if identifier != "Etc/UTC" { XCTAssertTrue(lines.contains { $0.hasPrefix("RRULE:FREQ=YEARLY;") }, identifier) }
-            for year in [1900, 1945, 1970, 2026, 2038, 2100, 2400, 8000] {
+            for year in [2, 1800, 1900, 1945, 1970, 2026, 2038, 2100, 2400, 8000] {
                 for month in [1, 3, 4, 7, 10, 11, 12] {
                     let instant = date(year, month, 15, 12)
                     XCTAssertEqual(try exportedOffset(lines, at: instant), zone.secondsFromGMT(for: instant), "\(identifier) \(instant)")
@@ -112,7 +112,7 @@ final class TimeZoneExportTests: XCTestCase {
 
     func testSyntheticHistoryOffsetsRdatesAndFuture() throws {
         let lines = try TimeZoneExport.definition("Test/Zone", data: fixture())
-        XCTAssertTrue(lines.contains("DTSTART:00010101T000000"))
+        XCTAssertTrue(lines.contains("DTSTART:00010101T010000"))
         XCTAssertTrue(lines.contains { $0.hasPrefix("RDATE:") })
         XCTAssertTrue(lines.contains("TZOFFSETFROM:+0100"))
         XCTAssertTrue(lines.contains("TZOFFSETTO:+0200"))
@@ -125,10 +125,26 @@ final class TimeZoneExportTests: XCTestCase {
         XCTAssertEqual(try exportedOffset(utc, at: date(8000, 7, 1)), 3600)
         let seconds = try TimeZoneExport.definition("Seconds", data: fixture(footer: "STD-0:19:32", standardOffset: 1172, transitions: []))
         XCTAssertTrue(seconds.contains("TZOFFSETTO:+001932"))
+        XCTAssertTrue(seconds.contains("DTSTART:00010101T001932"))
         XCTAssertEqual(try exportedOffset(seconds, at: date(2026, 1, 1)), 1172)
         let southern = try TimeZoneExport.definition("Southern", data: fixture(footer: "STD-1DST,M10.1.0,M3.1.0", transitions: []))
         XCTAssertEqual(try exportedOffset(southern, at: date(2026, 1, 1)), 7200)
         XCTAssertEqual(try exportedOffset(southern, at: date(2026, 7, 1)), 3600)
+    }
+
+    func testEveryObservanceStartHasRepresentableUTCInstant() throws {
+        let minimum = date(1, 1, 1)
+        for identifier in ["Europe/Berlin", "America/New_York", "Australia/Sydney", "Etc/UTC"] {
+            let lines = try TimeZoneExport.definition(identifier)
+            var start: Date?
+            for line in lines {
+                if line.hasPrefix("DTSTART:") { start = wall(String(line.dropFirst(8))) }
+                if line.hasPrefix("TZOFFSETFROM:") {
+                    let utc = try XCTUnwrap(start).addingTimeInterval(Double(-signed(String(line.dropFirst(13)))))
+                    XCTAssertGreaterThanOrEqual(utc, minimum, identifier)
+                }
+            }
+        }
     }
 
     func testPOSIXOptionalCapturesAndExplicitDaylightOffsets() throws {

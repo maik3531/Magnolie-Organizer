@@ -358,6 +358,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 self.send("edsStatus", response)
             }
         case .feiertage:
+            guard plain != nil else { throw BetaError("Unlock first.") }
             var regions: [HolidayService.Region] = []
             let selected = request.text("region")
             if !selected.isEmpty { regions = [.init(code: selected, name: "")] }

@@ -49,10 +49,11 @@ public struct HolidayService {
         public let regions: [String]
         public let selectedRegions: [String]
         public let regionNames: [String]
+        public let regionLabel: String
         public var organizerValue: [String: Any] {
             ["von": start, "bis": end, "name": name, "art": kind, "country": country,
              "nationwide": nationwide, "regions": regions,
-             "region": selectedRegions.joined(separator: ","), "regionName": regionNames.joined(separator: ", ")]
+             "region": selectedRegions.joined(separator: ","), "regionName": regionLabel]
         }
     }
     private struct GroupKey: Hashable { let start: String; let end: String; let name: String; let kind: String }
@@ -126,21 +127,24 @@ public struct HolidayService {
                         let key = GroupKey(start: start, end: rawEnd,
                             name: title.precomposedStringWithCompatibilityMapping.lowercased(), kind: kind)
                         var group = groups[key] ?? Group(start: start, end: rawEnd, name: title, kind: kind)
+                        var rowNationwide = false
                         if let nationwide = row["nationwide"] as? NSNumber,
-                           CFGetTypeID(nationwide) == CFBooleanGetTypeID(), nationwide.boolValue { group.nationwide = true }
+                           CFGetTypeID(nationwide) == CFBooleanGetTypeID(), nationwide.boolValue { rowNationwide = true; group.nationwide = true }
+                        var rowRegions = Set<String>()
                         if let subdivisions = row["subdivisions"] as? [[String: Any]] {
                             for subdivision in subdivisions {
                                 guard let code = subdivision["code"] as? String, Self.matches(code, "^[A-Z0-9-]{1,64}$") else {
                                     throw BetaError("The holiday service returned invalid regional scope.")
                                 }
-                                group.regions.insert(code)
+                                rowRegions.insert(code)
                             }
                         }
                         if let region {
                             group.selected.insert(region.code)
                             if !region.name.isEmpty { group.names.insert(region.name) }
-                            if !group.nationwide && group.regions.isEmpty { group.regions.insert(region.code) }
+                            if !rowNationwide && rowRegions.isEmpty { rowRegions.insert(region.code) }
                         }
+                        group.regions.formUnion(rowRegions)
                         groups[key] = group
                         guard groups.count <= 20_000 else { throw BetaError("The holiday service returned too many entries.") }
                     }
@@ -150,6 +154,7 @@ public struct HolidayService {
         return groups.values.map { value in
             let names = value.names.sorted()
             var title = value.name
+            var regionLabel = names.first ?? ""
             if query.regions.count > 1 && !names.isEmpty {
                 let allNames = Set(query.regions.map { $0.name })
                 let label: String
@@ -160,10 +165,11 @@ public struct HolidayService {
                     label = (query.language == "DE" ? "alle außer " : "all except ") + allNames.subtracting(value.names).sorted().joined(separator: ", ")
                 } else { label = names.joined(separator: ", ") }
                 title += " (" + label + ")"
+                regionLabel = label
             }
             return Entry(start: value.start, end: value.end, name: title, kind: value.kind,
                   country: query.country, nationwide: value.nationwide, regions: value.regions.sorted(),
-                  selectedRegions: value.selected.sorted(), regionNames: value.names.sorted())
+                  selectedRegions: value.selected.sorted(), regionNames: value.names.sorted(), regionLabel: regionLabel)
         }.sorted { ($0.start, $0.name, $0.kind) < ($1.start, $1.name, $1.kind) }
     }
 }

@@ -72,7 +72,13 @@ public enum TimeZoneExport {
             if let index = groups.firstIndex(where: { $0.0 == key }) { groups[index].1.append(date) }
             else { groups.append((key, [date])) }
         }
-        // The initial observance makes dates preceding the first transition explicit.
+        // Anchor the initial state at a representable UTC instant. Local midnight
+        // in year 1 minus a positive offset would underflow strict RFC consumers.
+        // TZOFFSETFROM == TZOFFSETTO still defines the same state before this anchor.
+        func seed(_ type: ZoneType) {
+            add(type, before: type.offset,
+                date: minimum.addingTimeInterval(Double(max(0, type.offset))))
+        }
         var seeded = false
         for transition in zone.transitions {
             let current = zone.types[transition.type]
@@ -80,11 +86,11 @@ public enum TimeZoneExport {
             let wall = instant.addingTimeInterval(Double(previous.offset))
             if wall < minimum { previous = current; continue }
             guard wall < maximum else { throw ExportError.unsupportedRule }
-            if !seeded { add(previous, before: previous.offset, date: minimum); seeded = true }
+            if !seeded { seed(previous); seeded = true }
             if current != previous { add(current, before: previous.offset, date: wall) }
             previous = current
         }
-        if !seeded { add(previous, before: previous.offset, date: minimum) }
+        if !seeded { seed(previous) }
         var lines = ["BEGIN:VTIMEZONE", "TZID:" + escape(identifier)]
         for (key, dates) in groups {
             lines += component(key, dates: dates, rule: nil)

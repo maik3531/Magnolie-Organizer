@@ -57,6 +57,19 @@ final class HolidayServiceTests: XCTestCase {
         XCTAssertEqual(rows.count, 1); XCTAssertEqual(rows[0].regions, ["DE-BB", "DE-BE"])
         XCTAssertEqual(rows[0].regionNames, ["Berlin", "Brandenburg"])
     }
+    func testRegionFallbackAppliesToEveryGroupedResponse() async throws {
+        let transport = Transport { _ in
+            BoundedHTTPResponse(status: 200, body: try self.body([
+                ["startDate": "2026-10-01", "name": "Shared regional holiday", "nationwide": false]
+            ]))
+        }
+        let query = try HolidayService.Query(country: "DE", regions: [.init(code: "DE-BE", name: "Berlin"),
+            .init(code: "DE-BB", name: "Brandenburg")], years: [2026], includeSchool: false)
+        let rows = try await HolidayService(transport: transport).fetch(query)
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows[0].regions, ["DE-BB", "DE-BE"])
+        XCTAssertEqual(rows[0].organizerValue["regionName"] as? String, "alle Bundesländer")
+    }
     func testCountryScopeDoesNotPretendToSupplyRegionalSchoolHolidays() async throws {
         let transport = Transport { _ in BoundedHTTPResponse(status: 200, body: Data("[]".utf8)) }
         let query = try HolidayService.Query(country: "CH", years: [2026], includeSchool: true, regionRequired: true)
