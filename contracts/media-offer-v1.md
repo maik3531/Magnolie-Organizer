@@ -566,6 +566,33 @@ Auch die Metadatenabfrage des Zeitplaners belegt diese Verbindungsspur nur
 nicht blockierend. Eine belegte Spur bedeutet vorerst keinen planbaren Lauf,
 nicht neue Zustimmung oder eine Berechtigung, laufende Quell-I/O zu untersuchen.
 
+### Erstmalige native Sendeeinrichtung ohne Empfangsaktivierung
+
+Bei tatsächlich bestätigten aktuellen Quellmetadaten kann die Linux-Anzeige
+eine getrennte Sendeeinrichtung anbieten, auch wenn noch kein Dateibesitzer
+existiert. Ihr Versionshinweis ist ausschließlich eine speicherinterne
+Einrichtungs-CAS, keine gespeicherte Zustimmung und kein Leserecht. Die Anzeige
+erzeugt weder Paarungsmetadaten noch Standardordner oder Einstellungen.
+
+Der private native Vorbereitungsaufruf bindet ein einmaliges, höchstens
+60 Sekunden gültiges Ticket an den genauen Kanal/Paarungszustand, die bisherigen
+geschützten Einstellungen, den tatsächlich gespeicherten Buchstand und die
+getrennten Foto-/Videowünsche. Vorbereitung und Abbruch ändern diesen Bestand
+nicht. Positive Erweiterungen durchlaufen weiterhin den nativen Dialog mit
+Nein als Standardantwort; weder Browserfelder noch der Einrichtungs-Hinweis
+ersetzen diese Entscheidung. Ein abgewiesener Commit kann nach einer späteren
+Metadatenreparatur nicht wieder aufgenommen werden.
+
+Erst der bestätigte Commit darf die bestehende enge native Initialisierung der
+Dateipaarungsmetadaten benutzen und eine getrennte SEND-Zustimmung speichern.
+Er aktiviert weder RECEIVE noch Telefon-READ und erzeugt keine Medienziele,
+Zuordnungshistorien, Aufträge oder Quellcaches. Vorhandene abgewählte Zustimmung
+bleibt bis dahin unverändert. Vorhandene Einstellungsreste ohne passenden
+Paarungsbezug erhalten einen Review-Halt; fehlende Schlüssel werden nicht
+erzeugt. Die gespeicherte Sendezustimmung allein startet keinen Abgleich:
+gemeinsamer Bereich/Richtung/Modus und ihr tatsächlicher neuer ACK-/Echo-Abgleich
+sowie Dateisteuerbindung bleiben getrennte Voraussetzungen.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

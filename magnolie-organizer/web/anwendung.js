@@ -28967,6 +28967,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function telefonSendeZustimmung(peer, stand, field, wanted) {
     if (telefonSendeZustimmungen.has(peer.device_id)) return;
+    const consent = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
+    if (!consent) return;
     const requestId = crypto.randomUUID(), book = DATEN;
     const pending = { requestId, book, fingerprint: peer.fingerprint };
     const clear = () => {
@@ -28980,14 +28982,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     pending.timer = setTimeout(failed, 65000);
     telefonSendeZustimmungen.set(peer.device_id, pending);
-    const choices = { photos: stand.sending_consent.photos === true, videos: stand.sending_consent.videos === true };
+    const choices = { photos: consent.photos === true, videos: consent.videos === true };
     choices[field] = wanted;
     nachDauerhaftemSpeichern(() => {
       const current = telefonStand?.peers?.find(value => value.device_id === peer.device_id);
       if (telefonSendeZustimmungen.get(peer.device_id) !== pending || DATEN !== book || current?.fingerprint !== peer.fingerprint ||
-          current.photo_sync?.sending_consent?.version !== stand.sending_consent.version) { failed(); return; }
+          (current.photo_sync?.sending_consent || current.photo_sync?.sending_setup)?.version !== consent.version) { failed(); return; }
       if (!Bruecke.sende({ cmd: "telefon_medien_senden", kennung: peer.device_id, fingerprint: peer.fingerprint,
-        version: stand.sending_consent.version, requestId, ...choices })) failed();
+        version: consent.version, requestId, ...choices })) failed();
     }, failed);
     zeichneTelefonFotos();
   }
@@ -29104,15 +29106,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const label = el("label", "telefon-medien-aktivierung"); label.title = _("Synchronize photos"); label.append(an);
       label.addEventListener("click", event => event.stopPropagation());
       label.addEventListener("keydown", event => event.stopPropagation()); titel.append(label);
-      if (stand.sending_consent) {
+      const sendeStand = stand.sending_consent || (stand.sending_setup ? { photos: false, videos: false, ...stand.sending_setup } : null);
+      if (sendeStand) {
         const rights = el("section", "notes-medien-rechte"); rights.append(el("h4", null, _("Send")));
         for (const [field, title] of [["photos", _("Photos")], ["videos", _("Videos")]]) {
           if (field === "videos" && stand.video_supported !== true) continue;
           const input = document.createElement("input"); input.type = "checkbox"; input.dataset.mediaSend = field;
-          input.checked = stand.sending_consent[field] === true;
+          input.checked = sendeStand[field] === true;
           input.disabled = telefonSendeZustimmungen.has(peer.device_id) || (stand.busy === true && !input.checked);
           input.addEventListener("change", () => {
-            const wanted = input.checked; input.checked = stand.sending_consent[field] === true;
+            const wanted = input.checked; input.checked = sendeStand[field] === true;
             telefonSendeZustimmung(peer, stand, field, wanted);
           });
           const row = el("label", "hak"); row.append(input, document.createTextNode(" Organizer → " + _("Send") + " · " + title)); rights.append(row);

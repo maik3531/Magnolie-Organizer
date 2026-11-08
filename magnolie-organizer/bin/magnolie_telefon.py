@@ -2824,6 +2824,7 @@ class PhoneService:
         self.connections = {}
         self._file_channel_bindings = weakref.WeakKeyDictionary()
         self._native_file_connections = weakref.WeakKeyDictionary()
+        self._native_sending_setups = weakref.WeakKeyDictionary()
         self._native_file_controls = weakref.WeakKeyDictionary()
         self._native_file_control_receipts = weakref.WeakKeyDictionary()
         self._native_photo_activity = {}
@@ -2973,6 +2974,7 @@ class PhoneService:
 
     def _end_native_file_connection(self, channel):
         with self.lock:
+            self._native_sending_setups.pop(channel,None)
             bindings = getattr(self, '_file_channel_bindings', None)
             owners = getattr(self, '_native_file_connections', None)
             if bindings is not None:
@@ -3009,7 +3011,13 @@ class PhoneService:
             connection=self._native_file_connections.get(channel)
             video_available=(connection_type._video_data_handlers_ready
                 and self._current_native_video_metadata(peer_id,binding.static_public,channel,binding.generation))
-        if connection is None:return dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+        if connection is None:
+            state=dict(available=True,state='off',enabled=False,mode='manual',albums=[])
+            setup=self._native_sending_setup_hint(peer_id,binding,channel)
+            if setup is not None:
+                state['sending_setup']=setup
+                if video_available:state['video_supported']=True
+            return state
         state=connection.desktop_snapshot()
         if video_available:
             state['video_supported']=True
@@ -3057,17 +3065,147 @@ class PhoneService:
         if connection is None:raise ValueError('photo_sync_not_enabled')
         return connection.native_backup_locations(media_type,operation=operation,version=version,book_version=book_version,native_path=path)
 
+    def _native_sending_setup_hint(self,peer_id,binding,channel):
+        # Display/CAS metadata only. No store read, key initialization or native
+        # connection is allowed from a passive report (which may own self.lock).
+        if (type(channel) is not SecureChannel or not self._current_native_source_metadata(
+                peer_id,binding.static_public,channel,binding.generation)):return None
+        return dict(version=hashlib.sha256(canonical(dict(domain='native-sending-setup-v1',
+            channel=id(channel),generation=binding.generation,pairing=binding.pairing_epoch,
+            identity=binding.local_identity.receiver_identity_sha256,peer=self.store.peers[0]))).hexdigest())
+
+    def _native_sending_setup_preferences(self,binding,channel):
+        if binding.pairing_epoch is None:
+            subject=dict(local_id=binding.local_identity.receiver_id,local_identity=binding.local_identity.receiver_identity_sha256,
+                peer_id=binding.peer_id,peer_identity=hashlib.sha256(unb64(binding.static_public,32)).hexdigest())
+            name='photo-preferences-v1-'+hashlib.sha256(canonical(subject)).hexdigest()
+            if os.path.lexists(os.path.join(binding.native_directory,name)):
+                raise ValueError('media_sending_existing_pairing_review_required')
+            return None
+        authority=self.open_native_file_authority(binding.peer_id,binding.static_public,channel,binding.generation)
+        try:
+            preferences=importlib.import_module('magnolie_photo_preferences').ProtectedPhotoPreferences(authority)
+            try:snapshot=preferences.read()
+            finally:preferences.close()
+            if snapshot.policy is not None and not snapshot.associated:
+                raise ValueError('media_sending_existing_pairing_review_required')
+            return snapshot
+        finally:authority.close()
+
+    def _initialize_explicit_file_pairing(self,peer_id,binding,channel,*,native_current=lambda:True,native_published=lambda binding:None):
+        # Same narrow, durable native activation used for explicit RECEIVE and
+        # confirmed first SEND. Pairing alone or a UI status cannot call it.
+        from dataclasses import replace
+        from copy import deepcopy
+        protection_type=self._native_file_module('magnolie_file_native_authority').ExistingFileTransferProtection
+        with self.lock:
+            original=binding;expected=deepcopy(self.store.peers[0]);adopted=[None]
+            def permitted():
+                current=self._current_native_file_binding(peer_id,original.static_public,channel,original.generation)
+                wanted=expected if adopted[0] is None else dict(expected,file_pairing_epoch=adopted[0].pairing_epoch)
+                return (native_current() is True and current is (original if adopted[0] is None else adopted[0])
+                    and len(self.store.peers)==1 and self.store.peers[0]==wanted
+                    and self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection._data_handlers_ready)
+            def published(peer):
+                self.store.peers[0]['file_pairing_epoch']=peer['file_pairing_epoch']
+                adopted[0]=replace(original,pairing_epoch=peer['file_pairing_epoch'])
+                self._file_channel_bindings[channel]=adopted[0]
+                native_published(adopted[0])
+            with protection_type(original.native_directory) as protection:
+                saved=protection.initialize_native_file_pairing(expected,permitted,published)
+            if adopted[0] is None:published(saved)
+            return adopted[0]
+
+    def _native_first_sending_consent(self,peer_id,binding,channel,operation,photos,videos,selection,version):
+        from copy import deepcopy
+        _hex=importlib.import_module('magnolie_file_control')._hex
+        NativeMediaRetention=importlib.import_module('magnolie_media_retention').NativeMediaRetention
+        if (operation not in ('prepare','commit','cancel') or
+                (type(photos) is not bool or type(videos) is not bool or selection is not None or not _hex(version)
+                 if operation=='prepare' else not _hex(selection) or photos is not None or videos is not None or version is not None)):
+            raise ValueError('media_sending_native_choice_invalid')
+        with self.lock:
+            if operation=='prepare':
+                hint=self._native_sending_setup_hint(peer_id,binding,channel)
+                if hint is None or hint['version']!=version:raise ValueError('media_sending_native_choice_changed')
+                expected_peer=deepcopy(self.store.peers[0]);choice=None
+            else:
+                choice=self._native_sending_setups.get(channel)
+                if choice is None or choice[0]!=selection:raise ValueError('media_sending_native_choice_changed')
+                self._native_sending_setups.pop(channel)
+                if operation=='cancel':return dict(canceled=True)
+                expected_peer=choice[3]
+        original_binding=binding;live_binding=[binding];owned_connection=[None]
+        def current():
+            with self.lock:
+                if (self._current_native_file_binding(peer_id,binding.static_public,channel,binding.generation) is not live_binding[0]
+                        or self._native_file_connections.get(channel) is not owned_connection[0]
+                        or len(self.store.peers)!=1 or self.store.peers[0]!=expected_peer
+                        or not self._current_native_source_metadata(peer_id,binding.static_public,channel,binding.generation)
+                        or choice is not None and (choice[2] is not original_binding or time.monotonic()>=choice[1])):
+                    raise ValueError('media_sending_native_choice_changed')
+            return True
+        current()
+        with NativeMediaRetention(binding.native_directory) as retention:
+            with retention.permit(current) as permit:
+                if permit is None:raise ValueError('media_sending_saved_book_required')
+                book=retention.saved_book_version()
+                expected=self._native_sending_setup_preferences(binding,channel);current()
+                if operation=='prepare':
+                    consent=expected.policy.sending if expected is not None and expected.policy is not None else None
+                    token=secrets.token_hex(32)
+                    with self.lock:
+                        current();self._native_sending_setups[channel]=(token,time.monotonic()+60,binding,expected_peer,book,expected,photos,videos)
+                    return dict(selection=token,version=version,photos=photos,videos=videos,
+                        current_photos=bool(consent and consent.photos),current_videos=bool(consent and consent.videos),
+                        display_name=expected_peer.get('display_name',''))
+                if book!=choice[4] or expected!=choice[5]:raise ValueError('media_sending_native_choice_changed')
+                if not choice[6] and not choice[7]:return dict(photos=False,videos=False)
+                permit.require_current();current()
+                def activation_current():permit.require_current();return True
+                def activated(adopted):
+                    live_binding[0]=adopted;expected_peer['file_pairing_epoch']=adopted.pairing_epoch
+                binding=self._initialize_explicit_file_pairing(peer_id,binding,channel,
+                    native_current=activation_current,native_published=activated)
+                connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
+                owned_connection[0]=connection
+                try:
+                    with connection._operation():
+                        permit.require_current();snapshot=connection._preferences.read()
+                        if expected is not None and snapshot!=expected:raise ValueError('media_sending_native_choice_changed')
+                        if expected is None and snapshot.policy is not None:raise ValueError('media_sending_native_choice_changed')
+                        result=connection._preferences.configure_sending(connection._preferences.issue_action(),snapshot,photos=choice[6],videos=choice[7])
+                        permit.require_current();connection._send_controls(now_ms)
+                        connection._media_transport.send_settings()
+                    return dict(version=result.version,photos=choice[6],videos=choice[7])
+                except BaseException:
+                    connection.close();raise
+
     def photo_sync_sending_consent(self,peer_id,expected_fingerprint,operation,photos,videos,selection,version):
         """Private native GTK decision path, never a public photo action/flag."""
-        if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
         with self.lock:
-            channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
-            if (binding is None or type(expected_fingerprint) is not str
-                    or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
-                raise ValueError('phone_control_conflict')
-            connection=self._native_file_connections.get(channel)
-        if connection is None:raise ValueError('photo_sync_not_enabled')
-        return connection.native_sending_consent(operation,photos=photos,videos=videos,selection=selection,version=version)
+            original_channel=self.connections.get(peer_id)
+            pending=self._native_sending_setups.get(original_channel) if original_channel is not None else None
+        try:
+            if self.photo_sync_state(peer_id) is None:raise ValueError('photo_sync_unavailable')
+            with self.lock:
+                channel=self.connections.get(peer_id);binding=self._file_channel_bindings.get(channel)
+                if (binding is None or type(expected_fingerprint) is not str
+                        or fingerprint(unb64(binding.static_public,32)).lower()!=expected_fingerprint.lower()):
+                    raise ValueError('phone_control_conflict')
+                connection=self._native_file_connections.get(channel)
+                setup=channel in self._native_sending_setups
+            if connection is None or operation!='prepare' and setup:
+                return self._native_first_sending_consent(peer_id,binding,channel,operation,photos,videos,selection,version)
+            return connection.native_sending_consent(operation,photos=photos,videos=videos,selection=selection,version=version)
+        except BaseException:
+            # A denied commit is one-use even if a later metadata ACK repairs
+            # readiness. A stale/mismatched ticket must not discard a newer one.
+            if operation=='commit' and pending is not None and pending[0]==selection:
+                with self.lock:
+                    if self._native_sending_setups.get(original_channel) is pending:
+                        self._native_sending_setups.pop(original_channel)
+            raise
 
     def photo_sync_action(self, peer_id, expected_fingerprint, request):
         """Local native Organizer/daemon entry. Wire peers cannot call this API."""
@@ -3095,24 +3233,7 @@ class PhoneService:
             if connection is None:
                 # Explicit bootstrap uses the existing native peer-write monitor,
                 # not a new lock with reversed ordering or a migrating loader.
-                from dataclasses import replace
-                from copy import deepcopy
-                ExistingFileTransferProtection=self._native_file_module('magnolie_file_native_authority').ExistingFileTransferProtection
-                original=binding; expected=deepcopy(self.store.peers[0]); adopted=[None]
-                def permitted():
-                    current=self._current_native_file_binding(peer_id,original.static_public,channel,original.generation)
-                    wanted=expected if adopted[0] is None else dict(expected,file_pairing_epoch=adopted[0].pairing_epoch)
-                    return (current is (original if adopted[0] is None else adopted[0]) and len(self.store.peers)==1
-                        and self.store.peers[0]==wanted
-                        and self._native_file_module('magnolie_file_desktop_connection').NativeDesktopFileConnection._data_handlers_ready)
-                def published(peer):
-                    self.store.peers[0]['file_pairing_epoch']=peer['file_pairing_epoch']
-                    adopted[0]=replace(original,pairing_epoch=peer['file_pairing_epoch'])
-                    self._file_channel_bindings[channel]=adopted[0]
-                with ExistingFileTransferProtection(original.native_directory) as protection:
-                    saved=protection.initialize_native_file_pairing(expected,permitted,published)
-                if adopted[0] is None:published(saved)
-                binding=adopted[0]
+                binding=self._initialize_explicit_file_pairing(peer_id,binding,channel)
         if connection is None:
             connection=self.open_native_file_connection(peer_id,binding.static_public,channel,binding.generation)
         options=dict(job_owner=request.get('job_owner'),historical_choice=request.get('historical_choice'))

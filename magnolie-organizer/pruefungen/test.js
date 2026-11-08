@@ -7523,6 +7523,18 @@ function knopfMit(text, wurzel) {
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false }, ...extras });
   fotoStand(undefined);
   assert.ok(!bd.querySelector(".notes-erweiterte-funktionen"), "Verbindung allein ist keine native Fotobereitschaft");
+  const setupBefore = baumNachrichten.length;
+  fotoStand({ available: true, enabled: false, state: "off", albums: [], sending_setup: { version: "c".repeat(64) } });
+  assert.strictEqual(baumNachrichten.length, setupBefore, "Passive Einrichtung erzeugt keine Verbindung oder Rechte");
+  const setupPhotos = bd.querySelector('[data-media-send="photos"]');
+  assert.ok(setupPhotos && !setupPhotos.checked && !setupPhotos.disabled);
+  setupPhotos.click(); await tick(); await tick();
+  const firstSetup = baumNachrichten.filter(value => value.cmd === "telefon_medien_senden").at(-1);
+  assert.ok(firstSetup && firstSetup.version === "c".repeat(64) && firstSetup.photos && !firstSetup.videos);
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && bd.querySelector('[data-media-send="photos"]').disabled);
+  assert.ok(!baumNachrichten.slice(setupBefore).some(value => value.cmd === "telefon_foto_aktion"), "Erstmaliges Senden aktiviert keinen Empfang oder Abgleich");
+  bw.App.telefonFotoErgebnis({ device_id: fotoPeer.device_id, requestId: firstSetup.requestId, ok: true, canceled: true });
+  assert.ok(!bd.querySelector('[data-media-send="photos"]').checked && !bd.querySelector('[data-media-send="photos"]').disabled);
   const sendRights = { available: true, enabled: false, state: "off", albums: [],
     sending_consent: { version: "a".repeat(64), photos: false, videos: false } };
   fotoStand(sendRights);
