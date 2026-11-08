@@ -169,6 +169,7 @@ def test_uncertain_video_stop_keeps_failed_original_owner_and_always_removes_che
 def test_photo_receiver_stays_independent_when_video_scope_is_enabled_but_video_data_gate_is_off(receiving,tmp_path,monkeypatch):
     from test_file_desktop_sources import ready_source
     from test_file_desktop_media import collect,send_offer,dispatch
+    monkeypatch.setattr(receiving[3],'_video_data_handlers_ready',False)
     target=prepare(receiving,tmp_path,monkeypatch);connection=receiving[3]
     assert not connection._video_data_handlers_ready and connection._preferences.read().include_videos
     ready_source(receiving);full=manifest(receiving);collect(receiving,full)

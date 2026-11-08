@@ -629,6 +629,23 @@ bleiben in der UI gesperrt; gespeicherte Werte werden deshalb nicht verworfen.
 Stop bleibt während tatsächlicher Arbeit auch dann erreichbar, wenn eine
 Übereinstimmungsänderung den bisherigen Ausgangs-Anzeigehinweis zurückzieht.
 
+Ein gemeinsamer nativer Abgleich bindet beide Richtungen an dieselbe ursprüngliche
+Übereinstimmungsidentität, die angeforderten Medienarten, den gespeicherten
+Buchstand und dessen begrenzte Laufzeit. Aktuelle Kanal-Metadaten und bei einem
+automatischen Lauf die tatsächliche WLAN-Verbindung bleiben erforderlich. Dieser
+Kontext wird als ausschließlich einschränkende Prüfung durch Quellbefehle,
+Quellläufe und den tatsächlichen Empfänger bis zu Chunk-Schreiben und
+Veröffentlichung mitgeführt. Ein fehlgeschlagener oder beendeter Kontext wird
+durch spätere positive Antworten oder eine neue Übereinstimmung nicht erneuert.
+Alle unabhängigen nativen Datei-/Medienrechte bleiben zusätzlich erforderlich.
+
+Ein Kontextwiderruf ersetzt weder den tatsächlichen Drain noch Source-END.
+Nur der exakt zugeordnete Stop-Checkpoint darf nach bekanntem Request-Drain bzw.
+korrelierter Cancel-Barriere auf demselben Thread den zurückgezogenen
+Laufkontext übergehen; neue Chunks oder Veröffentlichung dürfen das nicht.
+Verifizierte Teilstücke, ursprüngliche Dateien, Jobhistorie und Quota bleiben
+erhalten. Unbekannter Quellabschluss bleibt ausdrücklich HOLD.
+
 Die normale native Dateiverbindung komponiert für einen geeigneten bereits
 authentifizierten Medienpeer nun ihre Einstellungsabstimmung und Quell-Factory.
 Sie startet dadurch keinen Arbeiter, Scan oder Transfer. Ohne eigene gespeicherte

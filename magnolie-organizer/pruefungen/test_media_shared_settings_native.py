@@ -29,6 +29,29 @@ def change(h,field,value,version):
         dict(action='shared_setting',field=field,value=value,version=version))
 
 
+def prime_receiving(h,service):
+    """Real encrypted native control/status/catalog preconditions, not booleans."""
+    from magnolie_file_control import FileControlPacket,FileGrantState
+    import magnolie_file_sources as sources
+    from test_file_desktop_sources import response,ALBUM,CATALOG
+    warm_metadata(h,service);c=h.connection;session=c.desktop_session()
+    session._local_enabled(True)
+    first=FileControlPacket.parse(h.wire.receive()['body'])
+    remote=FileControlPacket(FileGrantState(1,'6'*64,True,True),'7'*64,1,first.challenge)
+    dispatch(h,service,message(CONTROL,remote.wire()));h.wire.receive()
+    c.request_source(c.issue_receive_action(),'status');request=h.wire.receive()
+    dispatch(h,service,response(request,sources.RESULT,version='b'*64,revision=2,enabled=True,
+        associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
+    refreshed=FileControlPacket(remote.grants,remote.session_epoch,2,first.challenge)
+    dispatch(h,service,message(CONTROL,refreshed.wire())) # Same challenge needs no redundant echo.
+    session.start('discover');discover=h.wire.receive()
+    dispatch(h,service,response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
+        after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
+        albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
+    assert session.join(15) and session.snapshot()['state']=='albums',session.snapshot()
+    return c,session
+
+
 def test_actual_native_shared_setting_cas_and_ack_do_not_enable_reception_or_rewrite_sending(native,tmp_path,monkeypatch):
     with setup_peer(native,tmp_path,'fresh') as h:
         c=confirm(h);before=c._preferences.read();owner=c._local().owner
@@ -108,26 +131,10 @@ def test_actual_gtk_action_echoes_only_bounded_request_ids_and_reaches_native_se
 
 @pytest.mark.parametrize('state',['disabled','unconfirmed'])
 def test_selected_legacy_start_cannot_bypass_configured_shared_off_or_pending_agreement(source,native,monkeypatch,state):
-    from magnolie_file_control import FileControlPacket,FileGrantState
     from magnolie_file_transfer import TransferError
-    import magnolie_file_sources as sources
-    from test_file_desktop_sources import response,ALBUM,CATALOG
+    from test_file_desktop_sources import ALBUM
     with composition(source,native[0]) as h:
-        warm_metadata(h,native[0]);c=h.connection;session=c.desktop_session()
-        session._local_enabled(True)
-        first=FileControlPacket.parse(h.wire.receive()['body'])
-        remote=FileControlPacket(FileGrantState(1,'6'*64,True,True),'7'*64,1,first.challenge)
-        dispatch(h,native[0],message(CONTROL,remote.wire()));h.wire.receive()
-        c.request_source(c.issue_receive_action(),'status');request=h.wire.receive()
-        dispatch(h,native[0],response(request,sources.RESULT,version='b'*64,revision=2,enabled=True,
-            associated=True,repair_pending=False,kinds=sorted(sources.KINDS)))
-        refreshed=FileControlPacket(remote.grants,remote.session_epoch,2,first.challenge)
-        dispatch(h,native[0],message(CONTROL,refreshed.wire())) # Same challenge needs no redundant echo.
-        session.start('discover');discover=h.wire.receive()
-        dispatch(h,native[0],response(discover,sources.CATALOG,version='b'*64,page=dict(format=1,catalog_id=CATALOG,
-            after=0,next_cursor=None,coverage='full_images',proves_deletion=False,
-            albums=[dict(album_id=ALBUM,kind='camera',display_name='Camera',visible_images=1,needs_choice=False)])))
-        assert session.join(15) and session.snapshot()['state']=='albums',session.snapshot()
+        c,session=prime_receiving(h,native[0])
         h.controller.change('enabled',False) if state=='disabled' else h.controller.change('direction','phone_to_pc')
         offered=h.controller.send_settings();assert h.wire.receive()==offered
         if state=='disabled':

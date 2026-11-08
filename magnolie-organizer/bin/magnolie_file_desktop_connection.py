@@ -78,6 +78,7 @@ class NativeDesktopFileConnection:
         self._catalog = self._run = self._offer = self._mutation_action = None
         self._offer_binding = self._offer_policy_version = None
         self._source_pending = self._source_status = self._source_catalog = self._source_run = self._source_result = None
+        self._source_native_constraint = None
         self._source_albums = {}
         self._source_album_kind = None
         self._source_control_required = None
@@ -193,7 +194,7 @@ class NativeDesktopFileConnection:
             self._update_generation += 1
             self._update_condition.notify_all()
 
-    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None, media_type='images',book_fence=None):
+    def start_album_worker(self, action, album_id, desktop_choice, *, activity_changed=None, media_type='images',book_fence=None,native_current=None):
         """Explicit native worker start; construction/import/pairing starts nothing."""
         self._take_action(action)
         with self._operation():
@@ -215,7 +216,8 @@ class NativeDesktopFileConnection:
                 raise TransferError('file_desktop_source_album_not_current')
             if activity_changed is not None and not callable(activity_changed):
                 raise TransferError('file_desktop_native_activity_callback_required')
-            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed, media_type=media_type,book_fence=book_fence)
+            worker = NativePhotoAlbumWorker(self, album_id, desktop_choice, activity_changed, media_type=media_type,
+                book_fence=book_fence,native_current=native_current)
             self._album_worker = worker
         try:
             worker._thread.start() # Never race a first command against our held operation lock.
@@ -284,7 +286,7 @@ class NativeDesktopFileConnection:
                 failure = TransferError('file_desktop_receive_repair_pending')
             else:
                 already_closed = receiver._closed
-                if run.media_type=='video':self._checkpoint_binding_owner=(run,threading.get_ident())
+                self._checkpoint_binding_owner=(run,threading.get_ident())
                 try:
                     try:
                         self._receive_binding()
@@ -434,7 +436,7 @@ class NativeDesktopFileConnection:
             from magnolie_media_source_planning import NativeMediaSourcePreparation
             return NativeMediaSourcePreparation(plan,cache)
 
-    def start_mapped_media_worker(self,action,*,kind='images',book_fence=None,automatic=False):
+    def start_mapped_media_worker(self,action,*,kind='images',book_fence=None,automatic=False,native_current=None):
         self._take_action(action)
         with self._operation():
             if self._media_source is None:raise TransferError('media_source_native_composition_required')
@@ -442,7 +444,7 @@ class NativeDesktopFileConnection:
                     or self._source_pending is not None or self._source_run is not None or self._media_sender is not None):
                 raise TransferError('file_desktop_album_worker_busy')
             from magnolie_media_source_worker import NativeMappedMediaWorker
-            worker=NativeMappedMediaWorker(self,kind,book_fence,automatic=automatic);self._mapped_worker=worker
+            worker=NativeMappedMediaWorker(self,kind,book_fence,automatic=automatic,native_current=native_current);self._mapped_worker=worker
             try:worker.start()
             except BaseException:self._mapped_worker=None;raise
             return worker
@@ -625,6 +627,10 @@ class NativeDesktopFileConnection:
 
     def _source_command_authority(self, pending, clock):
         closing=pending.command.operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume')
+        if not closing:
+            if pending.native_constraint is not None:pending.native_constraint.require_current()
+            if self._source_native_constraint is not None and (self._source_run is not None or pending.command.operation=='next_batch'):
+                self._source_native_constraint.require_current()
         self._receiving_policy(closing=closing)
         if pending.command.media_type=='video' and closing:
             owner=self._ended_batch if pending.command.operation=='end_album' else self._source_run
@@ -837,14 +843,17 @@ class NativeDesktopFileConnection:
         return ended
 
     def request_source(self, action, operation, *, enabled=None, kinds=(), album_id=None, desktop_choice=None,
-            media_type=None, clock=now_ms):
+            media_type=None, native_current=None, clock=now_ms):
         """One explicit native source command, not a personal queue or scheduler.
         Native receive consent/actual control echo may bootstrap source send-OFF.
         Exact remote catalog selections remain metadata, never an Android read grant.
         """
         self._take_action(action)
         if type(operation) is not str:raise TransferError('file_desktop_source_invalid_options')
+        if native_current is not None and not callable(native_current):raise TransferError('media_incoming_native_operation_required')
         with self._operation():
+            constraint=_NativeMediaOperationConstraint(native_current) if native_current is not None else None
+            if constraint is not None:constraint.require_current()
             self._receiving_policy(closing=operation in ('run_status','cancel_run','end_run','end_album','resume_status','cancel_resume','end_resume'))
             if self._source_pending is not None:
                 raise TransferError('file_desktop_source_command_busy')
@@ -973,7 +982,7 @@ class NativeDesktopFileConnection:
             ticket = self._controls.receiver_command_ticket()
             self._source_pending = _NativeDesktopSourceCommand(ticket, message, command, self._controls.receiver_command_witness(ticket),
                 album_kind=album.kind if operation in ('run','batch_run','resume_run') else None,
-                video_negotiated=self._authority.video_available(),video_policy_version=video_policy_version)
+                video_negotiated=self._authority.video_available(),video_policy_version=video_policy_version,native_constraint=constraint)
             self._source_control_required = None
             self._send_source_pending(clock, action)
             return message['message_id']
@@ -1125,6 +1134,8 @@ class NativeDesktopFileConnection:
             self._source_media_pages = (); self._source_media_entries = None
         elif command.operation in ('run', 'batch_run', 'next_batch', 'run_status', 'cancel_run', 'offer_run', 'resume_run', 'resume_status', 'cancel_resume', 'offer_resume'):
             self._source_run = result  # Canceled/snapshot-ready still do not release a native whole run.
+            if command.operation in ('run','batch_run','resume_run') or command.operation=='next_batch' and pending.native_constraint is not None:
+                self._source_native_constraint=pending.native_constraint
             if command.operation in ('run', 'batch_run', 'next_batch', 'resume_run'):
                 self._ended_batch = self._ended_batch_policy = None
                 if command.operation != 'next_batch':
@@ -1188,6 +1199,11 @@ class NativeDesktopFileConnection:
         checkpoint=self._checkpoint_binding_owner
         if checkpoint is not None and checkpoint[1]==threading.get_ident() and media_type=='video':
             return self._owned_video_checkpoint_binding(checkpoint[0])
+        checkpoint_owned=(checkpoint is not None and checkpoint[1]==threading.get_ident()
+            and checkpoint[0] is self._run and self._run.stop_requested.is_set())
+        if not checkpoint_owned:
+            constraint=self._run.native_constraint if self._run is not None else self._source_native_constraint if self._source_run is not None else None
+            if constraint is not None:constraint.require_current()
         snapshot = self._receiving_policy()
         destination=self._receive_destination(snapshot,media_type=media_type)
         token=snapshot.policy.destination_token if media_type=='images' else snapshot.policy.videos.destination_token
@@ -1744,7 +1760,7 @@ class NativeDesktopFileConnection:
                 mapping_store=self._verify_expected_mapping_store(),version_parents=parents) if self._source_media_pages else None
             self._verify_job_mapping_store(history)
             action.validate(self)
-            self._run = _NativeDesktopReceiveRun(snapshot.version, accepted,
+            self._run = _NativeDesktopReceiveRun(snapshot.version, accepted,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images')
             self._mutation_action = action
             try:
@@ -1824,7 +1840,7 @@ class NativeDesktopFileConnection:
                 if (original.source_epoch,original.media_type,original.entries) != (current.source_epoch,current.media_type,current.entries):
                     raise TransferError('file_desktop_resume_media_association_changed')
             action.validate(self)
-            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,
+            self._run = _NativeDesktopReceiveRun(snapshot.version, job.accepted, job=job,native_constraint=self._source_native_constraint,
                 media_type=self._source_run.media_type if self._source_run is not None else 'images',
                 resume_source_run_id=self._resume_source_id)
             self._run.receiver = NativeFileReceiveOperation.resume(self._catalog, job, self._receive_binding,
@@ -2312,10 +2328,28 @@ class NativeDesktopFileConnection:
             self._gate.release()
 
 
+class _NativeMediaOperationConstraint:
+    """Deny-only native lifetime; a positive callback can never grant file I/O."""
+    def __init__(self,current):
+        if not callable(current):raise TransferError('media_incoming_native_operation_required')
+        self._current=current;self._failed=threading.Event()
+
+    def close(self):self._failed.set()
+
+    def require_current(self):
+        if self._failed.is_set():raise TransferError('media_incoming_operation_ended')
+        try:
+            if self._current() is not True:raise TransferError('media_incoming_operation_ended')
+            if self._failed.is_set():raise TransferError('media_incoming_operation_ended')
+            return True
+        except BaseException:self._failed.set();raise
+
+
 @dataclass
 class _NativeDesktopReceiveRun:
     policy_version: str
     accepted: NativeAcceptedTransfer
+    native_constraint: object = None
     receiver: NativeFileReceiveOperation | None = None
     job: object = None
     acceptance: dict | None = None
@@ -2367,11 +2401,12 @@ class NativePhotoAlbumWorker:
     Activity callbacks receive this exact owner, so an old END cannot clear a
     newer worker's tray state. OS/UI consumers must marshal callbacks themselves.
     """
-    def __init__(self, connection, album_id, desktop_choice, activity_changed, *, media_type='images',book_fence=None):
+    def __init__(self, connection, album_id, desktop_choice, activity_changed, *, media_type='images',book_fence=None,native_current=None):
         self._connection = connection
         self._album_id = album_id; self._desktop_choice = desktop_choice
         self._media_type = media_type
         self._book_fence=book_fence;self._book_policy=None;self._cleaning=False
+        self._native_constraint=_NativeMediaOperationConstraint(native_current) if native_current is not None else None
         self._activity_changed = activity_changed
         self._stop = threading.Event(); self._ended = threading.Event()
         self._state_gate = threading.Lock()
@@ -2432,6 +2467,7 @@ class NativePhotoAlbumWorker:
                     connection._update_condition.wait(min(remaining, 0.25))
 
     def _require_book(self):
+        if not self._cleaning and self._native_constraint is not None:self._native_constraint.require_current()
         if self._book_fence is not None and not self._cleaning:
             version,started,deadline=self._book_fence
             now=time.monotonic()
@@ -2441,6 +2477,7 @@ class NativePhotoAlbumWorker:
 
     def _command(self, operation, **options):
         connection = self._connection
+        if not self._cleaning and self._native_constraint is not None:options['native_current']=self._native_constraint.require_current
         if self._media_type == 'video':
             options['media_type'] = self._media_type
         def send():
@@ -2699,6 +2736,7 @@ class NativePhotoDesktopSession:
         self._video_destination=None; self._video_albums=[]; self._video_permission=None
         self._mode='manual';self._pending_mode=None;self._automatic_paused=False
         self._shared_schedule_token=None;self._shared_automatic=False
+        self._shared_run_constraint=None
         self._timer=None;self._sync_active=False
         self._recovery=[];self._recovery_result=None
         self._separate_animations=False
@@ -2900,16 +2938,19 @@ class NativePhotoDesktopSession:
 
     def _wait(self, generation, seconds=.25):
         if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+        if self._shared_run_constraint is not None:self._shared_run_constraint.require_current()
         self.connection._ready()
         with self.connection._update_condition:
             if self.connection._update_generation==generation:
                 self.connection._update_condition.wait(seconds)
 
     def _command(self, operation, **options):
+        if self._shared_run_constraint is not None:options['native_current']=self._shared_run_constraint.require_current
         deadline=time.monotonic()+MAX_TTL_MS/1000; sent=False
         while time.monotonic()<deadline:
             generation=self.connection._update_generation
             if self._stop.is_set():raise TransferError('photo_sync_action_stopped')
+            if self._shared_run_constraint is not None:self._shared_run_constraint.require_current()
             try:
                 if not sent:
                     self.connection.request_source(self.connection.issue_receive_action(),operation,**options)
@@ -3062,8 +3103,10 @@ class NativePhotoDesktopSession:
     def _run(self, operation, album_id, schedule_run=None, job_owner=None,historical_choice=None,destination_path=None,video_album_id=None):
         syncing=operation in ('sync','videos_sync','sync_selected','sync_shared','automatic')
         if syncing:self._sync_activity(True)
+        shared_constraint=None
         try:
             book_fence=None
+            shared_token=None
             transport=self.connection._media_transport
             if syncing and transport is not None and transport._display_body is not None:
                 # Once shared settings exist, legacy selected-album actions
@@ -3077,15 +3120,39 @@ class NativePhotoDesktopSession:
                     if transport.intent_for(kind) is not None or transport.intent_for(kind,to_phone=True) is not None]
                 if not kinds or any(transport.intent_for(kind) is None and transport.intent_for(kind,to_phone=True) is None for kind in kinds):
                     raise TransferError('media_source_current_intent_required')
-            if syncing:
+                shared_token=transport.intent_for(kinds[0]) or transport.intent_for(kinds[0],to_phone=True)
+                if operation=='automatic' and (not self._shared_automatic or self._shared_schedule_token is not shared_token):
+                    raise TransferError('media_source_wifi_automatic_composition_required')
+            if syncing and shared_token is None:
                 from magnolie_media_retention import maintain_native_media_trash
                 maintain_native_media_trash(self.connection._authority.binding.native_directory,
                     lambda:not self._stop.is_set() and not self.connection._closed.is_set())
-            if operation in ('sync_selected','sync_shared'):
+            if operation in ('sync_selected','sync_shared') or shared_token is not None:
                 from magnolie_media_retention import NativeMediaRetention
                 with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
                     started=time.monotonic()
                     book_fence=(policy.saved_book_version(),started,started+policy.MAX_ACTIVE_COPY_SECONDS)
+            if shared_token is not None:
+                original_book=book_fence
+                original_kinds=tuple(kinds)
+                def original_current():
+                    self.connection._ready();now=time.monotonic()
+                    if (self._stop.is_set() or not original_book[1]<=now<original_book[2]
+                            or self.connection._native_metadata_current() is not True
+                            or operation=='automatic' and self.connection._native_wifi_current() is not True
+                            or any(transport.intent_for(kind) is not shared_token
+                                and transport.intent_for(kind,to_phone=True) is not shared_token for kind in original_kinds)):
+                        raise TransferError('media_incoming_operation_ended')
+                    # Socket callbacks use their own protected DB owner, never
+                    # the album worker's SQLite object from another thread.
+                    with NativeMediaRetention(self.connection._authority.binding.native_directory) as current_book:
+                        if current_book.saved_book_version()!=original_book[0]:raise TransferError('media_retention_lease_changed')
+                    return True
+                shared_constraint=_NativeMediaOperationConstraint(original_current)
+                self._shared_run_constraint=shared_constraint
+                shared_constraint.require_current()
+                from magnolie_media_retention import maintain_native_media_trash
+                maintain_native_media_trash(self.connection._authority.binding.native_directory,shared_constraint.require_current)
             if operation in ('enable','resume_automatic'):
                 if operation=='resume_automatic':
                     before=self.connection._preferences.read();policy=before.policy
@@ -3170,6 +3237,7 @@ class NativePhotoDesktopSession:
                         and self.connection._authority.video_available()):media_types.append('video')
                 for media_type in media_types:
                     if self._stop.is_set():break
+                    if shared_constraint is not None:shared_constraint.require_current()
                     if book_fence is not None:
                         with NativeMediaRetention(self.connection._authority.binding.native_directory) as policy:
                             if policy.saved_book_version()!=book_fence[0]:raise TransferError('media_retention_lease_changed')
@@ -3180,7 +3248,8 @@ class NativePhotoDesktopSession:
                         if operation=='automatic' and (not self._shared_automatic or self._shared_schedule_token is not outgoing):
                             raise TransferError('media_source_wifi_automatic_composition_required')
                         worker=self.connection.start_mapped_media_worker(self.connection.issue_receive_action(),kind=media_type,
-                            book_fence=book_fence,automatic=operation=='automatic')
+                            book_fence=book_fence,automatic=operation=='automatic',
+                            native_current=shared_constraint.require_current if shared_constraint is not None else None)
                         with self._lock:self._worker=worker;self._state='syncing'
                         self._notify()
                         while not worker.join(.25):
@@ -3205,8 +3274,10 @@ class NativePhotoDesktopSession:
                     complete=True
                     for selected in albums:
                         if self._stop.is_set():break
+                        if shared_constraint is not None:shared_constraint.require_current()
                         options=dict(media_type=media_type,activity_changed=lambda owner,active:self._notify())
                         if book_fence is not None:options['book_fence']=book_fence
+                        if shared_constraint is not None:options['native_current']=shared_constraint.require_current
                         worker=self.connection.start_album_worker(self.connection.issue_receive_action(),selected,True,**options)
                         with self._lock:self._worker=worker; self._state='syncing'
                         self._notify()
@@ -3224,6 +3295,9 @@ class NativePhotoDesktopSession:
         except Exception as error:
             with self._lock:self._state='held';self._error=str(error)
         finally:
+            if shared_constraint is not None:
+                shared_constraint.close()
+                if self._shared_run_constraint is shared_constraint:self._shared_run_constraint=None
             try:
                 with self._lock:
                     disable=self._disable_pending;self._disable_pending=False
@@ -3268,6 +3342,7 @@ class _NativeDesktopSourceCommand:
     message: dict
     command: source_messages.SourceCommand
     remote_witness: tuple
+    native_constraint: object = None
     sent: bool = False
     album_kind: str | None = None
     video_negotiated: bool = False
