@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import importlib.util, struct, unittest, tempfile, subprocess, json
+import importlib.util, struct, unittest, tempfile, subprocess, json, sys
+sys.dont_write_bytecode=True
 from datetime import datetime, timedelta
 from pathlib import Path
 spec=importlib.util.spec_from_file_location('tzif_builder',Path(__file__).with_name('build-tzif.py'))

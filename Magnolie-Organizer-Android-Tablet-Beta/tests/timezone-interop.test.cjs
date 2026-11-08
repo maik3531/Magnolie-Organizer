@@ -21,9 +21,10 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
   },0);}};
   let coreSHA256='';
   try {
-    for(const f of ['beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','anwendung.js']) {
+    for(const f of ['normative-timezones.js','beta-i18n.js','tablet.js','i18n.js','i18n-active.js','i18n-start.js','anwendung.js']) {
       const source=f==='anwendung.js' && process.env.TIMEZONE_INTEROP_PUBLISHED==='1'
         ? require('node:child_process').execFileSync('git',['show','v2.0.30:magnolie-organizer/web/anwendung.js'],{cwd:path.join(root,'..'),encoding:'utf8',maxBuffer:4*1024*1024}) : read(f);
+      if(f==='anwendung.js') assert.equal(w.MagnolieTime.identity.payloadSHA256,'2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c');
       if(f==='anwendung.js') coreSHA256=createHash('sha256').update(source).digest('hex');
       w.eval(source);
     }

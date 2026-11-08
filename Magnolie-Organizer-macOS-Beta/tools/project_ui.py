@@ -44,6 +44,26 @@ def inventory(snapshot):
     return {name: digest(data) for name, data in snapshot.items()}
 
 
+def timezone_assets(snapshot):
+    prefix = "port-adapters/timezones/"
+    data = snapshot[prefix + "tzdb-2026egtz.json"]
+    manifest = json.loads(snapshot[prefix + "provenance.json"])
+    if (manifest.get("schema") != 2 or manifest.get("tzdbVersion") != "2026egtz" or manifest.get("payloadBytes") != 428473 or
+            manifest.get("payloadSHA256") != "2e6b1c9da8c9b2a98d8b9c9c6addb4b93b6de37a19e76120361eff245cc87e9c" or
+            digest(data) != manifest["payloadSHA256"] or digest(snapshot[prefix + "LICENSE-tzdb.txt"]) != manifest.get("licenseSHA256")):
+        raise ValueError("Normative timezone source/identity/license mismatch")
+    bootstrap = snapshot[prefix + "bootstrap.template.js"].decode()
+    for marker, value in [("/*NORMATIVE_TZDB_TEXT*/null", json.dumps(data.decode())),
+                          ("/*NORMATIVE_TZDB_MANIFEST*/null", snapshot[prefix + "provenance.json"].decode().strip())]:
+        if bootstrap.count(marker) != 1:
+            raise ValueError("Normative timezone bootstrap anchor changed")
+        bootstrap = bootstrap.replace(marker, value, 1)
+    result = {"normative-timezones.js": snapshot[prefix + "resolver.js"] + b"\n" + snapshot[prefix + "port-runtime.js"] + b"\n" + bootstrap.encode()}
+    for name in ["tzdb-2026egtz.json", "provenance.json", "LICENSE-tzdb.txt"]:
+        result["timezones/" + name] = snapshot[prefix + name]
+    return result
+
+
 def replace_once(text, old, new):
     if text.count(old) != 1:
         raise ValueError("Canonical UI anchor changed; review the projection: " + old[:100])
@@ -285,6 +305,12 @@ def project(snapshot, target):
                         "\n".join('<script src="i18n/' + file.name + '"></script>' for file in catalogs))
     html = replace_once(html, '<script src="anwendung.js"></script>',
                         '<script src="macos-beta.js"></script>\n<script src="system-accounts.js"></script>\n<script src="anwendung.js"></script>')
+    html = replace_once(html, '<script src="macos-beta.js"></script>',
+                        '<script src="normative-timezones.js"></script>\n<script src="macos-beta.js"></script>')
+    for name, data in timezone_assets(snapshot).items():
+        destination = target / "web" / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(data)
     index.write_text(html)
     # Reuse the shared gettext-generated catalogs for native standard controls.
     native = shared_catalogs(snapshot)

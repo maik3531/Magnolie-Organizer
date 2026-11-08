@@ -59,6 +59,14 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 }
 markCandidateStale('Projection regeneration in progress; artifact verification pending');
+const timezoneRoot=path.join(parent,'port-adapters/timezones');
+const timezoneInput=name=>buffers.get(path.join(timezoneRoot,name));
+const timezoneBuilder={module:{exports:{}},Buffer,require:name=>{
+  if(name!=='node:crypto') throw Error('Unexpected timezone build dependency');
+  return require(name);
+}};
+vm.runInNewContext(timezoneInput('projection-assets.cjs').toString(),timezoneBuilder,{filename:'shared-timezone-assets.cjs'});
+const timezoneAssets=timezoneBuilder.module.exports(timezoneInput);
 const generated = new Map();
 for (const [p,b] of buffers) if (p.startsWith(desktop + path.sep)) generated.set('assets/web/'+path.relative(desktop,p),b);
 // Android does not provide the desktop's Noto Serif / DejaVu families by name.
@@ -156,6 +164,9 @@ let html = buffers.get(path.join(desktop,'index.html')).toString();
 if (!html.includes('<script src="anwendung.js"></script>')) throw Error('Desktop entry point changed');
 html = html.replace('<title>Magnolie Organizer</title>', '<title>Magnolie Organizer Android Tablet Beta 2.0.30Beta</title>')
   .replace('</head>', '<link rel="stylesheet" href="desktop-fonts.css">\n<link rel="stylesheet" href="tablet.css">\n<script src="tablet.js"></script>\n</head>');
+if(html.split('<script src="tablet.js"></script>').length!==2) throw Error('Tablet bootstrap ordering anchor changed');
+html=html.replace('<script src="tablet.js"></script>','<script src="normative-timezones.js"></script>\n<script src="tablet.js"></script>');
+for(const [name,bytes] of Object.entries(timezoneAssets)) generated.set('assets/web/'+name,bytes);
 generated.set('assets/web/index.html',Buffer.from(html));
 for (const f of ['tablet.js','tablet.css']) generated.set('assets/web/'+f,buffers.get(path.join(root,'web',f)));
 generated.set('assets/web/tablet.css',Buffer.concat([generated.get('assets/web/tablet.css'),
@@ -194,6 +205,7 @@ fs.rmSync(out,{recursive:true});
 for (const [p,b] of generated) { const dest = path.join(out,p); fs.mkdirSync(path.dirname(dest),{recursive:true}); fs.writeFileSync(dest,b); }
 const manifest = {format:1, kind:'debug-beta-generated-build-projection', sourceHash, inputs:hashes,
   transformations:['index: beta title, adapter and responsive stylesheet',
+    'timezones: verified common normative data/resolver/runtime/license loaded synchronously before the adapter and app (no UI time-path hooks yet)',
     'alarms: shared port-adapters helper preserves opaque DISPLAY properties/parameters and blocks ambiguous edits',
     'fonts: live Windows font-face rules, bundled font bytes and licenses (no Android system-font substitution)',
     'anwendung: expose existing editor guard + durable action queue; reuse canonical DAV account/selection renderers for native setup and read-only discovery with revision fences; keep synchronization unsupported; expose regional form and suppress unsupported native automatic time-zone polling',
