@@ -26,6 +26,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
     private var documentGeneration = UUID()
     private var catalog: [String: String] = [:]
     private let systemAccounts = SystemAccounts()
+    private var davAccounts: DAVAccountService!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -37,6 +38,7 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
             let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                      appropriateFor: nil, create: true)
             store = try AtomicStore(directory: support.appendingPathComponent("io.gitlab.maik3531.MagnolieOrganizer.macOSBeta"))
+            davAccounts = DAVAccountService(configuration: try DAVAccountFileStore(directory: store.file.deletingLastPathComponent()))
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
             let bridge = "macOSBeta" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -173,7 +175,9 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 if failureCount >= 3 { unlockAfter = Date().addingTimeInterval(300); failureCount = 0 }
                 result["wartet"] = max(0, Int(ceil(unlockAfter.timeIntervalSinceNow)))
             }
-            send("failure", result)
+            if ["baum_briefkasten_status", "baum_briefkasten_speichern", "baum_briefkasten_pruefen", "baum_dav_pruefen"].contains(command), plain != nil {
+                accountFailure(command: command, code: "invalid_request", message: message, requestID: result["requestId"] as? String)
+            } else { send("failure", result) }
         }
     }
     private func send(_ method: String, _ payload: Any = [:]) {
@@ -183,6 +187,21 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 self.plain = nil; self.encryption = nil; self.documentGeneration = UUID()
                 self.alert("UI response failed. Further saves are blocked; restart and inspect the retained file.")
             }
+        }
+    }
+    private func accountCallback(_ command: String) -> String {
+        ["baum_briefkasten_status": "baumBriefkastenStatus", "baum_briefkasten_speichern": "baumBriefkastenGespeichert",
+         "baum_briefkasten_pruefen": "baumBriefkastenPruefung", "baum_dav_pruefen": "baumDavPruefung"][command]!
+    }
+    private func accountFailure(command: String, code: String, message: String, requestID: String?) {
+        let generation = documentGeneration
+        Task { @MainActor in
+            let current = await self.davAccounts.status()
+            var payload = current.payload(requestID: requestID, persisted: command == "baum_briefkasten_speichern" ? false : nil)
+            payload["ok"] = false; payload["fehler"] = message; payload["fehlerCode"] = code
+            if command == "baum_dav_pruefen" { payload["errorCode"] = code; payload["reachable"] = false; payload["partial"] = false }
+            guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+            self.send(self.accountCallback(command), payload)
         }
     }
     private func initialize(_ text: String?, new: Bool = false, locked: Bool = false) throws {
@@ -338,6 +357,42 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                     self.send("failure", ["cmd": "sicherung_wiederherstellen", "ok": false, "fehler": self.tr(error.localizedDescription)])
                 }
             }
+        case .baum_briefkasten_status, .baum_briefkasten_speichern, .baum_briefkasten_pruefen, .baum_dav_pruefen:
+            guard plain != nil else { throw BetaError("Unlock first.") }
+            let generation = documentGeneration
+            let requestID = request.fields["requestId"] as? String
+            let command = request.command.rawValue
+            Task { @MainActor in
+                do {
+                    let payload: [String: Any]
+                    switch request.command {
+                    case .baum_briefkasten_status:
+                        payload = await self.davAccounts.status().payload(requestID: requestID)
+                    case .baum_briefkasten_speichern:
+                        guard let kind = DAVAccountType(rawValue: request.text("kontoArt")) else { throw DAVAccountError.invalidConfiguration }
+                        let configuration = try DAVAccountConfiguration(kontoArt: kind,
+                            davAktiv: request.fields["davAktiv"] as! Bool,
+                            briefkastenAktiv: request.fields["briefkastenAktiv"] as! Bool,
+                            server: request.text("url"), benutzer: request.text("benutzer"))
+                        let saved = try await self.davAccounts.save(expectedRevision: request.text("expectedRevision"),
+                            configuration: configuration, applicationPassword: request.text("anwendungskennwort"),
+                            clearPassword: request.fields["kennwortLoeschen"] as! Bool)
+                        payload = saved.payload(requestID: requestID, persisted: true)
+                    default:
+                        let discovery = try await self.davAccounts.discover(expectedRevision: request.text("expectedRevision"))
+                        if request.command == .baum_dav_pruefen {
+                            guard let requestID else { throw BetaError("A connection test identifier is required.") }
+                            payload = discovery.connectionTestPayload(requestID: requestID)
+                        } else { payload = discovery.status.payload(requestID: requestID) }
+                    }
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.send(self.accountCallback(command), payload)
+                } catch {
+                    guard self.plain != nil, !self.restoring, self.documentGeneration == generation else { return }
+                    self.accountFailure(command: command, code: DAVAccountService.code(error),
+                        message: self.tr("The DAV account operation failed."), requestID: requestID)
+                }
+            }
         case .eds_status, .macos_systemzugriff:
             guard plain != nil else { throw BetaError("Unlock first.") }
             let generation = documentGeneration
@@ -349,6 +404,14 @@ final class Host: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMes
                 do {
                     if let accessKind { try await self.systemAccounts.requestAccess(accessKind) }
                     response = try await self.systemAccounts.status(requestID: requestID)
+                    let dav = await self.davAccounts.status().payload()
+                    for key in ["kalender", "adressbuecher"] {
+                        let combined = (response[key] as? [[String: Any]] ?? []) + (dav[key] as? [[String: Any]] ?? [])
+                        response[key] = combined
+                        response[key == "kalender" ? "alleKalender" : "alleAdressbuecher"] = combined
+                    }
+                    response["verfuegbar"] = !(response["kalender"] as? [[String: Any]] ?? []).isEmpty ||
+                        !(response["adressbuecher"] as? [[String: Any]] ?? []).isEmpty
                 } catch {
                     response = ["macos": true, "fehler": error.localizedDescription,
                                 "systemAccountSyncImplemented": false]

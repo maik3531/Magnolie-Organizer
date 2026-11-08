@@ -105,10 +105,12 @@ def project(snapshot, target):
                         "  function normalisiere(roh) { return window.MacBeta.preserve(roh, normalisiereDesktop(roh)); }\n"
                         "  function normalisiereDesktop(roh) {")
     text = replace_once(text, "  function baueSeiteSync(wurzel) {", '''  function baueSeiteSync(wurzel) {
-    window.MacBetaSystemAccounts.render(wurzel, { tr: _, id: uid,
+    const systemSources = el("div"); wurzel.append(systemSources);
+    window.MacBetaSystemAccounts.render(systemSources, { tr: _, id: uid,
       settings: () => DATEN.einstellungen.sync,
       change: values => { wendeSyncEinstellungenDatenAn(values); planeSpeichern(); },
-      send: message => Bruecke.sende(message) }); return;''')
+      send: message => Bruecke.sende(message) });
+    baueNextcloudKonto(wurzel); return;''')
     text = replace_once(text, "  function starteSync(stumm) {", '''  function starteSync(stumm) {
     if (!stumm) zettel("macOS system source synchronization is not implemented. No system data was changed."); return;''')
     for function in ["baueSicherungsdateien"]:
@@ -122,6 +124,10 @@ def project(snapshot, target):
           if (pfad) zeigeSicherungsanlage(pfad);
           else Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''',
                         '''          Bruecke.sende({ cmd: "sicherung", pfad: "", kennwort: "" });''')
+    text = replace_once(text, '        kennwortLoeschen: !!kennwortLoeschen });',
+                        '        kennwortLoeschen: !!kennwortLoeschen, expectedRevision: briefkastenStand.revision });')
+    text = replace_once(text, 'Bruecke.sende({ cmd: "baum_briefkasten_pruefen" })',
+                        'Bruecke.sende({ cmd: "baum_briefkasten_pruefen", expectedRevision: briefkastenStand.revision })')
     # Native time-zone management/refresh is not implemented by the Beta.
     # Keep imported preferences intact without sending unsupported MCP requests.
     text = replace_once(text, "  function oeffneZeitzonenManagement() {",

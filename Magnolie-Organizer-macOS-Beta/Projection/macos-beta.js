@@ -6,7 +6,8 @@
   const identity = /*GENERATED_IDENTITY*/{};
   const methods = new Set(["init", "gespeichert", "kennwortStand", "ablage", "sicherungFertig",
     "exportErgebnis", "importErgebnis", "notizAnhangDateiErgebnis", "erinnerungStand", "vorBeenden", "mutationsSnapshot",
-    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus"]);
+    "sicherungAusgewaehlt", "sicherungWiederhergestellt", "regionalErgebnis", "feiertageErgebnis", "edsStatus", "baumBriefkastenStatus",
+    "baumBriefkastenGespeichert", "baumBriefkastenPruefung", "baumDavPruefung"]);
   const unsupported = "Not implemented in Magnolie Organizer macOS Beta. Nothing was changed.";
   const notice = "macOS Beta: local editing/deletion with pre-change recovery files; encrypted JSON backup and full JSON restore; calendar, task and anniversary ICS; " +
     "attachment Save; clipboard; reminders only while open. No sync, background " +

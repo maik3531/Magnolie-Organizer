@@ -95,6 +95,37 @@ try {
   assert.throws(() => w.MacBeta.calendarMetadata(t.daten(), { icsImportMetadata: { ...importedHeader, sourceSHA256: "__proto__" } }, false)); assertions++;
   assert.throws(() => w.MacBeta.receive("importErgebnis", { ...calendarPayload, icsImportMetadata: { ...importedHeader, calendarProperties: ["X-CONFLICT:reject"] } })); assertions++;
   assert.equal(t.daten().termine.length, importedCount); assertions++;
+  t.oeffneEinstellungen();
+  const davRevision = "1".repeat(64), savedDAVRevision = "2".repeat(64);
+  const davBase = { kontoArt: "nextcloud", davAktiv: false, briefkastenAktiv: false, url: "", benutzer: "",
+    kennwortVorhanden: false, revision: davRevision, zustand: "nicht_eingerichtet", fehler: "", fehlerCode: "none" };
+  const profileBeforeDAV = JSON.stringify(t.daten());
+  assert.ok(messages.some(m => m.cmd === "baum_briefkasten_status")); assertions++;
+  w.MacBeta.receive("baumBriefkastenStatus", davBase);
+  const davForm = w.document.getElementById("nextcloud-konto");
+  assert.ok(davForm); assertions++;
+  for (const [id, value] of [["briefkasten-url", "https://cloud.example.test"], ["briefkasten-benutzer", "synthetic-user"]]) {
+    const field = w.document.getElementById(id); field.value = value; field.dispatchEvent(new w.Event("input"));
+  }
+  w.document.getElementById("nextcloud-dav-an").checked = true;
+  w.document.getElementById("briefkasten-kennwort").value = "public-synthetic-app-password";
+  [...davForm.querySelectorAll("button")].find(button => button.textContent === "Save").click();
+  const saveDAV = messages.filter(m => m.cmd === "baum_briefkasten_speichern").at(-1);
+  assert.equal(saveDAV.expectedRevision, davRevision); assertions++;
+  assert.equal(saveDAV.anwendungskennwort, "public-synthetic-app-password"); assertions++;
+  assert.equal(saveDAV.briefkastenAktiv, false); assertions++;
+  assert.equal(w.document.getElementById("briefkasten-kennwort").value, ""); assertions++;
+  assert.equal(JSON.stringify(t.daten()), profileBeforeDAV); assertions++;
+  const savedDAV = { ...davBase, url: saveDAV.url, benutzer: saveDAV.benutzer, davAktiv: true,
+    kennwortVorhanden: true, revision: savedDAVRevision, zustand: "bereit", persisted: true };
+  w.MacBeta.receive("baumBriefkastenGespeichert", savedDAV);
+  const testDAVButton = [...w.document.getElementById("nextcloud-konto").querySelectorAll("button")]
+    .find(button => button.textContent === "Test connection");
+  testDAVButton.click();
+  assert.equal(messages.filter(m => m.cmd === "baum_briefkasten_pruefen").at(-1).expectedRevision, savedDAVRevision); assertions++;
+  w.MacBeta.receive("baumBriefkastenPruefung", { ...savedDAV, connectivityChecked: true, kalender: [], adressbuecher: [] });
+  assert.equal(JSON.stringify(t.daten()), profileBeforeDAV); assertions++;
+  assert.equal(w.document.getElementById("sync-jetzt").disabled, true); assertions++;
   // Ensure encryption still waits for a real pending native save.
   t.daten().notizen[0].text = "pending native save before encryption";
   t.speichereJetzt();

@@ -16,10 +16,10 @@ Windows contract SHA-256: `3894a97cf712408291d4976814ae1510899ab5bbc19358f09f619
 | `background_settings_get` | yes | yes | UNSUPPORTED: negative Beta response |
 | `background_settings_set` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_bestaetigen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_pruefen` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_speichern` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_briefkasten_status` | yes | yes | UNSUPPORTED: negative Beta response |
-| `baum_dav_pruefen` | — | yes | UNSUPPORTED: negative Beta response |
+| `baum_briefkasten_pruefen` | yes | yes | partial: explicit bounded DAV collection discovery; no data synchronization |
+| `baum_briefkasten_speichern` | yes | yes | partial: revision-bound config/credential transaction; Nextcloud mailbox unsupported |
+| `baum_briefkasten_status` | yes | yes | partial: native DAV configuration and Keychain availability; no sync |
+| `baum_dav_pruefen` | — | yes | partial: correlated read-only DAV connection discovery; no data synchronization |
 | `baum_delegieren` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_ein` | yes | yes | UNSUPPORTED: negative Beta response |
 | `baum_eingang_geleert` | yes | yes | UNSUPPORTED: negative Beta response |

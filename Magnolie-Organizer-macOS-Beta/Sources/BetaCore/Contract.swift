@@ -7,6 +7,7 @@ public struct BetaError: LocalizedError {
 }
 
 public enum Command: String, CaseIterable {
+    case baum_briefkasten_status, baum_briefkasten_speichern, baum_briefkasten_pruefen, baum_dav_pruefen
     case `import`
     case bereit, entsperren, speichern, kennwort_setzen
     case beenden, beenden_bereit, beenden_abgebrochen
@@ -48,6 +49,18 @@ public struct Request {
             schema.merge(["land": "string", "region": "string", "regionen": "array", "jahre": "years",
                           "ferien": "bool", "regionErforderlich": "bool", "requestId": "string"]) { _, b in b }
             optional = ["region", "regionen", "ferien", "regionErforderlich", "requestId"]
+        case .baum_briefkasten_status:
+            schema["requestId"] = "string"; optional = ["requestId"]
+        case .baum_briefkasten_speichern:
+            schema.merge(["kontoArt": "string", "davAktiv": "bool", "briefkastenAktiv": "bool",
+                          "url": "string", "benutzer": "string", "anwendungskennwort": "string",
+                          "kennwortLoeschen": "bool", "expectedRevision": "string", "requestId": "string"]) { _, b in b }
+            optional = ["requestId"]
+        case .baum_dav_pruefen:
+            schema.merge(["expectedRevision": "string", "requestId": "string"]) { _, b in b }
+        case .baum_briefkasten_pruefen:
+            schema.merge(["expectedRevision": "string", "requestId": "string"]) { _, b in b }
+            optional = ["requestId"]
         case .eds_status:
             schema["requestId"] = "string"; optional = ["requestId"]
         case .macos_systemzugriff:
@@ -91,12 +104,15 @@ public struct Request {
             }
             guard valid else { throw BetaError("Invalid bridge field type.") }
         }
-        if command == .eds_status || command == .macos_systemzugriff {
-            if let id = fields["requestId"] as? String {
-                guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid request identifier.") }
-            }
-            if command == .macos_systemzugriff {
-                guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
+        if let id = fields["requestId"] as? String {
+            guard !id.isEmpty, id.utf8.count <= 1024 else { throw BetaError("Invalid request identifier.") }
+        }
+        if command == .macos_systemzugriff {
+            guard SystemSourcePolicy.Kind(rawValue: fields["art"] as? String ?? "") != nil else { throw BetaError("Invalid macOS source kind.") }
+        }
+        if let revision = fields["expectedRevision"] as? String {
+            guard revision.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else {
+                throw BetaError("Invalid account revision.")
             }
         }
         if command == .speichern, ((fields["id"] as? NSNumber)?.int64Value ?? 0) < 1 {
