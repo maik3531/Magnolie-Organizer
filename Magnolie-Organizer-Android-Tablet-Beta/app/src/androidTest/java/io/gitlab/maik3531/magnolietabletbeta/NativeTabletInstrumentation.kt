@@ -387,6 +387,7 @@ class NativeTabletInstrumentation : Instrumentation() {
                 sendStatus(1,Bundle().apply {putString("stream","TOUCH_TIMEOUT_DIAGNOSTICS $diagnostic\n")})
                 "Timeout: trusted touch acknowledgement $section; technicalState=$diagnostic"
             }
+            val acknowledgedAt=SystemClock.elapsedRealtime()
             val ack=requireNotNull(incomingAck)
             check(ack.optString("kind")=="ack" && ack.optBoolean("trusted") &&
                 ack.getString("token")==inputToken && ack.getString("documentId")==inputDocument && ack.getInt("step")==i+1 &&
@@ -411,10 +412,15 @@ class NativeTabletInstrumentation : Instrumentation() {
             val total=SystemClock.elapsedRealtime()-started
             durations.put(total)
             navigationProof.put(JSONObject().put("target",prepared).put("injection",lastTouchTiming)
-                .put("ack",ack).put("prepareMs",preparedAt-started).put("ackWaitMs",SystemClock.elapsedRealtime()-returnedAt)
+                .put("ack",ack).put("prepareMs",preparedAt-started).put("ackWaitMs",acknowledgedAt-returnedAt)
                 .put("totalMs",total))
             android.util.Log.i("TabletNativeTest","TOUCH_ACK "+JSONObject(ack.toString()).apply {remove("token")}.toString())
-            phase("trusted-tab-switch-${i+1}")
+            val downCallMs=lastIssuedTouch.firstOrNull()?.let {it.returnedAt-it.callAt} ?: -1L
+            val upCallMs=lastIssuedTouch.lastOrNull()?.let {it.returnedAt-it.callAt} ?: -1L
+            val pairMs=if(lastIssuedTouch.size==2) lastIssuedTouch.last().event.eventTime-lastIssuedTouch.first().event.eventTime else -1L
+            phase("trusted-tab-switch-${i+1} prepareMs=${preparedAt-started} injectionMs=${returnedAt-preparedAt} " +
+                "ackWaitMs=${acknowledgedAt-returnedAt} totalMs=$total downCallMs=$downCallMs upCallMs=$upCallMs pairMs=$pairMs " +
+                "prepareEvaluations=${prepared.getInt("evaluations")} uiQueueMs=${prepared.getLong("uiQueueMs")} callbackMs=${prepared.getLong("evaluationCallbackMs")}")
         }
         pass("40 real touchscreen tab switches with 17 old series",durations)
         saved()
