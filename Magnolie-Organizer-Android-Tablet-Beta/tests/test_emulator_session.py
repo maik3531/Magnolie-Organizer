@@ -17,6 +17,32 @@ session = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(session)
 
 
+class EmulatorBootDiagnosticTests(unittest.TestCase):
+    def test_boot_failure_categories_are_fixed_and_do_not_emit_host_or_record_values(self):
+        output = session.emulator_boot_failure_signature(
+            'ERROR | Cannot launch multiple emulators with the same AVD /private/profile\n'
+            'FATAL: private document title\nGPU backend failed /private/password\n'
+            'Address already in use 5580\nKVM permission unavailable')
+        self.assertEqual(output['categories'], ['acceleration_failure','address_in_use','backend_failure','emulator_fatal','same_avd_running'])
+        self.assertTrue(output['recognized'])
+        self.assertNotIn('private', json.dumps(output))
+        self.assertEqual(session.emulator_boot_failure_signature('private document text'), {'categories':[], 'recognized':False})
+
+    def test_preboot_exit_keeps_original_failure_and_reads_only_bounded_tail(self):
+        with tempfile.NamedTemporaryFile(mode='w+') as log:
+            log.write('PANIC: out-of-bound prefix\n'+'x'*70000+'\nAddress already in use\nprivate record')
+            owner = unittest.mock.Mock()
+            child = unittest.mock.Mock(pid=123, returncode=7)
+            self.assertEqual(session.record_preboot_exit(owner,child,log),7)
+            event = owner.record.call_args
+            self.assertEqual(event.args, ('emulator-preboot-exit',))
+            self.assertEqual(event.kwargs['actualExit'],7)
+            self.assertEqual(event.kwargs['technical']['categories'],['address_in_use'])
+            self.assertNotIn('private',json.dumps(event.kwargs))
+            child.returncode=0
+            self.assertEqual(session.record_preboot_exit(owner,child,log),1)
+
+
 class PortAvailabilityTests(unittest.TestCase):
     def test_active_listener_rejected_even_with_address_reuse(self):
         with socket.socket() as server:

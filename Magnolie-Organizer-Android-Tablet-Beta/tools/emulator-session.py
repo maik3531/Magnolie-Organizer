@@ -355,6 +355,39 @@ def adb(owner, state, args, timeout=30):
                          timeout=timeout, env=environment(Path(state['run'])))
 
 
+def emulator_boot_failure_signature(output):
+    # Fixed categories only: emulator logs can contain host paths and command
+    # arguments. Never forward arbitrary lines from the combined session log.
+    patterns = {
+        'same_avd_running': r'(?:multiple emulators.*same AVD|another emulator.*(?:running|AVD)|AVD.*already running)',
+        'avd_lock': r'(?:could not|cannot|failed to).*(?:lock|lockfile)|(?:lock|lockfile).*already',
+        'address_in_use': r'address already in use|port.*(?:in use|already.*bound)|could not bind',
+        'missing_image': r'(?:missing|cannot find|not found|does not exist).*(?:system image|kernel|system\.img)|broken AVD system path',
+        'snapshot_failure': r'snapshot.*(?:failed|error|incompatible|cannot|could not)',
+        'backend_failure': r'(?:EGL|OpenGL|Vulkan|renderer|graphics|GPU|backend).*(?:failed|error|unavailable|cannot|could not)',
+        'acceleration_failure': r'(?:KVM|acceleration|hypervisor).*(?:failed|error|unavailable|cannot|could not|requires|permission)',
+        'disk_failure': r'no space left|not enough (?:disk|space)|disk.*(?:full|insufficient)',
+        'emulator_fatal': r'\b(?:PANIC|FATAL)\s*:',
+    }
+    categories = sorted(name for name, pattern in patterns.items() if re.search(pattern, output, re.I))
+    return dict(categories=categories, recognized=bool(categories))
+
+
+def record_preboot_exit(owner, child, log):
+    try:
+        log.flush()
+        with Path(log.name).open('rb') as source:
+            source.seek(0, os.SEEK_END)
+            source.seek(max(0, source.tell()-65536))
+            technical = emulator_boot_failure_signature(source.read(65536).decode('utf-8', errors='replace'))
+    except OSError:
+        technical = dict(categories=[], recognized=False, diagnosticUnavailable=True)
+    code = child.returncode or 1
+    owner.record('emulator-preboot-exit', pid=child.pid, actualExit=child.returncode,
+                 returnedExit=code, technical=technical)
+    return code
+
+
 def system_image(api, image):
     if api not in (34, 35) or image not in ('google_apis', 'default'):
         raise ValueError('Only supported API and exact Google/AOSP image identifiers are allowed')
@@ -432,7 +465,7 @@ def run_session(owner, opts, after_boot=None, run_tests=None):
         while True:
             owner.check(boot_deadline)
             if child.poll() is not None:
-                return child.returncode or 1
+                return record_preboot_exit(owner, child, log)
             try:
                 remaining = boot_deadline - time.monotonic()
                 if adb(owner, owner.state, ['shell', 'getprop', 'sys.boot_completed'], min(10, remaining)).strip() == '1':
