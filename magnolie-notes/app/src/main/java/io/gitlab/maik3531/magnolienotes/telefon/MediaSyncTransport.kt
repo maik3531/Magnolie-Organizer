@@ -17,8 +17,10 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
         internal val collectionMode: String get() = values.string("collection_mode")
         internal fun requested(mediaType: GalleryMediaType): Boolean = values["enabled"] == JsonPrimitive(true) &&
             values[if (mediaType == GalleryMediaType.IMAGES) "photos_enabled" else "videos_enabled"] == JsonPrimitive(true)
+        internal fun requestedOutgoing(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
+            values["direction"] in setOf(JsonPrimitive("phone_to_pc"), JsonPrimitive("two_way"))
         internal fun requestedIncoming(mediaType: GalleryMediaType): Boolean = requested(mediaType) &&
-            values["direction"] == JsonPrimitive("two_way")
+            values["direction"] in setOf(JsonPrimitive("pc_to_phone"), JsonPrimitive("two_way"))
     }
     @Volatile private var currentIntent: IntentToken? = null
     private data class ManualRequest(val id: String, val intent: IntentToken, val started: Long)
@@ -59,9 +61,9 @@ internal class MediaSyncTransport(private val binding: MediaSettingsBinding,
 
     // Native source checks may hold their index lock. This projection MUST NOT
     // acquire transport/Werk/storage locks or manufacture any permission.
-    internal fun intentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requested(mediaType) }
+    internal fun intentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requestedOutgoing(mediaType) }
 
-    // Incoming media needs the independently matched two-way direction. This
+    // Incoming media needs a matched direction that includes PC → phone. This
     // remains intent only: never Android consent or a file-control grant. Keep
     // it lock-free for receiver/index guards just like the outgoing projection.
     internal fun incomingIntentFor(mediaType: GalleryMediaType): Any? = currentIntent?.takeIf { it.requestedIncoming(mediaType) }

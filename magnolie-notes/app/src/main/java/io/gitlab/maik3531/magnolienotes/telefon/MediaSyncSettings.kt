@@ -25,13 +25,13 @@ internal object MediaSyncSettings {
         require(body.string("state") in setOf("content_pass", "review", "held"))
     }
     private val fields = linkedMapOf("photos_enabled" to "custom_enabled", "videos_enabled" to "time_enabled",
-        "auto_mode" to "auto_mode", "skip_deletions" to "skip_deletions", "collection_mode" to "content_mode", "direction" to "time_mode",
+        "auto_mode" to "auto_mode", "skip_deletions" to "skip_deletions", "collection_mode" to "content_mode", "direction" to "content_mode",
         "enabled" to "custom_enabled")
 
     private fun settingValue(field: String, raw: JsonElement, toRegisters: Boolean): JsonElement {
         val modes = when (field) {
-            "collection_mode" -> mapOf("phone_inventory" to "phone_scope", "entire_collection" to "two_way")
-            "direction" -> mapOf("phone_to_pc" to "phone_import", "two_way" to "two_way")
+            "collection_mode" -> mapOf("phone_inventory" to "phone_scope", "entire_collection" to "two_way", "import_only" to "phone_import")
+            "direction" -> mapOf("phone_to_pc" to "phone_import", "two_way" to "two_way", "pc_to_phone" to "phone_scope")
             "auto_mode" -> mapOf("manual" to "manual", "wifi" to "wifi")
             else -> return raw
         }
@@ -101,6 +101,9 @@ internal object MediaSyncSettings {
                 edit.jsonObject.getValue("counter").jsonPrimitive.long == newest &&
                     edit.jsonObject.getValue("value") == JsonPrimitive("manual") }) "manual" else "wifi")
         }
+        // Import never exports; retain the independently stored direction so
+        // switching scope does not rewrite the user's choice or edit history.
+        if (values["collection_mode"] == JsonPrimitive("import_only") && "direction" in values) values["direction"] = JsonPrimitive("phone_to_pc")
         return JsonObject(values)
     }
 
@@ -112,6 +115,12 @@ internal object MediaSyncSettings {
             fields.getValue(field), settingValue(field, value, true))
         values[field] = settingRegister(field, changed.getValue("settings").jsonObject.getValue(fields.getValue(field)), false)
         return validate(JsonObject(body + ("settings" to JsonObject(values))))
+    }
+
+    fun transferRequestedFor(body: JsonObject, mediaType: String, toPhone: Boolean): Boolean {
+        if (!requestedFor(body, mediaType)) return false
+        val direction = effective(body).string("direction")
+        return direction == "two_way" || direction == (if (toPhone) "pc_to_phone" else "phone_to_pc")
     }
 
     fun requestedFor(body: JsonObject, mediaType: String): Boolean {

@@ -15,11 +15,11 @@ KIND='file_transfer.shared_settings'
 START_KIND='file_transfer.sync_request'
 RESULT_KIND='file_transfer.sync_result'
 FIELDS={'photos_enabled':'custom_enabled','videos_enabled':'time_enabled','auto_mode':'auto_mode',
-    'skip_deletions':'skip_deletions','collection_mode':'content_mode','direction':'time_mode','enabled':'custom_enabled'}
+    'skip_deletions':'skip_deletions','collection_mode':'content_mode','direction':'content_mode','enabled':'custom_enabled'}
 DEFAULTS=dict(enabled=False,photos_enabled=True,videos_enabled=False,collection_mode='phone_inventory',
     auto_mode='manual',skip_deletions=False,direction='phone_to_pc')
-MODES={'collection_mode':{'phone_inventory':'phone_scope','entire_collection':'two_way'},
-    'direction':{'phone_to_pc':'phone_import','two_way':'two_way'},'auto_mode':{'manual':'manual','wifi':'wifi'}}
+MODES={'collection_mode':{'phone_inventory':'phone_scope','entire_collection':'two_way','import_only':'phone_import'},
+    'direction':{'phone_to_pc':'phone_import','two_way':'two_way','pc_to_phone':'phone_scope'},'auto_mode':{'manual':'manual','wifi':'wifi'}}
 
 
 def _value(field,value,to_registers):
@@ -71,6 +71,9 @@ def effective(body):
     if modes is not None:
         newest=max(edit['counter'] for edit in modes.values())
         result['auto_mode']='manual' if any(edit['counter']==newest and edit['value']=='manual' for edit in modes.values()) else 'wifi'
+    # Import scope never exports. Keep the independent stored direction for
+    # switching back to an inventory scope without rewriting its edit history.
+    if result.get('collection_mode')=='import_only' and 'direction' in result:result['direction']='phone_to_pc'
     return result
 
 
@@ -99,7 +102,7 @@ def requested_for(body,media_type,*,to_phone=False):
         raise ValueError('complete media scope required')
     values=effective(body)
     return values['enabled'] and values['photos_enabled' if media_type=='images' else 'videos_enabled'] and (
-        not to_phone or values['direction']=='two_way')
+        values['direction'] in (('two_way','pc_to_phone') if to_phone else ('two_way','phone_to_pc')))
 
 
 def validate_start(body):

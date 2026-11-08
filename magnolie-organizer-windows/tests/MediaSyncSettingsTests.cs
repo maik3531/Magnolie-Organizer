@@ -24,6 +24,24 @@ internal static class MediaSyncSettingsTests
             defaults["collection_mode"]!.GetValue<string>() == "phone_inventory" && defaults["direction"]!.GetValue<string>() == "phone_to_pc",
             "Media intent did not preserve the requested new defaults or enabled a data permission.");
         TestAssert.That(!MediaSyncSettings.RequestedFor(initial, "images") && !MediaSyncSettings.RequestedFor(initial, "video"), "The disabled master switch left a media domain requested.");
+        foreach (var scope in new[] { "phone_inventory", "entire_collection", "import_only" })
+        foreach (var direction in new[] { "phone_to_pc", "two_way", "pc_to_phone" })
+        {
+            var choices = MediaSyncSettings.Change(initial, Pc, Phone, "enabled", JsonValue.Create(true)!);
+            choices = MediaSyncSettings.Change(choices, Pc, Phone, "collection_mode", JsonValue.Create(scope)!);
+            choices = MediaSyncSettings.Change(choices, Pc, Phone, "direction", JsonValue.Create(direction)!);
+            var before = choices.ToJsonString(); var activeDirection = scope == "import_only" ? "phone_to_pc" : direction;
+            TestAssert.That(MediaSyncSettings.Effective(choices)["direction"]!.GetValue<string>() == activeDirection &&
+                MediaSyncSettings.TransferRequestedFor(choices, "images", false) == (activeDirection is "phone_to_pc" or "two_way") &&
+                MediaSyncSettings.TransferRequestedFor(choices, "images", true) == (activeDirection is "pc_to_phone" or "two_way"),
+                "Scope/direction transfer matrix changed: " + scope + "/" + direction);
+            TestAssert.That(choices.ToJsonString() == before && choices["settings"]!["direction"]![Pc]!["value"]!.GetValue<string>() == direction,
+                "Effective import mode overwrote the saved direction choice.");
+            var restored = MediaSyncSettings.Change(choices, Pc, Phone, "collection_mode", JsonValue.Create("phone_inventory")!);
+            TestAssert.That(MediaSyncSettings.Effective(restored)["direction"]!.GetValue<string>() == direction &&
+                JsonNode.DeepEquals(restored["settings"]!["direction"], choices["settings"]!["direction"]),
+                "Changing scope rewrote the independent direction clock.");
+        }
         var activated = MediaSyncSettings.Change(initial, Pc, Phone, "enabled", JsonValue.Create(true)!);
         TestAssert.That(MediaSyncSettings.RequestedFor(activated, "images") && !MediaSyncSettings.RequestedFor(activated, "video") &&
             activated["settings"]!["photos_enabled"]![Pc]!["counter"]!.GetValue<int>() == 0,

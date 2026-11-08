@@ -40,6 +40,23 @@ class MediaSyncSettingsTest {
         assertEquals(0L, active.getValue("settings").jsonObject.getValue("photos_enabled").jsonObject.getValue(pc).jsonObject.getValue("counter").jsonPrimitive.long)
     }
 
+    @Test fun scopeDirectionMatrixRetainsIndependentChoiceAndImportNeverExports() {
+        for (scope in listOf("phone_inventory", "entire_collection", "import_only"))
+        for (direction in listOf("phone_to_pc", "two_way", "pc_to_phone")) {
+            var body = MediaSyncSettings.change(MediaSyncSettings.create(pc), pc, phone, "enabled", JsonPrimitive(true))
+            body = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive(scope))
+            body = MediaSyncSettings.change(body, pc, phone, "direction", JsonPrimitive(direction))
+            val before = body.toString(); val activeDirection = if (scope == "import_only") "phone_to_pc" else direction
+            assertEquals(JsonPrimitive(activeDirection), MediaSyncSettings.effective(body)["direction"])
+            assertEquals(activeDirection in setOf("phone_to_pc", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", false))
+            assertEquals(activeDirection in setOf("pc_to_phone", "two_way"), MediaSyncSettings.transferRequestedFor(body, "images", true))
+            assertEquals(before, body.toString())
+            val restored = MediaSyncSettings.change(body, pc, phone, "collection_mode", JsonPrimitive("phone_inventory"))
+            assertEquals(JsonPrimitive(direction), MediaSyncSettings.effective(restored)["direction"])
+            assertEquals(body.getValue("settings").jsonObject["direction"], restored.getValue("settings").jsonObject["direction"])
+        }
+    }
+
     @Test fun independentOfflineEditsMergeWithoutChangingInputsOrDependingOnOrder() {
         val initial = MediaSyncSettings.create(pc); val original = initial.toString()
         val left = MediaSyncSettings.change(initial, pc, phone, "photos_enabled", JsonPrimitive(true))

@@ -72,7 +72,7 @@ internal sealed partial class TelefonConnection
             if (intent is not null || choice.SharedIntent is not null || MediaSharedControlsReady)
             {
                 if (intent is null || !JsonNode.DeepEquals(intent, choice.SharedIntent) || !MediaSharedSettingsReady ||
-                    !MediaSyncSettings.RequestedFor(intent, choice.MediaType))
+                    !MediaSyncSettings.TransferRequestedFor(intent, choice.MediaType, toPhone: false))
                     throw DeviceFileControl.Error("file_sources_shared_media_intent_changed");
             }
             if (!(choice.MediaType == "video" ? choice.Preferences.VideosEnabled : choice.Preferences.PhotosEnabled) || choice.Destination is null)

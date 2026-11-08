@@ -30,7 +30,7 @@ internal static class MediaSyncSettings
     {
         ["photos_enabled"] = "custom_enabled", ["videos_enabled"] = "time_enabled",
         ["auto_mode"] = "auto_mode", ["skip_deletions"] = "skip_deletions",
-        ["collection_mode"] = "content_mode", ["direction"] = "time_mode", ["enabled"] = "custom_enabled"
+        ["collection_mode"] = "content_mode", ["direction"] = "content_mode", ["enabled"] = "custom_enabled"
     };
 
     private static JsonNode? SettingValue(string field, JsonNode? value, bool toRegisters)
@@ -42,12 +42,16 @@ internal static class MediaSyncSettings
         {
             ("collection_mode", true, "phone_inventory") => "phone_scope",
             ("collection_mode", true, "entire_collection") => "two_way",
+            ("collection_mode", true, "import_only") => "phone_import",
             ("collection_mode", false, "phone_scope") => "phone_inventory",
             ("collection_mode", false, "two_way") => "entire_collection",
+            ("collection_mode", false, "phone_import") => "import_only",
             ("direction", true, "phone_to_pc") => "phone_import",
             ("direction", true, "two_way") => "two_way",
+            ("direction", true, "pc_to_phone") => "phone_scope",
             ("direction", false, "phone_import") => "phone_to_pc",
             ("direction", false, "two_way") => "two_way",
+            ("direction", false, "phone_scope") => "pc_to_phone",
             ("auto_mode", _, "manual") => "manual",
             ("auto_mode", _, "wifi") => "wifi",
             _ => throw new InvalidDataException("media_shared_settings_invalid_mode")
@@ -120,7 +124,17 @@ internal static class MediaSyncSettings
             result["auto_mode"] = modes.Any(edit => TelefonProtocolContract.Integer(edit.Value!["counter"]) == newest &&
                 edit.Value!["value"]!.GetValue<string>() == "manual") ? "manual" : "wifi";
         }
+        // Import scope never exports; returning to an inventory scope retains
+        // the independently stored direction and its original edit history.
+        if (result["collection_mode"]?.GetValue<string>() == "import_only" && result.ContainsKey("direction")) result["direction"] = "phone_to_pc";
         return result;
+    }
+
+    internal static bool TransferRequestedFor(JsonObject body, string mediaType, bool toPhone)
+    {
+        if (!RequestedFor(body, mediaType)) return false;
+        var direction = Effective(body)["direction"]!.GetValue<string>();
+        return direction == "two_way" || direction == (toPhone ? "pc_to_phone" : "phone_to_pc");
     }
 
     internal static bool RequestedFor(JsonObject body, string mediaType)
