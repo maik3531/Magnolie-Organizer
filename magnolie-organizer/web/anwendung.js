@@ -30828,11 +30828,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   const medienPapierkorb = { supported: null, entries: [], total: 0, next: null, pending: null, error: false };
+  const medienVorschaubilder = new Map();
+  let medienVorschauWartend = [], medienVorschauBeobachter = null, medienVorschauSchliessen = null;
+  const medienVorschauSchluessel = entry => entry.scope + "." + entry.operation + "." + entry.version;
+
+  function starteMedienVorschaubilder() {
+    const root = $("#medien-papierkorb"), oben = modalStapel.at(-1);
+    if (gesperrt || medienPapierkorb.pending || !root?.isConnected || (oben && !oben.dialog.contains(root))) return;
+    while (medienVorschauWartend.length) {
+      const entry = medienVorschauWartend.shift(), key = medienVorschauSchluessel(entry);
+      if (!medienPapierkorb.entries.includes(entry) || medienVorschaubilder.get(key)?.status !== "queued") continue;
+      medienPapierkorbAnfordern("thumbnail", entry); break;
+    }
+  }
+
+  function zeigeMedienPapierkorbVorschau(entry, preview) {
+    if (gesperrt || !medienPapierkorb.entries.includes(entry)) return;
+    medienVorschauSchliessen?.(false);
+    const schleier = el("div", "eingabe-schleier medien-vorschau-schleier"); schleier.id = "medien-vorschau-schleier";
+    const dialog = el("div", "eingabe-dialog medien-vorschau-dialog");
+    const titel = el("h3", null, entry.name + " · " + _("Preview")); titel.id = "medien-vorschau-titel";
+    dialog.setAttribute("aria-labelledby", titel.id);
+    const bild = document.createElement("img"); bild.className = "medien-vorschau-bild"; bild.alt = entry.name;
+    bild.src = preview.src; bild.width = preview.width; bild.height = preview.height;
+    const schliessen = (weiter = true) => {
+      bild.removeAttribute("src"); beendeModal(schleier); schleier.remove(); medienVorschauSchliessen = null;
+      if (weiter) starteMedienVorschaubilder();
+    };
+    const knoepfe = el("div", "dialog-knoepfe");
+    const restore = knopf(_("Restore"), "", () => {
+      if (gesperrt || medienPapierkorb.pending || !medienPapierkorb.entries.includes(entry)) return;
+      schliessen(false); medienPapierkorbAnfordern("restore", entry);
+    }); restore.dataset.mediaPreviewRestore = entry.operation; knoepfe.append(restore);
+    if (["trashed", "purge_prepared"].includes(entry.state)) {
+      const purge = knopf(_("Delete permanently"), "", () => { schliessen(false); medienPapierkorbEndgueltig(entry); });
+      purge.dataset.mediaPreviewPurge = entry.operation; knoepfe.append(purge);
+    }
+    const close = knopf(_("Close"), "", () => schliessen()); knoepfe.append(close);
+    dialog.append(titel, bild, knoepfe); schleier.append(dialog); document.body.append(schleier);
+    medienVorschauSchliessen = schliessen;
+    schleier.addEventListener("click", event => { if (event.target === schleier) schliessen(); });
+    registriereModal(schleier, dialog, { anfang: close, schliessen: () => schliessen() });
+  }
 
   function verwerfeMedienPapierkorb() {
     if (medienPapierkorb.pending) clearTimeout(medienPapierkorb.pending.timer);
+    medienVorschauSchliessen?.(false); medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
+    medienVorschauWartend = []; medienVorschaubilder.clear();
     Object.assign(medienPapierkorb, { supported: null, entries: [], total: 0, next: null, pending: null, error: false });
-    const root = $("#medien-papierkorb"); if (root) { root.replaceChildren(); root.hidden = true; }
+    const root = $("#medien-papierkorb"); if (root) {
+      root.querySelectorAll("img").forEach(bild => bild.removeAttribute("src"));
+      root.replaceChildren(); root.hidden = true;
+    }
   }
 
   function medienPapierkorbAnfordern(action = "list", entry = null, cursor = 0) {
@@ -30841,11 +30888,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (action === "list") request.cursor = cursor;
     else Object.assign(request, { scope: entry.scope, operation: entry.operation, version: entry.version });
     if (action === "purge") request.confirmed = true;
-    const pending = { request_id, action, entry, cursor, timer: null };
-    medienPapierkorb.pending = pending; medienPapierkorb.error = false;
+    const vorschau = ["thumbnail", "preview"].includes(action);
+    if (vorschau && !medienPapierkorb.entries.includes(entry)) return;
+    const pending = { request_id, action, entry, cursor, timer: null, root: $("#medien-papierkorb") };
+    medienPapierkorb.pending = pending; if (!vorschau) medienPapierkorb.error = false;
+    if (action === "thumbnail") medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "pending" });
     pending.timer = setTimeout(() => {
       if (medienPapierkorb.pending !== pending) return;
-      medienPapierkorb.pending = null; medienPapierkorb.error = true; zeichneMedienPapierkorb();
+      medienPapierkorb.pending = null;
+      if (action === "thumbnail") medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "failed" });
+      else if (action === "preview") zettel(_("Preview") + " · " + _("Failed"));
+      else medienPapierkorb.error = true;
+      zeichneMedienPapierkorb(); starteMedienVorschaubilder();
     }, 65000);
     Bruecke.sende(request); zeichneMedienPapierkorb();
   }
@@ -30856,13 +30910,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const yes = await frage(entry.name + "\n\n" + uebersetztMehrzahl(
       "Permanently delete the one item? This cannot be undone.",
       "Permanently delete all %(count)s items? This cannot be undone.", 1), _("Delete permanently"));
-    if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) return;
+    if (!yes || gesperrt || medienPapierkorb.pending || medienPapierkorb.entries !== rows || !rows.includes(entry)) { starteMedienVorschaubilder(); return; }
     medienPapierkorbAnfordern("purge", entry);
   }
 
   function zeichneMedienPapierkorb() {
     const root = $("#medien-papierkorb");
     if (!root) return;
+    medienVorschauBeobachter?.disconnect(); medienVorschauBeobachter = null;
+    if (typeof IntersectionObserver === "function") medienVorschauBeobachter = new IntersectionObserver(items => {
+      for (const item of items) {
+        if (!item.isIntersecting) continue;
+        const entry = medienPapierkorb.entries.find(row => medienVorschauSchluessel(row) === item.target.dataset.mediaThumbnailKey);
+        if (!entry || medienVorschaubilder.has(medienVorschauSchluessel(entry))) continue;
+        medienVorschaubilder.set(medienVorschauSchluessel(entry), { status: "queued" }); medienVorschauWartend.push(entry);
+      }
+      starteMedienVorschaubilder();
+    });
     root.replaceChildren(); root.hidden = medienPapierkorb.supported !== true;
     const stand = $("#papierkorb-stand");
     if (stand) stand.hidden = !DATEN.papierkorb.length && medienPapierkorb.supported === true && (medienPapierkorb.total > 0 || medienPapierkorb.error);
@@ -30878,6 +30942,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const list = el("div", "papierkorb-liste");
     for (const entry of medienPapierkorb.entries) {
       const row = el("div", "pk-zeile"); row.dataset.mediaOperation = entry.operation; row.dataset.mediaType = entry.media_type;
+      const thumbnail = medienVorschaubilder.get(medienVorschauSchluessel(entry));
+      const ansehen = knopf(_("Preview"), "medien-papierkorb-vorschau", () => medienPapierkorbAnfordern("preview", entry));
+      ansehen.dataset.mediaPreview = entry.operation; ansehen.dataset.mediaThumbnailKey = medienVorschauSchluessel(entry);
+      ansehen.disabled = !!medienPapierkorb.pending; ansehen.title = entry.name + " · " + _("Preview");
+      if (thumbnail?.status === "ready") {
+        ansehen.replaceChildren(); const bild = document.createElement("img"); bild.src = thumbnail.src; bild.alt = entry.name; ansehen.append(bild);
+      } else if (thumbnail?.status === "failed") ansehen.title += " · " + _("Failed");
+      row.append(ansehen); medienVorschauBeobachter?.observe(ansehen);
       row.append(el("span", "pk-name", entry.name));
       if (entry.state !== "trashed") row.append(el("span", "pk-wann", _("Pending recovery")));
       const restore = knopf(_("Restore"), "klein", () => medienPapierkorbAnfordern("restore", entry));
@@ -30904,11 +30976,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (gesperrt) { verwerfeMedienPapierkorb(); return; }
     if (!pending || value?.request_id !== pending.request_id) return;
     clearTimeout(pending.timer); medienPapierkorb.pending = null;
-    if (value.supported === false) {
+    if (value.supported === false && !["thumbnail", "preview"].includes(pending.action)) {
+      medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
       Object.assign(medienPapierkorb, { supported: false, entries: [], total: 0, next: null, error: false });
       zeichneMedienPapierkorb(); return;
     }
     medienPapierkorb.supported = value.supported === true || medienPapierkorb.supported;
+    if (["thumbnail", "preview"].includes(pending.action)) {
+      const entry = pending.entry, preview = value.preview, maximum = pending.action === "thumbnail" ? 192 : 1024;
+      const valid = value.ok === true && value.supported === true && value.action === pending.action && value.scope === entry.scope && value.operation === entry.operation && value.version === entry.version &&
+        medienPapierkorb.entries.includes(entry) && preview && ["image/png", "image/jpeg"].includes(preview.mime_type) &&
+        Number.isSafeInteger(preview.width) && Number.isSafeInteger(preview.height) && preview.width > 0 && preview.height > 0 && Math.max(preview.width, preview.height) <= maximum &&
+        typeof preview.data_base64 === "string" && preview.data_base64.length > 0 && preview.data_base64.length <= 699052 && preview.data_base64.length % 4 === 0 &&
+        /^[A-Za-z0-9+/]+={0,2}$/.test(preview.data_base64) && (preview.mime_type === "image/png" ? preview.data_base64.startsWith("iVBORw0KGgo") : preview.data_base64.startsWith("/9j/"));
+      const result = valid ? { status: "ready", src: "data:" + preview.mime_type + ";base64," + preview.data_base64, width: preview.width, height: preview.height } : { status: "failed" };
+      if (pending.action === "thumbnail") {
+        medienVorschaubilder.set(medienVorschauSchluessel(entry), result);
+        const ready = [...medienVorschaubilder].filter(([, value]) => value.status === "ready");
+        for (const [key] of ready.slice(0, Math.max(0, ready.length - 48))) medienVorschaubilder.set(key, { status: "evicted" });
+      }
+      zeichneMedienPapierkorb();
+      if (pending.action === "preview" && pending.root?.isConnected && pending.root === $("#medien-papierkorb")) {
+        if (valid) zeigeMedienPapierkorbVorschau(entry, result); else zettel(_("Preview") + " · " + _("Failed"));
+      }
+      starteMedienVorschaubilder(); return;
+    }
     const fail = () => { medienPapierkorb.error = true; zeichneMedienPapierkorb(); };
     if (value.ok !== true || value.action !== pending.action) { fail(); return; }
     if (pending.action !== "list") {
@@ -30936,6 +31028,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       fail(); return;
     }
     const rows = pending.cursor ? medienPapierkorb.entries.slice() : [];
+    if (!pending.cursor) {
+      medienVorschauSchliessen?.(false); medienVorschaubilder.clear(); medienVorschauWartend = [];
+    }
     for (const entry of value.entries) {
       const index = rows.findIndex(old => old.scope === entry.scope && old.operation === entry.operation);
       if (index >= 0) rows[index] = entry; else rows.push(entry);
