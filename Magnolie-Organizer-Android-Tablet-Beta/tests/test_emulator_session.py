@@ -316,7 +316,21 @@ class LifecycleTest(unittest.TestCase):
         with patch.object(session,'prepare_test_process') as prepare, patch.object(session,'adb',side_effect=proof):
             for stage in session.STAGES: session.run_test(session.Owner(),{},stage,12)
         self.assertEqual([call.args[2] for call in prepare.call_args_list],
-                         ['basics','restart','layout','time','navigation'])
+                         ['basics','restart','layout','time','navigation','calendar-files'])
+
+    def test_native_suites_execute_through_owner_stage_contract(self):
+        spec = importlib.util.spec_from_file_location('native_checks', session.ROOT / 'tools/native-checks.py')
+        native = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native)
+        def proof(owner, state, args, timeout):
+            stage = args[args.index('stage')+1]
+            return 'INSTRUMENTATION_RESULT: stream='+json.dumps(dict(stage=stage, passed=True, sourceHash='current'))+'\nINSTRUMENTATION_CODE: -1'
+        with patch.object(session, 'prepare_test_process'), patch.object(session, 'adb', side_effect=proof):
+            for stages in native.SUITES.values():
+                for stage in stages:
+                    owner = session.Owner()
+                    session.run_test(owner, {'expectedSourceHash':'current'}, stage, 120)
+                    self.assertEqual(owner.state['phase'], 'test-passed')
 
     def test_timeout_preserves_partial_tempfile_output_and_original_exception(self):
         for failure in (session.Deadline('original deadline'), session.Stopped('original stop')):
