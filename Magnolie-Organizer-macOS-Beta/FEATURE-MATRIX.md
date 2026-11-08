@@ -3,9 +3,10 @@
 Updated 2026-11-08 (2.0.30 projection and native candidate verification).
 The target remains the same UI and functionality as the current
 Linux/Windows Organizer. This phase does **not** achieve native feature parity.
-Native builds, ad-hoc signing, core and WKWebView tests passed on macOS 15
-for arm64 and x86_64 (Actions run 42476270839). The real bundle lifecycle smoke
-timed out on both; full application acceptance remains pending. Linux host tests
+Native builds, ad-hoc signing, core/WKWebView tests and the real bundle lifecycle
+smoke passed on macOS 15 for arm64 and x86_64 (Actions run 42478388184). The smoke
+verifies first save, normal quit, reopen, a second atomic save and strict whole-data
+equality. Full application/feature acceptance remains pending. Linux host tests
 alone do not establish macOS behavior.
 
 ## Local Features

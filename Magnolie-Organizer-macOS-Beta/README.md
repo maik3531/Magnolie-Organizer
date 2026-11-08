@@ -1,10 +1,12 @@
 # Magnolie Organizer macOS Beta
 
 Parallel development port, not a production release and not feature-equivalent to
-the Linux/Windows native applications. Native builds, ad-hoc signing, core tests
-and the WKWebView test passed on macOS 15 for Apple Silicon and Intel in Actions
-run 42476270839. The real bundled-app lifecycle smoke timed out on both platforms;
-application readiness and full acceptance remain unverified. Do not use the only
+the Linux/Windows native applications. Native builds, ad-hoc signing, core/WKWebView tests and the real bundled-app
+start/save/quit/reopen/data-preservation smoke passed on macOS 15 for Apple Silicon
+and Intel in [Actions run 42478388184](https://github.com/maik3531/Magnolie-Organizer/actions/runs/42478388184).
+The two development candidates include source provenance, checksums and native
+evidence. This validates the local startup/persistence workflow; full feature,
+permission, upgrade, accessibility and distribution acceptance remains incomplete. Do not use the only
 copy of important data with this Beta.
 
 The canonical directory is `Magnolie-Organizer-macOS-Beta` beside the existing
