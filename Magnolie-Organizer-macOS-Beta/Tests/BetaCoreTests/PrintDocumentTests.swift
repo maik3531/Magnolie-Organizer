@@ -25,91 +25,65 @@ final class PrintDocumentTests: XCTestCase {
 
 #if os(macOS)
 import AppKit
-import WebKit
 import PDFKit
-import Network
+import Darwin
 
-private final class PrintConnectionCount: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
-    func record() { lock.lock(); defer { lock.unlock() }; count += 1 }
-    func value() -> Int { lock.lock(); defer { lock.unlock() }; return count }
-}
-
-private final class PrintListenerReady: @unchecked Sendable {
-    private let lock = NSLock()
-    private var pending: CheckedContinuation<Void, Error>?
-    init(_ continuation: CheckedContinuation<Void, Error>) { pending = continuation }
-    @discardableResult func finish(_ error: Error? = nil) -> Bool {
-        lock.lock(); let continuation = pending; pending = nil; lock.unlock()
-        guard let continuation else { return false }
-        if let error { continuation.resume(throwing: error) } else { continuation.resume() }
-        return true
-    }
-}
+private struct PrintProbeResult { let status: Int32; let timedOut: Bool; let cleanupFinished: Bool }
 
 final class NativePrintTests: XCTestCase {
-    @MainActor func testIsolatedRendererAndRealAppKitPdfOutput() async throws {
+    func testIsolatedRendererAndRealAppKitPdfOutput() async throws {
         guard let fixture = ProcessInfo.processInfo.environment["MACOS_BETA_EDITOR_FIXTURES"] else {
             throw XCTSkip("Actual shared print fixture is supplied by tools/check_editor.py on the Mac runner.")
         }
-        let records = try Document.object(String(contentsOfFile: fixture, encoding: .utf8))
-        let canonical = try XCTUnwrap(records["printHTML"] as? String)
-        _ = NSApplication.shared
-        let listener = try NWListener(using: .tcp, on: .any)
-        let connections = PrintConnectionCount()
-        listener.newConnectionHandler = { connection in
-            connections.record(); connection.cancel()
-        }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let ready = PrintListenerReady(continuation)
-            listener.stateUpdateHandler = { state in
-                switch state {
-                case .ready: ready.finish()
-                case .failed(let error): ready.finish(error)
-                default: break
-                }
-            }
-            listener.start(queue: DispatchQueue(label: "magnolie-print-test-listener"))
-            DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
-                if ready.finish(BetaError("Native print test listener did not become ready.")) { listener.cancel() }
-            }
-        }
-        defer { listener.cancel() }
-        let port = try XCTUnwrap(listener.port).rawValue
+        let helper = Bundle(for: NativePrintTests.self).bundleURL.deletingLastPathComponent().appendingPathComponent("PrintNativeProbe")
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: helper.path), "SPM must build the native print test-support executable")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let local = directory.appendingPathComponent("private-test.html")
-        try "LOCAL_FILE_MUST_NOT_RENDER".write(to: local, atomically: true, encoding: .utf8)
-        let renderer = PrintRenderer()
-        XCTAssertFalse(renderer.webView.configuration.websiteDataStore.isPersistent)
-        XCTAssertFalse(renderer.webView.configuration.defaultWebpagePreferences.allowsContentJavaScript)
-        XCTAssertTrue(renderer.webView.configuration.userContentController.userScripts.isEmpty)
-        let probes = """
-        <script>document.body.append('SCRIPT_MUST_NOT_RUN'); window.printProbe = true;</script>
-        <img id="inline" width="24" height="24" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j6WQAAAAASUVORK5CYII=">
-        <img id="remote" src="http://127.0.0.1:\(port)/must-not-request.png">
-        <iframe src="\(local.absoluteString)"></iframe>
-        """
-        let html = canonical.replacingOccurrences(of: "</body>", with: probes + "</body>")
-        try await renderer.load(html)
-        let mode = try await renderer.webView.evaluateJavaScript("document.compatMode")
-        XCTAssertEqual(mode as? String, "CSS1Compat", "The actual canonical print page must retain standards layout")
-        let image = try await renderer.webView.evaluateJavaScript("const image=document.getElementById('inline'); [image.naturalWidth,image.getBoundingClientRect().width,image.getBoundingClientRect().height]")
-        XCTAssertEqual(image as? [Int], [1,24,24], "Embedded image and its print geometry must survive isolation")
-        try await Task.sleep(nanoseconds: 200_000_000)
-        XCTAssertEqual(connections.value(), 0, "Printing must not fetch even a reachable loopback image")
-        let destination = directory.appendingPathComponent("actual-appkit-output.pdf")
-        let info = try XCTUnwrap(NSPrintInfo.shared.copy() as? NSPrintInfo)
-        info.paperSize = NSSize(width: 595.2756, height: 841.8898)
-        info.jobDisposition = .save
-        info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = destination
-        let operation = renderer.webView.printOperation(with: info)
-        operation.showsPrintPanel = false
-        operation.showsProgressPanel = false
-        XCTAssertTrue(operation.run(), "Exercise the actual AppKit print-to-PDF engine")
-        let bytes = try Data(contentsOf: destination)
+        let result: PrintProbeResult = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                let child = Process()
+                child.executableURL = helper
+                child.arguments = [fixture, directory.path]
+                child.standardOutput = FileHandle.nullDevice
+                child.standardError = FileHandle.nullDevice
+                let terminated = DispatchSemaphore(value: 0)
+                child.terminationHandler = { _ in terminated.signal() }
+                do { try child.run() } catch { continuation.resume(throwing: error); return }
+                let timeout = terminated.wait(timeout: .now() + 28) == .timedOut
+                if timeout && child.isRunning {
+                    child.terminate() // Exact direct child; never a global process lookup.
+                    if terminated.wait(timeout: .now() + 1) == .timedOut && child.isRunning {
+                        _ = Darwin.kill(child.processIdentifier, SIGKILL)
+                        _ = terminated.wait(timeout: .now() + 1)
+                    }
+                }
+                let cleaned = !child.isRunning
+                if cleaned { child.waitUntilExit() }
+                continuation.resume(returning: PrintProbeResult(status: cleaned ? child.terminationStatus : -1,
+                    timedOut: timeout, cleanupFinished: cleaned))
+            }
+        }
+        XCTAssertTrue(result.cleanupFinished, "Owned print probe must terminate and reap")
+        XCTAssertFalse(result.timedOut, "Native print probe exceeded its 30-second deadline including cleanup")
+        let proofURL = directory.appendingPathComponent("proof.json")
+        if !FileManager.default.fileExists(atPath: proofURL.path) {
+            XCTFail("Native print probe produced no completion proof; status=\(result.status)"); return
+        }
+        let data = try Data(contentsOf: proofURL)
+        XCTAssertLessThan(data.count, 8192)
+        let proof = try Document.object(String(decoding: data, as: UTF8.self))
+        XCTAssertEqual(result.status, 0, "Native print phase: \(proof["phase"] as? String ?? "unknown")")
+        XCTAssertEqual(proof["ok"] as? Bool, true)
+        for key in ["ephemeral", "contentJavaScriptDisabled", "noInjectedScripts", "scriptAbsent", "bridgeAbsent"] {
+            XCTAssertEqual(proof[key] as? Bool, true, key)
+        }
+        XCTAssertEqual(proof["compatMode"] as? String, "CSS1Compat")
+        XCTAssertEqual(proof["imageGeometry"] as? [Int], [1,24,24])
+        XCTAssertEqual(proof["fontStatus"] as? String, "loaded")
+        XCTAssertEqual(proof["networkRequests"] as? Int, 0)
+        XCTAssertEqual(proof["paperOutputConfirmed"] as? Bool, false)
+        let bytes = try Data(contentsOf: directory.appendingPathComponent("actual-appkit-output.pdf"))
         XCTAssertTrue(bytes.starts(with: Data("%PDF-".utf8)))
         let pdf = try XCTUnwrap(PDFDocument(data: bytes))
         XCTAssertEqual(pdf.pageCount, 1)
@@ -121,7 +95,7 @@ final class NativePrintTests: XCTestCase {
         XCTAssertTrue(text.contains("PDF evidence 2.0.30"))
         XCTAssertFalse(text.contains("SCRIPT_MUST_NOT_RUN"))
         XCTAssertFalse(text.contains("LOCAL_FILE_MUST_NOT_RENDER"))
-        // Saving a PDF verifies the renderer/print engine, not manual OS print-panel acceptance.
+        // Real AppKit PDF-engine evidence does not establish manual OS-panel/paper acceptance.
     }
 }
 #endif

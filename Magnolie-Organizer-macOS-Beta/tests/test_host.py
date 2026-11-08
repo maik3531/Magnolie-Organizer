@@ -10,13 +10,45 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 BETA = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BETA / "tools"))
 import project_ui as projection
 import crypto_vectors
 import bridge_coverage
+import check_editor
+
+
+class SwiftChildLifecycleTests(unittest.TestCase):
+    def test_timeout_kills_only_owned_group_and_preserves_failure(self):
+        child = Mock(pid=7654321)
+        child.wait.side_effect = [subprocess.TimeoutExpired(['swift'],270),
+                                 subprocess.TimeoutExpired(['swift'],2),  -9]
+        with patch.object(check_editor.subprocess,'Popen',return_value=child) as spawn, patch.object(check_editor.os,'killpg') as terminate:
+            with self.assertRaises(subprocess.TimeoutExpired) as failure:
+                check_editor.run_swift(['swift','test'],{})
+        self.assertEqual(failure.exception.timeout,270)
+        self.assertTrue(spawn.call_args.kwargs['start_new_session'])
+        self.assertEqual([call.args for call in terminate.call_args_list],
+                         [(7654321,check_editor.signal.SIGTERM),(7654321,check_editor.signal.SIGKILL)])
+        self.assertEqual(child.wait.call_args.kwargs['timeout'],2)
+
+    def test_terminated_leader_does_not_leave_owned_group_grandchildren(self):
+        child = Mock(pid=7654321)
+        child.wait.side_effect = [subprocess.TimeoutExpired(['swift'],270), -15, -15]
+        with patch.object(check_editor.subprocess,'Popen',return_value=child), patch.object(check_editor.os,'killpg') as terminate:
+            with self.assertRaises(subprocess.TimeoutExpired): check_editor.run_swift(['swift','test'],{})
+        self.assertEqual([call.args for call in terminate.call_args_list],
+                         [(7654321,check_editor.signal.SIGTERM),(7654321,check_editor.signal.SIGKILL)])
+
+    def test_timeout_tail_keeps_only_fixed_technical_test_state(self):
+        text = "Test Case '-[BetaCoreTests.NativePrintTests testPdf]' started.\nprivate profile value\nNative print phase: appkit-print\nNative print phase: private record"
+        result = check_editor.technical_swift_tail(text)
+        self.assertIn('testPdf',result)
+        self.assertIn('Native print phase: appkit-print',result)
+        self.assertNotIn('private',result)
+        self.assertLessEqual(len(check_editor.technical_swift_tail(text*1000)),4096)
 
 
 class ProjectionTests(unittest.TestCase):

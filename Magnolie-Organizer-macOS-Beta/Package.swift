@@ -8,7 +8,8 @@ let package = Package(
     targets: [
         .target(name: "BetaCore"),
         .executableTarget(name: "MacBeta", dependencies: ["BetaCore"]),
-        .testTarget(name: "BetaCoreTests", dependencies: ["BetaCore"],
+        .executableTarget(name: "PrintNativeProbe", dependencies: ["BetaCore"]),
+        .testTarget(name: "BetaCoreTests", dependencies: ["BetaCore", "PrintNativeProbe"],
                     resources: [.copy("Fixtures")])
     ]
 )
